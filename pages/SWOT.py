@@ -3,6 +3,7 @@
 import streamlit as st
 from dotenv import load_dotenv
 from utils_openai import chat_gpt  # or any AI helper function
+import pdfkit
 
 load_dotenv()
 
@@ -83,7 +84,7 @@ def swot_page():
             ai_text = ai_suggest_swot("Strengths")
             if ai_text:
                 st.session_state["swot_strengths"] += "\n" + ai_text
-                st.success("Appended AI suggestions to Strengths.")
+                st.experimental_rerun()
 
     st.markdown("---")
 
@@ -105,7 +106,7 @@ def swot_page():
             ai_text = ai_suggest_swot("Weaknesses")
             if ai_text:
                 st.session_state["swot_weaknesses"] += "\n" + ai_text
-                st.success("Appended AI suggestions to Weaknesses.")
+                st.experimental_rerun()
 
     st.markdown("---")
 
@@ -127,7 +128,7 @@ def swot_page():
             ai_text = ai_suggest_swot("Opportunities")
             if ai_text:
                 st.session_state["swot_opportunities"] += "\n" + ai_text
-                st.success("Appended AI suggestions to Opportunities.")
+                st.experimental_rerun()
 
     st.markdown("---")
 
@@ -149,7 +150,7 @@ def swot_page():
             ai_text = ai_suggest_swot("Threats")
             if ai_text:
                 st.session_state["swot_threats"] += "\n" + ai_text
-                st.success("Appended AI suggestions to Threats.")
+                st.experimental_rerun()
 
     st.markdown("---")
 
@@ -205,9 +206,88 @@ def swot_page():
             strategies_text = ai_suggest_strategies()
             if strategies_text:
                 st.session_state["swot_strategies"] += "\n" + strategies_text
-                st.success("Appended AI strategies to the text area.")
+                st.experimental_rerun()
 
     st.markdown("---")
+
+    # Export to PDF
+    st.subheader("Export SWOT Analysis as PDF")
+
+    def create_swot_html_report(strengths, weaknesses, opportunities, threats):
+        """Generate an HTML snippet showing the SWOT analysis in a report format."""
+        def to_list(text):
+            if ";" in text:
+                items = [x.strip() for x in text.split(";") if x.strip()]
+            else:
+                items = [x.strip() for x in text.split("\n") if x.strip()]
+            bullet_html = "".join(f"<li>{item}</li>" for item in items)
+            return bullet_html or "<li>(None)</li>"
+
+        strengths_html = to_list(strengths)
+        weaknesses_html = to_list(weaknesses)
+        opportunities_html = to_list(opportunities)
+        threats_html = to_list(threats)
+
+        html = f"""
+        <html>
+        <head>
+          <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            h2   {{ text-align: center; }}
+            table{{ width: 100%; border-collapse: collapse; }}
+            td   {{ border: 1px solid #ddd; vertical-align: top; padding: 10px; }}
+            th   {{ border: 1px solid #ddd; background: #f2f2f2; padding: 10px; }}
+            ul   {{ margin: 0; padding: 0 0 0 20px; }}
+          </style>
+        </head>
+        <body>
+          <h2>SWOT Analysis Report</h2>
+          <table>
+            <tr>
+              <th>Strengths</th>
+              <th>Weaknesses</th>
+            </tr>
+            <tr>
+              <td><ul>{strengths_html}</ul></td>
+              <td><ul>{weaknesses_html}</ul></td>
+            </tr>
+            <tr>
+              <th>Opportunities</th>
+              <th>Threats</th>
+            </tr>
+            <tr>
+              <td><ul>{opportunities_html}</ul></td>
+              <td><ul>{threats_html}</ul></td>
+            </tr>
+          </table>
+        </body>
+        </html>
+        """
+        return html
+
+    if st.button("Export SWOT Analysis to PDF"):
+        # Generate HTML from current SWOT data
+        swot_html = create_swot_html_report(
+            st.session_state["swot_strengths"],
+            st.session_state["swot_weaknesses"],
+            st.session_state["swot_opportunities"],
+            st.session_state["swot_threats"]
+        )
+
+        # Convert HTML to PDF in-memory using pdfkit (requires wkhtmltopdf installed)
+        try:
+            pdf_bytes = pdfkit.from_string(swot_html, False)  # False => returns bytes
+            # Provide download
+            st.download_button(
+                label="Download SWOT Analysis PDF",
+                data=pdf_bytes,
+                file_name="SWOT-Analysis.pdf",
+                mime="application/pdf"
+            )
+        except Exception as e:
+            st.error(f"Error generating PDF. Is wkhtmltopdf installed? Details: {e}")
+
+    st.info("Use the 'Export to PDF' button to download your SWOT analysis as a PDF.")
 
     st.info("""
 **Done!**  
