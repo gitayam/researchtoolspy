@@ -59,12 +59,13 @@ def generate_advanced_query(search_query, search_platform, model="gpt-4o"):
             "Take into account the limits and syntax of Windows CMD Search and "
             "use only commands that do not require installation on the terminal.\n"
             "Output the exact command to run, do not output any additional explanation, "
-            "do not use markdown codeblocks."
+            "do not use markdown codeblocks or backticks."
         )
     else:
         additional_prompt = (
             "Start by considering what the data would look like... "
-            "Only output the advanced query, no additional explanation."
+            "Only output the advanced query, no additional explanation, "
+            "do not use markdown codeblocks or backticks."
         )
 
     messages = [
@@ -76,7 +77,7 @@ def generate_advanced_query(search_query, search_platform, model="gpt-4o"):
         messages=messages,
         max_tokens=250
     )
-    return response["choices"][0]["message"]["content"].strip()
+    return response["choices"][0]["message"]["content"].strip().replace("`", "")
 
 
 def generate_cog_questions(user_details, desired_end_state, custom_prompt="", model="gpt-4"):
