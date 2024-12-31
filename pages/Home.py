@@ -31,7 +31,7 @@ def home_page():
     model = None
     if selected_format == "Advanced Query":
         search_platform = st.selectbox("Search Platform", ["Google", "Microsoft Portal", "Windows CMD Search"], index=0)
-        model = st.selectbox("OpenAI Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
+        model = st.selectbox("OpenAI Model", ["gpt-4o", "gpt-4o-mini"], index=0)
 
     # File upload
     file_data = st.file_uploader("Upload CSV/JSON file(s)", accept_multiple_files=True)
