@@ -107,7 +107,8 @@ def home_page():
     if st.button("Process Data"):
         if selected_format == "Advanced Query":
             try:
-                output = generate_advanced_query(input_text, search_platform, model)
+                search_query = st.session_state.get("search_query", "")
+                output = generate_advanced_query(search_query, search_platform, model)
             except Exception as e:
                 st.error(f"Error generating advanced query: {e}")
         elif selected_format not in ["Image to Hash", "Process URLs"]:
