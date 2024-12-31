@@ -1,35 +1,88 @@
 # /researchtools_streamlit/pages/2_🔎_Frameworks.py
 
+import os
 import streamlit as st
+from dotenv import load_dotenv
 from utils_openai import generate_advanced_query
+from pages.COG import cog_analysis
+
+load_dotenv()
 
 def frameworks_page():
-    st.header("Frameworks")
+    st.title("Frameworks")
 
-    st.subheader("COG Analysis (AI-Guided)")
-    cog_input = st.text_area("Describe your scenario, conflict, or strategic objective here...")
-    if st.button("Generate COG Analysis"):
-        try:
-            result = generate_advanced_query(cog_input, "COG Analysis AI", "gpt-3.5-turbo")
-            st.success("AI Analysis Output:")
-            st.write(result)
-        except Exception as e:
-            st.error(f"Error generating COG Analysis: {e}")
+    # A dropdown to select which framework to show
+    frameworks_list = [
+        "COG Analysis (AI-Guided)",
+        "DIME",
+        "PMESII-PT",
+        "DOTMLPF"
+    ]
 
-    st.markdown("## COG Analysis")
-    st.write("COG (Center of Gravity) analysis is ...")
+    selected_framework = st.selectbox("Select a Framework", frameworks_list)
 
-    st.markdown("## Structured Analytic Techniques")
-    st.write("Structured analytic techniques are systematic...")
+    # Load environment vars but allow user override
+    default_problemset = os.getenv("AREA_OF_FOCUS", "")
+    default_constraints = os.getenv("CONSTRAINTS", "None")
+    default_restraints = os.getenv("RESTRAINTS", "None")
+    default_objective = os.getenv("OPERATIONAL_OBJECTIVE", "")
 
-    st.markdown("## DIME")
-    st.write("DIME stands for Diplomatic, Information, Military, and Economic...")
+ 
+    # Depending on which framework is selected, render dynamic content.
+    if selected_framework == "COG Analysis (AI-Guided)":
+        st.subheader("COG Analysis (AI-Guided)")
+        st.write("""
+        **Center of Gravity (COG)** analysis helps identify the primary source of strength or vulnerability 
+        for a friendly or adversarial force. It includes mapping critical vulnerabilities, capabilities, 
+        and critical requirements. 
+        """)
 
-    st.markdown("## PMESII-PT")
-    st.write("PMESII-PT is a framework for analyzing the operational environment...")
+        # Call the cog_analysis function from cog.py
+        cog_analysis()
 
-    st.markdown("## DOTMLPF")
-    st.write("DOTMLPF is a framework used by the military...")
+    elif selected_framework == "DIME":
+        st.subheader("DIME Framework")
+        st.write("""
+        **DIME** stands for **Diplomatic, Information, Military, and Economic**. 
+        It’s used to analyze and plan the application of national power in pursuit of strategic ends.
+        """)
+
+        st.write("""
+        **How to use**: Identify how each dimension (D/I/M/E) contributes to or hinders 
+        the desired objective in your current problemset.
+        """)
+
+    elif selected_framework == "PMESII-PT":
+        st.subheader("PMESII-PT Framework")
+        st.write("""
+        **PMESII-PT**: **Political, Military, Economic, Social, Information, 
+        Infrastructure, Physical Environment, and Time**. 
+        This framework helps you analyze and understand the operating environment in a systemic way.
+        """)
+
+        st.write("""
+        **How to use**: For each PMESII-PT dimension, consider key actors, systems, or conditions 
+        relevant to your problem statement.
+        """)
+
+    elif selected_framework == "DOTMLPF":
+        st.subheader("DOTMLPF Framework")
+        st.write("""
+        **DOTMLPF**: **Doctrine, Organization, Training, Materiel, Leadership and Education, Personnel, 
+        and Facilities**. Typically used to assess capability gaps and solutions in military contexts.
+        """)
+
+        st.write("""
+        **How to use**: Evaluate each pillar (D/O/T/M/L/P/F) in the context of your problemset: 
+        where do shortfalls exist, and how do we address them?
+        """)
+
+    st.markdown("---")
+    st.write("""
+    *All fields are editable and can be used to tailor your framework analysis. 
+    For now, each field is labeled "FILL_ME_HERE" as a placeholder for real guidance tooltips.*
+    """)
+
 
 def main():
     frameworks_page()
