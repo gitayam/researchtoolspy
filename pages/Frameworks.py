@@ -3,7 +3,7 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-from utils_openai import generate_advanced_query
+from utilities.utils_openai import generate_advanced_query
 from pages.frameworks.COG import cog_analysis
 from pages.frameworks.SWOT import swot_page
 from pages.frameworks.ACH import ach_page

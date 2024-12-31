@@ -2,7 +2,7 @@
 
 import streamlit as st
 from dotenv import load_dotenv
-from utils_openai import chat_gpt, generate_cog_options
+from utilities.utils_openai import chat_gpt, generate_cog_options
 
 load_dotenv()
 

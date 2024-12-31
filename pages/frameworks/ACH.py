@@ -1,7 +1,7 @@
 # /researchtools_streamlit/pages/ach.py
 import streamlit as st
 from dotenv import load_dotenv
-from utils_openai import chat_gpt  # If you want AI to assist
+from utilities.utils_openai import chat_gpt  # If you want AI to assist
 import pandas as pd
 
 load_dotenv()

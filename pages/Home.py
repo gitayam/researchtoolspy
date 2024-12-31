@@ -2,8 +2,8 @@
 
 import streamlit as st
 import requests
-from utils_openai import generate_advanced_query
-from utils_conversion import convert_input
+from utilities.utils_openai import generate_advanced_query
+from utilities.utils_conversion import convert_input
 from sidebar_menu import sidebar_menu
 
 def home_page():
