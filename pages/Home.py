@@ -30,7 +30,7 @@ def home_page():
         "Social Media Download", 
         "Advanced Query", 
         "Image to Hash", 
-        "Wayback Archive"
+        "Process URLs"
     ]
     selected_format = st.selectbox(
         "Select how to process your data:",
@@ -75,11 +75,11 @@ def home_page():
     if selected_format == "Image to Hash":
         image_search_page()
 
-    if selected_format == "Wayback Archive":
+    if selected_format == "Process URLs":
         wayback_tool_page()
 
-    # File upload (excluded for Advanced Query, Image to Hash, and Wayback Archive)
-    if selected_format not in ["Advanced Query", "Image to Hash", "Wayback Archive"]:
+    # File upload (excluded for Advanced Query, Image to Hash, and Process URLs)
+    if selected_format not in ["Advanced Query", "Image to Hash", "Process URLs"]:
         st.subheader("Optional: Upload CSV/JSON File(s)")
         file_data = st.file_uploader(
             "Upload one or more CSV/JSON files. Their contents will be appended below.",
@@ -114,7 +114,7 @@ def home_page():
                 output = generate_advanced_query(input_text, search_platform, model)
             except Exception as e:
                 st.error(f"Error generating advanced query: {e}")
-        elif selected_format not in ["Image to Hash", "Wayback Archive"]:
+        elif selected_format not in ["Image to Hash", "Process URLs"]:
             output = convert_input(
                 input_data=input_text,
                 format_type=selected_format,
