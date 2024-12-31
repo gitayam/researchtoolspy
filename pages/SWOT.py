@@ -3,7 +3,8 @@
 import streamlit as st
 from dotenv import load_dotenv
 from utils_openai import chat_gpt  # or any AI helper function
-import pdfkit
+from xhtml2pdf import pisa  # The pure-Python PDF converter
+import io
 
 load_dotenv()
 
@@ -213,7 +214,7 @@ def swot_page():
     # Export to PDF
     st.subheader("Export SWOT Analysis as PDF")
 
-    def create_swot_html_report(strengths, weaknesses, opportunities, threats):
+    def create_swot_html_report(objective, strengths, weaknesses, opportunities, threats, strategies):
         """Generate an HTML snippet showing the SWOT analysis in a report format."""
         def to_list(text):
             if ";" in text:
@@ -227,6 +228,7 @@ def swot_page():
         weaknesses_html = to_list(weaknesses)
         opportunities_html = to_list(opportunities)
         threats_html = to_list(threats)
+        strategies_html = to_list(strategies)
 
         html = f"""
         <html>
@@ -242,6 +244,8 @@ def swot_page():
         </head>
         <body>
           <h2>SWOT Analysis Report</h2>
+          <h3>Objective</h3>
+          <p>{objective}</p>
           <table>
             <tr>
               <th>Strengths</th>
@@ -260,23 +264,33 @@ def swot_page():
               <td><ul>{threats_html}</ul></td>
             </tr>
           </table>
+          <h3>Strategies for Action</h3>
+          <ul>{strategies_html}</ul>
         </body>
         </html>
         """
         return html
 
+    def convert_html_to_pdf(source_html):
+        """Convert HTML to PDF using xhtml2pdf."""
+        output = io.BytesIO()
+        pisa_status = pisa.CreatePDF(io.StringIO(source_html), dest=output)
+        return output.getvalue() if not pisa_status.err else None
+
     if st.button("Export SWOT Analysis to PDF"):
         # Generate HTML from current SWOT data
         swot_html = create_swot_html_report(
-            st.session_state["swot_strengths"],
-            st.session_state["swot_weaknesses"],
-            st.session_state["swot_opportunities"],
-            st.session_state["swot_threats"]
+            objective=objective,
+            strengths=st.session_state["swot_strengths"],
+            weaknesses=st.session_state["swot_weaknesses"],
+            opportunities=st.session_state["swot_opportunities"],
+            threats=st.session_state["swot_threats"],
+            strategies=st.session_state["swot_strategies"]
         )
 
-        # Convert HTML to PDF in-memory using pdfkit (requires wkhtmltopdf installed)
-        try:
-            pdf_bytes = pdfkit.from_string(swot_html, False)  # False => returns bytes
+        # Convert HTML to PDF
+        pdf_bytes = convert_html_to_pdf(swot_html)
+        if pdf_bytes:
             # Provide download
             st.download_button(
                 label="Download SWOT Analysis PDF",
@@ -284,8 +298,8 @@ def swot_page():
                 file_name="SWOT-Analysis.pdf",
                 mime="application/pdf"
             )
-        except Exception as e:
-            st.error(f"Error generating PDF. Is wkhtmltopdf installed? Details: {e}")
+        else:
+            st.error("Error generating PDF.")
 
     st.info("Use the 'Export to PDF' button to download your SWOT analysis as a PDF.")
 
