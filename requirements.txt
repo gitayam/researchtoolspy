@@ -6,3 +6,7 @@ Pillow
 pytest==7.4.0
 python-dotenv
 xhtml2pdf
+yt-dlp
+instaloader
+praw
+tweepy
