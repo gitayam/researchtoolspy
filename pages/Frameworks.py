@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from utils_openai import generate_advanced_query
 from pages.COG import cog_analysis
 from pages.SWOT import swot_page
+from pages.ACH import ach_page
 load_dotenv()
 
 def frameworks_page():
@@ -17,7 +18,8 @@ def frameworks_page():
         "DIME",
         "PMESII-PT",
         "DOTMLPF",
-        "SWOT Analysis"
+        "SWOT Analysis",
+        "ACH"
     ]
 
     selected_framework = st.selectbox("Select a Framework", frameworks_list)
@@ -40,6 +42,14 @@ def frameworks_page():
 
         # Call the cog_analysis function from cog.py
         cog_analysis()
+
+    elif selected_framework == "ACH":
+        st.subheader("ACH")
+        st.write("""
+        **Analysis of Competing Hypotheses** (ACH) helps evaluate multiple competing explanations
+        or hypotheses for the observed data. This approach was popularized by Richards Heuer at the CIA.
+        """)
+        ach_page()
 
     elif selected_framework == "DIME":
         st.subheader("DIME Framework")
