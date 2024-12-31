@@ -5,7 +5,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from utils_openai import generate_advanced_query
 from pages.COG import cog_analysis
-
+from pages.SWOT import swot_page
 load_dotenv()
 
 def frameworks_page():
@@ -16,7 +16,8 @@ def frameworks_page():
         "COG Analysis (AI-Guided)",
         "DIME",
         "PMESII-PT",
-        "DOTMLPF"
+        "DOTMLPF",
+        "SWOT Analysis"
     ]
 
     selected_framework = st.selectbox("Select a Framework", frameworks_list)
@@ -76,6 +77,14 @@ def frameworks_page():
         **How to use**: Evaluate each pillar (D/O/T/M/L/P/F) in the context of your problemset: 
         where do shortfalls exist, and how do we address them?
         """)
+
+    elif selected_framework == "SWOT Analysis":
+        st.subheader("SWOT Analysis")
+        st.write("""
+        **SWOT**: **Strengths, Weaknesses, Opportunities, and Threats**. 
+        This framework helps you analyze and understand the operating environment in a systemic way.
+        """)
+        swot_page()
 
     st.markdown("---")
     st.write("""
