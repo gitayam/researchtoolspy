@@ -4,9 +4,11 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 from utils_openai import generate_advanced_query
-from pages.COG import cog_analysis
-from pages.SWOT import swot_page
-from pages.ACH import ach_page
+from pages.frameworks.COG import cog_analysis
+from pages.frameworks.SWOT import swot_page
+from pages.frameworks.ACH import ach_page
+from sidebar_menu import sidebar_menu
+
 load_dotenv()
 
 def frameworks_page():
@@ -21,6 +23,7 @@ def frameworks_page():
         "SWOT Analysis",
         "ACH"
     ]
+    sidebar_menu()
 
     selected_framework = st.selectbox("Select a Framework", frameworks_list)
 
