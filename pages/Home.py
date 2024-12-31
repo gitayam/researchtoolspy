@@ -61,12 +61,8 @@ def home_page():
         process_limit = int(process_limit) if process_limit is not None else 0
 
     if selected_format == "Advanced Query":
+        # Section for Advanced Query Options
         st.subheader("Advanced Query Options")
-        input_text = st.text_area(
-            "Enter your query text here:",
-            height=150,
-            help="Enter the query text you want to process."
-        )
         search_platform, model = advanced_query_options()
 
     if selected_format == "Social Media Download":

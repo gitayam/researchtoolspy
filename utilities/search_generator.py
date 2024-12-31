@@ -14,6 +14,14 @@ def advanced_query_options():
     model = st.selectbox(
         "OpenAI Model",
         ["gpt-4o", "gpt-4o-mini"],
+        index=1,
         help="Which model to use for generating the advanced query."
     )
+    
+    st.text_input(
+        "Search Query to expand based on the platform selected",
+        placeholder="e.g., PDF of Policy covering TOPIC from 2 months ago until today",
+        key="search_query"
+    )
+    
     return search_platform, model
