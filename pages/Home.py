@@ -11,13 +11,14 @@ from utilities.WaybackTool import wayback_tool_page
 
 def home_page():
     st.header("Home: Text Transformation Tools")
-    st.write("""
-    This page allows you to:
-    - **Paste or upload** CSV/JSON data and convert it in various ways (Comma Separated, JSON, Social Media Download).
-    - Generate **Advanced Queries** for search platforms (Google, Microsoft Portal, or Windows CMD) using an OpenAI model.
-    - **Hash images** and generate search queries.
-    - **Archive URLs** using the Wayback Machine.
-    """)
+    with st.expander("About This Page", expanded=False):
+        st.write("""
+        This page allows you to:
+        - **Paste or upload** CSV/JSON data and convert it in various ways (Comma Separated, JSON, Social Media Download).
+        - Generate **Advanced Queries** for search platforms (Google, Microsoft Portal, or Windows CMD) using an OpenAI model.
+        - **Hash images** and generate search queries.
+        - **Archive URLs** using the Wayback Machine.
+        """)
     sidebar_menu()
 
     # Choose format
