@@ -36,24 +36,14 @@ def home_page():
         index=0
     )
 
-    # Main input text with dynamic placeholder
-    placeholder_text = {
-        "List to JSON": "Paste your CSV data here:",
-        "JSON to List": "Paste your JSON data here:",
-        "Social Media Download": "Enter the social media URL here:",
-        "Advanced Query": "Enter your query text here:",
-        "Image to Hash": "Enter image URLs separated by commas:",
-        "Wayback Archive": "Enter URL to archive:"
-    }
-    input_text = st.text_area(
-        placeholder_text[selected_format],
-        height=150,
-        help="Enter the data you want to process based on the selected format."
-    )
-
     # Conditional display of options based on selected format
     if selected_format in ["List to JSON", "JSON to List"]:
         st.subheader("List - JSON Conversion")
+        input_text = st.text_area(
+            "Paste your data here:",
+            height=150,
+            help="Enter the data you want to process."
+        )
         remove_quotes = st.checkbox("Remove quotes", value=True, help="Remove all double quotes from lines.")
         remove_hashtags = st.checkbox("Remove hashtags", value=False, help="Remove # symbols.")
         remove_top_row = st.checkbox("Remove top row", value=True, help="Skip the first line if it's a header.")
@@ -65,24 +55,22 @@ def home_page():
             help="If > 0, limit the output to this many rows/values."
         )
 
-    if selected_format == "JSON":
-        st.write("**JSON Options**")
-        json_option = st.selectbox(
-            "JSON Option",
-            ["Custom", "Keyword", "Location", "Image"],
-            help=(
-                "Choose a pre-set JSON generation style, or 'Custom' to specify your own JSON attribute name."
-            )
-        )
-        if json_option == "Custom":
-            json_attribute = st.text_input("JSON attribute (if 'Custom'): ", value="")
-
     if selected_format == "Advanced Query":
         st.subheader("Advanced Query Options")
+        input_text = st.text_area(
+            "Enter your query text here:",
+            height=150,
+            help="Enter the query text you want to process."
+        )
         search_platform, model = advanced_query_options()
 
     if selected_format == "Social Media Download":
         st.subheader("Social Media Download Options")
+        input_text = st.text_area(
+            "Enter the social media URL here:",
+            height=150,
+            help="Enter the social media URL you want to download."
+        )
         st.write("If your data input is a social media URL, click below to download its content.")
         if st.button("Download Social Media"):
             try:
@@ -97,7 +85,7 @@ def home_page():
     if selected_format == "Wayback Archive":
         wayback_tool_page()
 
-    # File upload (excluded for Advanced Query)
+    # File upload (excluded for Advanced Query, Image to Hash, and Wayback Archive)
     if selected_format not in ["Advanced Query", "Image to Hash", "Wayback Archive"]:
         st.subheader("Optional: Upload CSV/JSON File(s)")
         file_data = st.file_uploader(
