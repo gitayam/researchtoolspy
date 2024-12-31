@@ -11,7 +11,7 @@ def main():
         page_icon=":material/search:",
         layout="wide"
         )
-    st.title("Research Tools Streamlit")
+    st.title("Irregular Research Tools")
     st.image("media/research_logo.png", width=200)  # Replace with your logo path and adjust width as needed
 
     sidebar_menu()

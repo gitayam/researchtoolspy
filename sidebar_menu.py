@@ -2,7 +2,7 @@ import streamlit as st
 
 def sidebar_menu():
     # Sidebar menu
-    st.sidebar.title("Research Resources")
+    st.sidebar.markdown("## [**Research Wiki Pages**](https://irregularpedia.org/index.php/Category:Research)")
     
     st.sidebar.subheader("Plan and Prepare")
     st.sidebar.markdown("""
@@ -11,7 +11,6 @@ def sidebar_menu():
     - [PMESII-PT](https://Irregularpedia.org/index.php/pmesii-pt)
     - [Center of Gravity (COG) Analysis](https://Irregularpedia.org/index.php/cog)
     - [Research Templates](https://Irregularpedia.org/index.php/research-template)
-    - [Frameworks](/Frameworks)
     """)
 
     st.sidebar.subheader("Gather")
