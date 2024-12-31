@@ -1,0 +1,7 @@
+# /researchtools_streamlit/requirements.txt
+streamlit==1.25.0
+openai==0.27.0
+requests==2.31.0
+Pillow==10.0.0
+# Add any other libraries you need (e.g., for hashing images, CSV manipulation, etc.)
+
