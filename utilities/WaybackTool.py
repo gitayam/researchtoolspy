@@ -74,26 +74,34 @@ def generate_website_citation(url, access_date=None, date_published=None):
     csl_item = citekey_to_csl_item(citekey)
     title = csl_item.get('title', 'No title found')
     
-    # More robust author extraction
+    # Handle multiple authors
     authors = csl_item.get('author', [])
-    if authors and isinstance(authors, list):
-        # Try to get author name from various possible fields
-        author_info = authors[0]
+    author_names = []
+    
+    for author_info in authors:
         if isinstance(author_info, dict):
-            author = (
+            name = (
                 author_info.get('literal') or 
                 f"{author_info.get('family', '')} {author_info.get('given', '')}".strip() or 
-                'Author Unknown'
+                None
             )
-        else:
-            author = 'Author Unknown'
+            if name:
+                author_names.append(name)
+    
+    # Format authors according to APA style
+    if not author_names:
+        formatted_authors = 'Author Unknown'
+    elif len(author_names) == 1:
+        formatted_authors = author_names[0]
+    elif len(author_names) == 2:
+        formatted_authors = f"{author_names[0]} & {author_names[1]}"
     else:
-        author = 'Author Unknown'
+        formatted_authors = f"{', '.join(author_names[:-1])}, & {author_names[-1]}"
     
     # Use "(n.d.)" if no published date is found
     published_date = date_published if date_published != 'No date published found' else '(n.d.)'
     
-    citation = f"{author}. {published_date}. {title}. Retrieved from {url} on {access_date}"
+    citation = f"{formatted_authors}. {published_date}. {title}. Retrieved from {url} on {access_date}"
     return citation
 
 def main():
