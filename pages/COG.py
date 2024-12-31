@@ -3,7 +3,6 @@
 import streamlit as st
 from dotenv import load_dotenv
 from utils_openai import chat_gpt, generate_cog_options
-import pdfkit
 
 load_dotenv()
 
@@ -358,73 +357,6 @@ def cog_analysis():
 
     st.write("---")
     st.info("Flow completed. Feel free to refine or expand further.")
-
-    # Export to PDF
-    st.subheader("Export COG Analysis as PDF")
-
-    def create_cog_html_report(user_details, desired_end_state, final_cog, vulnerabilities, capabilities):
-        """Generate an HTML snippet showing the COG analysis in a report format."""
-        def to_list(text):
-            if ";" in text:
-                items = [x.strip() for x in text.split(";") if x.strip()]
-            else:
-                items = [x.strip() for x in text.split("\n") if x.strip()]
-            bullet_html = "".join(f"<li>{item}</li>" for item in items)
-            return bullet_html or "<li>(None)</li>"
-
-        vulnerabilities_html = to_list(vulnerabilities)
-        capabilities_html = to_list(capabilities)
-
-        html = f"""
-        <html>
-        <head>
-          <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
-            h2   {{ text-align: center; }}
-            table{{ width: 100%; border-collapse: collapse; }}
-            td   {{ border: 1px solid #ddd; vertical-align: top; padding: 10px; }}
-            th   {{ border: 1px solid #ddd; background: #f2f2f2; padding: 10px; }}
-            ul   {{ margin: 0; padding: 0 0 0 20px; }}
-          </style>
-        </head>
-        <body>
-          <h2>COG Analysis Report</h2>
-          <p><strong>User/Org Details:</strong> {user_details}</p>
-          <p><strong>Desired End State:</strong> {desired_end_state}</p>
-          <p><strong>Final Center of Gravity:</strong> {final_cog}</p>
-          <h3>Vulnerabilities</h3>
-          <ul>{vulnerabilities_html}</ul>
-          <h3>Capabilities</h3>
-          <ul>{capabilities_html}</ul>
-        </body>
-        </html>
-        """
-        return html
-
-    if st.button("Export COG Analysis to PDF"):
-        # Generate HTML from current COG data
-        cog_html = create_cog_html_report(
-            user_details,
-            desired_end_state,
-            final_cog,
-            st.session_state.get("vulnerabilities_list", ""),
-            st.session_state.get("capabilities_text", "")
-        )
-
-        # Convert HTML to PDF in-memory using pdfkit (requires wkhtmltopdf installed)
-        try:
-            pdf_bytes = pdfkit.from_string(cog_html, False)  # False => returns bytes
-            # Provide download
-            st.download_button(
-                label="Download COG Analysis PDF",
-                data=pdf_bytes,
-                file_name="COG-Analysis.pdf",
-                mime="application/pdf"
-            )
-        except Exception as e:
-            st.error(f"Error generating PDF. Is wkhtmltopdf installed? Details: {e}")
-
-    st.info("Use the 'Export to PDF' button to download your COG analysis as a PDF.")
 
 
 def main():
