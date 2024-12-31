@@ -31,6 +31,20 @@ def main():
     - **Image Search**: Tools for finding and analyzing images across various platforms.
     """)
 
+    # Add footer with GitHub link
+    st.markdown(
+        """
+        <hr>
+        <div style='text-align: center;'>
+            <a href="https://github.com/gitayam/researchtoolspy.git" target="_blank">
+                <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub" width="30">
+                GitHub Repository
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 if __name__ == "__main__":
     main()
 
