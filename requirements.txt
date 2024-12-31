@@ -10,3 +10,5 @@ yt-dlp
 instaloader
 praw
 tweepy
+beautifulsoup4 # for metadata on the wayback tool
+manubot # for citation on the wayback tool
