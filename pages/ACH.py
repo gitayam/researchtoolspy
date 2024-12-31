@@ -77,11 +77,13 @@ def ach_page():
     def ai_suggest_evidence():
         """Call AI to propose 3–5 example pieces of evidence or arguments for the scenario."""
         try:
+            existing_hypotheses = st.session_state["ach_hypotheses"]
             system_msg = {"role": "system", "content": "You are an AI that suggests evidence for ACH."}
             user_msg = {
                 "role": "user",
                 "content": (
-                    "Suggest 3 to 5 pieces of evidence or arguments (semicolon separated)."
+                    f"Based on the current hypotheses: {existing_hypotheses}, "
+                    "suggest 3 to 5 pieces of evidence or arguments (semicolon separated) that are relevant to these hypotheses."
                 )
             }
             resp = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
@@ -114,10 +116,12 @@ def ach_page():
 
     # Parse the user input into lists
     def parse_list(input_text):
-        if ";" in input_text:
-            return [x.strip() for x in input_text.split(";") if x.strip()]
-        else:
-            return [x.strip() for x in input_text.split("\n") if x.strip()]
+        # Split by semicolon first, then split each resulting part by newline
+        parts = input_text.split(';')
+        result = []
+        for part in parts:
+            result.extend([x.strip() for x in part.split('\n') if x.strip()])
+        return result
 
     hypotheses_list = parse_list(st.session_state["ach_hypotheses"])
     evidence_list = parse_list(st.session_state["ach_evidence"])
@@ -134,48 +138,23 @@ def ach_page():
             if key_ not in st.session_state["ach_matrix"]:
                 st.session_state["ach_matrix"][key_] = "Neutral"
 
-    # Display table
-    # We'll do each piece of evidence as rows, each hypothesis as columns
+    # Display each piece of evidence, then a row of selectboxes for each hypothesis
     if hypotheses_list and evidence_list:
-        columns = ["Evidence"] + hypotheses_list
-        data = []
-        for e in evidence_list:
-            row = [e]
-            for h in hypotheses_list:
-                key_ = (e, h)
-                current_val = st.session_state["ach_matrix"].get(key_, "Neutral")
-                # We'll create a selectbox for each cell
-                row.append(current_val)
-            data.append(row)
-
-        df = pd.DataFrame(data, columns=columns)
-
-        # We'll let the user update each cell's consistency
-        new_data = []
-        for i, row in df.iterrows():
-            # row[0] is Evidence
-            evi = row[0]
-            row_values = [evi]
-            for col_i, hyp in enumerate(hypotheses_list, start=1):
-                cell_label = f"{evi} -> {hyp}"
-                old_val = row[col_i]
-                new_val = st.selectbox(
-                    cell_label,
-                    ["Consistent", "Inconsistent", "Neutral"],
+        for ev in evidence_list:
+            st.markdown(f"**Evidence**: {ev}")  # Title for this piece of evidence
+            columns = st.columns(len(hypotheses_list))  # One column per hypothesis
+            for i, hyp in enumerate(hypotheses_list):
+                old_val = st.session_state["ach_matrix"][(ev, hyp)]
+                new_val = columns[i].selectbox(
+                    label=f"{hyp}",
+                    options=["Consistent", "Inconsistent", "Neutral"],
                     index=["Consistent", "Inconsistent", "Neutral"].index(old_val),
+                    key=f"{ev}_{hyp}_selectbox"
                 )
-                # Store it
-                st.session_state["ach_matrix"][(evi, hyp)] = new_val
-                row_values.append(new_val)
-            new_data.append(row_values)
-
-        # Rebuild the dataframe for display (not super critical)
-        updated_df = pd.DataFrame(new_data, columns=columns)
-        st.write("**ACH Matrix**:")
-        st.dataframe(updated_df, use_container_width=True)
-
+                st.session_state["ach_matrix"][(ev, hyp)] = new_val
+            st.write("---")
     else:
-        st.info("Add at least one Hypothesis and one piece of Evidence to view the matrix.")
+        st.info("Add at least one hypothesis and one piece of evidence to compare them.")
 
     st.markdown("---")
 
