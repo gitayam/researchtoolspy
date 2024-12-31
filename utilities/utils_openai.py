@@ -3,6 +3,7 @@
 import openai
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -53,7 +54,12 @@ def generate_advanced_query(search_query, search_platform, model="gpt-4o"):
     Preserves your original function from chatgptService.js logic.
     Useful if you still want 'advanced query' style prompts.
     """
-    base_prompt = f"Analyze the intention of this search and create an advanced query to be used on {search_platform}. "
+    # Get today's date
+    today = datetime.now()
+    date_context = f"\nToday's date is {today.strftime('%Y-%m-%d')}. "
+    
+    base_prompt = f"Analyze the intention of this search and create an advanced query to be used on {search_platform}. {date_context}"
+    
     if search_platform == "Windows CMD Search":
         additional_prompt = (
             "Take into account the limits and syntax of Windows CMD Search and "
