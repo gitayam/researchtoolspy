@@ -32,8 +32,11 @@ def wayback_tool_page():
     if url:
         # Fetch metadata to then generate a citation
         title, description, keywords, author, date_published = fetch_metadata(url)
-        citation = generate_website_citation(url, date_published=date_published)
-        
+        try:
+            citation = generate_website_citation(url, date_published=date_published)
+        except Exception as e:
+            st.warning(f"Could not generate citation: {str(e)}")
+            citation = f"Manual citation needed for: {url}"
 
     if st.button("Archive URL"):
         try:
@@ -70,7 +73,22 @@ def generate_website_citation(url, access_date=None, date_published=None):
     citekey = f"url:{url}"
     csl_item = citekey_to_csl_item(citekey)
     title = csl_item.get('title', 'No title found')
-    author = csl_item.get('author', [{'literal': 'Author Unknown'}])[0]['literal']
+    
+    # More robust author extraction
+    authors = csl_item.get('author', [])
+    if authors and isinstance(authors, list):
+        # Try to get author name from various possible fields
+        author_info = authors[0]
+        if isinstance(author_info, dict):
+            author = (
+                author_info.get('literal') or 
+                f"{author_info.get('family', '')} {author_info.get('given', '')}".strip() or 
+                'Author Unknown'
+            )
+        else:
+            author = 'Author Unknown'
+    else:
+        author = 'Author Unknown'
     
     # Use "(n.d.)" if no published date is found
     published_date = date_published if date_published != 'No date published found' else '(n.d.)'
