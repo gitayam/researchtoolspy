@@ -15,7 +15,7 @@ To get started with this repository, follow these steps:
 1. **Clone the Repository:**
 
    ```bash
-   git clone git@github.com:gitayam/researchtoolspy.git
+   git clone https://github.com/gitayam/researchtoolspy.git
    cd researchtoolspy
    ```
 
