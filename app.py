@@ -7,10 +7,10 @@ from sidebar_menu import sidebar_menu
 
 def main():
     st.set_page_config(
-        page_title="Research Tools", 
-        page_icon=":material/search:",
+        page_title="Irregular Research Tools - Enhance Your Research", 
+        page_icon=":mag:",  # Use a more recognizable icon for social media
         layout="wide"
-        )
+    )
     st.title("Irregular Research Tools")
     st.image("media/research_logo.png", width=200)  # Replace with your logo path and adjust width as needed
 
