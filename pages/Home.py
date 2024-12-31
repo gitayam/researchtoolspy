@@ -8,6 +8,7 @@ from sidebar_menu import sidebar_menu
 from utilities.search_generator import advanced_query_options
 from utilities.ImageSearch import image_search_page
 from utilities.WaybackTool import wayback_tool_page
+from utilities.social_media_download import social_media_download_page
 
 def home_page():
     st.header("Home: Text Transformation Tools")
@@ -56,6 +57,9 @@ def home_page():
             help="If > 0, limit the output to this many rows/values."
         )
 
+        # Ensure process_limit is an integer
+        process_limit = int(process_limit) if process_limit is not None else 0
+
     if selected_format == "Advanced Query":
         st.subheader("Advanced Query Options")
         input_text = st.text_area(
@@ -66,19 +70,7 @@ def home_page():
         search_platform, model = advanced_query_options()
 
     if selected_format == "Social Media Download":
-        st.subheader("Social Media Download Options")
-        input_text = st.text_area(
-            "Enter the social media URL here:",
-            height=150,
-            help="Enter the social media URL you want to download."
-        )
-        st.write("If your data input is a social media URL, click below to download its content.")
-        if st.button("Download Social Media"):
-            try:
-                resp = requests.post("http://yourserver/download_social_media", json={"url": input_text})
-                st.write(resp.json())
-            except Exception as e:
-                st.error(f"Error calling social media endpoint: {e}")
+        social_media_download_page()
 
     if selected_format == "Image to Hash":
         image_search_page()
@@ -126,12 +118,12 @@ def home_page():
             output = convert_input(
                 input_data=input_text,
                 format_type=selected_format,
-                json_option=json_option if selected_format == "JSON" else None,
-                json_attribute=json_attribute if selected_format == "JSON" else None,
-                remove_quotes=remove_quotes if selected_format in ["Comma Separated", "JSON"] else None,
-                remove_hashtags=remove_hashtags if selected_format in ["Comma Separated", "JSON"] else None,
-                remove_top_row=remove_top_row if selected_format in ["Comma Separated", "JSON"] else None,
-                process_limit=process_limit if selected_format in ["Comma Separated", "JSON"] else None
+                json_option=None,  # Adjust as needed
+                json_attribute=None,  # Adjust as needed
+                remove_quotes=remove_quotes,
+                remove_hashtags=remove_hashtags,
+                remove_top_row=remove_top_row,
+                process_limit=process_limit
             )
 
     # Display output
