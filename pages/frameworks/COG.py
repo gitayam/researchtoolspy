@@ -3,73 +3,129 @@
 import streamlit as st
 from dotenv import load_dotenv
 from utilities.utils_openai import chat_gpt, generate_cog_options
+import csv
+import io
 
 load_dotenv()
 
 def cog_analysis():
-    st.title("Enhanced COG Analysis Flow")
+    st.title("Enhanced Center of Gravity (COG) Analysis Flow")
 
     st.write("""
     This flow helps you:
-    1. Define your Desired Effect.
-    2. Select/Confirm a Center of Gravity (COG) and specify entity context.
-    3. Identify Critical Capabilities & Requirements (CC & CR).
-    4. Identify Critical Vulnerabilities (CV).
-    5. Define or AI-generate Scoring Criteria.
-    6. Prioritize those vulnerabilities (Traditional or Logarithmic approach).
+    1. Identify the entity type and basic details (Name, Goals, Areas of Presence).
+    2. See relevant domain considerations (Diplomatic, Information, etc.) based on the entity type.
+    3. Generate or manually define potential Centers of Gravity.
+    4. Identify Critical Capabilities & Requirements (CC & CR).
+    5. Identify Critical Vulnerabilities (CV).
+    6. Define or AI-generate Scoring Criteria.
+    7. Prioritize those vulnerabilities (Traditional or Logarithmic approach).
+    8. Optionally export results to CSV, PDF, or graph format.
     """)
 
-    # --------------------------------------------------------------------------------
+    # Domain-based instructions or reminders depending on entity type
+    domain_guidance = {
+        "Friendly": """
+**Friendly COG**:  
+Assess our foundational strengths across various domains providing potential risks to mitigate.  
+- Diplomatic: What international alliances and diplomatic relations fortify our position?  
+- Information: Which communication and propaganda efforts are most influential?  
+- Military: What units, capabilities, or systems are crucial for our success?  
+- Economic: What economic policies and resources ensure our sustained operations?  
+- Cyber: What are our capabilities for defending and attacking in the digital realm?  
+- Space: How do our satellite and space-based operations enhance our strategic goals?
+        """,
+        "Adversary": """
+**Adversary COG**:  
+Pinpoint the adversary’s vital sources of power and potential targets:  
+- Diplomatic: How do their international relationships affect their strategic capabilities?  
+- Information: What misinformation or psychological operations do they deploy?  
+- Military: Which military assets are essential to their operational success?  
+- Economic: Which economic dependencies are exploitable?  
+- Cyber: What are their cyber vulnerabilities?  
+- Space: Do they rely heavily on space-based assets?
+        """,
+        "Host Nation": """
+**Host Nation COG**:  
+Assess the host nation’s pivotal strengths and vulnerabilities:  
+- Diplomatic: What is the host nation’s stance, and how does it influence the conflict?  
+- Information: What are their capabilities in managing or disseminating information?  
+- Military: What military aspects of the host nation could influence their role in the conflict?  
+- Economic: How do the economic conditions affect their alignment in the conflict?  
+- Cyber: Assess the cyberinfrastructure and defenses of the host nation.  
+- Space: Evaluate the host nation’s reliance and capabilities on space-based assets.
+        """,
+        "Customer": """
+**Customer COG**:  
+Focus on purchasing and viewership criteria rather than the usual levers of power:  
+- Engagement Channels: Which communication channels are most influential for their decisions?  
+- Purchasing Behavior: What drives their buying or subscription choices?  
+- Brand Loyalty: Are there brand or relationship factors that keep them engaged?  
+- Economic Constraints: Financial or budget constraints that affect their decisions?  
+- Social Influence: How do peer networks or social communities guide preferences?
+        """,
+    }
+
     # 1) Basic Info
     # --------------------------------------------------------------------------------
-    user_details = st.text_input(
-        "User / Org Details",
-        help="Context about the user/organization performing this analysis."
-    )
-    desired_end_state = st.text_input(
-        "Desired End State / Effect",
-        help="E.g., 'Increase community engagement with user-generated content.'"
+    entity_type = st.selectbox(
+        "Select Entity Type for COG Analysis",
+        list(domain_guidance.keys()),
+        help="Which entity are you analyzing a Center of Gravity for?"
     )
 
+    entity_name = st.text_input(
+        "Name of Entity",
+        help="E.g. 'Our organization', 'Competitor X', 'Host Nation Y', etc."
+    )
+    entity_goals = st.text_area(
+        "Entity Goals",
+        help="Examples: Achieve X objective, strengthen brand recognition, control a region, etc."
+    )
+    entity_presence = st.text_area(
+        "Entity Areas of Presence",
+        help="Where is this entity located or influential? E.g. certain regions, industries, or domains."
+    )
+
+    # Show domain-specific reminders or questions
     st.markdown("---")
+    st.write("### Domain Considerations")
+    st.markdown(domain_guidance[entity_type])
 
+    # 2) Generate Possible Centers of Gravity
     # --------------------------------------------------------------------------------
-    # 2) Center of Gravity
-    # --------------------------------------------------------------------------------
+    st.markdown("---")
+    st.subheader("Identify / Generate Possible Centers of Gravity")
     if "cog_suggestions" not in st.session_state:
         st.session_state["cog_suggestions"] = []
 
-    entity_type = st.selectbox(
-        "Entity Type for COG Analysis",
-        ["Friendly", "Adversary", "Competitor", "Customer", "Host Nation"],
-        help="Which entity do you want to analyze a Center of Gravity for?"
-    )
-
-    # New field: Entity Context
-    entity_context = st.text_area(
-        "Entity Context",
-        help="Where is it? What limitations or constraints apply? E.g., geographic area, resources, or environment."
+    desired_end_state = st.text_input(
+        "Desired End State or Effect (Optional)",
+        help="What outcome are you trying to achieve? Helps AI generate relevant CoGs."
     )
 
     if st.button("Generate Possible Centers of Gravity"):
-        if not desired_end_state.strip():
-            st.warning("Please provide a Desired End State first.")
+        if not entity_type or not entity_name.strip():
+            st.warning("Please provide at least the entity type and name before generating suggestions.")
         else:
             try:
-                # We'll enhance the prompt to incorporate entity_context
+                custom_prompt = (
+                    "You're an advanced operational/strategic AI. "
+                    "Refer to the details:\n"
+                    f"- Entity Type: {entity_type}\n"
+                    f"- Entity Name: {entity_name}\n"
+                    f"- Goals: {entity_goals}\n"
+                    f"- Areas of Presence: {entity_presence}\n"
+                    f"- Desired End State: {desired_end_state}\n"
+                    "Propose 3-5 potential Centers of Gravity (sources of power and morale) "
+                    "for this entity in its context. "
+                    "Separate them with semicolons, no bullet points."
+                )
                 cog_text = generate_cog_options(
-                    user_details=user_details,
-                    desired_end_state=desired_end_state,
+                    user_details="",  # not used now
+                    desired_end_state=desired_end_state or "",
                     entity_type=entity_type,
-                    custom_prompt=(
-                        "You're an advanced operational planner. "
-                        "Consider the following context:\n"
-                        f"- User/Org: {user_details}\n"
-                        f"- Entity Context: {entity_context}\n"
-                        "Propose 3–5 potential Centers of Gravity (CoGs) specifically for this entity type. "
-                        "Explain or reference major strengths/resources that define each CoG. "
-                        "Separate them with semicolons, no bullet points."
-                    ),
+                    custom_prompt=custom_prompt,
                     model="gpt-3.5-turbo"
                 )
                 suggestions = [c.strip() for c in cog_text.split(";") if c.strip()]
@@ -100,16 +156,10 @@ def cog_analysis():
 
     st.markdown("---")
 
-    # --------------------------------------------------------------------------------
     # 3) Critical Capabilities & Requirements
     # --------------------------------------------------------------------------------
     st.subheader("Identify Critical Capabilities & Requirements")
-    st.write("""
-    - You can ask AI to propose them, then manually modify in the text areas below.
-    - Or just type them manually from the start.
-    """)
 
-    # Single text areas instead of line-by-line
     if "capabilities_text" not in st.session_state:
         st.session_state["capabilities_text"] = ""
     if "requirements_text" not in st.session_state:
@@ -130,9 +180,10 @@ def cog_analysis():
                 user_msg = {
                     "role": "user",
                     "content": (
-                        f"User/Org: {user_details}\n"
                         f"Entity Type: {entity_type}\n"
-                        f"Context: {entity_context}\n"
+                        f"Entity Name: {entity_name}\n"
+                        f"Goals: {entity_goals}\n"
+                        f"Areas of Presence: {entity_presence}\n"
                         f"CoG: {final_cog}\n"
                         "List ~5 critical capabilities (actions the CoG can do) as semicolons."
                     )
@@ -162,9 +213,10 @@ def cog_analysis():
                 user_msg = {
                     "role": "user",
                     "content": (
-                        f"User/Org: {user_details}\n"
                         f"Entity Type: {entity_type}\n"
-                        f"Context: {entity_context}\n"
+                        f"Entity Name: {entity_name}\n"
+                        f"Goals: {entity_goals}\n"
+                        f"Areas of Presence: {entity_presence}\n"
                         f"CoG: {final_cog}\n"
                         "List ~5 critical requirements (resources/conditions the CoG needs) as semicolons."
                     )
@@ -183,19 +235,16 @@ def cog_analysis():
 
     st.markdown("---")
 
-    # --------------------------------------------------------------------------------
     # 4) Identify Critical Vulnerabilities
     # --------------------------------------------------------------------------------
     st.subheader("Identify Critical Vulnerabilities (CV)")
-    st.write("""
-    - AI can propose them based on your CoG, capabilities, and requirements,
-      or you can manually type them in a single text area.
-    """)
+    st.write("AI can propose them based on your CoG, capabilities, and requirements, or you can type them manually.")
 
     if "vulnerabilities_list" not in st.session_state:
         st.session_state["vulnerabilities_list"] = ""
 
     def get_cap_req_text() -> str:
+        """Helper to combine the current capabilities & requirements text."""
         return (
             "Capabilities:\n" + st.session_state["capabilities_text"] + "\n"
             "Requirements:\n" + st.session_state["requirements_text"] + "\n"
@@ -217,7 +266,9 @@ def cog_analysis():
                     "role": "user",
                     "content": (
                         f"Entity Type: {entity_type}\n"
-                        f"Desired End State: {desired_end_state}\n"
+                        f"Entity Name: {entity_name}\n"
+                        f"Goals: {entity_goals}\n"
+                        f"Areas of Presence: {entity_presence}\n"
                         f"CoG: {final_cog}\n\n"
                         f"{get_cap_req_text()}\n"
                         "List 3-5 vulnerabilities. Use semicolons, no bullet points."
@@ -237,23 +288,19 @@ def cog_analysis():
 
     st.markdown("---")
 
-    # --------------------------------------------------------------------------------
     # 5) Define Criteria & Score
     # --------------------------------------------------------------------------------
     st.subheader("Define / Edit Scoring Criteria")
     st.write("""
     - By default, we have "Impact", "Attainability", "Potential for Follow-up".
-    - You can add/edit. Then pick Traditional or Logarithmic. We'll parse your vulnerabilities and let you score them.
+    - You can add/edit them below.
     """)
 
     if "criteria" not in st.session_state:
         st.session_state["criteria"] = ["Impact", "Attainability", "Potential for Follow-up"]
 
-    # Let user see & edit existing criteria in a single text box or keep it line-based
-    # For simplicity, let's keep them line-based:
-    st.write("Current Criteria (one per line):")
     criteria_text = st.text_area(
-        "Edit Criteria",
+        "Current Criteria (one per line)",
         value="\n".join(st.session_state["criteria"]),
         height=100
     )
@@ -262,7 +309,7 @@ def cog_analysis():
         st.session_state["criteria"] = new_list
         st.success("Criteria updated.")
 
-    # Optionally AI propose 2 new
+    # Optionally AI propose new criteria
     if st.button("AI: Suggest Additional Criteria"):
         try:
             system_msg = {
@@ -281,7 +328,7 @@ def cog_analysis():
 
     st.markdown("---")
 
-    # Score Approach
+    # 6) Score Approach
     scoring_approach = st.selectbox(
         "Scoring Approach",
         ["Traditional (1-5)", "Logarithmic (1,3,5,8,12)"],
@@ -293,18 +340,22 @@ def cog_analysis():
     if "vulnerability_scores" not in st.session_state:
         st.session_state["vulnerability_scores"] = {}
 
-    # We parse vulnerabilities from st.session_state["vulnerabilities_list"]
-    # Then we create a dynamic table
     st.write("### Score Each Vulnerability on Each Criterion")
-
-    # Clean parse vulnerabilities into a list
+    # Parse vulnerabilities into a list
     vulns_parsed = []
     if st.session_state["vulnerabilities_list"].strip():
-        # Either semicolons or lines
         if ";" in st.session_state["vulnerabilities_list"]:
-            vulns_parsed = [v.strip() for v in st.session_state["vulnerabilities_list"].split(";") if v.strip()]
+            vulns_parsed = [
+                v.strip()
+                for v in st.session_state["vulnerabilities_list"].split(";")
+                if v.strip()
+            ]
         else:
-            vulns_parsed = [v.strip() for v in st.session_state["vulnerabilities_list"].split("\n") if v.strip()]
+            vulns_parsed = [
+                v.strip()
+                for v in st.session_state["vulnerabilities_list"].split("\n")
+                if v.strip()
+            ]
 
     if vulns_parsed and st.session_state["criteria"]:
         for vuln in vulns_parsed:
@@ -334,6 +385,7 @@ def cog_analysis():
                         key=key_ + "_log"
                     )
 
+    # 7) Calculate & Show Priorities
     if st.button("Calculate & Show Priorities"):
         if not vulns_parsed:
             st.warning("No vulnerabilities to score yet.")
@@ -349,14 +401,39 @@ def cog_analysis():
                     detail_list.append(f"{crit}={val}")
                 final_scores.append((vuln, sum_score, detail_list))
 
-            # Sort desc
             final_scores.sort(key=lambda x: x[1], reverse=True)
             st.subheader("Prioritized Vulnerabilities by Composite Score")
             for idx, (v, score, details) in enumerate(final_scores, 1):
-                st.write(f"{idx}. **{v}**  — Composite: **{score}** ({', '.join(details)})")
+                st.write(f"{idx}. **{v}** — Composite: **{score}** ({', '.join(details)})")
 
-    st.write("---")
-    st.info("Flow completed. Feel free to refine or expand further.")
+    st.markdown("---")
+
+    # 8) Export / Save Options
+    st.subheader("Export / Save Results")
+
+    col_export1, col_export2, col_export3 = st.columns(3)
+
+    with col_export1:
+        if st.button("Export Vulnerabilities as CSV"):
+            vulns_csv = io.StringIO()
+            writer = csv.writer(vulns_csv)
+            writer.writerow(["Vulnerability", "Score Details", "Composite Score"])
+            for vuln, total_score, detail_list in getattr(locals().get("final_scores", []), "__iter__", lambda: [])():
+                writer.writerow([vuln, ", ".join(detail_list), total_score])
+            st.download_button(
+                label="Download CSV",
+                data=vulns_csv.getvalue(),
+                file_name="COG_Vulnerabilities.csv",
+                mime="text/csv"
+            )
+
+    with col_export2:
+        # This is just a placeholder so you can later add your PDF generation
+        st.write("PDF export placeholder (integrate with xhtml2pdf or similar).")
+
+    with col_export3:
+        # This is just a placeholder for exporting to a graph format like GEXF or GraphML
+        st.write("Graph export placeholder (generate .gexf or .graphml).")
 
 
 def main():
