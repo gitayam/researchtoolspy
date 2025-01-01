@@ -117,16 +117,18 @@ Focus on purchasing and viewership criteria rather than the usual levers of powe
                     f"- Goals: {entity_goals}\n"
                     f"- Areas of Presence: {entity_presence}\n"
                     f"- Desired End State: {desired_end_state}\n"
-                    "Propose 3-5 potential Centers of Gravity (sources of power and morale) "
-                    "for this entity in its context. "
+                    f"- Domain Context: {domain_guidance[entity_type]}\n"
+                    "Propose 3-5 potential Centers of Gravity (sources of power and morale) Entity Name has to achieve their Goals"
+                    "for this entity in its context. Consider the domain-specific guidance provided. "
                     "Separate them with semicolons, no bullet points."
                 )
+
                 cog_text = generate_cog_options(
                     user_details="",  # not used now
                     desired_end_state=desired_end_state or "",
                     entity_type=entity_type,
                     custom_prompt=custom_prompt,
-                    model="gpt-3.5-turbo"
+                    model="gpt-4o-mini"
                 )
                 suggestions = [c.strip() for c in cog_text.split(";") if c.strip()]
                 st.session_state["cog_suggestions"] = suggestions
