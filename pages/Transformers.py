@@ -38,8 +38,16 @@ def transformers_page():
         index=0
     )
 
+    # Initialize variables
+    remove_quotes = False
+    remove_hashtags = False
+    remove_top_row = False
+    process_limit = 0
+    json_option = None
+    json_attribute = None
+
     # Conditional display based on chosen format
-    if selected_format in ["List to JSON", "JSON to List"]:
+    if selected_format == "List to JSON":
         st.subheader("List - JSON Conversion")
         input_text = st.text_area(
             "Paste your data here:",
@@ -73,8 +81,14 @@ def transformers_page():
                     "Custom JSON Attribute",
                     help="Enter the attribute name for your custom JSON structure."
                 )
-            else:
-                json_attribute = None
+
+    elif selected_format == "JSON to List":
+        st.subheader("JSON - List Conversion")
+        input_text = st.text_area(
+            "Paste your JSON data here:",
+            height=150,
+            help="Enter the JSON data you want to convert to a list."
+        )
 
     if selected_format == "Advanced Query":
         st.subheader("Advanced Query Options")
@@ -132,16 +146,21 @@ def transformers_page():
                 output = generate_advanced_query(search_query, search_platform, model)
             except Exception as e:
                 st.error(f"Error generating advanced query: {e}")
-        elif selected_format not in ["Image to Hash", "Process URLs"]:
+        elif selected_format == "List to JSON":
             output = convert_input(
                 input_data=input_text,
                 format_type=selected_format,
-                json_option=json_option if selected_format == "JSON" else None,
-                json_attribute=json_attribute if selected_format == "JSON" else None,
+                json_option=json_option,
+                json_attribute=json_attribute,
                 remove_quotes=remove_quotes,
                 remove_hashtags=remove_hashtags,
                 remove_top_row=remove_top_row,
                 process_limit=process_limit
+            )
+        elif selected_format == "JSON to List":
+            output = convert_input(
+                input_data=input_text,
+                format_type=selected_format
             )
 
         if output:
