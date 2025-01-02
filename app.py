@@ -19,14 +19,16 @@ def main():
     Welcome to the **Research Tools**!
     This platform is a collection of community-created and curated research tools and links.
     Use the sidebar to navigate between different functionalities:
-    - **Home**: Text transformers to assist while using other tools. Includes:
+    - **Transformers**: [Text transformers](pages/Transformers.py) to assist while using other tools. Includes:
         - CSV to JSON and JSON to CSV converters for data format transformation.
         - Image SHA for reverse image search to find similar images across the web.
         - Wayback Tool for accessing archived web pages via archive links.
         - Text analysis tools for extracting insights from textual data.
     - **Frameworks**: Tools for structured analysis, including:
-        - COG Analysis for understanding centers of gravity in strategic contexts.
-        - PMESII-PT framework for analyzing political, military, economic, social, information, infrastructure, physical environment, and time factors.
+        - [COG Analysis](pages/frameworks/COG.py) for understanding centers of gravity in strategic contexts.
+        - [SWOT Analysis](pages/frameworks/SWOT.py) for analyzing strengths, weaknesses, opportunities, and threats.
+        - [ACH Analysis](pages/frameworks/ACH.py) for analyzing competing hypotheses.
+        - [PMESII-PT framework](pages/frameworks/PMESII-PT.py) for analyzing political, military, economic, social, information, infrastructure, physical environment, and time factors.
     - **Wayback Tool**: Direct access to archived web pages for historical research.
     - **Image Search**: Tools for finding and analyzing images across various platforms.
     """)
