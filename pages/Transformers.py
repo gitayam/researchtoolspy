@@ -11,7 +11,7 @@ from utilities.WaybackTool import wayback_tool_page
 from utilities.social_media_download import social_media_download_page
 
 def home_page():
-    st.header("Home: Text Transformation Tools")
+    st.header("Text Transformation Tools")
     with st.expander("About This Page", expanded=False):
         st.write("""
         This page allows you to:
