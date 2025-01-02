@@ -61,11 +61,15 @@ def convert_input(
     elif format_type == "JSON to List":
         try:
             data = json.loads(input_data)
-            if isinstance(data, list):
-                lines = [str(item) for item in data]
+            if isinstance(data, dict) and "bool" in data and "should" in data["bool"]:
+                # Extract state names from JSON
+                states = []
+                for item in data["bool"]["should"]:
+                    for key, value in item.get("match_phrase", {}).items():
+                        states.append(value)
+                return ", ".join(states)
             else:
-                lines = [str(data)]
-            return "\n".join(lines)
+                return "Error: Invalid JSON structure."
         except json.JSONDecodeError:
             return "Error: Invalid JSON input."
 
