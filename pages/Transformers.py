@@ -47,33 +47,34 @@ def transformers_page():
             help="Enter the data you want to process."
         )
         
-        # Add checkboxes for cleaning options
-        remove_quotes = st.checkbox("Remove quotes", value=True, help="Remove all double quotes from lines.")
-        remove_hashtags = st.checkbox("Remove hashtags", value=False, help="Remove # symbols.")
-        remove_top_row = st.checkbox("Remove top row", value=True, help="Skip the first line if it's a header.")
-        process_limit = st.number_input(
-            "Number of Values to Process",
-            min_value=0,
-            value=0,
-            step=1,
-            help="If > 0, limit the output to this many rows/values."
-        )
-        
-        # Add a select box for JSON options
-        json_option = st.selectbox(
-            "JSON Option",
-            ["Default", "Custom", "Location"],
-            index=0,
-            help="Choose how the JSON should be structured."
-        )
-        
-        # If Custom is selected, show an input for the attribute
-        json_attribute = None
-        if json_option == "Custom":
-            json_attribute = st.text_input(
-                "Custom JSON Attribute",
-                help="Enter the attribute name for your custom JSON structure."
+        # Compact layout for options
+        col1, col2, col3 = st.columns([1, 1, 2])
+        with col1:
+            remove_quotes = st.checkbox("Remove quotes", value=True, help="Remove all double quotes from lines.")
+            remove_hashtags = st.checkbox("Remove hashtags", value=False, help="Remove # symbols.")
+        with col2:
+            remove_top_row = st.checkbox("Remove top row", value=True, help="Skip the first line if it's a header.")
+            process_limit = st.number_input(
+                "Values to Process",
+                min_value=0,
+                value=0,
+                step=1,
+                help="Limit the output to this many rows/values."
             )
+        with col3:
+            json_option = st.selectbox(
+                "JSON Option",
+                ["Default", "Custom", "Location"],
+                index=0,
+                help="Choose how the JSON should be structured."
+            )
+            if json_option == "Custom":
+                json_attribute = st.text_input(
+                    "Custom JSON Attribute",
+                    help="Enter the attribute name for your custom JSON structure."
+                )
+            else:
+                json_attribute = None
 
     if selected_format == "Advanced Query":
         st.subheader("Advanced Query Options")
