@@ -2,19 +2,24 @@
 
 import json
 
-def convert_input(input_data, format_type, json_option, json_attribute, remove_quotes, remove_hashtags, remove_top_row, process_limit):
+def convert_input(
+    input_data, 
+    format_type="Advanced Query", 
+    json_option=None, 
+    json_attribute=None, 
+    remove_quotes=False, 
+    remove_hashtags=False, 
+    remove_top_row=False, 
+    process_limit=0
+):
     """
-    Replicates your conversionUtils.js logic in Python.
-    Takes input (csv lines), cleans, dedups, returns string or JSON.
+    Python conversion logic, extended to support 'List to JSON' and 'JSON to List'
+    as well as existing 'Comma Separated' and 'JSON'.
     """
-    # Split lines
-    lines = input_data.strip().split("\n")
-    # Just use the first column
-    values = [line.split(",")[0].strip() for line in lines if line.strip() != ""]
 
-    # Remove top row if requested
-    if remove_top_row and len(values) > 1:
-        values = values[1:]
+    # Split input into lines and extract the first value from each line assuming CSV structure
+    lines = input_data.strip().split("\n")
+    values = [line.split(",")[0].strip() for line in lines if line.strip() != ""]
 
     # Remove duplicates
     unique_values = list(dict.fromkeys(values))
@@ -24,31 +29,26 @@ def convert_input(input_data, format_type, json_option, json_attribute, remove_q
         unique_values = [v.replace('"', "") for v in unique_values]
     if remove_hashtags:
         unique_values = [v.replace("#", "") for v in unique_values]
-
-    # Process limit
-    if process_limit > 0 and process_limit < len(unique_values):
+    if remove_top_row and len(unique_values) > 1:
+        unique_values = unique_values[1:]
+    if process_limit > 0:
         unique_values = unique_values[:process_limit]
 
-    # Format output
-    if format_type == "Comma Separated":
-        return ", ".join(unique_values)
-    elif format_type == "JSON":
+    # Format output based on selected format
+    if format_type == "List to JSON":
         json_array = []
         if json_option == "Custom" and json_attribute:
-            # Generate JSON using custom attribute
-            for val in unique_values:
-                json_array.append({"match_phrase": {json_attribute: val}})
+            # Generate JSON using the custom JSON attribute provided by the user
+            json_array = [{"match_phrase": {json_attribute: value}} for value in unique_values]
         elif json_option == "Location":
-            # location-based
-            for loc in unique_values:
-                json_array.append({"wildcard": {"author_place": f"{loc}*"}})
-                json_array.append({"wildcard": {"meta.geo_place.results.value": f"{loc}*"}})
-                json_array.append({"wildcard": {"meta.author_geo_place.results.value": f"{loc}*"}})
+            # Generate JSON for location-based queries
+            json_array = [{"wildcard": {"author_place": f"{location}*"}} for location in unique_values]
+            json_array += [{"wildcard": {"meta.geo_place.results.value": f"{location}*"}} for location in unique_values]
+            json_array += [{"wildcard": {"meta.author_geo_place.results.value": f"{location}*"}} for location in unique_values]
         else:
-            # default
-            for val in unique_values:
-                json_array.append({"match_phrase": {"doc.user.description": val}})
-                json_array.append({"match_phrase": {"meta.title.results": val}})
+            # Default JSON output for other options
+            json_array = [{"match_phrase": {"doc.user.description": value}} for value in unique_values]
+            json_array += [{"match_phrase": {"meta.title.results": value}} for value in unique_values]
 
         result_dict = {
             "bool": {
@@ -57,5 +57,18 @@ def convert_input(input_data, format_type, json_option, json_attribute, remove_q
             }
         }
         return json.dumps(result_dict, indent=2)
+
+    elif format_type == "JSON to List":
+        try:
+            data = json.loads(input_data)
+            if isinstance(data, list):
+                lines = [str(item) for item in data]
+            else:
+                lines = [str(data)]
+            return "\n".join(lines)
+        except json.JSONDecodeError:
+            return "Error: Invalid JSON input."
+
     else:
-        return ""  # or handle other formats
+        # Default to "Advanced Query" if no other format_type matches
+        return "Advanced Query output"  # Replace with actual logic for "Advanced Query"

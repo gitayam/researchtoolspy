@@ -30,7 +30,7 @@ def transformers_page():
         "Social Media Download", 
         "Advanced Query", 
         "Image to Hash", 
-        "Process URLs"
+        "Process URLs",
     ]
     selected_format = st.selectbox(
         "Select how to process your data:",
@@ -38,7 +38,7 @@ def transformers_page():
         index=0
     )
 
-    # Conditional display of options based on selected format
+    # Conditional display based on chosen format
     if selected_format in ["List to JSON", "JSON to List"]:
         st.subheader("List - JSON Conversion")
         input_text = st.text_area(
@@ -46,6 +46,8 @@ def transformers_page():
             height=150,
             help="Enter the data you want to process."
         )
+        
+        # Add checkboxes for cleaning options
         remove_quotes = st.checkbox("Remove quotes", value=True, help="Remove all double quotes from lines.")
         remove_hashtags = st.checkbox("Remove hashtags", value=False, help="Remove # symbols.")
         remove_top_row = st.checkbox("Remove top row", value=True, help="Skip the first line if it's a header.")
@@ -56,12 +58,24 @@ def transformers_page():
             step=1,
             help="If > 0, limit the output to this many rows/values."
         )
-
-        # Ensure process_limit is an integer
-        process_limit = int(process_limit) if process_limit is not None else 0
+        
+        # Add a select box for JSON options
+        json_option = st.selectbox(
+            "JSON Option",
+            ["Default", "Custom", "Location"],
+            index=0,
+            help="Choose how the JSON should be structured."
+        )
+        
+        # If Custom is selected, show an input for the attribute
+        json_attribute = None
+        if json_option == "Custom":
+            json_attribute = st.text_input(
+                "Custom JSON Attribute",
+                help="Enter the attribute name for your custom JSON structure."
+            )
 
     if selected_format == "Advanced Query":
-        # Section for Advanced Query Options
         st.subheader("Advanced Query Options")
         search_platform, model = advanced_query_options()
 
@@ -74,13 +88,14 @@ def transformers_page():
     if selected_format == "Process URLs":
         wayback_tool_page()
 
-    # File upload (excluded for Advanced Query, Image to Hash, and Process URLs)
+    # File upload (excluded for certain options)
     if selected_format not in ["Advanced Query", "Image to Hash", "Process URLs"]:
         st.subheader("Optional: Upload CSV/JSON File(s)")
         file_data = st.file_uploader(
             "Upload one or more CSV/JSON files. Their contents will be appended below.",
             accept_multiple_files=True
         )
+
         if file_data:
             combined_lines = []
             for uploaded_file in file_data:
@@ -95,18 +110,23 @@ def transformers_page():
                     lines = lines[1:]  # skip header
                 combined_lines.extend(lines)
 
+            # Deduplicate
             combined_lines = list(dict.fromkeys(combined_lines))
             input_text = "\n".join(combined_lines)
 
         if file_data:
             st.info("Uploaded file contents appended to the text above.")
             st.text_area("Consolidated Input from Files:", value=input_text, height=150)
+    else:
+        # If not handling input_text, define it as empty to avoid reference errors
+        input_text = ""
 
     # Process data
-    output = ""
     if st.button("Process Data"):
+        output = ""
         if selected_format == "Advanced Query":
             try:
+                # If you’re storing the query in session_state:
                 search_query = st.session_state.get("search_query", "")
                 output = generate_advanced_query(search_query, search_platform, model)
             except Exception as e:
@@ -115,29 +135,28 @@ def transformers_page():
             output = convert_input(
                 input_data=input_text,
                 format_type=selected_format,
-                json_option=None,  # Adjust as needed
-                json_attribute=None,  # Adjust as needed
+                json_option=json_option if selected_format == "JSON" else None,
+                json_attribute=json_attribute if selected_format == "JSON" else None,
                 remove_quotes=remove_quotes,
                 remove_hashtags=remove_hashtags,
                 remove_top_row=remove_top_row,
                 process_limit=process_limit
             )
 
-    # Display output
-    if output:
-        st.subheader("Output")
-        st.text_area(
-            "Processed Output",
-            value=output,
-            height=150,
-            help="Here is the result of your data processing."
-        )
-        st.download_button(
-            "Save Output",
-            data=output,
-            file_name="output.txt",
-            mime="text/plain"
-        )
+        if output:
+            st.subheader("Output")
+            st.text_area(
+                "Processed Output",
+                value=output,
+                height=150,
+                help="Here is the result of your data processing."
+            )
+            st.download_button(
+                "Save Output",
+                data=output,
+                file_name="output.txt",
+                mime="text/plain"
+            )
 
 def main():
     transformers_page()
