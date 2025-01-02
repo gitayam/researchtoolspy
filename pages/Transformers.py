@@ -10,7 +10,7 @@ from utilities.ImageSearch import image_search_page
 from utilities.WaybackTool import wayback_tool_page
 from utilities.social_media_download import social_media_download_page
 
-def home_page():
+def transformers_page():
     st.header("Text Transformation Tools")
     with st.expander("About This Page", expanded=False):
         st.write("""
@@ -140,7 +140,7 @@ def home_page():
         )
 
 def main():
-    home_page()
+    transformers_page()
 
 if __name__ == "__main__":
     main()
