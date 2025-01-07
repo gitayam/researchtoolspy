@@ -128,7 +128,7 @@ def ach_page():
             height=100
         )
     with col_evid_right:
-        if st.button("AI: Generate Options for  Evidence"):
+        if st.button("AI: Generate Options for Evidence to Consider"):
             text = ai_suggest_evidence()
             if text:
                 st.session_state["ach_evidence"] += "\n" + text
