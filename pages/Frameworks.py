@@ -16,16 +16,17 @@ def frameworks_page():
 
     # A dropdown to select which framework to show
     frameworks_list = [
+        "SWOT Analysis",
+        "ACH",
         "COG Analysis (AI-Guided)",
         "DIME",
         "PMESII-PT",
-        "DOTMLPF",
-        "SWOT Analysis",
-        "ACH"
+        "DOTMLPF"
     ]
     sidebar_menu()
 
-    selected_framework = st.selectbox("Select a Framework", frameworks_list)
+    # Set "SWOT Analysis" as the default selected option
+    selected_framework = st.selectbox("Select a Framework", frameworks_list, index=0)
 
     # Load environment vars but allow user override
     default_problemset = os.getenv("AREA_OF_FOCUS", "")
