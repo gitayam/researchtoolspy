@@ -3,6 +3,8 @@ import streamlit as st
 from dotenv import load_dotenv
 from utilities.utils_openai import chat_gpt  # If you want AI to assist
 import pandas as pd
+from io import BytesIO
+import openpyxl
 
 load_dotenv()
 
@@ -256,11 +258,63 @@ def ach_page():
             st.markdown(f"- **Neutral**: {counts['Neutral']}")
             st.markdown("---")
 
-        # Add Devil's Advocate button
-        if st.button("Devil's Advocate: Challenge Hypotheses"):
-            counterarguments = ai_devils_advocate(hypotheses_list, evidence_list, weighted_score, consistency_counts)
-            st.markdown("### Devil's Advocate: Counterarguments and Perspectives")
-            st.write(counterarguments)
+        # Create two columns for the buttons
+        col1, col2 = st.columns(2)
+
+        # Devil's Advocate button
+        with col1:
+            if st.button("Devil's Advocate: Challenge Hypotheses"):
+                devils_advocate_response = ai_devils_advocate(
+                    hypotheses_list, 
+                    evidence_list, 
+                    weighted_score, 
+                    consistency_counts
+                )
+                st.write(devils_advocate_response)
+
+        # Export button
+        with col2:
+            # Ensure these are populated correctly
+            hypotheses = st.session_state.get("hypotheses", [])
+            evidence = st.session_state.get("evidence", [])
+            matrix = st.session_state.get("ach_matrix", {})
+            weights = st.session_state.get("ach_evidence_weights", {})
+
+            # Debugging: Check if the session state is correctly populated
+            st.write("Debug: Session state values")
+            st.write(f"Hypotheses: {hypotheses}")
+            st.write(f"Evidence: {evidence}")
+            st.write(f"Matrix: {matrix}")
+            st.write(f"Weights: {weights}")
+
+            # Extract hypotheses and evidence from the matrix and weights
+            hypotheses = list({key[1] for key in matrix.keys()})
+            evidence = list(weights.keys())
+
+            # Debugging: Check if the session state is correctly populated
+            st.write("Debug: Extracted values")
+            st.write(f"Hypotheses: {hypotheses}")
+            st.write(f"Evidence: {evidence}")
+
+            if st.button('Export to Excel'):
+                try:
+                    # Validate data
+                    if not hypotheses or not evidence:
+                        st.error("No data to export")
+                        return
+                        
+                    # Export
+                    excel_data = export_to_excel(hypotheses, evidence, matrix, weights)
+                    
+                    if excel_data:
+                        st.download_button(
+                            label="📥 Download Excel file",
+                            data=excel_data,
+                            file_name='ACH_matrix.xlsx',
+                            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        )
+                except Exception as e:
+                    st.error(f"Export failed: {str(e)}")
 
     else:
         st.info("No matrix to analyze. Add Hypotheses and Evidence first.")
@@ -304,6 +358,78 @@ def ai_devils_advocate(hypotheses, evidence, weighted_score, consistency_counts)
     except Exception as e:
         st.error(f"AI error: {e}")
         return ""
+
+def export_to_excel(hypotheses_list, evidence_list, ach_matrix, evidence_weights):
+    """Export the ACH matrix to an Excel file."""
+    try:
+        # Debug logging
+        st.write("Debug: Starting export")
+        st.write(f"Hypotheses: {hypotheses_list}")
+        st.write(f"Evidence: {evidence_list}")
+        
+        # Validate inputs
+        if not hypotheses_list or not evidence_list:
+            raise ValueError("Missing hypotheses or evidence")
+            
+        # Create workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'ACH Matrix'
+        
+        # Style for headers
+        header_style = openpyxl.styles.NamedStyle(name='header')
+        header_style.font = openpyxl.styles.Font(bold=True)
+        header_style.fill = openpyxl.styles.PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
+        
+        # Write headers
+        headers = ['Evidence', 'Weight'] + [str(h) for h in hypotheses_list]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.style = header_style
+            
+        # Write data
+        for row_idx, evidence in enumerate(evidence_list, 2):  # Start from row 2
+            # Evidence and weight
+            ws.cell(row=row_idx, column=1, value=str(evidence))
+            ws.cell(row=row_idx, column=2, value=float(evidence_weights.get(evidence, 0)))
+            
+            # Consistency values
+            for col_idx, hypothesis in enumerate(hypotheses_list, 3):  # Start from column 3
+                key = (evidence, hypothesis)
+                value = ach_matrix.get(key, "")
+                ws.cell(row=row_idx, column=col_idx, value=str(value))
+                
+        # Auto-adjust columns
+        for column_cells in ws.columns:
+            length = max(len(str(cell.value)) for cell in column_cells)
+            ws.column_dimensions[column_cells[0].column_letter].width = length + 2
+            
+        # Add borders
+        thin_border = openpyxl.styles.Border(
+            left=openpyxl.styles.Side(style='thin'),
+            right=openpyxl.styles.Side(style='thin'),
+            top=openpyxl.styles.Side(style='thin'),
+            bottom=openpyxl.styles.Side(style='thin')
+        )
+        
+        for row in ws.iter_rows(min_row=1, max_row=len(evidence_list)+1, 
+                              min_col=1, max_col=len(headers)):
+            for cell in row:
+                cell.border = thin_border
+                
+        # Save to BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        st.write("Debug: Export completed successfully")
+        return output.getvalue()
+        
+    except Exception as e:
+        import traceback
+        error_msg = f"Export error: {str(e)}\n{traceback.format_exc()}"
+        st.error(error_msg)
+        return None
 
 def main():
     ach_page()
