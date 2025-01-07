@@ -256,6 +256,12 @@ def ach_page():
             st.markdown(f"- **Neutral**: {counts['Neutral']}")
             st.markdown("---")
 
+        # Add Devil's Advocate button
+        if st.button("Devil's Advocate: Challenge Hypotheses"):
+            counterarguments = ai_devils_advocate(hypotheses_list, evidence_list, weighted_score, consistency_counts)
+            st.markdown("### Devil's Advocate: Counterarguments and Perspectives")
+            st.write(counterarguments)
+
     else:
         st.info("No matrix to analyze. Add Hypotheses and Evidence first.")
 
@@ -265,6 +271,39 @@ def ach_page():
 Use these steps to refine or add new evidence. Weighting helps you see which evidence
 has the most impact on your analysis, offering a more nuanced view of each hypothesis.
 """)
+
+def ai_devils_advocate(hypotheses, evidence, weighted_score, consistency_counts):
+    """Call AI to provide counterarguments and perspectives."""
+    try:
+        # Prepare a detailed string of inconsistencies
+        inconsistencies_detail = "\n".join(
+            f"- {h}: {', '.join([e for e, val in consistency_counts[h].items() if val == 'Inconsistent'])}"
+            for h in hypotheses
+        )
+
+        system_msg = {
+            "role": "system",
+            "content": (
+                "You are an AI tasked with providing a devil's advocate perspective on hypotheses. "
+                "Offer professional counterarguments, questions to consider, and alternative perspectives. "
+                "Don't go out of your way to be a contrarian; the feedback should be helpful."
+            )
+        }
+        user_msg = {
+            "role": "user",
+            "content": (
+                f"Hypotheses: {hypotheses}\n"
+                f"Evidence: {evidence}\n"
+                f"Weighted Scores: {weighted_score}\n"
+                f"Inconsistencies:\n{inconsistencies_detail}\n\n"
+                "Provide counterarguments, questions, and perspectives to challenge the current hypothesis selection."
+            )
+        }
+        resp = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
+        return resp
+    except Exception as e:
+        st.error(f"AI error: {e}")
+        return ""
 
 def main():
     ach_page()
