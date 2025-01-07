@@ -151,17 +151,25 @@ def ach_page():
     # Define the logarithmic scale
     weight_options = [1, 3, 5, 8, 12]
 
-    for evidence in evidence_list:
-        if evidence not in st.session_state["ach_evidence_weights"]:
+    def format_weight_option(weight):
+        if weight == 1:
+            return "1 (Least significant, opinion-based)"
+        elif weight == 12:
+            return "12 (Extremely significant, factual)"
+        else:
+            return str(weight)
+
+    for ev in evidence_list:
+        if ev not in st.session_state["ach_evidence_weights"]:
             # Default weight set to 1
-            st.session_state["ach_evidence_weights"][evidence] = 1
+            st.session_state["ach_evidence_weights"][ev] = 1
 
     for ev in evidence_list:
         st.session_state["ach_evidence_weights"][ev] = st.selectbox(
-            label=f"Weight for: {ev}",
+            label=f"Select weight for: {ev}",
             options=weight_options,
             index=weight_options.index(st.session_state["ach_evidence_weights"][ev]),
-            format_func=lambda x: f"{x} (1 = least significant / Opinion, 12 = extremely significant / Fact)",
+            format_func=format_weight_option,
             key=f"{ev}_weight_selectbox"
         )
 
@@ -218,22 +226,26 @@ def ach_page():
         # Calculate total weight of all evidence for normalization
         total_evidence_weight = sum([st.session_state["ach_evidence_weights"][ev] for ev in evidence_list])
 
-        # Weighted inconsistency count
+        # Initialize counts and weighted inconsistency
         weighted_inconsistency = {h: 0.0 for h in hypotheses_list}
+        consistency_counts = {h: {"Consistent": 0, "Inconsistent": 0, "Neutral": 0} for h in hypotheses_list}
 
         for e in evidence_list:
             w = st.session_state["ach_evidence_weights"][e]
             for h in hypotheses_list:
                 val = st.session_state["ach_matrix"][(e, h)]
+                consistency_counts[h][val] += 1
                 if val == "Inconsistent":
                     weighted_inconsistency[h] += w
 
         # Prepare display
         sorted_hyps = sorted(weighted_inconsistency.items(), key=lambda x: x[1])
-        st.write("**Weighted Inconsistency Scores** (lower is better):")
+        st.write("**Weighted Inconsistency Scores and Counts** (lower is better):")
         for hyp, inc_score in sorted_hyps:
             normalized = (inc_score / total_evidence_weight) * 100 if total_evidence_weight > 0 else 0
+            counts = consistency_counts[hyp]
             st.write(f"- **{hyp}**: {inc_score:.2f} (Normalized: {normalized:.1f}%)")
+            st.write(f"  - Consistent: {counts['Consistent']}, Inconsistent: {counts['Inconsistent']}, Neutral: {counts['Neutral']}")
 
         best_hyp = sorted_hyps[0][0] if sorted_hyps else None
         st.success(f"Tentative Conclusion: Hypothesis with the fewest weighted inconsistencies is: **{best_hyp}**")
