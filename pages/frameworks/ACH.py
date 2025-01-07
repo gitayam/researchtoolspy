@@ -274,35 +274,15 @@ def ach_page():
 
         # Export button
         with col2:
-            # Ensure these are populated correctly
-            hypotheses = st.session_state.get("hypotheses", [])
-            evidence = st.session_state.get("evidence", [])
-            matrix = st.session_state.get("ach_matrix", {})
-            weights = st.session_state.get("ach_evidence_weights", {})
+            # Correct session state retrieval
+            hypotheses = st.session_state.get('ach_hypotheses', [])
+            evidence = st.session_state.get('ach_evidence', [])
+            matrix = st.session_state.get('ach_matrix', {})
+            weights = st.session_state.get('ach_evidence_weights', {})
 
-            # Debugging: Check if the session state is correctly populated
-            st.write("Debug: Session state values")
-            st.write(f"Hypotheses: {hypotheses}")
-            st.write(f"Evidence: {evidence}")
-            st.write(f"Matrix: {matrix}")
-            st.write(f"Weights: {weights}")
-
-            # Extract hypotheses and evidence from the matrix and weights
-            hypotheses = list({key[1] for key in matrix.keys()})
-            evidence = list(weights.keys())
-
-            # Debugging: Check if the session state is correctly populated
-            st.write("Debug: Extracted values")
-            st.write(f"Hypotheses: {hypotheses}")
-            st.write(f"Evidence: {evidence}")
-
+            # Always show the export button
             if st.button('Export to Excel'):
                 try:
-                    # Validate data
-                    if not hypotheses or not evidence:
-                        st.error("No data to export")
-                        return
-                        
                     # Export
                     excel_data = export_to_excel(hypotheses, evidence, matrix, weights)
                     
@@ -362,15 +342,14 @@ def ai_devils_advocate(hypotheses, evidence, weighted_score, consistency_counts)
 def export_to_excel(hypotheses_list, evidence_list, ach_matrix, evidence_weights):
     """Export the ACH matrix to an Excel file."""
     try:
-        # Debug logging
-        st.write("Debug: Starting export")
-        st.write(f"Hypotheses: {hypotheses_list}")
-        st.write(f"Evidence: {evidence_list}")
-        
-        # Validate inputs
-        if not hypotheses_list or not evidence_list:
-            raise ValueError("Missing hypotheses or evidence")
-            
+        # Ensure hypotheses_list is a list
+        if isinstance(hypotheses_list, str):
+            hypotheses_list = hypotheses_list.split('\n')  # Split by newline if it's a single string
+
+        # Ensure evidence_list is a list
+        if isinstance(evidence_list, str):
+            evidence_list = evidence_list.split('\n')  # Split by newline if it's a single string
+
         # Create workbook
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -382,7 +361,7 @@ def export_to_excel(hypotheses_list, evidence_list, ach_matrix, evidence_weights
         header_style.fill = openpyxl.styles.PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
         
         # Write headers
-        headers = ['Evidence', 'Weight'] + [str(h) for h in hypotheses_list]
+        headers = ['Evidence', 'Weight'] + hypotheses_list
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col, value=header)
             cell.style = header_style
@@ -396,9 +375,25 @@ def export_to_excel(hypotheses_list, evidence_list, ach_matrix, evidence_weights
             # Consistency values
             for col_idx, hypothesis in enumerate(hypotheses_list, 3):  # Start from column 3
                 key = (evidence, hypothesis)
-                value = ach_matrix.get(key, "")
+                value = ach_matrix.get(key, "N/A")  # Use "N/A" for missing data
                 ws.cell(row=row_idx, column=col_idx, value=str(value))
-                
+        
+        # Calculate total scores
+        total_scores = {h: 0 for h in hypotheses_list}
+        for (evidence, hypothesis), consistency in ach_matrix.items():
+            if hypothesis in total_scores:  # Ensure hypothesis is in total_scores
+                weight = evidence_weights.get(evidence, 0)
+                if consistency == 'Consistent':
+                    total_scores[hypothesis] += weight
+                elif consistency == 'Inconsistent':
+                    total_scores[hypothesis] -= weight
+        
+        # Write total scores
+        total_row = len(evidence_list) + 2
+        ws.cell(row=total_row, column=1, value='Total Score')
+        for col_idx, hypothesis in enumerate(hypotheses_list, 3):
+            ws.cell(row=total_row, column=col_idx, value=total_scores.get(hypothesis, 0))
+        
         # Auto-adjust columns
         for column_cells in ws.columns:
             length = max(len(str(cell.value)) for cell in column_cells)
@@ -412,7 +407,7 @@ def export_to_excel(hypotheses_list, evidence_list, ach_matrix, evidence_weights
             bottom=openpyxl.styles.Side(style='thin')
         )
         
-        for row in ws.iter_rows(min_row=1, max_row=len(evidence_list)+1, 
+        for row in ws.iter_rows(min_row=1, max_row=total_row, 
                               min_col=1, max_col=len(headers)):
             for cell in row:
                 cell.border = thin_border
@@ -422,9 +417,8 @@ def export_to_excel(hypotheses_list, evidence_list, ach_matrix, evidence_weights
         wb.save(output)
         output.seek(0)
         
-        st.write("Debug: Export completed successfully")
         return output.getvalue()
-        
+
     except Exception as e:
         import traceback
         error_msg = f"Export error: {str(e)}\n{traceback.format_exc()}"
