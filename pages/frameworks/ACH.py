@@ -32,17 +32,31 @@ def ach_page():
         st.session_state["ach_hypotheses"] = ""
 
     def ai_suggest_hypotheses():
-        """Call AI to propose 3–5 example hypotheses."""
+        """
+        Call AI to propose 3–5 example hypotheses from a senior intelligence analyst perspective.
+        """
         try:
             existing_hypotheses = st.session_state["ach_hypotheses"]
-            system_msg = {"role": "system", "content": "You are an AI helping with ACH. Return semicolon-limited text."}
+
+            system_msg = {
+                "role": "system",
+                "content": (
+                    "You are an AI with expertise in intelligence analysis, using the Analysis of Competing Hypotheses (ACH) approach. "
+                    "You will propose a brief set of well-reasoned hypotheses, returning them as semicolon-limited text. "
+                    "Be concise, yet ensure each hypothesis distinctly addresses possible underlying causes, scenarios, or factors."
+                )
+            }
+
             user_msg = {
                 "role": "user",
                 "content": (
-                    f"Based on the existing hypotheses: {existing_hypotheses}, "
-                    "suggest 3 to 5 similar hypotheses (semicolon separated) for a scenario or problem."
+                    f"Current hypotheses: {existing_hypotheses}\n\n"
+                    "As a senior analyst applying ACH, propose 3–5 new or refined hypotheses (semicolon separated) that could explain or address "
+                    "this scenario. Consider different angles, assumptions, and any gaps in the existing hypotheses. "
+                    "Focus on plausible scenarios, mention potential uncertainties, and ensure each proposed hypothesis is distinct."
                 )
             }
+
             resp = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
             return resp
         except Exception as e:
@@ -86,7 +100,7 @@ def ach_page():
                     "suggest 3 to 5 pieces of evidence or arguments (semicolon separated) that are relevant to these hypotheses."
                 )
             }
-            resp = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
+            resp = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
             return resp
         except Exception as e:
             st.error(f"AI error: {e}")
