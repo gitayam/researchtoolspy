@@ -34,6 +34,7 @@ def ach_page():
     def ai_suggest_hypotheses():
         """
         Call AI to propose 3–5 example hypotheses from a senior intelligence analyst perspective.
+        Returns semicolon-separated text for each hypothesis.
         """
         try:
             existing_hypotheses = st.session_state["ach_hypotheses"]
@@ -57,8 +58,11 @@ def ach_page():
                 )
             }
 
-            resp = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
-            return resp
+            resp = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
+            
+            # Split the response by semicolons and format into new lines
+            formatted_resp = "\n".join(resp.split(';'))
+            return formatted_resp
         except Exception as e:
             st.error(f"AI error: {e}")
             return ""
@@ -83,10 +87,14 @@ def ach_page():
     #
     # Step 2: Evidence / Arguments
     #
-    st.subheader("Step 2: List Key Pieces of Evidence or Arguments")
+    st.subheader("Step 2: List Key Pieces of Evidence or Arguments (Assign Weights)")
 
     if "ach_evidence" not in st.session_state:
         st.session_state["ach_evidence"] = ""
+
+    # Initialize a dict to store weights for each piece of evidence.
+    if "ach_evidence_weights" not in st.session_state:
+        st.session_state["ach_evidence_weights"] = {}
 
     def ai_suggest_evidence():
         """Call AI to propose 3–5 example pieces of evidence or arguments for the scenario."""
@@ -101,7 +109,10 @@ def ach_page():
                 )
             }
             resp = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-            return resp
+            
+            # Split the response by semicolons and format into new lines
+            formatted_resp = "\n".join(resp.split(';'))
+            return formatted_resp
         except Exception as e:
             st.error(f"AI error: {e}")
             return ""
@@ -124,39 +135,60 @@ def ach_page():
     st.markdown("---")
 
     #
-    # Build the Matrix
+    # Step 2b: Assign Weights
     #
-    st.subheader("Step 3: Evaluate Consistency of Each Piece of Evidence with Each Hypothesis")
-
-    # Parse the user input into lists
+    st.write("Assign a weight for each piece of evidence (e.g., 1 = least significant / Opinion, 12 = extremely significant/ Fact).")
     def parse_list(input_text):
-        # Split by semicolon first, then split each resulting part by newline
+        # Split by semicolon, then newline
         parts = input_text.split(';')
         result = []
         for part in parts:
             result.extend([x.strip() for x in part.split('\n') if x.strip()])
         return result
 
-    hypotheses_list = parse_list(st.session_state["ach_hypotheses"])
     evidence_list = parse_list(st.session_state["ach_evidence"])
 
-    # We'll keep a data structure (in st.session_state) for the consistency matrix
-    # For example: "matrix[(evidence_i, hypothesis_j)] = 'Consistent' or 'Inconsistent' or 'Neutral'"
+    # Define the logarithmic scale
+    weight_options = [1, 3, 5, 8, 12]
+
+    for evidence in evidence_list:
+        if evidence not in st.session_state["ach_evidence_weights"]:
+            # Default weight set to 1
+            st.session_state["ach_evidence_weights"][evidence] = 1
+
+    for ev in evidence_list:
+        st.session_state["ach_evidence_weights"][ev] = st.selectbox(
+            label=f"Weight for: {ev}",
+            options=weight_options,
+            index=weight_options.index(st.session_state["ach_evidence_weights"][ev]),
+            format_func=lambda x: f"{x} (1 = least significant / Opinion, 12 = extremely significant / Fact)",
+            key=f"{ev}_weight_selectbox"
+        )
+
+    st.markdown("---")
+
+    #
+    # Step 3: Evaluate Consistency of Each Piece of Evidence with Each Hypothesis
+    #
+    st.subheader("Step 3: Evaluate Consistency")
+
+    hypotheses_list = parse_list(st.session_state["ach_hypotheses"])
+
+    # We'll keep a data structure for the consistency matrix
     if "ach_matrix" not in st.session_state:
         st.session_state["ach_matrix"] = {}
 
-    # Make sure session_state has a record for each (evid, hyp) pair
+    # Ensure session_state has a record for each (evid, hyp) pair
     for e in evidence_list:
         for h in hypotheses_list:
             key_ = (e, h)
             if key_ not in st.session_state["ach_matrix"]:
                 st.session_state["ach_matrix"][key_] = "Neutral"
 
-    # Display each piece of evidence, then a row of selectboxes for each hypothesis
     if hypotheses_list and evidence_list:
         for ev in evidence_list:
-            st.markdown(f"**Evidence**: {ev}")  # Title for this piece of evidence
-            columns = st.columns(len(hypotheses_list))  # One column per hypothesis
+            st.markdown(f"**Evidence**: {ev}")
+            columns = st.columns(len(hypotheses_list))
             for i, hyp in enumerate(hypotheses_list):
                 old_val = st.session_state["ach_matrix"][(ev, hyp)]
                 new_val = columns[i].selectbox(
@@ -173,43 +205,47 @@ def ach_page():
     st.markdown("---")
 
     #
-    # Step 4: Identify the "Inconsistencies" Count
+    # Step 4: Weighted Inconsistency Counts
     #
-    st.subheader("Step 4: Assess Inconsistencies / Conflicts")
-
+    st.subheader("Step 4: Assess Weighted Inconsistencies / Conflicts")
     st.write("""
-    Typically in ACH, the hypothesis with the **fewest** “Inconsistent” marks 
-    may be considered more likely. This is a simplified approach, 
-    but it helps highlight which hypothesis is contradicted by the most evidence.
+    In this weighted approach, each piece of evidence you marked "Inconsistent" applies its assigned weight
+    to the hypothesis' total inconsistency score. 
+    Then we normalize by the total weight of all evidence for clarity.
     """)
 
     if hypotheses_list and evidence_list:
-        # We'll do a total "inconsistent" count for each hypothesis
-        counts = {h: 0 for h in hypotheses_list}
+        # Calculate total weight of all evidence for normalization
+        total_evidence_weight = sum([st.session_state["ach_evidence_weights"][ev] for ev in evidence_list])
+
+        # Weighted inconsistency count
+        weighted_inconsistency = {h: 0.0 for h in hypotheses_list}
+
         for e in evidence_list:
+            w = st.session_state["ach_evidence_weights"][e]
             for h in hypotheses_list:
                 val = st.session_state["ach_matrix"][(e, h)]
                 if val == "Inconsistent":
-                    counts[h] += 1
+                    weighted_inconsistency[h] += w
 
-        # Display results
-        sorted_hyps = sorted(counts.items(), key=lambda x: x[1])
-        st.write("**Inconsistency Counts** (lower is better):")
-        for hyp, inc_count in sorted_hyps:
-            st.write(f"- **{hyp}**: {inc_count} inconsistencies")
+        # Prepare display
+        sorted_hyps = sorted(weighted_inconsistency.items(), key=lambda x: x[1])
+        st.write("**Weighted Inconsistency Scores** (lower is better):")
+        for hyp, inc_score in sorted_hyps:
+            normalized = (inc_score / total_evidence_weight) * 100 if total_evidence_weight > 0 else 0
+            st.write(f"- **{hyp}**: {inc_score:.2f} (Normalized: {normalized:.1f}%)")
 
         best_hyp = sorted_hyps[0][0] if sorted_hyps else None
-        st.success(f"Tentative Conclusion: Hypothesis with fewest inconsistencies is: **{best_hyp}**")
+        st.success(f"Tentative Conclusion: Hypothesis with the fewest weighted inconsistencies is: **{best_hyp}**")
+
     else:
         st.info("No matrix to analyze. Add Hypotheses and Evidence first.")
 
     st.markdown("---")
-
     st.info("""
 **Done!**  
-Use these steps to refine or add new evidence. This simple approach helps highlight which hypothesis might best fit the data. 
-For advanced usage, consider weighting the evidence, handling uncertain or contradictory sources, 
-and performing sensitivity analysis to test key assumptions.
+Use these steps to refine or add new evidence. Weighting helps you see which evidence
+has the most impact on your analysis, offering a more nuanced view of each hypothesis.
 """)
 
 def main():
