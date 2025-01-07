@@ -5,6 +5,6 @@ services:
     build: .
     container_name: researchtools_streamlit
     ports:
-      - "8501:8501"
+      - "8502:8502"
     # volumes: ["./data:/app/data"]  # example of mounting a data folder if needed
 
