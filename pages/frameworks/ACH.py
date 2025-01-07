@@ -218,16 +218,12 @@ def ach_page():
     st.subheader("Step 4: Assess Weighted Inconsistencies / Conflicts")
     st.write("""
     In this weighted approach, each piece of evidence you marked "Inconsistent" applies its assigned weight
-    to the hypothesis' total inconsistency score. 
-    Then we normalize by the total weight of all evidence for clarity.
+    negatively, "Consistent" positively, and "Neutral" as zero to the hypothesis' total score.
     """)
 
     if hypotheses_list and evidence_list:
-        # Calculate total weight of all evidence for normalization
-        total_evidence_weight = sum([st.session_state["ach_evidence_weights"][ev] for ev in evidence_list])
-
-        # Initialize counts and weighted inconsistency
-        weighted_inconsistency = {h: 0.0 for h in hypotheses_list}
+        # Initialize scores
+        weighted_score = {h: 0.0 for h in hypotheses_list}
         consistency_counts = {h: {"Consistent": 0, "Inconsistent": 0, "Neutral": 0} for h in hypotheses_list}
 
         for e in evidence_list:
@@ -235,20 +231,30 @@ def ach_page():
             for h in hypotheses_list:
                 val = st.session_state["ach_matrix"][(e, h)]
                 consistency_counts[h][val] += 1
-                if val == "Inconsistent":
-                    weighted_inconsistency[h] += w
+                if val == "Consistent":
+                    weighted_score[h] += w
+                elif val == "Inconsistent":
+                    weighted_score[h] -= w
+                # Neutral contributes 0, so no change needed
 
         # Prepare display
-        sorted_hyps = sorted(weighted_inconsistency.items(), key=lambda x: x[1])
-        st.write("**Weighted Inconsistency Scores and Counts** (lower is better):")
-        for hyp, inc_score in sorted_hyps:
-            normalized = (inc_score / total_evidence_weight) * 100 if total_evidence_weight > 0 else 0
-            counts = consistency_counts[hyp]
-            st.write(f"- **{hyp}**: {inc_score:.2f} (Normalized: {normalized:.1f}%)")
-            st.write(f"  - Consistent: {counts['Consistent']}, Inconsistent: {counts['Inconsistent']}, Neutral: {counts['Neutral']}")
-
+        sorted_hyps = sorted(weighted_score.items(), key=lambda x: x[1], reverse=True)
+        
+        # Display the tentative conclusion first
         best_hyp = sorted_hyps[0][0] if sorted_hyps else None
-        st.success(f"Tentative Conclusion: Hypothesis with the fewest weighted inconsistencies is: **{best_hyp}**")
+        st.success(f"Tentative Conclusion: Hypothesis with the highest weighted score is: **{best_hyp}**")
+        
+        st.write("**Weighted Scores and Counts** (higher is better):")
+        
+        for hyp, score in sorted_hyps:
+            counts = consistency_counts[hyp]
+            
+            st.markdown(f"### {hyp}")
+            st.markdown(f"- **Score**: {score:.2f}")
+            st.markdown(f"- **Consistent**: {counts['Consistent']}")
+            st.markdown(f"- **Inconsistent**: {counts['Inconsistent']}")
+            st.markdown(f"- **Neutral**: {counts['Neutral']}")
+            st.markdown("---")
 
     else:
         st.info("No matrix to analyze. Add Hypotheses and Evidence first.")
