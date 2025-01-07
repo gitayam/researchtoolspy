@@ -235,7 +235,8 @@ def ach_page():
                     weighted_score[h] += w
                 elif val == "Inconsistent":
                     weighted_score[h] -= w
-                # Neutral contributes 0, so no change needed
+                elif val == "Neutral":
+                    weighted_score[h] += 1
 
         # Prepare display
         sorted_hyps = sorted(weighted_score.items(), key=lambda x: x[1], reverse=True)
