@@ -76,7 +76,7 @@ def ach_page():
             height=100
         )
     with col_hyp_right:
-        if st.button("AI: Suggest Hypotheses"):
+        if st.button("AI: Generate Options for Hypotheses"):
             text = ai_suggest_hypotheses()
             if text:
                 st.session_state["ach_hypotheses"] += "\n" + text
@@ -126,7 +126,7 @@ def ach_page():
             height=100
         )
     with col_evid_right:
-        if st.button("AI: Suggest Evidence"):
+        if st.button("AI: Generate Options for  Evidence"):
             text = ai_suggest_evidence()
             if text:
                 st.session_state["ach_evidence"] += "\n" + text
