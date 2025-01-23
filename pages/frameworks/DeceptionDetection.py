@@ -1,3 +1,10 @@
+# DeceptionDetection.py
+"""
+Deception Detection Framework based on the work of Richards J. Heuer Jr.
+"""
+import streamlit as st
+from utils.chat_gpt import chat_gpt
+
 def deception_detection():
     st.title("Deception Detection Framework")
 
@@ -235,24 +242,18 @@ def deception_detection():
     if st.button("Export Analysis"):
         try:
             # Create a formatted string of the analysis
-            analysis_text = f"""
-            Deception Detection Analysis
-            
-            Scenario:
-            {scenario}
-            
-            1. Motive, Opportunity, and Means (MOM):
-            {"".join(f"- {q}: {st.session_state['mom_responses'].get(k, '')}\n" for k, q in mom_questions.items())}
-            
-            2. Past Opposition Practices (POP):
-            {"".join(f"- {q}: {st.session_state['pop_responses'].get(k, '')}\n" for k, q in pop_questions.items())}
-            
-            3. Manipulability of Sources (MOSES):
-            {"".join(f"- {q}: {st.session_state['moses_responses'].get(k, '')}\n" for k, q in moses_questions.items())}
-            
-            4. Evaluation of Evidence (EVE):
-            {"".join(f"- {q}: {st.session_state['eve_responses'].get(k, '')}\n" for k, q in eve_questions.items())}
-            """
+            analysis_text = (
+                f"Deception Detection Analysis\n\n"
+                f"Scenario:\n{scenario}\n\n"
+                "1. Motive, Opportunity, and Means (MOM):\n"
+                + "".join(f"- {q}: {st.session_state['mom_responses'].get(k, '')}\n" for k, q in mom_questions.items()) + "\n"
+                "2. Past Opposition Practices (POP):\n"
+                + "".join(f"- {q}: {st.session_state['pop_responses'].get(k, '')}\n" for k, q in pop_questions.items()) + "\n"
+                "3. Manipulability of Sources (MOSES):\n"
+                + "".join(f"- {q}: {st.session_state['moses_responses'].get(k, '')}\n" for k, q in moses_questions.items()) + "\n"
+                "4. Evaluation of Evidence (EVE):\n"
+                + "".join(f"- {q}: {st.session_state['eve_responses'].get(k, '')}\n" for k, q in eve_questions.items())
+            )
             
             # Create a download button
             st.download_button(
