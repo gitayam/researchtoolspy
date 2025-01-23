@@ -35,7 +35,8 @@ def deception_detection():
     
     scenario = st.text_area(
         "Describe the scenario or information being analyzed",
-        help="Provide context about the situation where deception might be present."
+        help="Provide detailed context about the situation where deception might be present. Include key actors, timeline, and any suspicious patterns or anomalies.",
+        placeholder="Example: A foreign company has made an unexpected offer to acquire a strategic technology firm. The offer seems unusually generous, and the company's background is difficult to verify."
     )
 
     # MOM Checklist
@@ -43,20 +44,42 @@ def deception_detection():
     st.subheader("1. Motive, Opportunity, and Means (MOM)")
     
     mom_questions = {
-        "motive": "What are the goals and motives of the potential deceiver?",
-        "channels": "What means are available to feed information to us?",
-        "risks": "What consequences would the adversary suffer if deception was revealed?",
-        "costs": "Would they need to sacrifice sensitive information for credibility?",
-        "feedback": "Do they have a way to monitor the impact of the deception?"
+        "motive": {
+            "question": "What are the goals and motives of the potential deceiver?",
+            "help": "Consider both stated and potential hidden motives. What would they gain from successful deception?",
+            "placeholder": "Example: Access to proprietary technology, market manipulation, intelligence gathering"
+        },
+        "channels": {
+            "question": "What means are available to feed information to us?",
+            "help": "Identify all possible channels through which deceptive information could be transmitted",
+            "placeholder": "Example: Official communications, third-party intermediaries, social media campaigns"
+        },
+        "risks": {
+            "question": "What consequences would the adversary suffer if deception was revealed?",
+            "help": "Consider reputational, financial, legal, and strategic consequences of exposure",
+            "placeholder": "Example: Loss of credibility in future negotiations, legal sanctions, damaged business relationships"
+        },
+        "costs": {
+            "question": "Would they need to sacrifice sensitive information for credibility?",
+            "help": "Evaluate what genuine information or resources the deceiver might need to sacrifice to make the deception believable",
+            "placeholder": "Example: Sharing legitimate financial records, revealing actual business connections"
+        },
+        "feedback": {
+            "question": "Do they have a way to monitor the impact of the deception?",
+            "help": "Consider how the deceiver might track whether their deception is working",
+            "placeholder": "Example: Media monitoring, insider contacts, visible changes in target behavior"
+        }
     }
 
-    for key, question in mom_questions.items():
+    for key, info in mom_questions.items():
         if key not in st.session_state["mom_responses"]:
             st.session_state["mom_responses"][key] = ""
         
         st.session_state["mom_responses"][key] = st.text_area(
-            question,
+            info["question"],
             value=st.session_state["mom_responses"][key],
+            help=info["help"],
+            placeholder=info["placeholder"],
             key=f"mom_{key}"
         )
 
@@ -84,19 +107,37 @@ def deception_detection():
     st.subheader("2. Past Opposition Practices (POP)")
     
     pop_questions = {
-        "history": "Does the adversary have a history of engaging in deception?",
-        "pattern": "Does the current circumstance fit the pattern of past deceptions?",
-        "precedents": "If not, are there other historical precedents?",
-        "changes": "Are there changed circumstances that would explain using this form of deception now?"
+        "history": {
+            "question": "Does the adversary have a history of engaging in deception?",
+            "help": "Research and document any known instances of past deceptive behavior",
+            "placeholder": "Example: Previous instances of corporate espionage, documented cases of market manipulation"
+        },
+        "pattern": {
+            "question": "Does the current circumstance fit the pattern of past deceptions?",
+            "help": "Compare current tactics and methods with known historical patterns",
+            "placeholder": "Example: Similar approach to previous cases, using same intermediaries or methods"
+        },
+        "precedents": {
+            "question": "If not, are there other historical precedents?",
+            "help": "Look for similar cases in the broader industry or context",
+            "placeholder": "Example: Similar deception tactics used by other actors in the industry"
+        },
+        "changes": {
+            "question": "Are there changed circumstances that would explain using this form of deception now?",
+            "help": "Consider recent changes in technology, regulations, or context that might enable new deception tactics",
+            "placeholder": "Example: New technology making certain deceptions more feasible, changes in regulatory environment"
+        }
     }
 
-    for key, question in pop_questions.items():
+    for key, info in pop_questions.items():
         if key not in st.session_state["pop_responses"]:
             st.session_state["pop_responses"][key] = ""
         
         st.session_state["pop_responses"][key] = st.text_area(
-            question,
+            info["question"],
             value=st.session_state["pop_responses"][key],
+            help=info["help"],
+            placeholder=info["placeholder"],
             key=f"pop_{key}"
         )
 
@@ -124,19 +165,37 @@ def deception_detection():
     st.subheader("3. Manipulability of Sources (MOSES)")
     
     moses_questions = {
-        "vulnerability": "Is the source vulnerable to control or manipulation by the potential deceiver?",
-        "reliability": "What is the basis for judging the source to be reliable?",
-        "access": "Does the source have direct access or only indirect access to the information?",
-        "track_record": "How good is the source's track record of reporting?"
+        "vulnerability": {
+            "question": "Is the source vulnerable to control or manipulation by the potential deceiver?",
+            "help": "Assess the independence and integrity of information sources",
+            "placeholder": "Example: Source has financial ties to the deceiver, source lacks independent verification capabilities"
+        },
+        "reliability": {
+            "question": "What is the basis for judging the source to be reliable?",
+            "help": "Evaluate the source's credentials, track record, and verification methods",
+            "placeholder": "Example: Professional reputation, past accuracy, verification processes"
+        },
+        "access": {
+            "question": "Does the source have direct access or only indirect access to the information?",
+            "help": "Consider how many steps removed the source is from the original information",
+            "placeholder": "Example: Direct witness vs third-hand information, primary vs secondary sources"
+        },
+        "track_record": {
+            "question": "How good is the source's track record of reporting?",
+            "help": "Review the source's history of accuracy and reliability",
+            "placeholder": "Example: Previous accurate reports, history of corrections or retractions"
+        }
     }
 
-    for key, question in moses_questions.items():
+    for key, info in moses_questions.items():
         if key not in st.session_state["moses_responses"]:
             st.session_state["moses_responses"][key] = ""
         
         st.session_state["moses_responses"][key] = st.text_area(
-            question,
+            info["question"],
             value=st.session_state["moses_responses"][key],
+            help=info["help"],
+            placeholder=info["placeholder"],
             key=f"moses_{key}"
         )
 
@@ -164,20 +223,42 @@ def deception_detection():
     st.subheader("4. Evaluation of Evidence (EVE)")
     
     eve_questions = {
-        "accuracy": "How accurate is the source's reporting? Has the whole chain of evidence been checked?",
-        "critical_evidence": "Does the critical evidence check out? Remember to check subsources.",
-        "conflicts": "Does evidence from one source conflict with other sources?",
-        "corroboration": "Do other sources provide corroborating evidence?",
-        "missing_evidence": "Is the absence of evidence one would expect to see noteworthy?"
+        "accuracy": {
+            "question": "How accurate is the source's reporting? Has the whole chain of evidence been checked?",
+            "help": "Evaluate the completeness and accuracy of the information chain",
+            "placeholder": "Example: All documents independently verified, translations double-checked"
+        },
+        "critical_evidence": {
+            "question": "Does the critical evidence check out? Remember to check subsources.",
+            "help": "Focus on the most important pieces of evidence and their verification",
+            "placeholder": "Example: Key financial documents verified with multiple sources, critical claims independently confirmed"
+        },
+        "conflicts": {
+            "question": "Does evidence from one source conflict with other sources?",
+            "help": "Identify and analyze any contradictions between different sources",
+            "placeholder": "Example: Discrepancies between official statements and observed actions"
+        },
+        "corroboration": {
+            "question": "Do other sources provide corroborating evidence?",
+            "help": "Look for independent confirmation from multiple sources",
+            "placeholder": "Example: Similar findings from independent investigations, matching patterns from different sources"
+        },
+        "missing_evidence": {
+            "question": "Is the absence of evidence one would expect to see noteworthy?",
+            "help": "Consider what evidence should exist but is missing",
+            "placeholder": "Example: Lack of expected documentation, missing standard business records"
+        }
     }
 
-    for key, question in eve_questions.items():
+    for key, info in eve_questions.items():
         if key not in st.session_state["eve_responses"]:
             st.session_state["eve_responses"][key] = ""
         
         st.session_state["eve_responses"][key] = st.text_area(
-            question,
+            info["question"],
             value=st.session_state["eve_responses"][key],
+            help=info["help"],
+            placeholder=info["placeholder"],
             key=f"eve_{key}"
         )
 
