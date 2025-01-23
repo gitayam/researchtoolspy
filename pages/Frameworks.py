@@ -7,6 +7,7 @@ from utilities.utils_openai import generate_advanced_query
 from pages.frameworks.COG import cog_analysis
 from pages.frameworks.SWOT import swot_page
 from pages.frameworks.ACH import ach_page
+from pages.frameworks.DeceptionDetection import deception_detection
 from sidebar_menu import sidebar_menu
 
 load_dotenv()
@@ -19,6 +20,7 @@ def frameworks_page():
         "SWOT Analysis",
         "ACH",
         "COG Analysis (AI-Guided)",
+        "Deception Detection",
         "DIME",
         "PMESII-PT",
         "DOTMLPF"
@@ -54,6 +56,13 @@ def frameworks_page():
         or hypotheses for the observed data. This approach was popularized by Richards Heuer at the CIA.
         """)
         ach_page()
+
+    elif selected_framework == "Deception Detection":
+        st.subheader("Deception Detection")
+        st.write("""
+        **Deception Detection** helps identify and analyze deception in the context of your problemset.
+        """)
+        deception_detection()
 
     elif selected_framework == "DIME":
         st.subheader("DIME Framework")
