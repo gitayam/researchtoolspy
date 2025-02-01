@@ -161,7 +161,7 @@ def manage_capabilities(final_cog, entity_type, entity_name, entity_goals, entit
             if st.button("Clear All Capabilities"):
                 st.session_state["capabilities"].clear()
 
-def manage_vulnerabilities():
+def manage_vulnerabilities(entity_type, entity_name, entity_goals, entity_presence, final_cog):
     if "vulnerabilities_dict" not in st.session_state:
         st.session_state["vulnerabilities_dict"] = {}
 
@@ -197,8 +197,7 @@ def manage_vulnerabilities():
                         f"Entity Name: {entity_name}\n"
                         f"Goals: {entity_goals}\n"
                         f"Areas of Presence: {entity_presence}\n"
-                        f"CoG: {final_cog}\n"
-                        f"Selected Capability: {selected_cap}\n\n"
+                        f"CoG: {final_cog}\n\n"
                         "Requirements potentially relevant:\n" + st.session_state["requirements_text"] + "\n\n"
                         "List 3-5 vulnerabilities for this capability. Use semicolons, no bullet points."
                     )
@@ -243,6 +242,7 @@ def score_and_prioritize(all_vulnerabilities_list):
 
     st.markdown("### Score Each Vulnerability on Each Criterion")
     st.write("Adjust scores in the table below (scroll horizontally if needed):")
+    
     updated_df = st.data_editor(
         df_scores,
         num_rows="dynamic",
@@ -467,21 +467,91 @@ def edit_co_data(data):
     # For example, here we simply return the data as is.
     return edited_data
 
+def manage_assumptions():
+    """
+    Provides a section for managing assumptions. Planners can:
+    - Add new assumptions.
+    - Mark assumptions as validated or invalidated.
+    - Remove assumptions when they are proven false or no longer relevant.
+    """
+    if "assumptions" not in st.session_state:
+        # Assumption structure: A list of dictionaries
+        st.session_state["assumptions"] = []
+    
+    st.subheader("Manage Assumptions")
+    
+    assumption_text = st.text_area(
+        "Add a New Assumption",
+        help="Enter an assumption that your planning is based on, e.g., 'Market conditions remain stable.'"
+    )
+    
+    if st.button("Add Assumption"):
+        if assumption_text.strip():
+            new_assumption = {
+                "text": assumption_text.strip(),
+                "validated": False,  # default state
+                "notes": ""
+            }
+            st.session_state["assumptions"].append(new_assumption)
+            st.success("Assumption added.")
+        else:
+            st.warning("Please enter a valid assumption.")
+    
+    # Display the current assumptions
+    if st.session_state["assumptions"]:
+        st.write("### Current Assumptions")
+        for i, assumption in enumerate(st.session_state["assumptions"]):
+            col1, col2, col3, col4 = st.columns([5, 1, 2, 2])
+            with col1:
+                st.write(assumption["text"])
+            with col2:
+                # Toggle button for validation status
+                validated = st.checkbox("Valid", value=assumption["validated"], key=f"assump_valid_{i}")
+                st.session_state["assumptions"][i]["validated"] = validated
+            with col3:
+                new_notes = st.text_input("Notes", assumption.get("notes", ""), key=f"assump_notes_{i}")
+                st.session_state["assumptions"][i]["notes"] = new_notes
+            with col4:
+                if st.button("Remove", key=f"assump_remove_{i}"):
+                    st.session_state["assumptions"].pop(i)
+                    st.experimental_rerun()  # Rerun to update the list and keys
+    else:
+        st.info("No assumptions added yet.")
+
+def search_references():
+    """
+    Provides a search function for users to look up external or internal reference materials.
+    In a real-world implementation, you might query an external API or a reference database.
+    """
+    st.subheader("Search References")
+    search_query = st.text_input("Enter keywords to search for e.g. market trends, historical data")
+    
+    if st.button("Search"):
+        # In this demo, we'll show a placeholder message.
+        # Replace this with actual search logic or integration with resources.
+        st.info(f"Searching for: {search_query} ...")
+        # Dummy results:
+        results = {
+            "Article 1": "https://example.com/article1",
+            "Research Paper A": "https://example.com/researchA"
+        }
+        for title, url in results.items():
+            st.markdown(f"- [{title}]({url})")
+
 def cog_analysis():
     st.title("Enhanced Center of Gravity (COG) Analysis Flow")
-
     st.write("""
     This flow helps you:
-    1. Identify the entity type and basic details (Name, Goals, Areas of Presence).
-    2. See relevant domain considerations (Diplomatic, Information, etc.) based on the entity type.
+    1. Identify the entity type and basic details.
+    2. See relevant domain considerations.
     3. Generate or manually define potential Centers of Gravity.
-    4. Identify Critical Capabilities & Requirements (CC & CR).
-    5. For each selected capability, identify Critical Vulnerabilities (CV).
-    6. Define or AI-generate Scoring Criteria.
-    7. Prioritize those vulnerabilities (Traditional or Logarithmic approach).
-    8. Optionally export results to CSV, PDF, or graph format.
+    4. Identify Critical Capabilities & Requirements.
+    5. Manage Assumptions and Search for Supporting Data.
+    6. Identify Critical Vulnerabilities.
+    7. Define / Edit Scoring Criteria and Prioritize Vulnerabilities.
+    8. Export and Save Analysis.
     """)
-
+    
     domain_guidance = {
         "Friendly": {
             "description": """
@@ -670,7 +740,7 @@ to perform its critical capabilities. Separate them by semicolons or lines.
 
     st.markdown("---")
     st.subheader("Identify Critical Vulnerabilities")
-    manage_vulnerabilities()
+    manage_vulnerabilities(entity_type, entity_name, entity_goals, entity_presence, final_cog)
 
     all_vulnerabilities_list = []
     for cap in st.session_state["capabilities"]:
@@ -683,6 +753,13 @@ to perform its critical capabilities. Separate them by semicolons or lines.
     st.markdown("---")
     st.subheader("Export / Save Results")
     export_results(all_vulnerabilities_list)
+
+    # New sections for assumptions management and reference searches:
+    st.markdown("---")
+    manage_assumptions()
+    
+    st.markdown("---")
+    search_references()
 
     # New: Save / Load section for resuming work later
     save_and_load_analysis()
