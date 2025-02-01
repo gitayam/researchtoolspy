@@ -36,8 +36,30 @@ def deception_detection():
     scenario = st.text_area(
         "Describe the scenario or information being analyzed",
         help="Provide detailed context about the situation where deception might be present. Include key actors, timeline, and any suspicious patterns or anomalies.",
-        placeholder="Example: A foreign company has made an unexpected offer to acquire a strategic technology firm. The offer seems unusually generous, and the company's background is difficult to verify."
+        placeholder="Example: A foreign company has made an unexpected offer to acquire a strategic technology firm. The offer seems unusually generous, and the company's background is difficult to verify.\nExample: An organizational social media account made a post claiming major policy changes that seems inconsistent with previous communications and lacks typical approval channels."
     )
+
+    # Get AI recommendations for framework priority
+    if scenario:
+        try:
+            system_msg = {
+                "role": "system",
+                "content": """You are an INTL expert in deception analysis. Based on the scenario, recommend which of these frameworks should be prioritized and in what order:
+                - MOM (Motive, Opportunity, and Means)
+                - POP (Past Opposition Practices)
+                - MOSES (Manipulability of Sources)
+                - EVE (Evaluation of Evidence)
+                
+                Explain why each framework is relevant or less relevant to this specific case."""
+            }
+            user_msg = {
+                "role": "user",
+                "content": f"For this scenario: {scenario}\nWhat is the recommended priority order for applying these frameworks, and why?"
+            }
+            framework_recommendations = chat_gpt([system_msg, user_msg], model="gpt-4-mini")
+            st.info("📋 Recommended Framework Priority:\n" + framework_recommendations)
+        except Exception as e:
+            st.error(f"Error generating framework recommendations: {e}")
 
     # MOM Checklist
     st.markdown("---")
