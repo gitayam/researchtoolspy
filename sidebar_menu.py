@@ -1,7 +1,18 @@
 import streamlit as st
 
 def sidebar_menu():
-    # Sidebar menu
+    # Framework Quick Links
+    st.sidebar.markdown("## Analysis Frameworks")
+    st.sidebar.markdown("""
+    - [SWOT Analysis](/SWOT_Analysis)
+    - [ACH Analysis](/ACH_Analysis)
+    - [COG Analysis](/COG_Analysis)
+    - [Deception Detection](/Deception_Detection)
+    - [DIME Framework](/DIME_Framework)
+    - [PMESII-PT Framework](/PMESII_PT_Framework)
+    - [DOTMLPF Framework](/DOTMLPF_Framework)
+    """)
+    # Wiki Links
     st.sidebar.markdown("## [**Research Wiki Pages**](https://irregularpedia.org/index.php/Category:Research)")
     
     st.sidebar.subheader("Plan and Prepare")

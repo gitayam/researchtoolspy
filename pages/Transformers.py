@@ -100,7 +100,7 @@ def transformers_page():
         image_search_page()
 
     if selected_format == "Process URLs":
-        wayback_tool_page()
+        wayback_tool_page(use_expander=False)
 
     # File upload (excluded for certain options)
     if selected_format not in ["Advanced Query", "Image to Hash", "Process URLs"]:
@@ -140,7 +140,7 @@ def transformers_page():
         output = ""
         if selected_format == "Advanced Query":
             try:
-                # If you’re storing the query in session_state:
+                # If you're storing the query in session_state:
                 search_query = st.session_state.get("search_query", "")
                 output = generate_advanced_query(search_query, search_platform, model)
             except Exception as e:

@@ -19,3 +19,7 @@ geopy
 pykml
 argparse
 pandas
+psycopg2-binary  # Changed from psycopg2 to psycopg2-binary
+streamlit-extras
+fpdf
+pdfkit
