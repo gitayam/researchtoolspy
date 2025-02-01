@@ -131,21 +131,30 @@ def generate_website_citation(url, citation_format="APA", access_date=None, date
 def generate_pdf(card_data):
     """
     Generate a PDF file (as bytes) from a card's details,
-    using a TrueType font (DejaVuSans) that supports Unicode.
+    using TrueType fonts from the system (DejaVuSans).
     """
     pdf = FPDF()
-    # Use the system-installed DejaVuSans.ttf font path
-    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    if not os.path.exists(font_path):
-        raise RuntimeError(f"TTF Font file not found at {font_path}. Please ensure DejaVuSans.ttf is available.")
+    # Define system paths for the normal and bold fonts.
+    normal_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    bold_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     
-    pdf.add_font('DejaVu', '', font_path, uni=True)
+    if not os.path.exists(normal_path):
+        raise RuntimeError(f"Normal font file not found at {normal_path}. Please ensure DejaVuSans.ttf is available.")
+    
+    pdf.add_font('DejaVu', '', normal_path, uni=True)
+    
+    if os.path.exists(bold_path):
+        pdf.add_font('DejaVu', 'B', bold_path, uni=True)
+        bold_style = 'B'
+    else:
+        bold_style = ''
+    
     pdf.add_page()
-    pdf.set_font("DejaVu", 'B', 16)
+    pdf.set_font("DejaVu", bold_style, 16)
     pdf.cell(200, 10, txt="Archived Page Details", ln=True, align="C")
     pdf.ln(10)
     
-    pdf.set_font("DejaVu", size=12)
+    pdf.set_font("DejaVu", '', 12)
     pdf.multi_cell(0, 10, txt=f"URL: {card_data['url']}")
     pdf.ln(5)
     pdf.multi_cell(0, 10, txt=f"Bypass Link: https://12ft.io/{card_data['url']}")
@@ -154,12 +163,12 @@ def generate_pdf(card_data):
         pdf.multi_cell(0, 10, txt=f"Archived URL: {card_data['archived_url']}")
     pdf.ln(5)
     pdf.multi_cell(0, 10, txt="Citation:")
-    pdf.set_font("DejaVu", size=10)
+    pdf.set_font("DejaVu", '', 10)
     pdf.multi_cell(0, 10, txt=card_data.get("citation", ""))
     pdf.ln(5)
-    pdf.set_font("DejaVu", 'B', 12)
+    pdf.set_font("DejaVu", bold_style, 12)
     pdf.multi_cell(0, 10, txt="Metadata:")
-    pdf.set_font("DejaVu", size=10)
+    pdf.set_font("DejaVu", '', 10)
     metadata = card_data.get("metadata", {})
     pdf.multi_cell(0, 10, txt=f"Title: {metadata.get('title', 'N/A')}")
     pdf.multi_cell(0, 10, txt=f"Description: {metadata.get('description', 'N/A')}")
