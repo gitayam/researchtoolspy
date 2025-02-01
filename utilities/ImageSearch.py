@@ -1,4 +1,4 @@
-# /researchtools_streamlit/pages/ImageSearch.py
+# /utilities/ImageSearch.py
 
 import streamlit as st
 import hashlib

@@ -1,5 +1,4 @@
-# /researchtools_streamlit/pages/Home.py
-
+# /pages/Transformers.py
 import streamlit as st
 import requests
 from utilities.utils_openai import generate_advanced_query

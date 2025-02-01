@@ -1,4 +1,4 @@
-# /researchtools_streamlit/utils_openai.py
+# /utilities/utils_openai.py
 
 import openai
 import os

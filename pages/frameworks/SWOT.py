@@ -1,4 +1,4 @@
-# /researchtools_streamlit/pages/SWOT.py
+# /pages/frameworks/SWOT.py
 
 import streamlit as st
 from dotenv import load_dotenv

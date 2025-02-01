@@ -1,4 +1,4 @@
-# standalone_locations_to_kml.py
+# /utilities/standalone_locations_to_kml.py
 
 import pandas as pd
 import geopandas as gpd

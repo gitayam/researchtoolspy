@@ -1,4 +1,4 @@
-# /researchtools_streamlit/pages/2_🔎_Frameworks.py
+# /pages/Frameworks.py
 
 import os
 import streamlit as st
