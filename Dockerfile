@@ -15,7 +15,7 @@ RUN apt-get update && \
 WORKDIR /app
 COPY . /app/
 COPY requirements.txt /app/
-RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip;pip install streamlit --upgrade && pip install --no-cache-dir -r requirements.txt
 
 COPY . /app/
 

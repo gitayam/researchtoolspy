@@ -4,24 +4,38 @@ import json
 import streamlit as st
 from urllib.parse import urlparse
 import logging
+import time
+import concurrent.futures
+
+# Optionally use Playwright for dynamic pages
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+
 from utilities.utils_openai import chat_gpt  # GPT helper for fallback
 
 logging.basicConfig(level=logging.INFO)
 
 
 def get_meta_content(soup, attr, value):
-    """Helper to extract and clean meta tag content."""
-    tag = soup.find("meta", {attr: value})
-    if tag and tag.get("content"):
-        return tag.get("content").strip()
+    """
+    Helper to extract and clean meta tag content.
+    """
+    try:
+        tag = soup.find("meta", {attr: value})
+        if tag and tag.get("content"):
+            return tag.get("content").strip()
+    except Exception as e:
+        logging.error(f"Error in get_meta_content for {attr}={value}: {e}")
     return None
 
 
 def extract_author_from_json_ld(soup):
     """
     Attempts to extract the author (or creator) from JSON-LD data.
-    Looks for a dictionary or list with a key "author" or "creator"
-    and returns the first available "name" field.
+    Searches for keys "author" or "creator" and returns the first available "name".
     """
     try:
         scripts = soup.find_all("script", type="application/ld+json")
@@ -30,7 +44,8 @@ def extract_author_from_json_ld(soup):
                 continue
             try:
                 data = json.loads(script.string)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                logging.debug(f"JSON decode error: {e}")
                 continue
 
             def parse_author(value):
@@ -103,7 +118,7 @@ def social_media_fetch_metadata(url, soup):
             title = get_meta_content(soup, "property", "og:title")
             description = get_meta_content(soup, "property", "og:description")
             author = get_meta_content(soup, "name", "author")
-            # Extract published date from JSON-LD if available.
+            # Extract published date from JSON-LD
             scripts = soup.find_all("script", type="application/ld+json")
             for script in scripts:
                 try:
@@ -125,7 +140,7 @@ def social_media_fetch_metadata(url, soup):
     except Exception as e:
         logging.error(f"Error during social media extraction for {url}: {e}")
 
-    # As a last step, try JSON-LD if author is still missing.
+    # Fallback: if author is still missing, try JSON-LD extraction.
     if not author:
         json_ld_author = extract_author_from_json_ld(soup)
         if json_ld_author:
@@ -134,15 +149,10 @@ def social_media_fetch_metadata(url, soup):
     return title, description, keywords, author, date_published
 
 
-def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
+def fetch_page_content(url, timeout=10, use_playwright=False):
     """
-    Advanced metadata scraper using multiple strategies:
-      - Uses platform-specific extraction for known social media URLs.
-      - Otherwise uses Open Graph, Twitter cards, standard meta tags, JSON-LD, and content from <article>.
-      - Optionally calls a GPT API as a fallback.
-    
-    Returns:
-        tuple: (title, description, keywords, author, date_published, editor)
+    Fetch page content using requests. If use_playwright is True and requests fails,
+    fallback to using Playwright (if available).
     """
     headers = {
         'User-Agent': (
@@ -151,20 +161,52 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
             'Chrome/90.0.4430.93 Safari/537.36'
         )
     }
-
     try:
         response = requests.get(url, timeout=timeout, headers=headers)
         response.raise_for_status()
+        return response.content
     except Exception as e:
-        st.error(f"Error fetching URL metadata: {e}")
-        logging.error(f"Error fetching URL {url}: {e}")
+        logging.error(f"Error fetching URL with requests: {e}")
+        if use_playwright and PLAYWRIGHT_AVAILABLE:
+            try:
+                with sync_playwright() as p:
+                    browser = p.chromium.launch(headless=True)
+                    page = browser.new_page()
+                    page.goto(url, wait_until="networkidle")
+                    content = page.content()
+                    browser.close()
+                    return content
+            except Exception as pe:
+                logging.error(f"Error fetching URL with Playwright: {pe}")
+        raise e
+
+
+def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
+    """
+    Advanced metadata scraper using multiple strategies:
+      - Uses platform-specific extraction for known social media URLs.
+      - Otherwise uses Open Graph, Twitter cards, standard meta tags, JSON-LD,
+        and content from <article>.
+      - Optionally calls a GPT API as a fallback.
+    
+    Returns:
+        tuple: (title, description, keywords, author, date_published, editor)
+    """
+    try:
+        content = fetch_page_content(url, timeout=timeout, use_playwright=True)
+    except Exception as e:
+        st.error(f"Error fetching URL content: {e}")
+        logging.error(f"Error fetching URL content {url}: {e}")
         return "No Title", "No Description", "No Keywords", "No Author", "No Date Published", "No Editor"
 
-    soup = BeautifulSoup(response.content, "lxml")
+    soup = BeautifulSoup(content, "lxml")
     host = urlparse(url).netloc.lower()
-    social_media_hosts = ["x.com", "twitter.com", "bsky.app", "facebook.com", "instagram.com", "tiktok.com", "youtube.com"]
+    social_media_hosts = [
+        "x.com", "twitter.com", "bsky.app",
+        "facebook.com", "instagram.com", "tiktok.com", "youtube.com"
+    ]
 
-    # Try social media-specific extraction first.
+    # Use social media extraction if applicable.
     if any(sm in host for sm in social_media_hosts):
         sm_title, sm_description, sm_keywords, sm_author, sm_date = social_media_fetch_metadata(url, soup)
         if sm_title or sm_description:
@@ -187,7 +229,7 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
     if not description:
         description = get_meta_content(soup, "name", "twitter:description")
 
-    # Fallback to the <title> tag or <h1> within an <article>.
+    # Fallback to the <title> tag or <h1> in an <article>.
     if not title:
         if soup.title and soup.title.string:
             title = soup.title.string.strip()
@@ -199,7 +241,7 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
                     title = h1.get_text().strip()
         title = title if title else "No Title"
 
-    # Fallback for description: standard meta or first paragraph in an <article>.
+    # Fallback for description: use standard meta or first <p> in <article>.
     if not description:
         description = get_meta_content(soup, "name", "description")
         if not description:
@@ -215,9 +257,7 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
     keywords = meta_keywords if meta_keywords else "No Keywords"
 
     # --- Improved author extraction ---
-    # Try meta tag first.
     author = get_meta_content(soup, "name", "author")
-    # Fallback to HTML attributes.
     if not author:
         author_tag = soup.find(attrs={"itemprop": "author"})
         if author_tag:
@@ -226,7 +266,6 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
             byline = soup.find(class_="byline")
             author = byline.get_text().strip() if byline else None
 
-    # If still not found, try JSON‑LD extraction.
     if not author or not author.strip():
         json_ld_author = extract_author_from_json_ld(soup)
         if json_ld_author:
