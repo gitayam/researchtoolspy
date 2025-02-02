@@ -185,25 +185,37 @@ def generate_pdf_from_url(target_url):
     """
     try:
         # Update this path to point to your wkhtmltopdf executable.
-        wkhtmltopdf_path = "/usr/bin/wkhtmltopdf"  # Adjust this if necessary
+        wkhtmltopdf_path = "/usr/bin/wkhtmltopdf"  # Adjust this path if necessary.
         config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
+        options = {
+            "quiet": "",
+            # You can add additional options here, e.g.:
+            # "no-outline": None,
+            # "disable-smart-shrinking": "",
+        }
         # pdfkit.from_url returns the PDF content as bytes when output_path is False.
-        pdf_bytes = pdfkit.from_url(target_url, False, configuration=config)
+        pdf_bytes = pdfkit.from_url(target_url, False, configuration=config, options=options)
         return pdf_bytes
     except Exception as e:
         st.error(f"Error generating PDF from {target_url}: {e}")
         return None
 
-def display_link_card(url, citation, title, description, keywords, author, date_published, archived_url=None, use_expander=True):
+def display_link_card(url, citation, title, description, keywords, author, date_published, archived_url=None, use_expander=True, widget_id=None):
     """
     Render a card displaying bypass link, archived URL, citation, and metadata details.
     Also displays two download buttons:
       1. Export the card details as a PDF (generated via FPDF)
       2. Export the webpage content itself as a PDF (generated via pdfkit)
-    """
-    # Create a unique key based on the URL or archived_url.
-    unique_key = hashlib.md5(url.encode()).hexdigest()
     
+    The widget_id parameter can be provided to create persistent and unique keys.
+    If widget_id is not provided, a unique key is generated using a combination of the URL hash and a random uuid.
+    """
+    # Generate a unique key for widget keys.
+    if widget_id is None:
+        unique_key = hashlib.md5(url.encode()).hexdigest() + "_" + uuid.uuid4().hex
+    else:
+        unique_key = widget_id
+
     if use_expander:
         with st.expander(f"Details for: {url}", expanded=True):
             st.markdown("**Bypass Link:**")
@@ -234,7 +246,7 @@ def display_link_card(url, citation, title, description, keywords, author, date_
         st.write(f"**Author:** {author}")
         st.write(f"**Date Published:** {date_published}")
 
-    # Download button for PDF export of card details (using FPDF).
+    # Generate PDF bytes for the card details.
     pdf_bytes = generate_pdf({
         "url": url,
         "archived_url": archived_url,
@@ -256,8 +268,7 @@ def display_link_card(url, citation, title, description, keywords, author, date_
         key=f"export_card_{unique_key}"
     )
     
-    # Download button for PDF export of the webpage (using pdfkit).
-    # Use the archived URL if available.
+    # Generate PDF bytes for the webpage (using pdfkit).
     target = archived_url if archived_url else url
     pdf_webpage_bytes = generate_pdf_from_url(target)
     if pdf_webpage_bytes:
