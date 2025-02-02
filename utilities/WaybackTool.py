@@ -10,9 +10,10 @@ from fpdf import FPDF
 from utilities.advanced_scraper import advanced_fetch_metadata
 import hashlib
 import os
-
-# Import pdfkit for converting HTML to PDF.
 import pdfkit
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 # Ensure saved_links is in session_state as a list for stacking multiple saved cards
 if "saved_links" not in st.session_state:
@@ -57,24 +58,19 @@ def format_date(date_str, citation_format):
             return date_str  # fallback: return the unformatted string
     citation_format = citation_format.upper()
     if citation_format == "APA":
-        # APA: e.g., "2018, October 10"
         return dt.strftime("%Y, %B %d")
     elif citation_format == "MLA":
-        # MLA: e.g., "10 Oct. 2018"
         return dt.strftime("%d %b %Y")
     elif citation_format == "CHICAGO":
-        # Chicago: e.g., "October 10, 2018"
         return dt.strftime("%B %d, %Y")
     elif citation_format == "HARVARD":
-        # Harvard: e.g., "2018, October 10"
         return dt.strftime("%Y, %B %d")
     elif citation_format == "IEEE":
-        # IEEE: e.g., "Oct. 10, 2018"
         return dt.strftime("%b %d, %Y")
     else:
         return dt.strftime("%Y-%m-%d")
 
-def generate_website_citation(url, citation_format="APA", access_date=None, date_published=None):
+def generate_website_citation(url, citation_format="APA", access_date=None, date_published=None, author=None):
     """
     Generate a formatted website citation using Manubot data.
     Default citation_format is APA.
@@ -85,17 +81,20 @@ def generate_website_citation(url, citation_format="APA", access_date=None, date
     csl_item = citekey_to_csl_item(citekey)
     title = csl_item.get('title', 'No title found')
     
-    # Build a list of author names from csl_item data.
+    # Use the provided author if available, otherwise fallback to csl_item data.
     authors = csl_item.get('author', [])
     author_names = []
-    for author_info in authors:
-        if isinstance(author_info, dict):
-            name = (author_info.get('literal') or 
-                    f"{author_info.get('family', '')} {author_info.get('given', '')}".strip() or 
-                    None)
-            if name:
-                author_names.append(name)
-                
+    if author:
+        author_names.append(author)
+    else:
+        for author_info in authors:
+            if isinstance(author_info, dict):
+                name = (author_info.get('literal') or 
+                        f"{author_info.get('family', '')} {author_info.get('given', '')}".strip() or 
+                        None)
+                if name:
+                    author_names.append(name)
+    
     if not author_names:
         formatted_authors = 'Author Unknown'
     elif len(author_names) == 1:
@@ -106,7 +105,6 @@ def generate_website_citation(url, citation_format="APA", access_date=None, date
         formatted_authors = f"{', '.join(author_names[:-1])}, & {author_names[-1]}"
     
     if date_published != "No Date Published":
-        # If the date is an ISO string with a time, cut it at the "T" to get just the date portion.
         date_str = date_published.split("T")[0] if "T" in date_published else date_published
         formatted_date = format_date(date_str, citation_format)
     else:
@@ -134,7 +132,6 @@ def generate_pdf(card_data):
     using TrueType fonts from the system (DejaVuSans).
     """
     pdf = FPDF()
-    # Define system paths for the normal and bold fonts.
     normal_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     bold_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     
@@ -181,38 +178,34 @@ def generate_pdf(card_data):
 def generate_pdf_from_url(target_url):
     """
     Generate a PDF of the given URL using pdfkit.
-    Returns the PDF as bytes.
+    Returns the PDF as bytes, or None if failed.
     """
     try:
-        # Update this path to point to your wkhtmltopdf executable.
-        wkhtmltopdf_path = "/usr/bin/wkhtmltopdf"  # Adjust this path if necessary.
+        # Path to your wkhtmltopdf executable – adjust if necessary.
+        wkhtmltopdf_path = "/usr/bin/wkhtmltopdf"
+        if not os.path.exists(wkhtmltopdf_path):
+            raise FileNotFoundError(f"wkhtmltopdf not found at {wkhtmltopdf_path}.")
         config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
+        # Additional options to help with dynamic content and rendering.
         options = {
             "quiet": "",
-            # You can add additional options here, e.g.:
-            # "no-outline": None,
-            # "disable-smart-shrinking": "",
+            "no-outline": None,
+            "javascript-delay": 1000,  # Delay (in ms) to allow JS to load; adjust as needed.
+            "enable-local-file-access": "",
+            "custom-header": [("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/90.0.4430.93 Safari/537.36")],
         }
-        # pdfkit.from_url returns the PDF content as bytes when output_path is False.
         pdf_bytes = pdfkit.from_url(target_url, False, configuration=config, options=options)
+        if not pdf_bytes:
+            raise ValueError("No PDF content generated; check the target URL or wkhtmltopdf options.")
         return pdf_bytes
     except Exception as e:
         st.error(f"Error generating PDF from {target_url}: {e}")
+        logging.error(f"Error generating PDF from {target_url}: {e}")
         return None
 
 def display_link_card(url, citation, title, description, keywords, author, date_published, archived_url=None, use_expander=True, widget_id=None):
     """
-    Render an improved card UI for link details.
-    
-    - The expander (or header) now uses the page title.
-    - The card displays the Original Link, Bypass Link, Archived URL (if any),
-      Citation, and Metadata.
-    - PDF exports (for both the card details and the webpage) are processed only
-      when the user clicks their respective export buttons. A spinner is shown
-      during PDF generation, and errors are reported.
-    - The downloaded file names use the page title (with spaces replaced by underscores).
-    
-    The widget_id parameter can be provided to create persistent and unique keys.
+    Render an improved card UI for link details with export options.
     """
     # Generate a unique key.
     if widget_id is None:
@@ -294,7 +287,6 @@ def display_link_card(url, citation, title, description, keywords, author, date_
                     }
                 })
                 st.session_state[card_pdf_key] = io.BytesIO(pdf_bytes)
-                # Update the placeholder immediately after PDF generation.
                 card_pdf_placeholder.download_button(
                     label="Download Card PDF",
                     data=st.session_state[card_pdf_key],
@@ -356,25 +348,21 @@ def wayback_tool_page(use_expander=True):
         if not url.strip():
             st.error("Please enter a valid URL.")
         else:
-            # Get metadata using the advanced scraper.
-            title, description, keywords, author, date_published = advanced_fetch_metadata(url)
-            # Additional author detection: try article:author if plain meta author is not informative.
-            if author == "No Author":
-                meta_article_author = BeautifulSoup(requests.get(url).content, "lxml").find("meta", property="article:author")
-                if meta_article_author and meta_article_author.get("content"):
-                    author = meta_article_author["content"].strip()
+            title, description, keywords, author, date_published, editor = advanced_fetch_metadata(url)
+            if author == "No Author" and editor:
+                author = editor
             
             try:
                 citation = generate_website_citation(
                     url,
                     citation_format=citation_format,
-                    date_published=date_published
+                    date_published=date_published,
+                    author=author
                 )
             except Exception as e:
                 st.warning(f"Could not generate citation: {e}")
                 citation = f"Manual citation needed for: {url}"
             
-            # Archive URL via the Wayback Machine.
             try:
                 resp = requests.post(f"https://web.archive.org/save/{url}", timeout=15)
                 if resp.status_code == 200:
@@ -385,13 +373,11 @@ def wayback_tool_page(use_expander=True):
             except Exception as e:
                 st.error(f"Error occurred while archiving: {e}")
             
-            # Display the card.
             display_link_card(
                 url, citation, title, description, keywords, author, date_published,
                 archived_url=archived_url, use_expander=use_expander
             )
             
-            # Save card details.
             saved_hash = str(uuid.uuid4())[:8]
             card_data = {
                 "hash": saved_hash,
@@ -439,6 +425,31 @@ def wayback_tool_page(use_expander=True):
     if st.button("Clear All Saved Cards"):
         st.session_state["saved_links"] = []
         st.success("All saved link cards have been cleared.")
+    
+    if st.session_state["saved_links"]:
+        import streamlit.components.v1 as components
+        bibliography_text = ""
+        for idx, card in enumerate(st.session_state["saved_links"], 1):
+            bibliography_text += f"{idx}. {card['citation']}\n\n"
+        
+        components.html(f"""
+        <html>
+          <head>
+            <script>
+              function copyToClipboard() {{
+                var element = document.getElementById("bibliographyText");
+                element.select();
+                document.execCommand("copy");
+                alert("Bibliography copied to clipboard!");
+              }}
+            </script>
+          </head>
+          <body>
+            <textarea id="bibliographyText" style="position: absolute; left: -1000px; top: -1000px;">{bibliography_text}</textarea>
+            <button onclick="copyToClipboard()" style="padding: 8px 16px; font-size: 16px;">Copy All Bibliography</button>
+          </body>
+        </html>
+        """, height=120)
     
     if st.session_state["saved_links"]:
         st.markdown("### Your Saved Link Cards:")

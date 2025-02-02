@@ -3,122 +3,146 @@ from bs4 import BeautifulSoup
 import json
 import streamlit as st
 from urllib.parse import urlparse
+import logging
 from utilities.utils_openai import chat_gpt  # GPT helper for fallback
+
+logging.basicConfig(level=logging.INFO)
+
+
+def get_meta_content(soup, attr, value):
+    """Helper to extract and clean meta tag content."""
+    tag = soup.find("meta", {attr: value})
+    if tag and tag.get("content"):
+        return tag.get("content").strip()
+    return None
+
+
+def extract_author_from_json_ld(soup):
+    """
+    Attempts to extract the author (or creator) from JSON-LD data.
+    Looks for a dictionary or list with a key "author" or "creator"
+    and returns the first available "name" field.
+    """
+    try:
+        scripts = soup.find_all("script", type="application/ld+json")
+        for script in scripts:
+            if not script.string:
+                continue
+            try:
+                data = json.loads(script.string)
+            except json.JSONDecodeError:
+                continue
+
+            def parse_author(value):
+                if isinstance(value, dict) and "name" in value:
+                    return value["name"].strip()
+                elif isinstance(value, list):
+                    for item in value:
+                        if isinstance(item, dict) and "name" in item:
+                            return item["name"].strip()
+                return None
+
+            if isinstance(data, dict):
+                for key in ["author", "creator"]:
+                    if key in data:
+                        name = parse_author(data[key])
+                        if name:
+                            return name
+            elif isinstance(data, list):
+                for entry in data:
+                    for key in ["author", "creator"]:
+                        if key in entry:
+                            name = parse_author(entry[key])
+                            if name:
+                                return name
+    except Exception as e:
+        logging.debug(f"Error in extract_author_from_json_ld: {e}")
+    return None
+
 
 def social_media_fetch_metadata(url, soup):
     """
-    Tailored metadata extraction for known social media websites.
-    For each platform, we try to extract metadata using platform-specific assumptions.
-    
-    Args:
-        url (str): The URL to scrape.
-        soup (BeautifulSoup): Parsed HTML content.
-        
-    Returns:
-        tuple: (title, description, keywords, author, date_published) 
-               or (None, None, None, None, None) if this method cannot extract info.
+    Platform-specific metadata extraction for known social media websites.
+    Returns a tuple: (title, description, keywords, author, date_published)
     """
     host = urlparse(url).netloc.lower()
     title = description = keywords = author = date_published = None
 
-    # x.com / Twitter
-    if "x.com" in host or "twitter.com" in host:
-        og_title = soup.find("meta", property="og:title")
-        title = og_title["content"].strip() if og_title and og_title.get("content") else None
-        og_description = soup.find("meta", property="og:description")
-        description = og_description["content"].strip() if og_description and og_description.get("content") else None
-        twitter_creator = soup.find("meta", attrs={"name": "twitter:creator"})
-        author = twitter_creator["content"].strip() if twitter_creator and twitter_creator.get("content") else "Twitter User"
-        keywords = "No Keywords"
-        date_published = "No Date Published"
-    
-    # Bluesky (bsky)
-    elif "bsky.app" in host or "bsky" in host:
-        # Bluesky might still use Open Graph tags
-        og_title = soup.find("meta", property="og:title")
-        title = og_title["content"].strip() if og_title and og_title.get("content") else None
-        og_description = soup.find("meta", property="og:description")
-        description = og_description["content"].strip() if og_description and og_description.get("content") else None
-        author = "Bluesky User"
-        keywords = "No Keywords"
-        date_published = "No Date Published"
-
-    # Facebook
-    elif "facebook.com" in host:
-        og_title = soup.find("meta", property="og:title")
-        title = og_title["content"].strip() if og_title and og_title.get("content") else None
-        og_description = soup.find("meta", property="og:description")
-        description = og_description["content"].strip() if og_description and og_description.get("content") else None
-        author = "Facebook User"
-        keywords = "No Keywords"
-        date_published = "No Date Published"
-
-    # Instagram
-    elif "instagram.com" in host:
-        og_title = soup.find("meta", property="og:title")
-        title = og_title["content"].strip() if og_title and og_title.get("content") else None
-        og_description = soup.find("meta", property="og:description")
-        description = og_description["content"].strip() if og_description and og_description.get("content") else None
-        author = "Instagram"
-        keywords = "No Keywords"
-        date_published = "No Date Published"
-
-    # TikTok
-    elif "tiktok.com" in host:
-        og_title = soup.find("meta", property="og:title")
-        title = og_title["content"].strip() if og_title and og_title.get("content") else None
-        og_description = soup.find("meta", property="og:description")
-        description = og_description["content"].strip() if og_description and og_description.get("content") else None
-        author = "TikTok User"
-        keywords = "No Keywords"
-        date_published = "No Date Published"
-
-    # YouTube
-    elif "youtube.com" in host:
-        # YouTube might require using JSON-LD data
-        og_title = soup.find("meta", property="og:title")
-        title = og_title["content"].strip() if og_title and og_title.get("content") else None
-        og_description = soup.find("meta", property="og:description")
-        description = og_description["content"].strip() if og_description and og_description.get("content") else None
-        author = "YouTube Channel"
-        keywords = "No Keywords"
-        # Check for published date in JSON-LD
-        try:
+    try:
+        if "x.com" in host or "twitter.com" in host:
+            title = get_meta_content(soup, "property", "og:title")
+            description = get_meta_content(soup, "property", "og:description")
+            author = get_meta_content(soup, "name", "twitter:creator")
+            date_published = get_meta_content(soup, "name", "date")
+            keywords = "No Keywords"
+        elif "bsky.app" in host or "bsky" in host:
+            title = get_meta_content(soup, "property", "og:title")
+            description = get_meta_content(soup, "property", "og:description")
+            author = get_meta_content(soup, "name", "author")
+            date_published = get_meta_content(soup, "name", "date")
+            keywords = "No Keywords"
+        elif "facebook.com" in host:
+            title = get_meta_content(soup, "property", "og:title")
+            description = get_meta_content(soup, "property", "og:description")
+            author = get_meta_content(soup, "name", "author")
+            date_published = get_meta_content(soup, "name", "date")
+            keywords = "No Keywords"
+        elif "instagram.com" in host:
+            title = get_meta_content(soup, "property", "og:title")
+            description = get_meta_content(soup, "property", "og:description")
+            author = get_meta_content(soup, "name", "author")
+            date_published = get_meta_content(soup, "name", "date")
+            keywords = "No Keywords"
+        elif "tiktok.com" in host:
+            title = get_meta_content(soup, "property", "og:title")
+            description = get_meta_content(soup, "property", "og:description")
+            author = get_meta_content(soup, "name", "author")
+            date_published = get_meta_content(soup, "name", "date")
+            keywords = "No Keywords"
+        elif "youtube.com" in host:
+            title = get_meta_content(soup, "property", "og:title")
+            description = get_meta_content(soup, "property", "og:description")
+            author = get_meta_content(soup, "name", "author")
+            # Extract published date from JSON-LD if available.
             scripts = soup.find_all("script", type="application/ld+json")
             for script in scripts:
                 try:
-                    data = json.loads(script.string)
-                    if isinstance(data, dict) and "uploadDate" in data:
-                        date_published = data["uploadDate"]
-                        break
-                    elif isinstance(data, list):
-                        for entry in data:
-                            if isinstance(entry, dict) and "uploadDate" in entry:
-                                date_published = entry["uploadDate"]
-                                break
-                        if date_published:
+                    if script.string:
+                        data = json.loads(script.string)
+                        if isinstance(data, dict) and "uploadDate" in data:
+                            date_published = data["uploadDate"]
                             break
-                except Exception:
-                    continue
-        except Exception:
-            date_published = "No Date Published"
+                        elif isinstance(data, list):
+                            for entry in data:
+                                if isinstance(entry, dict) and "uploadDate" in entry:
+                                    date_published = entry["uploadDate"]
+                                    break
+                            if date_published:
+                                break
+                except Exception as ex:
+                    logging.debug(f"JSON-LD parsing error in YouTube extraction: {ex}")
+            keywords = "No Keywords"
+    except Exception as e:
+        logging.error(f"Error during social media extraction for {url}: {e}")
+
+    # As a last step, try JSON-LD if author is still missing.
+    if not author:
+        json_ld_author = extract_author_from_json_ld(soup)
+        if json_ld_author:
+            author = json_ld_author
 
     return title, description, keywords, author, date_published
 
+
 def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
     """
-    Advanced metadata scraper that performs multiple extraction strategies:
-      - If the URL is from a known social media platform, applies a tailored extraction method.
-      - Else tries Open Graph, Twitter, standard meta tags, JSON-LD, and the <title> tag.
-      - Optionally uses a GPT API as a last resort.
-      
-    Args:
-        url (str): The URL to scrape for metadata.
-        timeout (int): Request timeout in seconds.
-        use_gpt_fallback (bool): Whether to call GPT to extract metadata if needed.
+    Advanced metadata scraper using multiple strategies:
+      - Uses platform-specific extraction for known social media URLs.
+      - Otherwise uses Open Graph, Twitter cards, standard meta tags, JSON-LD, and content from <article>.
+      - Optionally calls a GPT API as a fallback.
     
     Returns:
-        tuple: (title, description, keywords, author, date_published)
+        tuple: (title, description, keywords, author, date_published, editor)
     """
     headers = {
         'User-Agent': (
@@ -127,78 +151,102 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
             'Chrome/90.0.4430.93 Safari/537.36'
         )
     }
+
     try:
         response = requests.get(url, timeout=timeout, headers=headers)
         response.raise_for_status()
     except Exception as e:
         st.error(f"Error fetching URL metadata: {e}")
-        return "No Title", "No Description", "No Keywords", "No Author", "No Date Published"
+        logging.error(f"Error fetching URL {url}: {e}")
+        return "No Title", "No Description", "No Keywords", "No Author", "No Date Published", "No Editor"
 
     soup = BeautifulSoup(response.content, "lxml")
-    
-    # First, try platform-specific extraction if applicable.
     host = urlparse(url).netloc.lower()
     social_media_hosts = ["x.com", "twitter.com", "bsky.app", "facebook.com", "instagram.com", "tiktok.com", "youtube.com"]
+
+    # Try social media-specific extraction first.
     if any(sm in host for sm in social_media_hosts):
         sm_title, sm_description, sm_keywords, sm_author, sm_date = social_media_fetch_metadata(url, soup)
         if sm_title or sm_description:
-            # Use the social media extraction if at least one is found.
-            title = sm_title if sm_title else "No Title"
-            description = sm_description if sm_description else "No Description"
-            keywords = sm_keywords if sm_keywords else "No Keywords"
-            author = sm_author if sm_author else "No Author"
-            date_published = sm_date if sm_date else "No Date Published"
-            return title, description, keywords, author, date_published
+            return (
+                sm_title if sm_title else "No Title",
+                sm_description if sm_description else "No Description",
+                sm_keywords if sm_keywords else "No Keywords",
+                sm_author if sm_author else "No Author",
+                sm_date if sm_date else "No Date Published",
+                "No Editor"
+            )
 
-    # If no platform-specific metadata, use generic extraction.
-    title = description = keywords = author = date_published = None
+    # --- Generic extraction ---
+    title = get_meta_content(soup, "property", "og:title")
+    description = get_meta_content(soup, "property", "og:description")
 
-    # 1. Check for Open Graph metadata.
-    og_title = soup.find("meta", property="og:title")
-    if og_title and og_title.get("content"):
-        title = og_title["content"].strip()
-    og_description = soup.find("meta", property="og:description")
-    if og_description and og_description.get("content"):
-        description = og_description["content"].strip()
-    
-    # 2. Check for Twitter card tags if needed.
+    # Try Twitter card fallback if OG tags are missing.
     if not title:
-        twitter_title = soup.find("meta", attrs={"name": "twitter:title"})
-        if twitter_title and twitter_title.get("content"):
-            title = twitter_title["content"].strip()
+        title = get_meta_content(soup, "name", "twitter:title")
     if not description:
-        twitter_description = soup.find("meta", attrs={"name": "twitter:description"})
-        if twitter_description and twitter_description.get("content"):
-            description = twitter_description["content"].strip()
-    
-    # 3. Fallback to standard meta tags and <title> tag.
+        description = get_meta_content(soup, "name", "twitter:description")
+
+    # Fallback to the <title> tag or <h1> within an <article>.
     if not title:
         if soup.title and soup.title.string:
             title = soup.title.string.strip()
         else:
-            title = "No Title"
+            article = soup.find("article")
+            if article:
+                h1 = article.find("h1")
+                if h1:
+                    title = h1.get_text().strip()
+        title = title if title else "No Title"
+
+    # Fallback for description: standard meta or first paragraph in an <article>.
     if not description:
-        meta_description = soup.find("meta", attrs={"name": "description"})
-        if meta_description and meta_description.get("content"):
-            description = meta_description["content"].strip()
+        description = get_meta_content(soup, "name", "description")
+        if not description:
+            article = soup.find("article")
+            if article:
+                p = article.find("p")
+                if p:
+                    description = p.get_text().strip()[:200]
+        description = description if description else "No Description"
+
+    # Keywords extraction.
+    meta_keywords = get_meta_content(soup, "name", "keywords")
+    keywords = meta_keywords if meta_keywords else "No Keywords"
+
+    # --- Improved author extraction ---
+    # Try meta tag first.
+    author = get_meta_content(soup, "name", "author")
+    # Fallback to HTML attributes.
+    if not author:
+        author_tag = soup.find(attrs={"itemprop": "author"})
+        if author_tag:
+            author = author_tag.get_text().strip()
         else:
-            description = "No Description"
-            
-    meta_keywords = soup.find("meta", attrs={"name": "keywords"})
-    keywords = meta_keywords["content"].strip() if meta_keywords and meta_keywords.get("content") else "No Keywords"
-    
-    meta_author = soup.find("meta", attrs={"name": "author"})
-    author = meta_author["content"].strip() if meta_author and meta_author.get("content") else "No Author"
-    
-    meta_date = soup.find("meta", attrs={"name": "datePublished"})
-    if meta_date and meta_date.get("content"):
-        date_published = meta_date["content"].strip()
-    else:
-        # Also check JSON-LD structured data for published date.
-        try:
-            scripts = soup.find_all("script", type="application/ld+json")
-            for script in scripts:
-                try:
+            byline = soup.find(class_="byline")
+            author = byline.get_text().strip() if byline else None
+
+    # If still not found, try JSON‑LD extraction.
+    if not author or not author.strip():
+        json_ld_author = extract_author_from_json_ld(soup)
+        if json_ld_author:
+            author = json_ld_author
+        else:
+            author = "No Author"
+
+    # --- Editor extraction ---
+    editor = get_meta_content(soup, "name", "editor")
+    if not editor:
+        editor_tag = soup.find(attrs={"itemprop": "editor"})
+        editor = editor_tag.get_text().strip() if editor_tag else "No Editor"
+
+    # --- Date published extraction ---
+    date_published = get_meta_content(soup, "name", "datePublished")
+    if not date_published:
+        scripts = soup.find_all("script", type="application/ld+json")
+        for script in scripts:
+            try:
+                if script.string:
                     data = json.loads(script.string)
                     if isinstance(data, dict) and "datePublished" in data:
                         date_published = data["datePublished"]
@@ -210,38 +258,22 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
                                 break
                         if date_published:
                             break
-                except Exception:
-                    continue
-        except Exception:
-            pass
-        
-        if not date_published:
-            date_published = "No Date Published"
-    
-    # If metadata is still missing, consider using GPT fallback.
-    if use_gpt_fallback and (title == "No Title" or description == "No Description"):
+            except Exception as ex:
+                logging.debug(f"JSON-LD datePublished parsing error: {ex}")
+        date_published = date_published if date_published else "No Date Published"
+
+    # --- GPT Fallback ---
+    if use_gpt_fallback and (title in [None, "No Title"] or description in [None, "No Description"]):
         try:
-            snippet = soup.get_text()[:2000]  # use only first 2000 characters to keep prompt size small
-            gpt_prompt = (
-                "Extract the title and meta description from the following HTML text. "
-                "Return the result as JSON with two keys: 'title' and 'description'.\n\n"
-                f"{snippet}\n\n"
-                "If not found, return 'No Title' and 'No Description' as values."
-            )
-            gpt_response = chat_gpt([{"role": "user", "content": gpt_prompt}], model="gpt-4")
-            if gpt_response and gpt_response.strip():
-                try:
-                    result = json.loads(gpt_response)
-                    title = result.get("title", title)
-                    description = result.get("description", description)
-                except Exception as parse_error:
-                    st.warning(
-                        f"GPT fallback response parsing failure: {parse_error}. "
-                        f"GPT response was: {gpt_response}"
-                    )
-            else:
-                # This warning will be shown if GPT returns an empty or whitespace response.
-                st.warning(f"GPT fallback returned an empty response: {repr(gpt_response)}")
+            gpt_data = chat_gpt(url)
+            if gpt_data and isinstance(gpt_data, dict):
+                title = gpt_data.get("title", title)
+                description = gpt_data.get("description", description)
+                keywords = gpt_data.get("keywords", keywords)
+                author = gpt_data.get("author", author)
+                date_published = gpt_data.get("date_published", date_published)
+                editor = gpt_data.get("editor", editor)
         except Exception as e:
-            st.warning(f"GPT fallback failed or returned invalid response: {e}")
-    return title, description, keywords, author, date_published 
+            logging.error(f"Error in GPT fallback extraction for {url}: {e}")
+
+    return title, description, keywords, author, date_published, editor
