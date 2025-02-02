@@ -202,13 +202,15 @@ def generate_pdf_from_url(target_url):
 
 def display_link_card(url, citation, title, description, keywords, author, date_published, archived_url=None, use_expander=True, widget_id=None):
     """
-    Render a card displaying bypass link, archived URL, citation, and metadata details.
-    Also displays two download buttons:
-      1. Export the card details as a PDF (generated via FPDF)
-      2. Export the webpage content itself as a PDF (generated via pdfkit)
+    Render an improved card UI for link details.
+    The card shows:
+      - A header ("Archived Page Details")
+      - Bypass and Archived Links as clickable hyperlinks
+      - Citation displayed in code style
+      - Metadata (Title, Description, Keywords, Author, Date Published) as a styled list
+    Download buttons for exporting the card details and the webpage PDF are arranged in two columns below the card.
     
     The widget_id parameter can be provided to create persistent and unique keys.
-    If widget_id is not provided, a unique key is generated using a combination of the URL hash and a random uuid.
     """
     # Generate a unique key for widget keys.
     if widget_id is None:
@@ -216,37 +218,45 @@ def display_link_card(url, citation, title, description, keywords, author, date_
     else:
         unique_key = widget_id
 
+    # Build the clickable links HTML
+    bypass_link = f"https://12ft.io/{url}"
+    bypass_link_html = f'<a href="{bypass_link}" target="_blank">{bypass_link}</a>'
+    archived_link_html = ""
+    if archived_url:
+        archived_link_html = f'<div style="margin-bottom:5px;"><strong>Archived URL:</strong> <a href="{archived_url}" target="_blank">{archived_url}</a></div>'
+    
+    # Construct the HTML for the card details
+    card_html = f"""
+    <div style="border:1px solid #ddd; padding:15px; border-radius:8px; margin:10px 0; background-color:#f9f9f9;">
+        <div style="font-size:20px; font-weight:bold; margin-bottom:10px;">Archived Page Details</div>
+        <div style="margin-bottom:5px;">
+           <strong>Bypass Link:</strong> {bypass_link_html}
+        </div>
+        {archived_link_html}
+        <div style="margin-bottom:5px;">
+           <strong>Citation:</strong><br>
+           <code style="white-space: pre-wrap;">{citation}</code>
+        </div>
+        <div style="margin-bottom:5px;">
+           <strong>Metadata:</strong>
+           <ul style="list-style-type:none; padding-left:0;">
+               <li><strong>Title:</strong> {title}</li>
+               <li><strong>Description:</strong> {description}</li>
+               <li><strong>Keywords:</strong> {keywords}</li>
+               <li><strong>Author:</strong> {author}</li>
+               <li><strong>Date Published:</strong> {date_published}</li>
+           </ul>
+        </div>
+    </div>
+    """
+    
     if use_expander:
         with st.expander(f"Details for: {url}", expanded=True):
-            st.markdown("**Bypass Link:**")
-            st.write(f"https://12ft.io/{url}")
-            if archived_url:
-                st.markdown("**Archived URL:**")
-                st.write(archived_url)
-            st.markdown("**Citation:**")
-            st.code(citation, language="text")
-            st.markdown("**Metadata:**")
-            st.write(f"**Title:** {title}")
-            st.write(f"**Description:** {description}")
-            st.write(f"**Keywords:** {keywords}")
-            st.write(f"**Author:** {author}")
-            st.write(f"**Date Published:** {date_published}")
+            st.markdown(card_html, unsafe_allow_html=True)
     else:
-        st.markdown("**Bypass Link:**")
-        st.write(f"https://12ft.io/{url}")
-        if archived_url:
-            st.markdown("**Archived URL:**")
-            st.write(archived_url)
-        st.markdown("**Citation:**")
-        st.code(citation, language="text")
-        st.markdown("**Metadata:**")
-        st.write(f"**Title:** {title}")
-        st.write(f"**Description:** {description}")
-        st.write(f"**Keywords:** {keywords}")
-        st.write(f"**Author:** {author}")
-        st.write(f"**Date Published:** {date_published}")
-
-    # Generate PDF bytes for the card details.
+        st.markdown(card_html, unsafe_allow_html=True)
+    
+    # Generate PDF bytes for the card details (using FPDF).
     pdf_bytes = generate_pdf({
         "url": url,
         "archived_url": archived_url,
@@ -260,26 +270,36 @@ def display_link_card(url, citation, title, description, keywords, author, date_
         }
     })
     pdf_buffer = io.BytesIO(pdf_bytes)
-    st.download_button(
-        "Export Card as PDF",
-        data=pdf_buffer,
-        file_name="archived_page_details.pdf",
-        mime="application/pdf",
-        key=f"export_card_{unique_key}"
-    )
     
-    # Generate PDF bytes for the webpage (using pdfkit).
+    # Generate PDF bytes for the webpage (using pdfkit) from the archived url if available.
     target = archived_url if archived_url else url
     pdf_webpage_bytes = generate_pdf_from_url(target)
     if pdf_webpage_bytes:
         pdf_webpage_buffer = io.BytesIO(pdf_webpage_bytes)
+    else:
+        pdf_webpage_buffer = None
+    
+    # Arrange download buttons in two columns.
+    col1, col2 = st.columns(2)
+    with col1:
         st.download_button(
-            "Export Webpage as PDF",
-            data=pdf_webpage_buffer,
-            file_name="webpage.pdf",
+            "Export Card as PDF",
+            data=pdf_buffer,
+            file_name="archived_page_details.pdf",
             mime="application/pdf",
-            key=f"export_webpage_{unique_key}"
+            key=f"export_card_{unique_key}"
         )
+    with col2:
+        if pdf_webpage_buffer:
+            st.download_button(
+                "Export Webpage as PDF",
+                data=pdf_webpage_buffer,
+                file_name="webpage.pdf",
+                mime="application/pdf",
+                key=f"export_webpage_{unique_key}"
+            )
+        else:
+            st.info("Webpage PDF not available.")
 
 def wayback_tool_page(use_expander=True):
     st.header("Wayback Machine Archive Tool")
