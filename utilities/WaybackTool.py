@@ -199,11 +199,6 @@ def generate_pdf(card_data):
     pdf.ln(5)
     pdf.multi_cell(0, 10, txt="Citation:")
     pdf.set_font("DejaVu", '', 10)
-    pdf.multi_cell(0, 10, txt=card_data.get("citation", ""))
-    pdf.ln(5)
-    pdf.set_font("DejaVu", bold_style, 12)
-    pdf.multi_cell(0, 10, txt="Metadata:")
-    pdf.set_font("DejaVu", '', 10)
     metadata = card_data.get("metadata", {})
     pdf.multi_cell(0, 10, txt=f"Title: {metadata.get('title', 'N/A')}")
     pdf.multi_cell(0, 10, txt=f"Description: {metadata.get('description', 'N/A')}")
@@ -266,7 +261,7 @@ def async_generate_pdf_from_url(target_url):
         return future.result()
 
 
-def display_link_card(url, citation, title, description, keywords, author, date_published, archived_url=None, use_expander=True, widget_id=None):
+def display_link_card(url, citation, title, description, keywords, author, date_published, archived_url=None, use_expander=True, widget_id=None, referenced_links=None):
     """
     Render an improved card UI for link details with export options.
     """
@@ -287,17 +282,6 @@ def display_link_card(url, citation, title, description, keywords, author, date_
     card_html = f"""
     <div style="border:1px solid #ddd; padding:15px; border-radius:8px; margin:10px 0; background-color:#f9f9f9;">
         <div style="font-size:20px; font-weight:bold; margin-bottom:10px;">Archived Page Details</div>
-        <div style="margin-bottom:5px;"><strong>Original Link:</strong> <a href="{url}" target="_blank">{url}</a></div>
-        <div style="margin-bottom:5px;"><strong>Bypass Link:</strong> {bypass_link_html}</div>
-    """
-    if archived_url:
-        card_html += f'<div style="margin-bottom:5px;"><strong>Archived URL:</strong> <a href="{archived_url}" target="_blank">{archived_url}</a></div>'
-
-    card_html += f"""
-        <div style="margin-bottom:5px;">
-           <strong>Citation:</strong><br>
-           <code style="white-space: pre-wrap;">{citation}</code>
-        </div>
         <div style="margin-bottom:5px;">
            <strong>Metadata:</strong>
            <ul style="list-style-type:none; padding-left:0;">
@@ -308,8 +292,24 @@ def display_link_card(url, citation, title, description, keywords, author, date_
                <li><strong>Date Published:</strong> {date_published}</li>
            </ul>
         </div>
-    </div>
+        <div style="margin-bottom:5px;">
+           <strong>Citation:</strong><br>
+           <code style="white-space: pre-wrap;">{citation}</code>
+        </div>
+        <div style="margin-bottom:5px;"><strong>Original Link:</strong> <a href="{url}" target="_blank">{url}</a></div>
+        <div style="margin-bottom:5px;"><strong>Bypass Link:</strong> {bypass_link_html}</div>
     """
+    if archived_url:
+        card_html += f'<div style="margin-bottom:5px;"><strong>Archived URL:</strong> <a href="{archived_url}" target="_blank">{archived_url}</a></div>'
+
+    # Add referenced links if provided
+    if referenced_links:
+        card_html += '<div style="margin-bottom:5px;"><strong>Referenced Links:</strong><ul>'
+        for link in referenced_links:
+            card_html += f'<li><a href="{link}" target="_blank">{link}</a></li>'
+        card_html += '</ul></div>'
+
+    card_html += "</div>"
 
     # Display the card.
     if use_expander:
@@ -433,7 +433,7 @@ def wayback_tool_page(use_expander=True):
         if not url.strip():
             st.error("Please enter a valid URL.")
         else:
-            title, description, keywords, author, date_published, editor = advanced_fetch_metadata(url)
+            title, description, keywords, author, date_published, editor, referenced_links = advanced_fetch_metadata(url)
             if author == "No Author" and editor:
                 author = editor
 
@@ -461,7 +461,7 @@ def wayback_tool_page(use_expander=True):
             # Display the link card at full width
             display_link_card(
                 url, citation, title, description, keywords, author, date_published,
-                archived_url=archived_url, use_expander=use_expander
+                archived_url=archived_url, use_expander=use_expander, referenced_links=referenced_links
             )
 
             saved_hash = str(uuid.uuid4())[:8]

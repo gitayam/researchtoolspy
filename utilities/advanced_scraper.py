@@ -181,6 +181,23 @@ def fetch_page_content(url, timeout=10, use_playwright=False):
         raise e
 
 
+def extract_links_from_content(soup, url):
+    # Focus on links within main content areas
+    main_content = soup.find('article') or soup.find('div', class_='main-content') or soup.find('section')
+
+    if main_content:
+        # Extract links from the main content area only
+        referenced_links = [
+            a['href'] for a in main_content.find_all('a', href=True)
+            if a['href'].startswith('http') and a['href'] != url
+            and not any(keyword in a['href'].lower() for keyword in ["login", "subscribe", "subscription"])
+        ]
+    else:
+        referenced_links = []
+
+    return referenced_links
+
+
 def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
     """
     Advanced metadata scraper using multiple strategies:
@@ -190,14 +207,14 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
       - Optionally calls a GPT API as a fallback.
     
     Returns:
-        tuple: (title, description, keywords, author, date_published, editor)
+        tuple: (title, description, keywords, author, date_published, editor, referenced_links)
     """
     try:
         content = fetch_page_content(url, timeout=timeout, use_playwright=True)
     except Exception as e:
         st.error(f"Error fetching URL content: {e}")
         logging.error(f"Error fetching URL content {url}: {e}")
-        return "No Title", "No Description", "No Keywords", "No Author", "No Date Published", "No Editor"
+        return "No Title", "No Description", "No Keywords", "No Author", "No Date Published", "No Editor", []
 
     soup = BeautifulSoup(content, "lxml")
     host = urlparse(url).netloc.lower()
@@ -216,7 +233,8 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
                 sm_keywords if sm_keywords else "No Keywords",
                 sm_author if sm_author else "No Author",
                 sm_date if sm_date else "No Date Published",
-                "No Editor"
+                "No Editor",
+                []  # No referenced links for social media
             )
 
     # --- Generic extraction ---
@@ -301,6 +319,20 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
                 logging.debug(f"JSON-LD datePublished parsing error: {ex}")
         date_published = date_published if date_published else "No Date Published"
 
+    # --- Extract referenced links ---
+    # Focus on links within main content areas
+    main_content = soup.find('article') or soup.find('div', class_='main-content') or soup.find('section')
+
+    if main_content:
+        # Extract links from the main content area only
+        referenced_links = [
+            a['href'] for a in main_content.find_all('a', href=True)
+            if a['href'].startswith('http') and a['href'] != url
+            and not any(keyword in a['href'].lower() for keyword in ["login", "subscribe", "subscription"])
+        ]
+    else:
+        referenced_links = []
+
     # --- GPT Fallback ---
     if use_gpt_fallback and (title in [None, "No Title"] or description in [None, "No Description"]):
         try:
@@ -315,4 +347,4 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
         except Exception as e:
             logging.error(f"Error in GPT fallback extraction for {url}: {e}")
 
-    return title, description, keywords, author, date_published, editor
+    return title, description, keywords, author, date_published, editor, referenced_links
