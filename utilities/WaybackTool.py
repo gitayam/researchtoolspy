@@ -203,36 +203,42 @@ def generate_pdf_from_url(target_url):
 def display_link_card(url, citation, title, description, keywords, author, date_published, archived_url=None, use_expander=True, widget_id=None):
     """
     Render an improved card UI for link details.
-    The card shows:
-      - A header ("Archived Page Details")
-      - Bypass and Archived Links as clickable hyperlinks
-      - Citation displayed in code style
-      - Metadata (Title, Description, Keywords, Author, Date Published) as a styled list
-    Download buttons for exporting the card details and the webpage PDF are arranged in two columns below the card.
+    
+    - The expander (or header) now uses the page title.
+    - The card displays the Original Link, Bypass Link, Archived URL (if any),
+      Citation, and Metadata.
+    - PDF exports (for both the card details and the webpage) are processed only
+      when the user clicks their respective export buttons. A spinner is shown
+      during PDF generation, and errors are reported.
+    - The downloaded file names use the page title (with spaces replaced by underscores).
     
     The widget_id parameter can be provided to create persistent and unique keys.
     """
-    # Generate a unique key for widget keys.
+    # Generate a unique key.
     if widget_id is None:
         unique_key = hashlib.md5(url.encode()).hexdigest() + "_" + uuid.uuid4().hex
     else:
         unique_key = widget_id
 
-    # Build the clickable links HTML
+    # Compute a cleaned version of the title to use in filenames.
+    title_filename = title.strip().replace(" ", "_")
+    
+    # Build the clickable links HTML.
     bypass_link = f"https://12ft.io/{url}"
     bypass_link_html = f'<a href="{bypass_link}" target="_blank">{bypass_link}</a>'
-    archived_link_html = ""
-    if archived_url:
-        archived_link_html = f'<div style="margin-bottom:5px;"><strong>Archived URL:</strong> <a href="{archived_url}" target="_blank">{archived_url}</a></div>'
-    
-    # Construct the HTML for the card details
+
+    # Construct the HTML for the card details.
     card_html = f"""
     <div style="border:1px solid #ddd; padding:15px; border-radius:8px; margin:10px 0; background-color:#f9f9f9;">
         <div style="font-size:20px; font-weight:bold; margin-bottom:10px;">Archived Page Details</div>
-        <div style="margin-bottom:5px;">
-           <strong>Bypass Link:</strong> {bypass_link_html}
-        </div>
-        {archived_link_html}
+        <div style="margin-bottom:5px;"><strong>Original Link:</strong> <a href="{url}" target="_blank">{url}</a></div>
+        <div style="margin-bottom:5px;"><strong>Bypass Link:</strong> {bypass_link_html}</div>
+    """
+    
+    if archived_url:
+        card_html += f'<div style="margin-bottom:5px;"><strong>Archived URL:</strong> <a href="{archived_url}" target="_blank">{archived_url}</a></div>'
+    
+    card_html += f"""
         <div style="margin-bottom:5px;">
            <strong>Citation:</strong><br>
            <code style="white-space: pre-wrap;">{citation}</code>
@@ -250,58 +256,91 @@ def display_link_card(url, citation, title, description, keywords, author, date_
     </div>
     """
     
+    # Display the card using an expander or a simple markdown header.
     if use_expander:
-        with st.expander(f"Details for: {url}", expanded=True):
+        with st.expander(f"Link Card - {title}", expanded=True):
             st.markdown(card_html, unsafe_allow_html=True)
     else:
+        st.markdown(f"**Link Card - {title}**", unsafe_allow_html=True)
         st.markdown(card_html, unsafe_allow_html=True)
     
-    # Generate PDF bytes for the card details (using FPDF).
-    pdf_bytes = generate_pdf({
-        "url": url,
-        "archived_url": archived_url,
-        "citation": citation,
-        "metadata": {
-            "title": title,
-            "description": description,
-            "keywords": keywords,
-            "author": author,
-            "date_published": date_published
-        }
-    })
-    pdf_buffer = io.BytesIO(pdf_bytes)
-    
-    # Generate PDF bytes for the webpage (using pdfkit) from the archived url if available.
-    target = archived_url if archived_url else url
-    pdf_webpage_bytes = generate_pdf_from_url(target)
-    if pdf_webpage_bytes:
-        pdf_webpage_buffer = io.BytesIO(pdf_webpage_bytes)
-    else:
-        pdf_webpage_buffer = None
-    
-    # Arrange download buttons in two columns.
+    # Create two columns for the export options.
     col1, col2 = st.columns(2)
+    
+    # ----------------------- Export Card as PDF -----------------------
+    card_pdf_key = f"card_pdf_{unique_key}"
     with col1:
-        st.download_button(
-            "Export Card as PDF",
-            data=pdf_buffer,
-            file_name="archived_page_details.pdf",
-            mime="application/pdf",
-            key=f"export_card_{unique_key}"
-        )
-    with col2:
-        if pdf_webpage_buffer:
-            st.download_button(
-                "Export Webpage as PDF",
-                data=pdf_webpage_buffer,
-                file_name="webpage.pdf",
+        card_pdf_placeholder = st.empty()
+        if card_pdf_key in st.session_state:
+            card_pdf_placeholder.download_button(
+                label="Download Card PDF",
+                data=st.session_state[card_pdf_key],
+                file_name=f"{title_filename}_card.pdf",
                 mime="application/pdf",
-                key=f"export_webpage_{unique_key}"
+                key=f"download_card_{unique_key}"
             )
         else:
-            st.info("Webpage PDF not available.")
+            if st.button("Export Card as PDF", key=f"generate_card_{unique_key}"):
+                pdf_bytes = generate_pdf({
+                    "url": url,
+                    "archived_url": archived_url,
+                    "citation": citation,
+                    "metadata": {
+                        "title": title,
+                        "description": description,
+                        "keywords": keywords,
+                        "author": author,
+                        "date_published": date_published
+                    }
+                })
+                st.session_state[card_pdf_key] = io.BytesIO(pdf_bytes)
+                # Update the placeholder immediately after PDF generation.
+                card_pdf_placeholder.download_button(
+                    label="Download Card PDF",
+                    data=st.session_state[card_pdf_key],
+                    file_name=f"{title_filename}_card.pdf",
+                    mime="application/pdf",
+                    key=f"download_card_{unique_key}"
+                )
+    
+    # -------------------- Export Webpage as PDF -----------------------
+    webpage_pdf_key = f"webpage_pdf_{unique_key}"
+    with col2:
+        webpage_pdf_placeholder = st.empty()
+        if webpage_pdf_key in st.session_state:
+            if st.session_state[webpage_pdf_key]:
+                webpage_pdf_placeholder.download_button(
+                    label="Download Webpage PDF",
+                    data=st.session_state[webpage_pdf_key],
+                    file_name=f"{title_filename}_webpage.pdf",
+                    mime="application/pdf",
+                    key=f"download_webpage_{unique_key}"
+                )
+            else:
+                webpage_pdf_placeholder.info("Webpage PDF not available.")
+        else:
+            if st.button("Export Webpage as PDF", key=f"generate_webpage_{unique_key}"):
+                with st.spinner("Generating webpage PDF..."):
+                    target = archived_url if archived_url else url
+                    pdf_webpage_bytes = generate_pdf_from_url(target)
+                if pdf_webpage_bytes:
+                    st.session_state[webpage_pdf_key] = io.BytesIO(pdf_webpage_bytes)
+                    webpage_pdf_placeholder.download_button(
+                        label="Download Webpage PDF",
+                        data=st.session_state[webpage_pdf_key],
+                        file_name=f"{title_filename}_webpage.pdf",
+                        mime="application/pdf",
+                        key=f"download_webpage_{unique_key}"
+                    )
+                else:
+                    st.session_state[webpage_pdf_key] = None
+                    webpage_pdf_placeholder.error("Error generating webpage PDF. Please check your configuration and logs.")
 
 def wayback_tool_page(use_expander=True):
+    # Ensure saved_links is initialized.
+    if "saved_links" not in st.session_state:
+        st.session_state["saved_links"] = []
+
     st.header("Wayback Machine Archive Tool")
     url = st.text_input("Enter URL to archive", key="wayback_url")
     
@@ -318,7 +357,6 @@ def wayback_tool_page(use_expander=True):
             st.error("Please enter a valid URL.")
         else:
             # Get metadata using the advanced scraper.
-            # Note: In advanced_fetch_metadata, consider adding additional author-detection logic.
             title, description, keywords, author, date_published = advanced_fetch_metadata(url)
             # Additional author detection: try article:author if plain meta author is not informative.
             if author == "No Author":
@@ -349,7 +387,8 @@ def wayback_tool_page(use_expander=True):
             
             # Display the card.
             display_link_card(
-                url, citation, title, description, keywords, author, date_published, archived_url=archived_url, use_expander=use_expander
+                url, citation, title, description, keywords, author, date_published,
+                archived_url=archived_url, use_expander=use_expander
             )
             
             # Save card details.
@@ -405,7 +444,7 @@ def wayback_tool_page(use_expander=True):
         st.markdown("### Your Saved Link Cards:")
         for idx, card in enumerate(st.session_state["saved_links"]):
             container = st.container()
-            with container.expander(f"Link Card [{card['hash']}] - {card['url']}", expanded=False):
+            with container.expander(f"Link Card [{card['hash']}] - {card['metadata']['title']}", expanded=False):
                 display_link_card(
                     card["url"],
                     card["citation"],
