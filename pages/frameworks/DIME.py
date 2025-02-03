@@ -51,32 +51,54 @@ def process_scenario_input(scenario):
     else:
         return scenario
 
-def ai_suggest_dime(phase, scenario):
+def ai_suggest_dime(phase, scenario, objective=None):
     """
-    Generate 3-5 DIME analysis items for the given phase with a focus on generating intelligence requirements 
-    that support information operations. Each item should be formatted as:
+    Generate 3-5 DIME analysis items for the given phase with a focus on generating intelligence
+    requirements that support information forces.
+    
+    For the Diplomatic phase, the prompt instructs ChatGPT to consider the scenario from a diplomatic 
+    perspective, and if an objective is provided, to relate the analysis to accomplishing that objective.
+    
+    The output should be a semicolon-separated list of items, each formatted as:
       'Question: <question text> | Search: <advanced Google search query>'
-    and items should be separated by semicolons.
     """
     try:
         system_msg = {
             "role": "system",
             "content": (
-                "You are an experienced intelligence analyst. Your task is to generate analytical questions that focus on the intelligence requirements needed "
-                "to support information forces (including cyber, digital, and OSINT capabilities). Do not provide narrative development or persuasive messaging; "
-                "instead, concentrate on formulating questions that help identify critical intelligence gaps, adversary capabilities, and vulnerabilities related to "
-                "information operations. Output the result as a semicolon-separated list of items, each in the format: 'Question: <question text> | Search: <advanced Google search query>'."
+                "You are an experienced intelligence analyst. Your task is to generate analytical questions focused on identifying "
+                "critical intelligence requirements for supporting information forces (including cyber, digital, and OSINT capabilities). "
+                "Avoid narrative development or persuasive messaging and instead, focus on pinpointing intelligence gaps, adversary capabilities, "
+                "and vulnerabilities."
             )
         }
-        user_msg = {
-            "role": "user",
-            "content": (
+        # For the Diplomatic phase, include a prompt that makes the AI first consider what is important to know about the scenario diplomatically.
+        if phase.lower() == "diplomatic":
+            if objective and objective.strip():
+                user_content = (
+                    f"Scenario: {scenario}\n"
+                    f"For the {phase} aspect, generate 3-5 detailed intelligence analysis questions that identify key diplomatic information requirements necessary to support information forces. "
+                    f"First, consider what is important to know about this scenario from a diplomatic perspective, especially in relation to accomplishing the following objective: {objective}. "
+                    "Focus on aspects such as identifying intelligence gaps, assessing adversary diplomatic strategies, international alliances, negotiation dynamics, "
+                    "and vulnerabilities in diplomatic channels. Each item should include a guiding question and an associated advanced Google search query, separated by a semicolon."
+                )
+            else:
+                user_content = (
+                    f"Scenario: {scenario}\n"
+                    f"For the {phase} aspect, generate 3-5 detailed intelligence analysis questions that identify key diplomatic information requirements necessary to support information forces. "
+                    "First, consider what is important to know about this scenario from a diplomatic perspective. "
+                    "Focus on aspects such as identifying intelligence gaps, assessing adversary diplomatic strategies, international alliances, negotiation dynamics, "
+                    "and vulnerabilities in diplomatic channels. Each item should include a guiding question and an associated advanced Google search query, separated by a semicolon."
+                )
+        else:
+            # For non-diplomatic phases, use the generic prompt.
+            user_content = (
                 f"Scenario: {scenario}\n"
-                f"For the {phase} aspect, generate 3-5 detailed intelligence analysis questions that specifically identify key information requirements necessary "
-                "to support information forces. Focus on aspects such as identifying intelligence gaps, assessing adversary digital capabilities, and pinpointing technological vulnerabilities. "
+                f"For the {phase} aspect, generate 3-5 detailed intelligence analysis questions that identify key information requirements necessary to support information forces. "
+                "Focus on aspects such as identifying intelligence gaps, assessing adversary digital capabilities, and pinpointing technological vulnerabilities. "
                 "Each item should include a guiding question and an associated advanced Google search query, separated by a semicolon."
             )
-        }
+        user_msg = {"role": "user", "content": user_content}
         response = chat_gpt([system_msg, user_msg], model="gpt-4o")
         return response
     except Exception as e:
@@ -141,7 +163,11 @@ def dime_page():
         col_diplomatic_left, col_diplomatic_right = st.columns([1, 2])
         with col_diplomatic_left:
             if st.button("AI: Suggest Diplomatic Questions"):
-                ai_text = ai_suggest_dime("Diplomatic", st.session_state["processed_scenario"])
+                ai_text = ai_suggest_dime(
+                    "Diplomatic", 
+                    st.session_state["processed_scenario"],
+                    st.session_state.get("objective", "")
+                )
                 if ai_text:
                     st.session_state["dime_diplomatic"] = ai_text
                     st.experimental_rerun()
