@@ -12,18 +12,71 @@ from utilities.advanced_scraper import advanced_fetch_metadata  # New import for
 
 load_dotenv()
 
+def google_search_summary(query):
+    """
+    Performs a Google search for the given query using Selenium
+    and returns a summary (title and snippet) of the first result.
+    """
+    import time
+    from selenium import webdriver
+    from bs4 import BeautifulSoup
+    from utilities.google_scraper import scrape
+
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--headless")
+    driver = webdriver.Chrome(options=chrome_options)
+
+    query_url = "https://www.google.com/search?q=" + query.replace(" ", "+")
+    driver.get(query_url)
+    time.sleep(2)  # wait for the page to load
+
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    # Use the common result container "g" for Google search results.
+    results = soup.find_all("div", class_="g")
+    if results:
+        block = results[0]
+        title_tag = block.find("h3")
+        title = title_tag.get_text() if title_tag else "No title"
+        snippet_tag = block.find("div", class_="IsZvec")
+        snippet = snippet_tag.get_text(separator=" ", strip=True) if snippet_tag else ""
+        if not snippet:
+            snippet = block.get_text(separator=" ", strip=True)
+        summary = f"Title: {title}\nSnippet: {snippet}"
+    else:
+        summary = "No results found."
+
+    driver.quit()
+    return summary
+
+def generate_google_results(suggestions_text):
+    """
+    Extracts advanced search queries from AI-generated suggestions
+    and then performs a Google search for each query.
+    Returns a concatenated string of each query's search result summary.
+    """
+    results_text = ""
+    items = suggestions_text.split(";")
+    # Match either "Search:" or "Advanced Google Search Query:" (case insensitive)
+    pattern = re.compile(r"(?:Search:|Advanced Google Search Query:)\s*(.+)", re.IGNORECASE)
+    for item in items:
+        m = pattern.search(item)
+        if m:
+            query = m.group(1).strip()
+            result = google_search_summary(query)
+            results_text += f"Query: {query}\n{result}\n\n"
+    if not results_text:
+        results_text = "No valid advanced search queries found."
+    return results_text
+
 def process_scenario_input(scenario):
     """
     If the scenario input is a URL, scrape its content using advanced_fetch_metadata 
     and summarize it using GPT with the "gpt-4o-mini" model.
     Otherwise, return the scenario as provided.
     """
-    # Simple check to see if the scenario is a URL.
     if scenario.strip().lower().startswith("http://") or scenario.strip().lower().startswith("https://"):
         try:
-            # Scrape the page for metadata.
             title, description, keywords, author, date_published, editor, referenced_links = advanced_fetch_metadata(scenario)
-            # Construct a text block from the scraped metadata.
             scraped_text = (
                 f"Title: {title}\n"
                 f"Description: {description}\n"
@@ -33,12 +86,10 @@ def process_scenario_input(scenario):
                 f"Keywords: {keywords}\n"
                 f"Referenced Links: {', '.join(referenced_links) if referenced_links else 'None'}"
             )
-            # Create a summarization prompt.
             summary_prompt = (
                 "Summarize the following content in a concise manner, "
                 "highlighting the key insights and context:\n\n" + scraped_text
             )
-            # Summarize using GPT with the model "gpt-4o-mini"
             summary = chat_gpt(
                 [
                     {"role": "system", "content": "You are a professional summarizer."},
@@ -57,7 +108,7 @@ def generate_wikipedia_results(scenario):
     """
     Uses GPT-4o-mini to turn the summary of the scenario (or the raw scenario text) 
     into 1 or 2 queries focused on places, people, or events and then returns Wikipedia search results.
-    For each query, the first matching article and its summary (3 sentences) are displayed.
+    For each query, the first matching article and its summary (2 sentences) are displayed.
     """
     try:
         prompt = (
@@ -73,7 +124,6 @@ def generate_wikipedia_results(scenario):
             ],
             model="gpt-4o-mini"
         )
-        # Expecting output such as: "Query1; Query2; Query3"
         queries = [q.strip() for q in queries_output.split(";") if q.strip()]
         if not queries:
             return "No Wikipedia queries generated."
@@ -92,51 +142,6 @@ def generate_wikipedia_results(scenario):
         return results_text
     except Exception as e:
         return f"Error generating Wikipedia results: {e}"
-
-def searxng_search(query):
-    #FIXME: This is a temporary fix to use the Irregular Chat SearxNG endpoint.
-    """
-    Performs an advanced search using SearxNG at https://search.irregularchat.com
-    with a JSON output and returns a summary of the first result.
-    """
-    url = f"https://search.irregularchat.com/search?format=json&q={query}"
-    try:
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            if "results" in data and data["results"]:
-                first_result = data["results"][0]
-                title = first_result.get("title", "No title")
-                snippet = first_result.get("content", "No snippet available")
-                return f"Title: {title}\nSnippet: {snippet}"
-            else:
-                return "No results found."
-        else:
-            return f"Error: Received status code {response.status_code}"
-    except Exception as e:
-        return f"Exception during SearxNG search: {str(e)}"
-
-def generate_searxng_results(suggestions_text):
-    #FIXME: This is a temporary fix to use the Irregular Chat SearxNG endpoint.
-    """
-    Extracts advanced search queries from AI-generated suggestions and then 
-    performs SearxNG search for each query using the https://search.irregularchat.com endpoint.
-    Returns a concatenated string of each query's search result summary.
-    """
-    results_text = ""
-    # Split the suggestions text by semicolon.
-    items = suggestions_text.split(";")
-    # Updated regex to match either "Search:" or "Advanced Google Search Query:" (case insensitive)
-    pattern = re.compile(r"(?:Search:|Advanced Google Search Query:)\s*(.+)", re.IGNORECASE)
-    for item in items:
-        m = pattern.search(item)
-        if m:
-            query = m.group(1).strip()
-            result = searxng_search(query)
-            results_text += f"Query: {query}\n{result}\n\n"
-    if not results_text:
-        results_text = "No valid advanced search queries found."
-    return results_text
 
 def ai_suggest_dime(phase, scenario, objective=None):
     """
@@ -233,9 +238,9 @@ def dime_page():
 
     # Checkbox to include Wikipedia results.
     include_wikipedia = st.checkbox("Include Wikipedia Results to help generate questions", value=False)
-    # Checkbox to include Advanced SearxNG search results.
-    include_searxng = st.checkbox("Include Advanced SearxNG Search Results", value=False)
-    st.session_state["include_searxng"] = include_searxng
+    # Checkbox to include Google search results.
+    include_google_search = st.checkbox("Include Google Search Results", value=False)
+    st.session_state["include_google_search"] = include_google_search
 
     # The Process Scenario button is always visible.
     if st.button("Process Scenario"):
@@ -244,7 +249,6 @@ def dime_page():
             # If Wikipedia results are desired, retrieve and append their summary.
             if include_wikipedia:
                 wiki_results_summary = generate_wikipedia_results(processed_scenario)
-                # Append a summarized Wikipedia section into the processed scenario.
                 processed_scenario += "\n\nWikipedia Summary:\n" + wiki_results_summary
             # If an objective is provided, append it to the processed scenario.
             if objective_input.strip():
@@ -284,14 +288,14 @@ def dime_page():
                     st.session_state["dime_diplomatic"] = ai_text
                     st.experimental_rerun()
             st.write(st.session_state.get("dime_diplomatic", ""))
-            # If Advanced SearxNG search is enabled, allow scraping for the advanced queries.
-            if st.session_state.get("dime_diplomatic", "") and st.session_state.get("include_searxng"):
-                if st.button("SearxNG: Search & Summarize Diplomatic", key="searx_diplomatic"):
-                    searx_results = generate_searxng_results(st.session_state["dime_diplomatic"])
-                    st.session_state["searx_diplomatic_result"] = searx_results
+            # Google search integration instead of SearxNG.
+            if st.session_state.get("dime_diplomatic", "") and st.session_state.get("include_google_search"):
+                if st.button("Google: Search & Summarize Diplomatic", key="google_diplomatic"):
+                    google_results = generate_google_results(st.session_state["dime_diplomatic"])
+                    st.session_state["google_diplomatic_result"] = google_results
                     st.experimental_rerun()
-                if "searx_diplomatic_result" in st.session_state:
-                    st.write(st.session_state["searx_diplomatic_result"])
+                if "google_diplomatic_result" in st.session_state:
+                    st.write(st.session_state["google_diplomatic_result"])
         with col_diplomatic_right:
             st.text_area(
                 "Diplomatic Analysis",
@@ -311,13 +315,13 @@ def dime_page():
                     st.session_state["dime_information"] = ai_text
                     st.experimental_rerun()
             st.write(st.session_state.get("dime_information", ""))
-            if st.session_state.get("dime_information", "") and st.session_state.get("include_searxng"):
-                if st.button("SearxNG: Search & Summarize Information", key="searx_information"):
-                    searx_results = generate_searxng_results(st.session_state["dime_information"])
-                    st.session_state["searx_information_result"] = searx_results
+            if st.session_state.get("dime_information", "") and st.session_state.get("include_google_search"):
+                if st.button("Google: Search & Summarize Information", key="google_information"):
+                    google_results = generate_google_results(st.session_state["dime_information"])
+                    st.session_state["google_information_result"] = google_results
                     st.experimental_rerun()
-                if "searx_information_result" in st.session_state:
-                    st.write(st.session_state["searx_information_result"])
+                if "google_information_result" in st.session_state:
+                    st.write(st.session_state["google_information_result"])
         with col_information_right:
             st.text_area(
                 "Information Analysis",
@@ -337,13 +341,13 @@ def dime_page():
                     st.session_state["dime_military"] = ai_text
                     st.experimental_rerun()
             st.write(st.session_state.get("dime_military", ""))
-            if st.session_state.get("dime_military", "") and st.session_state.get("include_searxng"):
-                if st.button("SearxNG: Search & Summarize Military", key="searx_military"):
-                    searx_results = generate_searxng_results(st.session_state["dime_military"])
-                    st.session_state["searx_military_result"] = searx_results
+            if st.session_state.get("dime_military", "") and st.session_state.get("include_google_search"):
+                if st.button("Google: Search & Summarize Military", key="google_military"):
+                    google_results = generate_google_results(st.session_state["dime_military"])
+                    st.session_state["google_military_result"] = google_results
                     st.experimental_rerun()
-                if "searx_military_result" in st.session_state:
-                    st.write(st.session_state["searx_military_result"])
+                if "google_military_result" in st.session_state:
+                    st.write(st.session_state["google_military_result"])
         with col_military_right:
             st.text_area(
                 "Military Analysis",
@@ -363,13 +367,13 @@ def dime_page():
                     st.session_state["dime_economic"] = ai_text
                     st.experimental_rerun()
             st.write(st.session_state.get("dime_economic", ""))
-            if st.session_state.get("dime_economic", "") and st.session_state.get("include_searxng"):
-                if st.button("SearxNG: Search & Summarize Economic", key="searx_economic"):
-                    searx_results = generate_searxng_results(st.session_state["dime_economic"])
-                    st.session_state["searx_economic_result"] = searx_results
+            if st.session_state.get("dime_economic", "") and st.session_state.get("include_google_search"):
+                if st.button("Google: Search & Summarize Economic", key="google_economic"):
+                    google_results = generate_google_results(st.session_state["dime_economic"])
+                    st.session_state["google_economic_result"] = google_results
                     st.experimental_rerun()
-                if "searx_economic_result" in st.session_state:
-                    st.write(st.session_state["searx_economic_result"])
+                if "google_economic_result" in st.session_state:
+                    st.write(st.session_state["google_economic_result"])
         with col_economic_right:
             st.text_area(
                 "Economic Analysis",

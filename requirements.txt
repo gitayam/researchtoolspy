@@ -25,3 +25,5 @@ fpdf
 pdfkit
 playwright
 wikipedia
+selenium
+chromedriver-binary
