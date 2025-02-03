@@ -12,14 +12,12 @@ import re
 import time
 import logging
 from typing import Optional, List
-
 import pandas as pd
 import pytz
 from bs4 import BeautifulSoup
 from langdetect import detect
 from selenium import webdriver
 import chromedriver_binary  # ensures chromedriver is available
-
 from dateutil.relativedelta import relativedelta  # for subtracting months accurately
 
 # Set up logging

@@ -27,3 +27,4 @@ playwright
 wikipedia
 selenium
 chromedriver-binary
+dateutil
