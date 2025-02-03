@@ -24,3 +24,4 @@ streamlit-extras
 fpdf
 pdfkit
 playwright
+wikipedia

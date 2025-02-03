@@ -4,6 +4,7 @@ DIME Analysis Framework
 """
 import streamlit as st
 import re
+import wikipedia
 from dotenv import load_dotenv
 from utilities.utils_openai import chat_gpt  # Using the same helper as SWOT and COG
 from utilities.advanced_scraper import advanced_fetch_metadata  # New import for advanced scraping
@@ -50,6 +51,46 @@ def process_scenario_input(scenario):
             return scenario
     else:
         return scenario
+
+def generate_wikipedia_results(scenario):
+    """
+    Uses GPT-4o-mini to turn the scenario into 1-3 different queries
+    focused on places, people, or events and then returns Wikipedia search results.
+    For each query, the first matching article and its summary (2 sentences) are displayed.
+    """
+    try:
+        prompt = (
+            "Based on the following scenario, generate 1 to 3 search queries "
+            "that would be appropriate for looking up related places, people, or events on Wikipedia. "
+            "Output the queries as a semicolon-separated list.\n\n"
+            f"Scenario: {scenario}"
+        )
+        queries_output = chat_gpt(
+            [
+                {"role": "system", "content": "You are an assistant that generates Wikipedia search queries."},
+                {"role": "user", "content": prompt}
+            ],
+            model="gpt-4o-mini"
+        )
+        # Expecting output such as: "Query1; Query2; Query3"
+        queries = [q.strip() for q in queries_output.split(";") if q.strip()]
+        if not queries:
+            return "No Wikipedia queries generated."
+
+        results_text = ""
+        for query in queries:
+            results = wikipedia.search(query)
+            if results:
+                try:
+                    summary = wikipedia.summary(results[0], sentences=2)
+                    results_text += f"Query: {query}\nTitle: {results[0]}\nSummary: {summary}\n\n"
+                except Exception as e:
+                    results_text += f"Query: {query}\nError retrieving summary: {e}\n\n"
+            else:
+                results_text += f"Query: {query}\nNo Wikipedia results found.\n\n"
+        return results_text
+    except Exception as e:
+        return f"Error generating Wikipedia results: {e}"
 
 def ai_suggest_dime(phase, scenario, objective=None):
     """
@@ -140,6 +181,9 @@ def dime_page():
         placeholder="Optional: Specify an objective (e.g., counter, enable, support, delay, deny) as an action verb..."
     )
 
+    # Display a checkbox to optionally include Wikipedia search results.
+    include_wikipedia = st.checkbox("Include Wikipedia Results to help generate questions", value=False)
+
     # The Process Scenario button is always visible.
     if st.button("Process Scenario"):
         if scenario_input.strip():
@@ -154,6 +198,13 @@ def dime_page():
         st.write(st.session_state["processed_scenario"])
         if "objective" in st.session_state and st.session_state["objective"]:
             st.write("Objective:", st.session_state["objective"])
+        
+        # If the user opted to include Wikipedia results, generate and display them.
+        if include_wikipedia:
+            st.subheader("Wikipedia Search Results")
+            wiki_results = generate_wikipedia_results(st.session_state["processed_scenario"])
+            st.write(wiki_results)
+        
         st.write("Now conduct your DIME analysis based on the scenario above:")
 
         # Diplomatic Section
