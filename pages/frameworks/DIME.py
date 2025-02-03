@@ -94,6 +94,7 @@ def generate_wikipedia_results(scenario):
         return f"Error generating Wikipedia results: {e}"
 
 def searxng_search(query):
+    #FIXME: This is a temporary fix to use the Irregular Chat SearxNG endpoint.
     """
     Performs an advanced search using SearxNG at https://search.irregularchat.com
     with a JSON output and returns a summary of the first result.
@@ -116,6 +117,7 @@ def searxng_search(query):
         return f"Exception during SearxNG search: {str(e)}"
 
 def generate_searxng_results(suggestions_text):
+    #FIXME: This is a temporary fix to use the Irregular Chat SearxNG endpoint.
     """
     Extracts advanced search queries from AI-generated suggestions and then 
     performs SearxNG search for each query using the https://search.irregularchat.com endpoint.
