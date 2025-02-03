@@ -241,6 +241,14 @@ def dime_page():
     if st.button("Process Scenario"):
         if scenario_input.strip():
             processed_scenario = process_scenario_input(scenario_input)
+            # If Wikipedia results are desired, retrieve and append their summary.
+            if include_wikipedia:
+                wiki_results_summary = generate_wikipedia_results(processed_scenario)
+                # Append a summarized Wikipedia section into the processed scenario.
+                processed_scenario += "\n\nWikipedia Summary:\n" + wiki_results_summary
+            # If an objective is provided, append it to the processed scenario.
+            if objective_input.strip():
+                processed_scenario += "\n\nObjective:\n" + objective_input.strip()
             st.session_state["processed_scenario"] = processed_scenario
             st.session_state["objective"] = objective_input.strip()
         else:
