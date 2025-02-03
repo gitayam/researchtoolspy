@@ -17,21 +17,29 @@ def google_search_summary(query):
     Performs a Google search for the given query using Selenium
     and returns a summary (title and snippet) of the first result.
     """
-    import time
     from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from webdriver_manager.chrome import ChromeDriverManager
     from bs4 import BeautifulSoup
-    from utilities.google_scraper import scrape
+    import time
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
-    driver = webdriver.Chrome(options=chrome_options)
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    # Specify the binary location for Chromium installed by apt-get
+    chrome_options.binary_location = "/usr/bin/chromium"
 
+    # Set up the Service with the ChromeDriver path obtained by webdriver_manager
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    
     query_url = "https://www.google.com/search?q=" + query.replace(" ", "+")
     driver.get(query_url)
-    time.sleep(2)  # wait for the page to load
+    time.sleep(2)  # Wait for the page to load
 
     soup = BeautifulSoup(driver.page_source, "html.parser")
-    # Use the common result container "g" for Google search results.
+    # Look for the common result container "g" in Google search results.
     results = soup.find_all("div", class_="g")
     if results:
         block = results[0]

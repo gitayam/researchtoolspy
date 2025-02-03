@@ -17,7 +17,8 @@ import pytz
 from bs4 import BeautifulSoup
 from langdetect import detect
 from selenium import webdriver
-import chromedriver_binary  # ensures chromedriver is available
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from dateutil.relativedelta import relativedelta  # for subtracting months accurately
 
 # Set up logging
@@ -149,7 +150,8 @@ def scrape(start_date: str, end_date: str, query: str):
     # Uncomment the next line to run Chrome in headless mode
     # chrome_options.add_argument("--headless")
     
-    driver = webdriver.Chrome(options=chrome_options)
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     
     try:
         tz = pytz.timezone("US/Eastern")
@@ -239,3 +241,38 @@ def scrape(start_date: str, end_date: str, query: str):
     finally:
         driver.quit()
         logger.info("Driver closed.")
+
+
+def google_search_summary(query):
+    """
+    Performs a Google search for the given query using Selenium
+    and returns a summary (title and snippet) of the first result.
+    """
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--headless")
+    
+    # Define the Service with ChromeDriverManager
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    
+    query_url = "https://www.google.com/search?q=" + query.replace(" ", "+")
+    driver.get(query_url)
+    time.sleep(2)  # wait for the page to load
+    
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    # Look for the common result container "g" for Google search results.
+    results = soup.find_all("div", class_="g")
+    if results:
+        block = results[0]
+        title_tag = block.find("h3")
+        title = title_tag.get_text() if title_tag else "No title"
+        snippet_tag = block.find("div", class_="IsZvec")
+        snippet = snippet_tag.get_text(separator=" ", strip=True) if snippet_tag else ""
+        if not snippet:
+            snippet = block.get_text(separator=" ", strip=True)
+        summary = f"Title: {title}\nSnippet: {snippet}"
+    else:
+        summary = "No results found."
+    
+    driver.quit()
+    return summary
