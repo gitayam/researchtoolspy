@@ -1,9 +1,9 @@
-# /pages/frameworks/DOTMLPF.py
+# /frameworks/DOTMLPF.py
 """
 DOTMLPF Analysis Framework
 """
 import streamlit as st
-from utilities.utils_openai import chat_gpt
+from utilities.gpt import chat_gpt
 from dotenv import load_dotenv
 
 load_dotenv()

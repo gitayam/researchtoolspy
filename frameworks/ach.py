@@ -1,7 +1,7 @@
-# /pages/frameworks/ACH.py
+# /frameworks/ACH.py
 import streamlit as st
 from dotenv import load_dotenv
-from utilities.utils_openai import chat_gpt  # If you want AI to assist
+from utilities.gpt import chat_gpt  # If you want AI to assist
 import pandas as pd
 from io import BytesIO
 import openpyxl

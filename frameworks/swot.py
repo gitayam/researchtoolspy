@@ -1,8 +1,8 @@
-# /pages/frameworks/SWOT.py
+# /frameworks/SWOT.py
 
 import streamlit as st
 from dotenv import load_dotenv
-from utilities.utils_openai import chat_gpt  # or any AI helper function
+from utilities.gpt import chat_gpt  # or any AI helper function
 from xhtml2pdf import pisa  # The pure-Python PDF converter
 import io
 

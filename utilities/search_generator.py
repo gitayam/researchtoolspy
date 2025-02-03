@@ -1,6 +1,6 @@
 # /utilities/search_generator.py
 
-from utilities.utils_openai import generate_advanced_query
+from utilities.gpt import generate_advanced_query
 import streamlit as st
 
 def advanced_query_options():

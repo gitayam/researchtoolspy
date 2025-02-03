@@ -1,14 +1,14 @@
-# /pages/frameworks/PMESII_PT.py
+# /frameworks/PMESII_PT.py
 """
 PMESII_PT Analysis Framework
 """
 import streamlit as st
-from utilities.utils_openai import chat_gpt
+from utilities.gpt import chat_gpt
 from dotenv import load_dotenv
 
 load_dotenv()
 
-def pmesi_page():
+def pmesii_pt_page():
     st.title("PMESII Analysis Framework")
     st.write("""
     Welcome to the PMESII Analysis Framework.

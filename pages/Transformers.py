@@ -1,12 +1,12 @@
 # /pages/Transformers.py
 import streamlit as st
 import requests
-from utilities.utils_openai import generate_advanced_query
-from utilities.utils_conversion import convert_input
+from utilities.gpt import generate_advanced_query
+from utilities.conversions import convert_input
 from sidebar_menu import sidebar_menu
 from utilities.search_generator import advanced_query_options
 from utilities.ImageSearch import image_search_page
-from utilities.WaybackTool import wayback_tool_page
+from utilities.url_processing import wayback_tool_page
 from utilities.social_media_download import social_media_download_page
 
 def transformers_page():

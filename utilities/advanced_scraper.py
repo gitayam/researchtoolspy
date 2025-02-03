@@ -14,7 +14,7 @@ try:
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
 
-from utilities.utils_openai import chat_gpt  # GPT helper for fallback
+from utilities.gpt import chat_gpt  # GPT helper for fallback
 
 logging.basicConfig(level=logging.INFO)
 

@@ -1,13 +1,13 @@
 # /researchtools_streamlit/app.py
 import streamlit as st
 from sidebar_menu import sidebar_menu
-from pages.frameworks.COG import cog_analysis
-from pages.frameworks.SWOT import swot_page
-from pages.frameworks.ACH import ach_page
-from pages.frameworks.DeceptionDetection import deception_detection
-from pages.frameworks.DIME import dime_page
-from pages.frameworks.PMESII import pmesi_page
-from pages.frameworks.DOTMLPF import dotmlpf_page
+from frameworks.cog import cog_analysis
+from frameworks.swot import swot_page
+from frameworks.ach import ach_page
+from frameworks.deception_detection import deception_detection
+from frameworks.dime import dime_page
+from frameworks.pmesii_pt import pmesii_pt_page
+from frameworks.dotmlpf import dotmlpf_page
 
 # This file is the main entry. Using Streamlit multi-page mode, you typically
 # create multiple files in a "pages/" subfolder. Streamlit will auto-detect them

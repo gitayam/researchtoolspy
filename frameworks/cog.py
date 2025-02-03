@@ -1,8 +1,8 @@
-# /pages/frameworks/COG.py
+# /frameworks/COG.py
 
 import streamlit as st
 from dotenv import load_dotenv
-from utilities.utils_openai import chat_gpt, generate_cog_options
+from utilities.gpt import chat_gpt, generate_cog_options
 import csv
 import io
 import pandas as pd

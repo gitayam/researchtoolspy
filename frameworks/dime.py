@@ -1,4 +1,4 @@
-# /pages/frameworks/DIME.py
+# /frameworks/DIME.py
 """
 DIME Analysis Framework
 """
@@ -7,7 +7,7 @@ import re
 import requests
 import wikipedia
 from dotenv import load_dotenv
-from utilities.utils_openai import chat_gpt  # Using the same helper as SWOT and COG
+from utilities.gpt import chat_gpt  # Using the same helper as SWOT and COG
 from utilities.advanced_scraper import advanced_fetch_metadata  # New import for advanced scraping
 
 load_dotenv()

@@ -1,9 +1,9 @@
-# /pages/frameworks/DeceptionDetection.py
+# /frameworks/DeceptionDetection.py
 """
 Deception Detection Framework based on the work of Richards J. Heuer Jr.
 """
 import streamlit as st
-from utilities.utils_openai import chat_gpt
+from utilities.gpt import chat_gpt
 
 def deception_detection():
     st.title("Deception Detection Framework")
