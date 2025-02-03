@@ -8,7 +8,10 @@ from pages.frameworks.COG import cog_analysis
 from pages.frameworks.SWOT import swot_page
 from pages.frameworks.ACH import ach_page
 from pages.frameworks.DeceptionDetection import deception_detection
+from pages.frameworks.DIME import dime_page
 from sidebar_menu import sidebar_menu
+from pages.frameworks.PMESII_PT import pmesi_page
+from pages.frameworks.DOTMLPF import dotmlpf_page
 
 load_dotenv()
 
@@ -128,33 +131,11 @@ def frameworks_page():
     elif st.session_state.current_framework == "DECEPTION":
         deception_detection()
     elif st.session_state.current_framework == "DIME":
-        st.subheader("DIME Framework")
-        st.write("""
-        **DIME** stands for **Diplomatic, Information, Military, and Economic**. 
-        It's used to analyze and plan the application of national power in pursuit of strategic ends.
-        
-        **How to use**: Identify how each dimension (D/I/M/E) contributes to or hinders 
-        the desired objective in your current problemset.
-        """)
+        dime_page()
     elif st.session_state.current_framework == "PMESII":
-        st.subheader("PMESII-PT Framework")
-        st.write("""
-        **PMESII-PT**: **Political, Military, Economic, Social, Information, 
-        Infrastructure, Physical Environment, and Time**. 
-        This framework helps you analyze and understand the operating environment in a systemic way.
-        
-        **How to use**: For each PMESII-PT dimension, consider key actors, systems, or conditions 
-        relevant to your problem statement.
-        """)
+        pmesi_page()
     elif st.session_state.current_framework == "DOTMLPF":
-        st.subheader("DOTMLPF Framework")
-        st.write("""
-        **DOTMLPF**: **Doctrine, Organization, Training, Materiel, Leadership and Education, Personnel, 
-        and Facilities**. Typically used to assess capability gaps and solutions in military contexts.
-        
-        **How to use**: Evaluate each pillar (D/O/T/M/L/P/F) in the context of your problemset: 
-        where do shortfalls exist, and how do we address them?
-        """)
+        dotmlpf_page()
     else:
         # Default view when no framework is selected
         st.write("""
