@@ -5,6 +5,10 @@ from pages.frameworks.COG import cog_analysis
 from pages.frameworks.SWOT import swot_page
 from pages.frameworks.ACH import ach_page
 from pages.frameworks.DeceptionDetection import deception_detection
+from pages.frameworks.DIME import dime_page
+from pages.frameworks.PMESII import pmesi_page
+from pages.frameworks.DOTMLPF import dotmlpf_page
+
 # This file is the main entry. Using Streamlit multi-page mode, you typically
 # create multiple files in a "pages/" subfolder. Streamlit will auto-detect them
 # and show them in the sidebar.
@@ -44,7 +48,7 @@ def main():
         - **[COG Analysis](/Frameworks?framework=cog)**: Center of Gravity analysis
         - **[Deception Detection](/Frameworks?framework=deception)**: Identify potential deception
         - **[DIME Framework](/Frameworks?framework=dime)**: National power analysis
-        - **[PMESII-PT](/Frameworks?framework=pmesii)**: Operational environment analysis
+        - **[PMESII-PT](/Frameworks?framework=pmesii_pt)**: Operational environment analysis
         - **[DOTMLPF](/Frameworks?framework=dotmlpf)**: Capability gap analysis
         """)
 
