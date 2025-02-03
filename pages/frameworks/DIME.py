@@ -4,6 +4,7 @@ DIME Analysis Framework
 """
 import streamlit as st
 import re
+import requests
 import wikipedia
 from dotenv import load_dotenv
 from utilities.utils_openai import chat_gpt  # Using the same helper as SWOT and COG
@@ -91,6 +92,47 @@ def generate_wikipedia_results(scenario):
         return results_text
     except Exception as e:
         return f"Error generating Wikipedia results: {e}"
+
+def searxng_search(query):
+    """
+    Performs an advanced search using SearxNG at https://search.irregularchat.com
+    with a JSON output and returns a summary of the first result.
+    """
+    url = f"https://search.irregularchat.com/search?format=json&q={query}"
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if "results" in data and data["results"]:
+                first_result = data["results"][0]
+                title = first_result.get("title", "No title")
+                snippet = first_result.get("content", "No snippet available")
+                return f"Title: {title}\nSnippet: {snippet}"
+            else:
+                return "No results found."
+        else:
+            return f"Error: Received status code {response.status_code}"
+    except Exception as e:
+        return f"Exception during SearxNG search: {str(e)}"
+
+def generate_searxng_results(suggestions_text):
+    """
+    Extracts advanced search queries from AI-generated suggestions (formatted as "Question: ... | Search: <query>")
+    and then performs SearxNG search for each query.
+    Returns a concatenated string of each query's search result summary.
+    """
+    results_text = ""
+    # Split the suggestions text by semicolon.
+    items = suggestions_text.split(";")
+    for item in items:
+        m = re.search(r"Search:\s*(.+)", item)
+        if m:
+            query = m.group(1).strip()
+            result = searxng_search(query)
+            results_text += f"Query: {query}\n{result}\n\n"
+    if not results_text:
+        results_text = "No valid advanced search queries found."
+    return results_text
 
 def ai_suggest_dime(phase, scenario, objective=None):
     """
@@ -181,8 +223,11 @@ def dime_page():
         placeholder="Optional: Specify an objective (e.g., counter, enable, support, delay, deny) as an action verb..."
     )
 
-    # Display a checkbox to optionally include Wikipedia search results.
+    # Checkbox to include Wikipedia results.
     include_wikipedia = st.checkbox("Include Wikipedia Results to help generate questions", value=False)
+    # Checkbox to include Advanced SearxNG search results.
+    include_searxng = st.checkbox("Include Advanced SearxNG Search Results", value=False)
+    st.session_state["include_searxng"] = include_searxng
 
     # The Process Scenario button is always visible.
     if st.button("Process Scenario"):
@@ -199,7 +244,7 @@ def dime_page():
         if "objective" in st.session_state and st.session_state["objective"]:
             st.write("Objective:", st.session_state["objective"])
         
-        # If the user opted to include Wikipedia results, generate and display them.
+        # Wikipedia Results (if selected)
         if include_wikipedia:
             st.subheader("Wikipedia Search Results")
             wiki_results = generate_wikipedia_results(st.session_state["processed_scenario"])
@@ -223,6 +268,14 @@ def dime_page():
                     st.session_state["dime_diplomatic"] = ai_text
                     st.experimental_rerun()
             st.write(st.session_state.get("dime_diplomatic", ""))
+            # If Advanced SearxNG search is enabled, allow scraping for the advanced queries.
+            if st.session_state.get("dime_diplomatic", "") and st.session_state.get("include_searxng"):
+                if st.button("SearxNG: Search & Summarize Diplomatic", key="searx_diplomatic"):
+                    searx_results = generate_searxng_results(st.session_state["dime_diplomatic"])
+                    st.session_state["searx_diplomatic"] = searx_results
+                    st.experimental_rerun()
+                if "searx_diplomatic" in st.session_state:
+                    st.write(st.session_state["searx_diplomatic"])
         with col_diplomatic_right:
             st.text_area(
                 "Diplomatic Analysis",
@@ -242,6 +295,13 @@ def dime_page():
                     st.session_state["dime_information"] = ai_text
                     st.experimental_rerun()
             st.write(st.session_state.get("dime_information", ""))
+            if st.session_state.get("dime_information", "") and st.session_state.get("include_searxng"):
+                if st.button("SearxNG: Search & Summarize Information", key="searx_information"):
+                    searx_results = generate_searxng_results(st.session_state["dime_information"])
+                    st.session_state["searx_information"] = searx_results
+                    st.experimental_rerun()
+                if "searx_information" in st.session_state:
+                    st.write(st.session_state["searx_information"])
         with col_information_right:
             st.text_area(
                 "Information Analysis",
@@ -261,6 +321,13 @@ def dime_page():
                     st.session_state["dime_military"] = ai_text
                     st.experimental_rerun()
             st.write(st.session_state.get("dime_military", ""))
+            if st.session_state.get("dime_military", "") and st.session_state.get("include_searxng"):
+                if st.button("SearxNG: Search & Summarize Military", key="searx_military"):
+                    searx_results = generate_searxng_results(st.session_state["dime_military"])
+                    st.session_state["searx_military"] = searx_results
+                    st.experimental_rerun()
+                if "searx_military" in st.session_state:
+                    st.write(st.session_state["searx_military"])
         with col_military_right:
             st.text_area(
                 "Military Analysis",
@@ -280,6 +347,13 @@ def dime_page():
                     st.session_state["dime_economic"] = ai_text
                     st.experimental_rerun()
             st.write(st.session_state.get("dime_economic", ""))
+            if st.session_state.get("dime_economic", "") and st.session_state.get("include_searxng"):
+                if st.button("SearxNG: Search & Summarize Economic", key="searx_economic"):
+                    searx_results = generate_searxng_results(st.session_state["dime_economic"])
+                    st.session_state["searx_economic"] = searx_results
+                    st.experimental_rerun()
+                if "searx_economic" in st.session_state:
+                    st.write(st.session_state["searx_economic"])
         with col_economic_right:
             st.text_area(
                 "Economic Analysis",
