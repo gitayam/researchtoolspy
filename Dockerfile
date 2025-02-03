@@ -7,9 +7,14 @@ ENV XDG_RUNTIME_DIR=/tmp/runtime-root
 # Create the runtime directory with proper permissions
 RUN mkdir -p /tmp/runtime-root && chmod 777 /tmp/runtime-root
 
-# Install system dependencies if needed (e.g., for hashing images)
+# Install system dependencies (e.g., for wkhtmltopdf)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends wkhtmltopdf xfonts-75dpi xfonts-base fonts-dejavu && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Chromium browser (suitable for ARM)
+RUN apt-get update && \
+    apt-get install -y wget gnupg2 chromium && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

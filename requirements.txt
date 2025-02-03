@@ -27,4 +27,6 @@ playwright
 wikipedia
 selenium
 chromedriver-binary
-dateutil
+python-dateutil
+langdetect
+webdriver-manager
