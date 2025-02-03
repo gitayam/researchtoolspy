@@ -55,20 +55,20 @@ def process_scenario_input(scenario):
 
 def generate_wikipedia_results(scenario):
     """
-    Uses GPT-4o-mini to turn the scenario into 1-3 different queries
-    focused on places, people, or events and then returns Wikipedia search results.
-    For each query, the first matching article and its summary (2 sentences) are displayed.
+    Uses GPT-4o-mini to turn the summary of the scenario (or the raw scenario text) 
+    into 1 or 2 queries focused on places, people, or events and then returns Wikipedia search results.
+    For each query, the first matching article and its summary (3 sentences) are displayed.
     """
     try:
         prompt = (
-            "Based on the following scenario, generate 1 to 3 search queries "
+            "Based on the following summarized scenario, generate 1 to 2 search queries "
             "that would be appropriate for looking up related places, people, or events on Wikipedia. "
             "Output the queries as a semicolon-separated list.\n\n"
-            f"Scenario: {scenario}"
+            f"Summary: {scenario}"
         )
         queries_output = chat_gpt(
             [
-                {"role": "system", "content": "You are an assistant that generates Wikipedia search queries."},
+                {"role": "system", "content": "You are an assistant that generates Wikipedia search queries that are focused on a single place, person, or event."},
                 {"role": "user", "content": prompt}
             ],
             model="gpt-4o-mini"
@@ -117,15 +117,17 @@ def searxng_search(query):
 
 def generate_searxng_results(suggestions_text):
     """
-    Extracts advanced search queries from AI-generated suggestions (formatted as "Question: ... | Search: <query>")
-    and then performs SearxNG search for each query.
+    Extracts advanced search queries from AI-generated suggestions and then 
+    performs SearxNG search for each query using the https://search.irregularchat.com endpoint.
     Returns a concatenated string of each query's search result summary.
     """
     results_text = ""
     # Split the suggestions text by semicolon.
     items = suggestions_text.split(";")
+    # Updated regex to match either "Search:" or "Advanced Google Search Query:" (case insensitive)
+    pattern = re.compile(r"(?:Search:|Advanced Google Search Query:)\s*(.+)", re.IGNORECASE)
     for item in items:
-        m = re.search(r"Search:\s*(.+)", item)
+        m = pattern.search(item)
         if m:
             query = m.group(1).strip()
             result = searxng_search(query)
@@ -142,44 +144,48 @@ def ai_suggest_dime(phase, scenario, objective=None):
     For the Diplomatic phase, the prompt instructs ChatGPT to consider the scenario from a diplomatic 
     perspective, and if an objective is provided, to relate the analysis to accomplishing that objective.
     
-    The output should be a semicolon-separated list of items, each formatted as:
-      'Question: <question text> | Search: <advanced Google search query>'
+    The output must be a semicolon-separated list of items. 
+    Each item must be written EXACTLY in the following format:
+      Question: <question text> | Search: <advanced Google search query>
+    Do not include any extraneous text, line breaks, or commentary.
     """
     try:
         system_msg = {
             "role": "system",
             "content": (
-                "You are an experienced intelligence analyst. Your task is to generate analytical questions focused on identifying "
-                "critical intelligence requirements for supporting information forces (including cyber, digital, and OSINT capabilities). "
-                "Avoid narrative development or persuasive messaging and instead, focus on pinpointing intelligence gaps, adversary capabilities, "
+                "You are an experienced intelligence analyst. Your task is to generate analytical questions that focus on identifying "
+                "critical intelligence requirements to support information forces (including cyber, digital, and OSINT capabilities). "
+                "Do not provide narrative development or persuasive messaging; instead, focus on pinpointing intelligence gaps, adversary capabilities, "
                 "and vulnerabilities."
             )
         }
-        # For the Diplomatic phase, include a prompt that makes the AI first consider what is important to know about the scenario diplomatically.
         if phase.lower() == "diplomatic":
             if objective and objective.strip():
                 user_content = (
                     f"Scenario: {scenario}\n"
-                    f"For the {phase} aspect, generate 3-5 detailed intelligence analysis questions that identify key diplomatic information requirements necessary to support information forces. "
-                    f"First, consider what is important to know about this scenario from a diplomatic perspective, especially in relation to accomplishing the following objective: {objective}. "
-                    "Focus on aspects such as identifying intelligence gaps, assessing adversary diplomatic strategies, international alliances, negotiation dynamics, "
-                    "and vulnerabilities in diplomatic channels. Each item should include a guiding question and an associated advanced Google search query, separated by a semicolon."
+                    f"Objective: {objective}\n"
+                    f"For the '{phase}' aspect, generate exactly 3 to 5 detailed intelligence analysis questions that identify key diplomatic information requirements "
+                    "required to support information forces. First, consider what is important to know from a diplomatic perspective, especially in relation to accomplishing the objective provided. "
+                    "Output only a semicolon-separated list of items. Each item must be on one line, EXACTLY as follows:\n\n"
+                    "Question: <question text> | Search: <advanced Google search query>\n\n"
+                    "Do not include any additional words or lines."
                 )
             else:
                 user_content = (
                     f"Scenario: {scenario}\n"
-                    f"For the {phase} aspect, generate 3-5 detailed intelligence analysis questions that identify key diplomatic information requirements necessary to support information forces. "
-                    "First, consider what is important to know about this scenario from a diplomatic perspective. "
-                    "Focus on aspects such as identifying intelligence gaps, assessing adversary diplomatic strategies, international alliances, negotiation dynamics, "
-                    "and vulnerabilities in diplomatic channels. Each item should include a guiding question and an associated advanced Google search query, separated by a semicolon."
+                    f"For the '{phase}' aspect, generate exactly 3 to 5 detailed intelligence analysis questions that identify key diplomatic information requirements "
+                    "required to support information forces. First, consider what is important to know from a diplomatic perspective. "
+                    "Output only a semicolon-separated list of items. Each item must be on one line, EXACTLY as follows:\n\n"
+                    "Question: <question text> | Search: <advanced Google search query>\n\n"
+                    "Do not include any additional words or lines."
                 )
         else:
-            # For non-diplomatic phases, use the generic prompt.
             user_content = (
                 f"Scenario: {scenario}\n"
-                f"For the {phase} aspect, generate 3-5 detailed intelligence analysis questions that identify key information requirements necessary to support information forces. "
-                "Focus on aspects such as identifying intelligence gaps, assessing adversary digital capabilities, and pinpointing technological vulnerabilities. "
-                "Each item should include a guiding question and an associated advanced Google search query, separated by a semicolon."
+                f"For the '{phase}' aspect, generate exactly 3 to 5 detailed intelligence analysis questions that identify key information requirements "
+                "required to support information forces. Output only a semicolon-separated list of items. Each item must be on one line, EXACTLY as follows:\n\n"
+                "Question: <question text> | Search: <advanced Google search query>\n\n"
+                "Do not include any additional words or lines."
             )
         user_msg = {"role": "user", "content": user_content}
         response = chat_gpt([system_msg, user_msg], model="gpt-4o")
@@ -272,10 +278,10 @@ def dime_page():
             if st.session_state.get("dime_diplomatic", "") and st.session_state.get("include_searxng"):
                 if st.button("SearxNG: Search & Summarize Diplomatic", key="searx_diplomatic"):
                     searx_results = generate_searxng_results(st.session_state["dime_diplomatic"])
-                    st.session_state["searx_diplomatic"] = searx_results
+                    st.session_state["searx_diplomatic_result"] = searx_results
                     st.experimental_rerun()
-                if "searx_diplomatic" in st.session_state:
-                    st.write(st.session_state["searx_diplomatic"])
+                if "searx_diplomatic_result" in st.session_state:
+                    st.write(st.session_state["searx_diplomatic_result"])
         with col_diplomatic_right:
             st.text_area(
                 "Diplomatic Analysis",
@@ -298,10 +304,10 @@ def dime_page():
             if st.session_state.get("dime_information", "") and st.session_state.get("include_searxng"):
                 if st.button("SearxNG: Search & Summarize Information", key="searx_information"):
                     searx_results = generate_searxng_results(st.session_state["dime_information"])
-                    st.session_state["searx_information"] = searx_results
+                    st.session_state["searx_information_result"] = searx_results
                     st.experimental_rerun()
-                if "searx_information" in st.session_state:
-                    st.write(st.session_state["searx_information"])
+                if "searx_information_result" in st.session_state:
+                    st.write(st.session_state["searx_information_result"])
         with col_information_right:
             st.text_area(
                 "Information Analysis",
@@ -324,10 +330,10 @@ def dime_page():
             if st.session_state.get("dime_military", "") and st.session_state.get("include_searxng"):
                 if st.button("SearxNG: Search & Summarize Military", key="searx_military"):
                     searx_results = generate_searxng_results(st.session_state["dime_military"])
-                    st.session_state["searx_military"] = searx_results
+                    st.session_state["searx_military_result"] = searx_results
                     st.experimental_rerun()
-                if "searx_military" in st.session_state:
-                    st.write(st.session_state["searx_military"])
+                if "searx_military_result" in st.session_state:
+                    st.write(st.session_state["searx_military_result"])
         with col_military_right:
             st.text_area(
                 "Military Analysis",
@@ -350,10 +356,10 @@ def dime_page():
             if st.session_state.get("dime_economic", "") and st.session_state.get("include_searxng"):
                 if st.button("SearxNG: Search & Summarize Economic", key="searx_economic"):
                     searx_results = generate_searxng_results(st.session_state["dime_economic"])
-                    st.session_state["searx_economic"] = searx_results
+                    st.session_state["searx_economic_result"] = searx_results
                     st.experimental_rerun()
-                if "searx_economic" in st.session_state:
-                    st.write(st.session_state["searx_economic"])
+                if "searx_economic_result" in st.session_state:
+                    st.write(st.session_state["searx_economic_result"])
         with col_economic_right:
             st.text_area(
                 "Economic Analysis",
