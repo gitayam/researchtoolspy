@@ -225,13 +225,20 @@ def starbursting_page():
             }
             diagram_result = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
             
+            # Remove any markdown code block formatting from the diagram_result
+            import re
+            diagram_result_clean = diagram_result.strip()
+            if diagram_result_clean.startswith("```"):
+                diagram_result_clean = re.sub(r"^```(?:\w+)?\n", "", diagram_result_clean)
+                diagram_result_clean = re.sub(r"\n```$", "", diagram_result_clean)
+            
             # Import Graphviz and render the diagram as an image.
             import graphviz
-            diagram = graphviz.Source(diagram_result, format="png")
+            diagram = graphviz.Source(diagram_result_clean, format="png")
             st.image(diagram.pipe(), caption="Network Diagram", use_column_width=True)
             
             # Also show the raw DOT code for reference.
-            st.text_area("Diagram (DOT format)", value=diagram_result, height=200)
+            st.text_area("Diagram (DOT format)", value=diagram_result_clean, height=200)
         except Exception as e:
             st.error(f"Error generating network diagram: {e}")
 
