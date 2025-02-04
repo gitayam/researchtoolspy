@@ -133,7 +133,7 @@ def frameworks_page():
     elif st.session_state.current_framework == "DIME":
         dime_page()
     elif st.session_state.current_framework == "PMESII":
-        pmesi_page()
+        pmesii_pt_page()
     elif st.session_state.current_framework == "DOTMLPF":
         dotmlpf_page()
     else:
