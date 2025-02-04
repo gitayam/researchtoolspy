@@ -96,6 +96,8 @@ def main():
     # Latest Updates Section
     with st.expander("📢 Latest Updates"):
         st.markdown("""
+        - Added new DOTMLPF framework implementation
+        - Added new Starbursting framework implementation
         - Added new PMESII-PT framework implementation
         - Enhanced CSV/JSON converter capabilities
         - Improved Wayback Machine integration
