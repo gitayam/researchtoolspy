@@ -14,6 +14,7 @@ import pdfkit
 import logging
 import time
 import concurrent.futures
+import wikipedia
 
 logging.basicConfig(level=logging.INFO)
 
@@ -569,6 +570,25 @@ def generate_pdf_using_playwright(target_url):
         return None
 
     # ... rest of the function code
+
+
+def search_wikipedia(query, sentences=5):
+    """
+    Searches Wikipedia for the given query and returns a concise summary.
+    
+    Parameters:
+      query (str): The search term.
+      sentences (int): Number of sentences for the summary.
+      
+    Returns:
+      str: The Wikipedia summary or an error message.
+    """
+    wikipedia.set_lang("en")
+    try:
+        summary = wikipedia.summary(query, sentences=sentences)
+        return summary
+    except Exception as e:
+        return f"Error retrieving Wikipedia data: {e}"
 
 
 def main():

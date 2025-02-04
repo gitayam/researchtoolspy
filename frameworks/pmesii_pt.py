@@ -4,6 +4,7 @@ PMESII_PT Analysis Framework
 """
 import streamlit as st
 from utilities.gpt import chat_gpt
+from utilities.advanced_scrape import search_wikipedia
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -27,21 +28,30 @@ def pmesii_pt_page():
       - **Physical Environment:** Geography, climate, terrain, and environmental conditions.
       - **Time:** Temporal factors such as seasons, political cycles, and time-sensitive events.
 
-    **Step 3: Utilize Analytical Frameworks and Identify Gaps**
-    - Employ tools like the ASCOPE-PMESII matrix to systematically analyze the human terrain and identify information gaps.
-    - Leverage AI to generate relevant and precise analytical questions that probe deeper into the collected data.
+    **Step 3: Utilize Analytical Frameworks**
+    - Leverage AI to generate precise, relevant, and actionable questions as well as additional recommended information to address any knowledge gaps.
 
     **Step 4: Apply Intelligence Preparation of the Battlefield (IPB)**
-    - Analyze how the operational variables affect both friendly and adversary forces by defining, describing, evaluating, and forecasting in the battlefield environment.
+    - Synthesize how the operational variables affect both friendly and adversary forces by defining, describing, evaluating, and forecasting in the battlefield environment.
     """)
     
     st.markdown("---")
     # Step 1: Define the Operational Environment (OE)
     st.header("Step 1: Define the Operational Environment (OE)")
+    area_name = st.text_input("Enter the Area Name:", placeholder="e.g., Kabul, Afghanistan")
     operational_env = st.text_area(
         "Describe the Operational Environment:",
         placeholder="Enter details about the area of interest, boundaries, and operational context..."
     )
+    
+    # Wikipedia Search for the Area using the new utility function.
+    if st.button("Search Wikipedia for the Area"):
+        if not area_name.strip():
+            st.warning("Please enter the Area Name to search Wikipedia.")
+        else:
+            wiki_summary = search_wikipedia(area_name, sentences=5)
+            st.markdown("### Wikipedia Summary")
+            st.write(wiki_summary)
     
     st.markdown("---")
     # Step 2: Gather Relevant Data
