@@ -9,6 +9,18 @@ load_dotenv()
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+# Local LLM environment configuration
+LOCAL_LLM_HOST = os.getenv("LOCAL_LLM_HOST", "").strip()
+LOCAL_LLM_PORT = os.getenv("LOCAL_LLM_PORT", "").strip()
+LOCAL_LLM_API_KEY = os.getenv("LOCAL_LLM_API_KEY", "").strip()
+
+# Determine if Local LLM should be used.
+# If any are empty or left as the placeholder strings, USE_LOCAL_LLM will be False.
+USE_LOCAL_LLM = all([
+    LOCAL_LLM_HOST not in ("", "YOUR_LOCAL_LLM_HOST_HERE"),
+    LOCAL_LLM_PORT not in ("", "YOUR_LOCAL_LLM_PORT_HERE"),
+    LOCAL_LLM_API_KEY not in ("", "YOUR_LOCAL_LLM_API_KEY_HERE")
+])
 
 def chat_gpt(
     messages,
@@ -21,32 +33,55 @@ def chat_gpt(
     presence_penalty=0.0
 ):
     """
-    A generic helper to call the OpenAI ChatCompletion endpoint.
+    A generic helper to call the ChatCompletion endpoint from either OpenAI or a local LLM.
     
     Args:
         messages (list): A list of dicts, each having {"role": "...", "content": "..."}.
-        model (str): The model name to use, e.g. "gpt-3.5-turbo" or "gpt-4".
+        model (str): The model name to use.
         max_tokens (int): Maximum tokens to generate in the response.
-        temperature (float): Sampling temperature for creativity (0.0 - 1.0+).
+        temperature (float): Sampling temperature.
         top_p (float): Nucleus sampling.
-        n (int): Number of response generations to return (usually 1).
+        n (int): Number of responses to return.
         frequency_penalty (float): Penalty for repeated tokens.
-        presence_penalty (float): Encourages new topics by penalizing repeated tokens.
+        presence_penalty (float): Encourages new topics.
     
     Returns:
         str: The text content of the AI's reply.
     """
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=messages,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        top_p=top_p,
-        n=n,
-        frequency_penalty=frequency_penalty,
-        presence_penalty=presence_penalty
-    )
-    return response["choices"][0]["message"]["content"].strip()
+    if USE_LOCAL_LLM:
+        # Call the local LLM endpoint using the provided host/port and API key.
+        import requests
+        url = f"http://{LOCAL_LLM_HOST}:{LOCAL_LLM_PORT}/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {LOCAL_LLM_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        json_data = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+            "n": n,
+            "frequency_penalty": frequency_penalty,
+            "presence_penalty": presence_penalty
+        }
+        response = requests.post(url, headers=headers, json=json_data)
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"].strip()
+    else:
+        # Fallback to using the OpenAI API.
+        response = openai.ChatCompletion.create(
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            n=n,
+            frequency_penalty=frequency_penalty,
+            presence_penalty=presence_penalty
+        )
+        return response["choices"][0]["message"]["content"].strip()
 
 
 def generate_advanced_query(search_query, search_platform, model="gpt-4o"):
@@ -93,7 +128,7 @@ def generate_cog_questions(user_details, desired_end_state, custom_prompt="", mo
     
     Args:
         user_details (str): Info about the user/org context.
-        desired_end_state (str): The user’s overarching goal or end state.
+        desired_end_state (str): The user's overarching goal or end state.
         custom_prompt (str): Any custom instructions for the AI about the questions.
         model (str): Which GPT model to use.
     
@@ -128,7 +163,7 @@ def generate_cog_options(user_details, desired_end_state, entity_type, custom_pr
     
     Args:
         user_details (str): Info about the user/org context.
-        desired_end_state (str): The user’s overarching goal or end state.
+        desired_end_state (str): The user's overarching goal or end state.
         entity_type (str): e.g. 'Friendly', 'Adversary', 'Competitor', 'Customer'
         custom_prompt (str): Additional instructions or context for the AI.
         model (str): GPT model to use.
