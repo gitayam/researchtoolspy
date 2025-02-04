@@ -235,6 +235,47 @@ def starbursting_page():
         except Exception as e:
             st.error(f"Error generating network diagram: {e}")
 
+    # Step 6: Further Starbursting (Optional)
+    st.markdown("---")
+    st.subheader("Step 6: Further Starbursting")
+    st.markdown(
+        "For any of your responses above, you can generate additional expansion questions to dive deeper. "
+        "Click the button below for a specific response to generate follow-up questions (starting with who, what, where, when, why). "
+        "You can continue this process as long or as little as you want."
+    )
+    
+    # Initialize further starbursting storage if not already present.
+    if "further_starbursting" not in st.session_state:
+        st.session_state["further_starbursting"] = {}
+    
+    for i, question in enumerate(questions_list, start=1):
+        key_response = f"response_{i}"
+        answer = st.session_state['starbursting_responses'].get(key_response, "").strip()
+        if answer:
+            st.markdown(f"**Response {i}:** {answer}")
+            if st.button(f"AI: Further Starbursting for Response {i}", key=f"further_btn_{i}"):
+                further_prompt = (
+                    f"Using the following answer as the focal point, generate a list of 5 follow-up expansion questions. "
+                    f"Each question should start with one of these words: who, what, where, when, why. \n\nAnswer: {answer}"
+                )
+                further_system_msg = {
+                    "role": "system",
+                    "content": "You are a strategic analyst skilled in iterative starbursting. Generate follow-up expansion questions based on the provided answer."
+                }
+                further_user_msg = {
+                    "role": "user",
+                    "content": further_prompt
+                }
+                additional_questions = chat_gpt([further_system_msg, further_user_msg], model="gpt-4o-mini")
+                st.session_state["further_starbursting"][key_response] = additional_questions
+                st.experimental_rerun()
+            
+            if key_response in st.session_state["further_starbursting"]:
+                st.markdown("**Additional Expansion Questions:**")
+                st.text_area(f"Further expansion questions for response {i}",
+                             value=st.session_state["further_starbursting"][key_response],
+                             height=150)
+
 if __name__ == "__main__":
     starbursting_page()
 
