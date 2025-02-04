@@ -72,13 +72,21 @@ def pmesii_pt_page():
         )
         system_msg = {
             "role": "system",
-            "content": "You are a strategic analyst generating data collection questions for PMESII-PT analysis."
+            "content": "You are a intelligence analyst generating data collection questions for PMESII-PT analysis which are feasible to answer with open source and all source data and analysis."
         }
         user_msg = {"role": "user", "content": context + "\n" + prompt}
         try:
             generated_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-            questions_dict = json.loads(generated_response)
-            st.session_state["data_gathering_questions"] = questions_dict
+            # Log the raw GPT output for debugging
+            st.write("Raw GPT response:", generated_response)
+            if not generated_response.strip():
+                st.error("No response received from GPT. Please try again or check your GPT configuration.")
+            else:
+                try:
+                    questions_dict = json.loads(generated_response)
+                    st.session_state["data_gathering_questions"] = questions_dict
+                except Exception as json_e:
+                    st.error(f"Error decoding response: {json_e}\nRaw Response: {generated_response}")
         except Exception as e:
             st.error(f"Error generating questions: {e}")
     
