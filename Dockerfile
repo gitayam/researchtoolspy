@@ -9,7 +9,7 @@ RUN mkdir -p /tmp/runtime-root && chmod 777 /tmp/runtime-root
 
 # Install system dependencies (e.g., for wkhtmltopdf)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends wkhtmltopdf xfonts-75dpi xfonts-base fonts-dejavu && \
+    apt-get install -y --no-install-recommends wkhtmltopdf xfonts-75dpi xfonts-base fonts-dejavu graphviz && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Chromium browser (suitable for ARM)

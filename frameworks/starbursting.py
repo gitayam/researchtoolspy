@@ -6,6 +6,43 @@ use ai to convert into a diagram or chart
 """
 import streamlit as st
 from utilities.gpt import chat_gpt
+from utilities.advanced_scraper import advanced_fetch_metadata  # New import for URL scraping
+
+def process_initial_input(input_text):
+    """
+    If the input_text is a URL, scrape its content using advanced_fetch_metadata,
+    then summarize the content and extract key details answering:
+    Who, What, Where, Why, and When.
+    
+    Returns a concise summary with an additional details section.
+    """
+    if input_text.strip().lower().startswith("http://") or input_text.strip().lower().startswith("https://"):
+        try:
+            title, description, keywords, author, date_published, editor, referenced_links = advanced_fetch_metadata(input_text)
+            scraped_text = (
+                f"Title: {title}\n"
+                f"Description: {description}\n"
+                f"Author: {author}\n"
+                f"Published Date: {date_published}\n"
+                f"Editor: {editor}\n"
+                f"Keywords: {keywords}\n"
+                f"Referenced Links: {', '.join(referenced_links) if referenced_links else 'None'}"
+            )
+            prompt = (
+                "Summarize the following content in a concise manner and extract the key details by answering the following questions: "
+                "Who, What, Where, Why, and When. Provide the summary followed by a section with the extracted details in the format:\n"
+                "'Who: ...', 'What: ...', 'Where: ...', 'Why: ...', 'When: ...'\n\n"
+                f"{scraped_text}"
+            )
+            system_msg = {"role": "system", "content": "You are a professional summarizer and analyst."}
+            user_msg = {"role": "user", "content": prompt}
+            summary_with_details = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
+            return summary_with_details
+        except Exception as e:
+            st.error(f"Error processing URL: {e}")
+            return input_text
+    else:
+        return input_text
 
 def starbursting_page():
     st.title("Starbursting Analysis Framework")
@@ -14,7 +51,8 @@ def starbursting_page():
     This approach helps uncover hidden insights and deepen your analysis.
     
     As you work through the analysis:
-    - Enter an initial idea or information.
+    - Enter an initial idea, information, or URL.
+    - (If a URL is provided, process it to scrape, summarize, and extract who/what/where/why/when details.)
     - Generate expansion questions using AI.
     - Provide detailed responses for each question.
     - Finally, generate a summary and a suggested diagram/chart to visually represent your analysis.
@@ -23,16 +61,32 @@ def starbursting_page():
     # Step 1: Initial Point of Information
     st.subheader("Step 1: Initial Point of Information")
     initial_point = st.text_area(
-        "Enter your central point or idea:",
-        placeholder="e.g., Company X is developing a new technology that could disrupt the market..."
+        "Enter your central point or idea (or a URL):",
+        placeholder="e.g., Company X is developing a new technology that could disrupt the market... or paste a URL."
     )
+
+    # If the input looks like a URL, offer to process it.
+    if initial_point.strip().lower().startswith("http://") or initial_point.strip().lower().startswith("https://"):
+        st.info("It looks like you've entered a URL. Click the button below to scrape and summarize the content, including extraction of who, what, where, why, and when.")
+        if st.button("Process URL"):
+            processed = process_initial_input(initial_point)
+            st.session_state["processed_initial"] = processed
+            st.experimental_rerun()
+
+    # Determine the central idea: use processed version if available.
+    central_idea = st.session_state.get("processed_initial", initial_point)
+
+    # Optionally display the processed information.
+    if "processed_initial" in st.session_state:
+        st.subheader("Analyzed Central Information")
+        st.write(st.session_state["processed_initial"])
 
     st.markdown("---")
 
     # Step 2: Expansion Questions
     st.subheader("Step 2: Expansion Questions")
     st.markdown(
-        "List or generate expansion questions to probe deeper into the initial idea. "
+        "List or generate expansion questions to probe deeper into the central idea. "
         "The questions should begin with one of these words: what, how, when, where, why, or who."
     )
     
@@ -50,8 +104,8 @@ def starbursting_page():
 
     # AI suggestion for expansion questions that use context from previous answers (if available)
     if st.button("AI: Suggest Expansion Questions"):
-        if not initial_point:
-            st.warning("Please enter the initial point of information to generate questions.")
+        if not central_idea:
+            st.warning("Please enter your central point of information to generate questions.")
         else:
             try:
                 # Gather context from any previous answers.
@@ -61,7 +115,7 @@ def starbursting_page():
                         if answer.strip():
                             responses_context += f"{key}: {answer}\n"
                 
-                prompt = f"Central idea: {initial_point}\n"
+                prompt = f"Central idea: {central_idea}\n"
                 if responses_context:
                     prompt += f"Context from previous responses:\n{responses_context}\n"
                 prompt += (
@@ -125,7 +179,7 @@ def starbursting_page():
                 
             prompt_text = (
                 f"Using the following central idea and responses, create a concise summary that categorizes the insights from the analysis.\n\n"
-                f"Central idea: {initial_point}\n\n"
+                f"Central idea: {central_idea}\n\n"
                 f"Responses:\n{responses_text}"
             )
             system_msg = {
@@ -158,7 +212,7 @@ def starbursting_page():
                 f"Using the following central idea and responses, generate a network diagram represented in Graphviz DOT format. "
                 f"Represent the central idea as the main node. Connect each expansion question as a node to the central idea, "
                 f"and attach the corresponding response as a sub-node to the question. Only output valid DOT format code.\n\n"
-                f"Central idea: {initial_point}\n\n"
+                f"Central idea: {central_idea}\n\n"
                 f"Responses:\n{responses_text}"
             )
             system_msg = {
@@ -171,8 +225,12 @@ def starbursting_page():
             }
             diagram_result = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
             
-            # Display the diagram using Graphviz
-            st.graphviz_chart(diagram_result)
+            # Import Graphviz and render the diagram as an image.
+            import graphviz
+            diagram = graphviz.Source(diagram_result, format="png")
+            st.image(diagram.pipe(), caption="Network Diagram", use_column_width=True)
+            
+            # Also show the raw DOT code for reference.
             st.text_area("Diagram (DOT format)", value=diagram_result, height=200)
         except Exception as e:
             st.error(f"Error generating network diagram: {e}")

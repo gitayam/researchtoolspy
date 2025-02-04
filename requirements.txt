@@ -30,3 +30,4 @@ chromedriver-binary
 python-dateutil
 langdetect
 webdriver-manager
+graphviz # for starbursting diagram
