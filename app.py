@@ -17,7 +17,7 @@ def main():
     st.set_page_config(
         page_title="Irregular Research Tools - Enhance Your Research", 
         page_icon=":mag:",  # Use a more recognizable icon for social media
-        layout="wide"
+        layout="wide"f
     )
 
     # Add the full sidebar menu
