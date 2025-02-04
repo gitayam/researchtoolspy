@@ -10,6 +10,26 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def clean_gpt_response(response_text):
+    """
+    Clean GPT response by removing markdown code fences, extraneous language markers, and
+    extracting the JSON content based on the first '[' and the last ']'.
+    """
+    response_text = response_text.strip()
+    # Remove starting/ending code fences if present.
+    if response_text.startswith("```"):
+        response_text = response_text.strip("`")
+        lines = response_text.splitlines()
+        # Remove language marker if it's the first line.
+        if lines and lines[0].strip().lower() in ["json", "text"]:
+            response_text = "\n".join(lines[1:]).strip()
+    # Extract content between the first '[' and the last ']'
+    start_idx = response_text.find('[')
+    end_idx = response_text.rfind(']')
+    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+        response_text = response_text[start_idx:end_idx+1].strip()
+    return response_text
+
 def pmesii_pt_page():
     st.title("PMESII-PT Analysis Framework")
     st.markdown("""
@@ -21,10 +41,10 @@ def pmesii_pt_page():
     - The generated query will be used to fetch a Wikipedia summary.
     - Then, define your Operational Environment and Goals/Lines of Effort.
 
-    **Step 2: Gather Relevant Data**
-    - Use AI to generate targeted data gathering questions for each PMESII-PT domain.
-    - Answer only the questions that are relevant — only those answered will be included in the final analysis.
-    - You may also manually enter additional data for each domain.
+    **Step 2: Gather Relevant Data (One Domain at a Time)**
+    - For each PMESII-PT domain, generate targeted data gathering questions.
+    - Each question is paired with an answer input field. Only answered questions will be included in the final analysis.
+    - You can also enter manual data for each domain.
 
     **Step 3: Utilize Analytical Frameworks**
     - Leverage AI to generate clear analytical questions that probe the gathered data.
@@ -44,43 +64,49 @@ def pmesii_pt_page():
     neighborhood = st.text_input("Neighborhood (optional):", key="neighborhood")
     general_area = st.text_input("General Area (optional):", key="general_area")
 
-    # Automatically generate the Wikipedia search query and search Wikipedia for the area.
+    # Automatically generate the Wikipedia search query and perform Wikipedia search.
     if st.button("Search Wikipedia for the Area"):
         if not country.strip():
             st.error("Country is required for searching Wikipedia.")
         else:
-            # Build context using all available location details
-            context = f"Country: {country}\n"
-            if state.strip():
-                context += f"State: {state}\n"
-            if city.strip():
-                context += f"City: {city}\n"
-            if neighborhood.strip():
-                context += f"Neighborhood: {neighborhood}\n"
+            # Arrange location parts in the order: General Area, Neighborhood, City, State, Country.
+            location_parts = []
             if general_area.strip():
-                context += f"General Area: {general_area}\n"
-
-            # Improved prompt for generating a detailed Wikipedia search query.
+                location_parts.append(general_area.strip())
+            if neighborhood.strip():
+                location_parts.append(neighborhood.strip())
+            if city.strip():
+                location_parts.append(city.strip())
+            if state.strip():
+                location_parts.append(state.strip())
+            if country.strip():
+                location_parts.append(country.strip())
+            context = ", ".join(location_parts)
+            
+            # Improved prompt for generating a plain language Wikipedia search query.
             prompt = (
-               "Based on the following location details, generate a detailed and descriptive Wikipedia search query "
-               "that maximizes the chance of retrieving a comprehensive and relevant article. "
-               "Include all provided details (Country, State, City, Neighborhood, and General Area) with no abbreviations. "
-               "Return only the query text."
+                "Based on the following location details, generate a plain language Wikipedia search query for a place. "
+                "List the available details in this order: General Area, Neighborhood, City, State, Country. "
+                "Include only the provided details, separated by commas, with no extra commentary.\n\n"
+                f"Location: {context}"
             )
             system_msg = {
                 "role": "system",
-                "content": "You are a location analyst generating detailed Wikipedia search queries."
+                "content": "You are a location analyst generating plain language Wikipedia search queries for places."
             }
-            user_msg = {"role": "user", "content": context + "\n" + prompt}
+            user_msg = {"role": "user", "content": prompt}
             try:
                 generated_query = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-                # Cleanup response in case it contains markdown/code fences.
+                # Cleanup any markdown/code-fencing and remove surrounding quotes.
                 cleaned_query = generated_query.strip()
                 if cleaned_query.startswith("```"):
                     cleaned_query = cleaned_query.strip("`")
                     first_line, *rest = cleaned_query.splitlines()
                     if first_line.strip().lower().startswith("json") or first_line.strip().lower().startswith("text"):
                         cleaned_query = "\n".join(rest).strip()
+                if (cleaned_query.startswith('"') and cleaned_query.endswith('"')) or \
+                   (cleaned_query.startswith("'") and cleaned_query.endswith("'")):
+                    cleaned_query = cleaned_query[1:-1].strip()
                 st.session_state["wiki_query"] = cleaned_query
                 st.write("Generated Wikipedia Search Query:", cleaned_query)
                 wiki_summary = search_wikipedia(st.session_state["wiki_query"], sentences=5)
@@ -105,151 +131,95 @@ def pmesii_pt_page():
     )
 
     st.markdown("---")
-    # --- Step 2: Gather Relevant Data ---
+    # --- Step 2: Gather Relevant Data (One Domain at a Time) ---
     st.header("Step 2: Gather Relevant Data")
-    st.markdown("""
-    First, you may have AI generate targeted questions to guide data collection for each PMESII-PT domain.
-    Provide answers only for those questions that are relevant — only answered questions will be carried forward.
-    """)
-
-    # --- AI-Generated Data Gathering Questions ---
-    if st.button("AI: Generate Data Gathering Questions"):
-        # Build context for prompt using location and environmental details.
-        context = ""
-        if country.strip():
-            context += f"Country: {country}\n"
-        if state.strip():
-            context += f"State: {state}\n"
-        if city.strip():
-            context += f"City: {city}\n"
-        if neighborhood.strip():
-            context += f"Neighborhood: {neighborhood}\n"
-        if general_area.strip():
-            context += f"General Area: {general_area}\n"
-        if operational_env.strip():
-            context += f"Operational Environment: {operational_env}\n"
-        if goals.strip():
-            context += f"Goals/Lines of Effort: {goals}\n"
-        
-        prompt = (
-            "Using the context provided, generate a JSON object containing data gathering questions for each of the PMESII-PT domains "
-            "(Political, Military, Economic, Social, Information, Infrastructure, Physical Environment, Time). "
-            "Return the output as a JSON object where keys are the domain names and values are lists of questions. "
-            "Ensure each question begins with one of the following interrogatives: what, how, when, where, why, or who."
-        )
-        system_msg = {
-            "role": "system",
-            "content": "You are a strategic analyst generating data collection questions for PMESII-PT analysis."
-        }
-        user_msg = {"role": "user", "content": context + "\n" + prompt}
-        try:
-            generated_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-            st.write("Raw GPT response:", generated_response)
-            if not generated_response.strip():
-                st.error("No response received from GPT. Please try again or check your GPT configuration.")
-            else:
-                # Cleanup response in case it contains markdown/code fences.
-                cleaned_response = generated_response.strip()
-                if cleaned_response.startswith("```"):
-                    cleaned_response = cleaned_response.strip("`")
-                    first_line, *rest = cleaned_response.splitlines()
-                    if first_line.strip().lower().startswith("json") or first_line.strip().lower().startswith("text"):
-                        cleaned_response = "\n".join(rest).strip()
-                        
-                # Additional cleanup: ensure the JSON ends with a closing curly brace.
-                if not cleaned_response.endswith("}"):
-                    last_brace_index = cleaned_response.rfind("}")
-                    if last_brace_index != -1:
-                        cleaned_response = cleaned_response[:last_brace_index+1]
-                
-                try:
-                    questions_dict = json.loads(cleaned_response)
-                    st.session_state["data_gathering_questions"] = questions_dict
-                except Exception as json_e:
-                    st.error(f"Error decoding response: {json_e}\nRaw Response: {generated_response}")
-        except Exception as e:
-            st.error(f"Error generating questions: {e}")
+    st.markdown("For each PMESII-PT domain, generate AI-based data gathering questions and provide your answers below.")
     
-    if "data_gathering_questions" in st.session_state and st.session_state["data_gathering_questions"]:
-        st.subheader("Answer the AI-Generated Questions")
-        domain_question_answers = {}
-        for domain, questions in st.session_state["data_gathering_questions"].items():
-            st.markdown(f"**{domain} Domain Questions:**")
-            domain_answers = []
-            if isinstance(questions, list):
-                for i, question in enumerate(questions, start=1):
-                    answer = st.text_area(
-                        f"Answer for: {question}",
-                        key=f"{domain}_qa_{i}",
-                        placeholder="Enter your answer here..."
-                    )
-                    domain_answers.append({"question": question, "answer": answer})
-            else:
-                answer = st.text_area(
-                    f"Answer for: {questions}",
-                    key=f"{domain}_qa_1",
-                    placeholder="Enter your answer here..."
-                )
-                domain_answers.append({"question": questions, "answer": answer})
-            domain_question_answers[domain] = domain_answers
-        st.session_state["domain_question_answers"] = domain_question_answers
-
-    st.markdown("---")
-    # --- Manual Data Entry for Each Domain ---
-    st.subheader("Manual Data Entry for Each PMESII-PT Domain")
-    st.markdown("You may also manually enter additional data for each domain. This data is supplemental to your responses to the AI-generated questions.")
     domains = [
         "Political", "Military", "Economic", "Social",
         "Information", "Infrastructure", "Physical Environment", "Time"
     ]
-    if "domain_data" not in st.session_state:
-        st.session_state["domain_data"] = {}
+    # Initialize session state keys for generated questions and user answers if not already present.
+    if "domain_generated_questions" not in st.session_state:
+        st.session_state["domain_generated_questions"] = {}
+    if "domain_question_answers" not in st.session_state:
+        st.session_state["domain_question_answers"] = {}
+    
     for domain in domains:
-        manual_input = st.text_area(
-            f"{domain} Domain Data:",
-            key=f"{domain}_manual",
-            placeholder=f"Enter additional data for the {domain} domain..."
-        )
-        st.session_state["domain_data"][domain] = manual_input
+        with st.expander(f"{domain} Domain Questions", expanded=False):
+            # Button to generate questions for current domain.
+            if st.button(f"Generate {domain} Questions", key=f"gen_{domain}"):
+                # Build context from provided location and environment details.
+                context = ""
+                if country.strip():
+                    context += f"Country: {country}\n"
+                if state.strip():
+                    context += f"State: {state}\n"
+                if city.strip():
+                    context += f"City: {city}\n"
+                if neighborhood.strip():
+                    context += f"Neighborhood: {neighborhood}\n"
+                if general_area.strip():
+                    context += f"General Area: {general_area}\n"
+                if operational_env.strip():
+                    context += f"Operational Environment: {operational_env}\n"
+                if goals.strip():
+                    context += f"Goals/Lines of Effort: {goals}\n"
+                    
+                prompt = (
+                    f"Using the following context:\n{context}\n"
+                    f"Generate a JSON array of data gathering questions for the {domain} domain "
+                    "of a PMESII-PT analysis. Ensure that each question starts with one of the interrogatives: what, how, when, where, why, or who. "
+                    "Return only the JSON array."
+                )
+                system_msg = {
+                    "role": "system",
+                    "content": f"You are a strategic analyst generating data collection questions for the {domain} domain in PMESII-PT analysis."
+                }
+                user_msg = {"role": "user", "content": prompt}
+                try:
+                    raw_response = chat_gpt([system_msg, user_msg], model="gpt-4o")
+                    cleaned_response = clean_gpt_response(raw_response)
+                    questions_list = json.loads(cleaned_response)
+                    st.session_state["domain_generated_questions"][domain] = questions_list
+                except Exception as e:
+                    st.error(f"Error generating questions for {domain}: {e}")
+
+            # If questions have been generated, display each with an answer input.
+            if domain in st.session_state["domain_generated_questions"]:
+                questions = st.session_state["domain_generated_questions"][domain]
+                domain_answers = []
+                for idx, question_obj in enumerate(questions, start=1):
+                    # Expecting question objects; if it's a dict, extract the text.
+                    if isinstance(question_obj, dict) and "question" in question_obj:
+                        question_text = question_obj["question"]
+                    else:
+                        question_text = question_obj
+                    answer = st.text_area(
+                        f"Answer for: {question_text}",
+                        key=f"{domain}_qa_{idx}",
+                        placeholder="Enter your answer here..."
+                    )
+                    domain_answers.append({"question": question_text, "answer": answer})
+                st.session_state["domain_question_answers"][domain] = domain_answers
 
     st.markdown("---")
-    # Optional additional context or scraped data
-    scraped_data = st.text_area(
-        "Optional: Additional Context or Scraped Data",
-        placeholder="Paste any additional context or scraped data here..."
-    )
+    # Export all questions and answers into a CSV file.
+    st.subheader("Export Data")
+    if st.button("Export Questions & Answers to CSV"):
+        import csv
+        from io import StringIO
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Domain", "Question", "Answer"])
+        for domain in domains:
+            if domain in st.session_state["domain_generated_questions"]:
+                answers = st.session_state["domain_question_answers"].get(domain, [])
+                for qa in answers:
+                    writer.writerow([domain, qa["question"], qa["answer"]])
+        csv_data = output.getvalue()
+        st.download_button("Download CSV", csv_data, "PMESII_PT_Questions_Answers.csv", "text/csv")
     
-    # Assemble all gathered data — only include answered AI questions.
-    gathered_data = ""
-    if country.strip():
-        gathered_data += f"Country: {country}\n"
-    if state.strip():
-        gathered_data += f"State: {state}\n"
-    if city.strip():
-        gathered_data += f"City: {city}\n"
-    if neighborhood.strip():
-        gathered_data += f"Neighborhood: {neighborhood}\n"
-    if general_area.strip():
-        gathered_data += f"General Area: {general_area}\n\n"
-    if operational_env.strip():
-        gathered_data += f"Operational Environment:\n{operational_env}\n\n"
-    if goals.strip():
-        gathered_data += f"Goals/Lines of Effort:\n{goals}\n\n"
-    for domain in domains:
-        # Include manual domain data.
-        manual_text = st.session_state["domain_data"].get(domain, "")
-        if manual_text.strip():
-            gathered_data += f"{domain} Domain Manual Data:\n{manual_text}\n\n"
-        # Include answered AI-generated questions for that domain.
-        if "domain_question_answers" in st.session_state and domain in st.session_state["domain_question_answers"]:
-            for qa in st.session_state["domain_question_answers"][domain]:
-                if qa["answer"].strip():
-                    gathered_data += f"{domain} - {qa['question']}:\n{qa['answer']}\n\n"
-    if scraped_data.strip():
-        gathered_data += f"Scraped Data:\n{scraped_data}\n\n"
-    
-    st.session_state["gathered_data"] = gathered_data
-
     st.markdown("---")
     # --- Step 3: Generate Analytical Questions ---
     st.header("Step 3: Generate Analytical Questions")
@@ -259,6 +229,28 @@ def pmesii_pt_page():
     """)
     
     if st.button("AI: Suggest Analytical Questions"):
+        # Assemble gathered data from previous steps.
+        gathered_data = ""
+        if country.strip():
+            gathered_data += f"Country: {country}\n"
+        if state.strip():
+            gathered_data += f"State: {state}\n"
+        if city.strip():
+            gathered_data += f"City: {city}\n"
+        if neighborhood.strip():
+            gathered_data += f"Neighborhood: {neighborhood}\n"
+        if general_area.strip():
+            gathered_data += f"General Area: {general_area}\n\n"
+        if operational_env.strip():
+            gathered_data += f"Operational Environment:\n{operational_env}\n\n"
+        if goals.strip():
+            gathered_data += f"Goals/Lines of Effort:\n{goals}\n\n"
+        for domain in domains:
+            # Include answered AI-generated questions for each domain.
+            if domain in st.session_state["domain_question_answers"]:
+                for qa in st.session_state["domain_question_answers"][domain]:
+                    if qa["answer"].strip():
+                        gathered_data += f"{domain} - {qa['question']}:\n{qa['answer']}\n\n"
         if not gathered_data.strip():
             st.warning("Please provide some data in the previous sections before generating analytical questions.")
         else:
@@ -288,6 +280,7 @@ def pmesii_pt_page():
     st.markdown("Leverage AI to synthesize and summarize the overall PMESII-PT analysis.")
     
     if st.button("AI: Summarize Analysis"):
+        # Reuse the gathered data from previous steps.
         if not gathered_data.strip():
             st.warning("Please provide data in the previous sections before generating a summary.")
         else:
