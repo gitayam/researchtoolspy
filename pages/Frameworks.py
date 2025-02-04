@@ -9,7 +9,7 @@ from frameworks.swot import swot_page
 from frameworks.ach import ach_page
 from frameworks.deception_detection import deception_detection
 from frameworks.dime import dime_page
-from pages.sidebar_menu import sidebar_menu
+from components.sidebar_menu import sidebar_menu
 from frameworks.pmesii_pt import pmesii_pt_page
 from frameworks.dotmlpf import dotmlpf_page
 from frameworks.starbursting import starbursting_page
