@@ -11,6 +11,7 @@ def sidebar_menu():
     - [DIME Framework](/DIME_Framework)
     - [PMESII-PT Framework](/PMESII_PT_Framework)
     - [DOTMLPF Framework](/DOTMLPF_Framework)
+    - [Starbursting](/Starbursting)
     """)
     # Wiki Links
     st.sidebar.markdown("## [**Research Wiki Pages**](https://irregularpedia.org/index.php/Category:Research)")

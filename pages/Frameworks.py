@@ -9,9 +9,10 @@ from frameworks.swot import swot_page
 from frameworks.ach import ach_page
 from frameworks.deception_detection import deception_detection
 from frameworks.dime import dime_page
-from sidebar_menu import sidebar_menu
+from pages.sidebar_menu import sidebar_menu
 from frameworks.pmesii_pt import pmesii_pt_page
 from frameworks.dotmlpf import dotmlpf_page
+from frameworks.starbursting import starbursting_page
 
 load_dotenv()
 
@@ -27,7 +28,8 @@ def framework_sidebar():
         "Deception Detection": "DECEPTION",
         "DIME Framework": "DIME",
         "PMESII-PT Framework": "PMESII",
-        "DOTMLPF Framework": "DOTMLPF"
+        "DOTMLPF Framework": "DOTMLPF",
+        "Starbursting": "STARBURSTING"
     }
     
     # Create lists of labels and their corresponding values
@@ -136,6 +138,8 @@ def frameworks_page():
         pmesii_pt_page()
     elif st.session_state.current_framework == "DOTMLPF":
         dotmlpf_page()
+    elif st.session_state.current_framework == "STARBURSTING":
+        starbursting_page()
     else:
         # Default view when no framework is selected
         st.write("""

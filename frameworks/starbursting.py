@@ -31,35 +31,56 @@ def starbursting_page():
 
     # Step 2: Expansion Questions
     st.subheader("Step 2: Expansion Questions")
-    st.markdown("List your expansion questions (one per line) to probe deeper into the initial idea.")
-
+    st.markdown(
+        "List or generate expansion questions to probe deeper into the initial idea. "
+        "The questions should begin with one of these words: what, how, when, where, why, or who."
+    )
+    
+    # Initialize the questions in session state if not already present.
     if 'starbursting_questions' not in st.session_state:
         st.session_state['starbursting_questions'] = ""
     
+    # Display an editable text area for expansion questions (one per line)
     questions_input = st.text_area(
-        "Expansion Questions:",
+        "Expansion Questions (one per line):",
         value=st.session_state['starbursting_questions'],
-        placeholder="e.g., What potential advantages does this technology offer?\nWhat challenges might arise?\nHow could competitors react?"
+        placeholder="e.g., What potential advantages does this technology offer?\nHow might competitors respond?"
     )
     st.session_state['starbursting_questions'] = questions_input
 
-    # AI suggestion for expansion questions
+    # AI suggestion for expansion questions that use context from previous answers (if available)
     if st.button("AI: Suggest Expansion Questions"):
         if not initial_point:
             st.warning("Please enter the initial point of information to generate questions.")
         else:
             try:
+                # Gather context from any previous answers.
+                responses_context = ""
+                if 'starbursting_responses' in st.session_state:
+                    for key, answer in st.session_state['starbursting_responses'].items():
+                        if answer.strip():
+                            responses_context += f"{key}: {answer}\n"
+                
+                prompt = f"Central idea: {initial_point}\n"
+                if responses_context:
+                    prompt += f"Context from previous responses:\n{responses_context}\n"
+                prompt += (
+                    "Generate a list of 5 expansion questions that probe deeper into the analysis. "
+                    "Each question must start with one of the following words: what, how, when, where, why, who. "
+                    "Return each question on a new line without numbering."
+                )
+                
                 system_msg = {
                     "role": "system",
                     "content": (
                         "You are an expert strategist skilled in the starbursting technique. "
-                        "Given a central idea, generate a list of 5 probing questions to help expand on that idea. "
-                        "Return each question on a new line without numbering."
+                        "Considering the central idea and any provided context, generate expansion questions "
+                        "that begin with a 5W (what, how, when, where, why, who) element."
                     )
                 }
                 user_msg = {
                     "role": "user",
-                    "content": f"Central idea: {initial_point}\nGenerate 5 expansion questions to explore this idea."
+                    "content": prompt
                 }
                 ai_questions = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                 st.session_state['starbursting_questions'] = ai_questions
@@ -71,12 +92,13 @@ def starbursting_page():
 
     # Step 3: Detailed Responses to Expansion Questions
     st.subheader("Step 3: Detailed Responses")
-    st.markdown("For each expansion question above, provide your detailed responses below.")
+    st.markdown("For each expansion question above, provide your detailed responses below. Each input field is tied to its respective question.")
     
+    # Initialize responses dictionary if not already present.
     if 'starbursting_responses' not in st.session_state:
         st.session_state['starbursting_responses'] = {}
 
-    # Split the questions into a list
+    # Split the expansion questions into a list (ignoring blank lines)
     questions_list = [q.strip() for q in st.session_state['starbursting_questions'].split("\n") if q.strip()]
     for i, question in enumerate(questions_list, start=1):
         key = f"response_{i}"

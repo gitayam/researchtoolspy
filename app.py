@@ -1,6 +1,6 @@
 # /researchtools_streamlit/app.py
 import streamlit as st
-from sidebar_menu import sidebar_menu
+from pages.sidebar_menu import sidebar_menu
 from frameworks.cog import cog_analysis
 from frameworks.swot import swot_page
 from frameworks.ach import ach_page

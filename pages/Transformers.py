@@ -3,7 +3,7 @@ import streamlit as st
 import requests
 from utilities.gpt import generate_advanced_query
 from utilities.conversions import convert_input
-from sidebar_menu import sidebar_menu
+from pages.sidebar_menu import sidebar_menu
 from utilities.search_generator import advanced_query_options
 from utilities.ImageSearch import image_search_page
 from utilities.url_processing import wayback_tool_page
