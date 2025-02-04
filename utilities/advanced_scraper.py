@@ -348,3 +348,23 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
             logging.error(f"Error in GPT fallback extraction for {url}: {e}")
 
     return title, description, keywords, author, date_published, editor, referenced_links
+
+
+def search_wikipedia(query, sentences=5):
+    """
+    Searches Wikipedia for the given query and returns a concise summary.
+    
+    Parameters:
+      query (str): The search term.
+      sentences (int): Number of sentences for the summary.
+      
+    Returns:
+      str: The Wikipedia summary or an error message.
+    """
+    import wikipedia
+    wikipedia.set_lang("en")
+    try:
+        summary = wikipedia.summary(query, sentences=sentences)
+        return summary
+    except Exception as e:
+        return f"Error retrieving Wikipedia data: {e}"
