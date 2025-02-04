@@ -14,10 +14,16 @@ from frameworks.dotmlpf import dotmlpf_page
 # and show them in the sidebar.
 
 def main():
+    """
+    Sets up and renders the homepage for the Irregular Research Tools platform.
+    
+    This includes configuring the Streamlit page, displaying the sidebar menu,
+    and rendering various sections of the homepage.
+    """
     st.set_page_config(
         page_title="Irregular Research Tools - Enhance Your Research", 
         page_icon=":mag:",  # Use a more recognizable icon for social media
-        layout="wide"f
+        layout="wide"
     )
 
     # Add the full sidebar menu
@@ -25,7 +31,7 @@ def main():
 
     # Main content area - Home page
     st.title("Irregular Research Tools")
-    st.image("media/research_logo.png", width=200)
+    st.image("media/research_logo.png", width=200, caption="Research Logo")
 
     # Introduction
     st.markdown("""
@@ -76,7 +82,7 @@ def main():
         """)
 
     with col4:
-        st.subheader("�� Data Collection")
+        st.subheader("📥 Data Collection")
         st.markdown("""
         - **[Wayback Machine Tool](/WaybackTool)**: Archive and access historical web pages
         - **[Social Media Downloader](/Transformers)**: Download social media content
