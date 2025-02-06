@@ -25,6 +25,9 @@ def dotmlpf_page():
     You can use this framework to analyze friendly forces, adversary forces, or our own.
     """)
 
+    # New input field for Organization
+    organization_input = st.text_input("Enter Organization Details:", max_chars=240)
+
     # Choose the force type to analyze
     force_type = st.selectbox("Select Force Type", ["Friendly", "Adversary", "Our Own"])
 
@@ -53,7 +56,7 @@ def dotmlpf_page():
                     "role": "system",
                     "content": (
                         "You are an experienced military analyst specializing in DOTMLPF assessments. "
-                        "Provide a concise analysis for the following category relative to the force type."
+                        f"Provide a concise analysis for the following category relative to the force type of {organization_input}."
                     )
                 }
                 user_msg = {
