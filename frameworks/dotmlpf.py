@@ -56,8 +56,9 @@ def dotmlpf_page():
                 system_msg = {
                     "role": "system",
                     "content": (
-                        f"You are an experienced intelligence analyst specializing in DOTMLPF assessments of organizations with a goal of {goal_input}  {organization_input} . "
-                        f"Provide a concise analysis for the following category relative to the force type of {organization_input}."
+                        f"You are an experienced intelligence analyst specializing in DOTMLPF assessments with a focus on the goal: '{goal_input}'. "
+                        "Your role is to generate practical, tangible, and measurable questions to guide the analysis for the specified category. "
+                        "Focus on providing actionable insights that are realistic and directly applicable to evaluating the organization's capabilities."
                     )
                 }
                 user_msg = {
@@ -65,15 +66,16 @@ def dotmlpf_page():
                     "content": (
                         f"Force Type: {force_type}\n"
                         f"Category: {cat}\n"
-                        f"Current Input: {user_text}\n"
-                        "Provide 3 key points or recommendations for assessing or improving this area."
+                        f"Current Input Provided: {user_text}\n\n"
+                        "Based on this information, please generate 3 specific and actionable questions that an intelligence analyst could use to further evaluate this aspect of the organization's capabilities. "
+                        "Ensure that these questions are clear, measurable, and focused on realistic avenues for identifying both challenges and opportunities."
                     )
                 }
-                ai_response = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
+                ai_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                 st.text_area(f"AI Suggested {cat} Analysis:", value=ai_response, height=100, key=f"ai_resp_{cat}")
             except Exception as e:
                 st.error(f"Error generating AI suggestion for {cat}: {e}")
-        st.markdown("---")
+            st.markdown("---")
 
     # Button to generate a consolidated summary from all categories
     if st.button("Generate Consolidated DOTMLPF Summary"):
@@ -87,7 +89,7 @@ def dotmlpf_page():
                 "content": f"You are an expert military strategist focused on {goal_input}. Summarize the following DOTMLPF analysis."
             }
             user_msg = {"role": "user", "content": summary_prompt}
-            summary_response = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
+            summary_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
             st.subheader("Consolidated DOTMLPF Summary")
             st.write(summary_response)
         except Exception as e:
