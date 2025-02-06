@@ -31,6 +31,7 @@ def dotmlpf_page():
     # Choose the force type to analyze
     force_type = st.selectbox("Select Force Type", ["Friendly", "Adversary", "Our Own"])
 
+    goal_input = st.text_input("Enter Goal of the Analysis:", max_chars=240)
     st.markdown("---")
 
     # Define the DOTMLPF categories
@@ -55,7 +56,7 @@ def dotmlpf_page():
                 system_msg = {
                     "role": "system",
                     "content": (
-                        "You are an experienced military analyst specializing in DOTMLPF assessments. "
+                        f"You are an experienced military analyst specializing in DOTMLPF assessments with a goal of {goal_input}  {organization_input} . "
                         f"Provide a concise analysis for the following category relative to the force type of {organization_input}."
                     )
                 }
