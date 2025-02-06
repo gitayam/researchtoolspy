@@ -12,7 +12,7 @@ load_dotenv()
 def dotmlpf_page():
     st.title("DOTMLPF Analysis Framework")
     st.write("""
-    The DOTMLPF Analysis Framework helps you assess military capabilities across several key areas:
+    The DOTMLPF Analysis Framework helps you assess organization capabilities across several key areas:
     
     - **Doctrine**: The principles and strategies guiding operations.
     - **Organization**: The structure and distribution of forces.
@@ -56,7 +56,7 @@ def dotmlpf_page():
                 system_msg = {
                     "role": "system",
                     "content": (
-                        f"You are an experienced military analyst specializing in DOTMLPF assessments with a goal of {goal_input}  {organization_input} . "
+                        f"You are an experienced intelligence analyst specializing in DOTMLPF assessments of organizations with a goal of {goal_input}  {organization_input} . "
                         f"Provide a concise analysis for the following category relative to the force type of {organization_input}."
                     )
                 }
@@ -84,7 +84,7 @@ def dotmlpf_page():
                 summary_prompt += f"\n{cat}: {analysis}\n"
             system_msg = {
                 "role": "system",
-                "content": "You are an expert military strategist. Summarize the following DOTMLPF analysis."
+                "content": f"You are an expert military strategist focused on {goal_input}. Summarize the following DOTMLPF analysis."
             }
             user_msg = {"role": "user", "content": summary_prompt}
             summary_response = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
@@ -97,6 +97,8 @@ def dotmlpf_page():
     if st.button("Export DOTMLPF Analysis as JSON"):
         analysis_data = {
             "force_type": force_type,
+            "goal": goal_input,
+            "organization": organization_input,
             "DOTMLPF": {cat: user_inputs.get(cat, "") for cat in dotmlpf_categories}
         }
         json_data = json.dumps(analysis_data, indent=2)
