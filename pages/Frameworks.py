@@ -157,6 +157,87 @@ def frameworks_page():
         - **DOTMLPF**: Analyze Doctrine, Organization, Training, Material, Leadership, Personnel, and Facilities
         """)
 
+    # Save user-specific frameworks based on the logged-in account number
+    if "logged_in" in st.session_state and st.session_state["logged_in"]:
+        account_number = st.session_state.get("account_number", "Unknown")
+        saved_frameworks_key = f"saved_frameworks_{account_number}"
+        if saved_frameworks_key not in st.session_state:
+            st.session_state[saved_frameworks_key] = []
+        
+        # Add a button to save the current framework
+        if st.button("Save Current Framework"):
+            current_framework = st.session_state.get("current_framework")
+            if current_framework and current_framework not in st.session_state[saved_frameworks_key]:
+                st.session_state[saved_frameworks_key].append(current_framework)
+                st.success(f"Framework '{current_framework}' saved for account {account_number}.")
+            else:
+                st.warning("No framework selected or framework already saved.")
+        
+        # Display saved frameworks
+        st.subheader("Saved Frameworks")
+        saved_frameworks = st.session_state.get(saved_frameworks_key, [])
+        if saved_frameworks:
+            for framework in saved_frameworks:
+                st.write(f"- {framework}")
+        else:
+            st.write("No frameworks saved yet.")
+
+        # URL processing also can save citations and processed urls if account is logged in
+        st.subheader("URL Processing")
+        url = st.text_input("Enter URL to process", key="url_processing")
+        if st.button("Process URL"):
+            if not url.strip():
+                st.error("Please enter a valid URL.")
+            else:
+                title, description, keywords, author, date_published, editor, referenced_links = advanced_fetch_metadata(url)
+                if author == "No Author" and editor:
+                    author = editor
+
+                try:
+                    citation = generate_website_citation(
+                        url,
+                        citation_format="APA",
+                        date_published=date_published,
+                        author=author
+                    )
+                except Exception as e:
+                    st.warning(f"Could not generate citation: {e}")
+                    citation = f"Manual citation needed for: {url}"
+
+                try:
+                    resp = requests.post(f"https://web.archive.org/save/{url}", timeout=15)
+                    if resp.status_code == 200:
+                        archived_url = resp.url
+                        st.success("Archived URL (Wayback Machine) successfully!")
+                    else:
+                        st.error("Failed to archive the URL with Wayback Machine")
+                except Exception as e:
+                    st.error(f"Error occurred while archiving: {e}")
+
+                # Display the link card at full width
+                display_link_card(
+                    url, citation, title, description, keywords, author, date_published,
+                    archived_url=archived_url, use_expander=True, referenced_links=referenced_links
+                )
+
+                saved_hash = str(uuid.uuid4())[:8]
+                card_data = {
+                    "hash": saved_hash,
+                    "url": url,
+                    "bypass": f"https://12ft.io/{url}",
+                    "archived_url": archived_url,
+                    "citation": citation,
+                    "metadata": {
+                        "title": title,
+                        "description": description,
+                        "keywords": keywords,
+                        "author": author,
+                        "date_published": date_published
+                    }
+                }
+                st.session_state[saved_frameworks_key].insert(0, card_data)
+                st.info(f"Exported your card with hash: {saved_hash}")
+
 def main():
     frameworks_page()
 

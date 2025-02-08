@@ -13,6 +13,29 @@ def sidebar_menu():
     - [DOTMLPF Framework](/DOTMLPF_Framework)
     - [Starbursting](/Starbursting)
     """)
+
+    # Check if the user is logged in
+    if "logged_in" in st.session_state and st.session_state["logged_in"]:
+        st.sidebar.markdown("## Saved Frameworks")
+        # Display user-specific saved frameworks
+        account_number = st.session_state.get("account_number", "Unknown")
+        st.sidebar.markdown(f"Welcome, User {account_number}")
+        st.sidebar.markdown("""
+        - [Saved SWOT Analysis](/Saved_SWOT_Analysis)
+        - [Saved ACH Analysis](/Saved_ACH_Analysis)
+        - [Saved COG Analysis](/Saved_COG_Analysis)
+        - [Saved Deception Detection](/Saved_Deception_Detection)
+        - [Saved DIME Framework](/Saved_DIME_Framework)
+        - [Saved PMESII-PT Framework](/Saved_PMESII_PT_Framework)
+        - [Saved DOTMLPF Framework](/Saved_DOTMLPF_Framework)
+        - [Saved Starbursting](/Saved_Starbursting)
+        """)
+    else:
+        st.sidebar.markdown("## User Login")
+        st.sidebar.markdown("""
+        - [Login](/Login)
+        """)
+
     # Wiki Links
     st.sidebar.markdown("## [**Research Wiki Pages**](https://irregularpedia.org/index.php/Category:Research)")
     
@@ -39,4 +62,4 @@ def sidebar_menu():
     st.sidebar.markdown("""
     - [Forms for Processing](https://Irregularpedia.org/index.php/forms)
     - [R Studio Guide](https://Irregularpedia.org/index.php/rstudio)
-    """) 
+    """)

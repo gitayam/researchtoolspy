@@ -8,6 +8,7 @@ from frameworks.deception_detection import deception_detection
 from frameworks.dime import dime_page
 from frameworks.pmesii_pt import pmesii_pt_page
 from frameworks.dotmlpf import dotmlpf_page
+from components.login import login, logout  # Import the login and logout functions
 
 # This file is the main entry. Using Streamlit multi-page mode, you typically
 # create multiple files in a "pages/" subfolder. Streamlit will auto-detect them
@@ -28,6 +29,15 @@ def main():
 
     # Add the full sidebar menu
     sidebar_menu()
+
+    # Check if the user is logged in
+    if "logged_in" not in st.session_state or not st.session_state["logged_in"]:
+        login()
+        return
+
+    # Add a logout button
+    if st.button("Logout"):
+        logout()
 
     # Main content area - Home page
     st.title("Irregular Research Tools")
