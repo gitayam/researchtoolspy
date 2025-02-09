@@ -10,9 +10,9 @@ import json
 load_dotenv()
 
 def dotmlpf_page():
-    st.title("DOTMLPF Analysis Framework")
+    st.title("DOTMLPF-P Analysis Framework")
     st.write("""
-    The DOTMLPF Analysis Framework helps you assess organization capabilities across several key areas:
+    The DOTMLPF-P Analysis Framework helps you assess organization capabilities across several key areas:
     
     - **Doctrine**: The principles and strategies guiding operations.
     - **Organization**: The structure and distribution of forces.
@@ -21,6 +21,7 @@ def dotmlpf_page():
     - **Leadership**: The quality and effectiveness of command.
     - **Personnel**: The manpower, expertise, and morale.
     - **Facilities**: The infrastructure and support systems.
+    - **Policy**: The policies and frameworks governing procedures and resource allocation.
     
     You can use this framework to analyze friendly forces, adversary forces, or our own.
     """)
@@ -34,19 +35,12 @@ def dotmlpf_page():
     goal_input = st.text_input("Enter Goal of the Analysis:", max_chars=240)
     st.markdown("---")
 
-    # Incorporate extended DOTMLPF-P if "Our Own" is selected
-    if force_type == "Our Own":
-        dotmlpf_categories = [
-            "Doctrine", "Organization", "Training",
-            "Materiel", "Leadership", "Personnel",
-            "Facilities", "Policy"  # Added Policy for 'Our Own'
-        ]
-    else:
-        dotmlpf_categories = [
-            "Doctrine", "Organization", "Training",
-            "Materiel", "Leadership", "Personnel",
-            "Facilities"
-        ]
+    # Always use DOTMLPF-P categories
+    dotmlpf_categories = [
+        "Doctrine", "Organization", "Training",
+        "Materiel", "Leadership", "Personnel",
+        "Facilities", "Policy"
+    ]
 
     # Dictionary to hold user inputs for each category
     user_inputs = {}
@@ -63,9 +57,9 @@ def dotmlpf_page():
             try:
                 # Build a system prompt including TRADOC references
                 base_system_prompt = (
-                    "You are an experienced military capability analyst specializing in DOTMLPF assessments, "
+                    "You are an experienced military capability analyst specializing in DOTMLPF-P assessments, "
                     "with a focus on evaluating Doctrine, Organization, Training, Materiel, Leadership, Personnel, "
-                    "and Facilities. Your objective is to assess organizational capabilities and gaps based on "
+                    "Facilities, and Policy. Your objective is to assess organizational capabilities and gaps based on "
                     "the TRADOC Capability Development Document (CDD) guidelines.\n\n"
                     "Your responses should be grounded in TRADOC principles, including:\n"
                     "• Capability gaps as defined in the Capability Development Document (CDD)\n"
@@ -79,10 +73,11 @@ def dotmlpf_page():
 
                 # If "Our Own" is selected, incorporate additional instructions
                 if force_type == "Our Own":
-                    # Append extra guidance for "Our Own" scenario, focusing on capability dev + modernization
+                    # Append extra guidance for 'Our Own' scenario, focusing on capability dev + modernization
                     base_system_prompt += (
-                        " provide enhanced recommendations focused on capability development, force modernization, "
-                        "and future operational requirements using TRADOC capability trade and resourcing strategies.\n"
+                        "\n\nSince you are assessing 'Our Own' forces, please provide enhanced recommendations "
+                        "focused on capability development, force modernization, and future operational requirements "
+                        "using TRADOC capability trade and resourcing strategies.\n"
                     )
 
                 system_msg = {
@@ -119,52 +114,52 @@ def dotmlpf_page():
             st.markdown("---")
 
     # Button to generate a consolidated summary from all categories
-    if st.button("Generate Consolidated DOTMLPF Summary"):
+    if st.button("Generate Consolidated DOTMLPF-P Summary"):
         try:
             summary_prompt = (
-                "Based on the following DOTMLPF analysis, provide a concise summary with key insights "
+                "Based on the following DOTMLPF-P analysis, provide a concise summary with key insights "
                 "and TRADOC-aligned recommendations:\n"
             )
             for cat in dotmlpf_categories:
                 analysis = user_inputs.get(cat, "")
                 summary_prompt += f"\n{cat}: {analysis}\n"
 
-            # Add nuance for "Our Own" with extra references to policy/capability dev
+            # If "Our Own" is selected, add nuance to the instructions
             if force_type == "Our Own":
                 summary_prompt += (
-                    "\nNote: Ensure that recommendations address 'Policy' as an additional factor. "
-                    "Focus on capability development, force modernization, and future operational requirements "
-                    "following TRADOC capability trade and resourcing strategies.\n"
+                    "\nNote: Since you are assessing our own forces, focus on capability development, "
+                    "force modernization, and future operational requirements under TRADOC capability trade "
+                    "and resourcing strategies.\n"
                 )
 
             system_msg = {
                 "role": "system",
                 "content": (
                     f"You are an expert military strategist focused on {goal_input}. "
-                    "Summarize the following DOTMLPF analysis in alignment with TRADOC guidelines "
+                    "Summarize the following DOTMLPF-P analysis in alignment with TRADOC guidelines "
                     "and JCIDS capability development metrics."
                 )
             }
             user_msg = {"role": "user", "content": summary_prompt}
             summary_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-            st.subheader("Consolidated DOTMLPF Summary")
+            st.subheader("Consolidated DOTMLPF-P Summary")
             st.write(summary_response)
         except Exception as e:
             st.error(f"Error generating summary: {e}")
 
     # Option to export the analysis as JSON
-    if st.button("Export DOTMLPF Analysis as JSON"):
+    if st.button("Export DOTMLPF-P Analysis as JSON"):
         analysis_data = {
             "force_type": force_type,
             "goal": goal_input,
             "organization": organization_input,
-            "DOTMLPF": {cat: user_inputs.get(cat, "") for cat in dotmlpf_categories}
+            "DOTMLPF-P": {cat: user_inputs.get(cat, "") for cat in dotmlpf_categories}
         }
         json_data = json.dumps(analysis_data, indent=2)
         st.download_button(
             label="Download JSON",
             data=json_data,
-            file_name="DOTMLPF_Analysis.json",
+            file_name="DOTMLPF-P_Analysis.json",
             mime="application/json"
         )
 
