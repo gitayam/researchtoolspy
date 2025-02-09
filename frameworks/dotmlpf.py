@@ -76,9 +76,9 @@ def dotmlpf_page():
         # AI suggestion button for the category
         if st.button(f"AI: Suggest {cat} Analysis", key=f"ai_{cat}"):
             try:
-                # System prompt referencing TRADOC definitions and methods
+                # Base prompt referencing TRADOC, JCIDS, and CBA for all force types
                 base_system_prompt = (
-                    f"You are an experienced military capability analyst specializing in DOTMLPF-P assessments. "
+                    "You are an experienced military capability analyst specializing in DOTMLPF-P assessments. "
                     f"Your role is to evaluate the following force type: {force_type}.\n\n"
                     "In accordance with the TRADOC Capability Development Document (CDD) guidelines, you will:\n"
                     "• Identify capability gaps using Capability-Based Assessment (CBA) methodology.\n"
@@ -87,21 +87,25 @@ def dotmlpf_page():
                     "• Address Doctrine, Organization, Training, Materiel, Leadership, Personnel, Facilities, and Policy.\n\n"
                     "Produce three specific, measurable, and actionable questions focused on identifying gaps, risks, "
                     "and modernization opportunities for the selected category. Questions should align with TRADOC "
-                    "evaluation criteria and, where relevant, tie back to any operational gap provided.\n"
+                    "evaluation criteria and—where applicable—JCIDS capability development.\n"
                 )
 
-                # If "Our Own" is selected, incorporate any operational gap or additional instructions
+                # Add specialized guidance when force_type == "Our Own"
                 if force_type == "Our Own":
+                    # Incorporate references to resourcing strategies, acquisition pathways, etc.
                     base_system_prompt += (
-                        "\nSince you are assessing 'Our Own' forces, please also consider:\n"
-                        "• The operational gap preventing mission requirements from being met.\n"
-                        "• Enhanced recommendations focusing on capability development, force modernization, "
-                        "and future operational requirements under TRADOC capability trade and resourcing strategies.\n"
+                        "\nSince this analysis focuses on 'Our Own' forces, ensure all recommendations align with:\n"
+                        "1. JCIDS Capability Development Process: consider whether new acquisition programs or modifications to existing systems are needed.\n"
+                        "2. Capability Tradeoff Analysis: explore DOTMLPF-P alternatives to mitigate the gap.\n"
+                        "3. Resourcing Strategies: evaluate funding or acquisition pathways (e.g., APFIT, Rapid Prototyping) to accelerate closing the gap.\n"
+                        "4. Doctrine and Policy Alignment: assess whether TRADOC directives, Army Regulations, or relevant AWFCs/POM cycles should be updated.\n\n"
+                        "For the following category, generate recommendations that align with capability modernization, force structure adaptation, and resource allocation. "
+                        "If an operational gap is provided, connect these recommendations to that gap.\n"
                     )
 
                 system_msg = {"role": "system", "content": base_system_prompt}
 
-                # Build user message
+                # Build user message based on the force type
                 if force_type == "Our Own":
                     user_msg_content = (
                         f"Force Type: {force_type}\n"
@@ -111,8 +115,10 @@ def dotmlpf_page():
                         f"Category: {cat}\n"
                         f"Current Input Provided: {user_text}\n\n"
                         "Please generate three TRADOC-aligned, specific, measurable, and actionable questions "
-                        "to evaluate the organization's capabilities in this DOTMLPF-P category, "
-                        "focusing on any identified gaps and modernization opportunities."
+                        "to evaluate this DOTMLPF-P category in relation to the operational gap. "
+                        "In your questions or prompts, incorporate JCIDS, capability tradeoff analyses, "
+                        "and potential resourcing strategies (e.g., APFIT, POM cycles, or rapid prototyping). "
+                        "Highlight modernization opportunities and how policy/doctrine might need to evolve."
                     )
                 else:
                     user_msg_content = (
@@ -122,12 +128,13 @@ def dotmlpf_page():
                         f"Category: {cat}\n"
                         f"Current Input Provided: {user_text}\n\n"
                         "Please generate three TRADOC-aligned, specific, measurable, and actionable questions "
-                        "to evaluate the organization's capabilities in this DOTMLPF-P category, "
-                        "focusing on any identified gaps and modernization opportunities."
+                        "to evaluate this DOTMLPF-P category. Address potential capability gaps, risks, "
+                        "and modernization opportunities consistent with TRADOC and JCIDS guidelines."
                     )
 
                 user_msg = {"role": "user", "content": user_msg_content}
 
+                # Call AI
                 ai_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                 st.text_area(
                     f"AI Suggested {cat} Analysis:",
@@ -143,11 +150,11 @@ def dotmlpf_page():
     # Button to generate a consolidated summary from all categories
     if st.button("Generate Consolidated DOTMLPF-P Summary"):
         try:
-            # Build a partial prompt with user-provided category inputs
             summary_prompt = (
-                "Based on the following DOTMLPF-P analysis and any operational gap provided, "
-                "offer a concise summary with key insights and TRADOC-aligned recommendations:\n"
+                "Based on the following DOTMLPF-P analysis, provide a concise summary with "
+                "key insights and TRADOC-aligned recommendations:\n"
             )
+
             for cat in dotmlpf_categories:
                 analysis = user_inputs.get(cat, "")
                 summary_prompt += f"\n{cat}: {analysis}\n"
@@ -155,16 +162,21 @@ def dotmlpf_page():
             # Additional instructions if force type is "Our Own"
             if force_type == "Our Own":
                 summary_prompt += (
-                    "\nSince these are 'Our Own' forces, ensure recommendations address the identified operational gap, "
-                    "highlight development and modernization strategies, and align with TRADOC doctrine and resourcing strategies.\n"
+                    "\nSince these are 'Our Own' forces, focus on:\n"
+                    "• JCIDS capability development (e.g., new acquisition vs. modification)\n"
+                    "• Capability tradeoff analysis across DOTMLPF-P\n"
+                    "• Relevant resourcing strategies (APFIT, Rapid Prototyping, POM cycles)\n"
+                    "• Potential doctrine/policy updates (Army Regulations, TRADOC directives, AWFC tie-ins)\n"
+                    "Connect each recommendation to the identified operational gap and highlight modernization or resource allocation paths.\n"
                 )
 
             system_msg = {
                 "role": "system",
                 "content": (
-                    f"You are an expert military strategist focused on {goal_input}. "
-                    "Summarize the DOTMLPF-P analysis below in alignment with TRADOC guidelines, "
-                    "JCIDS capability metrics, and—if relevant—the operational gap."
+                    f"You are an expert military strategist focused on {goal_input}. Summarize the DOTMLPF-P "
+                    "analysis below in alignment with TRADOC guidelines, JCIDS capability metrics, and any "
+                    "operational gap (if provided). Where relevant, incorporate references to acquisition pathways, "
+                    "capability tradeoff analyses, and policy/doctrine alignment."
                 )
             }
 
