@@ -120,10 +120,12 @@ def dotmlpf_page():
                     "• Reference Key Performance Parameters (KPPs) and Key System Attributes (KSAs) for performance tracking.\n"
                     "• Consider System of Systems (SoS) dependencies and operational risks.\n"
                     "• Address Doctrine, Organization, Training, Materiel, Leadership, Personnel, Facilities, and Policy.\n\n"
-                    "For the following category, produce three specific, measurable, and actionable questions or prompts focused on:\n"
+                    "For the following category, produce three specific, measurable, and actionable questions/prompts focused on:\n"
                     "1) Identifying the existing capabilities.\n"
                     "2) Determining gaps or deficiencies within those capabilities.\n"
                     "3) Noting how these align with TRADOC and—where applicable—JCIDS criteria.\n"
+                    "Please provide your response STRICTLY in JSON format as follows:\n"
+                    "{\"questions\": [\"Question 1\", \"Question 2\", \"Question 3\"]}\n"
                 )
 
                 # Add specialized guidance when force_type == "Our Own"
@@ -131,8 +133,7 @@ def dotmlpf_page():
                     base_system_prompt += (
                         "\nSince this analysis focuses on 'Our Own' forces, also ensure:\n"
                         "• Any operational gap provided is examined in terms of existing capabilities.\n"
-                        "• The user understands what is currently in place (e.g., doctrine, units, training) "
-                        "and what is missing or incomplete.\n"
+                        "• The user understands what is currently in place (e.g., doctrine, units, training) and what is missing or incomplete.\n"
                         "• Consider potential resource pathways or policy changes if shortfalls are identified.\n"
                     )
 
@@ -148,11 +149,9 @@ def dotmlpf_page():
                         f"Operational Gap: {operational_gap_input}\n"
                         f"Category: {cat}\n"
                         f"Current Input Provided: {user_text}\n\n"
-                        "Please generate three specific, measurable, and actionable questions/prompts that:\n"
-                        "• Describe the existing capabilities for this category.\n"
-                        "• Identify any missing or insufficient elements.\n"
-                        "• Link these observations to TRADOC guidelines and CBA methodology.\n"
-                        "• (If the operational gap is relevant) Highlight how the gap underscores or amplifies these shortfalls."
+                        "Please generate three specific, measurable, and actionable questions/prompts as described above.\n"
+                        "Remember to output your response in the following JSON format exactly:\n"
+                        "{\"questions\": [\"Question 1\", \"Question 2\", \"Question 3\"]}"
                     )
                 else:
                     user_msg_content = (
@@ -162,29 +161,32 @@ def dotmlpf_page():
                         f"Organization: {organization_input}\n"
                         f"Category: {cat}\n"
                         f"Current Input Provided: {user_text}\n\n"
-                        "Please generate three specific, measurable, and actionable questions/prompts that:\n"
-                        "• Describe the existing capabilities for this category.\n"
-                        "• Identify any missing or insufficient elements.\n"
-                        "• Link these observations to TRADOC guidelines and CBA methodology.\n"
+                        "Please generate three specific, measurable, and actionable questions/prompts as described above.\n"
+                        "Remember to output your response in the following JSON format exactly:\n"
+                        "{\"questions\": [\"Question 1\", \"Question 2\", \"Question 3\"]}"
                     )
 
                 user_msg = {"role": "user", "content": user_msg_content}
                 ai_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
 
-                # Attempt basic parsing of the three recommended questions:
-                # We'll look for lines beginning with a number/parenthesis or bullet,
-                # but as a fallback, if the AI responds in a different format, we capture the entire response as lines.
-                lines = ai_response.strip().split('\n')
-                question_list = []
-
-                # A quick attempt to match lines like "1) ", "2) ", or bullet lines:
-                for line in lines:
-                    line_stripped = line.strip()
-                    if re.match(r'^(\d[\.\)]|•|-)\s', line_stripped) or re.match(r'^\d\)', line_stripped):
-                        question_list.append(line_stripped)
-                # If we got fewer than 3 separate lines, fallback to just the entire response as a single item.
-                if len(question_list) < 3:
-                    question_list = [ai_response]
+                # Try to parse the AI response as JSON.
+                try:
+                    data = json.loads(ai_response)
+                    question_list = data.get("questions", [])
+                    # Ensure we have three questions; if not, fallback.
+                    if not isinstance(question_list, list) or len(question_list) < 3:
+                        raise ValueError("JSON did not contain at least three questions.")
+                except Exception as json_err:
+                    # Fallback to regex extraction if JSON parsing fails.
+                    lines = ai_response.strip().split('\n')
+                    question_list = []
+                    for line in lines:
+                        line_stripped = line.strip()
+                        if re.match(r'^(\d[\.\)]|•|-)\s', line_stripped) or re.match(r'^\d\)', line_stripped):
+                            question_list.append(line_stripped)
+                    # If we got fewer than 3 ideas, fallback to the entire response.
+                    if len(question_list) < 3:
+                        question_list = [ai_response]
 
                 # Store parsed questions in session state
                 st.session_state[f'analysis_questions_{cat}'] = question_list
@@ -199,7 +201,7 @@ def dotmlpf_page():
             st.markdown("**AI-Suggested Questions/Prompts:**")
             for idx, question in enumerate(st.session_state[f'analysis_questions_{cat}']):
                 st.write(f"**Q{idx+1}:** {question}")
-                # Create an answer key
+                # Create an answer key for each question
                 answer_key = f"analysis_answer_{cat}_{idx}"
                 if answer_key not in st.session_state:
                     st.session_state[answer_key] = ""
@@ -220,7 +222,6 @@ def dotmlpf_page():
             for cat in dotmlpf_categories:
                 analysis = user_inputs.get(cat, "")
                 # Combine analysis text with any answers to AI-provided questions
-                # The user may or may not have answered them:
                 answers_for_cat = ""
                 if st.session_state.get(f'analysis_questions_{cat}', []):
                     for idx, question in enumerate(st.session_state[f'analysis_questions_{cat}']):
@@ -228,10 +229,8 @@ def dotmlpf_page():
                         if user_answer.strip():
                             answers_for_cat += f"\nQ: {question}\nA: {user_answer}\n"
 
-                # Add both freeform user input and Q&A to the prompt
                 summary_prompt += f"\n{cat}:\n{analysis}\n{answers_for_cat}"
 
-            # Additional instructions if force_type == "Our Own"
             if force_type == "Our Own":
                 summary_prompt += (
                     "\nSince these are 'Our Own' forces, ensure the summary highlights:\n"
@@ -263,7 +262,6 @@ def dotmlpf_page():
             user_msg = {"role": "user", "content": user_msg_content}
             summary_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
 
-            # Store the summary in session state
             st.session_state["dotmlpf_summary"] = summary_response
 
             st.subheader("Consolidated DOTMLPF-P Summary")
@@ -272,7 +270,6 @@ def dotmlpf_page():
         except Exception as e:
             st.error(f"Error generating summary: {e}")
 
-    # Button to generate TRADOC alignment details for all force types
     st.markdown("---")
     st.subheader("TRADOC Alignment")
     st.write("Click below to generate TRADOC alignment considerations—covering JCIDS, KPPs/KSAs, and resourcing strategies.")
@@ -302,7 +299,6 @@ def dotmlpf_page():
         except Exception as e:
             st.error(f"Error generating TRADoc alignment: {e}")
 
-    # Command Endorsement Strategy - only if "Our Own"
     st.markdown("---")
     if force_type == "Our Own":
         st.subheader("Command Endorsement Strategy")
@@ -340,10 +336,8 @@ def dotmlpf_page():
             except Exception as e:
                 st.error(f"Error generating command endorsement strategy: {e}")
 
-    # Option to export the analysis as JSON (with custom filename)
     st.markdown("---")
     if st.button("Export DOTMLPF-P Analysis as JSON"):
-        # Build a dictionary of Q&A for each category
         cat_qa_data = {}
         for cat in dotmlpf_categories:
             cat_qa_data[cat] = {
