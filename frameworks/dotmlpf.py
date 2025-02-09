@@ -26,7 +26,7 @@ def dotmlpf_page():
     You can use this framework to analyze friendly forces, adversary forces, or our own.
     """)
 
-    # New input field for Organization
+    # Input field for Organization
     organization_input = st.text_input("Enter Organization Details:", max_chars=240)
 
     # Choose the force type to analyze
@@ -35,7 +35,7 @@ def dotmlpf_page():
     # Prompt the user for their analysis goal
     goal_input = st.text_input("Enter Goal of the Analysis:", max_chars=240)
 
-    # Provide guiding questions to help clarify the problem statement
+    # Provide guiding questions for problem definition
     st.markdown("**Guiding Questions for Defining Your Problem Statement**")
     st.write("""
     1. What is the primary objective or end state you want to achieve through this analysis?
@@ -44,6 +44,16 @@ def dotmlpf_page():
     4. What constraints, timelines, or resources (e.g., budget, manpower) shape your current challenges?
     5. Are there any known threats, gaps, or shortfalls that precipitated this analysis?
     """)
+
+    # If "Our Own" is selected, request a focused operational gap
+    if force_type == "Our Own":
+        operational_gap_input = st.text_area(
+            "Describe the operational gap or capability shortfall preventing your mission requirement from being met:",
+            max_chars=500
+        )
+    else:
+        # For Friendly or Adversary, we don't prompt for an operational gap
+        operational_gap_input = ""
 
     st.markdown("---")
 
@@ -67,7 +77,7 @@ def dotmlpf_page():
         # AI suggestion button for the category
         if st.button(f"AI: Suggest {cat} Analysis", key=f"ai_{cat}"):
             try:
-                # Build a system prompt including TRADOC references
+                # Base system prompt with TRADOC references
                 base_system_prompt = (
                     "You are an experienced military capability analyst specializing in DOTMLPF-P assessments, "
                     "with a focus on evaluating Doctrine, Organization, Training, Materiel, Leadership, Personnel, "
@@ -83,9 +93,8 @@ def dotmlpf_page():
                     "and provide structured, actionable recommendations for capability enhancement."
                 )
 
-                # If "Our Own" is selected, incorporate additional instructions
+                # Additional instructions if force type is "Our Own"
                 if force_type == "Our Own":
-                    # Append extra guidance for 'Our Own' scenario, focusing on capability dev + modernization
                     base_system_prompt += (
                         "\n\nSince you are assessing 'Our Own' forces, please provide enhanced recommendations "
                         "focused on capability development, force modernization, and future operational requirements "
@@ -97,10 +106,22 @@ def dotmlpf_page():
                     "content": base_system_prompt
                 }
 
-                # Build user message
-                user_msg = {
-                    "role": "user",
-                    "content": (
+                # If "Our Own" selected, incorporate the operational gap into the user message
+                if force_type == "Our Own":
+                    user_msg_content = (
+                        f"Force Type: {force_type}\n"
+                        f"Goal: {goal_input}\n"
+                        f"Organization: {organization_input}\n"
+                        f"Operational Gap: {operational_gap_input}\n"
+                        f"Category: {cat}\n"
+                        f"Current Input Provided: {user_text}\n\n"
+                        "In the context of the above operational gap, generate 3 specific, measurable, and actionable questions guided by TRADOC "
+                        "to further evaluate this aspect of the organization's capabilities. "
+                        "Identify potential gaps and risks, and align the questions "
+                        "with JCIDS, capability development documents, and TRADOC evaluation criteria."
+                    )
+                else:
+                    user_msg_content = (
                         f"Force Type: {force_type}\n"
                         f"Goal: {goal_input}\n"
                         f"Organization: {organization_input}\n"
@@ -111,13 +132,17 @@ def dotmlpf_page():
                         "Identify potential gaps and risks, and align the questions "
                         "with JCIDS, capability development documents, and TRADOC evaluation criteria."
                     )
+
+                user_msg = {
+                    "role": "user",
+                    "content": user_msg_content
                 }
 
                 ai_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                 st.text_area(
                     f"AI Suggested {cat} Analysis:",
                     value=ai_response,
-                    height=100,
+                    height=120,
                     key=f"ai_resp_{cat}"
                 )
             except Exception as e:
@@ -128,20 +153,24 @@ def dotmlpf_page():
     # Button to generate a consolidated summary from all categories
     if st.button("Generate Consolidated DOTMLPF-P Summary"):
         try:
+            # Build a partial prompt with user-provided category inputs
             summary_prompt = (
-                "Based on the following DOTMLPF-P analysis, provide a concise summary with key insights "
-                "and TRADOC-aligned recommendations:\n"
+                "Based on the following DOTMLPF-P analysis, provide a concise summary with "
+                "key insights and TRADOC-aligned recommendations:\n"
             )
             for cat in dotmlpf_categories:
                 analysis = user_inputs.get(cat, "")
                 summary_prompt += f"\n{cat}: {analysis}\n"
 
-            # If "Our Own" is selected, add nuance to the instructions
+            # Additional instructions if force type is "Our Own"
             if force_type == "Our Own":
                 summary_prompt += (
                     "\nNote: Since you are assessing our own forces, focus on capability development, "
                     "force modernization, and future operational requirements under TRADOC capability trade "
                     "and resourcing strategies.\n"
+                )
+                summary_prompt += (
+                    "\nMake sure to link each recommendation to how it addresses the identified operational gap.\n"
                 )
 
             system_msg = {
@@ -152,7 +181,21 @@ def dotmlpf_page():
                     "and JCIDS capability development metrics."
                 )
             }
-            user_msg = {"role": "user", "content": summary_prompt}
+
+            # If "Our Own", include the operational gap in the user prompt
+            if force_type == "Our Own":
+                user_msg_content = (
+                    f"Operational Gap: {operational_gap_input}\n\n"
+                    f"{summary_prompt}"
+                )
+            else:
+                user_msg_content = summary_prompt
+
+            user_msg = {
+                "role": "user",
+                "content": user_msg_content
+            }
+
             summary_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
             st.subheader("Consolidated DOTMLPF-P Summary")
             st.write(summary_response)
@@ -161,10 +204,12 @@ def dotmlpf_page():
 
     # Option to export the analysis as JSON
     if st.button("Export DOTMLPF-P Analysis as JSON"):
+        # If "Our Own", capture operational_gap_input; otherwise, it's blank
         analysis_data = {
             "force_type": force_type,
             "goal": goal_input,
             "organization": organization_input,
+            "operational_gap": operational_gap_input if force_type == "Our Own" else "",
             "DOTMLPF-P": {cat: user_inputs.get(cat, "") for cat in dotmlpf_categories}
         }
         json_data = json.dumps(analysis_data, indent=2)
