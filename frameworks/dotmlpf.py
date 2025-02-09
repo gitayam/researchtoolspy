@@ -6,6 +6,7 @@ import streamlit as st
 from utilities.gpt import chat_gpt
 from dotenv import load_dotenv
 import json
+import re
 
 load_dotenv()
 
@@ -93,10 +94,20 @@ def dotmlpf_page():
     # Loop through each category: display text area & AI suggestion button
     for cat in dotmlpf_categories:
         st.subheader(cat)
+
+        # If we haven't yet stored user analysis for this category, initialize it
+        if cat not in st.session_state:
+            st.session_state[cat] = ""
+
         user_text = st.text_area(f"Enter your analysis/observations for {cat}:", key=cat)
         user_inputs[cat] = user_text
 
-        if st.button(f"AI: Suggest {cat} Analysis", key=f"ai_{cat}"):
+        # If we haven't stored any questions for this category, initialize an empty list
+        if f'analysis_questions_{cat}' not in st.session_state:
+            st.session_state[f'analysis_questions_{cat}'] = []
+
+        # AI suggestion button
+        if st.button(f"AI: Suggest {cat} Questions", key=f"ai_{cat}"):
             try:
                 # Base prompt referencing TRADOC, JCIDS, and CBA for all force types
                 base_system_prompt = (
@@ -159,16 +170,44 @@ def dotmlpf_page():
 
                 user_msg = {"role": "user", "content": user_msg_content}
                 ai_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-                st.text_area(
-                    f"AI Suggested {cat} Analysis:",
-                    value=ai_response,
-                    height=120,
-                    key=f"ai_resp_{cat}"
-                )
+
+                # Attempt basic parsing of the three recommended questions:
+                # We'll look for lines beginning with a number/parenthesis or bullet,
+                # but as a fallback, if the AI responds in a different format, we capture the entire response as lines.
+                lines = ai_response.strip().split('\n')
+                question_list = []
+
+                # A quick attempt to match lines like "1) ", "2) ", or bullet lines:
+                for line in lines:
+                    line_stripped = line.strip()
+                    if re.match(r'^(\d[\.\)]|•|-)\s', line_stripped) or re.match(r'^\d\)', line_stripped):
+                        question_list.append(line_stripped)
+                # If we got fewer than 3 separate lines, fallback to just the entire response as a single item.
+                if len(question_list) < 3:
+                    question_list = [ai_response]
+
+                # Store parsed questions in session state
+                st.session_state[f'analysis_questions_{cat}'] = question_list
+
             except Exception as e:
                 st.error(f"Error generating AI suggestion for {cat}: {e}")
 
             st.markdown("---")
+
+        # Display previously generated questions (if any) and corresponding user answer fields
+        if st.session_state[f'analysis_questions_{cat}']:
+            st.markdown("**AI-Suggested Questions/Prompts:**")
+            for idx, question in enumerate(st.session_state[f'analysis_questions_{cat}']):
+                st.write(f"**Q{idx+1}:** {question}")
+                # Create an answer key
+                answer_key = f"analysis_answer_{cat}_{idx}"
+                if answer_key not in st.session_state:
+                    st.session_state[answer_key] = ""
+                st.session_state[answer_key] = st.text_area(
+                    f"Your answer to Q{idx+1} (optional):",
+                    st.session_state[answer_key],
+                    key=f"{cat}_q{idx}_input"
+                )
 
     # Button to generate a consolidated summary from all categories
     if st.button("Generate Consolidated DOTMLPF-P Summary"):
@@ -180,7 +219,17 @@ def dotmlpf_page():
 
             for cat in dotmlpf_categories:
                 analysis = user_inputs.get(cat, "")
-                summary_prompt += f"\n{cat}:\n{analysis}\n"
+                # Combine analysis text with any answers to AI-provided questions
+                # The user may or may not have answered them:
+                answers_for_cat = ""
+                if st.session_state.get(f'analysis_questions_{cat}', []):
+                    for idx, question in enumerate(st.session_state[f'analysis_questions_{cat}']):
+                        user_answer = st.session_state.get(f'analysis_answer_{cat}_{idx}', "")
+                        if user_answer.strip():
+                            answers_for_cat += f"\nQ: {question}\nA: {user_answer}\n"
+
+                # Add both freeform user input and Q&A to the prompt
+                summary_prompt += f"\n{cat}:\n{analysis}\n{answers_for_cat}"
 
             # Additional instructions if force_type == "Our Own"
             if force_type == "Our Own":
@@ -251,7 +300,7 @@ def dotmlpf_page():
             st.write(alignment_response)
 
         except Exception as e:
-            st.error(f"Error generating TRADOC alignment: {e}")
+            st.error(f"Error generating TRADoc alignment: {e}")
 
     # Command Endorsement Strategy - only if "Our Own"
     st.markdown("---")
@@ -294,13 +343,28 @@ def dotmlpf_page():
     # Option to export the analysis as JSON (with custom filename)
     st.markdown("---")
     if st.button("Export DOTMLPF-P Analysis as JSON"):
+        # Build a dictionary of Q&A for each category
+        cat_qa_data = {}
+        for cat in dotmlpf_categories:
+            cat_qa_data[cat] = {
+                "analysis_observations": user_inputs.get(cat, ""),
+                "questions_answers": []
+            }
+            q_list = st.session_state.get(f'analysis_questions_{cat}', [])
+            for idx, question in enumerate(q_list):
+                user_answer = st.session_state.get(f'analysis_answer_{cat}_{idx}', "")
+                cat_qa_data[cat]["questions_answers"].append({
+                    "question": question,
+                    "answer": user_answer
+                })
+
         analysis_data = {
             "force_type": force_type,
             "force_goal": force_goal_input,
             "goal_of_analysis": goal_input,
             "organization": organization_input,
             "operational_gap": operational_gap_input if force_type == "Our Own" else "",
-            "DOTMLPF-P": {cat: user_inputs.get(cat, "") for cat in dotmlpf_categories},
+            "DOTMLPF-P": cat_qa_data,
             "TRADOC_Alignment": st.session_state["tradoc_alignment"],
             "Command_Endorsement": st.session_state["command_endorsement"] if force_type == "Our Own" else ""
         }
