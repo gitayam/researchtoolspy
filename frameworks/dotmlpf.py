@@ -10,6 +10,14 @@ import json
 load_dotenv()
 
 def dotmlpf_page():
+    # Initialize session storage for AI responses to ensure they persist.
+    if "dotmlpf_summary" not in st.session_state:
+        st.session_state["dotmlpf_summary"] = ""
+    if "tradoc_alignment" not in st.session_state:
+        st.session_state["tradoc_alignment"] = ""
+    if "command_endorsement" not in st.session_state:
+        st.session_state["command_endorsement"] = ""
+
     st.title("DOTMLPF-P Analysis Framework")
     st.write("""
     The DOTMLPF-P Analysis Framework helps you assess organization capabilities across several key areas:
@@ -191,6 +199,10 @@ def dotmlpf_page():
             user_msg = {"role": "user", "content": user_msg_content}
 
             summary_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
+
+            # Store the summary in session state
+            st.session_state["dotmlpf_summary"] = summary_response
+
             st.subheader("Consolidated DOTMLPF-P Summary")
             st.write(summary_response)
 
@@ -224,10 +236,41 @@ def dotmlpf_page():
                     model="gpt-4o-mini"
                 )
 
+                st.session_state["command_endorsement"] = command_response
                 st.write(command_response)
 
         except Exception as e:
             st.error(f"Error generating summary or endorsement strategy: {e}")
+
+    # Button to generate TRADOC alignment details for all force types
+    st.markdown("---")
+    st.subheader("TRADOC Alignment")
+    st.write("Click below to generate TRADOC alignment considerations—covering JCIDS, KPPs/KSAs, and resourcing strategies.")
+    if st.button("Generate TRADOC Alignment"):
+        try:
+            # Build a prompt referencing the existing summary (if any)
+            alignment_prompt = (
+                "You are an expert in TRADOC capability development and Joint Capabilities Integration Development System (JCIDS). "
+                "Given the following DOTMLPF-P Summary:\n\n"
+                f"{st.session_state['dotmlpf_summary']}\n\n"
+                "Identify specific ways to align recommendations with:\n"
+                "- JCIDS requirements or acquisition milestones\n"
+                "- Key Performance Parameters (KPPs) and Key System Attributes (KSAs)\n"
+                "- Resourcing options (POM, APFIT, Rapid Prototyping)\n\n"
+                "Structure the output as bullet points or short paragraphs so it can be easily referenced by senior leaders."
+            )
+
+            alignment_msg = {
+                "role": "system",
+                "content": alignment_prompt
+            }
+            alignment_response = chat_gpt([alignment_msg], model="gpt-4o-mini")
+            st.session_state["tradoc_alignment"] = alignment_response
+
+            st.write(alignment_response)
+
+        except Exception as e:
+            st.error(f"Error generating TRADOC alignment: {e}")
 
     # Option to export the analysis as JSON
     if st.button("Export DOTMLPF-P Analysis as JSON"):
@@ -237,7 +280,9 @@ def dotmlpf_page():
             "goal": goal_input,
             "organization": organization_input,
             "operational_gap": operational_gap_input if force_type == "Our Own" else "",
-            "DOTMLPF-P": {cat: user_inputs.get(cat, "") for cat in dotmlpf_categories}
+            "DOTMLPF-P": {cat: user_inputs.get(cat, "") for cat in dotmlpf_categories},
+            "TRADOC_Alignment": st.session_state["tradoc_alignment"],
+            "Command_Endorsement": st.session_state["command_endorsement"] if force_type == "Our Own" else "",
         }
         json_data = json.dumps(analysis_data, indent=2)
         st.download_button(
