@@ -34,6 +34,10 @@ def dotmlpf_page():
     You can use this framework to analyze friendly forces, adversary forces, or our own.
     """)
 
+    # Toggle for including Joint Integration category
+    st.write("Optional: Include Joint Integration analysis to assess interoperability with partner forces.")
+    include_joint_integration = st.checkbox("Include Joint Integration category")
+
     # Input field for Organization
     organization_input = st.text_input("Enter Organization Details:", max_chars=240)
 
@@ -53,10 +57,11 @@ def dotmlpf_page():
     5. Are there any known threats, gaps, or shortfalls that precipitated this analysis?
     """)
 
-    # If "Our Own" is selected, request a focused operational gap
+    # If "Our Own" is selected, request a focused operational gap (up to 1000 chars)
     if force_type == "Our Own":
         operational_gap_input = st.text_area(
-            "Describe the operational gap or capability shortfall preventing your mission requirement from being met:"
+            "Describe the operational gap or capability shortfall preventing your mission requirement from being met:",
+            max_chars=1000
         )
     else:
         # For Friendly or Adversary, we don't prompt for an operational gap
@@ -70,6 +75,10 @@ def dotmlpf_page():
         "Materiel", "Leadership", "Personnel",
         "Facilities", "Policy"
     ]
+
+    # If user opts in, add Joint Integration category
+    if include_joint_integration:
+        dotmlpf_categories.append("Joint Integration")
 
     # Dictionary to hold user inputs for each category
     user_inputs = {}
@@ -107,8 +116,8 @@ def dotmlpf_page():
                         "2. Capability Tradeoff Analysis: explore DOTMLPF-P alternatives to mitigate the gap.\n"
                         "3. Resourcing Strategies: evaluate funding or acquisition pathways (e.g., APFIT, Rapid Prototyping) to accelerate closing the gap.\n"
                         "4. Doctrine and Policy Alignment: assess whether TRADOC directives, Army Regulations, or relevant AWFCs/POM cycles should be updated.\n\n"
-                        "For the following category, generate recommendations that align with capability modernization, force structure adaptation, and resource allocation. "
-                        "If an operational gap is provided, connect these recommendations to that gap.\n"
+                        "If an operational gap is provided, connect these recommendations to that gap. "
+                        "Focus on how these recommendations drive capability modernization, force structure adaptation, and resource allocation.\n"
                     )
 
                 system_msg = {"role": "system", "content": base_system_prompt}
@@ -285,10 +294,14 @@ def dotmlpf_page():
             "Command_Endorsement": st.session_state["command_endorsement"] if force_type == "Our Own" else "",
         }
         json_data = json.dumps(analysis_data, indent=2)
+
+        # Generate a JSON filename that includes the selected force type
+        file_name = f"DOTMLPF-P_Analysis_{force_type}.json"
+
         st.download_button(
             label="Download JSON",
             data=json_data,
-            file_name="DOTMLPF-P_Analysis.json",
+            file_name=file_name,
             mime="application/json"
         )
 
