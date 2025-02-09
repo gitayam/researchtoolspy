@@ -18,6 +18,8 @@ def dotmlpf_page():
         st.session_state["tradoc_alignment"] = ""
     if "command_endorsement" not in st.session_state:
         st.session_state["command_endorsement"] = ""
+    if "improved_problem_statement" not in st.session_state:
+        st.session_state["improved_problem_statement"] = ""
 
     st.title("DOTMLPF-P Analysis Framework")
     st.write("""
@@ -60,6 +62,25 @@ def dotmlpf_page():
     4. What constraints, timelines, or resources (e.g., budget, manpower) shape your current challenges?
     5. Are there any known threats, gaps, or shortfalls that precipitated this analysis?
     """)
+
+    # New section: Problem Statement Improvement
+    problem_statement = st.text_area("Enter your Problem Statement:", key="problem_statement", height=150)
+    if st.button("Improve Problem Statement with AI"):
+        if problem_statement.strip() == "":
+            st.error("Please enter a problem statement to improve.")
+        else:
+            prompt = (
+                "You are an expert in crafting clear and effective problem statements. Using best practices for problem statement writing, improve the following problem statement:\n\n"
+                f"Original Problem Statement: {problem_statement}\n\n"
+                "Ensure the improved problem statement is concise, focused, and actionable, clearly articulating the problem, its context, and desired outcomes. "
+                "Return only the improved problem statement."
+            )
+            improved_statement = chat_gpt([{"role": "system", "content": prompt}], model="gpt-4o-mini")
+            st.session_state["improved_problem_statement"] = improved_statement
+            st.success("Improved Problem Statement:")
+            st.write(improved_statement)
+
+    st.markdown("---")
 
     # If "Our Own" is selected, request up to 1000 chars about the operational gap or shortfall
     if force_type == "Our Own":
@@ -327,7 +348,7 @@ def dotmlpf_page():
             st.write(alignment_response)
 
         except Exception as e:
-            st.error(f"Error generating TRADoc alignment: {e}")
+            st.error(f"Error generating TRADOC alignment: {e}")
 
     st.markdown("---")
     if force_type == "Our Own":
