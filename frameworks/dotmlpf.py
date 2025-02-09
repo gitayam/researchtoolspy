@@ -34,11 +34,19 @@ def dotmlpf_page():
     goal_input = st.text_input("Enter Goal of the Analysis:", max_chars=240)
     st.markdown("---")
 
-    # Define the DOTMLPF categories
-    dotmlpf_categories = [
-        "Doctrine", "Organization", "Training",
-        "Materiel", "Leadership", "Personnel", "Facilities"
-    ]
+    # Incorporate extended DOTMLPF-P if "Our Own" is selected
+    if force_type == "Our Own":
+        dotmlpf_categories = [
+            "Doctrine", "Organization", "Training",
+            "Materiel", "Leadership", "Personnel",
+            "Facilities", "Policy"  # Added Policy for 'Our Own'
+        ]
+    else:
+        dotmlpf_categories = [
+            "Doctrine", "Organization", "Training",
+            "Materiel", "Leadership", "Personnel",
+            "Facilities"
+        ]
 
     # Dictionary to hold user inputs for each category
     user_inputs = {}
@@ -53,40 +61,90 @@ def dotmlpf_page():
         # AI suggestion button for the category
         if st.button(f"AI: Suggest {cat} Analysis", key=f"ai_{cat}"):
             try:
+                # Build a system prompt including TRADOC references
+                base_system_prompt = (
+                    "You are an experienced military capability analyst specializing in DOTMLPF assessments, "
+                    "with a focus on evaluating Doctrine, Organization, Training, Materiel, Leadership, Personnel, "
+                    "and Facilities. Your objective is to assess organizational capabilities and gaps based on "
+                    "the TRADOC Capability Development Document (CDD) guidelines.\n\n"
+                    "Your responses should be grounded in TRADOC principles, including:\n"
+                    "• Capability gaps as defined in the Capability Development Document (CDD)\n"
+                    "• Threat assessments following TRADOC threat validation procedures\n"
+                    "• Joint Capabilities Integration and Development System (JCIDS) guidelines\n"
+                    "• Key Performance Parameters (KPPs), Key System Attributes (KSAs), and Additional Performance Attributes (APAs)\n"
+                    "• System of Systems (SoS) and Family of Systems (FoS) considerations\n\n"
+                    "Your role is to identify deficiencies, gaps, and risks using TRADOC-defined evaluation criteria "
+                    "and provide structured, actionable recommendations for capability enhancement."
+                )
+
+                # If "Our Own" is selected, incorporate additional instructions
+                if force_type == "Our Own":
+                    # Append extra guidance for "Our Own" scenario, focusing on capability dev + modernization
+                    base_system_prompt += (
+                        "\n\nSince you are assessing 'Our Own' forces, please include 'Policy' considerations in DOTMLPF "
+                        "and provide enhanced recommendations focused on capability development, force modernization, "
+                        "and future operational requirements using TRADOC capability trade and resourcing strategies.\n"
+                    )
+
                 system_msg = {
                     "role": "system",
-                    "content": (
-                        f"You are an experienced intelligence analyst specializing in DOTMLPF assessments with a focus on the goal: '{goal_input}'. "
-                        "Your role is to generate practical, tangible, and measurable questions to guide the analysis for the specified category. "
-                        "Focus on providing actionable insights that are realistic and directly applicable to evaluating the organization's capabilities."
-                    )
+                    "content": base_system_prompt
                 }
+
+                # Build user message
                 user_msg = {
                     "role": "user",
                     "content": (
                         f"Force Type: {force_type}\n"
+                        f"Goal: {goal_input}\n"
+                        f"Organization: {organization_input}\n"
                         f"Category: {cat}\n"
                         f"Current Input Provided: {user_text}\n\n"
-                        "Based on this information, please generate 3 specific and actionable questions that an intelligence analyst could use to further evaluate this aspect of the organization's capabilities. "
-                        "Ensure that these questions are clear, measurable, and focused on realistic avenues for identifying both challenges and opportunities."
+                        "Generate 3 specific, measurable, and actionable questions guided by TRADOC "
+                        "to further evaluate this aspect of the organization's capabilities. "
+                        "Identify potential gaps and risks, and align the questions "
+                        "with JCIDS, capability development documents, and TRADOC evaluation criteria."
                     )
                 }
+
                 ai_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-                st.text_area(f"AI Suggested {cat} Analysis:", value=ai_response, height=100, key=f"ai_resp_{cat}")
+                st.text_area(
+                    f"AI Suggested {cat} Analysis:",
+                    value=ai_response,
+                    height=100,
+                    key=f"ai_resp_{cat}"
+                )
             except Exception as e:
                 st.error(f"Error generating AI suggestion for {cat}: {e}")
+
             st.markdown("---")
 
     # Button to generate a consolidated summary from all categories
     if st.button("Generate Consolidated DOTMLPF Summary"):
         try:
-            summary_prompt = f"Based on the following DOTMLPF analysis for {force_type} forces, provide a concise summary with key insights and recommendations:\n"
+            summary_prompt = (
+                "Based on the following DOTMLPF analysis, provide a concise summary with key insights "
+                "and TRADOC-aligned recommendations:\n"
+            )
             for cat in dotmlpf_categories:
                 analysis = user_inputs.get(cat, "")
                 summary_prompt += f"\n{cat}: {analysis}\n"
+
+            # Add nuance for "Our Own" with extra references to policy/capability dev
+            if force_type == "Our Own":
+                summary_prompt += (
+                    "\nNote: Ensure that recommendations address 'Policy' as an additional factor. "
+                    "Focus on capability development, force modernization, and future operational requirements "
+                    "following TRADOC capability trade and resourcing strategies.\n"
+                )
+
             system_msg = {
                 "role": "system",
-                "content": f"You are an expert military strategist focused on {goal_input}. Summarize the following DOTMLPF analysis."
+                "content": (
+                    f"You are an expert military strategist focused on {goal_input}. "
+                    "Summarize the following DOTMLPF analysis in alignment with TRADOC guidelines "
+                    "and JCIDS capability development metrics."
+                )
             }
             user_msg = {"role": "user", "content": summary_prompt}
             summary_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
