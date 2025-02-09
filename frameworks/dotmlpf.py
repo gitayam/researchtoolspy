@@ -20,7 +20,7 @@ def dotmlpf_page():
 
     st.title("DOTMLPF-P Analysis Framework")
     st.write("""
-    The DOTMLPF-P Analysis Framework helps you assess organization capabilities across several key areas:
+    The DOTMLPF-P Analysis Framework helps you assess organizational capabilities across several key areas:
     
     - **Doctrine**: The principles and strategies guiding operations.
     - **Organization**: The structure and distribution of forces.
@@ -44,7 +44,10 @@ def dotmlpf_page():
     # Choose the force type to analyze
     force_type = st.selectbox("Select Force Type", ["Friendly", "Adversary", "Our Own"])
 
-    # Prompt the user for their analysis goal
+    # New input field for the overall goal of the force
+    force_goal_input = st.text_input("Enter Goal of the Force:", max_chars=240)
+
+    # Prompt the user for their analysis goal (distinct from the force goal)
     goal_input = st.text_input("Enter Goal of the Analysis:", max_chars=240)
 
     # Provide guiding questions for problem definition
@@ -57,23 +60,27 @@ def dotmlpf_page():
     5. Are there any known threats, gaps, or shortfalls that precipitated this analysis?
     """)
 
-    # If "Our Own" is selected, request a focused operational gap (up to 1000 chars)
+    # If "Our Own" is selected, request up to 1000 chars about the operational gap or shortfall
     if force_type == "Our Own":
         operational_gap_input = st.text_area(
-            "Describe the operational gap or capability shortfall preventing your mission requirement from being met:",
+            "Describe any operational gap or capability shortfall preventing your mission requirement from being met:",
             max_chars=1000
         )
     else:
-        # For Friendly or Adversary, we don't prompt for an operational gap
         operational_gap_input = ""
 
     st.markdown("---")
 
     # DOTMLPF-P categories
     dotmlpf_categories = [
-        "Doctrine", "Organization", "Training",
-        "Materiel", "Leadership", "Personnel",
-        "Facilities", "Policy"
+        "Doctrine",
+        "Organization",
+        "Training",
+        "Materiel",
+        "Leadership",
+        "Personnel",
+        "Facilities",
+        "Policy"
     ]
 
     # If user opts in, add Joint Integration category
@@ -83,75 +90,74 @@ def dotmlpf_page():
     # Dictionary to hold user inputs for each category
     user_inputs = {}
 
-    # Loop through each category: display a text area and an AI suggestion button
+    # Loop through each category: display text area & AI suggestion button
     for cat in dotmlpf_categories:
         st.subheader(cat)
-        # Allow the user to enter their current analysis/observations
         user_text = st.text_area(f"Enter your analysis/observations for {cat}:", key=cat)
         user_inputs[cat] = user_text
 
-        # AI suggestion button for the category
         if st.button(f"AI: Suggest {cat} Analysis", key=f"ai_{cat}"):
             try:
                 # Base prompt referencing TRADOC, JCIDS, and CBA for all force types
                 base_system_prompt = (
                     "You are an experienced military capability analyst specializing in DOTMLPF-P assessments. "
                     f"Your role is to evaluate the following force type: {force_type}.\n\n"
-                    "In accordance with the TRADOC Capability Development Document (CDD) guidelines, you will:\n"
-                    "• Identify capability gaps using Capability-Based Assessment (CBA) methodology.\n"
+                    "In accordance with the TRADOC Capability Development Document (CDD) guidelines, your analysis should:\n"
+                    "• Identify existing capabilities in each DOTMLPF-P domain.\n"
+                    "• Highlight any shortfalls or missing elements in those capabilities.\n"
+                    "• Use Capability-Based Assessment (CBA) methodology to understand potential gaps.\n"
                     "• Reference Key Performance Parameters (KPPs) and Key System Attributes (KSAs) for performance tracking.\n"
                     "• Consider System of Systems (SoS) dependencies and operational risks.\n"
                     "• Address Doctrine, Organization, Training, Materiel, Leadership, Personnel, Facilities, and Policy.\n\n"
-                    "Produce three specific, measurable, and actionable questions focused on identifying gaps, risks, "
-                    "and modernization opportunities for the selected category. Questions should align with TRADOC "
-                    "evaluation criteria and—where applicable—JCIDS capability development.\n"
+                    "For the following category, produce three specific, measurable, and actionable questions or prompts focused on:\n"
+                    "1) Identifying the existing capabilities.\n"
+                    "2) Determining gaps or deficiencies within those capabilities.\n"
+                    "3) Noting how these align with TRADOC and—where applicable—JCIDS criteria.\n"
                 )
 
                 # Add specialized guidance when force_type == "Our Own"
                 if force_type == "Our Own":
-                    # Incorporate references to resourcing strategies, acquisition pathways, etc.
                     base_system_prompt += (
-                        "\nSince this analysis focuses on 'Our Own' forces, ensure all recommendations align with:\n"
-                        "1. JCIDS Capability Development Process: consider whether new acquisition programs or modifications to existing systems are needed.\n"
-                        "2. Capability Tradeoff Analysis: explore DOTMLPF-P alternatives to mitigate the gap.\n"
-                        "3. Resourcing Strategies: evaluate funding or acquisition pathways (e.g., APFIT, Rapid Prototyping) to accelerate closing the gap.\n"
-                        "4. Doctrine and Policy Alignment: assess whether TRADOC directives, Army Regulations, or relevant AWFCs/POM cycles should be updated.\n\n"
-                        "If an operational gap is provided, connect these recommendations to that gap. "
-                        "Focus on how these recommendations drive capability modernization, force structure adaptation, and resource allocation.\n"
+                        "\nSince this analysis focuses on 'Our Own' forces, also ensure:\n"
+                        "• Any operational gap provided is examined in terms of existing capabilities.\n"
+                        "• The user understands what is currently in place (e.g., doctrine, units, training) "
+                        "and what is missing or incomplete.\n"
+                        "• Consider potential resource pathways or policy changes if shortfalls are identified.\n"
                     )
 
                 system_msg = {"role": "system", "content": base_system_prompt}
 
-                # Build user message based on the force type
+                # Build user message
                 if force_type == "Our Own":
                     user_msg_content = (
                         f"Force Type: {force_type}\n"
-                        f"Goal: {goal_input}\n"
+                        f"Goal of the Force: {force_goal_input}\n"
+                        f"Goal of the Analysis: {goal_input}\n"
                         f"Organization: {organization_input}\n"
                         f"Operational Gap: {operational_gap_input}\n"
                         f"Category: {cat}\n"
                         f"Current Input Provided: {user_text}\n\n"
-                        "Please generate three TRADOC-aligned, specific, measurable, and actionable questions "
-                        "to evaluate this DOTMLPF-P category in relation to the operational gap. "
-                        "In your questions or prompts, incorporate JCIDS, capability tradeoff analyses, "
-                        "and potential resourcing strategies (e.g., APFIT, POM cycles, or rapid prototyping). "
-                        "Highlight modernization opportunities and how policy/doctrine might need to evolve."
+                        "Please generate three specific, measurable, and actionable questions/prompts that:\n"
+                        "• Describe the existing capabilities for this category.\n"
+                        "• Identify any missing or insufficient elements.\n"
+                        "• Link these observations to TRADOC guidelines and CBA methodology.\n"
+                        "• (If the operational gap is relevant) Highlight how the gap underscores or amplifies these shortfalls."
                     )
                 else:
                     user_msg_content = (
                         f"Force Type: {force_type}\n"
-                        f"Goal: {goal_input}\n"
+                        f"Goal of the Force: {force_goal_input}\n"
+                        f"Goal of the Analysis: {goal_input}\n"
                         f"Organization: {organization_input}\n"
                         f"Category: {cat}\n"
                         f"Current Input Provided: {user_text}\n\n"
-                        "Please generate three TRADOC-aligned, specific, measurable, and actionable questions "
-                        "to evaluate this DOTMLPF-P category. Address potential capability gaps, risks, "
-                        "and modernization opportunities consistent with TRADOC and JCIDS guidelines."
+                        "Please generate three specific, measurable, and actionable questions/prompts that:\n"
+                        "• Describe the existing capabilities for this category.\n"
+                        "• Identify any missing or insufficient elements.\n"
+                        "• Link these observations to TRADOC guidelines and CBA methodology.\n"
                     )
 
                 user_msg = {"role": "user", "content": user_msg_content}
-
-                # Call AI
                 ai_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                 st.text_area(
                     f"AI Suggested {cat} Analysis:",
@@ -168,32 +174,32 @@ def dotmlpf_page():
     if st.button("Generate Consolidated DOTMLPF-P Summary"):
         try:
             summary_prompt = (
-                "Based on the following DOTMLPF-P analysis, provide a concise summary with "
+                "Based on the following DOTMLPF-P observations, provide a concise summary with "
                 "key insights and TRADOC-aligned recommendations:\n"
             )
 
             for cat in dotmlpf_categories:
                 analysis = user_inputs.get(cat, "")
-                summary_prompt += f"\n{cat}: {analysis}\n"
+                summary_prompt += f"\n{cat}:\n{analysis}\n"
 
-            # Additional instructions if force type is "Our Own"
+            # Additional instructions if force_type == "Our Own"
             if force_type == "Our Own":
                 summary_prompt += (
-                    "\nSince these are 'Our Own' forces, focus on:\n"
-                    "• JCIDS capability development (e.g., new acquisition vs. modification)\n"
-                    "• Capability tradeoff analysis across DOTMLPF-P\n"
-                    "• Relevant resourcing strategies (APFIT, Rapid Prototyping, POM cycles)\n"
-                    "• Potential doctrine/policy updates (Army Regulations, TRADOC directives, AWFC tie-ins)\n"
-                    "Connect each recommendation to the identified operational gap and highlight modernization or resource allocation paths.\n"
+                    "\nSince these are 'Our Own' forces, ensure the summary highlights:\n"
+                    "• Which capabilities already exist within each domain\n"
+                    "• How the operational gap (if any) may reveal shortfalls or deficiencies\n"
+                    "• Relevant resourcing or doctrinal references, if the shortfalls require updates\n"
                 )
 
             system_msg = {
                 "role": "system",
                 "content": (
-                    f"You are an expert military strategist focused on {goal_input}. Summarize the DOTMLPF-P "
-                    "analysis below in alignment with TRADOC guidelines, JCIDS capability metrics, and any "
-                    "operational gap (if provided). Where relevant, incorporate references to acquisition pathways, "
-                    "capability tradeoff analyses, and policy/doctrine alignment."
+                    f"You are an expert military strategist focused on the following:\n"
+                    f"Goal of the Force: {force_goal_input}\n"
+                    f"Goal of the Analysis: {goal_input}\n\n"
+                    "Summarize the DOTMLPF-P analysis below in alignment with TRADOC guidelines and any operational gap (if provided). "
+                    "Emphasize what existing capabilities each domain offers, what might be missing, "
+                    "and how these observations align with TRADOC or JCIDS guidance."
                 )
             }
 
@@ -206,7 +212,6 @@ def dotmlpf_page():
                 user_msg_content = summary_prompt
 
             user_msg = {"role": "user", "content": user_msg_content}
-
             summary_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
 
             # Store the summary in session state
@@ -215,41 +220,8 @@ def dotmlpf_page():
             st.subheader("Consolidated DOTMLPF-P Summary")
             st.write(summary_response)
 
-            # ──────────────────────────────────────────────────────────────────
-            #  New Section: Command Endorsement Strategy (only for "Our Own")
-            # ──────────────────────────────────────────────────────────────────
-            st.subheader("Command Endorsement Strategy")
-            if force_type == "Our Own":
-                # Build a command endorsement prompt incorporating the final summary as context
-                endorsement_prompt = (
-                    "You are a senior-level advisor with the authority to recommend endorsements at multiple echelons.\n\n"
-                    "Given the following DOTMLPF-P summary (including any operational gap and recommendations):\n\n"
-                    f"{summary_response}\n\n"
-                    "Provide specific command endorsement strategies for:\n"
-                    "1. **Operational Level** (e.g., Force providers, TRADOC Centers of Excellence)\n"
-                    "2. **Strategic Level** (e.g., Army Futures Command, ASA(ALT), Joint Staff)\n"
-                    "3. **Policy Level** (e.g., DoD Directives, Congressional funding requests)\n\n"
-                    "For each level, identify the relevant command authorities and detail what kind of endorsement is needed, "
-                    "such as:\n"
-                    "- A **doctrinal update** (e.g., changes to TRADOC directives, Army Regulations)\n"
-                    "- A **resource allocation** (e.g., applying for APFIT, rapid prototyping funds, or POM adjustments)\n"
-                    "- A **force structure change** (e.g., reorganizing units or re-aligning personnel)\n"
-                    "- A **new acquisition program** (e.g., starting or modifying a Program of Record)\n\n"
-                    "Tie each recommendation to the capability shortfalls, modernization goals, or doctrinal needs identified "
-                    "in the summary. Where applicable, reference Army Warfighting Challenges (AWFCs) or Program Objective "
-                    "Memorandum (POM) cycles to illustrate how these endorsements fit into broader Joint Force and TRADOC planning."
-                )
-
-                command_response = chat_gpt(
-                    [{"role": "system", "content": endorsement_prompt}],
-                    model="gpt-4o-mini"
-                )
-
-                st.session_state["command_endorsement"] = command_response
-                st.write(command_response)
-
         except Exception as e:
-            st.error(f"Error generating summary or endorsement strategy: {e}")
+            st.error(f"Error generating summary: {e}")
 
     # Button to generate TRADOC alignment details for all force types
     st.markdown("---")
@@ -257,15 +229,15 @@ def dotmlpf_page():
     st.write("Click below to generate TRADOC alignment considerations—covering JCIDS, KPPs/KSAs, and resourcing strategies.")
     if st.button("Generate TRADOC Alignment"):
         try:
-            # Build a prompt referencing the existing summary (if any)
             alignment_prompt = (
                 "You are an expert in TRADOC capability development and Joint Capabilities Integration Development System (JCIDS). "
                 "Given the following DOTMLPF-P Summary:\n\n"
                 f"{st.session_state['dotmlpf_summary']}\n\n"
-                "Identify specific ways to align recommendations with:\n"
+                "Identify specific ways to align findings with:\n"
                 "- JCIDS requirements or acquisition milestones\n"
                 "- Key Performance Parameters (KPPs) and Key System Attributes (KSAs)\n"
                 "- Resourcing options (POM, APFIT, Rapid Prototyping)\n\n"
+                "Focus on how current capabilities and shortfalls map to these frameworks. "
                 "Structure the output as bullet points or short paragraphs so it can be easily referenced by senior leaders."
             )
 
@@ -281,21 +253,59 @@ def dotmlpf_page():
         except Exception as e:
             st.error(f"Error generating TRADOC alignment: {e}")
 
-    # Option to export the analysis as JSON
+    # Command Endorsement Strategy - only if "Our Own"
+    st.markdown("---")
+    if force_type == "Our Own":
+        st.subheader("Command Endorsement Strategy")
+        st.write("Propose how leadership at various levels should acknowledge or resource the capabilities/shortfalls identified.")
+        if st.button("Generate Command Endorsement Strategy"):
+            try:
+                endorsement_prompt = (
+                    "You are a senior-level advisor with the authority to recommend endorsements at multiple echelons.\n\n"
+                    "Given the following DOTMLPF-P summary (including any operational gap and recommendations):\n\n"
+                    f"{st.session_state['dotmlpf_summary']}\n\n"
+                    "Provide specific command endorsement strategies for:\n"
+                    "1. **Operational Level** (e.g., Force providers, TRADOC Centers of Excellence)\n"
+                    "2. **Strategic Level** (e.g., Army Futures Command, ASA(ALT), Joint Staff)\n"
+                    "3. **Policy Level** (e.g., DoD Directives, Congressional funding requests)\n\n"
+                    "For each level, identify the relevant command authorities and detail what kind of endorsement is needed, "
+                    "such as:\n"
+                    "- A **doctrinal update** (e.g., changes to TRADOC directives, Army Regulations)\n"
+                    "- A **resource allocation** (e.g., applying for APFIT, rapid prototyping funds, or POM adjustments)\n"
+                    "- A **force structure change** (e.g., reorganizing units or re-aligning personnel)\n"
+                    "- A **new acquisition program** (e.g., starting or modifying a Program of Record)\n\n"
+                    "Tie each recommendation to the existing capabilities or shortfalls identified in the summary. "
+                    "Where applicable, reference Army Warfighting Challenges (AWFCs) or Program Objective Memorandum (POM) "
+                    "cycles to illustrate how these endorsements fit into broader Joint Force and TRADOC planning."
+                )
+
+                command_msg = {
+                    "role": "system",
+                    "content": endorsement_prompt
+                }
+                command_response = chat_gpt([command_msg], model="gpt-4o-mini")
+
+                st.session_state["command_endorsement"] = command_response
+                st.write(command_response)
+
+            except Exception as e:
+                st.error(f"Error generating command endorsement strategy: {e}")
+
+    # Option to export the analysis as JSON (with custom filename)
+    st.markdown("---")
     if st.button("Export DOTMLPF-P Analysis as JSON"):
-        # If "Our Own", capture operational_gap_input; otherwise, it's blank
         analysis_data = {
             "force_type": force_type,
-            "goal": goal_input,
+            "force_goal": force_goal_input,
+            "goal_of_analysis": goal_input,
             "organization": organization_input,
             "operational_gap": operational_gap_input if force_type == "Our Own" else "",
             "DOTMLPF-P": {cat: user_inputs.get(cat, "") for cat in dotmlpf_categories},
             "TRADOC_Alignment": st.session_state["tradoc_alignment"],
-            "Command_Endorsement": st.session_state["command_endorsement"] if force_type == "Our Own" else "",
+            "Command_Endorsement": st.session_state["command_endorsement"] if force_type == "Our Own" else ""
         }
-        json_data = json.dumps(analysis_data, indent=2)
 
-        # Generate a JSON filename that includes the selected force type
+        json_data = json.dumps(analysis_data, indent=2)
         file_name = f"DOTMLPF-P_Analysis_{force_type}.json"
 
         st.download_button(
