@@ -193,8 +193,41 @@ def dotmlpf_page():
             summary_response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
             st.subheader("Consolidated DOTMLPF-P Summary")
             st.write(summary_response)
+
+            # ──────────────────────────────────────────────────────────────────
+            #  New Section: Command Endorsement Strategy (only for "Our Own")
+            # ──────────────────────────────────────────────────────────────────
+            st.subheader("Command Endorsement Strategy")
+            if force_type == "Our Own":
+                # Build a command endorsement prompt incorporating the final summary as context
+                endorsement_prompt = (
+                    "You are a senior-level advisor with the authority to recommend endorsements at multiple echelons.\n\n"
+                    "Given the following DOTMLPF-P summary (including any operational gap and recommendations):\n\n"
+                    f"{summary_response}\n\n"
+                    "Provide specific command endorsement strategies for:\n"
+                    "1. **Operational Level** (e.g., Force providers, TRADOC Centers of Excellence)\n"
+                    "2. **Strategic Level** (e.g., Army Futures Command, ASA(ALT), Joint Staff)\n"
+                    "3. **Policy Level** (e.g., DoD Directives, Congressional funding requests)\n\n"
+                    "For each level, identify the relevant command authorities and detail what kind of endorsement is needed, "
+                    "such as:\n"
+                    "- A **doctrinal update** (e.g., changes to TRADOC directives, Army Regulations)\n"
+                    "- A **resource allocation** (e.g., applying for APFIT, rapid prototyping funds, or POM adjustments)\n"
+                    "- A **force structure change** (e.g., reorganizing units or re-aligning personnel)\n"
+                    "- A **new acquisition program** (e.g., starting or modifying a Program of Record)\n\n"
+                    "Tie each recommendation to the capability shortfalls, modernization goals, or doctrinal needs identified "
+                    "in the summary. Where applicable, reference Army Warfighting Challenges (AWFCs) or Program Objective "
+                    "Memorandum (POM) cycles to illustrate how these endorsements fit into broader Joint Force and TRADOC planning."
+                )
+
+                command_response = chat_gpt(
+                    [{"role": "system", "content": endorsement_prompt}],
+                    model="gpt-4o-mini"
+                )
+
+                st.write(command_response)
+
         except Exception as e:
-            st.error(f"Error generating summary: {e}")
+            st.error(f"Error generating summary or endorsement strategy: {e}")
 
     # Option to export the analysis as JSON
     if st.button("Export DOTMLPF-P Analysis as JSON"):
