@@ -81,8 +81,7 @@ def dotmlpf_page():
                 if force_type == "Our Own":
                     # Append extra guidance for "Our Own" scenario, focusing on capability dev + modernization
                     base_system_prompt += (
-                        "\n\nSince you are assessing 'Our Own' forces, please include 'Policy' considerations in DOTMLPF "
-                        "and provide enhanced recommendations focused on capability development, force modernization, "
+                        " provide enhanced recommendations focused on capability development, force modernization, "
                         "and future operational requirements using TRADOC capability trade and resourcing strategies.\n"
                     )
 
