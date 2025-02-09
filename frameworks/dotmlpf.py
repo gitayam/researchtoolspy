@@ -106,7 +106,7 @@ def dotmlpf_page():
         if f'analysis_questions_{cat}' not in st.session_state:
             st.session_state[f'analysis_questions_{cat}'] = []
 
-        # AI suggestion button
+        # AI suggestion button for generating analysis questions
         if st.button(f"AI: Suggest {cat} Questions", key=f"ai_{cat}"):
             try:
                 # Base prompt referencing TRADOC, JCIDS, and CBA for all force types
@@ -196,7 +196,7 @@ def dotmlpf_page():
 
             st.markdown("---")
 
-        # Display previously generated questions (if any) and corresponding user answer fields
+        # Display previously generated questions with associated answer input fields and answer template option
         if st.session_state[f'analysis_questions_{cat}']:
             st.markdown("**AI-Suggested Questions/Prompts:**")
             for idx, question in enumerate(st.session_state[f'analysis_questions_{cat}']):
@@ -210,6 +210,36 @@ def dotmlpf_page():
                     st.session_state[answer_key],
                     key=f"{cat}_q{idx}_input"
                 )
+                # Button to generate a fill-in-the-blank answer template using available variables
+                template_key = f"template_answer_{cat}_{idx}"
+                if st.button(f"Generate Answer Template for Q{idx+1}", key=f"template_btn_{cat}_{idx}"):
+                    try:
+                        template_prompt = (
+                            f"You are an experienced military capability analyst. A user is performing research on '{cat}' as part of a DOTMLPF-P analysis.\n"
+                            f"Context:\n"
+                            f"Force Type: {force_type}\n"
+                            f"Goal of the Force: {force_goal_input}\n"
+                            f"Goal of the Analysis: {goal_input}\n"
+                            f"Organization: {organization_input}\n"
+                        )
+                        if force_type == "Our Own":
+                            template_prompt += f"Operational Gap: {operational_gap_input}\n"
+                        template_prompt += (
+                            f"\nAnalysis Question: {question}\n\n"
+                            "Generate a fill-in-the-blank answer template that includes variable placeholders (e.g., [X], [Y], [Z]) "
+                            "to guide the user in answering this question. For example, in the Doctrine category, a template might be:\n"
+                            "\"For Doctrine, the force has [X] doctrinal frameworks such as [Y]. However, they are limited by [Z] constraints.\"\n\n"
+                            "Return just the template answer."
+                        )
+                        template_response = chat_gpt([{"role": "system", "content": template_prompt}], 
+                                                     model="gpt-4o-mini")
+                        st.session_state[template_key] = template_response
+                    except Exception as e:
+                        st.error(f"Error generating template answer for Q{idx+1} in {cat}: {e}")
+                # Display the generated answer template if available.
+                if template_key in st.session_state and st.session_state[template_key]:
+                    st.text_area(f"Answer Template for Q{idx+1}:", st.session_state[template_key],
+                                 key=f"{cat}_template_q{idx}_input")
 
     # Button to generate a consolidated summary from all categories
     if st.button("Generate Consolidated DOTMLPF-P Summary"):
