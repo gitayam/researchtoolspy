@@ -32,10 +32,22 @@ def dotmlpf_page():
     # Choose the force type to analyze
     force_type = st.selectbox("Select Force Type", ["Friendly", "Adversary", "Our Own"])
 
+    # Prompt the user for their analysis goal
     goal_input = st.text_input("Enter Goal of the Analysis:", max_chars=240)
+
+    # Provide guiding questions to help clarify the problem statement
+    st.markdown("**Guiding Questions for Defining Your Problem Statement**")
+    st.write("""
+    1. What is the primary objective or end state you want to achieve through this analysis?
+    2. How does this analysis align with broader strategic or organizational goals?
+    3. Which stakeholders are most impacted, and what outcomes are they expecting?
+    4. What constraints, timelines, or resources (e.g., budget, manpower) shape your current challenges?
+    5. Are there any known threats, gaps, or shortfalls that precipitated this analysis?
+    """)
+
     st.markdown("---")
 
-    # Always use DOTMLPF-P categories
+    # DOTMLPF-P categories
     dotmlpf_categories = [
         "Doctrine", "Organization", "Training",
         "Materiel", "Leadership", "Personnel",
