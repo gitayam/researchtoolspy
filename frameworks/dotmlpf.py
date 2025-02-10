@@ -246,23 +246,23 @@ def dotmlpf_page():
     # Button to generate a consolidated summary from all categories
     if st.button("Generate Consolidated DOTMLPF-P Summary"):
         try:
-            summary_prompt = (
-                "Based on the following DOTMLPF-P observations, provide a concise summary with "
-                "key insights and TRADOC-aligned recommendations:\n"
-            )
-
+            summary_prompt = "Based on the following DOTMLPF-P observations, provide a concise summary with key insights and TRADOC-aligned recommendations:\n"
+            insufficient_categories = []
             for cat in dotmlpf_categories:
-                analysis = user_inputs.get(cat, "")
-                # Combine analysis text with any answers to AI-provided questions
+                # Only include category if observations or answers were provided.
+                analysis = user_inputs.get(cat, "").strip()
                 answers_for_cat = ""
                 if st.session_state.get(f'analysis_questions_{cat}', []):
-                    for idx, question in enumerate(st.session_state[f'analysis_questions_{cat}']):
-                        user_answer = st.session_state.get(f'analysis_answer_{cat}_{idx}', "")
-                        if user_answer.strip():
+                    for idx, question in enumerate(st.session_state.get(f'analysis_questions_{cat}')):
+                        user_answer = st.session_state.get(f'analysis_answer_{cat}_{idx}', "").strip()
+                        if user_answer:
                             answers_for_cat += f"\nQ: {question}\nA: {user_answer}\n"
-
-                summary_prompt += f"\n{cat}:\n{analysis}\n{answers_for_cat}"
-
+                if analysis or answers_for_cat:
+                    summary_prompt += f"\n{cat}:\n{analysis}\n{answers_for_cat}\n"
+                else:
+                    insufficient_categories.append(cat)
+            if insufficient_categories:
+                summary_prompt += "\nNote: Insufficient data was provided for the following categories: " + ", ".join(insufficient_categories) + "."
             if force_type == "Our Own":
                 summary_prompt += (
                     "\nSince these are 'Our Own' forces, ensure the summary highlights:\n"
@@ -279,15 +279,12 @@ def dotmlpf_page():
                     f"Goal of the Analysis: {goal_input}\n\n"
                     "Summarize the DOTMLPF-P analysis below in alignment with TRADOC guidelines and any operational gap (if provided). "
                     "Emphasize what existing capabilities each domain offers, what might be missing, "
-                    "and how these observations align with TRADOC or JCIDS guidance."
+                    "and the impact on overall capability."
                 )
             }
 
             if force_type == "Our Own":
-                user_msg_content = (
-                    f"Operational Gap: {operational_gap_input}\n\n"
-                    f"{summary_prompt}"
-                )
+                user_msg_content = f"Operational Gap: {operational_gap_input}\n\n{summary_prompt}"
             else:
                 user_msg_content = summary_prompt
 
