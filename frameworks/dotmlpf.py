@@ -53,7 +53,7 @@ def dotmlpf_page():
     # Prompt the user for their analysis goal (distinct from the force goal)
     goal_input = st.text_input("Enter Goal of the Analysis:", max_chars=240)
 
-    # Provide guiding questions for problem definition
+    # Provide guiding questions for initial problem definition
     st.markdown("**Guiding Questions for Defining Your Problem Statement**")
     st.write("""
     1. What is the primary objective or end state you want to achieve through this analysis?
@@ -63,26 +63,7 @@ def dotmlpf_page():
     5. Are there any known threats, gaps, or shortfalls that precipitated this analysis?
     """)
 
-    # New section: Problem Statement Improvement
-    problem_statement = st.text_area("Enter your Problem Statement:", key="problem_statement", height=150)
-    if st.button("Improve Problem Statement with AI"):
-        if problem_statement.strip() == "":
-            st.error("Please enter a problem statement to improve.")
-        else:
-            prompt = (
-                "You are an expert in crafting clear and effective problem statements. Using best practices for problem statement writing, improve the following problem statement:\n\n"
-                f"Original Problem Statement: {problem_statement}\n\n"
-                "Ensure the improved problem statement is concise, focused, and actionable, clearly articulating the problem, its context, and desired outcomes. "
-                "Return only the improved problem statement."
-            )
-            improved_statement = chat_gpt([{"role": "system", "content": prompt}], model="gpt-4o-mini")
-            st.session_state["improved_problem_statement"] = improved_statement
-            st.success("Improved Problem Statement:")
-            st.write(improved_statement)
-
-    st.markdown("---")
-
-    # If "Our Own" is selected, request up to 1000 chars about the operational gap or shortfall
+    # If "Our Own" is selected, request details about an operational gap
     if force_type == "Our Own":
         operational_gap_input = st.text_area(
             "Describe any operational gap or capability shortfall preventing your mission requirement from being met:",
@@ -320,6 +301,31 @@ def dotmlpf_page():
 
         except Exception as e:
             st.error(f"Error generating summary: {e}")
+
+    st.markdown("---")
+    # New section: Improve Problem Statement after DOTMLPF-P categories.
+    st.subheader("Improve Problem Statement")
+    imp_prob_statement = st.text_area(
+        "Enter your overall problem statement to improve (consider your analysis from the DOTMLPF-P categories):",
+        key="problem_statement",
+        height=150
+    )
+    if st.button("Improve Problem Statement with AI", key="improve_prob_statement"):
+        if imp_prob_statement.strip() == "":
+            st.error("Please enter a problem statement to improve.")
+        else:
+            prompt = (
+                "You are an expert in crafting clear, actionable, and research-informed problem statements. "
+                "Based on the following consolidated DOTMLPF-P analysis and the original problem statement provided below, "
+                "please improve the problem statement to make it more concise, focused, and reflective of the analysis.\n\n"
+                f"DOTMLPF-P Analysis Summary:\n{st.session_state.get('dotmlpf_summary', 'No summary available.')}\n\n"
+                f"Original Problem Statement: {imp_prob_statement}\n\n"
+                "Return only the improved problem statement."
+            )
+            improved_statement = chat_gpt([{"role": "system", "content": prompt}], model="gpt-4o-mini")
+            st.session_state["improved_problem_statement"] = improved_statement
+            st.success("Improved Problem Statement:")
+            st.write(improved_statement)
 
     st.markdown("---")
     st.subheader("TRADOC Alignment")
