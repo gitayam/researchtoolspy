@@ -302,12 +302,16 @@ def dotmlpf_page():
     st.markdown("---")
     # New section: Improve Problem Statement after DOTMLPF-P categories.
     st.subheader("Improve Problem Statement")
+    # Initialize a separate default value for the Problem Statement.
+    if "problem_statement_default" not in st.session_state:
+        st.session_state["problem_statement_default"] = ""
     # Use a text area that lets the user edit the statement.
-    # If left blank, an initial problem statement will be generated.
+    # The widget key is "problem_statement_input" and its default value is retrieved from st.session_state.
     current_problem_statement = st.text_area(
         "Enter or edit your problem statement (if left blank, an initial statement will be generated from your data):",
-        key="problem_statement",
-        height=150
+        value=st.session_state["problem_statement_default"],
+        height=150,
+        key="problem_statement_input"
     )
     if st.button("Generate/Improve Problem Statement with AI", key="improve_prob_statement"):
         if current_problem_statement.strip() == "":
@@ -325,10 +329,10 @@ def dotmlpf_page():
                 "Return only the generated problem statement."
             )
             generated_statement = chat_gpt([{"role": "system", "content": prompt}], model="gpt-4o-mini")
-            # Update the text area with the generated problem statement so that the user can further edit it.
-            st.session_state["problem_statement"] = generated_statement
+            st.session_state["problem_statement_default"] = generated_statement
             st.success("Generated Problem Statement:")
             st.write(generated_statement)
+            st.experimental_rerun()
         else:
             # A problem statement was provided => improve it.
             prompt = (
@@ -340,10 +344,10 @@ def dotmlpf_page():
                 "Return only the improved problem statement."
             )
             improved_statement = chat_gpt([{"role": "system", "content": prompt}], model="gpt-4o-mini")
-            # Update the text area with the improved statement.
-            st.session_state["problem_statement"] = improved_statement
+            st.session_state["problem_statement_default"] = improved_statement
             st.success("Improved Problem Statement:")
             st.write(improved_statement)
+            st.experimental_rerun()
 
     st.markdown("---")
     st.subheader("TRADOC Alignment")
@@ -448,23 +452,55 @@ def dotmlpf_page():
             mime="application/json"
         )
 
-    # Existing JSON export button is above; now add export as PDF/DOCX option.
+    # Export document button
     export_format = st.selectbox("Select export format for document", ["PDF", "DOCX"], key="export_format")
     if st.button("Export DOTMLPF-P Analysis as Document"):
-        # Build document title based on organization_input; provide a default if blank.
+        # Build a document title based on organization_input; provide a default if blank.
         title_doc = f"DOTMLPF-P Analysis for {organization_input}" if organization_input.strip() else "DOTMLPF-P Analysis"
-        # Retrieve key sections from session state.
-        problem_statement = st.session_state.get("problem_statement", "No problem statement provided.")
+
+        # Ensure a problem statement exists.
+        if not st.session_state.get("problem_statement_default", "").strip():
+            prompt = (
+                "You are an expert in crafting clear, actionable, and research-informed problem statements. "
+                "Based on the following analysis details, generate an initial problem statement that encapsulates the key challenges, gaps, "
+                "and strategic imperatives derived from the DOTMLPF-P analysis. Include considerations of force type, goals, organization, and any operational gaps noted.\n\n"
+                f"Force Type: {force_type}\n"
+                f"Force Goal: {force_goal_input}\n"
+                f"Goal of the Analysis: {goal_input}\n"
+                f"Organization: {organization_input}\n"
+                f"Operational Gap: {operational_gap_input if force_type == 'Our Own' else 'N/A'}\n\n"
+                f"DOTMLPF-P Analysis Summary:\n{st.session_state.get('dotmlpf_summary', 'No summary available.')}\n\n"
+                "Return only the generated problem statement."
+            )
+            generated_statement = chat_gpt([{"role": "system", "content": prompt}], model="gpt-4o-mini")
+            st.session_state["problem_statement_default"] = generated_statement
+
+        # Use the generated/improved problem statement.
+        problem_statement = st.session_state.get("problem_statement_default", "No problem statement provided.")
         dotmlpf_summary = st.session_state.get("dotmlpf_summary", "No summary available.")
         tradoc_alignment = st.session_state.get("tradoc_alignment", "")
         command_endorsement = st.session_state.get("command_endorsement", "")
-        
-        # Export as DOCX using python-docx.
+
         if export_format == "DOCX":
             try:
                 from docx import Document
                 from docx.shared import Pt
                 import io
+                import re
+
+                def remove_markdown(md_text):
+                    """A simple function to remove common Markdown syntax."""
+                    if not md_text:
+                        return ""
+                    # Remove bold/italic markers, inline code, headings, and markdown links.
+                    text = re.sub(r'\*\*(.*?)\*\*', r'\1', md_text)
+                    text = re.sub(r'__(.*?)__', r'\1', text)
+                    text = re.sub(r'\*(.*?)\*', r'\1', text)
+                    text = re.sub(r'_(.*?)_', r'\1', text)
+                    text = re.sub(r'`(.*?)`', r'\1', text)
+                    text = re.sub(r'^#+\s', '', text, flags=re.MULTILINE)
+                    text = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', text)
+                    return text
 
                 document = Document()
                 # Set document's default style to Arial 12pt.
@@ -475,33 +511,32 @@ def dotmlpf_page():
 
                 document.add_heading(title_doc, level=0)
                 document.add_heading("Problem Statement", level=1)
-                document.add_paragraph(problem_statement)
+                document.add_paragraph(remove_markdown(problem_statement))
                 document.add_heading("DOTMLPF-P Summary", level=1)
-                document.add_paragraph(dotmlpf_summary)
+                document.add_paragraph(remove_markdown(dotmlpf_summary))
                 
-                # Loop through DOTMLPF-P categories.
+                # Loop through each DOTMLPF-P category.
                 for cat in dotmlpf_categories:
                     document.add_heading(f"Category: {cat}", level=2)
                     analysis_observations = st.session_state.get(cat, "")
                     if analysis_observations:
-                        document.add_paragraph("Observations: " + analysis_observations)
-                    # Add questions and answers if available.
+                        document.add_paragraph("Observations: " + remove_markdown(analysis_observations))
                     questions = st.session_state.get(f"analysis_questions_{cat}", [])
                     if questions:
                         document.add_paragraph("Questions and Answers:")
                         for idx, question in enumerate(questions):
-                            document.add_paragraph(f"Q: {question}", style="List Bullet")
+                            document.add_paragraph("Q: " + remove_markdown(question), style="List Bullet")
                             answer = st.session_state.get(f"analysis_answer_{cat}_{idx}", "")
-                            document.add_paragraph(f"A: {answer}", style="List Bullet")
+                            document.add_paragraph("A: " + remove_markdown(answer), style="List Bullet")
                 
                 if tradoc_alignment:
                     document.add_heading("TRADOC Alignment", level=1)
-                    document.add_paragraph(tradoc_alignment)
+                    document.add_paragraph(remove_markdown(tradoc_alignment))
                 if command_endorsement:
                     document.add_heading("Command Endorsement", level=1)
-                    document.add_paragraph(command_endorsement)
+                    document.add_paragraph(remove_markdown(command_endorsement))
                 
-                # Save the document to an in-memory binary stream.
+                # Save the DOCX document to an in-memory binary stream.
                 docx_io = io.BytesIO()
                 document.save(docx_io)
                 docx_io.seek(0)
@@ -513,10 +548,24 @@ def dotmlpf_page():
                 )
             except Exception as e:
                 st.error(f"Error generating DOCX export: {e}")
-        else:  # Export as PDF using fpdf.
+        else:
+            # Export as PDF using fpdf, with Markdown removed.
             try:
                 from fpdf import FPDF
                 import io
+                import re
+
+                def remove_markdown(md_text):
+                    if not md_text:
+                        return ""
+                    text = re.sub(r'\*\*(.*?)\*\*', r'\1', md_text)
+                    text = re.sub(r'__(.*?)__', r'\1', text)
+                    text = re.sub(r'\*(.*?)\*', r'\1', text)
+                    text = re.sub(r'_(.*?)_', r'\1', text)
+                    text = re.sub(r'`(.*?)`', r'\1', text)
+                    text = re.sub(r'^#+\s', '', text, flags=re.MULTILINE)
+                    text = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', text)
+                    return text
 
                 pdf = FPDF()
                 pdf.add_page()
@@ -526,33 +575,33 @@ def dotmlpf_page():
                 pdf.cell(0, 10, txt=title_doc, ln=True, align="C")
                 pdf.ln(5)
                 pdf.cell(0, 10, txt="Problem Statement", ln=True)
-                pdf.multi_cell(0, 10, txt=problem_statement)
+                pdf.multi_cell(0, 10, txt=remove_markdown(problem_statement))
                 pdf.ln(5)
                 pdf.cell(0, 10, txt="DOTMLPF-P Summary", ln=True)
-                pdf.multi_cell(0, 10, txt=dotmlpf_summary)
+                pdf.multi_cell(0, 10, txt=remove_markdown(dotmlpf_summary))
                 pdf.ln(5)
                 
                 for cat in dotmlpf_categories:
                     pdf.cell(0, 10, txt=f"Category: {cat}", ln=True)
                     analysis_observations = st.session_state.get(cat, "")
                     if analysis_observations:
-                        pdf.multi_cell(0, 10, txt="Observations: " + analysis_observations)
+                        pdf.multi_cell(0, 10, txt="Observations: " + remove_markdown(analysis_observations))
                     questions = st.session_state.get(f"analysis_questions_{cat}", [])
                     if questions:
                         pdf.cell(0, 10, txt="Questions and Answers:", ln=True)
                         for idx, question in enumerate(questions):
                             answer = st.session_state.get(f"analysis_answer_{cat}_{idx}", "")
-                            pdf.multi_cell(0, 10, txt=f"Q: {question}")
-                            pdf.multi_cell(0, 10, txt=f"A: {answer}")
+                            pdf.multi_cell(0, 10, txt=f"Q: {remove_markdown(question)}")
+                            pdf.multi_cell(0, 10, txt=f"A: {remove_markdown(answer)}")
                     pdf.ln(5)
                 
                 if tradoc_alignment:
                     pdf.cell(0, 10, txt="TRADOC Alignment", ln=True)
-                    pdf.multi_cell(0, 10, txt=tradoc_alignment)
+                    pdf.multi_cell(0, 10, txt=remove_markdown(tradoc_alignment))
                     pdf.ln(5)
                 if command_endorsement:
                     pdf.cell(0, 10, txt="Command Endorsement", ln=True)
-                    pdf.multi_cell(0, 10, txt=command_endorsement)
+                    pdf.multi_cell(0, 10, txt=remove_markdown(command_endorsement))
                 
                 # Output the PDF to a binary string.
                 pdf_output = pdf.output(dest="S").encode("latin1")
