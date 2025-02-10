@@ -302,25 +302,46 @@ def dotmlpf_page():
     st.markdown("---")
     # New section: Improve Problem Statement after DOTMLPF-P categories.
     st.subheader("Improve Problem Statement")
-    imp_prob_statement = st.text_area(
-        "Enter your overall problem statement to improve (consider your analysis from the DOTMLPF-P categories):",
+    # Use a text area that lets the user edit the statement.
+    # If left blank, an initial problem statement will be generated.
+    current_problem_statement = st.text_area(
+        "Enter or edit your problem statement (if left blank, an initial statement will be generated from your data):",
         key="problem_statement",
         height=150
     )
-    if st.button("Improve Problem Statement with AI", key="improve_prob_statement"):
-        if imp_prob_statement.strip() == "":
-            st.error("Please enter a problem statement to improve.")
+    if st.button("Generate/Improve Problem Statement with AI", key="improve_prob_statement"):
+        if current_problem_statement.strip() == "":
+            # No initial input provided => generate a new problem statement based on all user data.
+            prompt = (
+                "You are an expert in crafting clear, actionable, and research-informed problem statements. "
+                "Based on the following analysis details, generate an initial problem statement that encapsulates the key challenges, gaps, "
+                "and strategic imperatives derived from the DOTMLPF-P analysis. Include considerations of force type, goals, organization, and any operational gaps noted.\n\n"
+                f"Force Type: {force_type}\n"
+                f"Force Goal: {force_goal_input}\n"
+                f"Goal of the Analysis: {goal_input}\n"
+                f"Organization: {organization_input}\n"
+                f"Operational Gap: {operational_gap_input if force_type == 'Our Own' else 'N/A'}\n\n"
+                f"DOTMLPF-P Analysis Summary:\n{st.session_state.get('dotmlpf_summary', 'No summary available.')}\n\n"
+                "Return only the generated problem statement."
+            )
+            generated_statement = chat_gpt([{"role": "system", "content": prompt}], model="gpt-4o-mini")
+            # Update the text area with the generated problem statement so that the user can further edit it.
+            st.session_state["problem_statement"] = generated_statement
+            st.success("Generated Problem Statement:")
+            st.write(generated_statement)
         else:
+            # A problem statement was provided => improve it.
             prompt = (
                 "You are an expert in crafting clear, actionable, and research-informed problem statements. "
                 "Based on the following consolidated DOTMLPF-P analysis and the original problem statement provided below, "
                 "please improve the problem statement to make it more concise, focused, and reflective of the analysis.\n\n"
                 f"DOTMLPF-P Analysis Summary:\n{st.session_state.get('dotmlpf_summary', 'No summary available.')}\n\n"
-                f"Original Problem Statement: {imp_prob_statement}\n\n"
+                f"Original Problem Statement: {current_problem_statement}\n\n"
                 "Return only the improved problem statement."
             )
             improved_statement = chat_gpt([{"role": "system", "content": prompt}], model="gpt-4o-mini")
-            st.session_state["improved_problem_statement"] = improved_statement
+            # Update the text area with the improved statement.
+            st.session_state["problem_statement"] = improved_statement
             st.success("Improved Problem Statement:")
             st.write(improved_statement)
 
