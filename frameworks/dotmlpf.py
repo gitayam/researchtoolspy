@@ -448,6 +448,123 @@ def dotmlpf_page():
             mime="application/json"
         )
 
+    # Existing JSON export button is above; now add export as PDF/DOCX option.
+    export_format = st.selectbox("Select export format for document", ["PDF", "DOCX"], key="export_format")
+    if st.button("Export DOTMLPF-P Analysis as Document"):
+        # Build document title based on organization_input; provide a default if blank.
+        title_doc = f"DOTMLPF-P Analysis for {organization_input}" if organization_input.strip() else "DOTMLPF-P Analysis"
+        # Retrieve key sections from session state.
+        problem_statement = st.session_state.get("problem_statement", "No problem statement provided.")
+        dotmlpf_summary = st.session_state.get("dotmlpf_summary", "No summary available.")
+        tradoc_alignment = st.session_state.get("tradoc_alignment", "")
+        command_endorsement = st.session_state.get("command_endorsement", "")
+        
+        # Export as DOCX using python-docx.
+        if export_format == "DOCX":
+            try:
+                from docx import Document
+                from docx.shared import Pt
+                import io
+
+                document = Document()
+                # Set document's default style to Arial 12pt.
+                style = document.styles["Normal"]
+                font = style.font
+                font.name = "Arial"
+                font.size = Pt(12)
+
+                document.add_heading(title_doc, level=0)
+                document.add_heading("Problem Statement", level=1)
+                document.add_paragraph(problem_statement)
+                document.add_heading("DOTMLPF-P Summary", level=1)
+                document.add_paragraph(dotmlpf_summary)
+                
+                # Loop through DOTMLPF-P categories.
+                for cat in dotmlpf_categories:
+                    document.add_heading(f"Category: {cat}", level=2)
+                    analysis_observations = st.session_state.get(cat, "")
+                    if analysis_observations:
+                        document.add_paragraph("Observations: " + analysis_observations)
+                    # Add questions and answers if available.
+                    questions = st.session_state.get(f"analysis_questions_{cat}", [])
+                    if questions:
+                        document.add_paragraph("Questions and Answers:")
+                        for idx, question in enumerate(questions):
+                            document.add_paragraph(f"Q: {question}", style="List Bullet")
+                            answer = st.session_state.get(f"analysis_answer_{cat}_{idx}", "")
+                            document.add_paragraph(f"A: {answer}", style="List Bullet")
+                
+                if tradoc_alignment:
+                    document.add_heading("TRADOC Alignment", level=1)
+                    document.add_paragraph(tradoc_alignment)
+                if command_endorsement:
+                    document.add_heading("Command Endorsement", level=1)
+                    document.add_paragraph(command_endorsement)
+                
+                # Save the document to an in-memory binary stream.
+                docx_io = io.BytesIO()
+                document.save(docx_io)
+                docx_io.seek(0)
+                st.download_button(
+                    label="Download DOCX",
+                    data=docx_io,
+                    file_name=f"{title_doc}.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+            except Exception as e:
+                st.error(f"Error generating DOCX export: {e}")
+        else:  # Export as PDF using fpdf.
+            try:
+                from fpdf import FPDF
+                import io
+
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", size=12)
+                
+                # Title centered.
+                pdf.cell(0, 10, txt=title_doc, ln=True, align="C")
+                pdf.ln(5)
+                pdf.cell(0, 10, txt="Problem Statement", ln=True)
+                pdf.multi_cell(0, 10, txt=problem_statement)
+                pdf.ln(5)
+                pdf.cell(0, 10, txt="DOTMLPF-P Summary", ln=True)
+                pdf.multi_cell(0, 10, txt=dotmlpf_summary)
+                pdf.ln(5)
+                
+                for cat in dotmlpf_categories:
+                    pdf.cell(0, 10, txt=f"Category: {cat}", ln=True)
+                    analysis_observations = st.session_state.get(cat, "")
+                    if analysis_observations:
+                        pdf.multi_cell(0, 10, txt="Observations: " + analysis_observations)
+                    questions = st.session_state.get(f"analysis_questions_{cat}", [])
+                    if questions:
+                        pdf.cell(0, 10, txt="Questions and Answers:", ln=True)
+                        for idx, question in enumerate(questions):
+                            answer = st.session_state.get(f"analysis_answer_{cat}_{idx}", "")
+                            pdf.multi_cell(0, 10, txt=f"Q: {question}")
+                            pdf.multi_cell(0, 10, txt=f"A: {answer}")
+                    pdf.ln(5)
+                
+                if tradoc_alignment:
+                    pdf.cell(0, 10, txt="TRADOC Alignment", ln=True)
+                    pdf.multi_cell(0, 10, txt=tradoc_alignment)
+                    pdf.ln(5)
+                if command_endorsement:
+                    pdf.cell(0, 10, txt="Command Endorsement", ln=True)
+                    pdf.multi_cell(0, 10, txt=command_endorsement)
+                
+                # Output the PDF to a binary string.
+                pdf_output = pdf.output(dest="S").encode("latin1")
+                st.download_button(
+                    label="Download PDF",
+                    data=pdf_output,
+                    file_name=f"{title_doc}.pdf",
+                    mime="application/pdf"
+                )
+            except Exception as e:
+                st.error(f"Error generating PDF export: {e}")
+
 def main():
     dotmlpf_page()
 
