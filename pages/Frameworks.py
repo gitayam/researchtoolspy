@@ -13,6 +13,10 @@ from components.sidebar_menu import sidebar_menu
 from frameworks.pmesii_pt import pmesii_pt_page
 from frameworks.dotmlpf import dotmlpf_page
 from frameworks.starbursting import starbursting_page
+from frameworks import (
+    swot, ach, cog, deception, 
+    dime, pmesii, dotmlpf, starbursting
+)
 
 load_dotenv()
 
@@ -156,6 +160,33 @@ def frameworks_page():
         - **PMESII-PT**: Analyze Political, Military, Economic, Social, Information, Infrastructure factors
         - **DOTMLPF**: Analyze Doctrine, Organization, Training, Material, Leadership, Personnel, and Facilities
         """)
+
+def load_framework():
+    # Get the framework parameter from URL
+    params = st.experimental_get_query_params()
+    framework = params.get("framework", [None])[0]
+    
+    if not framework:
+        st.error("No framework specified. Please select a framework from the sidebar.")
+        return
+    
+    # Map framework parameters to their respective modules/functions
+    framework_map = {
+        "swot": swot.render_swot_analysis,
+        "ach": ach.render_ach_analysis,
+        "cog": cog.render_cog_analysis,
+        "deception": deception.render_deception_detection,
+        "dime": dime.render_dime_framework,
+        "pmesii": pmesii.render_pmesii_framework,
+        "dotmlpf": dotmlpf.render_dotmlpf_framework,
+        "starbursting": starbursting.render_starbursting
+    }
+    
+    # Render the selected framework
+    if framework in framework_map:
+        framework_map[framework]()
+    else:
+        st.error(f"Unknown framework: {framework}")
 
 def main():
     frameworks_page()

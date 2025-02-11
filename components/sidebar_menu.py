@@ -1,7 +1,7 @@
 import streamlit as st
 
 def sidebar_menu():
-    # Framework Quick Links – use query parameters to reference pages under Frameworks
+    # Framework Quick Links with fallback direct links
     st.sidebar.markdown("## Analysis Frameworks")
     st.sidebar.markdown("""
     - [SWOT Analysis](/Frameworks?framework=swot)
@@ -12,6 +12,8 @@ def sidebar_menu():
     - [PMESII-PT Framework](/Frameworks?framework=pmesii)
     - [DOTMLPF Framework](/Frameworks?framework=dotmlpf)
     - [Starbursting](/Frameworks?framework=starbursting)
+    
+    Having trouble with the links? [View all frameworks](/Frameworks)
     """)
     # Wiki Links
     st.sidebar.markdown("## [**Research Wiki Pages**](https://irregularpedia.org/index.php/Category:Research)")
