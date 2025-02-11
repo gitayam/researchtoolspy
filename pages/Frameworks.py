@@ -113,7 +113,7 @@ def frameworks_page():
     st.title("Analysis Frameworks")
     
     # Check URL parameters for a framework
-    params = st.query_params()
+    params = st.query_params
     framework_param = params.get("framework", [None])[0]
     
     # If 'current_framework' is not already set in session_state, use URL param (make it uppercase to match our values)
@@ -163,7 +163,7 @@ def frameworks_page():
 
 def load_framework():
     # Get the framework parameter from URL
-    params = st.query_params()
+    params = st.query_params
     framework = params.get("framework", [None])[0]
     
     if not framework:

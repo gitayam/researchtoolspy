@@ -1,13 +1,13 @@
 # /utilities/utils_openai.py
 
-import openai
 import os
+from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime
 
 load_dotenv()
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Local LLM environment configuration
 LOCAL_LLM_HOST = os.getenv("LOCAL_LLM_HOST", "").strip()
@@ -68,20 +68,18 @@ def chat_gpt(
         }
         response = requests.post(url, headers=headers, json=json_data)
         response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"].strip()
+        return response.json().choices[0].message.content.strip()
     else:
         # Fallback to using the OpenAI API.
-        response = openai.ChatCompletion.create(
-            model=model,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            n=n,
-            frequency_penalty=frequency_penalty,
-            presence_penalty=presence_penalty
-        )
-        return response["choices"][0]["message"]["content"].strip()
+        response = client.chat.completions.create(model=model,
+        messages=messages,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        top_p=top_p,
+        n=n,
+        frequency_penalty=frequency_penalty,
+        presence_penalty=presence_penalty)
+        return response.choices[0].message.content.strip()
 
 
 def generate_advanced_query(search_query, search_platform, model="gpt-4o"):
@@ -92,9 +90,9 @@ def generate_advanced_query(search_query, search_platform, model="gpt-4o"):
     # Get today's date
     today = datetime.now()
     date_context = f"\nToday's date is {today.strftime('%Y-%m-%d')}. "
-    
+
     base_prompt = f"Analyze the intention of this search and create an advanced query to be used on {search_platform}. {date_context}"
-    
+
     if search_platform == "Windows CMD Search":
         additional_prompt = (
             "Take into account the limits and syntax of Windows CMD Search and "
@@ -113,12 +111,10 @@ def generate_advanced_query(search_query, search_platform, model="gpt-4o"):
         {"role": "user", "content": base_prompt + additional_prompt + search_query}
     ]
 
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=messages,
-        max_tokens=250
-    )
-    return response["choices"][0]["message"]["content"].strip().replace("`", "")
+    response = client.chat.completions.create(model=model,
+    messages=messages,
+    max_tokens=250)
+    return response.choices[0].message.content.strip().replace("`", "")
 
 
 def generate_cog_questions(user_details, desired_end_state, custom_prompt="", model="gpt-4"):
