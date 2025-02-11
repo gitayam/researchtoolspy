@@ -1,0 +1,16 @@
+---
+description: streamlit
+globs: 
+---
+# Streamlit Development Cursor Rules
+
+- 📝 **Markdown Usage:** You can use Markdown for formatting, but it's not required.
+- 📂 **File Referencing:** You can @mention files in discussions.
+- 🏗️ **Component-Based:** Focus on modular, reusable Streamlit components.
+- 🔄 **Live Refresh:** Use `st.rerun()` instead of `st.experimental_rerun()`, which is deprecated.
+- 🎨 **UI Simplicity:** Prefer Streamlit widgets over complex HTML/CSS/JS for UI.
+- 🚀 **Deployment-Friendly:** Keep dependencies minimal for easy deployment to Streamlit Cloud.
+- 📊 **Interactive Visuals:** Utilize `st.plotly_chart()`, `st.altair_chart()`, and other built-ins for interactivity.
+- 🏎️ **Speed Optimization:** Cache expensive computations using `@st.cache_data` and `@st.cache_resource`.
+- 🔐 **Secrets Management:** Store API keys and credentials in `.streamlit/secrets.toml`.
+- 📦 **Environment Management:** Prefer `venv` or `pipenv` for dependency management.
