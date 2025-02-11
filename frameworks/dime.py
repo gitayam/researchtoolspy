@@ -8,73 +8,10 @@ import requests
 import wikipedia
 from dotenv import load_dotenv
 from utilities.gpt import chat_gpt  # Using the same helper as SWOT and COG
-from utilities.advanced_scraper import advanced_fetch_metadata  # New import for advanced scraping
+from utilities.advanced_scraper import advanced_fetch_metadata, google_search_summary, generate_google_results, generate_wikipedia_results  # New import for advanced scraping
 
 load_dotenv()
 
-def google_search_summary(query):
-    """
-    Performs a Google search for the given query using Selenium
-    and returns a summary (title and snippet) of the first result.
-    """
-    from selenium import webdriver
-    from selenium.webdriver.chrome.service import Service
-    from webdriver_manager.chrome import ChromeDriverManager
-    from bs4 import BeautifulSoup
-    import time
-
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    # Specify the binary location for Chromium installed by apt-get
-    chrome_options.binary_location = "/usr/bin/chromium"
-
-    # Set up the Service with the ChromeDriver path obtained by webdriver_manager
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    
-    query_url = "https://www.google.com/search?q=" + query.replace(" ", "+")
-    driver.get(query_url)
-    time.sleep(2)  # Wait for the page to load
-
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    # Look for the common result container "g" in Google search results.
-    results = soup.find_all("div", class_="g")
-    if results:
-        block = results[0]
-        title_tag = block.find("h3")
-        title = title_tag.get_text() if title_tag else "No title"
-        snippet_tag = block.find("div", class_="IsZvec")
-        snippet = snippet_tag.get_text(separator=" ", strip=True) if snippet_tag else ""
-        if not snippet:
-            snippet = block.get_text(separator=" ", strip=True)
-        summary = f"Title: {title}\nSnippet: {snippet}"
-    else:
-        summary = "No results found."
-
-    driver.quit()
-    return summary
-
-def generate_google_results(suggestions_text):
-    """
-    Extracts advanced search queries from AI-generated suggestions
-    and then performs a Google search for each query.
-    Returns a concatenated string of each query's search result summary.
-    """
-    results_text = ""
-    items = suggestions_text.split(";")
-    # Match either "Search:" or "Advanced Google Search Query:" (case insensitive)
-    pattern = re.compile(r"(?:Search:|Advanced Google Search Query:)\s*(.+)", re.IGNORECASE)
-    for item in items:
-        m = pattern.search(item)
-        if m:
-            query = m.group(1).strip()
-            result = google_search_summary(query)
-            results_text += f"Query: {query}\n{result}\n\n"
-    if not results_text:
-        results_text = "No valid advanced search queries found."
-    return results_text
 
 def process_scenario_input(scenario):
     """
@@ -111,45 +48,6 @@ def process_scenario_input(scenario):
             return scenario
     else:
         return scenario
-
-def generate_wikipedia_results(scenario):
-    """
-    Uses GPT-4o-mini to turn the summary of the scenario (or the raw scenario text) 
-    into 1 or 2 queries focused on places, people, or events and then returns Wikipedia search results.
-    For each query, the first matching article and its summary (2 sentences) are displayed.
-    """
-    try:
-        prompt = (
-            "Based on the following summarized scenario, generate 1 to 2 search queries "
-            "that would be appropriate for looking up related places, people, or events on Wikipedia. "
-            "Output the queries as a semicolon-separated list.\n\n"
-            f"Summary: {scenario}"
-        )
-        queries_output = chat_gpt(
-            [
-                {"role": "system", "content": "You are an assistant that generates Wikipedia search queries that are focused on a single place, person, or event."},
-                {"role": "user", "content": prompt}
-            ],
-            model="gpt-4o-mini"
-        )
-        queries = [q.strip() for q in queries_output.split(";") if q.strip()]
-        if not queries:
-            return "No Wikipedia queries generated."
-
-        results_text = ""
-        for query in queries:
-            results = wikipedia.search(query)
-            if results:
-                try:
-                    summary = wikipedia.summary(results[0], sentences=2)
-                    results_text += f"Query: {query}\nTitle: {results[0]}\nSummary: {summary}\n\n"
-                except Exception as e:
-                    results_text += f"Query: {query}\nError retrieving summary: {e}\n\n"
-            else:
-                results_text += f"Query: {query}\nNo Wikipedia results found.\n\n"
-        return results_text
-    except Exception as e:
-        return f"Error generating Wikipedia results: {e}"
 
 def ai_suggest_dime(phase, scenario, objective=None):
     """
