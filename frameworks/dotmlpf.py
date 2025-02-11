@@ -332,7 +332,7 @@ def dotmlpf_page():
             st.session_state["problem_statement_default"] = generated_statement
             st.success("Generated Problem Statement:")
             st.write(generated_statement)
-            st.experimental_rerun()
+            st.rerun()
         else:
             # A problem statement was provided => improve it.
             prompt = (
@@ -347,7 +347,7 @@ def dotmlpf_page():
             st.session_state["problem_statement_default"] = improved_statement
             st.success("Improved Problem Statement:")
             st.write(improved_statement)
-            st.experimental_rerun()
+            st.rerun()
 
     st.markdown("---")
     st.subheader("TRADOC Alignment")
@@ -452,13 +452,12 @@ def dotmlpf_page():
             mime="application/json"
         )
 
-    # Export document button
-    export_format = st.selectbox("Select export format for document", ["PDF", "DOCX"], key="export_format")
-    if st.button("Export DOTMLPF-P Analysis as Document"):
+    # Export document button (DOCX export only)
+    if st.button("Export DOTMLPF-P Analysis as DOCX Document"):
         # Build a document title based on organization_input; provide a default if blank.
         title_doc = f"DOTMLPF-P Analysis for {organization_input}" if organization_input.strip() else "DOTMLPF-P Analysis"
 
-        # Ensure a problem statement exists.
+        # Ensure a problem statement exists. If the user hasn't generated one, generate it.
         if not st.session_state.get("problem_statement_default", "").strip():
             prompt = (
                 "You are an expert in crafting clear, actionable, and research-informed problem statements. "
@@ -480,139 +479,72 @@ def dotmlpf_page():
         dotmlpf_summary = st.session_state.get("dotmlpf_summary", "No summary available.")
         tradoc_alignment = st.session_state.get("tradoc_alignment", "")
         command_endorsement = st.session_state.get("command_endorsement", "")
+        
+        try:
+            from docx import Document
+            from docx.shared import Pt
+            import io
+            import re
 
-        if export_format == "DOCX":
-            try:
-                from docx import Document
-                from docx.shared import Pt
-                import io
-                import re
+            def remove_markdown(md_text):
+                """Simple conversion to remove markdown syntax for DOCX export."""
+                if not md_text:
+                    return ""
+                text = re.sub(r'\*\*(.*?)\*\*', r'\1', md_text)
+                text = re.sub(r'__(.*?)__', r'\1', text)
+                text = re.sub(r'\*(.*?)\*', r'\1', text)
+                text = re.sub(r'_(.*?)_', r'\1', text)
+                text = re.sub(r'`(.*?)`', r'\1', text)
+                text = re.sub(r'^#+\s', '', text, flags=re.MULTILINE)
+                text = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', text)
+                return text
 
-                def remove_markdown(md_text):
-                    """A simple function to remove common Markdown syntax."""
-                    if not md_text:
-                        return ""
-                    # Remove bold/italic markers, inline code, headings, and markdown links.
-                    text = re.sub(r'\*\*(.*?)\*\*', r'\1', md_text)
-                    text = re.sub(r'__(.*?)__', r'\1', text)
-                    text = re.sub(r'\*(.*?)\*', r'\1', text)
-                    text = re.sub(r'_(.*?)_', r'\1', text)
-                    text = re.sub(r'`(.*?)`', r'\1', text)
-                    text = re.sub(r'^#+\s', '', text, flags=re.MULTILINE)
-                    text = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', text)
-                    return text
+            document = Document()
+            # Set document's default style to Arial 12pt.
+            style = document.styles["Normal"]
+            font = style.font
+            font.name = "Arial"
+            font.size = Pt(12)
 
-                document = Document()
-                # Set document's default style to Arial 12pt.
-                style = document.styles["Normal"]
-                font = style.font
-                font.name = "Arial"
-                font.size = Pt(12)
-
-                document.add_heading(title_doc, level=0)
-                document.add_heading("Problem Statement", level=1)
-                document.add_paragraph(remove_markdown(problem_statement))
-                document.add_heading("DOTMLPF-P Summary", level=1)
-                document.add_paragraph(remove_markdown(dotmlpf_summary))
-                
-                # Loop through each DOTMLPF-P category.
-                for cat in dotmlpf_categories:
-                    document.add_heading(f"Category: {cat}", level=2)
-                    analysis_observations = st.session_state.get(cat, "")
-                    if analysis_observations:
-                        document.add_paragraph("Observations: " + remove_markdown(analysis_observations))
-                    questions = st.session_state.get(f"analysis_questions_{cat}", [])
-                    if questions:
-                        document.add_paragraph("Questions and Answers:")
-                        for idx, question in enumerate(questions):
-                            document.add_paragraph("Q: " + remove_markdown(question), style="List Bullet")
-                            answer = st.session_state.get(f"analysis_answer_{cat}_{idx}", "")
-                            document.add_paragraph("A: " + remove_markdown(answer), style="List Bullet")
-                
-                if tradoc_alignment:
-                    document.add_heading("TRADOC Alignment", level=1)
-                    document.add_paragraph(remove_markdown(tradoc_alignment))
-                if command_endorsement:
-                    document.add_heading("Command Endorsement", level=1)
-                    document.add_paragraph(remove_markdown(command_endorsement))
-                
-                # Save the DOCX document to an in-memory binary stream.
-                docx_io = io.BytesIO()
-                document.save(docx_io)
-                docx_io.seek(0)
-                st.download_button(
-                    label="Download DOCX",
-                    data=docx_io,
-                    file_name=f"{title_doc}.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
-            except Exception as e:
-                st.error(f"Error generating DOCX export: {e}")
-        else:
-            # Export as PDF using fpdf, with Markdown removed.
-            try:
-                from fpdf import FPDF
-                import io
-                import re
-
-                def remove_markdown(md_text):
-                    if not md_text:
-                        return ""
-                    text = re.sub(r'\*\*(.*?)\*\*', r'\1', md_text)
-                    text = re.sub(r'__(.*?)__', r'\1', text)
-                    text = re.sub(r'\*(.*?)\*', r'\1', text)
-                    text = re.sub(r'_(.*?)_', r'\1', text)
-                    text = re.sub(r'`(.*?)`', r'\1', text)
-                    text = re.sub(r'^#+\s', '', text, flags=re.MULTILINE)
-                    text = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', text)
-                    return text
-
-                pdf = FPDF()
-                pdf.add_page()
-                pdf.set_font("Arial", size=12)
-                
-                # Title centered.
-                pdf.cell(0, 10, txt=title_doc, ln=True, align="C")
-                pdf.ln(5)
-                pdf.cell(0, 10, txt="Problem Statement", ln=True)
-                pdf.multi_cell(0, 10, txt=remove_markdown(problem_statement))
-                pdf.ln(5)
-                pdf.cell(0, 10, txt="DOTMLPF-P Summary", ln=True)
-                pdf.multi_cell(0, 10, txt=remove_markdown(dotmlpf_summary))
-                pdf.ln(5)
-                
-                for cat in dotmlpf_categories:
-                    pdf.cell(0, 10, txt=f"Category: {cat}", ln=True)
-                    analysis_observations = st.session_state.get(cat, "")
-                    if analysis_observations:
-                        pdf.multi_cell(0, 10, txt="Observations: " + remove_markdown(analysis_observations))
-                    questions = st.session_state.get(f"analysis_questions_{cat}", [])
-                    if questions:
-                        pdf.cell(0, 10, txt="Questions and Answers:", ln=True)
-                        for idx, question in enumerate(questions):
-                            answer = st.session_state.get(f"analysis_answer_{cat}_{idx}", "")
-                            pdf.multi_cell(0, 10, txt=f"Q: {remove_markdown(question)}")
-                            pdf.multi_cell(0, 10, txt=f"A: {remove_markdown(answer)}")
-                    pdf.ln(5)
-                
-                if tradoc_alignment:
-                    pdf.cell(0, 10, txt="TRADOC Alignment", ln=True)
-                    pdf.multi_cell(0, 10, txt=remove_markdown(tradoc_alignment))
-                    pdf.ln(5)
-                if command_endorsement:
-                    pdf.cell(0, 10, txt="Command Endorsement", ln=True)
-                    pdf.multi_cell(0, 10, txt=remove_markdown(command_endorsement))
-                
-                # Output the PDF to a binary string.
-                pdf_output = pdf.output(dest="S").encode("latin1")
-                st.download_button(
-                    label="Download PDF",
-                    data=pdf_output,
-                    file_name=f"{title_doc}.pdf",
-                    mime="application/pdf"
-                )
-            except Exception as e:
-                st.error(f"Error generating PDF export: {e}")
+            document.add_heading(title_doc, level=0)
+            document.add_heading("Problem Statement", level=1)
+            document.add_paragraph(remove_markdown(problem_statement))
+            document.add_heading("DOTMLPF-P Summary", level=1)
+            document.add_paragraph(remove_markdown(dotmlpf_summary))
+            
+            # Loop through each DOTMLPF-P category.
+            for cat in dotmlpf_categories:
+                document.add_heading(f"Category: {cat}", level=2)
+                analysis_observations = st.session_state.get(cat, "")
+                if analysis_observations:
+                    document.add_paragraph("Observations: " + remove_markdown(analysis_observations))
+                questions = st.session_state.get(f"analysis_questions_{cat}", [])
+                if questions:
+                    document.add_paragraph("Questions and Answers:")
+                    for idx, question in enumerate(questions):
+                        document.add_paragraph("Q: " + remove_markdown(question), style="List Bullet")
+                        answer = st.session_state.get(f"analysis_answer_{cat}_{idx}", "")
+                        document.add_paragraph("A: " + remove_markdown(answer), style="List Bullet")
+            
+            if tradoc_alignment:
+                document.add_heading("TRADOC Alignment", level=1)
+                document.add_paragraph(remove_markdown(tradoc_alignment))
+            if command_endorsement:
+                document.add_heading("Command Endorsement", level=1)
+                document.add_paragraph(remove_markdown(command_endorsement))
+            
+            # Save the DOCX document to an in-memory binary stream.
+            docx_io = io.BytesIO()
+            document.save(docx_io)
+            docx_io.seek(0)
+            st.download_button(
+                label="Download DOCX",
+                data=docx_io,
+                file_name=f"{title_doc}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+        except Exception as e:
+            st.error(f"Error generating DOCX export: {e}")
 
 def main():
     dotmlpf_page()
