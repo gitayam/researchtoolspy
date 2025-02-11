@@ -1,16 +1,17 @@
 # /utilities/utils_conversion.py
 
 import json
+from typing import List
 
 def convert_input(
-    input_data, 
-    format_type="Advanced Query", 
+    input_data: str, 
+    format_type: str = "Advanced Query", 
     json_option=None, 
-    json_attribute=None, 
-    remove_quotes=False, 
-    remove_hashtags=False, 
-    remove_top_row=False, 
-    process_limit=0
+    json_attribute: str = None, 
+    remove_quotes: bool = False, 
+    remove_hashtags: bool = False, 
+    remove_top_row: bool = False, 
+    process_limit: int = 0
 ):
     """
     Python conversion logic, extended to support 'List to JSON' and 'JSON to List'
@@ -19,7 +20,7 @@ def convert_input(
 
     # Split input into lines and extract the first value from each line assuming CSV structure
     lines = input_data.strip().split("\n")
-    values = [line.split(",")[0].strip() for line in lines if line.strip() != ""]
+    values = [line.split(",")[0].strip() for line in lines if line.strip()]
 
     # Remove duplicates
     unique_values = list(dict.fromkeys(values))
