@@ -1,17 +1,17 @@
 import streamlit as st
 
 def sidebar_menu():
-    # Framework Quick Links
+    # Framework Quick Links – use query parameters to reference pages under Frameworks
     st.sidebar.markdown("## Analysis Frameworks")
     st.sidebar.markdown("""
-    - [SWOT Analysis](/SWOT_Analysis)
-    - [ACH Analysis](/ACH_Analysis)
-    - [COG Analysis](/COG_Analysis)
-    - [Deception Detection](/Deception_Detection)
-    - [DIME Framework](/DIME_Framework)
-    - [PMESII-PT Framework](/PMESII_PT_Framework)
-    - [DOTMLPF Framework](/DOTMLPF_Framework)
-    - [Starbursting](/Starbursting)
+    - [SWOT Analysis](/Frameworks?framework=swot)
+    - [ACH Analysis](/Frameworks?framework=ach)
+    - [COG Analysis](/Frameworks?framework=cog)
+    - [Deception Detection](/Frameworks?framework=deception)
+    - [DIME Framework](/Frameworks?framework=dime)
+    - [PMESII-PT Framework](/Frameworks?framework=pmesii)
+    - [DOTMLPF Framework](/Frameworks?framework=dotmlpf)
+    - [Starbursting](/Frameworks?framework=starbursting)
     """)
     # Wiki Links
     st.sidebar.markdown("## [**Research Wiki Pages**](https://irregularpedia.org/index.php/Category:Research)")
