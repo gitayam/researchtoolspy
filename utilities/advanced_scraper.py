@@ -10,6 +10,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import wikipedia
+import os
 
 # Optionally use Playwright for dynamic pages
 try:
@@ -66,34 +67,62 @@ def google_search_summary(query):
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    # Specify the binary location for Chromium installed by apt-get
-    chrome_options.binary_location = "/usr/bin/chromium"
+    
+    # Try common Chromium binary locations
+    chromium_paths = [
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+        "/usr/bin/google-chrome",
+        "/usr/bin/google-chrome-stable"
+    ]
+    
+    browser_found = False
+    for path in chromium_paths:
+        try:
+            chrome_options.binary_location = path
+            # Test if browser exists at this path
+            if os.path.exists(path):
+                browser_found = True
+                break
+        except Exception:
+            continue
+    
+    if not browser_found:
+        # If no browser found at common paths, let Selenium try to find it automatically
+        chrome_options.binary_location = ""
 
     # Set up the Service with the ChromeDriver path obtained by webdriver_manager
     service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
     
-    query_url = "https://www.google.com/search?q=" + query.replace(" ", "+")
-    driver.get(query_url)
-    time.sleep(2)  # Wait for the page to load
+    try:
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+    except Exception as e:
+        return f"Error initializing Chrome WebDriver: {str(e)}"
+    
+    try:
+        query_url = "https://www.google.com/search?q=" + query.replace(" ", "+")
+        driver.get(query_url)
+        time.sleep(2)  # Wait for the page to load
 
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    # Look for the common result container "g" in Google search results.
-    results = soup.find_all("div", class_="g")
-    if results:
-        block = results[0]
-        title_tag = block.find("h3")
-        title = title_tag.get_text() if title_tag else "No title"
-        snippet_tag = block.find("div", class_="IsZvec")
-        snippet = snippet_tag.get_text(separator=" ", strip=True) if snippet_tag else ""
-        if not snippet:
-            snippet = block.get_text(separator=" ", strip=True)
-        summary = f"Title: {title}\nSnippet: {snippet}"
-    else:
-        summary = "No results found."
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        # Look for the common result container "g" in Google search results.
+        results = soup.find_all("div", class_="g")
+        if results:
+            block = results[0]
+            title_tag = block.find("h3")
+            title = title_tag.get_text() if title_tag else "No title"
+            snippet_tag = block.find("div", class_="IsZvec")
+            snippet = snippet_tag.get_text(separator=" ", strip=True) if snippet_tag else ""
+            if not snippet:
+                snippet = block.get_text(separator=" ", strip=True)
+            summary = f"Title: {title}\nSnippet: {snippet}"
+        else:
+            summary = "No results found."
 
-    driver.quit()
-    return summary
+        driver.quit()
+        return summary
+    except Exception as e:
+        return f"Error during Google search: {e}"
 
 
 def generate_wikipedia_results(scenario):
