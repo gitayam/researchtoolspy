@@ -178,3 +178,4 @@ cython_debug/
 # DS_Store
 .DS_Store
 tests/wiki.py
+*.DS_Store
