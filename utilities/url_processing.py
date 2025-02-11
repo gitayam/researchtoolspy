@@ -554,7 +554,7 @@ def wayback_tool_page(use_expander=True):
                 )
                 if st.button("Remove this card", key=f"remove_{card['hash']}"):
                     st.session_state["saved_links"].pop(idx)
-                    st.experimental_rerun()
+                    st.rerun()
 
 
 def generate_pdf_using_playwright(target_url):

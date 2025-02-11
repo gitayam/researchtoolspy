@@ -85,7 +85,7 @@ def swot_page():
             ai_text = ai_suggest_swot("Strengths")
             if ai_text:
                 st.session_state["swot_strengths"] += "\n" + ai_text
-                st.experimental_rerun()
+                st.rerun()
 
     st.markdown("---")
 
@@ -107,7 +107,7 @@ def swot_page():
             ai_text = ai_suggest_swot("Weaknesses")
             if ai_text:
                 st.session_state["swot_weaknesses"] += "\n" + ai_text
-                st.experimental_rerun()
+                st.rerun()
 
     st.markdown("---")
 
@@ -129,7 +129,7 @@ def swot_page():
             ai_text = ai_suggest_swot("Opportunities")
             if ai_text:
                 st.session_state["swot_opportunities"] += "\n" + ai_text
-                st.experimental_rerun()
+                st.rerun()
 
     st.markdown("---")
 
@@ -151,7 +151,7 @@ def swot_page():
             ai_text = ai_suggest_swot("Threats")
             if ai_text:
                 st.session_state["swot_threats"] += "\n" + ai_text
-                st.experimental_rerun()
+                st.rerun()
 
     st.markdown("---")
 
@@ -207,7 +207,7 @@ def swot_page():
             strategies_text = ai_suggest_strategies()
             if strategies_text:
                 st.session_state["swot_strategies"] += "\n" + strategies_text
-                st.experimental_rerun()
+                st.rerun()
 
     st.markdown("---")
 
