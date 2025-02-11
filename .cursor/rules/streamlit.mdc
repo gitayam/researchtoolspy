@@ -14,3 +14,4 @@ globs:
 - 🏎️ **Speed Optimization:** Cache expensive computations using `@st.cache_data` and `@st.cache_resource`.
 - 🔐 **Secrets Management:** Store API keys and credentials in `.streamlit/secrets.toml`.
 - 📦 **Environment Management:** Prefer `venv` or `pipenv` for dependency management.
+- Protect against injection attacks by setting approrpiate character limit for input fields. 

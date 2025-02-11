@@ -5,6 +5,7 @@ from utilities.gpt import chat_gpt  # If you want AI to assist
 import pandas as pd
 from io import BytesIO
 import openpyxl
+from utilities.helpers import export_ach_matrix_to_excel
 
 load_dotenv()
 
@@ -283,9 +284,16 @@ def ach_page():
             # Always show the export button
             if st.button('Export to Excel'):
                 try:
-                    # Export
-                    excel_data = export_to_excel(hypotheses, evidence, matrix, weights)
-                    
+                    # Convert hypotheses and evidence from text to lists if necessary.
+                    hypotheses = (st.session_state.get("ach_hypotheses", "")
+                                  if isinstance(st.session_state.get("ach_hypotheses", ""), list)
+                                  else st.session_state.get("ach_hypotheses", "").split('\n'))
+                    evidence = (
+                        st.session_state.get("ach_evidence", "")
+                        if isinstance(st.session_state.get("ach_evidence", ""), list)
+                        else st.session_state.get("ach_evidence", "").split('\n')
+                    )
+                    excel_data = export_ach_matrix_to_excel(hypotheses, evidence, matrix, weights)
                     if excel_data:
                         st.download_button(
                             label="📥 Download Excel file",
@@ -338,92 +346,6 @@ def ai_devils_advocate(hypotheses, evidence, weighted_score, consistency_counts)
     except Exception as e:
         st.error(f"AI error: {e}")
         return ""
-
-def export_to_excel(hypotheses_list, evidence_list, ach_matrix, evidence_weights):
-    """Export the ACH matrix to an Excel file."""
-    try:
-        # Ensure hypotheses_list is a list
-        if isinstance(hypotheses_list, str):
-            hypotheses_list = hypotheses_list.split('\n')  # Split by newline if it's a single string
-
-        # Ensure evidence_list is a list
-        if isinstance(evidence_list, str):
-            evidence_list = evidence_list.split('\n')  # Split by newline if it's a single string
-
-        # Create workbook
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = 'ACH Matrix'
-        
-        # Style for headers
-        header_style = openpyxl.styles.NamedStyle(name='header')
-        header_style.font = openpyxl.styles.Font(bold=True)
-        header_style.fill = openpyxl.styles.PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
-        
-        # Write headers
-        headers = ['Evidence', 'Weight'] + hypotheses_list
-        for col, header in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col, value=header)
-            cell.style = header_style
-            
-        # Write data
-        for row_idx, evidence in enumerate(evidence_list, 2):  # Start from row 2
-            # Evidence and weight
-            ws.cell(row=row_idx, column=1, value=str(evidence))
-            ws.cell(row=row_idx, column=2, value=float(evidence_weights.get(evidence, 0)))
-            
-            # Consistency values
-            for col_idx, hypothesis in enumerate(hypotheses_list, 3):  # Start from column 3
-                key = (evidence, hypothesis)
-                value = ach_matrix.get(key, "N/A")  # Use "N/A" for missing data
-                ws.cell(row=row_idx, column=col_idx, value=str(value))
-        
-        # Calculate total scores
-        total_scores = {h: 0 for h in hypotheses_list}
-        for (evidence, hypothesis), consistency in ach_matrix.items():
-            if hypothesis in total_scores:  # Ensure hypothesis is in total_scores
-                weight = evidence_weights.get(evidence, 0)
-                if consistency == 'Consistent':
-                    total_scores[hypothesis] += weight
-                elif consistency == 'Inconsistent':
-                    total_scores[hypothesis] -= weight
-        
-        # Write total scores
-        total_row = len(evidence_list) + 2
-        ws.cell(row=total_row, column=1, value='Total Score')
-        for col_idx, hypothesis in enumerate(hypotheses_list, 3):
-            ws.cell(row=total_row, column=col_idx, value=total_scores.get(hypothesis, 0))
-        
-        # Auto-adjust columns
-        for column_cells in ws.columns:
-            length = max(len(str(cell.value)) for cell in column_cells)
-            ws.column_dimensions[column_cells[0].column_letter].width = length + 2
-            
-        # Add borders
-        thin_border = openpyxl.styles.Border(
-            left=openpyxl.styles.Side(style='thin'),
-            right=openpyxl.styles.Side(style='thin'),
-            top=openpyxl.styles.Side(style='thin'),
-            bottom=openpyxl.styles.Side(style='thin')
-        )
-        
-        for row in ws.iter_rows(min_row=1, max_row=total_row, 
-                              min_col=1, max_col=len(headers)):
-            for cell in row:
-                cell.border = thin_border
-                
-        # Save to BytesIO
-        output = BytesIO()
-        wb.save(output)
-        output.seek(0)
-        
-        return output.getvalue()
-
-    except Exception as e:
-        import traceback
-        error_msg = f"Export error: {str(e)}\n{traceback.format_exc()}"
-        st.error(error_msg)
-        return None
 
 def main():
     ach_page()

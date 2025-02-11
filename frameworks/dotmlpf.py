@@ -7,6 +7,7 @@ from utilities.gpt import chat_gpt
 from dotenv import load_dotenv
 import json
 import re
+from utilities.helpers import create_docx_document
 
 load_dotenv()
 
@@ -454,97 +455,31 @@ def dotmlpf_page():
 
     # Export document button (DOCX export only)
     if st.button("Export DOTMLPF-P Analysis as DOCX Document"):
-        # Build a document title based on organization_input; provide a default if blank.
         title_doc = f"DOTMLPF-P Analysis for {organization_input}" if organization_input.strip() else "DOTMLPF-P Analysis"
-
-        # Ensure a problem statement exists. If the user hasn't generated one, generate it.
-        if not st.session_state.get("problem_statement_default", "").strip():
-            prompt = (
-                "You are an expert in crafting clear, actionable, and research-informed problem statements. "
-                "Based on the following analysis details, generate an initial problem statement that encapsulates the key challenges, gaps, "
-                "and strategic imperatives derived from the DOTMLPF-P analysis. Include considerations of force type, goals, organization, and any operational gaps noted.\n\n"
-                f"Force Type: {force_type}\n"
-                f"Force Goal: {force_goal_input}\n"
-                f"Goal of the Analysis: {goal_input}\n"
-                f"Organization: {organization_input}\n"
-                f"Operational Gap: {operational_gap_input if force_type == 'Our Own' else 'N/A'}\n\n"
-                f"DOTMLPF-P Analysis Summary:\n{st.session_state.get('dotmlpf_summary', 'No summary available.')}\n\n"
-                "Return only the generated problem statement."
-            )
-            generated_statement = chat_gpt([{"role": "system", "content": prompt}], model="gpt-4o-mini")
-            st.session_state["problem_statement_default"] = generated_statement
-
-        # Use the generated/improved problem statement.
-        problem_statement = st.session_state.get("problem_statement_default", "No problem statement provided.")
-        dotmlpf_summary = st.session_state.get("dotmlpf_summary", "No summary available.")
-        tradoc_alignment = st.session_state.get("tradoc_alignment", "")
-        command_endorsement = st.session_state.get("command_endorsement", "")
         
-        try:
-            from docx import Document
-            from docx.shared import Pt
-            import io
-            import re
+        # Build sections dictionary (e.g., problem statement, summary, TRADOC alignment, etc.)
+        sections = {
+            "Problem Statement": st.session_state.get("problem_statement_default", "No problem statement provided."),
+            "DOTMLPF-P Summary": st.session_state.get("dotmlpf_summary", "No summary available."),
+        }
+        if st.session_state.get("tradoc_alignment", "") != "":
+            sections["TRADOC Alignment"] = st.session_state["tradoc_alignment"]
+        if st.session_state.get("command_endorsement", "") != "":
+            sections["Command Endorsement"] = st.session_state["command_endorsement"]
 
-            def remove_markdown(md_text):
-                """Simple conversion to remove markdown syntax for DOCX export."""
-                if not md_text:
-                    return ""
-                text = re.sub(r'\*\*(.*?)\*\*', r'\1', md_text)
-                text = re.sub(r'__(.*?)__', r'\1', text)
-                text = re.sub(r'\*(.*?)\*', r'\1', text)
-                text = re.sub(r'_(.*?)_', r'\1', text)
-                text = re.sub(r'`(.*?)`', r'\1', text)
-                text = re.sub(r'^#+\s', '', text, flags=re.MULTILINE)
-                text = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', text)
-                return text
+        # Optionally, loop through DOTMLPF-P categories to include observations and Q&A.
+        for cat in dotmlpf_categories:
+            analysis_observations = st.session_state.get(cat, "")
+            if analysis_observations:
+                sections[f"Category: {cat} Observations"] = analysis_observations
 
-            document = Document()
-            # Set document's default style to Arial 12pt.
-            style = document.styles["Normal"]
-            font = style.font
-            font.name = "Arial"
-            font.size = Pt(12)
-
-            document.add_heading(title_doc, level=0)
-            document.add_heading("Problem Statement", level=1)
-            document.add_paragraph(remove_markdown(problem_statement))
-            document.add_heading("DOTMLPF-P Summary", level=1)
-            document.add_paragraph(remove_markdown(dotmlpf_summary))
-            
-            # Loop through each DOTMLPF-P category.
-            for cat in dotmlpf_categories:
-                document.add_heading(f"Category: {cat}", level=2)
-                analysis_observations = st.session_state.get(cat, "")
-                if analysis_observations:
-                    document.add_paragraph("Observations: " + remove_markdown(analysis_observations))
-                questions = st.session_state.get(f"analysis_questions_{cat}", [])
-                if questions:
-                    document.add_paragraph("Questions and Answers:")
-                    for idx, question in enumerate(questions):
-                        document.add_paragraph("Q: " + remove_markdown(question), style="List Bullet")
-                        answer = st.session_state.get(f"analysis_answer_{cat}_{idx}", "")
-                        document.add_paragraph("A: " + remove_markdown(answer), style="List Bullet")
-            
-            if tradoc_alignment:
-                document.add_heading("TRADOC Alignment", level=1)
-                document.add_paragraph(remove_markdown(tradoc_alignment))
-            if command_endorsement:
-                document.add_heading("Command Endorsement", level=1)
-                document.add_paragraph(remove_markdown(command_endorsement))
-            
-            # Save the DOCX document to an in-memory binary stream.
-            docx_io = io.BytesIO()
-            document.save(docx_io)
-            docx_io.seek(0)
-            st.download_button(
-                label="Download DOCX",
-                data=docx_io,
-                file_name=f"{title_doc}.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
-        except Exception as e:
-            st.error(f"Error generating DOCX export: {e}")
+        docx_file = create_docx_document(title_doc, sections)
+        st.download_button(
+            label="Download DOCX",
+            data=docx_file,
+            file_name=f"{title_doc}.docx",
+            mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
 
 def main():
     dotmlpf_page()
