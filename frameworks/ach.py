@@ -82,7 +82,7 @@ def ach_page():
             text = ai_suggest_hypotheses()
             if text:
                 st.session_state["ach_hypotheses"] += "\n" + text
-                st.experimental_rerun()
+                st.rerun()
 
     st.markdown("---")
 
@@ -132,7 +132,7 @@ def ach_page():
             text = ai_suggest_evidence()
             if text:
                 st.session_state["ach_evidence"] += "\n" + text
-                st.experimental_rerun()
+                st.rerun()
 
     st.markdown("---")
 

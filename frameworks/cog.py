@@ -514,7 +514,7 @@ def manage_assumptions():
             with col4:
                 if st.button("Remove", key=f"assump_remove_{i}"):
                     st.session_state["assumptions"].pop(i)
-                    st.experimental_rerun()  # Rerun to update the list and keys
+                    st.rerun()  # Rerun to update the list and keys
     else:
         st.info("No assumptions added yet.")
 

@@ -192,14 +192,14 @@ def dime_page():
                 )
                 if ai_text:
                     st.session_state["dime_diplomatic"] = ai_text
-                    st.experimental_rerun()
+                    st.rerun()
             st.write(st.session_state.get("dime_diplomatic", ""))
             # Google search integration instead of SearxNG.
             if st.session_state.get("dime_diplomatic", "") and st.session_state.get("include_google_search"):
                 if st.button("Google: Search & Summarize Diplomatic", key="google_diplomatic"):
                     google_results = generate_google_results(st.session_state["dime_diplomatic"])
                     st.session_state["google_diplomatic_result"] = google_results
-                    st.experimental_rerun()
+                    st.rerun()
                 if "google_diplomatic_result" in st.session_state:
                     st.write(st.session_state["google_diplomatic_result"])
         with col_diplomatic_right:
@@ -219,13 +219,13 @@ def dime_page():
                 ai_text = ai_suggest_dime("Information", st.session_state["processed_scenario"])
                 if ai_text:
                     st.session_state["dime_information"] = ai_text
-                    st.experimental_rerun()
+                    st.rerun()
             st.write(st.session_state.get("dime_information", ""))
             if st.session_state.get("dime_information", "") and st.session_state.get("include_google_search"):
                 if st.button("Google: Search & Summarize Information", key="google_information"):
                     google_results = generate_google_results(st.session_state["dime_information"])
                     st.session_state["google_information_result"] = google_results
-                    st.experimental_rerun()
+                    st.rerun()
                 if "google_information_result" in st.session_state:
                     st.write(st.session_state["google_information_result"])
         with col_information_right:
@@ -245,13 +245,13 @@ def dime_page():
                 ai_text = ai_suggest_dime("Military", st.session_state["processed_scenario"])
                 if ai_text:
                     st.session_state["dime_military"] = ai_text
-                    st.experimental_rerun()
+                    st.rerun()
             st.write(st.session_state.get("dime_military", ""))
             if st.session_state.get("dime_military", "") and st.session_state.get("include_google_search"):
                 if st.button("Google: Search & Summarize Military", key="google_military"):
                     google_results = generate_google_results(st.session_state["dime_military"])
                     st.session_state["google_military_result"] = google_results
-                    st.experimental_rerun()
+                    st.rerun()
                 if "google_military_result" in st.session_state:
                     st.write(st.session_state["google_military_result"])
         with col_military_right:
@@ -271,13 +271,13 @@ def dime_page():
                 ai_text = ai_suggest_dime("Economic", st.session_state["processed_scenario"])
                 if ai_text:
                     st.session_state["dime_economic"] = ai_text
-                    st.experimental_rerun()
+                    st.rerun()
             st.write(st.session_state.get("dime_economic", ""))
             if st.session_state.get("dime_economic", "") and st.session_state.get("include_google_search"):
                 if st.button("Google: Search & Summarize Economic", key="google_economic"):
                     google_results = generate_google_results(st.session_state["dime_economic"])
                     st.session_state["google_economic_result"] = google_results
-                    st.experimental_rerun()
+                    st.rerun()
                 if "google_economic_result" in st.session_state:
                     st.write(st.session_state["google_economic_result"])
         with col_economic_right:

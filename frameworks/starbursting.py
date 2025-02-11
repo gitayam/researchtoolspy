@@ -71,7 +71,7 @@ def starbursting_page():
         if st.button("Process URL"):
             processed = process_initial_input(initial_point)
             st.session_state["processed_initial"] = processed
-            st.experimental_rerun()
+            st.rerun()
 
     # Determine the central idea: use processed version if available.
     central_idea = st.session_state.get("processed_initial", initial_point)
@@ -138,7 +138,7 @@ def starbursting_page():
                 }
                 ai_questions = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                 st.session_state['starbursting_questions'] = ai_questions
-                st.experimental_rerun()
+                st.rerun()
             except Exception as e:
                 st.error(f"Error generating AI questions: {e}")
 
@@ -275,7 +275,7 @@ def starbursting_page():
                 }
                 additional_questions = chat_gpt([further_system_msg, further_user_msg], model="gpt-4o-mini")
                 st.session_state["further_starbursting"][key_response] = additional_questions
-                st.experimental_rerun()
+                st.rerun()
             
             if key_response in st.session_state["further_starbursting"]:
                 st.markdown("**Additional Expansion Questions:**")
