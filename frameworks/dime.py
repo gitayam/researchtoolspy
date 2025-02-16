@@ -114,6 +114,64 @@ def ai_suggest_dime(phase, scenario, objective=None):
         st.error(f"AI Error: {e}")
         return ""
 
+def recommend_dime_category(category, base_text):
+    """
+    Generate concise recommendations for the specified DIME category based on the provided text.
+    The function now also considers any answered questions from the user and includes the body content
+    of a processed URL (if provided in the scenario). This way, the recommendations take into account both
+    AI-generated questions and any user responses, as well as the original URL content if available.
+
+    Args:
+        category (str): The DIME category (e.g., "Diplomatic", "Information", "Military", "Economic").
+        base_text (str): Input text to analyze for generating recommendations.
+
+    Returns:
+        str: A string containing the recommendations.
+    """
+    try:
+        # Extract answered questions for the given category from st.session_state.
+        answered_texts = []
+        answer_prefix = f"{category.lower()}_answer_"
+        for key, value in st.session_state.items():
+            if key.startswith(answer_prefix) and value and value.strip():
+                answered_texts.append(value.strip())
+        answered_content = "\n".join(answered_texts) if answered_texts else ""
+
+        # Extract URL body content from processed scenario if available.
+        url_body = ""
+        if "processed_scenario" in st.session_state:
+            processed_text = st.session_state["processed_scenario"]
+            if "Body Content:" in processed_text:
+                url_body = processed_text.split("Body Content:", 1)[1].strip()
+
+        # Combine the base text with any answered questions and URL body content.
+        combined_text = base_text
+        if answered_content:
+            combined_text += "\n\nAnswered Questions:\n" + answered_content
+        if url_body:
+            combined_text += "\n\nURL Body Content:\n" + url_body
+
+        system_msg = {
+            "role": "system",
+            "content": (
+                "You are an experienced intelligence analyst specializing in {} analysis. "
+                "Review the following text containing intelligence questions, search results, answered questions, "
+                "and any URL body content provided, then generate concise recommendations for additional data points, "
+                "sources, or insights that could enhance the analysis in this area."
+            ).format(category)
+        }
+        user_prompt = (
+            f"Text to analyze:\n{combined_text}\n\n"
+            "Based on the text above, provide your recommendations for further data collection "
+            "and intelligence gap analysis. Be concise and focus on actionable insights."
+        )
+        user_msg = {"role": "user", "content": user_prompt}
+        recommendation = chat_gpt([system_msg, user_msg], model="gpt-4o")
+        return recommendation
+    except Exception as e:
+        logging.error(f"Error in recommend_dime_category: {e}")
+        return ""
+
 def dime_page():
     st.title("DIME Analysis Flow")
     # Inject custom CSS to make the page wider
@@ -224,6 +282,9 @@ def dime_page():
                             question_text = question_text[len("question:"):].strip()
                         if search_query.lower().startswith("search:"):
                             search_query = search_query[len("search:"):].strip()
+                            # Strip surrounding quotes if they exist
+                            if search_query.startswith('"') and search_query.endswith('"'):
+                                search_query = search_query[1:-1]
                         
                         st.markdown(f"**Diplomatic: {question_text}**")
                         st.code(search_query, language="plaintext")
@@ -295,6 +356,9 @@ def dime_page():
                             question_text = question_text[len("question:"):].strip()
                         if search_query.lower().startswith("search:"):
                             search_query = search_query[len("search:"):].strip()
+                            # Strip surrounding quotes if they exist
+                            if search_query.startswith('"') and search_query.endswith('"'):
+                                search_query = search_query[1:-1]
                         st.markdown(f"**Information: {question_text}**")
                         st.code(search_query, language="plaintext")
                         st.text_area("Your Answer:", key=f"information_answer_{idx}", height=80)
@@ -362,6 +426,9 @@ def dime_page():
                             question_text = question_text[len("question:"):].strip()
                         if search_query.lower().startswith("search:"):
                             search_query = search_query[len("search:"):].strip()
+                            # Strip surrounding quotes if they exist
+                            if search_query.startswith('"') and search_query.endswith('"'):
+                                search_query = search_query[1:-1]
                         st.markdown(f"**Military: {question_text}**")
                         st.code(search_query, language="plaintext")
                         st.text_area("Your Answer:", key=f"military_answer_{idx}", height=80)
@@ -429,6 +496,9 @@ def dime_page():
                             question_text = question_text[len("question:"):].strip()
                         if search_query.lower().startswith("search:"):
                             search_query = search_query[len("search:"):].strip()
+                            # Strip surrounding quotes if they exist
+                            if search_query.startswith('"') and search_query.endswith('"'):
+                                search_query = search_query[1:-1]
                         st.markdown(f"**Economic: {question_text}**")
                         st.code(search_query, language="plaintext")
                         st.text_area("Your Answer:", key=f"economic_answer_{idx}", height=80)
