@@ -10,7 +10,7 @@ import logging
 from dotenv import load_dotenv
 from utilities.gpt import chat_gpt  # Using the same helper as SWOT and COG
 from utilities.advanced_scraper import advanced_fetch_metadata, google_search_summary, generate_google_results, generate_wikipedia_results, scrape_body_content  # New import for advanced scraping
-
+from utilities.helpers import create_docx_document
 load_dotenv()
 
 
@@ -637,17 +637,18 @@ def dime_page():
         if st.button("Export DIME Analysis as DOCX Document"):
             sections = {
                 "Scenario Overview": st.session_state.get("processed_scenario", "No scenario provided."),
-                "Scenario Details": st.session_state.get("scenario_details", "No scenario details available.")
+                "Scenario Details": st.session_state.get("scenario_details", "No scenario details available."),
+                "Objective": st.session_state.get("objective", "").strip(),  # Include Objective if defined; blank if not
+                "Diplomatic Questions": st.session_state.get("dime_diplomatic", ""),  # Diplomatic questions (blank if not answered)
+                "Information Questions": st.session_state.get("dime_information", ""),  # Information questions (blank if not answered)
+                "Military Questions": st.session_state.get("dime_military", ""),  # Military questions (blank if not answered)
+                "Economic Questions": st.session_state.get("dime_economic", ""),  # Economic questions (blank if not answered)
+                "Diplomatic Analysis": st.session_state.get("diplomatic_analysis", ""),
+                "Information Analysis": st.session_state.get("information_analysis", ""),
+                "Military Analysis": st.session_state.get("military_analysis", ""),
+                "Economic Analysis": st.session_state.get("economic_analysis", "")
             }
-            if st.session_state.get("diplomatic_analysis"):
-                sections["Diplomatic Analysis"] = st.session_state["diplomatic_analysis"]
-            if st.session_state.get("information_analysis"):
-                sections["Information Analysis"] = st.session_state["information_analysis"]
-            if st.session_state.get("military_analysis"):
-                sections["Military Analysis"] = st.session_state["military_analysis"]
-            if st.session_state.get("economic_analysis"):
-                sections["Economic Analysis"] = st.session_state["economic_analysis"]
-
+    
             # Create DOCX file (ensure that create_docx_document is defined elsewhere in your codebase).
             docx_file = create_docx_document(title_doc, sections)
             st.download_button(
