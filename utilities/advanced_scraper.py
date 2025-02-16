@@ -501,3 +501,44 @@ def search_wikipedia(query, sentences=5):
         return summary
     except Exception as e:
         return f"Error retrieving Wikipedia data: {e}"
+
+
+def scrape_body_content(url, timeout=10, use_playwright=PLAYWRIGHT_AVAILABLE):
+    """
+    Scrapes the main textual content (body text) from the given URL.
+    This function is designed to work with news articles and social media pages (e.g., x.com, facebook.com, bsky.net).
+
+    Returns:
+        str: The scraped textual content from the main content body of the page.
+    """
+    try:
+        content = fetch_page_content(url, timeout=timeout, use_playwright=use_playwright)
+    except Exception as e:
+        logging.error(f"Error fetching URL content for body extraction: {e}")
+        return "No body content"
+
+    soup = BeautifulSoup(content, "lxml")
+
+    # Try to extract from an <article> tag first (common in news articles)
+    article = soup.find("article")
+    if article:
+        body_text = article.get_text(separator="\n", strip=True)
+        if body_text:
+            return body_text
+
+    # Fallback: search common content containers for news or social media pages
+    for class_name in ["main-content", "content-body", "post-content", "entry-content", "story-content"]:
+        container = soup.find("div", class_=class_name)
+        if container:
+            body_text = container.get_text(separator="\n", strip=True)
+            if body_text:
+                return body_text
+
+    # If no specific container is found, fallback to extracting all <body> text.
+    body_tag = soup.find("body")
+    if body_tag:
+        body_text = body_tag.get_text(separator="\n", strip=True)
+        if body_text:
+            return body_text
+
+    return "No body content"
