@@ -12,7 +12,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 import wikipedia
 import os
 from selenium.common.exceptions import WebDriverException
-from webdriver_manager.core.exceptions import DriverNotInstalledError
 
 # Optionally use Playwright for dynamic pages
 try:
@@ -96,9 +95,6 @@ def google_search_summary(query):
     # Set up the Service with the ChromeDriver path obtained by webdriver_manager
     try:
         service = Service(ChromeDriverManager().install())
-    except DriverNotInstalledError as e:
-        logging.error(f"ChromeDriver installation error: {e}")
-        return f"Error installing ChromeDriver: {e}"
     except WebDriverException as e:
         logging.error(f"Selenium WebDriver error during service setup: {e}")
         return f"Error setting up ChromeDriver service: {e}"
