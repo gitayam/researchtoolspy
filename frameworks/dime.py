@@ -6,6 +6,7 @@ import streamlit as st
 import re
 import requests
 import wikipedia
+import logging
 from dotenv import load_dotenv
 from utilities.gpt import chat_gpt  # Using the same helper as SWOT and COG
 from utilities.advanced_scraper import advanced_fetch_metadata, google_search_summary, generate_google_results, generate_wikipedia_results  # New import for advanced scraping
@@ -21,7 +22,23 @@ def process_scenario_input(scenario):
     """
     if scenario.strip().lower().startswith("http://") or scenario.strip().lower().startswith("https://"):
         try:
-            title, description, keywords, author, date_published, editor, referenced_links = advanced_fetch_metadata(scenario)
+            logging.info(f"Fetching metadata for URL: {scenario}")
+            # Get metadata as a dictionary instead of a tuple
+            meta = advanced_fetch_metadata(scenario)
+            title = meta.get("title", "No Title")
+            description = meta.get("description", "No Description")
+            keywords = meta.get("keywords", "No Keywords")
+            author = meta.get("author", "No Author")
+            date_published = meta.get("date_published", "No Date Published")
+            editor = meta.get("editor", "No Editor")
+            referenced_links = meta.get("referenced_links", [])
+            # If referenced_links is a list, join them with a comma
+            referenced_links_str = (
+                ", ".join(referenced_links)
+                if isinstance(referenced_links, list) and referenced_links
+                else "None"
+            )
+    
             scraped_text = (
                 f"Title: {title}\n"
                 f"Description: {description}\n"
@@ -29,7 +46,7 @@ def process_scenario_input(scenario):
                 f"Published Date: {date_published}\n"
                 f"Editor: {editor}\n"
                 f"Keywords: {keywords}\n"
-                f"Referenced Links: {', '.join(referenced_links) if referenced_links else 'None'}"
+                f"Referenced Links: {referenced_links_str}"
             )
             summary_prompt = (
                 "Summarize the following content in a concise manner, "
@@ -44,6 +61,7 @@ def process_scenario_input(scenario):
             )
             return summary
         except Exception as e:
+            logging.error(f"Error processing URL: {e}")
             st.error(f"Error processing URL: {e}")
             return scenario
     else:
@@ -182,6 +200,9 @@ def dime_page():
         st.subheader("Diplomatic")
         if "dime_diplomatic" not in st.session_state:
             st.session_state["dime_diplomatic"] = ""
+        if "diplomatic_analysis" not in st.session_state:
+            st.session_state["diplomatic_analysis"] = ""
+
         col_diplomatic_left, col_diplomatic_right = st.columns([1, 2])
         with col_diplomatic_left:
             if st.button("AI: Suggest Diplomatic Questions"):
@@ -194,19 +215,38 @@ def dime_page():
                     st.session_state["dime_diplomatic"] = ai_text
                     st.rerun()
             st.write(st.session_state.get("dime_diplomatic", ""))
-            # Google search integration instead of SearxNG.
-            if st.session_state.get("dime_diplomatic", "") and st.session_state.get("include_google_search"):
-                if st.button("Google: Search & Summarize Diplomatic", key="google_diplomatic"):
-                    google_results = generate_google_results(st.session_state["dime_diplomatic"])
-                    st.session_state["google_diplomatic_result"] = google_results
+            
+            if st.session_state.get("dime_diplomatic", ""):
+                if st.session_state.get("include_google_search"):
+                    if st.button("Google: Search & Summarize Diplomatic", key="google_diplomatic"):
+                        google_results = generate_google_results(st.session_state["dime_diplomatic"])
+                        st.session_state["google_diplomatic_result"] = google_results
+                        st.rerun()
+                    if "google_diplomatic_result" in st.session_state:
+                        st.write(st.session_state["google_diplomatic_result"])
+                
+                # The Recommend button is here.
+                if st.button("AI: Recommend Diplomatic Data", key="recommend_diplomatic_btn"):
+                    recommendation = recommend_dime_category(
+                        "Diplomatic",
+                        st.session_state.get("google_diplomatic_result", st.session_state["dime_diplomatic"])
+                    )
+                    # Append the recommendation to the current text of the analysis box.
+                    existing_text = st.session_state.get("diplomatic_analysis", "")
+                    appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
+                    st.session_state["diplomatic_analysis"] = appended_text
+                    st.session_state["recommend_diplomatic_result"] = recommendation
                     st.rerun()
-                if "google_diplomatic_result" in st.session_state:
-                    st.write(st.session_state["google_diplomatic_result"])
+
         with col_diplomatic_right:
+            # Use st.session_state to hold and display any previously entered and/or appended recommended text.
+            current_text = st.session_state.get("diplomatic_analysis", "")
             st.text_area(
-                "Diplomatic Analysis",
-                height=150,
-                placeholder="Enter your insights and data related to diplomatic aspects here..."
+                 "Diplomatic Analysis",
+                 value=current_text,
+                 height=150,
+                 placeholder="Enter your insights and data related to diplomatic aspects here...",
+                 key="diplomatic_analysis"
             )
 
         # Information Section

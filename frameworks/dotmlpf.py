@@ -455,9 +455,6 @@ def dotmlpf_page():
 
     # Export document button (DOCX export only)
     if st.button("Export DOTMLPF-P Analysis as DOCX Document"):
-        # Build a document title based on organization_input; provide a default if blank.
-        title_doc = f"DOTMLPF-P Analysis for {organization_input}" if organization_input.strip() else "DOTMLPF-P Analysis"
-        
         # Ensure a problem statement exists. If the user hasn't generated one, generate it.
         if not st.session_state.get("problem_statement_default", "").strip():
             prompt = (
@@ -475,45 +472,36 @@ def dotmlpf_page():
             generated_statement = chat_gpt([{"role": "system", "content": prompt}], model="gpt-4o-mini")
             st.session_state["problem_statement_default"] = generated_statement
 
-        # Build sections dictionary with all content
+        title_doc = f"DOTMLPF-P Analysis for {organization_input}" if organization_input.strip() else "DOTMLPF-P Analysis"
+        
+        # Build sections dictionary (e.g., problem statement, summary, TRADOC alignment, etc.)
         sections = {
             "Problem Statement": st.session_state.get("problem_statement_default", "No problem statement provided."),
             "DOTMLPF-P Summary": st.session_state.get("dotmlpf_summary", "No summary available."),
         }
-
-        # Add TRADOC alignment if available
         if st.session_state.get("tradoc_alignment", "") != "":
             sections["TRADOC Alignment"] = st.session_state["tradoc_alignment"]
-
-        # Add command endorsement if available
         if st.session_state.get("command_endorsement", "") != "":
             sections["Command Endorsement"] = st.session_state["command_endorsement"]
 
-        # Add detailed category analyses including observations and Q&A
+        # Optionally, loop through DOTMLPF-P categories to include observations and Q&A.
         for cat in dotmlpf_categories:
-            category_content = []
-            
-            # Add observations
-            observations = st.session_state.get(cat, "")
-            if observations:
-                category_content.append(f"Observations:\n{observations}\n")
+            analysis_observations = st.session_state.get(cat, "")
+            if analysis_observations:
+                sections[f"Category: {cat} Observations"] = analysis_observations
 
-            # Add Q&A if available
-            questions = st.session_state.get(f'analysis_questions_{cat}', [])
-            if questions:
-                category_content.append("Questions and Answers:")
-                for idx, question in enumerate(questions):
-                    answer = st.session_state.get(f'analysis_answer_{cat}_{idx}', "")
-                    if answer:
-                        category_content.extend([
-                            f"Q{idx+1}: {question}",
-                            f"A: {answer}\n"
-                        ])
+            # **Start of Added Section for Q&A**
+            questions_answers = st.session_state.get(f'analysis_questions_{cat}', [])
+            if questions_answers:
+                qa_content = "Questions and Answers:\n"
+                for idx, qa in enumerate(questions_answers, 1):
+                    question = qa.get("question", f"Question {idx}")
+                    answer = qa.get("answer", "No answer provided.")
+                    qa_content += f"Q{idx}: {question}\nA: {answer}\n\n"
+                sections[f"Category: {cat} Q&A"] = qa_content.strip()
+            # **End of Added Section for Q&A**
 
-            # Only add the category if it has content
-            if category_content:
-                sections[f"Category: {cat}"] = "\n".join(category_content)
-
+        # Generate the DOCX document using the helper function
         docx_file = create_docx_document(title_doc, sections)
         st.download_button(
             label="Download DOCX",
