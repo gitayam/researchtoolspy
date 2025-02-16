@@ -60,16 +60,19 @@ def ai_suggest_dime(category, scenario, objective=None):
     """
     Generate 3-5 DIME analysis items for the given phase with a focus on generating intelligence
     requirements that support information forces.
-    
-    For the Diplomatic phase, the prompt instructs ChatGPT to consider the scenario from a diplomatic 
-    perspective, and if an objective is provided, to relate the analysis to accomplishing that objective.
-    
-    The output must be a semicolon-separated list of items. 
-    Each item must be written EXACTLY in the following format:
+
+    The prompt now includes both the scenario overview and the extracted scenario details (summary) as context.
+    The output must be a semicolon-separated list of items, where each item is formatted EXACTLY as follows:
       Question: <question text> | Search: <advanced Google search query using advanced operators and boolean logic>
     Do not include any extraneous text, line breaks, or commentary.
     """
     try:
+        # Combine scenario text and details to provide rich context.
+        scenario_info = f"Scenario Overview:\n{scenario}\n"
+        scenario_details = st.session_state.get("scenario_details", "")
+        if scenario_details:
+            scenario_info += f"\nScenario Details:\n{scenario_details}\n"
+
         system_msg = {
             "role": "system",
             "content": (
@@ -82,8 +85,8 @@ def ai_suggest_dime(category, scenario, objective=None):
         if category.lower() == "diplomatic":
             if objective and objective.strip():
                 user_content = (
-                    f"Scenario: {scenario}\n"
-                    f"Objective: {objective}\n"
+                    f"{scenario_info}"
+                    f"Objective: {objective}\n\n"
                     f"For the '{category}' aspect, generate exactly 3 to 5 detailed intelligence analysis questions that identify key diplomatic information requirements "
                     "required to support information forces. First, consider what is important to know from a diplomatic perspective, especially in relation to accomplishing the objective provided. "
                     "Output only a semicolon-separated list of items. Each item must be on one line, EXACTLY as follows:\n\n"
@@ -92,7 +95,7 @@ def ai_suggest_dime(category, scenario, objective=None):
                 )
             else:
                 user_content = (
-                    f"Scenario: {scenario}\n"
+                    f"{scenario_info}"
                     f"For the '{category}' aspect, generate exactly 3 to 5 detailed intelligence analysis questions that identify key diplomatic information requirements "
                     "required to support information forces. First, consider what is important to know from a diplomatic perspective. "
                     "Output only a semicolon-separated list of items. Each item must be on one line, EXACTLY as follows:\n\n"
@@ -101,7 +104,7 @@ def ai_suggest_dime(category, scenario, objective=None):
                 )
         else:
             user_content = (
-                f"Scenario: {scenario}\n"
+                f"{scenario_info}"
                 f"For the '{category}' aspect, generate exactly 3 to 5 detailed intelligence analysis questions that identify key information requirements "
                 "required to support information forces. Output only a semicolon-separated list of items. Each item must be on one line, EXACTLY as follows:\n\n"
                 "Question: <question text> | Search: <advanced Google search query using advanced operators and boolean logic>\n\n"
@@ -118,8 +121,8 @@ def ai_suggest_dime(category, scenario, objective=None):
 def recommend_dime_category(category, base_text, scenario, objective=None):
     """
     Generate a comprehensive intelligence analysis for the specified DIME category based on the provided text.
-    The function now integrates any answered questions and URL body content along with the provided base text,
-    and instructs GPT to deliver a self-contained analysis that uses its own extensive domain expertise.
+    The function now integrates the processed scenario, extracted scenario details, any answered questions, and URL body content.
+    It instructs GPT to deliver a self-contained analysis that uses its own extensive domain expertise.
 
     Args:
         category (str): The DIME category (e.g., "Diplomatic", "Information", "Military", "Economic").
@@ -145,9 +148,13 @@ def recommend_dime_category(category, base_text, scenario, objective=None):
             processed_text = st.session_state["processed_scenario"]
             if "Body Content:" in processed_text:
                 url_body = processed_text.split("Body Content:", 1)[1].strip()
-    
-        # Combine the base text with any answered questions and URL body content.
-        combined_text = base_text
+
+        # Prepend the processed scenario and scenario details to the analysis prompt.
+        combined_text = (
+            f"Scenario Overview:\n{st.session_state.get('processed_scenario', scenario)}\n\n"
+            f"Scenario Details:\n{st.session_state.get('scenario_details', '')}\n\n"
+            f"Questions/Search Data for {category}:\n{base_text}"
+        )
         if answered_content:
             combined_text += "\n\nUser Provided Insights:\n" + answered_content
         if url_body:
@@ -168,6 +175,9 @@ def recommend_dime_category(category, base_text, scenario, objective=None):
             "Rely on your extensive domain knowledge and ensure your response is self-contained and detailed:\n\n"
             f"{combined_text}"
         )
+        # Include objective if provided.
+        if objective and objective.strip():
+            user_prompt = f"Objective: {objective}\n\n" + user_prompt
         recommendation = chat_gpt(
             [
                 system_msg,
@@ -279,10 +289,11 @@ def dime_page():
         if "objective" in st.session_state and st.session_state["objective"]:
             st.write("Objective:", st.session_state["objective"])
         
-        # Display additional AI-extracted scenario details.
+        # Display and store additional AI-extracted scenario details.
         scenario_details = extract_scenario_details(st.session_state["processed_scenario"])
         st.subheader("Scenario Details")
         st.write(scenario_details)
+        st.session_state["scenario_details"] = scenario_details
         
         # Display Wikipedia summary as a separate section (if available)
         if st.session_state.get("wikipedia_summary"):
