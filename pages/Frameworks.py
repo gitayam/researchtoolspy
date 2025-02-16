@@ -13,6 +13,7 @@ from components.sidebar_menu import sidebar_menu
 from frameworks.pmesii_pt import pmesii_pt_page
 from frameworks.dotmlpf import dotmlpf_page
 from frameworks.starbursting import starbursting_page
+from frameworks.behavior_analysis import behavior_analysis_page
 from frameworks import (
     swot, ach, cog, deception, 
     dime, pmesii, dotmlpf, starbursting
@@ -27,13 +28,14 @@ def framework_sidebar():
     # Framework navigation with radio buttons
     framework_options = {
         "SWOT Analysis": "SWOT",
+        "Starbursting": "STARBURSTING",
         "ACH Analysis": "ACH",
-        "COG Analysis": "COG",
+        "Behavioral Analysis": "BEHAVIOR",
         "Deception Detection": "DECEPTION",
+        "COG Analysis": "COG",
         "DIME Framework": "DIME",
         "PMESII-PT Framework": "PMESII",
         "DOTMLPF Framework": "DOTMLPF",
-        "Starbursting": "STARBURSTING"
     }
     
     # Create lists of labels and their corresponding values
@@ -173,13 +175,14 @@ def load_framework():
     # Map framework parameters to their respective modules/functions
     framework_map = {
         "swot": swot.render_swot_analysis,
+        "starbursting": starbursting.render_starbursting,
         "ach": ach.render_ach_analysis,
-        "cog": cog.render_cog_analysis,
         "deception": deception.render_deception_detection,
+        "cog": cog.render_cog_analysis,
         "dime": dime.render_dime_framework,
         "pmesii": pmesii.render_pmesii_framework,
         "dotmlpf": dotmlpf.render_dotmlpf_framework,
-        "starbursting": starbursting.render_starbursting
+        "behavior_analysis": behavior_analysis_page
     }
     
     # Render the selected framework

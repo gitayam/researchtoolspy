@@ -6,13 +6,13 @@ def sidebar_menu():
     st.sidebar.markdown("""
     - [SWOT Analysis](/Frameworks?framework=swot)
     - [ACH Analysis](/Frameworks?framework=ach)
-    - [COG Analysis](/Frameworks?framework=cog)
+    - [Starbursting](/Frameworks?framework=starbursting)
     - [Deception Detection](/Frameworks?framework=deception)
+    - [COG Analysis](/Frameworks?framework=cog)
     - [DIME Framework](/Frameworks?framework=dime)
     - [PMESII-PT Framework](/Frameworks?framework=pmesii)
     - [DOTMLPF Framework](/Frameworks?framework=dotmlpf)
-    - [Starbursting](/Frameworks?framework=starbursting)
-    
+    - [Behavioral Analysis](/Frameworks?framework=behavior_analysis)
     Having trouble with the links? [View all frameworks](/Frameworks)
     """)
     # Wiki Links
