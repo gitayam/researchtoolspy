@@ -42,7 +42,7 @@ def framework_sidebar():
     labels = list(framework_options.keys())
     values = list(framework_options.values())
     
-    # Determine default index based on the session state's current framework
+    # Use the session state's current framework, if available, to establish the default radio selection
     default_index = 0
     current = st.session_state.get("current_framework")
     if current in values:
@@ -53,7 +53,7 @@ def framework_sidebar():
         options=labels,
         index=default_index,
     )
-    st.session_state.current_framework = framework_options[selected_label]
+    st.session_state["current_framework"] = framework_options[selected_label]
     
     # Framework-specific resources and links
     st.sidebar.markdown("## Framework Resources")
@@ -114,38 +114,45 @@ def framework_sidebar():
 def frameworks_page():
     st.title("Analysis Frameworks")
     
-    # Check URL parameters for a framework
-    params = st.query_params
-    framework_param = params.get("framework", [None])[0]
-    
-    # If 'current_framework' is not already set in session_state, use URL param (make it uppercase to match our values)
-    if 'current_framework' not in st.session_state or st.session_state.current_framework is None:
-        if framework_param:
-            st.session_state.current_framework = framework_param.upper()
-        else:
-            st.session_state.current_framework = None
+    # Process URL query parameters to allow menu URLs to work.
+    query_params = st.query_params
+    if "framework" in query_params:
+        # Normalize the input to uppercase to match our mapping values.
+        framework_from_url = query_params["framework"][0].strip().upper()
+        valid_frameworks = {
+            "SWOT", "STARBURSTING", "ACH", "BEHAVIOR",
+            "DECEPTION", "COG", "DIME", "PMESII", "DOTMLPF"
+        }
+        if framework_from_url in valid_frameworks:
+            st.session_state["current_framework"] = framework_from_url
+    else:
+        if "current_framework" not in st.session_state:
+            st.session_state["current_framework"] = "DIME"  # Default framework
 
     # Load framework-specific sidebar.
     # (This radio widget will now set the default based on the URL parameter.)
     framework_sidebar()
     
     # Main content area based on the current framework
-    if st.session_state.current_framework == "COG":
+    current_fw = st.session_state.get("current_framework", "DIME")
+    if current_fw == "COG":
         cog_analysis()
-    elif st.session_state.current_framework == "SWOT":
+    elif current_fw == "SWOT":
         swot_page()
-    elif st.session_state.current_framework == "ACH":
+    elif current_fw == "ACH":
         ach_page()
-    elif st.session_state.current_framework == "DECEPTION":
+    elif current_fw == "DECEPTION":
         deception_detection()
-    elif st.session_state.current_framework == "DIME":
+    elif current_fw == "DIME":
         dime_page()
-    elif st.session_state.current_framework == "PMESII":
+    elif current_fw == "PMESII":
         pmesii_pt_page()
-    elif st.session_state.current_framework == "DOTMLPF":
+    elif current_fw == "DOTMLPF":
         dotmlpf_page()
-    elif st.session_state.current_framework == "STARBURSTING":
+    elif current_fw == "STARBURSTING":
         starbursting_page()
+    elif current_fw == "BEHAVIOR":
+        behavior_analysis_page()
     else:
         # Default view when no framework is selected
         st.write("""
