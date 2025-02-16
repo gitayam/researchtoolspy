@@ -252,7 +252,6 @@ def dime_page():
         if "diplomatic_analysis" not in st.session_state:
             st.session_state["diplomatic_analysis"] = ""
 
-        # Full-width AI Suggest Questions button for Diplomatic
         if st.button("AI: Suggest Diplomatic Questions"):
             ai_text = ai_suggest_dime(
                 "Diplomatic", 
@@ -263,7 +262,6 @@ def dime_page():
                 st.session_state["dime_diplomatic"] = ai_text
                 st.rerun()
 
-        # Render the generated diplomatic questions along with answer input fields
         diplomatic_questions = st.session_state.get("dime_diplomatic", "")
         if diplomatic_questions:
             for idx, line in enumerate(diplomatic_questions.splitlines()):
@@ -276,16 +274,12 @@ def dime_page():
                         question_part, search_part = parts
                         question_text = question_part.strip()
                         search_query = search_part.strip()
-                        
-                        # Remove prefixes if present
                         if question_text.lower().startswith("question:"):
                             question_text = question_text[len("question:"):].strip()
                         if search_query.lower().startswith("search:"):
                             search_query = search_query[len("search:"):].strip()
-                            # Strip surrounding quotes if they exist
                             if search_query.startswith('"') and search_query.endswith('"'):
                                 search_query = search_query[1:-1]
-                        
                         st.markdown(f"**Diplomatic: {question_text}**")
                         st.code(search_query, language="plaintext")
                         st.text_area("Your Answer:", key=f"diplomatic_answer_{idx}", height=80)
@@ -294,19 +288,24 @@ def dime_page():
                 else:
                     st.write(line)
             
-            # Recommend button for Diplomatic – appears immediately after the questions
-            if st.button("AI: Recommend Diplomatic Data", key="recommend_diplomatic_btn"):
-                recommendation = recommend_dime_category(
-                    "Diplomatic",
-                    st.session_state.get("google_diplomatic_result", st.session_state["dime_diplomatic"])
-                )
-                existing_text = st.session_state.get("diplomatic_analysis", "")
-                appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
-                st.session_state["diplomatic_analysis"] = appended_text
-                st.session_state["recommend_diplomatic_result"] = recommendation
-                st.rerun()
+            # Create two columns: one for the Recommend button and one for showing the recommendation data.
+            cols_diplomatic = st.columns([1, 3])
+            with cols_diplomatic[0]:
+                if st.button("AI: Recommend Diplomatic Data", key="recommend_diplomatic_btn"):
+                    recommendation = recommend_dime_category(
+                        "Diplomatic",
+                        st.session_state.get("google_diplomatic_result", st.session_state["dime_diplomatic"])
+                    )
+                    existing_text = st.session_state.get("diplomatic_analysis", "")
+                    appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
+                    st.session_state["diplomatic_analysis"] = appended_text
+                    st.session_state["recommend_diplomatic_result"] = recommendation
+                    st.experimental_rerun()
+            with cols_diplomatic[1]:
+                st.markdown("**Diplomatic Recommendations:**")
+                recommendation_display = st.session_state.get("recommend_diplomatic_result", "Click button to generate recommendations.")
+                st.write(recommendation_display)
             
-            # Optional Google Search functionality for Diplomatic
             if st.session_state.get("include_google_search"):
                 if st.button("Google: Search & Summarize Diplomatic", key="google_diplomatic"):
                     google_results = generate_google_results(st.session_state["dime_diplomatic"])
@@ -315,7 +314,6 @@ def dime_page():
                 if "google_diplomatic_result" in st.session_state:
                     st.write(st.session_state["google_diplomatic_result"])
 
-        # Full-width Diplomatic Analysis text area (Other Data)
         current_text = st.session_state.get("diplomatic_analysis", "")
         st.text_area(
              "Diplomatic Analysis",
@@ -356,7 +354,6 @@ def dime_page():
                             question_text = question_text[len("question:"):].strip()
                         if search_query.lower().startswith("search:"):
                             search_query = search_query[len("search:"):].strip()
-                            # Strip surrounding quotes if they exist
                             if search_query.startswith('"') and search_query.endswith('"'):
                                 search_query = search_query[1:-1]
                         st.markdown(f"**Information: {question_text}**")
@@ -367,16 +364,22 @@ def dime_page():
                 else:
                     st.write(line)
             
-            if st.button("AI: Recommend Information Data", key="recommend_information_btn"):
-                recommendation = recommend_dime_category(
-                    "Information",
-                    st.session_state.get("google_information_result", st.session_state["dime_information"])
-                )
-                existing_text = st.session_state.get("information_analysis", "")
-                appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
-                st.session_state["information_analysis"] = appended_text
-                st.session_state["recommend_information_result"] = recommendation
-                st.rerun()
+            cols_information = st.columns([1, 3])
+            with cols_information[0]:
+                if st.button("AI: Recommend Information Data", key="recommend_information_btn"):
+                    recommendation = recommend_dime_category(
+                        "Information",
+                        st.session_state.get("google_information_result", st.session_state["dime_information"])
+                    )
+                    existing_text = st.session_state.get("information_analysis", "")
+                    appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
+                    st.session_state["information_analysis"] = appended_text
+                    st.session_state["recommend_information_result"] = recommendation
+                    st.experimental_rerun()
+            with cols_information[1]:
+                st.markdown("**Information Recommendations:**")
+                recommendation_display = st.session_state.get("recommend_information_result", "Click button to generate recommendations.")
+                st.write(recommendation_display)
             
             if st.session_state.get("include_google_search"):
                 if st.button("Google: Search & Summarize Information", key="google_information"):
@@ -426,7 +429,6 @@ def dime_page():
                             question_text = question_text[len("question:"):].strip()
                         if search_query.lower().startswith("search:"):
                             search_query = search_query[len("search:"):].strip()
-                            # Strip surrounding quotes if they exist
                             if search_query.startswith('"') and search_query.endswith('"'):
                                 search_query = search_query[1:-1]
                         st.markdown(f"**Military: {question_text}**")
@@ -437,16 +439,22 @@ def dime_page():
                 else:
                     st.write(line)
             
-            if st.button("AI: Recommend Military Data", key="recommend_military_btn"):
-                recommendation = recommend_dime_category(
-                    "Military",
-                    st.session_state.get("google_military_result", st.session_state["dime_military"])
-                )
-                existing_text = st.session_state.get("military_analysis", "")
-                appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
-                st.session_state["military_analysis"] = appended_text
-                st.session_state["recommend_military_result"] = recommendation
-                st.rerun()
+            cols_military = st.columns([1, 3])
+            with cols_military[0]:
+                if st.button("AI: Recommend Military Data", key="recommend_military_btn"):
+                    recommendation = recommend_dime_category(
+                        "Military",
+                        st.session_state.get("google_military_result", st.session_state["dime_military"])
+                    )
+                    existing_text = st.session_state.get("military_analysis", "")
+                    appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
+                    st.session_state["military_analysis"] = appended_text
+                    st.session_state["recommend_military_result"] = recommendation
+                    st.experimental_rerun()
+            with cols_military[1]:
+                st.markdown("**Military Recommendations:**")
+                recommendation_display = st.session_state.get("recommend_military_result", "Click button to generate recommendations.")
+                st.write(recommendation_display)
             
             if st.session_state.get("include_google_search"):
                 if st.button("Google: Search & Summarize Military", key="google_military"):
@@ -496,7 +504,6 @@ def dime_page():
                             question_text = question_text[len("question:"):].strip()
                         if search_query.lower().startswith("search:"):
                             search_query = search_query[len("search:"):].strip()
-                            # Strip surrounding quotes if they exist
                             if search_query.startswith('"') and search_query.endswith('"'):
                                 search_query = search_query[1:-1]
                         st.markdown(f"**Economic: {question_text}**")
@@ -507,16 +514,22 @@ def dime_page():
                 else:
                     st.write(line)
             
-            if st.button("AI: Recommend Economic Data", key="recommend_economic_btn"):
-                recommendation = recommend_dime_category(
-                    "Economic",
-                    st.session_state.get("google_economic_result", st.session_state["dime_economic"])
-                )
-                existing_text = st.session_state.get("economic_analysis", "")
-                appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
-                st.session_state["economic_analysis"] = appended_text
-                st.session_state["recommend_economic_result"] = recommendation
-                st.rerun()
+            cols_economic = st.columns([1, 3])
+            with cols_economic[0]:
+                if st.button("AI: Recommend Economic Data", key="recommend_economic_btn"):
+                    recommendation = recommend_dime_category(
+                        "Economic",
+                        st.session_state.get("google_economic_result", st.session_state["dime_economic"])
+                    )
+                    existing_text = st.session_state.get("economic_analysis", "")
+                    appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
+                    st.session_state["economic_analysis"] = appended_text
+                    st.session_state["recommend_economic_result"] = recommendation
+                    st.experimental_rerun()
+            with cols_economic[1]:
+                st.markdown("**Economic Recommendations:**")
+                recommendation_display = st.session_state.get("recommend_economic_result", "Click button to generate recommendations.")
+                st.write(recommendation_display)
             
             if st.session_state.get("include_google_search"):
                 if st.button("Google: Search & Summarize Economic", key="google_economic"):
