@@ -57,6 +57,23 @@ def generate_google_results(suggestions_text):
     return results_text
 
 
+def find_chromium_binary():
+    """
+    Searches for the Chromium browser binary in common installation paths.
+    Returns the path if found, otherwise raises an exception.
+    """
+    chromium_paths = [
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+        "/usr/bin/google-chrome",
+        "/usr/bin/google-chrome-stable"
+    ]
+    for path in chromium_paths:
+        if os.path.exists(path):
+            return path
+    raise FileNotFoundError("Chromium browser binary not found in common paths.")
+
+
 def google_search_summary(query):
     """
     Performs a Google search for the given query using Selenium
@@ -68,29 +85,12 @@ def google_search_summary(query):
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     
-    # Try common Chromium binary locations
-    chromium_paths = [
-        "/usr/bin/chromium",
-        "/usr/bin/chromium-browser",
-        "/usr/bin/google-chrome",
-        "/usr/bin/google-chrome-stable"
-    ]
+    try:
+        chrome_options.binary_location = find_chromium_binary()
+    except FileNotFoundError as e:
+        logging.error(str(e))
+        return f"Error: {str(e)}"
     
-    browser_found = False
-    for path in chromium_paths:
-        try:
-            chrome_options.binary_location = path
-            # Test if browser exists at this path
-            if os.path.exists(path):
-                browser_found = True
-                break
-        except Exception:
-            continue
-    
-    if not browser_found:
-        # If no browser found at common paths, let Selenium try to find it automatically
-        chrome_options.binary_location = ""
-
     # Set up the Service with the ChromeDriver path obtained by webdriver_manager
     service = Service(ChromeDriverManager().install())
     

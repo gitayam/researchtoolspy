@@ -23,31 +23,41 @@ def process_scenario_input(scenario):
     if scenario.strip().lower().startswith("http://") or scenario.strip().lower().startswith("https://"):
         try:
             logging.info(f"Fetching metadata for URL: {scenario}")
-            # Get metadata as a dictionary instead of a tuple
             meta = advanced_fetch_metadata(scenario)
-            title = meta.get("title", "No Title")
-            description = meta.get("description", "No Description")
-            keywords = meta.get("keywords", "No Keywords")
-            author = meta.get("author", "No Author")
-            date_published = meta.get("date_published", "No Date Published")
-            editor = meta.get("editor", "No Editor")
-            referenced_links = meta.get("referenced_links", [])
-            # If referenced_links is a list, join them with a comma
-            referenced_links_str = (
-                ", ".join(referenced_links)
-                if isinstance(referenced_links, list) and referenced_links
-                else "None"
-            )
-    
-            scraped_text = (
-                f"Title: {title}\n"
-                f"Description: {description}\n"
-                f"Author: {author}\n"
-                f"Published Date: {date_published}\n"
-                f"Editor: {editor}\n"
-                f"Keywords: {keywords}\n"
-                f"Referenced Links: {referenced_links_str}"
-            )
+            
+            # If meta is a tuple, assume the first element is the metadata we want.
+            if isinstance(meta, tuple):
+                meta = meta[0]
+            
+            if isinstance(meta, dict):
+                title = meta.get("title", "No Title")
+                description = meta.get("description", "No Description")
+                keywords = meta.get("keywords", "No Keywords")
+                author = meta.get("author", "No Author")
+                date_published = meta.get("date_published", "No Date Published")
+                editor = meta.get("editor", "No Editor")
+                referenced_links = meta.get("referenced_links", [])
+                referenced_links_str = (
+                    ", ".join(referenced_links)
+                    if isinstance(referenced_links, list) and referenced_links
+                    else "None"
+                )
+                scraped_text = (
+                    f"Title: {title}\n"
+                    f"Description: {description}\n"
+                    f"Author: {author}\n"
+                    f"Published Date: {date_published}\n"
+                    f"Editor: {editor}\n"
+                    f"Keywords: {keywords}\n"
+                    f"Referenced Links: {referenced_links_str}"
+                )
+            elif isinstance(meta, str):
+                # If meta is already a text string, just use it.
+                scraped_text = meta
+            else:
+                # Fallback if meta is neither dict nor str.
+                scraped_text = scenario
+
             summary_prompt = (
                 "Summarize the following content in a concise manner, "
                 "highlighting the key insights and context:\n\n" + scraped_text
