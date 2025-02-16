@@ -22,11 +22,8 @@ def behavior_analysis_page():
             1. Replace all placeholders (e.g., BEHAVIOR_HERE, COUNTRY_HERE) with your specific information.  
             2. Fill in the fields below with your observations and data.  
             3. Use the provided buttons to generate questions, get answer suggestions, and finally generate a report.
-            
-            *snip line here*  
-            
-            BEHAVIOR_HERE in COUNTRY_HERE
-            """
+
+            **Additional Considerations**"""
         )
 
     st.header("Enter Behavior Analysis Details")
