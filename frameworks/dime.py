@@ -116,17 +116,16 @@ def ai_suggest_dime(phase, scenario, objective=None):
 
 def recommend_dime_category(category, base_text):
     """
-    Generate concise recommendations for the specified DIME category based on the provided text.
-    The function now also considers any answered questions from the user and includes the body content
-    of a processed URL (if provided in the scenario). This way, the recommendations take into account both
-    AI-generated questions and any user responses, as well as the original URL content if available.
+    Generate a comprehensive intelligence analysis for the specified DIME category based on the provided text.
+    The function now integrates any answered questions and URL body content along with the provided base text,
+    and instructs GPT to deliver a self-contained analysis that uses its own extensive domain expertise.
 
     Args:
         category (str): The DIME category (e.g., "Diplomatic", "Information", "Military", "Economic").
-        base_text (str): Input text to analyze for generating recommendations.
+        base_text (str): Input text (which may include AI-suggested questions and/or Google search results) to analyze.
 
     Returns:
-        str: A string containing the recommendations.
+        str: A self-contained intelligence analysis for the specified category.
     """
     try:
         # Extract answered questions for the given category from st.session_state.
@@ -136,37 +135,43 @@ def recommend_dime_category(category, base_text):
             if key.startswith(answer_prefix) and value and value.strip():
                 answered_texts.append(value.strip())
         answered_content = "\n".join(answered_texts) if answered_texts else ""
-
+    
         # Extract URL body content from processed scenario if available.
         url_body = ""
         if "processed_scenario" in st.session_state:
             processed_text = st.session_state["processed_scenario"]
             if "Body Content:" in processed_text:
                 url_body = processed_text.split("Body Content:", 1)[1].strip()
-
+    
         # Combine the base text with any answered questions and URL body content.
         combined_text = base_text
         if answered_content:
-            combined_text += "\n\nAnswered Questions:\n" + answered_content
+            combined_text += "\n\nUser Provided Insights:\n" + answered_content
         if url_body:
             combined_text += "\n\nURL Body Content:\n" + url_body
-
+    
         system_msg = {
             "role": "system",
             "content": (
-                "You are an experienced intelligence analyst specializing in {} analysis. "
-                "Review the following text containing intelligence questions, search results, answered questions, "
-                "and any URL body content provided, then generate concise recommendations for additional data points, "
-                "sources, or insights that could enhance the analysis in this area."
+                "You are a highly experienced intelligence analyst with deep expertise in global geopolitical and strategic analysis. "
+                "Using your subject matter expertise, provide a comprehensive assessment of the topic from a {} perspective. "
+                "Synthesize the provided textual information with your extensive knowledge, and deliver a detailed, self-contained analysis "
+                "that outlines key insights, historical context, and actionable recommendations. "
+                "Do not ask follow-up questions or direct further data collection—simply produce your best answer."
             ).format(category)
         }
         user_prompt = (
-            f"Text to analyze:\n{combined_text}\n\n"
-            "Based on the text above, provide your recommendations for further data collection "
-            "and intelligence gap analysis. Be concise and focus on actionable insights."
+            f"Based on the following information, provide your best comprehensive analysis and actionable insights on the topic from a {category} perspective. "
+            "Rely on your extensive domain knowledge and ensure your response is self-contained and detailed:\n\n"
+            f"{combined_text}"
         )
-        user_msg = {"role": "user", "content": user_prompt}
-        recommendation = chat_gpt([system_msg, user_msg], model="gpt-4o")
+        recommendation = chat_gpt(
+            [
+                system_msg,
+                {"role": "user", "content": user_prompt}
+            ],
+            model="gpt-4o"
+        )
         return recommendation
     except Exception as e:
         logging.error(f"Error in recommend_dime_category: {e}")
@@ -260,7 +265,6 @@ def dime_page():
             )
             if ai_text:
                 st.session_state["dime_diplomatic"] = ai_text
-                st.rerun()
 
         diplomatic_questions = st.session_state.get("dime_diplomatic", "")
         if diplomatic_questions:
@@ -288,7 +292,7 @@ def dime_page():
                 else:
                     st.write(line)
             
-            # Create two columns: one for the Recommend button and one for showing the recommendation data.
+            # Create two columns: one for the Recommend button, one for the recommendation display.
             cols_diplomatic = st.columns([1, 3])
             with cols_diplomatic[0]:
                 if st.button("AI: Recommend Diplomatic Data", key="recommend_diplomatic_btn"):
@@ -299,8 +303,6 @@ def dime_page():
                     existing_text = st.session_state.get("diplomatic_analysis", "")
                     appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
                     st.session_state["diplomatic_analysis"] = appended_text
-                    st.session_state["recommend_diplomatic_result"] = recommendation
-                    st.experimental_rerun()
             with cols_diplomatic[1]:
                 st.markdown("**Diplomatic Recommendations:**")
                 recommendation_display = st.session_state.get("recommend_diplomatic_result", "Click button to generate recommendations.")
@@ -310,17 +312,13 @@ def dime_page():
                 if st.button("Google: Search & Summarize Diplomatic", key="google_diplomatic"):
                     google_results = generate_google_results(st.session_state["dime_diplomatic"])
                     st.session_state["google_diplomatic_result"] = google_results
-                    st.rerun()
-                if "google_diplomatic_result" in st.session_state:
-                    st.write(st.session_state["google_diplomatic_result"])
 
-        current_text = st.session_state.get("diplomatic_analysis", "")
+        # Use only a key (no explicit value) so that user input is preserved.
         st.text_area(
-             "Diplomatic Analysis",
-             value=current_text,
-             height=150,
-             placeholder="Enter your insights and data related to diplomatic aspects here...",
-             key="diplomatic_analysis"
+            "Diplomatic Analysis",
+            key="diplomatic_analysis",
+            height=150,
+            placeholder="Enter your insights and data related to diplomatic aspects here..."
         )
 
         ##############################
@@ -375,7 +373,7 @@ def dime_page():
                     appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
                     st.session_state["information_analysis"] = appended_text
                     st.session_state["recommend_information_result"] = recommendation
-                    st.experimental_rerun()
+                    st.rerun()
             with cols_information[1]:
                 st.markdown("**Information Recommendations:**")
                 recommendation_display = st.session_state.get("recommend_information_result", "Click button to generate recommendations.")
@@ -450,7 +448,7 @@ def dime_page():
                     appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
                     st.session_state["military_analysis"] = appended_text
                     st.session_state["recommend_military_result"] = recommendation
-                    st.experimental_rerun()
+                    st.rerun()
             with cols_military[1]:
                 st.markdown("**Military Recommendations:**")
                 recommendation_display = st.session_state.get("recommend_military_result", "Click button to generate recommendations.")
@@ -525,7 +523,7 @@ def dime_page():
                     appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
                     st.session_state["economic_analysis"] = appended_text
                     st.session_state["recommend_economic_result"] = recommendation
-                    st.experimental_rerun()
+                    st.rerun()
             with cols_economic[1]:
                 st.markdown("**Economic Recommendations:**")
                 recommendation_display = st.session_state.get("recommend_economic_result", "Click button to generate recommendations.")
