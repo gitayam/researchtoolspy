@@ -5,8 +5,6 @@ from utilities.helpers import create_docx_document
 
 def behavior_analysis_page():
     # Configure page
-    st.set_page_config(page_title="Action/Behavior Analysis", layout="wide")
-    st.title("Action or Behavior Analysis")
     st.markdown(
         """
         This template builds upon the latest doctrine **TM 3-53.11 Influence Process Activity: Target Audience Analysis**.
@@ -44,17 +42,17 @@ def behavior_analysis_page():
             "tooltip": "Enter the main action or behavior to be analyzed.",
             "type": "text"
         },
-        "supporting_behaviors": {
-            "label": "Supporting Behaviors Required",
-            "placeholder": "e.g., Data manipulation, diversion tactics",
-            "tooltip": "List any supporting behaviors that enable the main behavior.",
-            "type": "area"
-        },
         "location": {
             "label": "Location",
             "placeholder": "e.g., Washington D.C. or a specific region",
             "tooltip": "Specify the location where the behavior occurs.",
             "type": "text"
+        },
+        "supporting_behaviors": {
+            "label": "Supporting Behaviors Required",
+            "placeholder": "e.g., Data manipulation, diversion tactics",
+            "tooltip": "List any supporting behaviors that enable the main behavior.",
+            "type": "area"
         },
         "behavior_breakdown": {
             "label": "Behavior Breakdown and Analysis",
@@ -235,10 +233,27 @@ def behavior_analysis_page():
                                     "List all smaller actions required to achieve this behavior, sequencing them step-by-step."
                                 )
                             elif key == "supporting_behaviors":
-                                prompt = (
-                                    f"Identify supporting behaviors required to achieve the action '{analysis_details.get('action_behavior', '')}'. "
-                                    "Provide clear recommendations."
-                                )
+                                if analysis_details.get('location', ''):
+                                    prompt = (
+                                        f"Identify supporting behaviors required to achieve the action '{analysis_details.get('action_behavior', '')}' in the location '{analysis_details.get('location', '')}'. "
+                                        "Provide clear recommendations without any additional commentary.."
+                                    )
+                                elif analysis_details.get('supporting_behaviors', ''):
+                                    prompt = (
+                                        f"Identify supporting behaviors required to achieve the action '{analysis_details.get('action_behavior', '')}' with supporting behaviors '{analysis_details.get('supporting_behaviors', '')}'. "
+                                        "Provide clear recommendations without any additional commentary.."
+                                    )
+                                # if both location and supporting behaviors are provided, then use both
+                                elif analysis_details.get('location', '') and analysis_details.get('supporting_behaviors', ''):
+                                    prompt = (
+                                        f"Identify supporting behaviors required to achieve the action '{analysis_details.get('action_behavior', '')}' in the location '{analysis_details.get('location', '')}' with supporting behaviors '{analysis_details.get('supporting_behaviors', '')}'. "
+                                        "Provide clear recommendations without any additional commentary.."
+                                    )
+                                else:
+                                    prompt = (
+                                        f"Identify supporting behaviors required to achieve the action '{analysis_details.get('action_behavior', '')}'. "
+                                        "Provide clear recommendations without any additional commentary.."
+                                    )
                             elif key == "supporting_timeline":
                                 prompt = (
                                     f"Based on the action '{analysis_details.get('action_behavior', '')}', generate a timeline of supporting behaviors "
