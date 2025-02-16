@@ -222,41 +222,57 @@ def dime_page():
     if st.button("Process Scenario"):
         if scenario_input.strip():
             processed_scenario = process_scenario_input(scenario_input)
-            # If Wikipedia results are desired, retrieve and append their summary.
-            if include_wikipedia:
-                wiki_results_summary = generate_wikipedia_results(processed_scenario)
-                processed_scenario += "\n\nWikipedia Summary:\n" + wiki_results_summary
-            # If an objective is provided, append it to the processed scenario.
-            if objective_input.strip():
-                processed_scenario += "\n\nObjective:\n" + objective_input.strip()
             st.session_state["processed_scenario"] = processed_scenario
-            st.session_state["objective"] = objective_input.strip()
+            
+            # Instead of merging with the scraped summary, store separately.
+            if include_wikipedia:
+                st.session_state["wikipedia_summary"] = generate_wikipedia_results(processed_scenario)
+            else:
+                st.session_state["wikipedia_summary"] = ""
+            
+            if st.session_state.get("include_google_search"):
+                st.session_state["google_summary"] = generate_google_results(processed_scenario)
+            else:
+                st.session_state["google_summary"] = ""
+            
+            if objective_input.strip():
+                st.session_state["objective"] = objective_input.strip()
+            else:
+                st.session_state["objective"] = ""
         else:
             st.error("Please enter a valid scenario before clicking Process Scenario.")
 
     if "processed_scenario" in st.session_state:
         st.subheader("Analyzed Scenario Content")
         st.write(st.session_state["processed_scenario"])
+        
         if "objective" in st.session_state and st.session_state["objective"]:
             st.write("Objective:", st.session_state["objective"])
         
-        # Wikipedia Results (if selected)
-        if include_wikipedia:
-            st.subheader("Wikipedia Search Results")
-            wiki_results = generate_wikipedia_results(st.session_state["processed_scenario"])
-            st.write(wiki_results)
+        # Display Wikipedia summary as a separate section (if available)
+        if st.session_state.get("wikipedia_summary"):
+            st.subheader("Wikipedia Summary")
+            st.write(st.session_state["wikipedia_summary"])
+        
+        # Display Google Search summary as a separate section (if available)
+        if st.session_state.get("google_summary"):
+            st.subheader("Google Search Summary")
+            st.write(st.session_state["google_summary"])
         
         st.write("Now conduct your DIME analysis based on the scenario above:")
 
         ##############################
-        # Diplomatic Category Section
+        # Diplomatic Category Section (Updated UI to always display Recommend Data button)
         ##############################
         st.subheader("Diplomatic")
         if "dime_diplomatic" not in st.session_state:
             st.session_state["dime_diplomatic"] = ""
         if "diplomatic_analysis" not in st.session_state:
             st.session_state["diplomatic_analysis"] = ""
+        if "recommend_diplomatic_result" not in st.session_state:
+            st.session_state["recommend_diplomatic_result"] = "Click button to generate recommendations."
 
+        # Button to generate AI-suggested Diplomatic Questions
         if st.button("AI: Suggest Diplomatic Questions"):
             ai_text = ai_suggest_dime(
                 "Diplomatic", 
@@ -266,6 +282,7 @@ def dime_page():
             if ai_text:
                 st.session_state["dime_diplomatic"] = ai_text
 
+        # Display Diplomatic Questions if they exist
         diplomatic_questions = st.session_state.get("dime_diplomatic", "")
         if diplomatic_questions:
             for idx, line in enumerate(diplomatic_questions.splitlines()):
@@ -291,29 +308,32 @@ def dime_page():
                         st.write(line)
                 else:
                     st.write(line)
-            
-            # Create two columns: one for the Recommend button, one for the recommendation display.
-            cols_diplomatic = st.columns([1, 3])
-            with cols_diplomatic[0]:
-                if st.button("AI: Recommend Diplomatic Data", key="recommend_diplomatic_btn"):
-                    recommendation = recommend_dime_category(
-                        "Diplomatic",
-                        st.session_state.get("google_diplomatic_result", st.session_state["dime_diplomatic"])
-                    )
-                    existing_text = st.session_state.get("diplomatic_analysis", "")
-                    appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
-                    st.session_state["diplomatic_analysis"] = appended_text
-            with cols_diplomatic[1]:
-                st.markdown("**Diplomatic Recommendations:**")
-                recommendation_display = st.session_state.get("recommend_diplomatic_result", "Click button to generate recommendations.")
-                st.write(recommendation_display)
-            
-            if st.session_state.get("include_google_search"):
-                if st.button("Google: Search & Summarize Diplomatic", key="google_diplomatic"):
-                    google_results = generate_google_results(st.session_state["dime_diplomatic"])
-                    st.session_state["google_diplomatic_result"] = google_results
 
-        # Use only a key (no explicit value) so that user input is preserved.
+        # Always display Recommend Data button and recommendation output
+        cols_diplomatic = st.columns([1, 3])
+        with cols_diplomatic[0]:
+            if st.button("AI: Recommend Diplomatic Data", key="recommend_diplomatic_btn"):
+                recommendation = recommend_dime_category(
+                    "Diplomatic",
+                    st.session_state.get("google_diplomatic_result", st.session_state["dime_diplomatic"])
+                )
+                existing_text = st.session_state.get("diplomatic_analysis", "")
+                appended_text = (existing_text + "\n\n" + recommendation).strip() if existing_text else recommendation
+                st.session_state["diplomatic_analysis"] = appended_text
+                st.session_state["recommend_diplomatic_result"] = recommendation
+        with cols_diplomatic[1]:
+            st.markdown("**Diplomatic Recommendations:**")
+            recommendation_display = st.session_state.get("recommend_diplomatic_result", "Click button to generate recommendations.")
+            st.write(recommendation_display)
+
+        if st.session_state.get("include_google_search"):
+            if st.button("Google: Search & Summarize Diplomatic", key="google_diplomatic"):
+                google_results = generate_google_results(st.session_state["dime_diplomatic"])
+                st.session_state["google_diplomatic_result"] = google_results
+            if "google_diplomatic_result" in st.session_state:
+                st.write(st.session_state["google_diplomatic_result"])
+
+        # Analysis Text Area (user input is preserved by not setting a value)
         st.text_area(
             "Diplomatic Analysis",
             key="diplomatic_analysis",
