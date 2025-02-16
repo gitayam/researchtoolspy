@@ -30,14 +30,103 @@ def remove_markdown(md_text: str) -> str:
     text = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', text)
     return text
 
+def parse_markdown(text: str):
+    """
+    Parse a markdown string into a list of segments.
+    
+    Each segment is a tuple of (text, formatting_dict)
+    where formatting_dict may contain keys like 'bold' or 'italic'.
+    This is a very basic parser and supports **bold**, *italic*,
+    __bold__, and _italic_ markers.
+    """
+    pattern = r'(\*\*[^*]+\*\*|\*[^*]+\*|__[^_]+__|_[^_]+_)'
+    segments = []
+    pos = 0
+    for m in re.finditer(pattern, text):
+        start, end = m.span()
+        if start > pos:
+            segments.append((text[pos:start], {}))
+        token = m.group(0)
+        if token.startswith("**") and token.endswith("**"):
+            segments.append((token[2:-2], {"bold": True}))
+        elif token.startswith("*") and token.endswith("*"):
+            segments.append((token[1:-1], {"italic": True}))
+        elif token.startswith("__") and token.endswith("__"):
+            segments.append((token[2:-2], {"bold": True}))
+        elif token.startswith("_") and token.endswith("_"):
+            segments.append((token[1:-1], {"italic": True}))
+        pos = end
+    if pos < len(text):
+        segments.append((text[pos:], {}))
+    return segments
+
+def add_markdown_paragraph(document, markdown_text: str):
+    """
+    Add a paragraph to the DOCX document with markdown formatting.
+    
+    This function uses the basic parser (parse_markdown) to create
+    runs that render **bold** and *italic* style without leaving markdown symbols.
+    """
+    paragraph = document.add_paragraph()
+    segments = parse_markdown(markdown_text)
+    for seg_text, fmt in segments:
+        run = paragraph.add_run(seg_text)
+        if fmt.get("bold"):
+            run.bold = True
+        if fmt.get("italic"):
+            run.italic = True
+    return paragraph
+
+def add_section_content(document: Document, section_title: str, content: str):
+    """
+    Add content for a DOCX section. If the section is a Questions section,
+    process each line so that the question text is rendered as a header (level 2)
+    with bold and italic formatting and the search query is formatted in italic.
+    
+    For non-question sections, the content is rendered as a single markdown paragraph.
+    """
+    # If the section title indicates that it contains questions, process line-by-line.
+    if "Questions" in section_title:
+        lines = content.splitlines()
+        for line in lines:
+            line = line.strip().rstrip(";")
+            if not line:
+                continue
+            # Look for the standard question format separated by '|'
+            if '|' in line:
+                parts = line.split('|', 1)
+                if len(parts) == 2:
+                    question_text = parts[0].strip()
+                    search_text = parts[1].strip()
+                    # Remove any existing prefixes.
+                    if question_text.lower().startswith("question:"):
+                        question_text = question_text[len("question:"):].strip()
+                    if search_text.lower().startswith("search:"):
+                        search_text = search_text[len("search:"):].strip()
+                    # Add question as a header (level 2)
+                    document.add_heading(question_text, level=2)
+                    # Add associated search query in italic.
+                    search_para = document.add_paragraph()
+                    search_run = search_para.add_run("Search: " + search_text)
+                    search_run.italic = True
+                else:
+                    add_markdown_paragraph(document, line)
+            else:
+                add_markdown_paragraph(document, line)
+    else:
+        add_markdown_paragraph(document, content)
+
 def create_docx_document(title: str, sections: dict) -> io.BytesIO:
     """
     Create a DOCX document with a specified title and sections.
-
+    
+    This function now leverages our markdown rendering helpers to convert
+    markdown formatting (bold, italics, headers for questions) to DOCX styling.
+    
     Args:
       title: The document title.
       sections: A dictionary where keys are section headings and values are section contents (plain text).
-
+      
     Returns:
       A BytesIO object containing the DOCX file.
     """
@@ -51,9 +140,7 @@ def create_docx_document(title: str, sections: dict) -> io.BytesIO:
     document.add_heading(title, level=0)
     for heading, content in sections.items():
         document.add_heading(heading, level=1)
-        # Remove markdown formatting to improve DOCX readability.
-        text_content = remove_markdown(content)
-        document.add_paragraph(text_content)
+        add_section_content(document, heading, content)
 
     docx_io = io.BytesIO()
     document.save(docx_io)
