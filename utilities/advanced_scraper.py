@@ -12,6 +12,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 import wikipedia
 import os
 from selenium.common.exceptions import WebDriverException
+import re
 
 # Optionally use Playwright for dynamic pages
 try:
