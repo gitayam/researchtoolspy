@@ -632,20 +632,30 @@ def dime_page():
         # Export Option
         ##############################
         st.markdown("---")
-        st.subheader("Export Analysis")
-        file_name = st.text_input("Enter export file name", "dime_analysis.txt")
-        if st.button("Export DIME Analysis"):
-            file_content = (
-                "Situation / Goal:\n" + st.session_state["processed_scenario"] + "\n\n" +
-                "Objective:\n" + st.session_state.get("objective", "None") + "\n\n" +
-                "Diplomatic:\n" + st.session_state.get("dime_diplomatic", "") + "\n\n" +
-                "Information:\n" + st.session_state.get("dime_information", "") + "\n\n" +
-                "Military:\n" + st.session_state.get("dime_military", "") + "\n\n" +
-                "Economic:\n" + st.session_state.get("dime_economic", "") + "\n\n"
+        st.subheader("Export DIME Analysis")
+        title_doc = st.text_input("Enter export file name for DIME analysis", "dime_analysis")
+        if st.button("Export DIME Analysis as DOCX Document"):
+            sections = {
+                "Scenario Overview": st.session_state.get("processed_scenario", "No scenario provided."),
+                "Scenario Details": st.session_state.get("scenario_details", "No scenario details available.")
+            }
+            if st.session_state.get("diplomatic_analysis"):
+                sections["Diplomatic Analysis"] = st.session_state["diplomatic_analysis"]
+            if st.session_state.get("information_analysis"):
+                sections["Information Analysis"] = st.session_state["information_analysis"]
+            if st.session_state.get("military_analysis"):
+                sections["Military Analysis"] = st.session_state["military_analysis"]
+            if st.session_state.get("economic_analysis"):
+                sections["Economic Analysis"] = st.session_state["economic_analysis"]
+
+            # Create DOCX file (ensure that create_docx_document is defined elsewhere in your codebase).
+            docx_file = create_docx_document(title_doc, sections)
+            st.download_button(
+                label="Download DOCX",
+                data=docx_file,
+                file_name=f"{title_doc}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
-            with open(file_name, "w") as f:
-                f.write(file_content)
-            st.success(f"Exported DIME analysis to {file_name}")
 
 # Note: When using Streamlit, this module will be loaded as a page.
 if __name__ == "__main__":
