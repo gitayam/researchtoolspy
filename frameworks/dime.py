@@ -66,7 +66,7 @@ def ai_suggest_dime(phase, scenario, objective=None):
     
     The output must be a semicolon-separated list of items. 
     Each item must be written EXACTLY in the following format:
-      Question: <question text> | Search: <advanced Google search query>
+      Question: <question text> | Search: <advanced Google search query using advanced operators and boolean logic>
     Do not include any extraneous text, line breaks, or commentary.
     """
     try:
@@ -87,7 +87,7 @@ def ai_suggest_dime(phase, scenario, objective=None):
                     f"For the '{phase}' aspect, generate exactly 3 to 5 detailed intelligence analysis questions that identify key diplomatic information requirements "
                     "required to support information forces. First, consider what is important to know from a diplomatic perspective, especially in relation to accomplishing the objective provided. "
                     "Output only a semicolon-separated list of items. Each item must be on one line, EXACTLY as follows:\n\n"
-                    "Question: <question text> | Search: <advanced Google search query>\n\n"
+                    "Question: <question text> | Search: <advanced Google search query using advanced operators and boolean logic>\n\n"
                     "Do not include any additional words or lines."
                 )
             else:
@@ -96,7 +96,7 @@ def ai_suggest_dime(phase, scenario, objective=None):
                     f"For the '{phase}' aspect, generate exactly 3 to 5 detailed intelligence analysis questions that identify key diplomatic information requirements "
                     "required to support information forces. First, consider what is important to know from a diplomatic perspective. "
                     "Output only a semicolon-separated list of items. Each item must be on one line, EXACTLY as follows:\n\n"
-                    "Question: <question text> | Search: <advanced Google search query>\n\n"
+                    "Question: <question text> | Search: <advanced Google search query using advanced operators and boolean logic>\n\n"
                     "Do not include any additional words or lines."
                 )
         else:
@@ -104,7 +104,7 @@ def ai_suggest_dime(phase, scenario, objective=None):
                 f"Scenario: {scenario}\n"
                 f"For the '{phase}' aspect, generate exactly 3 to 5 detailed intelligence analysis questions that identify key information requirements "
                 "required to support information forces. Output only a semicolon-separated list of items. Each item must be on one line, EXACTLY as follows:\n\n"
-                "Question: <question text> | Search: <advanced Google search query>\n\n"
+                "Question: <question text> | Search: <advanced Google search query using advanced operators and boolean logic>\n\n"
                 "Do not include any additional words or lines."
             )
         user_msg = {"role": "user", "content": user_content}
