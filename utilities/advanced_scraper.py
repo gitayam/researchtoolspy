@@ -11,6 +11,8 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import wikipedia
 import os
+from selenium.common.exceptions import WebDriverException
+from webdriver_manager.core.exceptions import DriverNotInstalledError
 
 # Optionally use Playwright for dynamic pages
 try:
@@ -92,12 +94,26 @@ def google_search_summary(query):
         return f"Error: {str(e)}"
     
     # Set up the Service with the ChromeDriver path obtained by webdriver_manager
-    service = Service(ChromeDriverManager().install())
+    try:
+        service = Service(ChromeDriverManager().install())
+    except DriverNotInstalledError as e:
+        logging.error(f"ChromeDriver installation error: {e}")
+        return f"Error installing ChromeDriver: {e}"
+    except WebDriverException as e:
+        logging.error(f"Selenium WebDriver error during service setup: {e}")
+        return f"Error setting up ChromeDriver service: {e}"
+    except Exception as e:
+        logging.error(f"Unexpected error installing ChromeDriver: {e}")
+        return f"Unexpected error: {e}"
     
     try:
         driver = webdriver.Chrome(service=service, options=chrome_options)
+    except WebDriverException as e:
+        logging.error(f"Selenium WebDriver initialization error: {e}")
+        return f"Error initializing Chrome WebDriver: {e}"
     except Exception as e:
-        return f"Error initializing Chrome WebDriver: {str(e)}"
+        logging.error(f"Unexpected WebDriver error: {e}")
+        return f"Unexpected WebDriver error: {e}"
     
     try:
         query_url = "https://www.google.com/search?q=" + query.replace(" ", "+")
