@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 from utilities.gpt import chat_gpt
+from utilities.helpers import create_docx_document
 
 def behavior_analysis_page():
     st.title("Action or Behavior Analysis")
@@ -27,17 +28,17 @@ def behavior_analysis_page():
         )
 
     st.header("Enter Behavior Analysis Details")
-    # Define the fields for the analysis
+    # Define the fields with the desired order and updated labels.
     fields = {
         "action_behavior": "Action or Behavior",
+        "supporting_behaviors": "Supporting Behaviors Required",
         "location": "Location",
         "behavior_breakdown": "Behavior Breakdown and Analysis",
-        "behavior_timeline": "Behavior Timeline",
-        "instances": "Instances of the Behavior",
-        "supporting_behaviors": "Supporting Behaviors Required",
+        "behavior_timeline": "Behavior Timeline (Generate initial timeline)",
+        "instances": "Historical Examples of Behavior (who, when, where, why)",
         "supporting_timeline": "Timeline of Supporting Behaviors",
-        "obstacles": "Obstacles and Challenges Encountered",
-        "associated_symbols": "Associated Symbols and Signals",
+        "obstacles": "Obstacles and Challenges to Achieving the Action",
+        "associated_symbols": "Associated Symbols and Signals Associated with the Behavior",
         "required_capabilities": "Required Capabilities (Physical, Cognitive, Social, Economic)",
         "social_norms": "Social Norms and Pressures",
         "motivations": "Motivations and Drivers",
@@ -58,12 +59,52 @@ def behavior_analysis_page():
     }
 
     analysis_details = {}
-    # Use text_input for shorter entries and text_area for longer observations.
+
+    # Render input fields and add a GPT recommendation button where appropriate.
     for key, label in fields.items():
         if key in ["action_behavior", "location"]:
-            analysis_details[key] = st.text_input(label)
+            analysis_details[key] = st.text_input(label, key=key)
         else:
-            analysis_details[key] = st.text_area(label, height=100)
+            analysis_details[key] = st.text_area(label, key=key, height=100)
+
+        # Add GPT-enabled recommendation buttons for specific fields
+        if key in ["behavior_timeline", "supporting_behaviors", "supporting_timeline", "instances", "obstacles", "associated_symbols"]:
+            if st.button(f"Recommend data for '{label}'", key=f"btn_{key}"):
+                prompt = ""
+                if key == "behavior_timeline":
+                    prompt = (
+                        f"Based on the behavior '{analysis_details.get('action_behavior', '')}' "
+                        f"and location '{analysis_details.get('location', '')}', generate a detailed initial timeline of events. "
+                        "List all smaller actions required to achieve this behavior, sequencing them step-by-step."
+                    )
+                elif key == "supporting_behaviors":
+                    prompt = (
+                        f"Identify supporting behaviors required to achieve the action '{analysis_details.get('action_behavior', '')}'. "
+                        "Provide clear recommendations."
+                    )
+                elif key == "supporting_timeline":
+                    prompt = (
+                        f"Based on the action '{analysis_details.get('action_behavior', '')}', generate a timeline of supporting behaviors "
+                        "that are necessary to facilitate this action. List them in sequential order."
+                    )
+                elif key == "instances":
+                    prompt = (
+                        f"Provide historical examples for the behavior '{analysis_details.get('action_behavior', '')}' detailing who, when, where, and why it occurred."
+                    )
+                elif key == "obstacles":
+                    prompt = (
+                        f"List potential obstacles and challenges to achieving the action '{analysis_details.get('action_behavior', '')}'. "
+                        "Provide detailed descriptions."
+                    )
+                elif key == "associated_symbols":
+                    prompt = (
+                        f"List symbols and signals that are associated with the behavior '{analysis_details.get('action_behavior', '')}'. "
+                        "Include contextual explanations if possible."
+                    )
+                system_msg = {"role": "system", "content": "You are an expert analyst in behavior analysis."}
+                user_msg = {"role": "user", "content": prompt}
+                suggestion = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
+                st.info(f"GPT Recommendation for '{label}':\n{suggestion}")
 
     st.markdown("---")
     st.header("Step 1: Generate Analytical Questions")
@@ -149,6 +190,25 @@ def behavior_analysis_page():
         st.subheader("Analysis Report")
         st.text_area("Generated Report", value=report, height=300)
         st.download_button("Download Report as Text", report, file_name="behavior_analysis_report.txt", mime="text/plain")
+
+    st.subheader("Export Analysis")
+    title_doc = st.text_input("Enter export file name for behavior analysis", "behavior_analysis")
+    if st.button("Export Behavior Analysis as DOCX Document"):
+        sections = {
+            "Action or Behavior Analysis Data": report_context,
+            "Analysis Questions and Answers": "\n".join(
+                f"Q{idx}: {question}\nA{idx}: {answer}"
+                for idx, question in enumerate(st.session_state["behavior_questions"], start=1)
+            ),
+            "Analysis Report": report
+        }
+        docx_file = create_docx_document(title_doc, sections)
+        st.download_button(
+            label="Download DOCX",
+            data=docx_file,
+            file_name=f"{title_doc}.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
 
 if __name__ == "__main__":
     behavior_analysis_page()
