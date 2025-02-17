@@ -83,7 +83,7 @@ def behavior_analysis_page():
         },
         "associated_symbols": {
             "label": "Associated Symbols and Signals",
-            "prompt": "Provide a numbered list of specific symbols, graphics, or visual cues directly related to the behavior.",
+            "prompt": "Provide a numbered list of the symbolic objects—such as banners, placards, icons, or other visual cues—that not only represent the behavior but also carry deeper material and semiotic significance. Consider how these objects function as targets, components, or stimuli in contentious politics, reflecting both their tangible and symbolic roles. Provide a numbered list where each entry includes the symbol’s name and a brief description of its symbolic relevance.",
             "type": "textarea"
         },
         # COM‑B Analysis
