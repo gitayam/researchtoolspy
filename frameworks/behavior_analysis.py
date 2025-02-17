@@ -1,3 +1,4 @@
+# /frameworks/behavior_analysis.py
 import streamlit as st
 import json
 from utilities.gpt import chat_gpt
@@ -8,126 +9,239 @@ def behavior_analysis_page():
     if "behavior_questions" not in st.session_state:
         st.session_state["behavior_questions"] = []
     
-    st.title("Action or Behavior Analysis")
     st.markdown(
         """
         This template builds upon the latest doctrine **TM 3-53.11 Influence Process Activity: Target Audience Analysis**.
         
-        Provide an in-depth analysis of a specific behavior in a particular area. The process generates analytical questions, offers draft answers, and produces a comprehensive report.
+        Provide an in-depth analysis of a specific behavior, map out its timeline, and identify gaps or required skills/opportunities.
         """
     )
 
-    # Sidebar for quick help
+    # Sidebar help
     st.sidebar.title("Quick Help")
     st.sidebar.info(
-        "Fill in the details on the main page. Hover over input fields for tooltips. "
-        "Use the recommendation buttons to auto-populate input fields with GPT suggestions."
+        "Complete each section by entering data or clicking the 'Recommend' buttons for GPT suggestions. "
+        "The form is organized into sections to help you build a timeline, analyze behavior details, and identify supporting elements."
     )
 
     with st.expander("Template Instructions", expanded=False):
         st.markdown(
             """
             **Purpose:**  
-            To build upon the latest doctrine TM 3-53.11 by providing a detailed analysis of a behavior and its context.  
-            This analysis produces a shared understanding of the behavior, relevant actors, locations, obstacles, symbols, etc.
+            Provide a detailed analysis and timeline of a behavior—including supporting actions, gaps in capabilities, and opportunities for intervention.
             
-            **How To Use This Template:**  
-            1. Replace placeholders (e.g., `BEHAVIOR_HERE`, `COUNTRY_HERE`) with your specific information.
-            2. Fill in the fields below with your observations and data.
-            3. Use the provided buttons to generate analytical questions, get answer suggestions, and generate a final report.
+            **How To Use:**  
+            1. Replace placeholders with your specific information.
+            2. Enter data in each section. Use the recommendation buttons to auto-populate fields with expert suggestions.
+            3. Generate analytical questions, draft answers, and produce a comprehensive report.
             """
         )
 
-    st.header("Enter Behavior Analysis Details")
-    # Define the fields in order and with updated labels.
-    fields = {
-        "action_behavior": "Action or Behavior",
-        "location": "Location where the behavior occurs",
-        "supporting_behaviors": "Supporting Behaviors Required",
-        "behavior_breakdown": "Behavior Breakdown and Analysis",
-        "behavior_timeline": "Behavior Timeline (Generate initial timeline)",
-        "instances": "Historical Examples of Behavior (who, when, where, why)",
-        "obstacles": "Obstacles and Challenges to Achieving the Action",
-        "associated_symbols": "Associated Symbols and Signals Associated with the Behavior",
-        "required_capabilities": "Required Capabilities (Physical, Cognitive, Social, Economic)",
-        "social_norms": "Social Norms and Pressures",
-        "motivations": "Motivations and Drivers",
-        "consequences": "Consequences and Outcomes",
-        "environmental_factors": "Environmental and Situational Factors",
-        "impact_strategies": "Strategies That Have Impacted the Behavior",
-        "primary_ta": "Potential Primary Target Audiences",
-        "secondary_ta": "Potential Secondary Target Audiences",
-        "engaging_actors": "Engaging Actors",
-        "beneficiaries": "Beneficiaries",
-        "harmed_parties": "Harmed Parties",
-        "influencers": "Influencers and Stakeholders",
-        "enablers": "Enablers and Supporters",
-        "opposers": "Opposers and Detractors",
-        "additional_notes": "Additional Notes",
-        "cultural_considerations": "Cultural Considerations",
-        "legal_ethics": "Legal and Ethical Implications"
+    # Define field metadata (label, GPT prompt, input type).
+    field_info = {
+        "action_behavior": {
+            "label": "Action or Behavior",
+            "prompt": "Describe the action or behavior to be analyzed. Provide context and clear examples in a concise summary.",
+            "type": "text"
+        },
+        "location": {
+            "label": "Location where the behavior occurs",
+            "prompt": "Specify the location (city, region, or country) where the behavior is observed.",
+            "type": "text"
+        },
+        "supporting_behaviors": {
+            "label": "Supporting Behaviors Required",
+            "prompt": "Identify the supporting behaviors that enable the main action. Return as a numbered list. Format each line as: '#. [behavior]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "behavior_breakdown": {
+            "label": "Behavior Breakdown and Analysis",
+            "prompt": "Return a numbered list of supporting behaviors required to achieve the main behavior. Format each line as: '#. [behavior]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "behavior_timeline": {
+            "label": "Behavior Timeline (Initial Timeline)",
+            "prompt": "Generate a detailed timeline of events for the behavior as a numbered list. Format each line as: '#. [event]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "instances": {
+            "label": "Historical Examples (Who, When, Where, Why)",
+            "prompt": "Provide historical examples of the behavior. Return as numbered list. Format each line as: '#. [example]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "obstacles": {
+            "label": "Obstacles and Challenges",
+            "prompt": "List potential obstacles and challenges as a numbered list. Format each line as: '#. [obstacle]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "associated_symbols": {
+            "label": "Associated Symbols and Signals",
+            "prompt": "List the symbols and signals related to the behavior as a numbered list. Format each line as: '#. [symbol]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "required_capabilities": {
+            "label": "Required Capabilities (Physical, Cognitive, Social, Economic)",
+            "prompt": "List and describe the capabilities needed to perform the behavior. Format each line as: '#. [capability]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "social_norms": {
+            "label": "Social Norms and Pressures",
+            "prompt": "Describe the societal norms and pressures related to this behavior. Format each line as: '#. [norm]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "motivations": {
+            "label": "Motivations and Drivers",
+            "prompt": "Outline the motivations behind the behavior, including psychological, social, and economic factors. Format each line as: '#. [motivation]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "consequences": {
+            "label": "Consequences and Outcomes",
+            "prompt": "Discuss the outcomes (both positive and negative) of the behavior. Format each line as: '#. [outcome]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "environmental_factors": {
+            "label": "Environmental and Situational Factors",
+            "prompt": "Identify environmental or situational factors (political, cultural, etc.) that influence the behavior. Format each line as: '#. [factor]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "impact_strategies": {
+            "label": "Strategies That Impacted the Behavior",
+            "prompt": "List strategies or interventions that have increased or decreased the behavior. Format each line as: '#. [strategy]' with no additional commentary.",
+            "type": "textarea"
+        },
+        "primary_ta": {
+            "label": "Potential Primary Target Audiences",
+            "prompt": "Identify the primary target audiences most affected by this behavior.",
+            "type": "textarea"
+        },
+        "secondary_ta": {
+            "label": "Potential Secondary Target Audiences",
+            "prompt": "Identify secondary audiences that may be influenced or engaged by the behavior.",
+            "type": "textarea"
+        },
+        "engaging_actors": {
+            "label": "Engaging Actors",
+            "prompt": "List the individuals or groups engaging in the behavior.",
+            "type": "textarea"
+        },
+        "beneficiaries": {
+            "label": "Beneficiaries",
+            "prompt": "Describe who benefits from the behavior, directly or indirectly.",
+            "type": "textarea"
+        },
+        "harmed_parties": {
+            "label": "Harmed Parties",
+            "prompt": "List the parties that are negatively impacted by the behavior.",
+            "type": "textarea"
+        },
+        "influencers": {
+            "label": "Influencers and Stakeholders",
+            "prompt": "Identify key influencers or stakeholders related to the behavior.",
+            "type": "textarea"
+        },
+        "enablers": {
+            "label": "Enablers and Supporters",
+            "prompt": "Discuss the enablers that facilitate the behavior.",
+            "type": "textarea"
+        },
+        "opposers": {
+            "label": "Opposers and Detractors",
+            "prompt": "Identify those who oppose or detract from the behavior.",
+            "type": "textarea"
+        },
+        "additional_notes": {
+            "label": "Additional Notes",
+            "prompt": "Provide any extra observations or context.",
+            "type": "textarea"
+        },
+        "cultural_considerations": {
+            "label": "Cultural Considerations",
+            "prompt": "Discuss cultural factors that influence the behavior.",
+            "type": "textarea"
+        },
+        "legal_ethics": {
+            "label": "Legal and Ethical Implications",
+            "prompt": "Outline the legal and ethical implications relevant to the behavior.",
+            "type": "textarea"
+        }
     }
 
-    # Define tailored GPT prompts for each field.
-    field_prompts = {
-        "action_behavior": "Describe the action or behavior to be analyzed. Provide context and clear examples in a concise summary.",
-        "location": "Specify the location or region where the behavior occurs. Include details such as city, region, or country.",
-        "supporting_behaviors": "Identify the supporting behaviors required to achieve the main action. Return the list as a numbered list without additional narrative.",
-        "behavior_breakdown": "Provide a detailed breakdown of the behavior, including its components, phases, and influencing factors.",
-        "behavior_timeline": "Generate a detailed initial timeline of events for the behavior as a numbered list.",
-        "instances": "Provide historical examples of the behavior, detailing who, when, where, and why. Return as bullet points.",
-        "obstacles": "List potential obstacles and challenges to achieving the action as a numbered list.",
-        "associated_symbols": "List the symbols and signals associated with the behavior as a numbered list.",
-        "required_capabilities": "List and describe the required capabilities (physical, cognitive, social, economic) needed to perform the behavior, with examples if possible.",
-        "social_norms": "Describe the social norms and pressures associated with this behavior, including any societal influences.",
-        "motivations": "Outline the motivations and drivers behind the behavior, including psychological, social, and economic factors.",
-        "consequences": "Discuss the potential consequences and outcomes of the behavior, highlighting both positive and negative impacts.",
-        "environmental_factors": "Identify any environmental and situational factors that influence the behavior, such as political, economic, or cultural aspects.",
-        "impact_strategies": "List strategies that have impacted the behavior, providing examples of interventions that increased or decreased it.",
-        "primary_ta": "Identify potential primary target audiences related to this behavior. Provide specific details about the most affected groups.",
-        "secondary_ta": "Identify potential secondary target audiences that may be influenced by or engage with the behavior.",
-        "engaging_actors": "List the actors engaging in the behavior, including individuals, groups, or organizations involved.",
-        "beneficiaries": "Describe the beneficiaries of the behavior, noting who gains advantage from it either directly or indirectly.",
-        "harmed_parties": "List the parties that are harmed or negatively impacted by the behavior, with brief context if needed.",
-        "influencers": "Identify key influencers and stakeholders associated with the behavior. Specify who holds sway over opinions or actions.",
-        "enablers": "Discuss the enablers and supporters that facilitate the behavior. Identify who or what contributes to its occurrence.",
-        "opposers": "Identify the opposers and detractors of the behavior. Specify who or what resists or challenges it.",
-        "additional_notes": "Provide any additional notes, observations, or context relevant to a comprehensive analysis of the behavior.",
-        "cultural_considerations": "Discuss any cultural considerations relevant to the behavior. Explain how cultural factors influence its perception and execution.",
-        "legal_ethics": "Outline the legal and ethical implications related to the behavior, including relevant laws, regulations, and ethical considerations."
+    # Organize fields into logical sections.
+    sections = {
+        "Basic Info": ["action_behavior", "location"],
+        "Behavior Details": ["behavior_breakdown", "supporting_behaviors", "behavior_timeline", "instances", "obstacles", "associated_symbols"],
+        "Capabilities & Context": ["required_capabilities", "social_norms", "motivations", "consequences", "environmental_factors", "impact_strategies"],
+        "Stakeholders": ["primary_ta", "secondary_ta", "engaging_actors", "beneficiaries", "harmed_parties", "influencers", "enablers", "opposers"],
+        "Additional Considerations": ["additional_notes", "cultural_considerations", "legal_ethics"]
     }
 
     analysis_details = {}
 
-    # Render GPT recommendation button above each input field, then render the input widget.
-    for key, label in fields.items():
-        # Show the GPT recommendation button above the input field.
-        if st.button(f"Recommend data for '{label}'", key=f"btn_{key}"):
-            with st.spinner(f"Generating recommendation for {label}..."):
-                prompt = f"Please provide a suggestion for the '{label}' field. {field_prompts.get(key, '')}"
-                system_msg = {"role": "system", "content": "You are an expert analyst in behavior analysis."}
-                user_msg = {"role": "user", "content": prompt}
-                suggestion = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-                st.session_state[key] = suggestion.strip()
-                st.success(f"Input field '{label}' auto-populated.")
-                st.rerun()
+    # Render each section in an expander for a cleaner, form-like UI.
+    for section, keys in sections.items():
+        with st.expander(section, expanded=True):
+            for key in keys:
+                info = field_info[key]
+                # Show the GPT recommendation button above each field.
+                if st.button(f"Recommend for '{info['label']}'", key=f"btn_{key}"):
+                    # Check that the mandatory "action_behavior" field has been defined.
+                    if not st.session_state.get("action_behavior", "").strip():
+                        st.warning("Please provide the Action or Behavior detail before generating recommendations.")
+                    else:
+                        with st.spinner(f"Generating recommendation for {info['label']}..."):
+                            # Build a context string including the most important fields.
+                            context_parts = []
+                            # Mandatory: add 'action_behavior'.
+                            if st.session_state.get("action_behavior", "").strip():
+                                context_parts.append(
+                                    f"{field_info['action_behavior']['label']}: {st.session_state.get('action_behavior')}"
+                                )
+                            # If 'location' is defined, include it.
+                            if st.session_state.get("location", "").strip():
+                                context_parts.append(
+                                    f"{field_info['location']['label']}: {st.session_state.get('location')}"
+                                )
+                            # Optionally add any other field that has been defined (non-empty)
+                            for cf, value in st.session_state.items():
+                                if (
+                                    cf in field_info
+                                    and cf not in ["action_behavior", "location", key]
+                                    and isinstance(value, str)
+                                    and value.strip() != ""
+                                ):
+                                    context_parts.append(f"{field_info[cf]['label']}: {value}")
+                            context_str = "\n".join(context_parts) if context_parts else "No additional context provided."
 
-        # Render the input widget with the current value.
-        if key in ["action_behavior", "location"]:
-            analysis_details[key] = st.text_input(
-                label,
-                key=key,
-                value=st.session_state.get(key, ""),
-                help=field_prompts.get(key, "")
-            )
-        else:
-            analysis_details[key] = st.text_area(
-                label,
-                key=key,
-                height=100,
-                value=st.session_state.get(key, ""),
-                help=field_prompts.get(key, "")
-            )
+                            # Compose a full prompt including the gathered context.
+                            full_prompt = (
+                                f"Using the context below:\n{context_str}\n\n"
+                                f"Now, please provide a suggestion for the '{info['label']}' field. {info['prompt']}"
+                            )
+                            system_msg = {
+                                "role": "system",
+                                "content": "You are an expert analyst in behavior analysis."
+                            }
+                            user_msg = {"role": "user", "content": full_prompt}
+                            suggestion = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
+                            st.session_state[key] = suggestion.strip()
+                            st.success(f"'{info['label']}' auto-populated.")
+                            st.rerun()
+                # Render the input widget.
+                if info["type"] == "text":
+                    analysis_details[key] = st.text_input(
+                        info["label"],
+                        key=key,
+                        value=st.session_state.get(key, ""),
+                        help=info["prompt"]
+                    )
+                else:
+                    analysis_details[key] = st.text_area(
+                        info["label"],
+                        key=key,
+                        height=100,
+                        value=st.session_state.get(key, ""),
+                        help=info["prompt"]
+                    )
 
     st.markdown("---")
     st.header("Step 1: Generate Analytical Questions")
@@ -135,11 +249,10 @@ def behavior_analysis_page():
         if not analysis_details["action_behavior"] or not analysis_details["location"]:
             st.warning("Please provide at least the Action/Behavior and Location details before generating questions.")
         else:
-            context = ""
-            for key, label in fields.items():
-                value = analysis_details.get(key, "").strip()
-                if value:
-                    context += f"{label}: {value}\n"
+            context = "\n".join(
+                f"{field_info[key]['label']}: {analysis_details.get(key, '').strip()}"
+                for key in field_info if analysis_details.get(key, "").strip()
+            )
             prompt = (
                 "Based on the following Action or Behavior Analysis data, generate a list of 5 analytical questions that help refine "
                 "the understanding of the behavior, identify potential gaps, and explore challenges. Each question should start with an interrogative word (what, how, why, etc.). "
@@ -176,8 +289,8 @@ def behavior_analysis_page():
                         "Return only the answer with no additional commentary.\n\n"
                         "Data:\n" +
                         "\n".join(
-                            f"{label}: {analysis_details.get(key, '').strip()}"
-                            for key, label in fields.items() if analysis_details.get(key, "").strip()
+                            f"{field_info[key]['label']}: {analysis_details.get(key, '').strip()}"
+                            for key in field_info if analysis_details.get(key, "").strip()
                         ) +
                         f"\n\nQuestion: {question}"
                     )
@@ -186,16 +299,16 @@ def behavior_analysis_page():
                     suggestion = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                     st.session_state[f"behavior_answer_{idx}"] = suggestion.strip()
                     st.success(f"Answer for Question {idx} auto-populated.")
-                    st.rerun()
+                    st.rerun
 
     st.markdown("---")
     st.header("Step 2: Generate Comprehensive Analysis Report")
     if st.button("Generate Analysis Report"):
         report_context = "Action or Behavior Analysis Data:\n"
-        for key, label in fields.items():
+        for key in field_info:
             value = analysis_details.get(key, "").strip()
             if value:
-                report_context += f"{label}: {value}\n"
+                report_context += f"{field_info[key]['label']}: {value}\n"
         if questions_list:
             report_context += "\nAnalysis Q&A:\n"
             for idx, question in enumerate(questions_list, start=1):

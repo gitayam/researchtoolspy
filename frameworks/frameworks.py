@@ -3,7 +3,7 @@ from urllib.parse import urlparse, parse_qs
 
 def main():
     # Parse query parameters from the URL
-    query_params = st.experimental_get_query_params()
+    query_params = st.query_params
     framework = query_params.get('framework', [None])[0]
 
     if framework == 'swot':
