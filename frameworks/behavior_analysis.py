@@ -40,6 +40,11 @@ def behavior_analysis_page():
     # Define field metadata (label, GPT prompt, input type)
     field_info = {
         # Basic Info
+        "objective_effect": {
+            "label": "Objective or Effect",
+            "prompt": "Describe the overall objective and effect. A behavior is an action or set of actions that are intended to impact partially or fully a specific objective. The effect is the outcome of one or many behaviors.",
+            "type": "text"
+        },
         "action_behavior": {
             "label": "Action or Behavior",
             "prompt": "Describe the action or behavior to be analyzed. Provide context and clear examples in a concise summary.",
