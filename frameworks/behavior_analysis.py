@@ -76,7 +76,11 @@ def behavior_analysis_page():
         },
         "associated_symbols": {
             "label": "Associated Symbols and Signals",
-            "prompt": "List the symbols and signals related to the behavior as a numbered list. Format each line as: '#. [symbol]' with no additional commentary.",
+            "prompt": (
+                "Provide a numbered list of specific, easily recognizable symbols, graphics, or visual cues that are directly related to the behavior or its location. "
+                "Focus on tangible, concrete icons (such as logos, icons, or emblems) rather than broad or generic categories. "
+                "Each item should be formatted as: '#. [symbol]' with no additional commentary."
+            ),
             "type": "textarea"
         },
         "required_capabilities": {
