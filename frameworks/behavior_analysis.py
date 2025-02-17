@@ -366,19 +366,25 @@ def behavior_analysis_page():
         if "report_context" not in st.session_state or "behavior_questions" not in st.session_state:
             st.error("Please generate the analysis report before exporting.")
         else:
+            # Extract the behavior summary and format it for the file name and title
+            behavior_summary = analysis_details.get("action_behavior", "").strip()
+            behavior_summary_filename = behavior_summary.replace(" ", "_")
+            behavior_summary_title = behavior_summary.replace("_", " ")
+
+            # Update the sections dictionary to include the behavior summary in the title
             sections = {
-                "Action or Behavior Analysis Data": st.session_state["report_context"],
+                f"Action or Behavior Analysis Data - {behavior_summary_title}": st.session_state["report_context"],
                 "Analysis Questions and Answers": "\n".join(
                     f"Q{idx}: {question}\nA{idx}: {st.session_state.get(f'behavior_answer_{idx}', '')}"
                     for idx, question in enumerate(st.session_state["behavior_questions"], start=1)
                 ),
                 "Analysis Report": st.session_state["report_context"]
             }
-            docx_file = create_docx_document(title_doc, sections)
+            docx_file = create_docx_document(f"{title_doc}-{behavior_summary_filename}", sections)
             st.download_button(
                 label="Download DOCX",
                 data=docx_file,
-                file_name=f"{title_doc}.docx",
+                file_name=f"{title_doc}-{behavior_summary_filename}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
 
