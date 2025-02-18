@@ -314,6 +314,11 @@ def behavior_analysis_page():
                 # Optionally remove markdown formatting if present.
                 if cleaned_response.startswith("```") and cleaned_response.endswith("```"):
                     cleaned_response = cleaned_response.strip("```").strip()
+
+                # Remove an optional 'json' prefix if present.
+                if cleaned_response.lower().startswith("json"):
+                    cleaned_response = cleaned_response[len("json"):].strip()
+
                 try:
                     questions = json.loads(cleaned_response)
                     st.session_state["behavior_questions"] = questions
