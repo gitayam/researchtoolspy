@@ -98,11 +98,6 @@ def behavior_analysis_page():
             "prompt": "In a chronological list, describe steps a person or group takes to achieve ultimately conduct or perform the action or behavior as a numbered list. Include eligibility, requirements, and other relevant factors. Do Not include commentary or additional information.",
             "type": "textarea"
         },
-        "behavior_timeline": {
-            "label": "Behavior Timeline (Initial Timeline)",
-            "prompt": "Generate a detailed timeline of events of the supporting behaviors required for the behavior as a numbered list. There may be multiple ways to achive one supporting behavior if so list them as sub-steps with Option1, Option2, etc. Use COM‑B language to note when capability, opportunity, and motivation factors come into play.",
-            "type": "textarea"
-        },
         "instances": {
             "label": "Historical Examples (Who, When, Where, Why)",
             "prompt": "Provide historical examples of the behavior as a numbered list.",
@@ -227,7 +222,7 @@ def behavior_analysis_page():
     # Organize fields into logical sections.
     sections = {
         "Basic Info": ["objective_effect", "action_behavior", "location"],
-        "Behavior Details": ["behavior_breakdown", "behavior_timeline", "instances", "obstacles", "associated_symbols"],
+        "Behavior Details": ["behavior_breakdown", "instances", "obstacles", "associated_symbols"],
         "COM-B Analysis": ["physical_capability", "psychological_capability", "physical_opportunity", "social_opportunity", "reflective_motivation", "automatic_motivation"],
         "Implications & Outcomes": ["consequences", "environmental_factors", "impact_strategies"],
         "Stakeholders": ["primary_ta", "secondary_ta", "engaging_actors", "beneficiaries", "harmed_parties", "influencers", "enablers", "opposers"],
