@@ -89,14 +89,13 @@ def behavior_analysis_page():
             "type": "text"
         },
         # Behavior Details
+        """
+        The behavior breakdown is a chronological list of steps a person or group takes to achieve ultimately conduct or perform the action or behavior.
+        Include eligibility, requirements, and other relevant factors. Do Not include commentary or additional information.
+        """
         "behavior_breakdown": {
             "label": "Behavior Breakdown and Analysis",
-            "prompt": "Describe how the behavior unfolds and list supporting steps as a numbered list.",
-            "type": "textarea"
-        },
-        "supporting_behaviors": {
-            "label": "Supporting Behaviors Required",
-            "prompt": "List the supporting behaviors that enable the main action as a numbered list.",
+            "prompt": "In a chronological list, describe steps a person or group takes to achieve ultimately conduct or perform the action or behavior as a numbered list. Include eligibility, requirements, and other relevant factors. Do Not include commentary or additional information.",
             "type": "textarea"
         },
         "behavior_timeline": {
@@ -228,7 +227,7 @@ def behavior_analysis_page():
     # Organize fields into logical sections.
     sections = {
         "Basic Info": ["objective_effect", "action_behavior", "location"],
-        "Behavior Details": ["behavior_breakdown", "supporting_behaviors", "behavior_timeline", "instances", "obstacles", "associated_symbols"],
+        "Behavior Details": ["behavior_breakdown", "behavior_timeline", "instances", "obstacles", "associated_symbols"],
         "COM-B Analysis": ["physical_capability", "psychological_capability", "physical_opportunity", "social_opportunity", "reflective_motivation", "automatic_motivation"],
         "Implications & Outcomes": ["consequences", "environmental_factors", "impact_strategies"],
         "Stakeholders": ["primary_ta", "secondary_ta", "engaging_actors", "beneficiaries", "harmed_parties", "influencers", "enablers", "opposers"],
