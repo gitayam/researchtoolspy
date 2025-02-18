@@ -68,7 +68,7 @@ def behavior_analysis_page():
         },
         "behavior_timeline": {
             "label": "Behavior Timeline (Initial Timeline)",
-            "prompt": "Generate a detailed timeline of events for the behavior as a numbered list. Use COM‑B language to note when capability, opportunity, and motivation factors come into play.",
+            "prompt": "Generate a detailed timeline of events of the supporting behaviors required for the behavior as a numbered list. There may be multiple ways to achive one supporting behavior if so list them as sub-steps with Option1, Option2, etc. Use COM‑B language to note when capability, opportunity, and motivation factors come into play.",
             "type": "textarea"
         },
         "instances": {
