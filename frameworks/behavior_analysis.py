@@ -3,6 +3,39 @@ import json
 from utilities.gpt import chat_gpt
 from utilities.helpers import create_docx_document
 
+def generate_executive_summary(context):
+    """
+    Generate a concise executive summary based on the provided Action or Behavior Analysis data.
+    The summary is tailored to high-level decision makers.
+    """
+    with st.spinner("Generating executive summary..."):
+        prompt = (
+            "Based on the following Action or Behavior Analysis data, generate a concise executive summary that synthesizes the key insights, findings, and potential next steps. "
+            "The executive summary should be clear, high-level, and suitable for presentation to senior decision makers. "
+            "Return only the summary as plain text.\n\n"
+            f"Data:\n{context}"
+        )
+        system_msg = {"role": "system", "content": "You are an expert analyst in behavior analysis."}
+        user_msg = {"role": "user", "content": prompt}
+        summary = chat_gpt([system_msg, user_msg], model="gpt-4o")
+        return summary.strip()
+
+def generate_recommendations(context):
+    """
+    Generate a numbered list of actionable recommendations based on the provided Action or Behavior Analysis data.
+    """
+    with st.spinner("Generating recommendations..."):
+        prompt = (
+            "Based on the following Action or Behavior Analysis data, please provide a list of actionable recommendations that address any identified gaps, challenges, or opportunities for intervention. "
+            "Each recommendation should be clear, specific, and prioritized if applicable. "
+            "Return the answer as a numbered list in plain text.\n\n"
+            f"Data:\n{context}"
+        )
+        system_msg = {"role": "system", "content": "You are an expert strategic analyst focused on delivering actionable recommendations."}
+        user_msg = {"role": "user", "content": prompt}
+        recommendations = chat_gpt([system_msg, user_msg], model="gpt-4o")
+        return recommendations.strip()
+
 def behavior_analysis_page():
     # Initialize session state keys to avoid KeyErrors.
     if "behavior_questions" not in st.session_state:
