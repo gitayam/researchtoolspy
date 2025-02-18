@@ -227,7 +227,7 @@ def behavior_analysis_page():
 
     # Organize fields into logical sections.
     sections = {
-        "Basic Info": ["action_behavior", "location"],
+        "Basic Info": ["objective_effect", "action_behavior", "location"],
         "Behavior Details": ["behavior_breakdown", "supporting_behaviors", "behavior_timeline", "instances", "obstacles", "associated_symbols"],
         "COM-B Analysis": ["physical_capability", "psychological_capability", "physical_opportunity", "social_opportunity", "reflective_motivation", "automatic_motivation"],
         "Implications & Outcomes": ["consequences", "environmental_factors", "impact_strategies"],
