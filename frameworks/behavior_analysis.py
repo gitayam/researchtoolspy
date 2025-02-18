@@ -89,10 +89,6 @@ def behavior_analysis_page():
             "type": "text"
         },
         # Behavior Details
-        """
-        The behavior breakdown is a chronological list of steps a person or group takes to achieve ultimately conduct or perform the action or behavior.
-        Include eligibility, requirements, and other relevant factors. Do Not include commentary or additional information.
-        """
         "behavior_breakdown": {
             "label": "Behavior Breakdown and Analysis",
             "prompt": "In a chronological list, describe steps a person or group takes to achieve ultimately conduct or perform the action or behavior as a numbered list. Include eligibility, requirements, and other relevant factors. Do Not include commentary or additional information.",
