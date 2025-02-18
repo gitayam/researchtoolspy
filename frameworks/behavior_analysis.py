@@ -116,7 +116,7 @@ def behavior_analysis_page():
         },
         "associated_symbols": {
             "label": "Associated Symbols and Signals",
-            "prompt": "Provide a numbered list of the symbolic objects—such as banners, placards, icons, or other visual cues—that not only represent the behavior but also carry deeper material and semiotic significance. Consider how these objects function as targets, components, or stimuli in contentious politics, reflecting both their tangible and symbolic roles. Provide a numbered list where each entry includes the symbol’s name and a brief description of its symbolic relevance.",
+            "prompt": "Provide a numbered list of the symbolic objects—such as banners, placards, icons, or other visual cues—that not only represent the behavior but also carry deeper material and semiotic significance. Consider how these objects function as targets, components, or stimuli in contentious politics, reflecting both their tangible and symbolic roles. Provide a numbered list where each entry includes the symbol's name and a brief description of its symbolic relevance.",
             "type": "textarea"
         },
         # COM‑B Analysis
@@ -401,17 +401,26 @@ def behavior_analysis_page():
         else:
             # Extract the behavior summary and format it for the file name and title
             behavior_summary = analysis_details.get("action_behavior", "").strip()
-            behavior_summary_filename = behavior_summary.replace(" ", "_")
-            behavior_summary_title = behavior_summary.replace("_", " ")
+            behavior_summary_filename = behavior_summary.replace(" ", "_") # Replace spaces with underscores
+            behavior_summary_title = behavior_summary  # Keep spaces for the document title
 
-            # Update the sections dictionary to include the behavior summary in the title
+            # Ensure report_context exists
+            report_context = st.session_state["report_context"]
+            
+            # Generate executive summary and recommendations to include as the first pages.
+            executive_summary = generate_executive_summary(report_context)
+            recommendations_list = generate_recommendations(report_context)
+
+            # Organize sections with the executive summary and recommendations as the first pages.
             sections = {
-                f"Action or Behavior Analysis Data - {behavior_summary_title}": st.session_state["report_context"],
+                "Executive Summary": executive_summary,
+                "Recommendations": recommendations_list,
+                f"Action or Behavior Analysis Data - {behavior_summary_title}": report_context,
                 "Analysis Questions and Answers": "\n".join(
                     f"Q{idx}: {question}\nA{idx}: {st.session_state.get(f'behavior_answer_{idx}', '')}"
                     for idx, question in enumerate(st.session_state["behavior_questions"], start=1)
                 ),
-                "Analysis Report": st.session_state["report_context"]
+                "Analysis Report": report_context
             }
             docx_file = create_docx_document(f"{title_doc}-{behavior_summary_filename}", sections)
             st.download_button(
