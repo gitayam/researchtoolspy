@@ -11,7 +11,12 @@ from dotenv import load_dotenv
 from utilities.gpt import chat_gpt  # Using the same helper as SWOT and COG
 from utilities.advanced_scraper import advanced_fetch_metadata, google_search_summary, generate_google_results, generate_wikipedia_results, scrape_body_content  # New import for advanced scraping
 from utilities.helpers import create_docx_document
-load_dotenv()
+from typing import Dict, List, Any, Optional, Union
+import os
+import json
+from frameworks.base_framework import BaseFramework
+from utilities.gpt import get_completion
+from utilities.helpers import clean_text
 
 
 def process_scenario_input(scenario):
@@ -660,4 +665,50 @@ def dime_page():
 
 # Note: When using Streamlit, this module will be loaded as a page.
 if __name__ == "__main__":
-    dime_page() 
+    dime_page()
+
+class DIME(BaseFramework):
+    """DIME (Diplomatic, Information, Military, Economic) Analysis Framework"""
+    
+    def __init__(self):
+        super().__init__(name="DIME")
+        self.components = ["diplomatic", "information", "military", "economic"]
+        
+        # Initialize question templates
+        self._initialize_question_templates()
+    
+    def _initialize_question_templates(self) -> None:
+        """Initialize question templates for each component"""
+        # ... existing question templates ...
+        
+    def generate_questions(self, component: str) -> List[str]:
+        """Generate questions for a specific DIME component"""
+        if component.lower() not in self.components:
+            raise ValueError(f"Component must be one of {self.components}")
+            
+        # ... existing question generation logic ...
+        return questions
+    
+    def analyze(self, component: str, context: str, use_gpt: bool = True) -> Dict[str, Any]:
+        """Analyze a specific component with provided context"""
+        questions = self.generate_questions(component)
+        
+        if use_gpt:
+            # Use GPT to analyze
+            prompt = f"Context:\n{context}\n\nQuestions about {component.title()} aspects:\n"
+            for i, q in enumerate(questions, 1):
+                prompt += f"{i}. {q}\n"
+            
+            response = get_completion(prompt)
+            self.set_response(component, response)
+            return {"component": component, "response": response}
+        else:
+            # Return questions for manual analysis
+            return {"component": component, "questions": questions}
+    
+    def analyze_all(self, context: str, use_gpt: bool = True) -> Dict[str, Any]:
+        """Analyze all DIME components with provided context"""
+        results = {}
+        for component in self.components:
+            results[component] = self.analyze(component, context, use_gpt)
+        return results 

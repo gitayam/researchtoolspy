@@ -5,6 +5,107 @@ from dotenv import load_dotenv
 from utilities.gpt import chat_gpt  # or any AI helper function
 from xhtml2pdf import pisa  # The pure-Python PDF converter
 import io
+from typing import Dict, List, Any, Optional, Union
+import os
+import json
+from frameworks.base_framework import BaseFramework
+
+# Try to import get_completion, but provide a fallback if it's not available
+try:
+    from utilities.gpt import get_completion
+except ImportError:
+    # Fallback function if get_completion is not available
+    def get_completion(prompt, **kwargs):
+        print("Warning: get_completion function not available. Using fallback.")
+        return f"AI analysis not available. Please implement the get_completion function.\n\nPrompt: {prompt[:100]}..."
+
+class SWOT(BaseFramework):
+    """SWOT (Strengths, Weaknesses, Opportunities, Threats) Analysis Framework"""
+    
+    def __init__(self):
+        super().__init__(name="SWOT")
+        self.components = ["strengths", "weaknesses", "opportunities", "threats"]
+        
+        # Initialize question templates
+        self._initialize_question_templates()
+    
+    def _initialize_question_templates(self) -> None:
+        """Initialize question templates for each component"""
+        self.questions = {
+            "strengths": [
+                "What are the internal positive attributes or resources that can help achieve objectives?",
+                "What advantages does the subject have over others?",
+                "What unique resources can be drawn upon?",
+                "What do others see as strengths of the subject?",
+                "What factors enable success?"
+            ],
+            "weaknesses": [
+                "What are the internal negative attributes or limitations that might hinder objectives?",
+                "What could be improved?",
+                "What should be avoided?",
+                "What factors detract from the ability to achieve objectives?",
+                "What do others perceive as weaknesses?"
+            ],
+            "opportunities": [
+                "What are the external positive factors that could be exploited?",
+                "What trends or conditions may positively impact progress?",
+                "What opportunities exist in the environment that can be beneficial?",
+                "How can strengths be turned into opportunities?",
+                "What potential partnerships or alliances might be formed?"
+            ],
+            "threats": [
+                "What are the external negative factors that could cause trouble?",
+                "What obstacles are currently faced?",
+                "What trends or conditions may negatively impact progress?",
+                "What threats do the weaknesses expose?",
+                "What external factors could create challenges?"
+            ]
+        }
+    
+    def generate_questions(self, component: str) -> List[str]:
+        """Generate questions for a specific SWOT component"""
+        component = component.lower()
+        if component not in self.components:
+            raise ValueError(f"Component must be one of {self.components}")
+            
+        return self.questions.get(component, [])
+    
+    def analyze(self, component: str, context: str, use_gpt: bool = True) -> Dict[str, Any]:
+        """Analyze a specific component with provided context"""
+        component = component.lower()
+        if component not in self.components:
+            raise ValueError(f"Component must be one of {self.components}")
+            
+        questions = self.generate_questions(component)
+        
+        if use_gpt:
+            # Use GPT to analyze
+            prompt = f"Context:\n{context}\n\nAnalyze the following {component.title()} for a SWOT analysis:\n"
+            for i, q in enumerate(questions, 1):
+                prompt += f"{i}. {q}\n"
+            
+            response = get_completion(prompt)
+            self.set_response(component, response)
+            return {"component": component, "response": response}
+        else:
+            # Return questions for manual analysis
+            return {"component": component, "questions": questions}
+    
+    def analyze_all(self, context: str, use_gpt: bool = True) -> Dict[str, Any]:
+        """Analyze all SWOT components with provided context"""
+        results = {}
+        for component in self.components:
+            results[component] = self.analyze(component, context, use_gpt)
+        return results
+
+# Function to perform SWOT analysis (for backward compatibility)
+def swot_analysis(context, component=None, use_gpt=True):
+    """Function to perform SWOT analysis"""
+    swot = SWOT()
+    if component:
+        return swot.analyze(component, context, use_gpt)
+    else:
+        return swot.analyze_all(context, use_gpt)
 
 load_dotenv()
 
@@ -32,7 +133,7 @@ def swot_page():
     objective = st.text_input(
         label="Objective",
         value="",
-        placeholder="Ex: ‘Increase market share in Region X’ or ‘Enhance collaboration within the team.’",
+        placeholder="Ex: 'Increase market share in Region X' or 'Enhance collaboration within the team.'",
         help="Clearly state the goal or purpose of this SWOT analysis. E.g., a project or business objective."
     )
 
@@ -45,7 +146,7 @@ def swot_page():
 
     # Generic AI call for each category
     def ai_suggest_swot(category):
-        """Ask AI for suggestions in a given SWOT category, referencing the user’s objective."""
+        """Ask AI for suggestions in a given SWOT category, referencing the user's objective."""
         try:
             system_msg = {
                 "role": "system",

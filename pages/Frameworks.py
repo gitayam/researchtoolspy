@@ -2,6 +2,7 @@
 
 import os
 import streamlit as st
+import sys
 from dotenv import load_dotenv
 from utilities.gpt import generate_advanced_query
 from frameworks.cog import cog_analysis
@@ -18,6 +19,9 @@ from frameworks import (
     swot, ach, cog, deception, 
     dime, pmesii, dotmlpf, starbursting
 )
+
+# Add the parent directory to sys.path if needed
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 load_dotenv()
 

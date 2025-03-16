@@ -2,12 +2,25 @@
 
 import streamlit as st
 from dotenv import load_dotenv
-from utilities.gpt import chat_gpt, generate_cog_options
+from typing import Dict, List, Any, Optional
+import os
+import json
+from frameworks.base_framework import BaseFramework
+
+# Try to import get_completion, but provide a fallback if it's not available
+try:
+    from utilities.gpt import get_completion
+except ImportError:
+    # Fallback function if get_completion is not available
+    def get_completion(prompt, **kwargs):
+        print("Warning: get_completion function not available. Using fallback.")
+        return f"AI analysis not available. Please implement the get_completion function.\n\nPrompt: {prompt[:100]}..."
+
+from utilities.helpers import clean_text
 import csv
 import io
 import pandas as pd
 import uuid
-import json
 import psycopg2
 from psycopg2.extras import DictCursor
 
@@ -98,12 +111,12 @@ def generate_cog(entity_type, entity_name, entity_goals, entity_presence, desire
                 "Propose 3-5 potential Centers of Gravity (sources of power and morale) for this entity. "
                 "Separate them with semicolons, no bullet points."
             )
-            cog_text = generate_cog_options(
+            cog_text = get_completion(
                 user_details="",  # if needed
                 desired_end_state=desired_end_state or "",
                 entity_type=entity_type,
                 custom_prompt=prompt,
-                model="gpt-3.5-turbo"
+                model="gpt-4o-mini"
             )
             suggestions = [c.strip() for c in cog_text.split(";") if c.strip()]
             st.session_state["cog_suggestions"] = suggestions
@@ -147,7 +160,7 @@ def manage_capabilities(final_cog, entity_type, entity_name, entity_goals, entit
                             f"CoG: {final_cog}\n"
                         )
                     }
-                    response = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
+                    response = get_completion([system_msg, user_msg], model="gpt-4o-mini")
                     new_suggestions = [cap.strip() for cap in response.split(";") if cap.strip()]
                     st.session_state["capabilities"].extend(new_suggestions)
                     st.success("AI-suggested capabilities added.")
@@ -202,7 +215,7 @@ def manage_vulnerabilities(entity_type, entity_name, entity_goals, entity_presen
                         "List 3-5 vulnerabilities for this capability. Use semicolons, no bullet points."
                     )
                     user_msg = {"role": "user", "content": user_msg_content}
-                    vuln_resp = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
+                    vuln_resp = get_completion([system_msg, user_msg], model="gpt-4o-mini")
                     new_vulns = [v.strip() for v in vuln_resp.split(";") if v.strip()]
                     st.session_state["vulnerabilities_dict"][selected_cap].extend(new_vulns)
                     st.success(f"AI-suggested vulnerabilities added to {selected_cap}.")
@@ -732,7 +745,7 @@ to perform its critical capabilities. Separate them by semicolons or lines.
                         "List about 5 critical requirements (resources/conditions the CoG needs) as semicolons."
                     )
                 }
-                resp = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
+                resp = get_completion([system_msg, user_msg], model="gpt-4o-mini")
                 st.session_state["requirements_text"] += f"\n{resp}"
                 st.success("Appended AI-suggested requirements.")
             except Exception as e:

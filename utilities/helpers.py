@@ -7,6 +7,9 @@ import openpyxl
 from openpyxl.styles import NamedStyle, Font, PatternFill, Border, Side
 import pandas as pd
 from io import BytesIO
+import json
+import os
+from typing import Dict, List, Any, Optional, Union
 
 def initialize_session_keys(keys, default=""):
     for key in keys:
@@ -205,3 +208,68 @@ def export_ach_matrix_to_excel(hypotheses_list, evidence_list, ach_matrix, evide
         writer.save()
     output.seek(0)
     return output.getvalue()
+
+def clean_text(text: str, 
+               remove_urls: bool = True, 
+               remove_special_chars: bool = False,
+               lowercase: bool = False) -> str:
+    """Clean text with configurable options"""
+    if not text:
+        return ""
+        
+    if remove_urls:
+        text = re.sub(r'http\S+|www.\S+', '', text)
+    
+    if remove_special_chars:
+        text = re.sub(r'[^\w\s]', '', text)
+    
+    if lowercase:
+        text = text.lower()
+        
+    return text.strip()
+
+def save_to_json(data: Any, filepath: str) -> None:
+    """Save data to JSON file"""
+    directory = os.path.dirname(filepath)
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory)
+        
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+
+def load_from_json(filepath: str) -> Any:
+    """Load data from JSON file"""
+    if not os.path.exists(filepath):
+        return None
+        
+    with open(filepath, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def chunk_text(text: str, chunk_size: int = 4000, overlap: int = 200) -> List[str]:
+    """Split text into chunks with overlap"""
+    if len(text) <= chunk_size:
+        return [text]
+        
+    chunks = []
+    start = 0
+    
+    while start < len(text):
+        end = start + chunk_size
+        
+        if end >= len(text):
+            chunks.append(text[start:])
+            break
+            
+        # Try to find a good breaking point
+        break_point = text.rfind('. ', start, end)
+        if break_point == -1:
+            break_point = text.rfind(' ', start, end)
+        if break_point == -1:
+            break_point = end
+        else:
+            break_point += 1  # Include the space or period
+            
+        chunks.append(text[start:break_point])
+        start = break_point - overlap  # Create overlap
+        
+    return chunks

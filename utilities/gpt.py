@@ -4,6 +4,8 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime
+import openai
+from typing import Dict, List, Any, Optional, Union
 
 load_dotenv()
 
@@ -190,3 +192,90 @@ def generate_cog_options(user_details, desired_end_state, entity_type, custom_pr
 
     messages = [system_message, user_message]
     return chat_gpt(messages, model=model, max_tokens=500, temperature=0.7)
+
+# Add a check to see if OpenAI is installed
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    print("Warning: OpenAI package not installed. AI functionality will be limited.")
+
+# Check if API key is set in environment variables
+if OPENAI_AVAILABLE and "OPENAI_API_KEY" in os.environ:
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+
+def get_completion(
+    prompt: str,
+    model: str = "gpt-4",
+    temperature: float = 0.7,
+    max_tokens: int = 1000,
+    top_p: float = 1.0,
+    frequency_penalty: float = 0.0,
+    presence_penalty: float = 0.0
+) -> str:
+    """
+    Get a completion from OpenAI's GPT models.
+    
+    Args:
+        prompt: The text prompt to send to the model
+        model: The model to use (default: gpt-4)
+        temperature: Controls randomness (0-1)
+        max_tokens: Maximum number of tokens to generate
+        top_p: Controls diversity via nucleus sampling
+        frequency_penalty: Penalizes repeated tokens
+        presence_penalty: Penalizes repeated topics
+        
+    Returns:
+        The generated text as a string
+    """
+    if not OPENAI_AVAILABLE:
+        return f"OpenAI package not installed. Cannot process: {prompt[:100]}..."
+    
+    if not openai.api_key:
+        return "OpenAI API key not set. Please set the OPENAI_API_KEY environment variable."
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            top_p=top_p,
+            frequency_penalty=frequency_penalty,
+            presence_penalty=presence_penalty
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"Error in get_completion: {e}")
+        return f"Error generating completion: {str(e)}"
+
+def get_chat_completion(
+    messages: List[Dict[str, str]],
+    model: str = "gpt-4",
+    temperature: float = 0.7,
+    max_tokens: int = 1000
+) -> str:
+    """
+    Get a completion from OpenAI's chat models using a conversation format.
+    
+    Args:
+        messages: List of message dictionaries with 'role' and 'content'
+        model: The model to use (default: gpt-4)
+        temperature: Controls randomness (0-1)
+        max_tokens: Maximum number of tokens to generate
+        
+    Returns:
+        The generated text as a string
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"Error in get_chat_completion: {e}")
+        return f"Error generating chat completion: {str(e)}"

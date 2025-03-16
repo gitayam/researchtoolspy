@@ -14,6 +14,10 @@ import pdfkit
 import logging
 import time
 import concurrent.futures
+import re
+from typing import List, Union, Dict, Any, Optional
+from urllib.parse import urlparse
+import validators
 
 logging.basicConfig(level=logging.INFO)
 
@@ -577,3 +581,44 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+class URLProcessor:
+    """Consolidated URL processing utilities"""
+    
+    @staticmethod
+    def validate_url(url: str) -> bool:
+        """Validate if a string is a proper URL"""
+        return validators.url(url) is True
+    
+    @staticmethod
+    def normalize_url(url: str) -> str:
+        """Normalize URL by adding schema if missing"""
+        if not url.startswith(('http://', 'https://')):
+            return f'https://{url}'
+        return url
+    
+    @staticmethod
+    def process_urls(urls: Union[str, List[str]]) -> List[str]:
+        """Process a list of URLs - normalize and validate"""
+        if isinstance(urls, str):
+            urls = [urls]
+            
+        processed = []
+        for url in urls:
+            url = URLProcessor.normalize_url(url.strip())
+            if URLProcessor.validate_url(url):
+                processed.append(url)
+        
+        return processed
+    
+    @staticmethod
+    def extract_domain(url: str) -> str:
+        """Extract domain from URL"""
+        parsed = urlparse(URLProcessor.normalize_url(url))
+        return parsed.netloc
+    
+    @staticmethod
+    def extract_urls_from_text(text: str) -> List[str]:
+        """Extract URLs from text content"""
+        url_pattern = r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+'
+        return re.findall(url_pattern, text)
