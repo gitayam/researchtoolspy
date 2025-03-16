@@ -19,6 +19,27 @@ except ImportError:
         print("Warning: get_completion function not available. Using fallback.")
         return f"AI analysis not available. Please implement the get_completion function.\n\nPrompt: {prompt[:100]}..."
 
+def process_swot_analysis() -> Dict[str, List[str]]:
+    """
+    Process the SWOT analysis data from session state.
+    
+    Returns:
+        A dictionary containing the SWOT components (strengths, weaknesses, opportunities, threats)
+    """
+    # Get SWOT components from session state
+    strengths = st.session_state.get("swot_strengths", [])
+    weaknesses = st.session_state.get("swot_weaknesses", [])
+    opportunities = st.session_state.get("swot_opportunities", [])
+    threats = st.session_state.get("swot_threats", [])
+    
+    # Return the SWOT analysis as a dictionary
+    return {
+        "strengths": strengths,
+        "weaknesses": weaknesses,
+        "opportunities": opportunities,
+        "threats": threats
+    }
+
 class SWOT(BaseFramework):
     """SWOT (Strengths, Weaknesses, Opportunities, Threats) Analysis Framework"""
     

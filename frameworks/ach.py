@@ -6,8 +6,36 @@ import pandas as pd
 from io import BytesIO
 import openpyxl
 from utilities.helpers import export_ach_matrix_to_excel
+from typing import Dict, Any, Union, List
 
 load_dotenv()
+
+def calculate_consistency_score(evidence_ratings: Dict[str, str]) -> float:
+    """
+    Calculate a consistency score based on evidence ratings.
+    
+    Args:
+        evidence_ratings: Dictionary mapping evidence IDs to consistency ratings (CC, C, N, I, II)
+        
+    Returns:
+        A score where positive values indicate consistency and negative values indicate inconsistency
+    """
+    # Define weights for each rating
+    rating_weights = {
+        "CC": 2.0,   # Strongly consistent
+        "C": 1.0,    # Consistent
+        "N": 0.0,    # Neutral
+        "I": -1.0,   # Inconsistent
+        "II": -2.0   # Strongly inconsistent
+    }
+    
+    # Calculate the total score
+    total_score = 0.0
+    for evidence_id, rating in evidence_ratings.items():
+        if rating in rating_weights:
+            total_score += rating_weights[rating]
+    
+    return total_score
 
 def ach_page():
     st.title("Analysis of Competing Hypotheses (ACH)")
