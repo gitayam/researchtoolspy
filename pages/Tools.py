@@ -13,12 +13,73 @@ def transformers_page():
     # Add custom CSS for wider container
     st.markdown("""
     <style>
+    /* Base styles for both light and dark mode */
     .block-container {
         max-width: 95% !important;
-        padding-top: 1rem;
-        padding-right: 1rem;
-        padding-left: 1rem;
-        padding-bottom: 1rem;
+        padding: 1rem;
+    }
+
+    /* Tool card styling */
+    .tool-card {
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    /* Form elements styling */
+    .stTextInput > div > div > input, 
+    .stSelectbox > div > div > div,
+    .stTextArea > div > div > textarea {
+        border-radius: 8px;
+    }
+
+    /* Light mode specific styles */
+    @media (prefers-color-scheme: light) {
+        .tool-card {
+            background-color: white;
+            color: #262730;
+            border: 1px solid #e6e6e6;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        h3, h4 {
+            color: #0068c9 !important;
+        }
+        
+        .stExpander {
+            border: 1px solid #e6e6e6;
+            border-radius: 8px;
+        }
+    }
+
+    /* Dark mode specific styles */
+    @media (prefers-color-scheme: dark) {
+        .tool-card {
+            background-color: #1e1e1e;
+            color: #fafafa;
+            border: 1px solid #333;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        h3, h4 {
+            color: #4da6ff !important;
+        }
+        
+        .stExpander {
+            border: 1px solid #444;
+            border-radius: 8px;
+        }
     }
     </style>
     """, unsafe_allow_html=True)

@@ -6,33 +6,73 @@ def transformers_page():
     # Add custom CSS for wider container and better styling
     st.markdown("""
     <style>
+    /* Base styles for both light and dark mode */
     .block-container {
         max-width: 95% !important;
-        padding-top: 1rem;
-        padding-right: 1rem;
-        padding-left: 1rem;
-        padding-bottom: 1rem;
+        padding: 1rem;
     }
     
-    /* Button styling */
-    div.stButton > button {
-        background: linear-gradient(to right, #4880EC, #019CAD);
-        color: white;
+    /* Tool card styling */
+    .transformer-card {
         border-radius: 10px;
-        border: none;
-        padding: 10px 15px;
-        font-weight: bold;
-        text-align: center;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 15px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     
-    div.stButton > button:hover {
-        background: linear-gradient(to right, #019CAD, #4880EC);
-        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
-        transform: translateY(-2px);
+    /* Form elements styling */
+    .stTextInput > div > div > input, 
+    .stSelectbox > div > div > div,
+    .stTextArea > div > div > textarea {
+        border-radius: 8px;
+    }
+    
+    /* Light mode specific styles */
+    @media (prefers-color-scheme: light) {
+        .transformer-card {
+            background-color: white;
+            color: #262730;
+            border: 1px solid #e6e6e6;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .transformer-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        h3, h4 {
+            color: #0068c9 !important;
+        }
+        
+        .stExpander {
+            border: 1px solid #e6e6e6;
+            border-radius: 8px;
+        }
+    }
+    
+    /* Dark mode specific styles */
+    @media (prefers-color-scheme: dark) {
+        .transformer-card {
+            background-color: #1e1e1e;
+            color: #fafafa;
+            border: 1px solid #333;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .transformer-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        h3, h4 {
+            color: #4da6ff !important;
+        }
+        
+        .stExpander {
+            border: 1px solid #444;
+            border-radius: 8px;
+        }
     }
     </style>
     """, unsafe_allow_html=True)

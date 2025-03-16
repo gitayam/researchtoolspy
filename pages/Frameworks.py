@@ -138,200 +138,142 @@ def frameworks_page():
     # Add custom CSS for styling
     st.markdown("""
     <style>
-    /* Wider container */
+    /* Base styles for both light and dark mode */
     .block-container {
         max-width: 95% !important;
-        padding-top: 1rem;
-        padding-right: 1rem;
-        padding-left: 1rem;
-        padding-bottom: 1rem;
+        padding: 1rem;
     }
     
-    /* Dark mode compatibility */
-    .dark-mode-compatible {
-        background-color: rgba(38, 39, 48, 0.2);
-        color: #FAFAFA;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-        width: 100%;
-    }
-    
-    /* Button styling */
-    div.stButton > button {
-        background: linear-gradient(to right, #4880EC, #019CAD);
-        color: white;
-        border-radius: 10px;
-        border: none;
-        padding: 10px 15px;
-        font-weight: bold;
-        text-align: center;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        width: 100%;
-    }
-    
-    div.stButton > button:hover {
-        background: linear-gradient(to right, #019CAD, #4880EC);
-        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
-        transform: translateY(-2px);
-    }
-    
-    h1 {
-        background: linear-gradient(to right, #4880EC, #019CAD);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 3em !important;
-        font-weight: 800 !important;
-        text-align: center;
-        margin-bottom: 30px !important;
-    }
-    
-    h3 {
-        color: #4880EC;
-        margin-top: 20px !important;
-    }
-    
-    .subheader {
-        font-weight: bold;
-        color: #019CAD;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin-bottom: 15px;
-    }
-    
-    hr {
-        margin-top: 30px;
-        margin-bottom: 30px;
-        border: 0;
-        height: 1px;
-        background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(72, 128, 236, 0.75), rgba(0, 0, 0, 0));
-    }
-    
-    /* Framework Card Styles - Dark mode compatible */
+    /* Framework cards styling */
     .framework-card {
-        background-color: rgba(38, 39, 48, 0.2);
-        color: #FAFAFA;
         border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         padding: 20px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        border-left: 5px solid #4880EC;
-        height: 100%;
-        min-height: 120px;
+        margin-bottom: 15px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid rgba(49, 51, 63, 0.2);
     }
     
-    .framework-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        border-left: 5px solid #019CAD;
-        background-color: rgba(38, 39, 48, 0.4);
-    }
-    
-    .card-icon {
-        font-size: 2.5em;
-        margin-right: 15px;
-        color: #4880EC;
-        flex-shrink: 0;
-    }
-    
-    .card-content {
-        flex: 1;
-    }
-    
-    .card-content h4 {
-        margin: 0;
-        color: #4880EC;
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    
-    .card-content p {
-        margin: 0;
-        font-size: 0.9em;
-        color: #CCCCCC;
-    }
-    
-    /* Info cards - Dark mode compatible */
-    .info-card {
-        padding: 20px;
-        border-radius: 10px;
-        background-color: rgba(38, 39, 48, 0.2);
-        border-left: 5px solid #4880EC;
-        margin-bottom: 20px;
-        color: #FAFAFA;
-        width: 100%;
-    }
-    
-    .info-card h4 {
-        color: #4880EC;
-        margin-top: 0;
-    }
-    
-    .info-card p {
-        color: #CCCCCC;
-    }
-    
-    /* Framework links - Dark mode compatible */
+    /* Framework links styling */
     .framework-link {
-        text-decoration: none;
-        display: block;
-        padding: 10px;
-        border-radius: 5px;
-        background-color: rgba(38, 39, 48, 0.2);
-        margin-bottom: 10px;
         display: flex;
         align-items: center;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 8px;
         transition: all 0.2s ease;
-        width: 100%;
     }
     
-    .framework-link:hover {
-        background-color: rgba(38, 39, 48, 0.4);
-        transform: translateX(5px);
-    }
-    
-    .framework-link span.icon {
+    .framework-link .icon {
         font-size: 1.5em;
         margin-right: 10px;
     }
     
-    .framework-link span.text {
-        color: #4880EC;
-        font-weight: bold;
+    /* Category headers */
+    .category-header {
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        font-weight: 600;
+        text-align: center;
     }
     
-    /* Hide the actual buttons */
-    div.stButton {
-        position: absolute;
-        opacity: 0;
-        pointer-events: none;
+    /* Light mode specific styles */
+    @media (prefers-color-scheme: light) {
+        .framework-card {
+            background-color: white;
+            color: #262730;
+            border: 1px solid #e6e6e6;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .framework-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .framework-link {
+            background-color: #f0f2f6;
+            color: #262730;
+            border: 1px solid #e6e6e6;
+        }
+        
+        .framework-link:hover {
+            background-color: #e6e9ef;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .category-header {
+            background-color: #0068c9;
+            color: white;
+        }
+        
+        h3 {
+            color: #0068c9 !important;
+        }
+        
+        .dark-mode-compatible p {
+            color: #262730;
+        }
     }
     
-    /* But make sure buttons are visible when they're not part of the card system */
-    div.stButton.standalone-button {
-        position: static;
-        opacity: 1;
-        pointer-events: auto;
+    /* Dark mode specific styles */
+    @media (prefers-color-scheme: dark) {
+        .framework-card {
+            background-color: #1e1e1e;
+            color: #fafafa;
+            border: 1px solid #333;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .framework-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .framework-link {
+            background-color: #2e2e2e;
+            color: #fafafa;
+            border: 1px solid #444;
+        }
+        
+        .framework-link:hover {
+            background-color: #3e3e3e;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .category-header {
+            background-color: #4da6ff;
+            color: #0e1117;
+        }
+        
+        h3 {
+            color: #4da6ff !important;
+        }
+        
+        .dark-mode-compatible p {
+            color: #fafafa;
+        }
     }
     
-    /* Column container for better spacing */
-    .column-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        width: 100%;
+    /* Error section styling */
+    .error-section {
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 20px;
     }
     
-    .column {
-        flex: 1;
-        min-width: 300px;
+    @media (prefers-color-scheme: light) {
+        .error-section {
+            background-color: #fff3f3;
+            border: 1px solid #ffcccb;
+        }
+    }
+    
+    @media (prefers-color-scheme: dark) {
+        .error-section {
+            background-color: #3a2a2a;
+            border: 1px solid #5a3a3a;
+        }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -587,10 +529,10 @@ def frameworks_page():
         except Exception as e:
             st.error(f"Error rendering framework '{framework}': {e}")
     else:
-        st.error(f"Unknown framework: {framework}")
         st.markdown("""
-        <div class="dark-mode-compatible">
-        <h3 style="color: #4880EC;">Please select a valid framework from the options below:</h3>
+        <div class="error-section">
+            <h3>Unknown framework selected</h3>
+            <p>Please select a valid framework from the options below:</p>
         </div>
         """, unsafe_allow_html=True)
         
