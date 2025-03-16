@@ -61,6 +61,12 @@ try:
 except ImportError as e:
     print(f"Warning: Could not import DeceptionDetection framework: {e}")
 
+try:
+    from frameworks.fundamental_flow import fundamental_flow_page
+    framework_functions["fundamental_flow"] = fundamental_flow_page
+except ImportError as e:
+    print(f"Warning: Could not import Fundamental Flow framework: {e}")
+
 def main():
     # Parse query parameters from the URL
     query_params = st.query_params
