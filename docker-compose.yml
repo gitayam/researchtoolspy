@@ -2,18 +2,27 @@
 
 services:
   researchtools:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: researchtools_streamlit
     ports:
       - "${STREAMLIT_PORT}:8502"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_URL=${POSTGRES_URL}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8502"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     # volumes: ["./data:/app/data"]  # example of mounting a data folder if needed
 
   db:
@@ -32,6 +41,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
 volumes:
   pgdata:
