@@ -1,35 +1,56 @@
 # /researchtools_streamlit/requirements.txt
-streamlit==1.42.0
-openai
-requests
-pytest
-python-dotenv
-xhtml2pdf
-yt-dlp
-instaloader
-praw
-tweepy
-beautifulsoup4 # for metadata on the wayback tool
-manubot # for citation on the wayback tool
-openpyxl
-# utilities for geo to kml
-geopandas
-shapely
-geopy
-pykml
-argparse
-pandas
-psycopg2-binary  # Changed from psycopg2 to psycopg2-binary
-streamlit-extras
-fpdf
-pdfkit
-playwright
-wikipedia
-selenium
-chromedriver-binary
-python-dateutil
-langdetect
-webdriver-manager
-graphviz # for starbursting diagram
-pandoc
-python-docx
+# Core dependencies
+streamlit                # Web application framework
+openai                   # OpenAI API integration
+requests                 # HTTP requests library
+python-dotenv            # Environment variable management
+pandas                   # Data manipulation and analysis
+
+# Testing and development
+pytest                   # Testing framework
+
+# Document processing
+xhtml2pdf                # HTML to PDF conversion
+python-docx              # Microsoft Word document processing
+openpyxl                 # Excel file processing
+fpdf                     # PDF generation
+pdfkit                   # HTML to PDF conversion using wkhtmltopdf
+pandoc                   # Document format conversion
+
+# Web scraping and browsing
+beautifulsoup4           # HTML parsing
+playwright               # Browser automation
+selenium                 # Web browser automation
+chromedriver-binary      # Chrome driver for Selenium
+webdriver-manager        # WebDriver management
+
+# Media and content downloading
+yt-dlp                   # YouTube video downloader
+instaloader              # Instagram content downloader
+
+# Social media APIs
+praw                     # Reddit API wrapper
+tweepy                   # Twitter API wrapper
+
+# Data processing and analysis
+langdetect               # Language detection
+python-dateutil          # Date utilities
+imagehash                # Image hashing for similarity comparison
+
+# Geographic data processing
+geopandas                # Geographic data handling
+shapely                  # Geometric objects
+geopy                    # Geocoding
+pykml                    # KML file processing
+argparse                 # Command line argument parsing
+
+# Database
+psycopg2-binary          # PostgreSQL adapter
+
+# Visualization and UI enhancements
+streamlit-extras         # Additional Streamlit components
+graphviz                 # Graph visualization (for starbursting diagram)
+
+# Reference and citation
+manubot                  # Citation handling
+wikipedia                # Wikipedia API access
