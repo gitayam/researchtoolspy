@@ -45,7 +45,41 @@ def process_initial_input(input_text):
         return input_text
 
 def starbursting_page():
-    st.title("Starbursting Analysis Framework")
+    st.title("Starbursting Framework")
+    
+    # Check if we have data from URL processor
+    topic_from_url = st.session_state.get("starbursting_topic", "")
+    description_from_url = st.session_state.get("starbursting_description", "")
+    
+    if topic_from_url:
+        st.info(f"Analyzing content from URL: {topic_from_url}")
+        # Pre-fill the topic input
+        topic = st.text_input(
+            "Enter the central topic or idea:",
+            value=topic_from_url,
+            help="This is the central concept you want to explore with questions."
+        )
+        # Pre-fill the description input
+        description = st.text_area(
+            "Enter a brief description of the topic (optional):",
+            value=description_from_url,
+            height=150,
+            help="Provide context or details about your topic to help generate better questions."
+        )
+        # Clear the session state to avoid reusing the data
+        st.session_state.pop("starbursting_topic", None)
+        st.session_state.pop("starbursting_description", None)
+    else:
+        topic = st.text_input(
+            "Enter the central topic or idea:",
+            help="This is the central concept you want to explore with questions."
+        )
+        description = st.text_area(
+            "Enter a brief description of the topic (optional):",
+            height=150,
+            help="Provide context or details about your topic to help generate better questions."
+        )
+
     st.markdown("""
     The Starbursting Analysis Framework begins with a central point of information that is expanded by posing a series of probing questions.
     This approach helps uncover hidden insights and deepen your analysis.

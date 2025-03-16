@@ -1,63 +1,63 @@
 import streamlit as st
 from urllib.parse import urlparse, parse_qs
-from typing import Dict, Type, List, Any
+from typing import Dict, Type, List, Any, Callable
 from frameworks.base_framework import BaseFramework
 
 # Import frameworks with error handling
-framework_classes = {}
+framework_functions = {}
 
 # Try to import each framework, but continue if one fails
 try:
-    from frameworks.dime import DIME
-    framework_classes["dime"] = DIME
+    from frameworks.dime import dime_page
+    framework_functions["dime"] = dime_page
 except ImportError as e:
     print(f"Warning: Could not import DIME framework: {e}")
 
 try:
-    from frameworks.swot import SWOT
-    framework_classes["swot"] = SWOT
+    from frameworks.swot import swot_page
+    framework_functions["swot"] = swot_page
 except ImportError as e:
     print(f"Warning: Could not import SWOT framework: {e}")
 
 try:
-    from frameworks.dotmlpf import DOTMLPF
-    framework_classes["dotmlpf"] = DOTMLPF
+    from frameworks.dotmlpf import dotmlpf_page
+    framework_functions["dotmlpf"] = dotmlpf_page
 except ImportError as e:
     print(f"Warning: Could not import DOTMLPF framework: {e}")
 
 try:
-    from frameworks.pmesii_pt import PMESII_PT
-    framework_classes["pmesii_pt"] = PMESII_PT
+    from frameworks.pmesii_pt import pmesii_pt_page
+    framework_functions["pmesii_pt"] = pmesii_pt_page
 except ImportError as e:
     print(f"Warning: Could not import PMESII_PT framework: {e}")
 
 try:
-    from frameworks.ach import ACH
-    framework_classes["ach"] = ACH
+    from frameworks.ach import ach_page
+    framework_functions["ach"] = ach_page
 except ImportError as e:
     print(f"Warning: Could not import ACH framework: {e}")
 
 try:
-    from frameworks.cog import COG
-    framework_classes["cog"] = COG
+    from frameworks.cog import cog_analysis
+    framework_functions["cog"] = cog_analysis
 except ImportError as e:
     print(f"Warning: Could not import COG framework: {e}")
 
 try:
-    from frameworks.starbursting import Starbursting
-    framework_classes["starbursting"] = Starbursting
+    from frameworks.starbursting import starbursting_page
+    framework_functions["starbursting"] = starbursting_page
 except ImportError as e:
     print(f"Warning: Could not import Starbursting framework: {e}")
 
 try:
-    from frameworks.behavior_analysis import BehaviorAnalysis
-    framework_classes["behavior_analysis"] = BehaviorAnalysis
+    from frameworks.behavior_analysis import behavior_analysis_page
+    framework_functions["behavior_analysis"] = behavior_analysis_page
 except ImportError as e:
     print(f"Warning: Could not import BehaviorAnalysis framework: {e}")
 
 try:
-    from frameworks.deception_detection import DeceptionDetection
-    framework_classes["deception_detection"] = DeceptionDetection
+    from frameworks.deception_detection import deception_detection
+    framework_functions["deception_detection"] = deception_detection
 except ImportError as e:
     print(f"Warning: Could not import DeceptionDetection framework: {e}")
 
@@ -66,54 +66,30 @@ def main():
     query_params = st.query_params
     framework = query_params.get('framework', [None])[0]
 
-    if framework == 'swot':
-        st.header("SWOT Analysis")
-        # Add SWOT Analysis content here
-    elif framework == 'ach':
-        st.header("ACH Analysis")
-        # Add ACH Analysis content here
-    elif framework == 'cog':
-        st.header("COG Analysis")
-        # Add COG Analysis content here
-    elif framework == 'deception':
-        st.header("Deception Detection")
-        # Add Deception Detection content here
-    elif framework == 'dime':
-        st.header("DIME Framework")
-        # Add DIME Framework content here
-    elif framework == 'pmesii':
-        st.header("PMESII-PT Framework")
-        # Add PMESII-PT Framework content here
-    elif framework == 'dotmlpf':
-        st.header("DOTMLPF Framework")
-        # Add DOTMLPF Framework content here
-    elif framework == 'starbursting':
-        st.header("Starbursting")
-        # Add Starbursting content here
-    elif framework == 'behavior_analysis':
-        st.header("Behavioral Analysis")
-        # Add Behavioral Analysis content here
+    if framework in framework_functions:
+        # Call the framework function
+        framework_functions[framework]()
     else:
         st.warning("Please select a framework from the sidebar to view its details.")
 
 class FrameworkRegistry:
     """Registry of all available analytical frameworks"""
     
-    _frameworks: Dict[str, Type[BaseFramework]] = framework_classes
+    _frameworks: Dict[str, Callable] = framework_functions
     
     @classmethod
-    def get_framework(cls, name: str) -> BaseFramework:
-        """Get framework instance by name"""
+    def get_framework(cls, name: str) -> Callable:
+        """Get framework function by name"""
         name = name.lower()
         if name not in cls._frameworks:
             raise ValueError(f"Framework '{name}' not found. Available frameworks: {', '.join(cls._frameworks.keys())}")
         
-        return cls._frameworks[name]()
+        return cls._frameworks[name]
     
     @classmethod
-    def get_all_frameworks(cls) -> List[BaseFramework]:
-        """Get instances of all available frameworks"""
-        return [framework_class() for framework_class in cls._frameworks.values()]
+    def get_all_frameworks(cls) -> List[str]:
+        """Get names of all available frameworks"""
+        return list(cls._frameworks.keys())
     
     @classmethod
     def list_frameworks(cls) -> List[str]:

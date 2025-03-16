@@ -39,7 +39,11 @@ def calculate_consistency_score(evidence_ratings: Dict[str, str]) -> float:
 
 def ach_page():
     st.title("Analysis of Competing Hypotheses (ACH)")
-
+    
+    # Check if we have data from URL processor
+    scenario_from_url = st.session_state.get("ach_scenario", "")
+    title_from_url = st.session_state.get("ach_title", "")
+    
     st.write("""
     **Analysis of Competing Hypotheses** (ACH) helps evaluate multiple competing explanations
     or hypotheses for the observed data. This approach was popularized by Richards Heuer at the CIA.
@@ -51,6 +55,15 @@ def ach_page():
     4. Identify which hypothesis has the fewest inconsistencies.
     5. Refine or add evidence as needed to challenge your initial assumptions.
     """)
+
+    if scenario_from_url:
+        st.info(f"Analyzing content from URL: {title_from_url}")
+        # Store the scenario for AI-assisted hypothesis generation
+        if "ach_context" not in st.session_state:
+            st.session_state["ach_context"] = scenario_from_url
+        # Clear the session state to avoid reusing the data
+        st.session_state.pop("ach_scenario", None)
+        st.session_state.pop("ach_title", None)
 
     st.markdown("---")
 

@@ -452,6 +452,9 @@ def pmesii_pt_page():
                                         # Store the answer
                                         st.session_state["domain_answers"][domain][i] = response
                                         
+                                        # Force a rerun to show the updated answer
+                                        st.rerun()
+                                        
                                     except Exception as e:
                                         st.error(f"Error generating AI answer: {str(e)}")
                     

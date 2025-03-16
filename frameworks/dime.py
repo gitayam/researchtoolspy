@@ -224,6 +224,37 @@ def extract_scenario_details(scenario_text):
 
 def dime_page():
     st.title("DIME Analysis Flow")
+    
+    # Check if we have data from URL processor
+    scenario_from_url = st.session_state.get("dime_input_scenario", "")
+    title_from_url = st.session_state.get("dime_input_title", "")
+    
+    st.write("""
+        This guided flow helps you conduct a comprehensive DIME analysis (Diplomatic, Information, Military, Economic).
+        Start by providing a detailed overview of the context. You can describe a situation, person, place, or goal, or simply drop in a news article (via URL or pasted text) that outlines the scenario.
+    """)
+
+    # Display the text area for scenario input with pre-filled data if available
+    scenario_input = st.text_area(
+        label="Detailed Context Description (Situation, Person, Place, or Goal)",
+        value=scenario_from_url if scenario_from_url else "",
+        height=200,
+        placeholder="Provide a detailed overview or paste in a news article (URL or text) outlining the scenario. Include relevant background, context, key details, and objectives..."
+    )
+
+    if scenario_from_url:
+        st.info(f"Analyzing content from URL: {title_from_url}")
+        # Clear the session state to avoid reusing the data
+        st.session_state.pop("dime_input_scenario", None)
+        st.session_state.pop("dime_input_title", None)
+
+    # Display an optional objective field below the scenario input.
+    objective_input = st.text_input(
+        label="Optional Objective",
+        value="",
+        placeholder="Optional: Specify an objective (e.g., counter, enable, support, delay, deny) as an action verb..."
+    )
+
     # Inject custom CSS to make the page wider
     st.markdown(
         """
@@ -236,25 +267,6 @@ def dime_page():
         </style>
         """,
         unsafe_allow_html=True
-    )
-
-    st.write("""
-        This guided flow helps you conduct a comprehensive DIME analysis (Diplomatic, Information, Military, Economic).
-        Start by providing a detailed overview of the context. You can describe a situation, person, place, or goal, or simply drop in a news article (via URL or pasted text) that outlines the scenario.
-    """)
-
-    # Display the text area for scenario input.
-    scenario_input = st.text_area(
-        label="Detailed Context Description (Situation, Person, Place, or Goal)",
-        value="",
-        placeholder="Provide a detailed overview or paste in a news article (URL or text) outlining the scenario. Include relevant background, context, key details, and objectives..."
-    )
-
-    # Display an optional objective field below the scenario input.
-    objective_input = st.text_input(
-        label="Optional Objective",
-        value="",
-        placeholder="Optional: Specify an objective (e.g., counter, enable, support, delay, deny) as an action verb..."
     )
 
     # Checkbox to include Wikipedia results.

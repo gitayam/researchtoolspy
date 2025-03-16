@@ -132,6 +132,10 @@ load_dotenv()
 
 def swot_page():
     st.title("SWOT Analysis")
+    
+    # Check if we have data from URL processor
+    objective_from_url = st.session_state.get("swot_objective", "")
+    description_from_url = st.session_state.get("swot_description", "")
 
     st.write("""
     **Summary**  
@@ -153,10 +157,19 @@ def swot_page():
     st.subheader("Step 1: Define the Objective")
     objective = st.text_input(
         label="Objective",
-        value="",
+        value=objective_from_url if objective_from_url else "",
         placeholder="Ex: 'Increase market share in Region X' or 'Enhance collaboration within the team.'",
         help="Clearly state the goal or purpose of this SWOT analysis. E.g., a project or business objective."
     )
+
+    if objective_from_url:
+        st.info(f"Analyzing content from URL: {objective_from_url}")
+        # Store the description for AI-assisted analysis
+        if "swot_context" not in st.session_state:
+            st.session_state["swot_context"] = description_from_url
+        # Clear the session state to avoid reusing the data
+        st.session_state.pop("swot_objective", None)
+        st.session_state.pop("swot_description", None)
 
     st.markdown("---")
 
