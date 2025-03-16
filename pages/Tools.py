@@ -10,6 +10,19 @@ from utilities.url_processing import wayback_tool_page
 from utilities.social_media_download import social_media_download_page
 
 def transformers_page():
+    # Add custom CSS for wider container
+    st.markdown("""
+    <style>
+    .block-container {
+        max-width: 95% !important;
+        padding-top: 1rem;
+        padding-right: 1rem;
+        padding-left: 1rem;
+        padding-bottom: 1rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     st.header("Text Transformation Tools")
     with st.expander("About This Page", expanded=False):
         st.write("""

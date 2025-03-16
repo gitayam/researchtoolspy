@@ -3,6 +3,40 @@ from components.sidebar_menu import sidebar_menu
 import importlib
 
 def transformers_page():
+    # Add custom CSS for wider container and better styling
+    st.markdown("""
+    <style>
+    .block-container {
+        max-width: 95% !important;
+        padding-top: 1rem;
+        padding-right: 1rem;
+        padding-left: 1rem;
+        padding-bottom: 1rem;
+    }
+    
+    /* Button styling */
+    div.stButton > button {
+        background: linear-gradient(to right, #4880EC, #019CAD);
+        color: white;
+        border-radius: 10px;
+        border: none;
+        padding: 10px 15px;
+        font-weight: bold;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    div.stButton > button:hover {
+        background: linear-gradient(to right, #019CAD, #4880EC);
+        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     st.title("Data Transformation Tools")
     
     # Add the sidebar menu
