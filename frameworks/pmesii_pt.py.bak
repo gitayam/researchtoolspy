@@ -719,40 +719,40 @@ def pmesii_pt_page():
                     
                     st.success("Question deleted!")
                     st.rerun()
-                else:  # This else belongs to the if statement that checks for domain questions
-                    st.info(f"No questions generated yet for the {domain} domain. Click the 'Generate {domain} Questions' button above to get started.")
+        else:  # This else belongs to the if statement that checks for domain questions
+            st.info(f"No questions generated yet for the {domain} domain. Click the 'Generate {domain} Questions' button above to get started.")
+            
+            # Allow adding questions even if none exist yet
+            st.markdown("### Add Questions Manually")
+            
+            # Create a text input for adding a new question
+            new_question = st.text_input(
+                "New question:",
+                key=f"new_question_{domain.lower()}",
+                placeholder="Enter a new question here..."
+            )
+            
+            # Add button to add the new question
+            if st.button("Add Question", key=f"add_question_{domain.lower()}"):
+                if new_question:
+                    # Initialize the questions list if it doesn't exist
+                    if domain not in st.session_state["domain_questions"]:
+                        st.session_state["domain_questions"][domain] = []
                     
-                    # Allow adding questions even if none exist yet
-                    st.markdown("### Add Questions Manually")
+                    # Add the new question
+                    st.session_state["domain_questions"][domain].append(new_question)
                     
-                    # Create a text input for adding a new question
-                    new_question = st.text_input(
-                        "New question:",
-                        key=f"new_question_empty_{domain.lower()}",
-                        placeholder="Enter a new question here..."
-                    )
-                
-                # Add button to add the new question
-                if st.button("Add Question", key=f"add_question_empty_{domain.lower()}"):
-                    if new_question:
-                        # Initialize the questions list if it doesn't exist
-                        if domain not in st.session_state["domain_questions"]:
-                            st.session_state["domain_questions"][domain] = []
-                        
-                        # Add the new question
-                        st.session_state["domain_questions"][domain].append(new_question)
-                        
-                        # Add an empty answer for this question
-                        if domain not in st.session_state["domain_answers"]:
-                            st.session_state["domain_answers"][domain] = [""]
-                        else:
-                            st.session_state["domain_answers"][domain].append("")
-                        
-                        # Clear the input field by rerunning
-                        st.session_state[f"new_question_empty_{domain.lower()}"] = ""
-                        st.rerun()
+                    # Add an empty answer for this question
+                    if domain not in st.session_state["domain_answers"]:
+                        st.session_state["domain_answers"][domain] = [""]
                     else:
-                        st.warning("Please enter a question before adding.")
+                        st.session_state["domain_answers"][domain].append("")
+                    
+                    # Clear the input field by rerunning
+                    st.session_state[f"new_question_{domain.lower()}"] = ""
+                    st.rerun()
+                else:
+                    st.warning("Please enter a question before adding.")
 
     st.markdown("---")
     # Export all questions and answers into a CSV file.
