@@ -37,7 +37,30 @@ def convert_input(
         unique_values = unique_values[:process_limit]
 
     # Format output based on selected format
-    if format_type == "List to JSON":
+    if format_type == "Comma Separated":
+        return ", ".join(unique_values)
+        
+    elif format_type == "JSON":
+        json_array = []
+        if json_option == "Custom" and json_attribute:
+            # Generate JSON using the custom JSON attribute provided by the user
+            json_array = [{"match_phrase": {json_attribute: value}} for value in unique_values]
+        elif json_option == "Location":
+            # Generate JSON for location-based queries
+            json_array = [{"wildcard": {"author_place": f"{location}*"}} for location in unique_values]
+        else:
+            # Default JSON output for other options
+            json_array = [{"match_phrase": {"doc.user.description": value}} for value in unique_values]
+            
+        result_dict = {
+            "bool": {
+                "minimum_should_match": 1,
+                "should": json_array
+            }
+        }
+        return json.dumps(result_dict, indent=2)
+
+    elif format_type == "List to JSON":
         json_array = []
         if json_option == "Custom" and json_attribute:
             # Generate JSON using the custom JSON attribute provided by the user

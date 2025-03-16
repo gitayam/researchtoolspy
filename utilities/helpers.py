@@ -31,6 +31,10 @@ def remove_markdown(md_text: str) -> str:
     text = re.sub(r'`(.*?)`', r'\1', text)
     text = re.sub(r'^#+\s', '', text, flags=re.MULTILINE)
     text = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', text)
+    # Remove blockquotes
+    text = re.sub(r'^>\s?(.*?)$', r'\1', text, flags=re.MULTILINE)
+    # Remove horizontal rules
+    text = re.sub(r'^-{3,}$', '', text, flags=re.MULTILINE)
     return text
 
 def parse_markdown(text: str):
@@ -205,7 +209,6 @@ def export_ach_matrix_to_excel(hypotheses_list, evidence_list, ach_matrix, evide
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='ACH Matrix')
-        writer.save()
     output.seek(0)
     return output.getvalue()
 
