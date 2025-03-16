@@ -96,10 +96,12 @@ def main():
     with col3:
         st.subheader("📚 Documentation")
         st.markdown("""
-        - **[Research Planning Guide](https://irregularpedia.org/index.php/research-planning)**
-        - **[Structured Analytic Techniques](https://irregularpedia.org/index.php/structured-analytic-techniques)**
-        - **[Research Templates](https://irregularpedia.org/index.php/research-template)**
-        """)
+        - **<a href="https://irregularpedia.org/index.php/research-planning" target="_self">Research Planning Guide</a>**
+        - **<a href="https://irregularpedia.org/index.php/Structured_Analytic_Techniques_(SATs)" target="_self">Structured Analytic Techniques</a>**
+        - **<a href="https://irregularpedia.org/index.php/PMESII-PT" target="_self">PMESII-PT Framework</a>**
+        - **<a href="https://irregularpedia.org/index.php/Center_of_Gravity_Analysis_Guide" target="_self">Center of Gravity Analysis</a>**
+        - **<a href="https://irregularpedia.org/index.php/Research_Template" target="_self">Research Templates</a>**
+        """, unsafe_allow_html=True)
 
     with col4:
         st.subheader("📥 Data Collection")
