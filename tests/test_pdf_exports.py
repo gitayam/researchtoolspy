@@ -51,12 +51,11 @@ def test_async_generate_pdf_from_url():
     # Import the function here to ensure the patch works
     from utilities.url_processing import async_generate_pdf_from_url
     
-    # Mock both pdfkit and playwright
+    # Test case 1: pdfkit succeeds
     with patch("utilities.url_processing.generate_pdf_from_url") as mock_generate_pdf:
         with patch("utilities.url_processing.generate_pdf_using_playwright") as mock_playwright_pdf:
             # Set up the mocks
-            mock_generate_pdf.return_value = None  # Simulate pdfkit failure
-            mock_playwright_pdf.return_value = b"%PDF-1.4 test pdf content"  # Playwright succeeds
+            mock_generate_pdf.return_value = b"%PDF-1.4 test pdf content"  # pdfkit succeeds
             
             result = async_generate_pdf_from_url(url)
             
@@ -67,9 +66,32 @@ def test_async_generate_pdf_from_url():
             # Check PDF content
             assert b"%PDF" in result
             
-            # Verify that both methods were attempted
+            # Verify that only pdfkit was called
             mock_generate_pdf.assert_called_once_with(url)
-            mock_playwright_pdf.assert_called_once_with(url)
+            mock_playwright_pdf.assert_not_called()
+    
+    # Test case 2: pdfkit fails, xhtml2pdf fails, playwright succeeds
+    with patch("utilities.url_processing.generate_pdf_from_url") as mock_generate_pdf:
+        with patch("utilities.url_processing.generate_pdf_using_playwright") as mock_playwright_pdf:
+            with patch("requests.get") as mock_requests_get:
+                with patch("xhtml2pdf.pisa.CreatePDF") as mock_create_pdf:
+                    # Set up the mocks
+                    mock_generate_pdf.return_value = None  # pdfkit fails
+                    mock_requests_get.side_effect = Exception("Request failed")  # xhtml2pdf fails
+                    mock_playwright_pdf.return_value = b"%PDF-1.4 test pdf content"  # playwright succeeds
+                    
+                    result = async_generate_pdf_from_url(url)
+                    
+                    # Assert that result is bytes and not empty
+                    assert isinstance(result, bytes)
+                    assert len(result) > 0
+                    
+                    # Check PDF content
+                    assert b"%PDF" in result
+                    
+                    # Verify that both methods were attempted
+                    mock_generate_pdf.assert_called_once_with(url)
+                    mock_playwright_pdf.assert_called_once_with(url)
 
 def test_playwright_pdf_generation():
     """Test the Playwright PDF generation function"""
