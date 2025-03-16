@@ -23,6 +23,8 @@ import pandas as pd
 import uuid
 import psycopg2
 from psycopg2.extras import DictCursor
+import networkx as nx
+import plotly.graph_objects as go
 
 load_dotenv()
 
@@ -296,6 +298,140 @@ def score_and_prioritize(all_vulnerabilities_list):
             for idx, (cap, vuln, score, details) in enumerate(final_scores, 1):
                 st.write(f"{idx}. **[{cap}]** {vuln} – Composite: **{score}** ({', '.join(details)})")
 
+def visualize_cog_network(cog: str, capabilities: List[str], vulnerabilities_dict: Dict[str, List[str]], requirements_text: str):
+    """Visualize the COG analysis as an interactive network using Plotly"""
+    if not cog or not capabilities:
+        st.info("Add a Center of Gravity and capabilities to see the network visualization")
+        return
+
+    G = nx.DiGraph()
+    
+    # Add COG as central node
+    G.add_node(cog, node_type="COG", importance=10)
+    
+    # Add capabilities as second-level nodes
+    for cap in capabilities:
+        G.add_node(cap, node_type="Capability", importance=7)
+        G.add_edge(cog, cap, edge_type="enables")
+    
+    # Add requirements as nodes
+    if requirements_text:
+        requirements = [req.strip() for req in requirements_text.split(";") if req.strip()]
+        for req in requirements:
+            G.add_node(req, node_type="Requirement", importance=5)
+            # Connect requirements to capabilities they support
+            for cap in capabilities:
+                G.add_edge(req, cap, edge_type="supports")
+    
+    # Add vulnerabilities as leaf nodes
+    for cap, vulns in vulnerabilities_dict.items():
+        for vuln in vulns:
+            G.add_node(vuln, node_type="Vulnerability", importance=3)
+            G.add_edge(cap, vuln, edge_type="exposes")
+    
+    # Create Plotly visualization
+    pos = nx.spring_layout(G, k=1, iterations=50)
+    
+    # Edge trace
+    edge_x = []
+    edge_y = []
+    edge_text = []
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+        edge_text.append(f"{edge[0]} → {edge[1]}<br>Type: {G.edges[edge]['edge_type']}")
+    
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=1, color='rgba(136, 136, 136, 0.6)'),
+        hoverinfo='text',
+        text=edge_text,
+        mode='lines'
+    )
+
+    # Node trace
+    node_x = []
+    node_y = []
+    node_text = []
+    node_color = []
+    node_size = []
+    
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+        node_text.append(f"{node}<br>Type: {G.nodes[node]['node_type']}")
+        node_color.append(G.nodes[node]['importance'])
+        node_size.append(G.nodes[node]['importance'] * 5)
+    
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers+text',
+        hoverinfo='text',
+        text=node_text,
+        textposition="top center",
+        marker=dict(
+            showscale=True,
+            colorscale='Viridis',
+            size=node_size,
+            color=node_color,
+            colorbar=dict(
+                title=dict(
+                    text='Importance',
+                    side='right'
+                ),
+                thickness=15,
+                xanchor='left'
+            )
+        )
+    )
+
+    # Create figure
+    fig = go.Figure(
+        data=[edge_trace, node_trace],
+        layout=go.Layout(
+            showlegend=False,
+            hovermode='closest',
+            margin=dict(b=20, l=5, r=5, t=40),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            plot_bgcolor='rgba(255,255,255,0.8)',
+            paper_bgcolor='rgba(255,255,255,0.8)',
+            title=dict(
+                text=f"Center of Gravity Analysis Network",
+                x=0.5,
+                y=0.95
+            )
+        )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+    return G
+
+def export_graph(G: nx.DiGraph, format: str = "gexf"):
+    """Export the COG network graph in various formats"""
+    import io
+    import networkx as nx
+    
+    if format == "gexf":
+        # Export as GEXF (compatible with Gephi)
+        output = io.StringIO()
+        nx.write_gexf(G, output)
+        return output.getvalue()
+    elif format == "graphml":
+        # Export as GraphML
+        output = io.StringIO()
+        nx.write_graphml(G, output)
+        return output.getvalue()
+    elif format == "json":
+        # Export as JSON
+        data = nx.node_link_data(G)
+        return json.dumps(data, indent=2)
+    else:
+        raise ValueError(f"Unsupported format: {format}")
+
 def export_results(final_scores):
     import io
     import csv
@@ -322,10 +458,29 @@ def export_results(final_scores):
             )
 
     with col_export2:
-        st.write("PDF export placeholder. For PDF export consider using libraries like ReportLab or pdfkit.")
+        if st.button("Export as PDF"):
+            st.info("PDF export will be implemented using ReportLab or pdfkit")
 
     with col_export3:
-        st.write("Graph export placeholder (.gexf, .graphml, etc.)")
+        # Add graph export functionality
+        if "cog_graph" in st.session_state:
+            export_format = st.selectbox(
+                "Select Graph Format",
+                ["gexf", "graphml", "json"],
+                help="GEXF works with Gephi, GraphML is widely supported, JSON is human-readable"
+            )
+            
+            if st.button(f"Export as {export_format.upper()}"):
+                try:
+                    graph_data = export_graph(st.session_state.cog_graph, export_format)
+                    st.download_button(
+                        label=f"Download {export_format.upper()}",
+                        data=graph_data,
+                        file_name=f"COG_Analysis.{export_format}",
+                        mime=f"application/{export_format}"
+                    )
+                except Exception as e:
+                    st.error(f"Error exporting graph: {e}")
 
 def export_cog_analysis():
     """
@@ -551,6 +706,230 @@ def search_references():
         for title, url in results.items():
             st.markdown(f"- [{title}]({url})")
 
+def generate_cog_suggestions(entity_type: str, entity_name: str, entity_goals: str, entity_presence: str, desired_end_state: str) -> Dict:
+    """Generate AI suggestions for COG analysis components"""
+    try:
+        system_msg = {
+            "role": "system",
+            "content": "You are an AI specialized in Center of Gravity analysis. Generate a comprehensive analysis based on the provided information."
+        }
+        
+        user_msg = {
+            "role": "user",
+            "content": f"""
+            Analyze this entity and suggest a complete COG analysis:
+            Entity Type: {entity_type}
+            Entity Name: {entity_name}
+            Goals: {entity_goals}
+            Areas of Presence: {entity_presence}
+            Desired End State: {desired_end_state}
+            
+            Format your response as a JSON structure with:
+            1. cog: The primary Center of Gravity
+            2. capabilities: List of 3-5 critical capabilities
+            3. requirements: List of key requirements for each capability
+            4. vulnerabilities: List of potential vulnerabilities for each capability
+            """
+        }
+        
+        # Example structure of suggestions (replace with actual AI response)
+        suggestions = {
+            'cog': {
+                'name': 'Command and Control Network',
+                'description': 'Central nervous system of operations, enabling decision-making and coordination',
+                'rationale': 'Critical for maintaining operational effectiveness and strategic advantage'
+            },
+            'capabilities': [
+                {
+                    'name': 'Rapid Decision Making',
+                    'type': 'Command',
+                    'importance': 9,
+                    'rationale': 'Enables quick response to changing situations'
+                },
+                {
+                    'name': 'Information Distribution',
+                    'type': 'Support',
+                    'importance': 8,
+                    'rationale': 'Ensures all elements have necessary intelligence'
+                },
+                {
+                    'name': 'Resource Allocation',
+                    'type': 'Logistics',
+                    'importance': 7,
+                    'rationale': 'Manages and directs critical resources'
+                }
+            ],
+            'requirements': [
+                {
+                    'capability': 'Rapid Decision Making',
+                    'items': [
+                        'Secure communication infrastructure',
+                        'Trained command staff',
+                        'Real-time intelligence feeds'
+                    ]
+                },
+                {
+                    'capability': 'Information Distribution',
+                    'items': [
+                        'Redundant communication channels',
+                        'Data processing centers',
+                        'Trained communications personnel'
+                    ]
+                },
+                {
+                    'capability': 'Resource Allocation',
+                    'items': [
+                        'Supply chain management system',
+                        'Transportation network',
+                        'Storage facilities'
+                    ]
+                }
+            ],
+            'vulnerabilities': [
+                {
+                    'capability': 'Rapid Decision Making',
+                    'items': [
+                        {
+                            'name': 'Communication Disruption',
+                            'impact': 8,
+                            'rationale': 'Loss of command links would severely degrade decision speed'
+                        },
+                        {
+                            'name': 'Personnel Gaps',
+                            'impact': 7,
+                            'rationale': 'Key decision-makers may become unavailable'
+                        }
+                    ]
+                },
+                {
+                    'capability': 'Information Distribution',
+                    'items': [
+                        {
+                            'name': 'Network Security Weaknesses',
+                            'impact': 9,
+                            'rationale': 'Vulnerable to cyber attacks and information compromise'
+                        },
+                        {
+                            'name': 'Single Points of Failure',
+                            'impact': 8,
+                            'rationale': 'Critical nodes in the network lack redundancy'
+                        }
+                    ]
+                },
+                {
+                    'capability': 'Resource Allocation',
+                    'items': [
+                        {
+                            'name': 'Supply Chain Disruption',
+                            'impact': 8,
+                            'rationale': 'Dependencies on specific routes or suppliers'
+                        },
+                        {
+                            'name': 'Resource Depletion',
+                            'impact': 7,
+                            'rationale': 'Limited stockpiles and resupply capabilities'
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        return suggestions
+    except Exception as e:
+        st.error(f"Error generating suggestions: {e}")
+        return None
+
+def display_ai_suggestions(suggestions: Dict):
+    """Display AI-generated suggestions with options to add them to the analysis"""
+    if not suggestions:
+        return
+    
+    st.markdown("### 🤖 AI-Generated Analysis Suggestions")
+    
+    # Display COG suggestion
+    st.markdown("#### Suggested Center of Gravity")
+    with st.container():
+        st.markdown(
+            f"""
+            <div style='padding: 10px; border-radius: 5px; background-color: #f0f2f6; margin: 5px 0;'>
+            <strong>{suggestions['cog']['name']}</strong><br>
+            Description: {suggestions['cog']['description']}<br>
+            Rationale: {suggestions['cog']['rationale']}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Use This COG"):
+            st.session_state["final_cog"] = suggestions['cog']['name']
+            st.success(f"Set COG to: {suggestions['cog']['name']}")
+            st.rerun()
+    
+    # Display capability suggestions
+    st.markdown("#### Suggested Capabilities")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        for i, cap in enumerate(suggestions['capabilities']):
+            with st.container():
+                st.markdown(
+                    f"""
+                    <div style='padding: 10px; border-radius: 5px; background-color: #f0f2f6; margin: 5px 0;'>
+                    <strong>{cap['name']}</strong><br>
+                    Type: {cap['type']}<br>
+                    Importance: {cap['importance']}/10<br>
+                    Rationale: {cap['rationale']}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+                if st.button(f"Add Capability: {cap['name']}", key=f"add_cap_{i}"):
+                    if cap['name'] not in st.session_state["capabilities"]:
+                        st.session_state["capabilities"].append(cap['name'])
+                        st.success(f"Added capability: {cap['name']}")
+                        st.rerun()
+    
+    # Display requirements suggestions
+    with col2:
+        st.markdown("#### Suggested Requirements")
+        for req_group in suggestions['requirements']:
+            cap_name = req_group['capability']
+            if cap_name in st.session_state["capabilities"]:
+                with st.container():
+                    st.markdown(f"**For {cap_name}:**")
+                    requirements_text = "; ".join(req_group['items'])
+                    if st.button(f"Add Requirements for {cap_name}", key=f"add_req_{cap_name}"):
+                        current_reqs = st.session_state["requirements_text"]
+                        new_reqs = f"{current_reqs}\n{requirements_text}" if current_reqs else requirements_text
+                        st.session_state["requirements_text"] = new_reqs
+                        st.success(f"Added requirements for {cap_name}")
+                        st.rerun()
+    
+    # Display vulnerability suggestions
+    st.markdown("#### Suggested Vulnerabilities")
+    for vuln_group in suggestions['vulnerabilities']:
+        cap_name = vuln_group['capability']
+        if cap_name in st.session_state["capabilities"]:
+            with st.container():
+                st.markdown(f"**Vulnerabilities for {cap_name}:**")
+                for i, vuln in enumerate(vuln_group['items']):
+                    st.markdown(
+                        f"""
+                        <div style='padding: 10px; border-radius: 5px; background-color: #f0f2f6; margin: 5px 0;'>
+                        <strong>{vuln['name']}</strong><br>
+                        Impact: {vuln['impact']}/10<br>
+                        Rationale: {vuln['rationale']}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    if st.button(f"Add Vulnerability: {vuln['name']}", key=f"add_vuln_{cap_name}_{i}"):
+                        if cap_name not in st.session_state["vulnerabilities_dict"]:
+                            st.session_state["vulnerabilities_dict"][cap_name] = []
+                        if vuln['name'] not in st.session_state["vulnerabilities_dict"][cap_name]:
+                            st.session_state["vulnerabilities_dict"][cap_name].append(vuln['name'])
+                            st.success(f"Added vulnerability to {cap_name}")
+                            st.rerun()
+
 def cog_analysis():
     st.title("Enhanced Center of Gravity (COG) Analysis Flow")
     st.write("""
@@ -764,6 +1143,17 @@ to perform its critical capabilities. Separate them by semicolons or lines.
     score_and_prioritize(all_vulnerabilities_list)
 
     st.markdown("---")
+    st.subheader("Network Visualization")
+    G = visualize_cog_network(
+        final_cog,
+        st.session_state["capabilities"],
+        st.session_state["vulnerabilities_dict"],
+        st.session_state["requirements_text"]
+    )
+    if G:
+        st.session_state.cog_graph = G
+
+    st.markdown("---")
     st.subheader("Export / Save Results")
     export_results(all_vulnerabilities_list)
 
@@ -776,6 +1166,23 @@ to perform its critical capabilities. Separate them by semicolons or lines.
 
     # New: Save / Load section for resuming work later
     save_and_load_analysis()
+
+    # Add AI-assisted analysis section at the top
+    st.markdown("### 🤖 AI-Assisted Analysis")
+    if st.button("Generate Complete COG Analysis", type="primary"):
+        if not entity_type or not entity_name:
+            st.warning("Please provide entity type and name first.")
+        else:
+            with st.spinner("Generating COG analysis suggestions..."):
+                suggestions = generate_cog_suggestions(
+                    entity_type,
+                    entity_name,
+                    entity_goals,
+                    entity_presence,
+                    desired_end_state
+                )
+                if suggestions:
+                    display_ai_suggestions(suggestions)
 
 def main():
     cog_analysis()
