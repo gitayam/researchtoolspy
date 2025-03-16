@@ -4,8 +4,12 @@ def sidebar_menu():
     # Framework Quick Links with direct links
     st.sidebar.markdown("## Analysis Frameworks")
     
-    # Use target="_self" to ensure links open in the same tab
-    # Reordered to match the image
+    # Add a dedicated link to the frameworks landing page
+    st.sidebar.markdown("""
+    ### <a href="/Frameworks" target="_self">📋 Frameworks Home</a>
+    """, unsafe_allow_html=True)
+    
+    # Keep the existing framework-specific links
     st.sidebar.markdown("""
     - <a href="/Frameworks?framework=swot" target="_self">SWOT Analysis</a>
     - <a href="/Frameworks?framework=dime" target="_self">DIME Framework</a>
