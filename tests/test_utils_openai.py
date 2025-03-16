@@ -1,20 +1,17 @@
 # /researchtools_streamlit/tests/test_utils_openai.py
 import os
 import pytest
-from unittest.mock import patch
-from utils_openai import generate_advanced_query
+from unittest.mock import patch, MagicMock
+from utilities.gpt import generate_advanced_query
 
 @pytest.mark.parametrize("search_platform", ["Google", "Microsoft Portal", "Windows CMD Search"])
 def test_generate_advanced_query(search_platform):
-    with patch("utils_openai.openai.ChatCompletion.create") as mock_create:
-        # Configure the mock to return a dummy response
-        mock_create.return_value = {
-            "choices": [
-                {"message": {"content": "Mocked advanced query"}}
-            ]
-        }
-
+    # Create a mock response object with the structure expected by the function
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock()]
+    mock_response.choices[0].message.content = "Mocked advanced query"
+    
+    # Patch the client.chat.completions.create method
+    with patch("utilities.gpt.client.chat.completions.create", return_value=mock_response):
         result = generate_advanced_query("test search", search_platform, model="gpt-3.5-turbo")
         assert result == "Mocked advanced query"
-        # Also check that openai.ChatCompletion.create was called properly
-        mock_create.assert_called_once()

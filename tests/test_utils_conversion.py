@@ -1,6 +1,6 @@
 # /researchtools_streamlit/tests/test_utils_conversion.py
 import pytest
-from utils_conversion import convert_input
+from utilities.conversions import convert_input
 
 def test_convert_input_comma_separated():
     input_data = "value1\nvalue2\nvalue2\nvalue3"
