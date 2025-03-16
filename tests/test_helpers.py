@@ -120,5 +120,17 @@ def test_apply_excel_styling():
         # Expected minimal width is length of header text plus padding.
         assert width >= len(header_text) + 2
 
+@pytest.mark.parametrize("input_text,expected", [
+    ("", ""),  # Empty string
+    (None, ""),  # None input
+    ("Plain text with no markdown", "Plain text with no markdown"),  # No markdown
+    ("```code block```", "code block"),  # Code blocks
+    ("> Blockquote", "Blockquote"),  # Blockquotes
+    ("1. First\n2. Second", "1. First\n2. Second"),  # Lists
+    ("---", ""),  # Horizontal rules
+])
+def test_remove_markdown_edge_cases(input_text, expected):
+    assert remove_markdown(input_text) == expected
+
 if __name__ == "__main__":
     pytest.main() 
