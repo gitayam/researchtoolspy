@@ -46,28 +46,48 @@ def main():
     
     with col1:
         st.subheader("📊 Analysis Frameworks")
-        st.markdown("""
-        Access powerful analytical frameworks to structure your research:
         
-        - **[SWOT Analysis](/Frameworks?framework=swot)**: Strategic planning and evaluation
-        - **[ACH Analysis](/Frameworks?framework=ach)**: Systematic hypothesis testing
-        - **[COG Analysis](/Frameworks?framework=cog)**: Center of Gravity analysis
-        - **[Deception Detection](/Frameworks?framework=deception)**: Identify potential deception
-        - **[DIME Framework](/Frameworks?framework=dime)**: National power analysis
-        - **[PMESII-PT](/Frameworks?framework=pmesii_pt)**: Operational environment analysis
-        - **[DOTMLPF](/Frameworks?framework=dotmlpf)**: Capability gap analysis
-        """)
+        # Create clickable cards for each framework
+        frameworks = [
+            {"name": "SWOT Analysis", "url": "/Frameworks?framework=swot", "desc": "Strategic planning and evaluation"},
+            {"name": "ACH Analysis", "url": "/Frameworks?framework=ach", "desc": "Systematic hypothesis testing"},
+            {"name": "COG Analysis", "url": "/Frameworks?framework=cog", "desc": "Center of Gravity analysis"},
+            {"name": "Deception Detection", "url": "/Frameworks?framework=deception_detection", "desc": "Identify potential deception"},
+            {"name": "DIME Framework", "url": "/Frameworks?framework=dime", "desc": "National power analysis"},
+            {"name": "PMESII-PT", "url": "/Frameworks?framework=pmesii_pt", "desc": "Operational environment analysis"},
+            {"name": "DOTMLPF", "url": "/Frameworks?framework=dotmlpf", "desc": "Capability gap analysis"},
+            {"name": "Starbursting", "url": "/Frameworks?framework=starbursting", "desc": "Question-based exploration"},
+            {"name": "Behavioral Analysis", "url": "/Frameworks?framework=behavior_analysis", "desc": "Human behavior patterns"}
+        ]
+        
+        for framework in frameworks:
+            with st.container():
+                st.markdown(f"""
+                <div style="border:1px solid #ddd; padding:10px; border-radius:5px; margin-bottom:10px;">
+                    <h4><a href="{framework['url']}" target="_self">{framework['name']}</a></h4>
+                    <p>{framework['desc']}</p>
+                </div>
+                """, unsafe_allow_html=True)
 
     with col2:
         st.subheader("🔄 Transformers")
-        st.markdown("""
-        Transform and process your data efficiently:
         
-        - **[CSV/JSON Converter](/Transformers)**: Convert between data formats
-        - **[Advanced Query Generator](/Transformers)**: AI-powered search queries
-        - **[Image Hash Generator](/Transformers)**: Generate image hashes for searches
-        - **[URL Processor](/Transformers)**: Process and archive URLs
-        """)
+        # Create clickable cards for each tool
+        tools = [
+            {"name": "CSV/JSON Converter", "url": "/Transformers?tool=converter", "desc": "Convert between data formats"},
+            {"name": "Advanced Query Generator", "url": "/Transformers?tool=query_generator", "desc": "AI-powered search queries"},
+            {"name": "Image Hash Generator", "url": "/Transformers?tool=image_hash", "desc": "Generate image hashes for searches"},
+            {"name": "URL Processor", "url": "/Transformers?tool=url_processor", "desc": "Process and archive URLs"}
+        ]
+        
+        for tool in tools:
+            with st.container():
+                st.markdown(f"""
+                <div style="border:1px solid #ddd; padding:10px; border-radius:5px; margin-bottom:10px;">
+                    <h4><a href="{tool['url']}" target="_self">{tool['name']}</a></h4>
+                    <p>{tool['desc']}</p>
+                </div>
+                """, unsafe_allow_html=True)
 
     # Research Tools Section
     st.header("🔍 Research Tools")

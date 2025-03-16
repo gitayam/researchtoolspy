@@ -36,3 +36,32 @@ def advanced_query_options():
     )
     
     return search_platform, model
+
+def query_generator_page():
+    st.title("Advanced Query Generator")
+    st.write("This tool helps you generate advanced search queries for various search engines.")
+    
+    # Input for search topic
+    search_topic = st.text_area("Enter your research topic or question:", height=100)
+    
+    # Search engine selection
+    search_engine = st.selectbox("Select search engine:", ["Google", "Bing", "DuckDuckGo", "Yandex"])
+    
+    # Advanced options
+    with st.expander("Advanced Options"):
+        include_filetype = st.checkbox("Include filetype filters")
+        include_site = st.checkbox("Include site-specific filters")
+        
+        if include_filetype:
+            filetypes = st.multiselect("Select filetypes to include:", ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx"])
+        
+        if include_site:
+            sites = st.text_input("Enter sites to include (comma separated):")
+    
+    # Generate button
+    if st.button("Generate Advanced Query"):
+        if search_topic:
+            st.success("Query generation placeholder - functionality coming soon!")
+            st.code(f"Advanced query for {search_engine} would appear here")
+        else:
+            st.warning("Please enter a search topic")

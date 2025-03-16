@@ -622,3 +622,39 @@ class URLProcessor:
         """Extract URLs from text content"""
         url_pattern = r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+'
         return re.findall(url_pattern, text)
+
+def url_processor_page():
+    st.title("URL Processor")
+    st.write("This tool helps you process and archive URLs for research purposes.")
+    
+    # URL input
+    url = st.text_input("Enter URL:")
+    
+    # Processing options
+    with st.expander("Processing Options"):
+        archive = st.checkbox("Archive URL", value=True)
+        extract_text = st.checkbox("Extract text content", value=True)
+        extract_metadata = st.checkbox("Extract metadata", value=True)
+        extract_links = st.checkbox("Extract links", value=True)
+    
+    # Process button
+    if st.button("Process URL"):
+        if url:
+            st.success("URL processing placeholder - functionality coming soon!")
+            
+            # Show tabs for different results
+            tab1, tab2, tab3, tab4 = st.tabs(["Content", "Metadata", "Links", "Archive"])
+            
+            with tab1:
+                st.write("Text content would appear here")
+            
+            with tab2:
+                st.write("Metadata would appear here")
+            
+            with tab3:
+                st.write("Links would appear here")
+            
+            with tab4:
+                st.write("Archive information would appear here")
+        else:
+            st.warning("Please enter a URL")

@@ -1,20 +1,31 @@
 import streamlit as st
 
 def sidebar_menu():
-    # Framework Quick Links with fallback direct links
+    # Framework Quick Links with direct links
     st.sidebar.markdown("## Analysis Frameworks")
+    
+    # Use target="_self" to ensure links open in the same tab
     st.sidebar.markdown("""
-    - [SWOT Analysis](/Frameworks?framework=swot)
-    - [ACH Analysis](/Frameworks?framework=ach)
-    - [Starbursting](/Frameworks?framework=starbursting)
-    - [Deception Detection](/Frameworks?framework=deception)
-    - [COG Analysis](/Frameworks?framework=cog)
-    - [DIME Framework](/Frameworks?framework=dime)
-    - [PMESII-PT Framework](/Frameworks?framework=pmesii)
-    - [DOTMLPF Framework](/Frameworks?framework=dotmlpf)
-    - [Behavioral Analysis](/Frameworks?framework=behavior_analysis)
-    Having trouble with the links? [View all frameworks](/Frameworks)
-    """)
+    - <a href="/Frameworks?framework=swot" target="_self">SWOT Analysis</a>
+    - <a href="/Frameworks?framework=ach" target="_self">ACH Analysis</a>
+    - <a href="/Frameworks?framework=starbursting" target="_self">Starbursting</a>
+    - <a href="/Frameworks?framework=deception_detection" target="_self">Deception Detection</a>
+    - <a href="/Frameworks?framework=cog" target="_self">COG Analysis</a>
+    - <a href="/Frameworks?framework=dime" target="_self">DIME Framework</a>
+    - <a href="/Frameworks?framework=pmesii_pt" target="_self">PMESII-PT Framework</a>
+    - <a href="/Frameworks?framework=dotmlpf" target="_self">DOTMLPF Framework</a>
+    - <a href="/Frameworks?framework=behavior_analysis" target="_self">Behavioral Analysis</a>
+    """, unsafe_allow_html=True)
+    
+    # Tools section
+    st.sidebar.markdown("## Tools")
+    st.sidebar.markdown("""
+    - <a href="/Transformers?tool=converter" target="_self">CSV/JSON Converter</a>
+    - <a href="/Transformers?tool=query_generator" target="_self">Advanced Query Generator</a>
+    - <a href="/Transformers?tool=image_hash" target="_self">Image Hash Generator</a>
+    - <a href="/Transformers?tool=url_processor" target="_self">URL Processor</a>
+    """, unsafe_allow_html=True)
+    
     # Wiki Links
     st.sidebar.markdown("## [**Research Wiki Pages**](https://irregularpedia.org/index.php/Category:Research)")
     
@@ -35,10 +46,4 @@ def sidebar_menu():
     - [Leaks and Compilations](https://Irregularpedia.org/index.php/leaks)
     - [Citation](https://Irregularpedia.org/index.php/research-citation)
     - [AI-Prompting for Advanced Queries](https://Irregularpedia.org/index.php/ai-prompting)
-    """)
-
-    st.sidebar.subheader("Process and Analyze")
-    st.sidebar.markdown("""
-    - [Forms for Processing](https://Irregularpedia.org/index.php/forms)
-    - [R Studio Guide](https://Irregularpedia.org/index.php/rstudio)
     """) 

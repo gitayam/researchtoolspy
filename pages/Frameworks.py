@@ -15,10 +15,7 @@ from frameworks.pmesii_pt import pmesii_pt_page
 from frameworks.dotmlpf import dotmlpf_page
 from frameworks.starbursting import starbursting_page
 from frameworks.behavior_analysis import behavior_analysis_page
-from frameworks import (
-    swot, ach, cog, deception, 
-    dime, pmesii, dotmlpf, starbursting
-)
+import importlib
 
 # Add the parent directory to sys.path if needed
 # sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -118,61 +115,98 @@ def framework_sidebar():
 def frameworks_page():
     st.title("Analysis Frameworks")
     
-    # Process URL query parameters to allow menu URLs to work.
-    query_params = st.query_params
-    if "framework" in query_params:
-        # Normalize the input to uppercase to match our mapping values.
-        framework_from_url = query_params["framework"][0].strip().upper()
-        valid_frameworks = {
-            "SWOT", "STARBURSTING", "ACH", "BEHAVIOR",
-            "DECEPTION", "COG", "DIME", "PMESII", "DOTMLPF"
-        }
-        if framework_from_url in valid_frameworks:
-            st.session_state["current_framework"] = framework_from_url
-    else:
-        if "current_framework" not in st.session_state:
-            st.session_state["current_framework"] = "DIME"  # Default framework
-
-    # Load framework-specific sidebar.
-    # (This radio widget will now set the default based on the URL parameter.)
-    framework_sidebar()
+    # Add the sidebar menu
+    sidebar_menu()
     
-    # Main content area based on the current framework
-    current_fw = st.session_state.get("current_framework", "DIME")
-    if current_fw == "COG":
-        cog_analysis()
-    elif current_fw == "SWOT":
-        swot_page()
-    elif current_fw == "ACH":
-        ach_page()
-    elif current_fw == "DECEPTION":
-        deception_detection()
-    elif current_fw == "DIME":
-        dime_page()
-    elif current_fw == "PMESII":
-        pmesii_pt_page()
-    elif current_fw == "DOTMLPF":
-        dotmlpf_page()
-    elif current_fw == "STARBURSTING":
-        starbursting_page()
-    elif current_fw == "BEHAVIOR":
-        behavior_analysis_page()
+    # Get the framework from query parameters
+    query_params = st.query_params
+    framework = query_params.get("framework", None)
+    
+    # Display framework selection if none specified
+    if not framework:
+        st.write("Select a framework from the options below:")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.subheader("Strategic Analysis")
+            if st.button("SWOT Analysis", use_container_width=True):
+                st.experimental_set_query_params(framework="swot")
+            if st.button("DIME Framework", use_container_width=True):
+                st.query_params["framework"] = "dime"
+            if st.button("COG Analysis", use_container_width=True):
+                st.query_params["framework"] = "cog"
+        
+        with col2:
+            st.subheader("Operational Analysis")
+            if st.button("PMESII-PT Framework", use_container_width=True):
+                st.query_params["framework"] = "pmesii_pt"
+            if st.button("DOTMLPF Framework", use_container_width=True):
+                st.query_params["framework"] = "dotmlpf"
+            if st.button("ACH Analysis", use_container_width=True):
+                st.query_params["framework"] = "ach"
+        
+        with col3:
+            st.subheader("Specialized Analysis")
+            if st.button("Starbursting", use_container_width=True):
+                st.query_params["framework"] = "starbursting"
+            if st.button("Deception Detection", use_container_width=True):
+                st.query_params["framework"] = "deception_detection"
+            if st.button("Behavioral Analysis", use_container_width=True):
+                st.query_params["framework"] = "behavior_analysis"
+        
+        return
+    
+    # Map framework parameters to their respective module names and functions
+    framework_map = {
+        "swot": {"module": "frameworks.swot", "function": "swot_page"},
+        "ach": {"module": "frameworks.ach", "function": "ach_page"},
+        "cog": {"module": "frameworks.cog", "function": "cog_analysis"},
+        "deception_detection": {"module": "frameworks.deception_detection", "function": "deception_detection"},
+        "dime": {"module": "frameworks.dime", "function": "dime_page"},
+        "pmesii_pt": {"module": "frameworks.pmesii_pt", "function": "pmesii_pt_page"},
+        "dotmlpf": {"module": "frameworks.dotmlpf", "function": "dotmlpf_page"},
+        "starbursting": {"module": "frameworks.starbursting", "function": "starbursting_page"},
+        "behavior_analysis": {"module": "frameworks.behavior_analysis", "function": "behavior_analysis_page"}
+    }
+    
+    # Handle legacy parameter names
+    if framework == "pmesii":
+        framework = "pmesii_pt"
+    elif framework == "deception":
+        framework = "deception_detection"
+    
+    # Render the selected framework
+    if framework in framework_map:
+        framework_info = framework_map[framework]
+        module_name = framework_info["module"]
+        function_name = framework_info["function"]
+        
+        try:
+            # Try to import the module
+            module = importlib.import_module(module_name)
+            
+            # Check if the function exists in the module
+            if hasattr(module, function_name):
+                function = getattr(module, function_name)
+                function()  # Call the function
+            else:
+                st.error(f"Function '{function_name}' not found in module '{module_name}'")
+                
+                # Show what functions are available in the module
+                st.write(f"Available functions in {module_name}:")
+                for name in dir(module):
+                    if callable(getattr(module, name)) and not name.startswith("_"):
+                        st.write(f"- {name}")
+        except ImportError as e:
+            st.error(f"Could not import module '{module_name}': {e}")
+        except Exception as e:
+            st.error(f"Error rendering framework '{framework}': {e}")
     else:
-        # Default view when no framework is selected
-        st.write("""
-        Select a framework from the sidebar to begin your analysis. Each framework provides a structured
-        approach to analyzing different aspects of your research problem.
-        
-        ### Available Frameworks:
-        
-        - **SWOT Analysis**: Analyze Strengths, Weaknesses, Opportunities, and Threats
-        - **ACH Analysis**: Evaluate competing hypotheses systematically
-        - **COG Analysis**: Identify and analyze Centers of Gravity
-        - **Deception Detection**: Analyze potential deception indicators
-        - **DIME Framework**: Analyze Diplomatic, Information, Military, and Economic factors
-        - **PMESII-PT**: Analyze Political, Military, Economic, Social, Information, Infrastructure factors
-        - **DOTMLPF**: Analyze Doctrine, Organization, Training, Material, Leadership, Personnel, and Facilities
-        """)
+        st.error(f"Unknown framework: {framework}")
+        st.write("Please select a valid framework from the options below:")
+        for key in framework_map.keys():
+            st.write(f"- [{key.title()}](/Frameworks?framework={key})")
 
 def load_framework():
     # Get the framework parameter from URL
@@ -183,16 +217,16 @@ def load_framework():
         st.error("No framework specified. Please select a framework from the sidebar.")
         return
     
-    # Map framework parameters to their respective modules/functions
+    # Map framework parameters to their respective functions
     framework_map = {
-        "swot": swot.render_swot_analysis,
-        "starbursting": starbursting.render_starbursting,
-        "ach": ach.render_ach_analysis,
-        "deception": deception.render_deception_detection,
-        "cog": cog.render_cog_analysis,
-        "dime": dime.render_dime_framework,
-        "pmesii": pmesii.render_pmesii_framework,
-        "dotmlpf": dotmlpf.render_dotmlpf_framework,
+        "swot": swot,
+        "ach": ach,
+        "cog": cog,
+        "deception": deception,
+        "dime": dime,
+        "pmesii": pmesii,
+        "dotmlpf": dotmlpf,
+        "starbursting": starbursting,
         "behavior_analysis": behavior_analysis_page
     }
     

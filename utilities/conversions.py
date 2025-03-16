@@ -2,6 +2,7 @@
 
 import json
 from typing import List
+import streamlit as st
 
 def convert_input(
     input_data: str, 
@@ -77,3 +78,23 @@ def convert_input(
     else:
         # Default to "Advanced Query" if no other format_type matches
         return "Advanced Query output"  # Replace with actual logic for "Advanced Query"
+
+def converter_page():
+    st.title("CSV/JSON Converter")
+    st.write("This tool allows you to convert between CSV and JSON formats.")
+    
+    # File upload
+    uploaded_file = st.file_uploader("Upload a CSV or JSON file", type=["csv", "json"])
+    
+    if uploaded_file is not None:
+        # Determine file type
+        file_type = uploaded_file.name.split(".")[-1].lower()
+        
+        if file_type == "csv":
+            st.write("CSV file detected. Converting to JSON...")
+            # Add conversion logic here
+        elif file_type == "json":
+            st.write("JSON file detected. Converting to CSV...")
+            # Add conversion logic here
+        
+        st.success("Conversion placeholder - functionality coming soon!")

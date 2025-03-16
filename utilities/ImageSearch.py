@@ -52,6 +52,23 @@ def image_search_page():
         else:
             st.warning("No valid hashes were generated.")
 
+def image_hash_page():
+    st.title("Image Hash Generator")
+    st.write("This tool generates perceptual hashes for images to help with similarity searches.")
+    
+    # File upload
+    uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+    
+    # Hash type selection
+    hash_type = st.selectbox("Select hash type:", ["Average Hash", "Perceptual Hash", "Difference Hash", "Wavelet Hash"])
+    
+    if uploaded_file is not None:
+        st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+        
+        if st.button("Generate Hash"):
+            st.success("Hash generation placeholder - functionality coming soon!")
+            st.code(f"Image hash would appear here")
+
 def main():
     image_search_page()
 
