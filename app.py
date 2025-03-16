@@ -104,10 +104,10 @@ def main():
     with col4:
         st.subheader("📥 Data Collection")
         st.markdown("""
-        - **[Wayback Machine Tool](/WaybackTool)**: Archive and access historical web pages
-        - **[Social Media Downloader](/Transformers)**: Download social media content
-        - **[Research Datasets](https://irregularpedia.org/index.php/research-datasets)**
-        """)
+        - **<a href="/Transformers?tool=url_processor" target="_self">Wayback Machine Tool</a>**: Archive and access historical web pages
+        - **<a href="/Transformers?tool=social_media_download" target="_self">Social Media Downloader</a>**: Download social media content
+        - **<a href="https://irregularpedia.org/index.php/research-datasets" target="_self">Research Datasets</a>**
+        """, unsafe_allow_html=True)
 
     # Getting Started Section
     st.header("🚀 Getting Started")
