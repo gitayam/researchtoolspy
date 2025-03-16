@@ -7,6 +7,8 @@ import praw  # For Reddit
 import tweepy  # For Twitter
 import dotenv
 import os
+import re
+from urllib.parse import urlparse
 
 dotenv.load_dotenv()
 
@@ -31,6 +33,68 @@ CREDENTIALS = {
     },
     "youtube_oauth": os.getenv("YOUTUBE_OAUTH")
 }
+
+def extract_platform(url: str) -> str:
+    """
+    Extract the social media platform from a URL.
+    
+    Args:
+        url: The URL to analyze
+        
+    Returns:
+        The platform name (twitter, instagram, youtube, etc.) or 'unknown'
+    """
+    if not url:
+        return "unknown"
+        
+    # Parse the URL to get the domain
+    try:
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc.lower()
+        
+        # Check for common social media platforms
+        if "twitter.com" in domain or "x.com" in domain:
+            return "twitter"
+        elif "instagram.com" in domain:
+            return "instagram"
+        elif "youtube.com" in domain or "youtu.be" in domain:
+            return "youtube"
+        elif "facebook.com" in domain or "fb.com" in domain:
+            return "facebook"
+        elif "tiktok.com" in domain:
+            return "tiktok"
+        elif "reddit.com" in domain:
+            return "reddit"
+        elif "linkedin.com" in domain:
+            return "linkedin"
+        else:
+            return "unknown"
+    except:
+        return "unknown"
+
+def validate_url(url: str) -> bool:
+    """
+    Validate if a string is a proper URL.
+    
+    Args:
+        url: The URL to validate
+        
+    Returns:
+        True if the URL is valid, False otherwise
+    """
+    if not url:
+        return False
+        
+    # Basic URL validation using regex
+    url_pattern = re.compile(
+        r'^(?:http|https)://'  # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain
+        r'localhost|'  # localhost
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # or IP
+        r'(?::\d+)?'  # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    
+    return bool(url_pattern.match(url))
 
 def download_social_media(url):
     if "youtube.com" in url or "youtu.be" in url:

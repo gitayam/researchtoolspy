@@ -658,3 +658,77 @@ def url_processor_page():
                 st.write("Archive information would appear here")
         else:
             st.warning("Please enter a URL")
+
+def extract_domain(url: str) -> str:
+    """Extract the domain from a URL."""
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc
+    # Remove www. prefix if present
+    if domain.startswith('www.'):
+        domain = domain[4:]
+    # Extract the main domain (e.g., example.co.uk from subdomain.example.co.uk)
+    parts = domain.split('.')
+    if len(parts) > 2:
+        # Handle special cases like .co.uk, .com.au, etc.
+        if parts[-2] in ['co', 'com', 'org', 'net', 'gov', 'edu'] and len(parts[-1]) == 2:
+            return '.'.join(parts[-3:])
+    return '.'.join(parts[-2:]) if len(parts) > 1 else domain
+
+def clean_url(url: str) -> str:
+    """Clean a URL by removing tracking parameters and normalizing paths."""
+    # Parse the URL
+    parsed_url = urlparse(url)
+    
+    # Remove tracking parameters (like utm_*)
+    query_params = []
+    if parsed_url.query:
+        for param in parsed_url.query.split('&'):
+            if '=' in param:
+                key, value = param.split('=', 1)
+                if not key.startswith('utm_'):
+                    query_params.append(f"{key}={value}")
+    
+    # Normalize path (remove duplicate slashes)
+    path = re.sub(r'/+', '/', parsed_url.path)
+    
+    # Reconstruct the URL
+    clean_query = '&'.join(query_params)
+    scheme = parsed_url.scheme or 'https'
+    netloc = parsed_url.netloc
+    
+    if clean_query:
+        return f"{scheme}://{netloc}{path}?{clean_query}"
+    else:
+        return f"{scheme}://{netloc}{path}"
+
+def fetch_wayback_snapshots(url: str) -> Optional[str]:
+    """Fetch the closest snapshot from the Wayback Machine."""
+    wayback_api_url = f"https://archive.org/wayback/available?url={url}"
+    
+    try:
+        response = requests.get(wayback_api_url)
+        if response.status_code == 200:
+            data = response.json()
+            if "archived_snapshots" in data and "closest" in data["archived_snapshots"]:
+                return data["archived_snapshots"]["closest"]["url"]
+        return None
+    except Exception as e:
+        logging.error(f"Error fetching Wayback snapshots: {e}")
+        return None
+
+def archive_url(url: str) -> Optional[str]:
+    """Archive a URL using the Wayback Machine's save API."""
+    save_api_url = "https://web.archive.org/save/"
+    
+    try:
+        response = requests.post(save_api_url + url)
+        if response.status_code == 200:
+            # Extract the archived URL from the response
+            archived_url = f"https://web.archive.org/web/{int(time.time())}/{url}"
+            return archived_url
+        else:
+            logging.error(f"Failed to archive URL: {response.status_code}")
+            return None
+    except Exception as e:
+        logging.error(f"Error archiving URL: {e}")
+        return None

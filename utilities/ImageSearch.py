@@ -3,6 +3,10 @@
 import streamlit as st
 import hashlib
 import requests
+import imagehash
+from PIL import Image
+import io
+from typing import Dict, Optional
 
 def hash_image(url):
     try:
@@ -13,6 +17,47 @@ def hash_image(url):
         return sha256_hash
     except:
         return None
+
+def calculate_image_hash(image_path: str) -> Optional[str]:
+    """
+    Calculate a perceptual hash for an image.
+    
+    Args:
+        image_path: Path to the image file
+        
+    Returns:
+        The image hash as a string, or None if there was an error
+    """
+    try:
+        # Open the image
+        img = Image.open(image_path)
+        
+        # Calculate the average hash
+        hash_value = imagehash.average_hash(img)
+        
+        return str(hash_value)
+    except Exception as e:
+        st.error(f"Error calculating image hash: {e}")
+        return None
+
+def generate_search_urls(image_hash: str) -> Dict[str, str]:
+    """
+    Generate URLs for reverse image search engines using the image hash.
+    
+    Args:
+        image_hash: The hash of the image
+        
+    Returns:
+        A dictionary of search engine names and their search URLs
+    """
+    search_urls = {
+        "google": f"https://www.google.com/search?q={image_hash}&tbm=isch",
+        "yandex": f"https://yandex.com/images/search?text={image_hash}",
+        "bing": f"https://www.bing.com/images/search?q={image_hash}",
+        "tineye": f"https://tineye.com/search?q={image_hash}"
+    }
+    
+    return search_urls
 
 def image_search_page():
     st.header("Image Hashing")
