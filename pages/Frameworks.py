@@ -216,6 +216,10 @@ def frameworks_page():
     query_params = st.query_params
     framework = query_params.get("framework", None)
     
+    # Add debug logging for query parameters
+    st.write("Debug - Query parameters:", dict(query_params))
+    st.write("Debug - Framework from query params:", framework)
+    
     # If a framework is selected, load it using importlib
     if framework:
         import importlib
@@ -239,6 +243,7 @@ def frameworks_page():
         # Add debug logging
         st.write(f"Debug - Selected framework: {framework}")
         st.write(f"Debug - Available frameworks: {list(framework_map.keys())}")
+        st.write(f"Debug - Session state:", dict(st.session_state))
         
         # Handle legacy parameter names
         if framework == "pmesii":
@@ -253,22 +258,31 @@ def frameworks_page():
                 module_name = module_info["module"]
                 function_name = module_info["function"]
                 
+                st.write(f"Debug - Loading module: {module_name}")
+                st.write(f"Debug - Function to call: {function_name}")
+                
                 # Import the module
                 module = importlib.import_module(module_name)
                 
                 # Get and call the function
                 if hasattr(module, function_name):
                     function = getattr(module, function_name)
+                    st.write(f"Debug - Found function {function_name} in module {module_name}")
                     function()
                 else:
                     st.error(f"Function '{function_name}' not found in module '{module_name}'")
                     st.error(f"Available functions in {module_name}: {[name for name in dir(module) if callable(getattr(module, name)) and not name.startswith('_')]}")
             except ImportError as e:
                 st.error(f"Could not import module '{module_name}': {e}")
+                st.write(f"Debug - Import error details: {str(e)}")
             except Exception as e:
                 st.error(f"Error loading framework '{framework}': {e}")
+                st.write(f"Debug - Error details: {str(e)}")
+                import traceback
+                st.write("Debug - Full traceback:", traceback.format_exc())
         else:
             st.error(f"Unknown framework: {framework}")
+            st.write(f"Debug - Framework not found in framework_map")
         return
     
     # Display framework selection if none specified
@@ -702,7 +716,10 @@ def display_frameworks_page():
         
         # Fundamental Flow Card
         if st.button("🌊 Fundamental Flow", key="flow_button_display"):
+            st.write("Debug - Fundamental Flow button clicked")
+            st.write("Debug - Setting query parameter to 'fundamental_flow'")
             st.query_params["framework"] = "fundamental_flow"
+            st.write("Debug - Query parameters after setting:", dict(st.query_params))
             st.rerun()
         
         st.markdown("""
