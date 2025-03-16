@@ -55,6 +55,11 @@ def framework_sidebar():
         index=default_index,
     )
     
+    # Add a button to go to the frameworks landing page
+    if st.sidebar.button("🏠 Return to Frameworks Home"):
+        st.query_params.clear()
+        st.rerun()
+    
     # Update session state and redirect to the selected framework
     selected_value = framework_options[selected_label]
     st.session_state["current_framework"] = selected_value
@@ -280,9 +285,10 @@ def frameworks_page():
     
     st.title("🧩 Analysis Frameworks")
     
-    # Add both sidebar menus
-    sidebar_menu()
+    # Add framework sidebar first, then the main sidebar menu
+    # This ensures the framework selector appears at the top
     framework_sidebar()
+    sidebar_menu()
     
     # Get the framework from query parameters
     query_params = st.query_params
