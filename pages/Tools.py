@@ -95,6 +95,40 @@ def transformers_page():
         """)
     sidebar_menu()
 
+    # Get the tool from query parameters
+    query_params = st.query_params
+    tool = query_params.get("tool", None)
+    
+    # Display tool selection if none specified
+    if not tool:
+        st.write("Select a transformation tool from the options below:")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Data Conversion")
+            if st.button("CSV/JSON Converter", use_container_width=True):
+                st.query_params["tool"] = "converter"
+            if st.button("URL Processor", use_container_width=True):
+                st.query_params["tool"] = "url_processor"
+        
+        with col2:
+            st.subheader("Advanced Tools")
+            if st.button("Advanced Query Generator", use_container_width=True):
+                st.query_params["tool"] = "query_generator"
+            if st.button("Image Hash Generator", use_container_width=True):
+                st.query_params["tool"] = "image_hash"
+        
+        return
+    
+    # Map tool parameters to their respective modules and functions
+    tool_map = {
+        "converter": {"module": "utilities.conversions", "function": "converter_page"},
+        "query_generator": {"module": "utilities.search_generator", "function": "query_generator_page"},
+        "image_hash": {"module": "utilities.ImageSearch", "function": "image_hash_page"},
+        "url_processor": {"module": "utilities.url_processing", "function": "url_processor_page"}
+    }
+
     # Choose format
     st.subheader("Select Format / Action")
     format_options = [

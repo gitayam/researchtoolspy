@@ -5,16 +5,7 @@ import streamlit as st
 import sys
 from dotenv import load_dotenv
 from utilities.gpt import generate_advanced_query
-from frameworks.cog import cog_analysis
-from frameworks.swot import swot_page
-from frameworks.ach import ach_page
-from frameworks.deception_detection import deception_detection
-from frameworks.dime import dime_page
 from components.sidebar_menu import sidebar_menu
-from frameworks.pmesii_pt import pmesii_pt_page
-from frameworks.dotmlpf import dotmlpf_page
-from frameworks.starbursting import starbursting_page
-from frameworks.behavior_analysis import behavior_analysis_page
 import importlib
 
 # Add the parent directory to sys.path if needed
@@ -53,14 +44,20 @@ def framework_sidebar():
         "Select Framework",
         options=labels,
         index=default_index,
+        key="framework_sidebar_radio"
     )
     
     # Add a button to go to the frameworks landing page
     if st.sidebar.button("🏠 Return to Frameworks Home"):
+        # Clear query parameters and session state
         st.query_params.clear()
+        if "selected_framework" in st.session_state:
+            st.session_state.pop("selected_framework")
+        if "current_framework" in st.session_state:
+            st.session_state.pop("current_framework")
         st.rerun()
     
-    # Update session state and redirect to the selected framework
+    # Update session state with the selected framework
     selected_value = framework_options[selected_label]
     st.session_state["current_framework"] = selected_value
     
@@ -77,11 +74,13 @@ def framework_sidebar():
         "BEHAVIOR": "behavior_analysis"
     }
     
-    # If the framework changed, update the query parameter
+    # If the framework changed, update the query parameter and trigger a rerun
     if "last_selected_framework" not in st.session_state or st.session_state["last_selected_framework"] != selected_value:
         st.session_state["last_selected_framework"] = selected_value
         if selected_value in framework_param_map:
+            # Set the framework parameter and rerun to load the selected framework
             st.query_params["framework"] = framework_param_map[selected_value]
+            st.rerun()
     
     # Framework-specific resources and links
     st.sidebar.markdown("## 📚 Framework Resources")
@@ -156,6 +155,7 @@ def frameworks_page():
         margin-bottom: 15px;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         border: 1px solid rgba(49, 51, 63, 0.2);
+        cursor: pointer;
     }
     
     /* Framework links styling */
@@ -166,6 +166,7 @@ def frameworks_page():
         margin-bottom: 10px;
         border-radius: 8px;
         transition: all 0.2s ease;
+        cursor: pointer;
     }
     
     .framework-link .icon {
@@ -287,6 +288,7 @@ def frameworks_page():
     
     # Add framework sidebar first, then the main sidebar menu
     # This ensures the framework selector appears at the top
+    # Note: We're now calling framework_sidebar with a unique key to avoid duplicate IDs
     framework_sidebar()
     sidebar_menu()
     
@@ -313,127 +315,145 @@ def frameworks_page():
         with col1:
             st.markdown('<p class="subheader">🎯 Strategic Analysis</p>', unsafe_allow_html=True)
             
-            # SWOT Analysis Card - Direct link
+            # SWOT Analysis Card
+            if st.button("📊 SWOT Analysis", key="swot_button"):
+                st.query_params["framework"] = "swot"
+                st.rerun()
+            
             st.markdown("""
-            <a href="/Frameworks?framework=swot" target="_self" style="text-decoration: none;">
-                <div class="framework-card">
-                    <div class="card-icon">📊</div>
-                    <div class="card-content">
-                        <h4>SWOT Analysis</h4>
-                        <p>Analyze Strengths, Weaknesses, Opportunities, and Threats</p>
-                    </div>
+            <div class="framework-card">
+                <div class="card-icon">📊</div>
+                <div class="card-content">
+                    <h4>SWOT Analysis</h4>
+                    <p>Analyze Strengths, Weaknesses, Opportunities, and Threats</p>
                 </div>
-            </a>
+            </div>
             """, unsafe_allow_html=True)
             
-            # DIME Framework Card - Direct link
+            # DIME Framework Card
+            if st.button("🌐 DIME Framework", key="dime_button"):
+                st.query_params["framework"] = "dime"
+                st.rerun()
+            
             st.markdown("""
-            <a href="/Frameworks?framework=dime" target="_self" style="text-decoration: none;">
-                <div class="framework-card">
-                    <div class="card-icon">🌐</div>
-                    <div class="card-content">
-                        <h4>DIME Framework</h4>
-                        <p>Diplomatic, Information, Military, and Economic analysis</p>
-                    </div>
+            <div class="framework-card">
+                <div class="card-icon">🌐</div>
+                <div class="card-content">
+                    <h4>DIME Framework</h4>
+                    <p>Diplomatic, Information, Military, and Economic analysis</p>
                 </div>
-            </a>
+            </div>
             """, unsafe_allow_html=True)
             
-            # COG Analysis Card - Direct link
+            # COG Analysis Card
+            if st.button("⚔️ COG Analysis", key="cog_button"):
+                st.query_params["framework"] = "cog"
+                st.rerun()
+            
             st.markdown("""
-            <a href="/Frameworks?framework=cog" target="_self" style="text-decoration: none;">
-                <div class="framework-card">
-                    <div class="card-icon">⚔️</div>
-                    <div class="card-content">
-                        <h4>COG Analysis</h4>
-                        <p>Center of Gravity analysis for strategic planning</p>
-                    </div>
+            <div class="framework-card">
+                <div class="card-icon">⚔️</div>
+                <div class="card-content">
+                    <h4>COG Analysis</h4>
+                    <p>Center of Gravity analysis for strategic planning</p>
                 </div>
-            </a>
+            </div>
             """, unsafe_allow_html=True)
         
         with col2:
             st.markdown('<p class="subheader">🔄 Operational Analysis</p>', unsafe_allow_html=True)
             
-            # PMESII-PT Framework Card - Direct link
+            # PMESII-PT Framework Card
+            if st.button("🧩 PMESII-PT Framework", key="pmesii_button"):
+                st.query_params["framework"] = "pmesii_pt"
+                st.rerun()
+            
             st.markdown("""
-            <a href="/Frameworks?framework=pmesii_pt" target="_self" style="text-decoration: none;">
-                <div class="framework-card">
-                    <div class="card-icon">🧩</div>
-                    <div class="card-content">
-                        <h4>PMESII-PT Framework</h4>
-                        <p>Political, Military, Economic, Social, Infrastructure, Information, Physical Environment, and Time</p>
-                    </div>
+            <div class="framework-card">
+                <div class="card-icon">🧩</div>
+                <div class="card-content">
+                    <h4>PMESII-PT Framework</h4>
+                    <p>Political, Military, Economic, Social, Infrastructure, Information, Physical Environment, and Time</p>
                 </div>
-            </a>
+            </div>
             """, unsafe_allow_html=True)
             
-            # DOTMLPF Framework Card - Direct link
+            # DOTMLPF Framework Card
+            if st.button("🛠️ DOTMLPF Framework", key="dotmlpf_button"):
+                st.query_params["framework"] = "dotmlpf"
+                st.rerun()
+            
             st.markdown("""
-            <a href="/Frameworks?framework=dotmlpf" target="_self" style="text-decoration: none;">
-                <div class="framework-card">
-                    <div class="card-icon">🛠️</div>
-                    <div class="card-content">
-                        <h4>DOTMLPF Framework</h4>
-                        <p>Doctrine, Organization, Training, Materiel, Leadership, Personnel, and Facilities</p>
-                    </div>
+            <div class="framework-card">
+                <div class="card-icon">🛠️</div>
+                <div class="card-content">
+                    <h4>DOTMLPF Framework</h4>
+                    <p>Doctrine, Organization, Training, Materiel, Leadership, Personnel, and Facilities</p>
                 </div>
-            </a>
+            </div>
             """, unsafe_allow_html=True)
             
-            # ACH Analysis Card - Direct link
+            # ACH Analysis Card
+            if st.button("⚖️ ACH Analysis", key="ach_button"):
+                st.query_params["framework"] = "ach"
+                st.rerun()
+            
             st.markdown("""
-            <a href="/Frameworks?framework=ach" target="_self" style="text-decoration: none;">
-                <div class="framework-card">
-                    <div class="card-icon">⚖️</div>
-                    <div class="card-content">
-                        <h4>ACH Analysis</h4>
-                        <p>Analysis of Competing Hypotheses for intelligence assessment</p>
-                    </div>
+            <div class="framework-card">
+                <div class="card-icon">⚖️</div>
+                <div class="card-content">
+                    <h4>ACH Analysis</h4>
+                    <p>Analysis of Competing Hypotheses for intelligence assessment</p>
                 </div>
-            </a>
+            </div>
             """, unsafe_allow_html=True)
         
         with col3:
             st.markdown('<p class="subheader">🔍 Specialized Analysis</p>', unsafe_allow_html=True)
             
-            # Starbursting Card - Direct link
+            # Starbursting Card
+            if st.button("✨ Starbursting", key="starbursting_button"):
+                st.query_params["framework"] = "starbursting"
+                st.rerun()
+            
             st.markdown("""
-            <a href="/Frameworks?framework=starbursting" target="_self" style="text-decoration: none;">
-                <div class="framework-card">
-                    <div class="card-icon">✨</div>
-                    <div class="card-content">
-                        <h4>Starbursting</h4>
-                        <p>Question-based brainstorming technique for comprehensive analysis</p>
-                    </div>
+            <div class="framework-card">
+                <div class="card-icon">✨</div>
+                <div class="card-content">
+                    <h4>Starbursting</h4>
+                    <p>Question-based brainstorming technique for comprehensive analysis</p>
                 </div>
-            </a>
+            </div>
             """, unsafe_allow_html=True)
             
-            # Deception Detection Card - Direct link
+            # Deception Detection Card
+            if st.button("🕵️ Deception Detection", key="deception_button"):
+                st.query_params["framework"] = "deception_detection"
+                st.rerun()
+            
             st.markdown("""
-            <a href="/Frameworks?framework=deception_detection" target="_self" style="text-decoration: none;">
-                <div class="framework-card">
-                    <div class="card-icon">🕵️</div>
-                    <div class="card-content">
-                        <h4>Deception Detection</h4>
-                        <p>Identify and analyze potential deception in information</p>
-                    </div>
+            <div class="framework-card">
+                <div class="card-icon">🕵️</div>
+                <div class="card-content">
+                    <h4>Deception Detection</h4>
+                    <p>Identify and analyze potential deception in information</p>
                 </div>
-            </a>
+            </div>
             """, unsafe_allow_html=True)
             
-            # Behavioral Analysis Card - Direct link
+            # Behavioral Analysis Card
+            if st.button("🧠 Behavioral Analysis", key="behavior_button"):
+                st.query_params["framework"] = "behavior_analysis"
+                st.rerun()
+            
             st.markdown("""
-            <a href="/Frameworks?framework=behavior_analysis" target="_self" style="text-decoration: none;">
-                <div class="framework-card">
-                    <div class="card-icon">🧠</div>
-                    <div class="card-content">
-                        <h4>Behavioral Analysis</h4>
-                        <p>Analyze patterns and motivations in human behavior</p>
-                    </div>
+            <div class="framework-card">
+                <div class="card-icon">🧠</div>
+                <div class="card-content">
+                    <h4>Behavioral Analysis</h4>
+                    <p>Analyze patterns and motivations in human behavior</p>
                 </div>
-            </a>
+            </div>
             """, unsafe_allow_html=True)
         
         st.markdown("---")
@@ -472,8 +492,17 @@ def frameworks_page():
             """, unsafe_allow_html=True)
         
         return
+
+def load_framework():
+    # Get the framework parameter from URL
+    params = st.query_params
+    framework = params.get("framework", [None])[0]
     
-    # Map framework parameters to their respective module names and functions
+    if not framework:
+        st.error("No framework specified. Please select a framework from the sidebar.")
+        return
+    
+    # Map framework parameters to their respective modules and functions
     framework_map = {
         "swot": {"module": "frameworks.swot", "function": "swot_page"},
         "ach": {"module": "frameworks.ach", "function": "ach_page"},
@@ -492,117 +521,500 @@ def frameworks_page():
     elif framework == "deception":
         framework = "deception_detection"
     
-    # Update the current_framework in session state based on the query parameter
-    framework_to_session_map = {
-        "swot": "SWOT",
-        "dime": "DIME",
-        "cog": "COG",
-        "pmesii_pt": "PMESII",
-        "dotmlpf": "DOTMLPF",
-        "ach": "ACH",
-        "starbursting": "STARBURSTING",
-        "deception_detection": "DECEPTION",
-        "behavior_analysis": "BEHAVIOR"
-    }
-    
-    if framework in framework_to_session_map:
-        st.session_state["current_framework"] = framework_to_session_map[framework]
-    
     # Render the selected framework
     if framework in framework_map:
-        framework_info = framework_map[framework]
-        module_name = framework_info["module"]
-        function_name = framework_info["function"]
-        
         try:
             # Try to import the module
-            module = importlib.import_module(module_name)
+            module_info = framework_map[framework]
+            module = importlib.import_module(module_info["module"])
             
-            # Check if the function exists in the module
-            if hasattr(module, function_name):
-                function = getattr(module, function_name)
-                function()  # Call the function
-            else:
-                st.error(f"Function '{function_name}' not found in module '{module_name}'")
-                
-                # Show what functions are available in the module
-                st.write(f"Available functions in {module_name}:")
-                for name in dir(module):
-                    if callable(getattr(module, name)) and not name.startswith("_"):
-                        st.write(f"- {name}")
-        except ImportError as e:
-            st.error(f"Could not import module '{module_name}': {e}")
+            # Get the function from the module
+            function = getattr(module, module_info["function"])
+            
+            # Call the function
+            function()
         except Exception as e:
-            st.error(f"Error rendering framework '{framework}': {e}")
-    else:
-        st.markdown("""
-        <div class="error-section">
-            <h3>Unknown framework selected</h3>
-            <p>Please select a valid framework from the options below:</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Create a more visually appealing list of framework links
-        col1, col2, col3 = st.columns(3)
-        
-        frameworks_list = list(framework_map.keys())
-        col_size = len(frameworks_list) // 3 + (1 if len(frameworks_list) % 3 > 0 else 0)
-        
-        for i, col in enumerate([col1, col2, col3]):
-            with col:
-                start_idx = i * col_size
-                end_idx = min((i + 1) * col_size, len(frameworks_list))
-                for key in frameworks_list[start_idx:end_idx]:
-                    emoji = "🔍"  # Default emoji
-                    if key == "swot": emoji = "📊"
-                    elif key == "ach": emoji = "⚖️"
-                    elif key == "cog": emoji = "⚔️"
-                    elif key == "deception_detection": emoji = "🕵️"
-                    elif key == "dime": emoji = "🌐"
-                    elif key == "pmesii_pt": emoji = "🧩"
-                    elif key == "dotmlpf": emoji = "🛠️"
-                    elif key == "starbursting": emoji = "✨"
-                    elif key == "behavior_analysis": emoji = "🧠"
-                    
-                    st.markdown(f"""
-                    <a href="/Frameworks?framework={key}" target="_self" style="text-decoration: none;">
-                        <div class="framework-link">
-                            <span class="icon">{emoji}</span>
-                            <span class="text">{key.replace('_', ' ').title()}</span>
-                        </div>
-                    </a>
-                    """, unsafe_allow_html=True)
-
-def load_framework():
-    # Get the framework parameter from URL
-    params = st.query_params
-    framework = params.get("framework", [None])[0]
-    
-    if not framework:
-        st.error("No framework specified. Please select a framework from the sidebar.")
-        return
-    
-    # Map framework parameters to their respective functions
-    framework_map = {
-        "swot": swot_page,
-        "ach": ach_page,
-        "cog": cog_analysis,
-        "deception_detection": deception_detection,
-        "dime": dime_page,
-        "pmesii_pt": pmesii_pt_page,
-        "dotmlpf": dotmlpf_page,
-        "starbursting": starbursting_page,
-        "behavior_analysis": behavior_analysis_page
-    }
-    
-    # Render the selected framework
-    if framework in framework_map:
-        framework_map[framework]()
+            st.error(f"Error loading framework '{framework}': {e}")
     else:
         st.error(f"Unknown framework: {framework}")
 
 def main():
-    frameworks_page()
+    # First check if we have a selected framework in session state (from URL processor)
+    selected_framework = st.session_state.get("selected_framework", None)
+    
+    # If we have a selected framework, use it and clear it from session state
+    if selected_framework:
+        framework = selected_framework
+        # Clear it to avoid reusing it
+        st.session_state.pop("selected_framework", None)
+        
+        # Map the framework name to the correct value for current_framework
+        framework_to_current_map = {
+            "swot": "SWOT",
+            "dime": "DIME",
+            "cog": "COG",
+            "pmesii": "PMESII",
+            "pmesii_pt": "PMESII",
+            "dotmlpf": "DOTMLPF",
+            "ach": "ACH",
+            "starbursting": "STARBURSTING",
+            "deception": "DECEPTION",
+            "deception_detection": "DECEPTION",
+            "behavior_analysis": "BEHAVIOR"
+        }
+        
+        # Update current_framework in session state to ensure sidebar shows the correct selection
+        if framework in framework_to_current_map:
+            st.session_state["current_framework"] = framework_to_current_map[framework]
+            
+        # Set query parameter for URL sharing
+        st.query_params["framework"] = framework
+        
+        # Get framework data if available
+        framework_data = st.session_state.get("framework_data", None)
+        if framework_data and framework_data["type"] == framework:
+            # Store framework-specific data
+            if framework == "dime":
+                st.session_state["dime_input_scenario"] = framework_data["content"]
+                st.session_state["dime_input_title"] = framework_data["title"]
+            elif framework == "starbursting":
+                st.session_state["starbursting_topic"] = framework_data["title"]
+                st.session_state["starbursting_description"] = framework_data["content"]
+            elif framework == "swot":
+                st.session_state["swot_objective"] = framework_data["title"]
+                st.session_state["swot_description"] = framework_data["content"]
+            elif framework == "ach":
+                st.session_state["ach_scenario"] = framework_data["content"]
+                st.session_state["ach_title"] = framework_data["title"]
+            
+            # Clear framework data to avoid reuse
+            st.session_state.pop("framework_data", None)
+    else:
+        # Otherwise, parse query parameters from the URL
+        query_params = st.query_params
+        framework = query_params.get('framework', None)
+        
+        if framework:
+            # Map the framework name to the correct value for current_framework
+            framework_to_current_map = {
+                "swot": "SWOT",
+                "dime": "DIME",
+                "cog": "COG",
+                "pmesii": "PMESII",
+                "pmesii_pt": "PMESII",
+                "dotmlpf": "DOTMLPF",
+                "ach": "ACH",
+                "starbursting": "STARBURSTING",
+                "deception": "DECEPTION",
+                "deception_detection": "DECEPTION",
+                "behavior_analysis": "BEHAVIOR"
+            }
+            
+            # Update current_framework in session state to ensure sidebar shows the correct selection
+            if framework in framework_to_current_map:
+                st.session_state["current_framework"] = framework_to_current_map[framework]
+
+    # Set up sidebar for framework navigation - only once
+    framework_sidebar()
+    
+    # Map framework parameters to their respective modules and functions
+    framework_map = {
+        "swot": {"module": "frameworks.swot", "function": "swot_page"},
+        "ach": {"module": "frameworks.ach", "function": "ach_page"},
+        "cog": {"module": "frameworks.cog", "function": "cog_analysis"},
+        "deception_detection": {"module": "frameworks.deception_detection", "function": "deception_detection"},
+        "deception": {"module": "frameworks.deception_detection", "function": "deception_detection"},
+        "dime": {"module": "frameworks.dime", "function": "dime_page"},
+        "pmesii_pt": {"module": "frameworks.pmesii_pt", "function": "pmesii_pt_page"},
+        "pmesii": {"module": "frameworks.pmesii_pt", "function": "pmesii_pt_page"},
+        "dotmlpf": {"module": "frameworks.dotmlpf", "function": "dotmlpf_page"},
+        "starbursting": {"module": "frameworks.starbursting", "function": "starbursting_page"},
+        "behavior_analysis": {"module": "frameworks.behavior_analysis", "function": "behavior_analysis_page"}
+    }
+    
+    # Handle the framework loading with better error handling
+    try:
+        if framework in framework_map:
+            # Try to import the module
+            module_info = framework_map[framework]
+            module_name = module_info["module"]
+            function_name = module_info["function"]
+            
+            try:
+                # Import the module
+                module = importlib.import_module(module_name)
+                
+                # Check if the function exists in the module
+                if hasattr(module, function_name):
+                    # Get the function from the module
+                    function = getattr(module, function_name)
+                    
+                    # Call the function
+                    function()
+                else:
+                    st.error(f"Function '{function_name}' not found in module '{module_name}'")
+                    st.error(f"Available functions in {module_name}: {[name for name in dir(module) if callable(getattr(module, name)) and not name.startswith('_')]}")
+                    display_frameworks_page()
+            except ImportError as e:
+                st.error(f"Could not import module '{module_name}': {e}")
+                display_frameworks_page()
+            except Exception as e:
+                st.error(f"Error loading framework '{framework}': {e}")
+                display_frameworks_page()
+        else:
+            # Don't call frameworks_page() directly as it would call framework_sidebar() again
+            # Instead, set up the frameworks page content without calling framework_sidebar()
+            display_frameworks_page()
+    except Exception as e:
+        st.error(f"Error loading framework: {e}")
+        st.error("Falling back to frameworks page")
+        display_frameworks_page()
+
+# Create a new function to display frameworks page content without calling framework_sidebar()
+def display_frameworks_page():
+    # This function contains the content of frameworks_page() without the framework_sidebar() call
+    # Add custom CSS for styling
+    st.markdown("""
+    <style>
+    /* Base styles for both light and dark mode */
+    .block-container {
+        max-width: 95% !important;
+        padding: 1rem;
+    }
+    
+    /* Framework cards styling */
+    .framework-card {
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid rgba(49, 51, 63, 0.2);
+        cursor: pointer;
+    }
+    
+    /* Framework links styling */
+    .framework-link {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .framework-link .icon {
+        font-size: 1.5em;
+        margin-right: 10px;
+    }
+    
+    /* Category headers */
+    .category-header {
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        font-weight: 600;
+        text-align: center;
+    }
+    
+    /* Light mode specific styles */
+    @media (prefers-color-scheme: light) {
+        .framework-card {
+            background-color: white;
+            color: #262730;
+            border: 1px solid #e6e6e6;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .framework-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .framework-link {
+            background-color: #f0f2f6;
+            color: #262730;
+            border: 1px solid #e6e6e6;
+        }
+        
+        .framework-link:hover {
+            background-color: #e6e9ef;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .category-header {
+            background-color: #0068c9;
+            color: white;
+        }
+        
+        h3 {
+            color: #0068c9 !important;
+        }
+        
+        .dark-mode-compatible p {
+            color: #262730;
+        }
+    }
+    
+    /* Dark mode specific styles */
+    @media (prefers-color-scheme: dark) {
+        .framework-card {
+            background-color: #1e1e1e;
+            color: #fafafa;
+            border: 1px solid #333;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .framework-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .framework-link {
+            background-color: #2e2e2e;
+            color: #fafafa;
+            border: 1px solid #444;
+        }
+        
+        .framework-link:hover {
+            background-color: #3e3e3e;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .category-header {
+            background-color: #4da6ff;
+            color: #0e1117;
+        }
+        
+        h3 {
+            color: #4da6ff !important;
+        }
+        
+        .dark-mode-compatible p {
+            color: #fafafa;
+        }
+    }
+    
+    /* Error section styling */
+    .error-section {
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 20px;
+    }
+    
+    @media (prefers-color-scheme: light) {
+        .error-section {
+            background-color: #fff3f3;
+            border: 1px solid #ffcccb;
+        }
+    }
+    
+    @media (prefers-color-scheme: dark) {
+        .error-section {
+            background-color: #3a2a2a;
+            border: 1px solid #5a3a3a;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.title("🧩 Analysis Frameworks")
+    
+    # Add the main sidebar menu (but not the framework sidebar which is already added)
+    sidebar_menu()
+    
+    st.markdown("""
+    <div class="dark-mode-compatible">
+    <h3 style="color: #4880EC;">Welcome to the Analysis Frameworks Hub! 🚀</h3>
+    
+    <p>Select a framework from the options below to begin your analysis journey.
+    Each framework provides specialized tools and methodologies for different analytical needs.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Use a wider layout with 3 columns
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown('<p class="subheader">🎯 Strategic Analysis</p>', unsafe_allow_html=True)
+        
+        # SWOT Analysis Card
+        if st.button("📊 SWOT Analysis", key="swot_button_display"):
+            st.query_params["framework"] = "swot"
+            st.rerun()
+        
+        st.markdown("""
+        <div class="framework-card">
+            <div class="card-icon">📊</div>
+            <div class="card-content">
+                <h4>SWOT Analysis</h4>
+                <p>Analyze Strengths, Weaknesses, Opportunities, and Threats</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # DIME Framework Card
+        if st.button("🌐 DIME Framework", key="dime_button_display"):
+            st.query_params["framework"] = "dime"
+            st.rerun()
+        
+        st.markdown("""
+        <div class="framework-card">
+            <div class="card-icon">🌐</div>
+            <div class="card-content">
+                <h4>DIME Framework</h4>
+                <p>Diplomatic, Information, Military, and Economic analysis</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # COG Analysis Card
+        if st.button("⚔️ COG Analysis", key="cog_button_display"):
+            st.query_params["framework"] = "cog"
+            st.rerun()
+        
+        st.markdown("""
+        <div class="framework-card">
+            <div class="card-icon">⚔️</div>
+            <div class="card-content">
+                <h4>COG Analysis</h4>
+                <p>Center of Gravity analysis for strategic planning</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown('<p class="subheader">🔄 Operational Analysis</p>', unsafe_allow_html=True)
+        
+        # PMESII-PT Framework Card
+        if st.button("🧩 PMESII-PT Framework", key="pmesii_button_display"):
+            st.query_params["framework"] = "pmesii_pt"
+            st.rerun()
+        
+        st.markdown("""
+        <div class="framework-card">
+            <div class="card-icon">🧩</div>
+            <div class="card-content">
+                <h4>PMESII-PT Framework</h4>
+                <p>Political, Military, Economic, Social, Infrastructure, Information, Physical Environment, and Time</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # DOTMLPF Framework Card
+        if st.button("🛠️ DOTMLPF Framework", key="dotmlpf_button_display"):
+            st.query_params["framework"] = "dotmlpf"
+            st.rerun()
+        
+        st.markdown("""
+        <div class="framework-card">
+            <div class="card-icon">🛠️</div>
+            <div class="card-content">
+                <h4>DOTMLPF Framework</h4>
+                <p>Doctrine, Organization, Training, Materiel, Leadership, Personnel, and Facilities</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # ACH Analysis Card
+        if st.button("⚖️ ACH Analysis", key="ach_button_display"):
+            st.query_params["framework"] = "ach"
+            st.rerun()
+        
+        st.markdown("""
+        <div class="framework-card">
+            <div class="card-icon">⚖️</div>
+            <div class="card-content">
+                <h4>ACH Analysis</h4>
+                <p>Analysis of Competing Hypotheses for intelligence assessment</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown('<p class="subheader">🔍 Specialized Analysis</p>', unsafe_allow_html=True)
+        
+        # Starbursting Card
+        if st.button("✨ Starbursting", key="starbursting_button_display"):
+            st.query_params["framework"] = "starbursting"
+            st.rerun()
+        
+        st.markdown("""
+        <div class="framework-card">
+            <div class="card-icon">✨</div>
+            <div class="card-content">
+                <h4>Starbursting</h4>
+                <p>Question-based brainstorming technique for comprehensive analysis</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Deception Detection Card
+        if st.button("🕵️ Deception Detection", key="deception_button_display"):
+            st.query_params["framework"] = "deception_detection"
+            st.rerun()
+        
+        st.markdown("""
+        <div class="framework-card">
+            <div class="card-icon">🕵️</div>
+            <div class="card-content">
+                <h4>Deception Detection</h4>
+                <p>Identify and analyze potential deception in information</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Behavioral Analysis Card
+        if st.button("🧠 Behavioral Analysis", key="behavior_button_display"):
+            st.query_params["framework"] = "behavior_analysis"
+            st.rerun()
+        
+        st.markdown("""
+        <div class="framework-card">
+            <div class="card-icon">🧠</div>
+            <div class="card-content">
+                <h4>Behavioral Analysis</h4>
+                <p>Analyze patterns and motivations in human behavior</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Add cards for framework descriptions
+    st.markdown("""
+    <div class="dark-mode-compatible">
+    <h3 style="color: #4880EC;">Need Help Choosing? 💡</h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div class="info-card" style="border-left: 5px solid #4880EC;">
+            <h4 style="color: #4880EC;">Strategic Analysis</h4>
+            <p>For high-level planning and decision-making. Ideal for organizational strategy, competitive analysis, and long-term planning.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col2:
+        st.markdown("""
+        <div class="info-card" style="border-left: 5px solid #019CAD;">
+            <h4 style="color: #019CAD;">Operational Analysis</h4>
+            <p>For detailed implementation and execution planning. Perfect for tactical operations, resource allocation, and process improvement.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col3:
+        st.markdown("""
+        <div class="info-card" style="border-left: 5px solid #7B68EE;">
+            <h4 style="color: #7B68EE;">Specialized Analysis</h4>
+            <p>For focused examination of specific aspects or behaviors. Useful for targeted investigations, behavioral patterns, and specialized domains.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
