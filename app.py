@@ -1,13 +1,8 @@
 # /researchtools_streamlit/app.py
 import streamlit as st
 from components.sidebar_menu import sidebar_menu
-from frameworks.cog import cog_analysis
-from frameworks.swot import swot_page
-from frameworks.ach import ach_page
-from frameworks.deception_detection import deception_detection
-from frameworks.dime import dime_page
-from frameworks.pmesii_pt import pmesii_pt_page
-from frameworks.dotmlpf import dotmlpf_page
+# Remove direct imports of framework modules
+# We'll use dynamic imports instead when needed
 
 # This file is the main entry. Using Streamlit multi-page mode, you typically
 # create multiple files in a "pages/" subfolder. Streamlit will auto-detect them
@@ -49,45 +44,52 @@ def main():
         
         # Create clickable cards for each framework
         frameworks = [
-            {"name": "SWOT Analysis", "url": "/Frameworks?framework=swot", "desc": "Strategic planning and evaluation"},
-            {"name": "ACH Analysis", "url": "/Frameworks?framework=ach", "desc": "Systematic hypothesis testing"},
-            {"name": "COG Analysis", "url": "/Frameworks?framework=cog", "desc": "Center of Gravity analysis"},
-            {"name": "Deception Detection", "url": "/Frameworks?framework=deception_detection", "desc": "Identify potential deception"},
-            {"name": "DIME Framework", "url": "/Frameworks?framework=dime", "desc": "National power analysis"},
-            {"name": "PMESII-PT", "url": "/Frameworks?framework=pmesii_pt", "desc": "Operational environment analysis"},
-            {"name": "DOTMLPF", "url": "/Frameworks?framework=dotmlpf", "desc": "Capability gap analysis"},
-            {"name": "Starbursting", "url": "/Frameworks?framework=starbursting", "desc": "Question-based exploration"},
-            {"name": "Behavioral Analysis", "url": "/Frameworks?framework=behavior_analysis", "desc": "Human behavior patterns"}
+            {"name": "SWOT Analysis", "key": "swot", "desc": "Strategic planning and evaluation"},
+            {"name": "ACH Analysis", "key": "ach", "desc": "Systematic hypothesis testing"},
+            {"name": "COG Analysis", "key": "cog", "desc": "Center of Gravity analysis"},
+            {"name": "Deception Detection", "key": "deception_detection", "desc": "Identify potential deception"},
+            {"name": "DIME Framework", "key": "dime", "desc": "National power analysis"},
+            {"name": "PMESII-PT", "key": "pmesii_pt", "desc": "Operational environment analysis"},
+            {"name": "DOTMLPF", "key": "dotmlpf", "desc": "Capability gap analysis"},
+            {"name": "Starbursting", "key": "starbursting", "desc": "Question-based exploration"},
+            {"name": "Behavioral Analysis", "key": "behavior_analysis", "desc": "Human behavior patterns"}
         ]
         
         for framework in frameworks:
             with st.container():
-                st.markdown(f"""
-                <div style="border:1px solid #ddd; padding:10px; border-radius:5px; margin-bottom:10px;">
-                    <h4><a href="{framework['url']}" target="_self">{framework['name']}</a></h4>
-                    <p>{framework['desc']}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                col_a, col_b = st.columns([3, 1])
+                with col_a:
+                    st.markdown(f"### {framework['name']}")
+                    st.write(framework['desc'])
+                with col_b:
+                    if st.button("Open", key=f"btn_{framework['key']}"):
+                        # Set the selected framework in session state
+                        st.session_state["selected_framework"] = framework['key']
+                        st.switch_page("pages/Frameworks.py")
+                st.markdown("---")
 
     with col2:
         st.subheader("🔄 Transformers")
         
         # Create clickable cards for each tool
         tools = [
-            {"name": "CSV/JSON Converter", "url": "/Transformers?tool=converter", "desc": "Convert between data formats"},
-            {"name": "Advanced Query Generator", "url": "/Transformers?tool=query_generator", "desc": "AI-powered search queries"},
-            {"name": "Image Hash Generator", "url": "/Transformers?tool=image_hash", "desc": "Generate image hashes for searches"},
-            {"name": "URL Processor", "url": "/Transformers?tool=url_processor", "desc": "Process and archive URLs"}
+            {"name": "CSV/JSON Converter", "key": "converter", "desc": "Convert between data formats"},
+            {"name": "Advanced Query Generator", "key": "query_generator", "desc": "AI-powered search queries"},
+            {"name": "Image Hash Generator", "key": "image_hash", "desc": "Generate image hashes for searches"},
+            {"name": "URL Processor", "key": "url_processor", "desc": "Process and archive URLs"}
         ]
         
         for tool in tools:
             with st.container():
-                st.markdown(f"""
-                <div style="border:1px solid #ddd; padding:10px; border-radius:5px; margin-bottom:10px;">
-                    <h4><a href="{tool['url']}" target="_self">{tool['name']}</a></h4>
-                    <p>{tool['desc']}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                col_a, col_b = st.columns([3, 1])
+                with col_a:
+                    st.markdown(f"### {tool['name']}")
+                    st.write(tool['desc'])
+                with col_b:
+                    if st.button("Open", key=f"btn_{tool['key']}"):
+                        st.switch_page("pages/Transformers.py")
+                        st.query_params["tool"] = tool['key']
+                st.markdown("---")
 
     # Research Tools Section
     st.header("🔍 Research Tools")
@@ -95,21 +97,35 @@ def main():
     
     with col3:
         st.subheader("📚 Documentation")
-        st.markdown("""
-        - **<a href="https://irregularpedia.org/index.php/research-planning" target="_self">Research Planning Guide</a>**
-        - **<a href="https://irregularpedia.org/index.php/Structured_Analytic_Techniques_(SATs)" target="_self">Structured Analytic Techniques</a>**
-        - **<a href="https://irregularpedia.org/index.php/PMESII-PT" target="_self">PMESII-PT Framework</a>**
-        - **<a href="https://irregularpedia.org/index.php/Center_of_Gravity_Analysis_Guide" target="_self">Center of Gravity Analysis</a>**
-        - **<a href="https://irregularpedia.org/index.php/Research_Template" target="_self">Research Templates</a>**
-        """, unsafe_allow_html=True)
+        
+        docs = [
+            {"name": "Research Planning Guide", "url": "https://irregularpedia.org/index.php/research-planning"},
+            {"name": "Structured Analytic Techniques", "url": "https://irregularpedia.org/index.php/Structured_Analytic_Techniques_(SATs)"},
+            {"name": "PMESII-PT Framework", "url": "https://irregularpedia.org/index.php/PMESII-PT"},
+            {"name": "Center of Gravity Analysis", "url": "https://irregularpedia.org/index.php/Center_of_Gravity_Analysis_Guide"},
+            {"name": "Research Templates", "url": "https://irregularpedia.org/index.php/Research_Template"}
+        ]
+        
+        for doc in docs:
+            st.markdown(f"- [{doc['name']}]({doc['url']})")
 
     with col4:
         st.subheader("📥 Data Collection")
-        st.markdown("""
-        - **<a href="/Transformers?tool=url_processor" target="_self">Wayback Machine Tool</a>**: Archive and access historical web pages
-        - **<a href="/Transformers?tool=social_media_download" target="_self">Social Media Downloader</a>**: Download social media content
-        - **<a href="https://irregularpedia.org/index.php/research-datasets" target="_self">Research Datasets</a>**
-        """, unsafe_allow_html=True)
+        
+        data_tools = [
+            {"name": "Wayback Machine Tool", "desc": "Archive and access historical web pages", "page": "Transformers", "param": "url_processor"},
+            {"name": "Social Media Downloader", "desc": "Download social media content", "page": "Transformers", "param": "social_media_download"},
+            {"name": "Research Datasets", "url": "https://irregularpedia.org/index.php/research-datasets"}
+        ]
+        
+        for tool in data_tools:
+            if "url" in tool:
+                st.markdown(f"- [{tool['name']}]({tool['url']})")
+            else:
+                if st.button(tool['name'], key=f"btn_data_{tool['param']}"):
+                    st.switch_page(f"pages/{tool['page']}.py")
+                    st.query_params["tool"] = tool['param']
+                st.markdown(f"  {tool['desc']}")
 
     # Getting Started Section
     st.header("🚀 Getting Started")
