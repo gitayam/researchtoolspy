@@ -5,15 +5,16 @@ def sidebar_menu():
     st.sidebar.markdown("## Analysis Frameworks")
     
     # Use target="_self" to ensure links open in the same tab
+    # Reordered to match the image
     st.sidebar.markdown("""
     - <a href="/Frameworks?framework=swot" target="_self">SWOT Analysis</a>
+    - <a href="/Frameworks?framework=dime" target="_self">DIME Framework</a>
+    - <a href="/Frameworks?framework=cog" target="_self">COG Analysis</a>
+    - <a href="/Frameworks?framework=pmesii_pt" target="_self">PMESII-PT Framework</a>
+    - <a href="/Frameworks?framework=dotmlpf" target="_self">DOTMLPF Framework</a>
     - <a href="/Frameworks?framework=ach" target="_self">ACH Analysis</a>
     - <a href="/Frameworks?framework=starbursting" target="_self">Starbursting</a>
     - <a href="/Frameworks?framework=deception_detection" target="_self">Deception Detection</a>
-    - <a href="/Frameworks?framework=cog" target="_self">COG Analysis</a>
-    - <a href="/Frameworks?framework=dime" target="_self">DIME Framework</a>
-    - <a href="/Frameworks?framework=pmesii_pt" target="_self">PMESII-PT Framework</a>
-    - <a href="/Frameworks?framework=dotmlpf" target="_self">DOTMLPF Framework</a>
     - <a href="/Frameworks?framework=behavior_analysis" target="_self">Behavioral Analysis</a>
     """, unsafe_allow_html=True)
     
