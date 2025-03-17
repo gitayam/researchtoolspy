@@ -191,3 +191,185 @@ def test_legacy_parameter_handling():
         mock_params.get.return_value = "deception"
         frameworks_page()
         mock_import.assert_called_with("frameworks.deception_detection")
+
+def test_cog_ui_ux_components():
+    """Test that all UI/UX components of the COG framework are present and functional"""
+    with patch('streamlit.session_state', new_callable=dict) as mock_state, \
+         patch('streamlit.tabs') as mock_tabs, \
+         patch('streamlit.button') as mock_button, \
+         patch('streamlit.text_input') as mock_text_input, \
+         patch('streamlit.text_area') as mock_text_area, \
+         patch('streamlit.selectbox') as mock_selectbox, \
+         patch('streamlit.markdown') as mock_markdown, \
+         patch('streamlit.columns') as mock_columns, \
+         patch('streamlit.expander') as mock_expander, \
+         patch('streamlit.container') as mock_container:
+        
+        # Initialize session state
+        mock_state.clear()
+        mock_state["capabilities"] = []
+        mock_state["requirements_text"] = ""
+        mock_state["vulnerabilities_dict"] = {}
+        mock_state["final_cog"] = ""
+        mock_state["current_suggestions"] = None
+        mock_state["cog_graph"] = None
+        mock_state["vulnerability_scores"] = {}
+        mock_state["criteria"] = ["Impact", "Attainability", "Strategic Advantage Potential"]
+        mock_state["cog_suggestions"] = []
+        mock_state["assumptions"] = []
+        
+        mock_tabs.return_value = [MagicMock(), MagicMock(), MagicMock(), MagicMock()]
+        # Make columns return a list of the requested length
+        def mock_columns_side_effect(*args):
+            if not args:
+                return [MagicMock(), MagicMock()]
+            if isinstance(args[0], int):
+                return [MagicMock() for _ in range(args[0])]
+            if isinstance(args[0], (list, tuple)):
+                return [MagicMock() for _ in range(len(args[0]))]
+            return [MagicMock(), MagicMock()]
+        mock_columns.side_effect = mock_columns_side_effect
+        mock_expander.return_value.__enter__.return_value = MagicMock()
+        mock_container.return_value.__enter__.return_value = MagicMock()
+        
+        # Import the cog module
+        from frameworks.cog import cog_analysis, initialize_session_state
+        
+        # Test basic UI structure
+        cog_analysis()
+        
+        # Verify tabs are created with correct labels
+        mock_tabs.assert_called_once_with([
+            "🎯 Basic Info & AI Analysis",
+            "🔄 Capabilities & Requirements",
+            "⚠️ Vulnerabilities & Scoring",
+            "📊 Visualization & Export"
+        ])
+        
+        # Verify entity input fields
+        mock_selectbox.assert_any_call(
+            "Entity Type",
+            ["Friendly", "Opponent", "Host Nation", "Customer"],
+            help="Select the type of entity you're analyzing"
+        )
+        
+        mock_text_input.assert_any_call(
+            "Entity Name",
+            help="Enter a clear identifier for the entity"
+        )
+        
+        # Verify text areas for entity details
+        mock_text_area.assert_any_call(
+            "Entity Goals",
+            help="What are the entity's primary objectives?",
+            height=100
+        )
+        
+        mock_text_area.assert_any_call(
+            "Areas of Presence",
+            help="Where does this entity operate or have influence?",
+            height=100
+        )
+        
+        # Verify AI generation button
+        mock_button.assert_any_call(
+            "🤖 Generate Complete COG Analysis",
+            type="primary",
+            use_container_width=True
+        )
+        
+        # Verify session state initialization
+        assert "capabilities" in mock_state
+        assert "requirements_text" in mock_state
+        assert "vulnerabilities_dict" in mock_state
+        assert "final_cog" in mock_state
+        assert "current_suggestions" in mock_state
+        assert "cog_graph" in mock_state
+        assert "vulnerability_scores" in mock_state
+        assert "criteria" in mock_state
+        assert "cog_suggestions" in mock_state
+        assert "assumptions" in mock_state
+
+def test_cog_theme_visibility():
+    """Test that COG framework UI elements are visible in both light and dark themes"""
+    with patch('streamlit.session_state', new_callable=dict) as mock_state, \
+         patch('streamlit.markdown') as mock_markdown, \
+         patch('streamlit.button') as mock_button:
+        
+        # Import the cog module
+        from frameworks.cog import display_ai_suggestions
+        
+        # Test suggestions with light theme
+        test_suggestions = {
+            'cog': {
+                'name': 'Test COG',
+                'description': 'Test Description',
+                'rationale': 'Test Rationale'
+            },
+            'capabilities': [{
+                'name': 'Test Capability',
+                'type': 'Test Type',
+                'importance': 8,
+                'rationale': 'Test Rationale'
+            }],
+            'requirements': [{
+                'capability': 'Test Capability',
+                'items': ['Test Requirement']
+            }],
+            'vulnerabilities': [{
+                'capability': 'Test Capability',
+                'items': [{
+                    'name': 'Test Vulnerability',
+                    'impact': 7,
+                    'rationale': 'Test Rationale'
+                }]
+            }]
+        }
+        
+        # Initialize required session state
+        mock_state["capabilities"] = []
+        mock_state["vulnerabilities_dict"] = {}
+        mock_state["requirements_text"] = ""
+        mock_state["final_cog"] = ""
+        mock_state["current_suggestions"] = None
+        mock_state["cog_graph"] = None
+        mock_state["vulnerability_scores"] = {}
+        mock_state["criteria"] = ["Impact", "Attainability", "Strategic Advantage Potential"]
+        mock_state["cog_suggestions"] = []
+        
+        # Verify CSS includes both light and dark theme variables
+        display_ai_suggestions(test_suggestions)
+        
+        # Check that theme-specific styles are included
+        css_calls = [call for call in mock_markdown.call_args_list if 'style' in str(call)]
+        css_content = str(css_calls[0])
+        
+        # Verify essential style elements
+        assert 'background-color:' in css_content
+        assert 'color:' in css_content
+        assert '.suggestion-card' in css_content
+        assert '.importance-high' in css_content
+        assert '.importance-medium' in css_content
+        assert '.importance-low' in css_content
+        
+        # Verify contrast ratios in style definitions
+        assert 'box-shadow:' in css_content
+        
+        # Verify text content is wrapped in appropriate containers
+        content_calls = [call for call in mock_markdown.call_args_list if 'suggestion-card' in str(call)]
+        assert len(content_calls) > 0
+        
+        # Get all markdown calls that aren't style-related
+        content_calls = [call for call in mock_markdown.call_args_list if 'style' not in str(call)]
+        assert len(content_calls) > 0
+        
+        # Check that at least one call contains a suggestion card
+        found_suggestion_card = False
+        for call in content_calls:
+            call_content = str(call)
+            if '<div class="suggestion-card">' in call_content:
+                found_suggestion_card = True
+                assert '<h4>' in call_content or '<h5>' in call_content
+                assert '<p>' in call_content
+                break
+        assert found_suggestion_card, "No suggestion card found in markdown calls"
