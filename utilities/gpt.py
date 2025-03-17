@@ -4,12 +4,24 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime
-import openai
+from openai import OpenAI
 from typing import Dict, List, Any, Optional, Union
+import json
 
-load_dotenv()
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Try to import OpenAI, but provide fallbacks if not available
+try:
+    from openai import OpenAI
+    
+    # Initialize OpenAI client if API key is available
+    if "OPENAI_API_KEY" in os.environ:
+        client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+        OPENAI_AVAILABLE = True
+    else:
+        OPENAI_AVAILABLE = False
+        print("Warning: OPENAI_API_KEY not set in environment variables. AI functionality will be limited.")
+except ImportError:
+    OPENAI_AVAILABLE = False
+    print("Warning: OpenAI package not installed. AI functionality will be limited.")
 
 # Local LLM environment configuration
 LOCAL_LLM_HOST = os.getenv("LOCAL_LLM_HOST", "").strip()
@@ -193,18 +205,6 @@ def generate_cog_options(user_details, desired_end_state, entity_type, custom_pr
     messages = [system_message, user_message]
     return chat_gpt(messages, model=model, max_tokens=500, temperature=0.7)
 
-# Add a check to see if OpenAI is installed
-try:
-    import openai
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
-    print("Warning: OpenAI package not installed. AI functionality will be limited.")
-
-# Check if API key is set in environment variables
-if OPENAI_AVAILABLE and "OPENAI_API_KEY" in os.environ:
-    openai.api_key = os.environ["OPENAI_API_KEY"]
-
 def get_completion(
     prompt: str,
     model: str = "gpt-4",
@@ -231,12 +231,9 @@ def get_completion(
     """
     if not OPENAI_AVAILABLE:
         return f"OpenAI package not installed. Cannot process: {prompt[:100]}..."
-    
-    if not openai.api_key:
-        return "OpenAI API key not set. Please set the OPENAI_API_KEY environment variable."
-    
+
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=temperature,
@@ -268,8 +265,11 @@ def get_chat_completion(
     Returns:
         The generated text as a string
     """
+    if not OPENAI_AVAILABLE:
+        return f"OpenAI package not installed. Cannot process chat messages."
+
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=temperature,

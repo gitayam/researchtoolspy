@@ -1,7 +1,7 @@
 # /researchtools_streamlit/requirements.txt
 # Core dependencies
 streamlit                # Web application framework
-openai                   # OpenAI API integration
+OpenAI                   # OpenAI API integration
 requests                 # HTTP requests library
 python-dotenv            # Environment variable management
 pandas                   # Data manipulation and analysis
