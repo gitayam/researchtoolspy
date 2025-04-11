@@ -236,7 +236,7 @@ def dime_page():
 
     # Display the text area for scenario input with pre-filled data if available
     scenario_input = st.text_area(
-        label="Detailed Context Description (Situation, Person, Place, or Goal)",
+        label="Detailed Context Description (Situation, Person, Place, or Goal) OR URL of news article",
         value=scenario_from_url if scenario_from_url else "",
         height=200,
         placeholder="Provide a detailed overview or paste in a news article (URL or text) outlining the scenario. Include relevant background, context, key details, and objectives..."
