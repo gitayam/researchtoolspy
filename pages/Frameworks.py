@@ -76,10 +76,6 @@ def framework_sidebar():
         "FLOW": "fundamental_flow"
     }
     
-    # Add debug logging
-    st.sidebar.write(f"Debug - Selected value: {selected_value}")
-    st.sidebar.write(f"Debug - Framework param: {framework_param_map.get(selected_value)}")
-    
     # If the framework changed, update the query parameter and trigger a rerun
     if "last_selected_framework" not in st.session_state or st.session_state["last_selected_framework"] != selected_value:
         st.session_state["last_selected_framework"] = selected_value
@@ -216,10 +212,6 @@ def frameworks_page():
     query_params = st.query_params
     framework = query_params.get("framework", None)
     
-    # Add debug logging for query parameters
-    st.write("Debug - Query parameters:", dict(query_params))
-    st.write("Debug - Framework from query params:", framework)
-    
     # If a framework is selected, load it using importlib
     if framework:
         import importlib
@@ -240,11 +232,6 @@ def frameworks_page():
             "fundamental_flow": {"module": "frameworks.fundamental_flow", "function": "fundamental_flow_page"}
         }
         
-        # Add debug logging
-        st.write(f"Debug - Selected framework: {framework}")
-        st.write(f"Debug - Available frameworks: {list(framework_map.keys())}")
-        st.write(f"Debug - Session state:", dict(st.session_state))
-        
         # Handle legacy parameter names
         if framework == "pmesii":
             framework = "pmesii_pt"
@@ -258,31 +245,26 @@ def frameworks_page():
                 module_name = module_info["module"]
                 function_name = module_info["function"]
                 
-                st.write(f"Debug - Loading module: {module_name}")
-                st.write(f"Debug - Function to call: {function_name}")
-                
-                # Import the module
-                module = importlib.import_module(module_name)
-                
-                # Get and call the function
-                if hasattr(module, function_name):
-                    function = getattr(module, function_name)
-                    st.write(f"Debug - Found function {function_name} in module {module_name}")
-                    function()
-                else:
-                    st.error(f"Function '{function_name}' not found in module '{module_name}'")
-                    st.error(f"Available functions in {module_name}: {[name for name in dir(module) if callable(getattr(module, name)) and not name.startswith('_')]}")
+                # Show loading indicator
+                with st.spinner(f"Loading {framework.upper()} framework..."):
+                    # Import the module
+                    module = importlib.import_module(module_name)
+                    
+                    # Get and call the function
+                    if hasattr(module, function_name):
+                        function = getattr(module, function_name)
+                        function()
+                    else:
+                        st.error(f"Function '{function_name}' not found in module '{module_name}'")
+                        st.error(f"Available functions in {module_name}: {[name for name in dir(module) if callable(getattr(module, name)) and not name.startswith('_')]}")
             except ImportError as e:
                 st.error(f"Could not import module '{module_name}': {e}")
-                st.write(f"Debug - Import error details: {str(e)}")
             except Exception as e:
                 st.error(f"Error loading framework '{framework}': {e}")
-                st.write(f"Debug - Error details: {str(e)}")
                 import traceback
-                st.write("Debug - Full traceback:", traceback.format_exc())
+                st.error(f"Error details: {str(e)}")
         else:
             st.error(f"Unknown framework: {framework}")
-            st.write(f"Debug - Framework not found in framework_map")
         return
     
     # Display framework selection if none specified
@@ -398,32 +380,33 @@ def main():
     # Handle the framework loading with better error handling
     try:
         if framework in framework_map:
-            # Try to import the module
-            module_info = framework_map[framework]
-            module_name = module_info["module"]
-            function_name = module_info["function"]
-            
-            try:
-                # Import the module
-                module = importlib.import_module(module_name)
+            # Show loading indicator
+            with st.spinner(f"Loading {framework.upper()} framework..."):
+                # Try to import the module
+                module_info = framework_map[framework]
+                module_name = module_info["module"]
+                function_name = module_info["function"]
                 
-                # Check if the function exists in the module
-                if hasattr(module, function_name):
-                    # Get the function from the module
-                    function = getattr(module, function_name)
+                try:
+                    # Import the module
+                    module = importlib.import_module(module_name)
                     
-                    # Call the function
-                    function()
-                else:
-                    st.error(f"Function '{function_name}' not found in module '{module_name}'")
-                    st.error(f"Available functions in {module_name}: {[name for name in dir(module) if callable(getattr(module, name)) and not name.startswith('_')]}")
+                    # Check if the function exists in the module
+                    if hasattr(module, function_name):
+                        # Get the function from the module
+                        function = getattr(module, function_name)
+                        
+                        # Call the function
+                        function()
+                    else:
+                        st.error(f"Function '{function_name}' not found in module '{module_name}'")
+                        display_frameworks_page()
+                except ImportError as e:
+                    st.error(f"Could not import module '{module_name}': {e}")
                     display_frameworks_page()
-            except ImportError as e:
-                st.error(f"Could not import module '{module_name}': {e}")
-                display_frameworks_page()
-            except Exception as e:
-                st.error(f"Error loading framework '{framework}': {e}")
-                display_frameworks_page()
+                except Exception as e:
+                    st.error(f"Error loading framework '{framework}': {e}")
+                    display_frameworks_page()
         else:
             # Don't call frameworks_page() directly as it would call framework_sidebar() again
             # Instead, set up the frameworks page content without calling framework_sidebar()
@@ -581,11 +564,6 @@ def display_frameworks_page():
     </style>
     """, unsafe_allow_html=True)
     
-    st.title("🧩 Analysis Frameworks")
-    
-    # Add the main sidebar menu (but not the framework sidebar which is already added)
-    sidebar_menu()
-    
     st.markdown("""
     <div class="dark-mode-compatible">
     <h3 style="color: #4880EC;">Welcome to the Analysis Frameworks Hub! 🚀</h3>
@@ -716,10 +694,7 @@ def display_frameworks_page():
         
         # Fundamental Flow Card
         if st.button("🌊 Fundamental Flow", key="flow_button_display"):
-            st.write("Debug - Fundamental Flow button clicked")
-            st.write("Debug - Setting query parameter to 'fundamental_flow'")
             st.query_params["framework"] = "fundamental_flow"
-            st.write("Debug - Query parameters after setting:", dict(st.query_params))
             st.rerun()
         
         st.markdown("""

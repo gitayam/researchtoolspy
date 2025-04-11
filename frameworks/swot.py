@@ -8,6 +8,7 @@ import io
 from typing import Dict, List, Any, Optional, Union
 import os
 import json
+from datetime import datetime
 from frameworks.base_framework import BaseFramework
 
 # Try to import get_completion, but provide a fallback if it's not available
@@ -46,6 +47,8 @@ class SWOT(BaseFramework):
     def __init__(self):
         super().__init__(name="SWOT")
         self.components = ["strengths", "weaknesses", "opportunities", "threats"]
+        self.objective = ""
+        self.strategies = ""
         
         # Initialize question templates
         self._initialize_question_templates()
@@ -101,11 +104,11 @@ class SWOT(BaseFramework):
         
         if use_gpt:
             # Use GPT to analyze
-            prompt = f"Context:\n{context}\n\nAnalyze the following {component.title()} for a SWOT analysis:\n"
+            prompt = f"Context:\n{context}\n\nObjective: {self.objective}\n\nAnalyze the following {component.title()} for a SWOT analysis:\n"
             for i, q in enumerate(questions, 1):
                 prompt += f"{i}. {q}\n"
             
-            response = get_completion(prompt)
+            response = self.generate_ai_suggestion(prompt)
             self.set_response(component, response)
             return {"component": component, "response": response}
         else:
@@ -118,6 +121,70 @@ class SWOT(BaseFramework):
         for component in self.components:
             results[component] = self.analyze(component, context, use_gpt)
         return results
+    
+    def set_objective(self, objective: str) -> None:
+        """Set the objective for the SWOT analysis"""
+        self.objective = objective
+        self.metadata["objective"] = objective
+    
+    def set_strategies(self, strategies: str) -> None:
+        """Set the strategies for the SWOT analysis"""
+        self.strategies = strategies
+        self.metadata["strategies"] = strategies
+    
+    def export_to_json(self, filepath: Optional[str] = None) -> str:
+        """Export SWOT analysis data to JSON"""
+        data = {
+            "framework": self.name,
+            "objective": self.objective,
+            "components": self.components,
+            "responses": self.responses,
+            "strategies": self.strategies,
+            "metadata": self.metadata
+        }
+        
+        if filepath:
+            with open(filepath, 'w') as f:
+                json.dump(data, f, indent=2)
+                
+        return json.dumps(data, indent=2)
+    
+    def import_from_json(self, json_data: str) -> bool:
+        """Import SWOT analysis data from JSON"""
+        try:
+            data = json.loads(json_data)
+            
+            # Validate that this is a SWOT analysis
+            if data.get("framework") != self.name:
+                return False
+                
+            # Import data
+            self.objective = data.get("objective", "")
+            self.components = data.get("components", self.components)
+            self.responses = data.get("responses", {})
+            self.strategies = data.get("strategies", "")
+            self.metadata = data.get("metadata", self.metadata)
+            
+            # Update last modified timestamp
+            self.metadata["last_modified"] = datetime.now().isoformat()
+            
+            return True
+        except Exception as e:
+            print(f"Error importing SWOT data: {e}")
+            return False
+    
+    def export_to_docx(self) -> Optional[bytes]:
+        """Export SWOT analysis to a Word document"""
+        sections = [
+            {"heading": "SWOT Analysis", "content": f"Objective: {self.objective}", "level": 1},
+            {"heading": "Strengths", "content": self.get_response("strengths") or "None specified", "level": 2},
+            {"heading": "Weaknesses", "content": self.get_response("weaknesses") or "None specified", "level": 2},
+            {"heading": "Opportunities", "content": self.get_response("opportunities") or "None specified", "level": 2},
+            {"heading": "Threats", "content": self.get_response("threats") or "None specified", "level": 2},
+            {"heading": "Strategies", "content": self.strategies or "None specified", "level": 2}
+        ]
+        
+        return super().export_to_docx("SWOT Analysis", sections)
 
 # Function to perform SWOT analysis (for backward compatibility)
 def swot_analysis(context, component=None, use_gpt=True):
@@ -130,8 +197,76 @@ def swot_analysis(context, component=None, use_gpt=True):
 
 load_dotenv()
 
+def create_swot_html_report(objective, strengths, weaknesses, opportunities, threats, strategies):
+    """Generate an HTML snippet showing the SWOT analysis in a report format."""
+    def to_list(text):
+        if ";" in text:
+            items = [x.strip() for x in text.split(";") if x.strip()]
+        else:
+            items = [x.strip() for x in text.split("\n") if x.strip()]
+        bullet_html = "".join(f"<li>{item}</li>" for item in items)
+        return bullet_html or "<li>(None)</li>"
+
+    strengths_html = to_list(strengths)
+    weaknesses_html = to_list(weaknesses)
+    opportunities_html = to_list(opportunities)
+    threats_html = to_list(threats)
+    strategies_html = to_list(strategies)
+
+    html = f"""
+    <html>
+    <head>
+      <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        h2   {{ text-align: center; }}
+        table{{ width: 100%; border-collapse: collapse; }}
+        td   {{ border: 1px solid #ddd; vertical-align: top; padding: 10px; }}
+        th   {{ border: 1px solid #ddd; background: #f2f2f2; padding: 10px; }}
+        ul   {{ margin: 0; padding: 0 0 0 20px; }}
+      </style>
+    </head>
+    <body>
+      <h2>SWOT Analysis Report</h2>
+      <h3>Objective</h3>
+      <p>{objective}</p>
+      <table>
+        <tr>
+          <th>Strengths</th>
+          <th>Weaknesses</th>
+        </tr>
+        <tr>
+          <td><ul>{strengths_html}</ul></td>
+          <td><ul>{weaknesses_html}</ul></td>
+        </tr>
+        <tr>
+          <th>Opportunities</th>
+          <th>Threats</th>
+        </tr>
+        <tr>
+          <td><ul>{opportunities_html}</ul></td>
+          <td><ul>{threats_html}</ul></td>
+        </tr>
+      </table>
+      <h3>Strategies for Action</h3>
+      <ul>{strategies_html}</ul>
+    </body>
+    </html>
+    """
+    return html
+
+def convert_html_to_pdf(source_html):
+    """Convert HTML to PDF using xhtml2pdf."""
+    output = io.BytesIO()
+    pisa_status = pisa.CreatePDF(io.StringIO(source_html), dest=output)
+    return output.getvalue() if not pisa_status.err else None
+
 def swot_page():
+    from utilities.form_handling import create_ai_assisted_input, create_import_export_section
+    
     st.title("SWOT Analysis")
+    
+    # Initialize SWOT framework
+    swot = SWOT()
     
     # Check if we have data from URL processor
     objective_from_url = st.session_state.get("swot_objective", "")
@@ -161,6 +296,9 @@ def swot_page():
         placeholder="Ex: 'Increase market share in Region X' or 'Enhance collaboration within the team.'",
         help="Clearly state the goal or purpose of this SWOT analysis. E.g., a project or business objective."
     )
+    
+    # Set the objective in the SWOT framework
+    swot.set_objective(objective)
 
     if objective_from_url:
         st.info(f"Analyzing content from URL: {objective_from_url}")
@@ -204,89 +342,61 @@ def swot_page():
 
     # Strengths
     st.write("**Strengths** (internal advantages): characteristics or resources that give you an edge.")
-    if "swot_strengths" not in st.session_state:
-        st.session_state["swot_strengths"] = ""
-    col_strengths_left, col_strengths_right = st.columns([2,1])
-    with col_strengths_left:
-        st.session_state["swot_strengths"] = st.text_area(
-            label="Strengths",
-            value=st.session_state["swot_strengths"],
-            height=100,
-            placeholder="e.g. Strong brand recognition; Skilled workforce; Innovative tech stack",
-            help="List or separate by semicolons. These are internal positives."
-        )
-    with col_strengths_right:
-        if st.button("AI: Suggest Strengths"):
-            ai_text = ai_suggest_swot("Strengths")
-            if ai_text:
-                st.session_state["swot_strengths"] += "\n" + ai_text
-                st.rerun()
+    strengths = create_ai_assisted_input(
+        label="Strengths",
+        key="swot_strengths",
+        ai_button_label="AI: Suggest Strengths",
+        ai_function=ai_suggest_swot,
+        ai_params={"category": "Strengths"},
+        placeholder="e.g. Strong brand recognition; Skilled workforce; Innovative tech stack",
+        help_text="List or separate by semicolons. These are internal positives."
+    )
+    swot.set_response("strengths", strengths)
 
     st.markdown("---")
 
     # Weaknesses
     st.write("**Weaknesses** (internal disadvantages): internal issues or limitations holding you back.")
-    if "swot_weaknesses" not in st.session_state:
-        st.session_state["swot_weaknesses"] = ""
-    col_weak_left, col_weak_right = st.columns([2,1])
-    with col_weak_left:
-        st.session_state["swot_weaknesses"] = st.text_area(
-            label="Weaknesses",
-            value=st.session_state["swot_weaknesses"],
-            height=100,
-            placeholder="e.g. Limited funding; High staff turnover; Outdated processes",
-            help="List or separate by semicolons. These are internal negatives."
-        )
-    with col_weak_right:
-        if st.button("AI: Suggest Weaknesses"):
-            ai_text = ai_suggest_swot("Weaknesses")
-            if ai_text:
-                st.session_state["swot_weaknesses"] += "\n" + ai_text
-                st.rerun()
+    weaknesses = create_ai_assisted_input(
+        label="Weaknesses",
+        key="swot_weaknesses",
+        ai_button_label="AI: Suggest Weaknesses",
+        ai_function=ai_suggest_swot,
+        ai_params={"category": "Weaknesses"},
+        placeholder="e.g. Limited funding; High staff turnover; Outdated processes",
+        help_text="List or separate by semicolons. These are internal negatives."
+    )
+    swot.set_response("weaknesses", weaknesses)
 
     st.markdown("---")
 
     # Opportunities
     st.write("**Opportunities** (external positives): external trends or circumstances you can leverage.")
-    if "swot_opportunities" not in st.session_state:
-        st.session_state["swot_opportunities"] = ""
-    col_opp_left, col_opp_right = st.columns([2,1])
-    with col_opp_left:
-        st.session_state["swot_opportunities"] = st.text_area(
-            label="Opportunities",
-            value=st.session_state["swot_opportunities"],
-            height=100,
-            placeholder="e.g. Emerging market; Partnerships; New tech solutions",
-            help="List or separate by semicolons. External conditions you can exploit."
-        )
-    with col_opp_right:
-        if st.button("AI: Suggest Opportunities"):
-            ai_text = ai_suggest_swot("Opportunities")
-            if ai_text:
-                st.session_state["swot_opportunities"] += "\n" + ai_text
-                st.rerun()
+    opportunities = create_ai_assisted_input(
+        label="Opportunities",
+        key="swot_opportunities",
+        ai_button_label="AI: Suggest Opportunities",
+        ai_function=ai_suggest_swot,
+        ai_params={"category": "Opportunities"},
+        placeholder="e.g. Emerging market; Partnerships; New tech solutions",
+        help_text="List or separate by semicolons. External conditions you can exploit."
+    )
+    swot.set_response("opportunities", opportunities)
 
     st.markdown("---")
 
     # Threats
     st.write("**Threats** (external negatives): external risks, challenges, or obstacles.")
-    if "swot_threats" not in st.session_state:
-        st.session_state["swot_threats"] = ""
-    col_thr_left, col_thr_right = st.columns([2,1])
-    with col_thr_left:
-        st.session_state["swot_threats"] = st.text_area(
-            label="Threats",
-            value=st.session_state["swot_threats"],
-            height=100,
-            placeholder="e.g. Competitive rivalry; Regulatory changes; Economic downturn",
-            help="List or separate by semicolons. External conditions that could cause trouble."
-        )
-    with col_thr_right:
-        if st.button("AI: Suggest Threats"):
-            ai_text = ai_suggest_swot("Threats")
-            if ai_text:
-                st.session_state["swot_threats"] += "\n" + ai_text
-                st.rerun()
+    threats = create_ai_assisted_input(
+        label="Threats",
+        key="swot_threats",
+        ai_button_label="AI: Suggest Threats",
+        ai_function=ai_suggest_swot,
+        ai_params={"category": "Threats"},
+        placeholder="e.g. Competitive rivalry; Regulatory changes; Economic downturn",
+        help_text="List or separate by semicolons. External conditions that could cause trouble."
+    )
+    swot.set_response("threats", threats)
 
     st.markdown("---")
 
@@ -299,9 +409,6 @@ def swot_page():
     **Exploiting Strengths & Opportunities**: e.g. Use Strength 1 to maximize Opportunity 1  
     **Mitigating Weaknesses & Threats**: e.g. Address Weakness 2 to avoid Threat 1  
     """)
-
-    if "swot_strategies" not in st.session_state:
-        st.session_state["swot_strategies"] = ""
 
     def ai_suggest_strategies():
         """Propose strategies for exploiting S & O, and mitigating W & T, based on user input."""
@@ -328,115 +435,86 @@ def swot_page():
             st.error(f"AI Error: {e}")
             return ""
 
-    col_strat_main, col_strat_button = st.columns([2,1])
-    with col_strat_main:
-        st.session_state["swot_strategies"] = st.text_area(
-            label="Proposed Strategies",
-            value=st.session_state["swot_strategies"],
-            height=120,
-            placeholder="e.g.\n1) Use Strength A to leverage Opportunity X\n2) Address Weakness B to avoid Threat Y",
-            help="Write or paste your strategies here. S/O strategies, W/T strategies, etc."
-        )
-    with col_strat_button:
-        if st.button("AI: Suggest Strategies"):
-            strategies_text = ai_suggest_strategies()
-            if strategies_text:
-                st.session_state["swot_strategies"] += "\n" + strategies_text
-                st.rerun()
+    strategies = create_ai_assisted_input(
+        label="Proposed Strategies",
+        key="swot_strategies",
+        ai_button_label="AI: Suggest Strategies",
+        ai_function=ai_suggest_strategies,
+        placeholder="e.g.\n1) Use Strength A to leverage Opportunity X\n2) Address Weakness B to avoid Threat Y",
+        help_text="Write or paste your strategies here. S/O strategies, W/T strategies, etc.",
+        height=150
+    )
+    swot.set_strategies(strategies)
 
     st.markdown("---")
 
-    # Export to PDF
-    st.subheader("Export SWOT Analysis as PDF")
-
-    def create_swot_html_report(objective, strengths, weaknesses, opportunities, threats, strategies):
-        """Generate an HTML snippet showing the SWOT analysis in a report format."""
-        def to_list(text):
-            if ";" in text:
-                items = [x.strip() for x in text.split(";") if x.strip()]
-            else:
-                items = [x.strip() for x in text.split("\n") if x.strip()]
-            bullet_html = "".join(f"<li>{item}</li>" for item in items)
-            return bullet_html or "<li>(None)</li>"
-
-        strengths_html = to_list(strengths)
-        weaknesses_html = to_list(weaknesses)
-        opportunities_html = to_list(opportunities)
-        threats_html = to_list(threats)
-        strategies_html = to_list(strategies)
-
-        html = f"""
-        <html>
-        <head>
-          <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
-            h2   {{ text-align: center; }}
-            table{{ width: 100%; border-collapse: collapse; }}
-            td   {{ border: 1px solid #ddd; vertical-align: top; padding: 10px; }}
-            th   {{ border: 1px solid #ddd; background: #f2f2f2; padding: 10px; }}
-            ul   {{ margin: 0; padding: 0 0 0 20px; }}
-          </style>
-        </head>
-        <body>
-          <h2>SWOT Analysis Report</h2>
-          <h3>Objective</h3>
-          <p>{objective}</p>
-          <table>
-            <tr>
-              <th>Strengths</th>
-              <th>Weaknesses</th>
-            </tr>
-            <tr>
-              <td><ul>{strengths_html}</ul></td>
-              <td><ul>{weaknesses_html}</ul></td>
-            </tr>
-            <tr>
-              <th>Opportunities</th>
-              <th>Threats</th>
-            </tr>
-            <tr>
-              <td><ul>{opportunities_html}</ul></td>
-              <td><ul>{threats_html}</ul></td>
-            </tr>
-          </table>
-          <h3>Strategies for Action</h3>
-          <ul>{strategies_html}</ul>
-        </body>
-        </html>
-        """
-        return html
-
-    def convert_html_to_pdf(source_html):
-        """Convert HTML to PDF using xhtml2pdf."""
-        output = io.BytesIO()
-        pisa_status = pisa.CreatePDF(io.StringIO(source_html), dest=output)
-        return output.getvalue() if not pisa_status.err else None
-
-    if st.button("Export SWOT Analysis to PDF"):
-        # Generate HTML from current SWOT data
-        swot_html = create_swot_html_report(
-            objective=objective,
-            strengths=st.session_state["swot_strengths"],
-            weaknesses=st.session_state["swot_weaknesses"],
-            opportunities=st.session_state["swot_opportunities"],
-            threats=st.session_state["swot_threats"],
-            strategies=st.session_state["swot_strategies"]
-        )
-
-        # Convert HTML to PDF
-        pdf_bytes = convert_html_to_pdf(swot_html)
-        if pdf_bytes:
-            # Provide download
-            st.download_button(
-                label="Download SWOT Analysis PDF",
-                data=pdf_bytes,
-                file_name="SWOT-Analysis.pdf",
-                mime="application/pdf"
+    # Export options
+    st.subheader("Export SWOT Analysis")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("Export as PDF"):
+            # Generate HTML from current SWOT data
+            swot_html = create_swot_html_report(
+                objective=objective,
+                strengths=swot.get_response("strengths") or "",
+                weaknesses=swot.get_response("weaknesses") or "",
+                opportunities=swot.get_response("opportunities") or "",
+                threats=swot.get_response("threats") or "",
+                strategies=swot.strategies or ""
             )
-        else:
-            st.error("Error generating PDF.")
 
-    st.info("Use the 'Export to PDF' button to download your SWOT analysis as a PDF.")
+            # Convert HTML to PDF
+            pdf_bytes = convert_html_to_pdf(swot_html)
+            if pdf_bytes:
+                # Provide download
+                st.download_button(
+                    label="Download SWOT Analysis PDF",
+                    data=pdf_bytes,
+                    file_name="SWOT-Analysis.pdf",
+                    mime="application/pdf"
+                )
+            else:
+                st.error("Error generating PDF.")
+    
+    with col2:
+        if st.button("Export as Word Document"):
+            docx_bytes = swot.export_to_docx()
+            if docx_bytes:
+                st.download_button(
+                    label="Download SWOT Analysis DOCX",
+                    data=docx_bytes,
+                    file_name="SWOT-Analysis.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+            else:
+                st.error("Error generating Word document.")
+    
+    # Import/Export JSON
+    with st.expander("Advanced: Import/Export JSON Data", expanded=False):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("Export as JSON"):
+                json_data = swot.export_to_json()
+                st.download_button(
+                    label="Download SWOT Analysis JSON",
+                    data=json_data,
+                    file_name="SWOT-Analysis.json",
+                    mime="application/json"
+                )
+        
+        with col2:
+            uploaded_file = st.file_uploader("Import SWOT Analysis", type=["json"])
+            if uploaded_file is not None:
+                json_data = uploaded_file.getvalue().decode("utf-8")
+                if st.button("Load Analysis"):
+                    if swot.import_from_json(json_data):
+                        st.success("SWOT Analysis loaded successfully!")
+                        st.rerun()
+                    else:
+                        st.error("Failed to load SWOT Analysis. Please check the file format.")
 
     st.info("""
 **Done!**  
