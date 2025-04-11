@@ -11,70 +11,115 @@ import logging
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# Try to import OpenAI, but provide fallbacks if not available
-try:
-    from openai import OpenAI
-    
-    # Initialize OpenAI client if API key is available
-    if "OPENAI_API_KEY" in os.environ:
-        client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-        OPENAI_AVAILABLE = True
-    else:
-        OPENAI_AVAILABLE = False
-        print("Warning: OPENAI_API_KEY not set in environment variables. AI functionality will be limited.")
-except ImportError:
-    OPENAI_AVAILABLE = False
-    print("Warning: OpenAI package not installed. AI functionality will be limited.")
+# Global variables for client and availability
+client = None
+OPENAI_AVAILABLE = False
+USE_LOCAL_LLM = False
 
-# Local LLM environment configuration
-LOCAL_LLM_HOST = os.getenv("LOCAL_LLM_HOST", "").strip()
-LOCAL_LLM_PORT = os.getenv("LOCAL_LLM_PORT", "").strip()
-LOCAL_LLM_API_KEY = os.getenv("LOCAL_LLM_API_KEY", "").strip()
-
-# Determine if Local LLM should be used.
-# If any are empty or left as the placeholder strings, USE_LOCAL_LLM will be False.
-USE_LOCAL_LLM = all([
-    LOCAL_LLM_HOST not in ("", "YOUR_LOCAL_LLM_HOST_HERE"),
-    LOCAL_LLM_PORT not in ("", "YOUR_LOCAL_LLM_PORT_HERE"),
-    LOCAL_LLM_API_KEY not in ("", "YOUR_LOCAL_LLM_API_KEY_HERE")
-])
-
-def chat_gpt(
-    messages,
-    model="gpt-4",
-    max_tokens=512,
-    temperature=0.7,
-    top_p=1.0,
-    n=1,
-    frequency_penalty=0.0,
-    presence_penalty=0.0
-):
-    """
-    A generic helper to call the ChatCompletion endpoint from either OpenAI or a local LLM.
-    
-    Args:
-        messages (list): A list of dicts, each having {"role": "...", "content": "..."}.
-        model (str): The model name to use.
-        max_tokens (int): Maximum tokens to generate in the response.
-        temperature (float): Sampling temperature.
-        top_p (float): Nucleus sampling.
-        n (int): Number of responses to return.
-        frequency_penalty (float): Penalty for repeated tokens.
-        presence_penalty (float): Encourages new topics.
+def initialize_ai_client():
+    """Initialize the OpenAI client and set global availability flags.
     
     Returns:
-        str: The text content of the AI's reply.
+        tuple: (client, is_openai_available, use_local_llm)
+    """
+    global client, OPENAI_AVAILABLE, USE_LOCAL_LLM
+    
+    # Load environment variables
+    load_dotenv()
+    
+    # Try to initialize OpenAI client
+    try:
+        api_key = os.getenv("OPENAI_API_KEY", "").strip()
+        if api_key and api_key not in ("", "YOUR_OPENAI_API_KEY_HERE"):
+            client = OpenAI(api_key=api_key)
+            OPENAI_AVAILABLE = True
+            logging.info("OpenAI client initialized successfully")
+        else:
+            logging.warning("OPENAI_API_KEY not set or invalid. AI functionality will be limited.")
+    except ImportError:
+        logging.warning("OpenAI package not installed. AI functionality will be limited.")
+    except Exception as e:
+        logging.error(f"Error initializing OpenAI client: {e}")
+    
+    # Check Local LLM configuration
+    local_llm_host = os.getenv("LOCAL_LLM_HOST", "").strip()
+    local_llm_port = os.getenv("LOCAL_LLM_PORT", "").strip()
+    local_llm_api_key = os.getenv("LOCAL_LLM_API_KEY", "").strip()
+    
+    USE_LOCAL_LLM = all([
+        local_llm_host not in ("", "YOUR_LOCAL_LLM_HOST_HERE"),
+        local_llm_port not in ("", "YOUR_LOCAL_LLM_PORT_HERE"),
+        local_llm_api_key not in ("", "YOUR_LOCAL_LLM_API_KEY_HERE")
+    ])
+    
+    if USE_LOCAL_LLM:
+        logging.info("Local LLM configuration detected")
+    
+    return client, OPENAI_AVAILABLE, USE_LOCAL_LLM
+
+# Initialize the client and availability flags
+initialize_ai_client()
+
+def get_fallback_response(error_type: str = "general") -> str:
+    """Get a appropriate fallback response based on the error type.
+    
+    Args:
+        error_type: The type of error encountered
+        
+    Returns:
+        A suitable fallback response message
+    """
+    fallbacks = {
+        "openai_not_available": (
+            "OpenAI services are not available. Please check your API key configuration "
+            "in the .env file and ensure the openai package is installed."
+        ),
+        "local_llm_error": (
+            "Local LLM services are not available. Please check your local LLM configuration "
+            "in the .env file and ensure the service is running."
+        ),
+        "general": (
+            "AI services are not available. Please check your configuration and ensure "
+            "either OpenAI API key is set or Local LLM is properly configured."
+        )
+    }
+    return fallbacks.get(error_type, fallbacks["general"])
+
+def chat_gpt(
+    messages: List[Dict[str, str]],
+    model: str = "gpt-4",
+    max_tokens: int = 512,
+    temperature: float = 0.7,
+    top_p: float = 1.0,
+    n: int = 1,
+    frequency_penalty: float = 0.0,
+    presence_penalty: float = 0.0
+) -> str:
+    """A generic helper to call the ChatCompletion endpoint from either OpenAI or a local LLM.
+    
+    Args:
+        messages: A list of dicts, each having {"role": "...", "content": "..."}.
+        model: The model name to use.
+        max_tokens: Maximum tokens to generate in the response.
+        temperature: Sampling temperature.
+        top_p: Nucleus sampling.
+        n: Number of responses to return.
+        frequency_penalty: Penalty for repeated tokens.
+        presence_penalty: Encourages new topics.
+    
+    Returns:
+        The text content of the AI's reply or a fallback message.
     """
     if not OPENAI_AVAILABLE and not USE_LOCAL_LLM:
-        return "AI services are not available. Please check your configuration."
+        return get_fallback_response()
         
     try:
         if USE_LOCAL_LLM:
-            # Call the local LLM endpoint using the provided host/port and API key.
+            # Call the local LLM endpoint
             import requests
-            url = f"http://{LOCAL_LLM_HOST}:{LOCAL_LLM_PORT}/v1/chat/completions"
+            url = f"http://{os.getenv('LOCAL_LLM_HOST')}:{os.getenv('LOCAL_LLM_PORT')}/v1/chat/completions"
             headers = {
-                "Authorization": f"Bearer {LOCAL_LLM_API_KEY}",
+                "Authorization": f"Bearer {os.getenv('LOCAL_LLM_API_KEY')}",
                 "Content-Type": "application/json"
             }
             json_data = {
@@ -92,7 +137,10 @@ def chat_gpt(
             response_json = response.json()
             return response_json["choices"][0]["message"]["content"].strip()
         else:
-            # Use the OpenAI API.
+            # Use OpenAI API
+            if not client:
+                return get_fallback_response("openai_not_available")
+                
             response = client.chat.completions.create(
                 model=model,
                 messages=messages,
