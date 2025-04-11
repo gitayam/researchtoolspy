@@ -74,13 +74,14 @@ def behavior_analysis_page():
     field_info = {
         # Basic Info
         "objective_effect": {
-            "label": "Objective or Effect",
-            "prompt": "Describe the overall objective and effect. A behavior is an action or set of actions that are intended to impact partially or fully a specific objective. The effect is the outcome of one or many behaviors.",
-            "type": "text"
+            "label": "Planner's Objective or Effect",
+            "prompt": "Describe your objective as a planner. What effect or outcome are you trying to achieve? The target behavior you'll analyze should be an action that others would take that would help achieve this objective.",
+            "type": "text",
+            "no_ai_recommend": True  # Flag to prevent AI recommendations for this field
         },
         "action_behavior": {
-            "label": "Action or Behavior",
-            "prompt": "Describe the action or behavior to be analyzed. Provide context and clear examples in a concise summary.",
+            "label": "Target Action or Behavior",
+            "prompt": "Describe the specific action or behavior you want others to take that would help achieve your objective. This is what you will analyze. Provide context and clear examples in a concise summary.",
             "type": "text"
         },
         "location": {
@@ -232,35 +233,36 @@ def behavior_analysis_page():
         with st.expander(section, expanded=True):
             for key in keys:
                 info = field_info[key]
-                # Show the GPT recommendation button above each field.
-                if st.button(f"Recommend for '{info['label']}'", key=f"btn_{key}"):
-                    # Ensure mandatory "action_behavior" is provided for context.
-                    if not st.session_state.get("action_behavior", "").strip():
-                        st.warning("Please provide the Action or Behavior detail before generating recommendations.")
-                    else:
-                        with st.spinner(f"Generating recommendation for {info['label']}..."):
-                            # Build a context string using key fields
-                            context_parts = []
-                            if st.session_state.get("action_behavior", "").strip():
-                                context_parts.append(f"{field_info['action_behavior']['label']}: {st.session_state.get('action_behavior')}")
-                            if st.session_state.get("location", "").strip():
-                                context_parts.append(f"{field_info['location']['label']}: {st.session_state.get('location')}")
-                            # Optionally add any other non-empty field (except the current one)
-                            for cf, val in st.session_state.items():
-                                if cf in field_info and cf not in ["action_behavior", "location", key]:
-                                    if isinstance(val, str) and val.strip():
-                                        context_parts.append(f"{field_info[cf]['label']}: {val}")
-                            context_str = "\n".join(context_parts) if context_parts else "No additional context provided."
-                            full_prompt = (
-                                f"Using the context below:\n{context_str}\n\n"
-                                f"Now, please provide a suggestion for the '{info['label']}' field. {info['prompt']}"
-                            )
-                            system_msg = {"role": "system", "content": "You are an expert analyst in behavior analysis using the COM‑B framework."}
-                            user_msg = {"role": "user", "content": full_prompt}
-                            suggestion = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-                            st.session_state[key] = suggestion.strip()
-                            st.success(f"'{info['label']}' auto-populated.")
-                            st.rerun
+                # Show the GPT recommendation button only if not explicitly disabled
+                if not info.get("no_ai_recommend", False):
+                    if st.button(f"Recommend for '{info['label']}'", key=f"btn_{key}"):
+                        # Ensure mandatory "action_behavior" is provided for context.
+                        if not st.session_state.get("action_behavior", "").strip():
+                            st.warning("Please provide the Action or Behavior detail before generating recommendations.")
+                        else:
+                            with st.spinner(f"Generating recommendation for {info['label']}..."):
+                                # Build a context string using key fields
+                                context_parts = []
+                                if st.session_state.get("action_behavior", "").strip():
+                                    context_parts.append(f"{field_info['action_behavior']['label']}: {st.session_state.get('action_behavior')}")
+                                if st.session_state.get("location", "").strip():
+                                    context_parts.append(f"{field_info['location']['label']}: {st.session_state.get('location')}")
+                                # Optionally add any other non-empty field (except the current one)
+                                for cf, val in st.session_state.items():
+                                    if cf in field_info and cf not in ["action_behavior", "location", key]:
+                                        if isinstance(val, str) and val.strip():
+                                            context_parts.append(f"{field_info[cf]['label']}: {val}")
+                                context_str = "\n".join(context_parts) if context_parts else "No additional context provided."
+                                full_prompt = (
+                                    f"Using the context below:\n{context_str}\n\n"
+                                    f"Now, please provide a suggestion for the '{info['label']}' field. {info['prompt']}"
+                                )
+                                system_msg = {"role": "system", "content": "You are an expert analyst in behavior analysis using the COM‑B framework."}
+                                user_msg = {"role": "user", "content": full_prompt}
+                                suggestion = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
+                                st.session_state[key] = suggestion.strip()
+                                st.success(f"'{info['label']}' auto-populated.")
+                                st.rerun
                 # Render the input widget.
                 if info["type"] == "text":
                     analysis_details[key] = st.text_input(
