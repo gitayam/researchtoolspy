@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from typing import Dict, List, Any, Optional
 import os
 import json
+import re  # Add import for regex
 from frameworks.base_framework import BaseFramework
 import utilities.search_generator as perform_search
 
@@ -979,6 +980,63 @@ def get_fallback_suggestions(entity_type: str, entity_name: str, entity_goals: s
     
     return suggestions
 
+def clean_json_response(response_text: str) -> str:
+    """
+    Clean the AI response to extract valid JSON content.
+    
+    This function handles common issues with OpenAI JSON responses:
+    1. Removes markdown code fences and language markers
+    2. Extracts content between curly braces for JSON objects
+    3. Handles cases where AI adds comments or explanations before/after JSON
+    
+    Args:
+        response_text: The raw response from the AI
+        
+    Returns:
+        Cleaned response text that should be valid JSON
+    """
+    # Remove leading/trailing whitespace
+    response_text = response_text.strip()
+    
+    # Handle markdown code blocks with ```json or ```
+    if response_text.startswith("```"):
+        # Remove the opening code fence and potential language marker
+        lines = response_text.split("\n", 1)
+        if len(lines) > 1:
+            # Check if the first line contains only the code fence and optional language marker
+            first_line = lines[0].strip().lower()
+            if first_line == "```" or first_line == "```json" or first_line.startswith("```"):
+                response_text = lines[1]
+        
+        # Remove the closing code fence if present
+        if response_text.endswith("```"):
+            response_text = response_text[:-3].strip()
+    
+    # Check for "json" prefix and remove if present
+    if response_text.lower().startswith("json"):
+        response_text = response_text[4:].strip()
+    
+    # For JSON objects, find content between outermost curly braces
+    # If the response starts with '{' and contains at least one closing '}'
+    if response_text.startswith("{") and "}" in response_text:
+        # Find the position of the last matching closing brace
+        brace_count = 0
+        last_brace_pos = -1
+        
+        for i, char in enumerate(response_text):
+            if char == "{":
+                brace_count += 1
+            elif char == "}":
+                brace_count -= 1
+                if brace_count == 0:
+                    last_brace_pos = i
+                    break
+        
+        if last_brace_pos != -1:
+            response_text = response_text[:last_brace_pos + 1]
+    
+    return response_text
+
 def generate_cog_suggestions(entity_type: str, entity_name: str, entity_goals: str, entity_presence: str, desired_end_state: str) -> Dict:
     """Generate AI suggestions for COG analysis components"""
     try:
@@ -992,13 +1050,15 @@ def generate_cog_suggestions(entity_type: str, entity_name: str, entity_goals: s
         system_msg = {
             "role": "system",
             "content": """You are an AI specialized in Center of Gravity analysis. 
-            Generate a complete analysis in valid JSON format following this exact structure:
+            You must respond ONLY with valid JSON conforming exactly to this structure without any explanations or text outside the JSON:
             {
                 "cog": {"name": "str", "description": "str", "rationale": "str"},
                 "capabilities": [{"name": "str", "type": "str", "importance": int, "rationale": "str"}],
                 "requirements": [{"capability": "str", "items": ["str"]}],
                 "vulnerabilities": [{"capability": "str", "items": [{"name": "str", "impact": int, "rationale": "str"}]}]
-            }"""
+            }
+            Do not include additional commentary, descriptions, explanations before or after the JSON.
+            """
         }
         
         user_msg = {
@@ -1012,17 +1072,32 @@ def generate_cog_suggestions(entity_type: str, entity_name: str, entity_goals: s
             
             Analyze this entity and provide a complete COG analysis in the specified JSON format.
             Ensure all capabilities referenced in requirements and vulnerabilities match the capabilities array.
+            Remember: Return ONLY the JSON with no surrounding text.
             """
         }
         
         response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
         
+        # First try to parse directly
         try:
             suggestions = json.loads(response)
             return suggestions
-        except json.JSONDecodeError as e:
-            st.error(f"AI response was not valid JSON. Using enhanced fallback suggestions.")
-            return get_fallback_suggestions(entity_type, entity_name, entity_goals, entity_presence, desired_end_state)
+        except json.JSONDecodeError:
+            # If direct parsing fails, try cleaning the response
+            cleaned_response = clean_json_response(response)
+            
+            try:
+                suggestions = json.loads(cleaned_response)
+                return suggestions
+            except json.JSONDecodeError as e:
+                st.error(f"AI response was not valid JSON even after cleaning. Using enhanced fallback suggestions.")
+                # Show debugging info in the development environment
+                if os.environ.get("STREAMLIT_ENV") == "development" or os.environ.get("DEBUG") == "1":
+                    st.expander("Debug Info - Raw AI Response", expanded=False).code(response)
+                    st.expander("Debug Info - Cleaned Response", expanded=False).code(cleaned_response)
+                    st.expander("Debug Info - JSON Error", expanded=False).write(str(e))
+                
+                return get_fallback_suggestions(entity_type, entity_name, entity_goals, entity_presence, desired_end_state)
             
     except Exception as e:
         st.error(f"Error in suggestion generation: {str(e)}")
