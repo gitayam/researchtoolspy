@@ -1,60 +1,60 @@
 # /researchtools_streamlit/requirements.txt
 # Core dependencies
-streamlit>=1.22.0          # Web application framework
-streamlit-extras>=0.2.0    # Additional Streamlit components
-openai>=1.0.0              # OpenAI API integration (updated for new API)
-requests>=2.28.0           # HTTP requests library
-python-dotenv>=1.0.0       # Environment variable management
-pandas>=1.5.0              # Data manipulation and analysis
-networkx>=3.0              # Graph manipulation
-plotly>=5.13.0             # Plotting library
+streamlit           # Web application framework
+streamlit-extras    # Additional Streamlit components
+openai              # OpenAI API integration (updated for new API)
+requests            # HTTP requests library
+python-dotenv       # Environment variable management
+pandas              # Data manipulation and analysis
+networkx            # Graph manipulation
+plotly              # Plotting library
 
 # Testing and development
-pytest>=7.3.1              # Testing framework
+pytest              # Testing framework
 
 # Document processing
-xhtml2pdf>=0.2.9           # HTML to PDF conversion
-python-docx>=0.8.11        # Microsoft Word document processing
-openpyxl>=3.1.2            # Excel file processing
-fpdf>=1.7.2                # PDF generation
-pdfkit>=1.0.0              # HTML to PDF conversion using wkhtmltopdf
-pandoc>=2.3                # Document format conversion
+xhtml2pdf           # HTML to PDF conversion
+python-docx         # Microsoft Word document processing
+openpyxl            # Excel file processing
+fpdf                # PDF generation
+pdfkit              # HTML to PDF conversion using wkhtmltopdf
+pandoc              # Document format conversion
 
 # Web scraping and browsing
-beautifulsoup4>=4.12.0     # HTML parsing
-lxml>=4.9.2                # XML/HTML parser (required by BeautifulSoup)
-playwright>=1.32.0         # Browser automation
-selenium>=4.8.0            # Web browser automation
-chromedriver-binary        # Chrome driver for Selenium
-webdriver-manager>=3.8.5   # WebDriver management
+beautifulsoup4        # HTML parsing
+lxml                  # XML/HTML parser (required by BeautifulSoup)
+playwright            # Browser automation
+selenium              # Web browser automation
+chromedriver-binary   # Chrome driver for Selenium
+webdriver-manager     # WebDriver management
 
 # Media and content downloading
-yt-dlp>=2023.3.4           # YouTube video downloader
-instaloader>=4.9.5         # Instagram content downloader
+yt-dlp                 # YouTube video downloader
+instaloader            # Instagram content downloader
 
 # Social media APIs
-praw>=7.7.0                # Reddit API wrapper
-tweepy>=4.13.0             # Twitter API wrapper
+praw                  # Reddit API wrapper
+tweepy                # Twitter API wrapper
 
 # Data processing and analysis
-langdetect>=1.0.9          # Language detection
-python-dateutil>=2.8.2     # Date utilities
-imagehash>=4.3.1           # Image hashing for similarity comparison
-validators>=0.20.0         # URL and other validation
+langdetect            # Language detection
+python-dateutil       # Date utilities
+imagehash             # Image hashing for similarity comparison
+validators            # URL and other validation
 
 # Geographic data processing
-geopandas>=0.12.2          # Geographic data handling
-shapely>=2.0.1             # Geometric objects
-geopy>=2.3.0               # Geocoding
-pykml>=0.2.0               # KML file processing
-argparse>=1.4.0            # Command line argument parsing
+geopandas              # Geographic data handling
+shapely                # Geometric objects
+geopy                  # Geocoding
+pykml                  # KML file processing
+argparse               # Command line argument parsing
 
 # Database
-psycopg2-binary>=2.9.5     # PostgreSQL adapter
+psycopg2-binary        # PostgreSQL adapter
 
 # Visualization and UI enhancements
-graphviz>=0.20.1           # Graph visualization (for starbursting diagram)
+graphviz               # Graph visualization (for starbursting diagram)
 
 # Reference and citation
-manubot>=0.5.4             # Citation handling
-wikipedia>=1.4.0           # Wikipedia API access
+manubot                # Citation handling
+wikipedia              # Wikipedia API access
