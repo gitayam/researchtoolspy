@@ -125,10 +125,14 @@ def generate_advanced_query(search_query, search_platform, model="gpt-4"):
         {"role": "user", "content": base_prompt + additional_prompt + search_query}
     ]
 
+    # Initialize OpenAI client
+    client = OpenAI()
+
     response = client.chat.completions.create(model=model,
-    messages=messages,
-    max_tokens=250)
-    return response.choices[0].message.content.strip().replace("`", "")
+        messages=messages,
+        max_tokens=250)
+
+    return response.choices[0].message.content
 
 
 def generate_cog_questions(user_details, desired_end_state, custom_prompt="", model="gpt-4"):
