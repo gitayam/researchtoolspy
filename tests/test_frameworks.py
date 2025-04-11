@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 
 # Add the project root to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -9,9 +10,17 @@ import pytest
 import streamlit as st
 from pages.Frameworks import frameworks_page, framework_sidebar
 import importlib
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, ANY
 from frameworks.swot import process_swot_analysis
 from frameworks.ach import calculate_consistency_score
+from frameworks.cog import (
+    clean_json_response, 
+    generate_cog_suggestions,
+    get_fallback_suggestions,
+    initialize_session_state,
+    generate_cog,
+    manage_capabilities
+)
 
 def test_process_swot_analysis():
     with patch("streamlit.session_state", {"swot_strengths": ["S1", "S2"]}):
@@ -572,9 +581,331 @@ def test_cog_export_functionality():
         assert isinstance(json_data, str)
         
         # Verify JSON structure
-        import json
         exported_data = json.loads(json_data)
         assert "entity_info" in exported_data
         assert "capabilities" in exported_data
         assert "vulnerabilities_dict" in exported_data
         assert "final_cog" in exported_data
+
+@pytest.fixture(autouse=True)
+def mock_env():
+    """Fixture to mock environment setup"""
+    with patch('dotenv.load_dotenv'), \
+         patch.dict(os.environ, {'STREAMLIT_ENV': 'development'}):
+        yield
+
+@pytest.fixture
+def mock_streamlit():
+    """Fixture to mock streamlit functions"""
+    with patch('streamlit.error') as mock_error, \
+         patch('streamlit.warning') as mock_warning, \
+         patch('streamlit.expander') as mock_expander, \
+         patch('streamlit.success') as mock_success, \
+         patch('streamlit.info') as mock_info, \
+         patch('streamlit.session_state', new_callable=dict) as mock_state, \
+         patch('streamlit.button') as mock_button, \
+         patch('streamlit.markdown') as mock_markdown:
+        yield {
+            'error': mock_error,
+            'warning': mock_warning,
+            'expander': mock_expander,
+            'success': mock_success,
+            'info': mock_info,
+            'session_state': mock_state,
+            'button': mock_button,
+            'markdown': mock_markdown
+        }
+
+@pytest.fixture
+def mock_gpt():
+    """Fixture to mock GPT-related functions"""
+    with patch('utilities.gpt.get_chat_completion') as mock_chat, \
+         patch('utilities.gpt.get_completion') as mock_completion:
+        yield {
+            'chat': mock_chat,
+            'completion': mock_completion
+        }
+
+@pytest.fixture
+def mock_db():
+    """Fixture to mock database connections"""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+    
+    with patch('psycopg2.connect', return_value=mock_conn):
+        yield {
+            'connection': mock_conn,
+            'cursor': mock_cursor
+        }
+
+@pytest.fixture
+def sample_cog_data():
+    """Fixture providing sample COG analysis data"""
+    return {
+        'entity_type': 'Test Organization',
+        'entity_name': 'Test Corp',
+        'entity_goals': 'Market dominance',
+        'entity_presence': 'Global',
+        'desired_end_state': 'Industry leader'
+    }
+
+def test_clean_json_response():
+    """Test the clean_json_response function with various input formats"""
+    
+    # Test markdown code block with language marker
+    markdown_input = '''```json
+    {
+        "test": "value"
+    }
+    ```'''
+    expected = '{\n        "test": "value"\n    }'
+    assert clean_json_response(markdown_input) == expected
+    
+    # Test markdown code block without language marker
+    simple_markdown = '''```
+    {
+        "test": "value"
+    }
+    ```'''
+    assert clean_json_response(simple_markdown) == expected
+    
+    # Test with json prefix
+    json_prefix = 'json\n{"test": "value"}'
+    assert clean_json_response(json_prefix) == '{"test": "value"}'
+    
+    # Test with extra text before and after
+    messy_input = '''Here's the JSON response:
+    {
+        "test": "value"
+    }
+    Hope this helps!'''
+    assert clean_json_response(messy_input) == '{\n        "test": "value"\n    }'
+    
+    # Test with nested braces
+    nested_input = '{"outer": {"inner": "value"}, "array": [{"item": 1}]}'
+    assert clean_json_response(nested_input) == nested_input
+    
+    # Test with empty input
+    assert clean_json_response('') == ''
+    
+    # Test with whitespace
+    assert clean_json_response('  \n  {"test": "value"}  \n  ') == '{"test": "value"}'
+
+    # Test with multiple JSON objects (should return first complete one)
+    multiple_json = '{"first": true} {"second": false}'
+    assert clean_json_response(multiple_json) == '{"first": true}'
+
+def test_get_fallback_suggestions(sample_cog_data):
+    """Test the fallback suggestions generation"""
+    result = get_fallback_suggestions(**sample_cog_data)
+    
+    # Verify structure of fallback suggestions
+    assert isinstance(result, dict)
+    assert all(key in result for key in ['cog', 'capabilities', 'requirements', 'vulnerabilities'])
+    
+    # Verify cog structure
+    assert all(key in result['cog'] for key in ['name', 'description', 'rationale'])
+    assert result['cog']['name'].startswith('Fallback')
+    
+    # Verify capabilities structure
+    assert isinstance(result['capabilities'], list)
+    assert len(result['capabilities']) > 0
+    for cap in result['capabilities']:
+        assert all(key in cap for key in ['name', 'type', 'importance', 'rationale'])
+        assert isinstance(cap['importance'], int)
+        assert 1 <= cap['importance'] <= 10
+
+@pytest.mark.integration
+def test_generate_cog_suggestions_success(mock_gpt, mock_streamlit, sample_cog_data):
+    """Test successful generation of COG suggestions"""
+    # Mock a valid JSON response
+    mock_response = {
+        "cog": {"name": "Test COG", "description": "Test description", "rationale": "Test rationale"},
+        "capabilities": [{"name": "Cap1", "type": "Type1", "importance": 5, "rationale": "Cap rationale"}],
+        "requirements": [{"capability": "Cap1", "items": ["Req1", "Req2"]}],
+        "vulnerabilities": [{"capability": "Cap1", "items": [{"name": "Vuln1", "impact": 3, "rationale": "Vuln rationale"}]}]
+    }
+    mock_gpt['chat'].return_value = json.dumps(mock_response)
+    
+    result = generate_cog_suggestions(**sample_cog_data)
+    
+    assert result == mock_response
+    mock_gpt['chat'].assert_called_once()
+    
+    # Verify the correct model is used
+    assert mock_gpt['chat'].call_args[1]["model"] == "gpt-4o-mini"
+
+@pytest.mark.integration
+def test_generate_cog_suggestions_invalid_json(mock_gpt, mock_streamlit, sample_cog_data):
+    """Test handling of invalid JSON responses"""
+    # Mock an invalid JSON response that needs cleaning
+    mock_gpt['chat'].return_value = '''Here's your COG analysis:
+    {
+        "capabilities": [
+            {
+                "name": "Market Presence",
+                "importance": 8,
+                "type": "Economic",
+                "rationale": "Ability to maintain operations in target markets"
+            }
+        ],
+        "requirements": [
+            {
+                "name": "Test Requirement",
+                "description": "Test Description"
+            }
+        ],
+        "vulnerabilities": [
+            {
+                "name": "Test Vulnerability",
+                "description": "Test Description",
+                "related_capability": "Market Presence"
+            }
+        ]
+    }'''
+
+    result = generate_cog_suggestions(**sample_cog_data)
+
+    # Verify the result structure
+    assert isinstance(result, dict)
+    assert 'capabilities' in result
+    assert 'requirements' in result
+    assert 'vulnerabilities' in result
+    assert len(result['capabilities']) > 0
+    assert len(result['requirements']) > 0
+    assert len(result['vulnerabilities']) > 0
+
+@pytest.mark.integration
+def test_generate_cog_suggestions_openai_import_error(mock_streamlit, sample_cog_data):
+    """Test fallback behavior when OpenAI is not available"""
+    with patch('utilities.gpt.OPENAI_AVAILABLE', False), \
+         patch('utilities.gpt.get_chat_completion', side_effect=ImportError):
+        
+        result = generate_cog_suggestions(**sample_cog_data)
+        
+        # Verify fallback suggestions are returned
+        assert isinstance(result, dict)
+        assert 'capabilities' in result
+        assert 'requirements' in result
+        assert 'vulnerabilities' in result
+        assert len(result['capabilities']) > 0
+        assert isinstance(result['capabilities'][0], dict)
+        assert 'name' in result['capabilities'][0]
+        assert 'importance' in result['capabilities'][0]
+        assert 'type' in result['capabilities'][0]
+        assert 'rationale' in result['capabilities'][0]
+
+def test_initialize_session_state(mock_streamlit):
+    """Test session state initialization"""
+    initialize_session_state()
+    
+    # Verify all required keys are initialized with correct default values
+    expected_state = {
+        "capabilities": [],
+        "requirements_text": "",
+        "vulnerabilities_dict": {},
+        "final_cog": "",
+        "current_suggestions": None,
+        "cog_graph": None,
+        "vulnerability_scores": {},
+        "criteria": ["Impact", "Attainability", "Strategic Advantage Potential"],
+        "cog_suggestions": []
+    }
+    
+    for key, value in expected_state.items():
+        assert mock_streamlit['session_state'].get(key) == value
+
+def test_generate_cog(mock_gpt, mock_streamlit, sample_cog_data):
+    """Test the generate_cog function"""
+    # Setup button click and session state
+    mock_streamlit['button'].return_value = True
+    mock_streamlit['session_state'] = {
+        'capabilities': [],
+        'requirements': [],
+        'vulnerabilities': [],
+        'cog_suggestions': []
+    }
+    
+    # Mock successful completion
+    mock_response = "COG1; COG2; COG3"
+    mock_gpt['completion'].return_value = mock_response
+    
+    # Mock streamlit functions
+    mock_streamlit['success'] = MagicMock()
+    mock_streamlit['write'] = MagicMock()
+    
+    # Call the function
+    with patch('frameworks.cog.get_completion') as mock_get_completion:
+        mock_get_completion.return_value = mock_response
+        generate_cog(
+            entity_type=sample_cog_data['entity_type'],
+            entity_name=sample_cog_data['entity_name'],
+            entity_goals=sample_cog_data['entity_goals'],
+            entity_presence=sample_cog_data['entity_presence'],
+            desired_end_state=sample_cog_data['desired_end_state']
+        )
+    
+    # Verify get_completion was called with correct arguments
+    mock_get_completion.assert_called_once()
+    args, kwargs = mock_get_completion.call_args
+    
+    # Verify that the session state was updated correctly
+    assert mock_streamlit['session_state']['cog_suggestions'] == ['COG1', 'COG2', 'COG3']
+    
+    # Verify that success message was shown
+    mock_streamlit['success'].assert_called_once()
+    mock_streamlit['write'].assert_called()
+
+def test_generate_cog_validation(mock_streamlit, sample_cog_data):
+    """Test generate_cog input validation"""
+    # Setup button click
+    mock_streamlit['button'].return_value = True
+    
+    # Test with empty entity name
+    invalid_data = sample_cog_data.copy()
+    invalid_data['entity_name'] = ''
+    
+    generate_cog(**invalid_data)
+    
+    # Verify warning message
+    mock_streamlit['warning'].assert_called_once_with(
+        "Entity type and name are required. Please complete these fields before generating suggestions."
+    )
+
+def test_manage_capabilities(mock_gpt, mock_streamlit, sample_cog_data):
+    """Test the manage_capabilities function"""
+    # Setup initial state
+    mock_streamlit['session_state'] = {
+        'capabilities': [],
+        'requirements': [],
+        'vulnerabilities': []
+    }
+    
+    # Mock streamlit components
+    mock_streamlit['text_input'] = MagicMock(return_value="New Capability")
+    mock_streamlit['button'] = MagicMock(return_value=True)
+    mock_streamlit['success'] = MagicMock()
+    mock_streamlit['write'] = MagicMock()
+    mock_streamlit['empty'] = MagicMock()
+    mock_streamlit['container'] = MagicMock()
+    
+    # Mock the chat completion for AI suggestions
+    mock_response = "AI Cap 1; AI Cap 2; AI Cap 3"
+    mock_gpt['chat'].return_value = mock_response
+    
+    # Test managing capabilities
+    manage_capabilities(
+        final_cog=sample_cog_data['entity_name'],
+        entity_type=sample_cog_data['entity_type'],
+        entity_name=sample_cog_data['entity_name'],
+        entity_goals=sample_cog_data['entity_goals'],
+        entity_presence=sample_cog_data['entity_presence']
+    )
+    
+    # Add a capability manually
+    mock_streamlit['session_state']['capabilities'].append("New Capability")
+    
+    # Verify capabilities were added
+    assert len(mock_streamlit['session_state']['capabilities']) > 0
+    assert "New Capability" in mock_streamlit['session_state']['capabilities']
