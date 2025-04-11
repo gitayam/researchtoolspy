@@ -1753,39 +1753,57 @@ def cog_analysis():
                         desired_end_state
                     )
                     st.session_state["cog_suggestions"] = suggestions
-                    
-                    st.success("Select from these suggested Centers of Gravity:")
-                    for i, sug in enumerate(suggestions):
-                        col1, col2 = st.columns([4, 1])
-                        with col1:
-                            st.markdown(f"**{i+1}.** {sug}")
-                        with col2:
-                            if st.button("Select", key=f"select_cog_{i}"):
-                                st.session_state["final_cog"] = sug
-                                st.success(f"Selected COG: {sug}")
-                                st.rerun()
+        
+        # Display and handle COG suggestions
+        if "cog_suggestions" in st.session_state and st.session_state["cog_suggestions"]:
+            st.success("Select from these suggested Centers of Gravity:")
+            for i, sug in enumerate(st.session_state["cog_suggestions"]):
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.markdown(f"**{i+1}.** {sug}")
+                with col2:
+                    # Use a unique key for each button to prevent conflicts
+                    button_key = f"select_cog_{i}_{sug}"
+                    if st.button("Select", key=button_key):
+                        st.session_state["final_cog"] = sug
+                        st.session_state["selected_cog_index"] = i
+                        st.success(f"Selected COG: {sug}")
+                        st.rerun()
+                
+                # Highlight the selected COG
+                if "selected_cog_index" in st.session_state and st.session_state["selected_cog_index"] == i:
+                    st.markdown(f'<div class="success-box">✓ Currently Selected</div>', unsafe_allow_html=True)
         
         # Manual COG Input
         st.markdown("#### Or Enter Manually")
         manual_cog = st.text_input(
             "Enter Center of Gravity",
+            value=st.session_state.get("final_cog", ""),  # Pre-fill with current COG if exists
             help="The source of power that provides moral or physical strength, freedom of action, or will to act"
         )
         
         if st.button("Use Manual COG", use_container_width=True):
             if manual_cog.strip():
                 st.session_state["final_cog"] = manual_cog.strip()
+                st.session_state.pop("selected_cog_index", None)  # Clear selected suggestion index
                 st.success(f"Set Center of Gravity to: {manual_cog}")
                 st.rerun()
             else:
                 st.warning("Please enter a Center of Gravity first")
         
-        # Display current COG
+        # Display current COG with clear option
         if st.session_state.get("final_cog"):
-            st.markdown(
-                f'<div class="success-box">Current Center of Gravity: <strong>{st.session_state["final_cog"]}</strong></div>',
-                unsafe_allow_html=True
-            )
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.markdown(
+                    f'<div class="success-box">Current Center of Gravity: <strong>{st.session_state["final_cog"]}</strong></div>',
+                    unsafe_allow_html=True
+                )
+            with col2:
+                if st.button("🗑️ Clear COG"):
+                    st.session_state.pop("final_cog", None)
+                    st.session_state.pop("selected_cog_index", None)
+                    st.rerun()
     
     with tab2:
         st.markdown('<h2 class="section-header">Critical Capabilities</h2>', unsafe_allow_html=True)
