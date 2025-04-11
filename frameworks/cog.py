@@ -62,7 +62,8 @@ def initialize_session_state() -> None:
         "requirements": {},  # Changed from [] to {} to store requirements per capability
         "vulnerabilities": [],
         "final_scores": [],
-        "desired_end_state": ""
+        "desired_end_state": "",
+        "assumptions": []
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -738,7 +739,8 @@ def export_cog_analysis():
          "criteria": st.session_state.get("criteria", []),
          "vulnerability_scores": st.session_state.get("vulnerability_scores", {}),
          "final_scores": st.session_state.get("final_scores", []),
-         "desired_end_state": st.session_state.get("desired_end_state", "")
+         "desired_end_state": st.session_state.get("desired_end_state", ""),
+         "assumptions": st.session_state.get("assumptions", [])
     }
     json_data = json.dumps(data, indent=2)
     return json_data
@@ -1680,6 +1682,59 @@ def cog_analysis():
             height=100
         )
         
+        # Add Assumptions Section
+        st.markdown("---")
+        st.markdown("### Assumptions")
+        st.markdown("""
+        List key assumptions that underpin your analysis. These could include:
+        - Operational environment conditions
+        - Resource availability
+        - Entity behavior patterns
+        - External factors
+        """)
+        
+        # Initialize assumptions in session state if not present
+        if "assumptions" not in st.session_state:
+            st.session_state["assumptions"] = []
+        
+        # Add new assumption
+        new_assumption = st.text_area(
+            "New Assumption",
+            help="Enter a key assumption that underlies your analysis",
+            key="new_assumption_input"
+        )
+        
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            if st.button("Add Assumption", use_container_width=True):
+                if new_assumption.strip():
+                    st.session_state["assumptions"].append({
+                        "text": new_assumption.strip(),
+                        "validated": False,
+                        "notes": ""
+                    })
+                    st.success("Assumption added")
+                    st.rerun()
+        
+        # Display current assumptions
+        if st.session_state["assumptions"]:
+            st.markdown("#### Current Assumptions")
+            for idx, assumption in enumerate(st.session_state["assumptions"]):
+                with st.container():
+                    col1, col2, col3, col4 = st.columns([4, 1, 2, 1])
+                    with col1:
+                        st.markdown(f"**{idx + 1}.** {assumption['text']}")
+                    with col2:
+                        validated = st.checkbox("✓", value=assumption["validated"], key=f"valid_{idx}")
+                        st.session_state["assumptions"][idx]["validated"] = validated
+                    with col3:
+                        notes = st.text_input("Notes", value=assumption.get("notes", ""), key=f"notes_{idx}")
+                        st.session_state["assumptions"][idx]["notes"] = notes
+                    with col4:
+                        if st.button("🗑️", key=f"del_assumption_{idx}"):
+                            st.session_state["assumptions"].pop(idx)
+                            st.rerun()
+        
         # COG Selection
         st.markdown("---")
         st.markdown("### Center of Gravity Selection")
@@ -1701,9 +1756,14 @@ def cog_analysis():
                     
                     st.success("Select from these suggested Centers of Gravity:")
                     for i, sug in enumerate(suggestions):
-                        if st.button(f"Use: {sug}", key=f"use_cog_{i}"):
-                            st.session_state["final_cog"] = sug
-                            st.rerun()
+                        col1, col2 = st.columns([4, 1])
+                        with col1:
+                            st.markdown(f"**{i+1}.** {sug}")
+                        with col2:
+                            if st.button("Select", key=f"select_cog_{i}"):
+                                st.session_state["final_cog"] = sug
+                                st.success(f"Selected COG: {sug}")
+                                st.rerun()
         
         # Manual COG Input
         st.markdown("#### Or Enter Manually")
