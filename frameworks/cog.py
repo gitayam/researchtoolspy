@@ -59,7 +59,7 @@ def initialize_session_state() -> None:
         "entity_goals": "",
         "entity_presence": "",
         "domain_answers": {},
-        "requirements": [],
+        "requirements": {},  # Changed from [] to {} to store requirements per capability
         "vulnerabilities": [],
         "final_scores": [],
         "desired_end_state": ""
