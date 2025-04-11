@@ -1250,6 +1250,236 @@ def display_ai_suggestions(suggestions: Dict):
                 else:
                     st.info(f"Vulnerability already added: {vuln['name']}")
 
+def generate_cog_recommendations(
+    entity_type: str,
+    entity_name: str,
+    entity_goals: str,
+    entity_presence: str,
+    desired_end_state: str
+) -> List[str]:
+    """Generate COG recommendations based on entity information.
+    
+    Args:
+        entity_type: The type of entity being analyzed
+        entity_name: The name of the entity
+        entity_goals: The goals of the entity
+        entity_presence: Areas where the entity is present
+        desired_end_state: The desired end state for the analysis
+        
+    Returns:
+        List of recommended Centers of Gravity
+    """
+    try:
+        system_msg = {
+            "role": "system",
+            "content": (
+                "You are an AI specialized in identifying Centers of Gravity (COG). "
+                "A COG is a source of power that provides moral or physical strength, "
+                "freedom of action, or will to act. Provide 3-5 potential COGs."
+            )
+        }
+        user_msg = {
+            "role": "user",
+            "content": (
+                f"Based on this information:\n"
+                f"Entity Type: {entity_type}\n"
+                f"Entity Name: {entity_name}\n"
+                f"Goals: {entity_goals}\n"
+                f"Areas of Presence: {entity_presence}\n"
+                f"Desired End State: {desired_end_state}\n\n"
+                "Suggest 3-5 potential Centers of Gravity. Separate each with a semicolon. "
+                "Each suggestion should be a concise phrase (3-7 words). "
+                "Do not include explanations or numbering."
+            )
+        }
+        
+        response = get_chat_completion([system_msg, user_msg], model="gpt-4")
+        suggestions = [s.strip() for s in response.split(";") if s.strip()]
+        return suggestions[:5]  # Limit to 5 suggestions
+    except Exception as e:
+        logging.error(f"Error generating COG recommendations: {e}")
+        return ["Command and Control Network", "Economic Resource Base", "Popular Support"]
+
+def manage_capabilities(final_cog: str, entity_type: str, entity_name: str, entity_goals: str, entity_presence: str) -> None:
+    """Manage critical capabilities for the selected Center of Gravity.
+    
+    Args:
+        final_cog: The selected Center of Gravity
+        entity_type: The type of entity being analyzed
+        entity_name: The name of the entity
+        entity_goals: The goals of the entity
+        entity_presence: Areas where the entity is present
+    """
+    if "capabilities" not in st.session_state:
+        st.session_state["capabilities"] = []
+
+    with st.expander("Add or Suggest Capabilities", expanded=True):
+        st.markdown("""
+        **Critical Capabilities** are the primary abilities that make the Center of Gravity effective 
+        in the operational environment. These are crucial enablers for the COG.
+        """)
+        
+        new_capability = st.text_input(
+            "Add a Critical Capability",
+            help="Enter one capability at a time that is relevant to the selected CoG."
+        )
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            if st.button("➕ Add Capability", use_container_width=True):
+                if new_capability.strip():
+                    if new_capability not in st.session_state["capabilities"]:
+                        st.session_state["capabilities"].append(new_capability.strip())
+                        st.success(f"Added capability: {new_capability.strip()}")
+                        st.rerun()
+                    else:
+                        st.info(f"Capability already exists: {new_capability}")
+                else:
+                    st.warning("Please enter a capability first.")
+        
+        with col2:
+            if st.button("🤖 AI: Suggest Capabilities", use_container_width=True):
+                if not final_cog:
+                    st.warning("Please specify or select a CoG first.")
+                else:
+                    try:
+                        system_msg = {
+                            "role": "system",
+                            "content": "You are an AI specialized in identifying critical capabilities for a Center of Gravity."
+                        }
+                        user_msg = {
+                            "role": "user",
+                            "content": (
+                                f"For this Center of Gravity: '{final_cog}'\n"
+                                f"Entity Type: {entity_type}\n"
+                                f"Entity Name: {entity_name}\n"
+                                f"Goals: {entity_goals}\n"
+                                f"Areas of Presence: {entity_presence}\n\n"
+                                "List 3-5 critical capabilities (key abilities or functions). "
+                                "Separate with semicolons. Be specific and actionable."
+                            )
+                        }
+                        response = get_chat_completion([system_msg, user_msg], model="gpt-4")
+                        new_capabilities = [cap.strip() for cap in response.split(";") if cap.strip()]
+                        
+                        added = []
+                        for cap in new_capabilities:
+                            if cap not in st.session_state["capabilities"]:
+                                st.session_state["capabilities"].append(cap)
+                                added.append(cap)
+                        
+                        if added:
+                            st.success("Added new capabilities:")
+                            for cap in added:
+                                st.write(f"- {cap}")
+                            st.rerun()
+                        else:
+                            st.info("No new capabilities to add.")
+                    except Exception as e:
+                        st.error(f"Error suggesting capabilities: {e}")
+        
+        if st.session_state["capabilities"]:
+            st.markdown("### Current Capabilities")
+            for i, cap in enumerate(st.session_state["capabilities"]):
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.write(f"{i+1}. {cap}")
+                with col2:
+                    if st.button("🗑️", key=f"del_cap_{i}"):
+                        st.session_state["capabilities"].pop(i)
+                        st.rerun()
+            
+            if st.button("Clear All Capabilities"):
+                st.session_state["capabilities"].clear()
+                st.rerun()
+
+def manage_requirements(capability: str) -> None:
+    """Manage requirements for a specific capability.
+    
+    Args:
+        capability: The capability to manage requirements for
+    """
+    if "requirements" not in st.session_state:
+        st.session_state["requirements"] = {}
+    
+    if capability not in st.session_state["requirements"]:
+        st.session_state["requirements"][capability] = []
+    
+    st.markdown(f"### Requirements for: {capability}")
+    st.markdown("""
+    **Critical Requirements** are the essential conditions, resources, or means 
+    required for a critical capability to be fully operative.
+    """)
+    
+    new_requirement = st.text_input(
+        "Add Requirement",
+        key=f"req_input_{capability}",
+        help="Enter a specific requirement needed for this capability"
+    )
+    
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("➕ Add Requirement", key=f"add_req_{capability}", use_container_width=True):
+            if new_requirement.strip():
+                if new_requirement not in st.session_state["requirements"][capability]:
+                    st.session_state["requirements"][capability].append(new_requirement.strip())
+                    st.success(f"Added requirement: {new_requirement}")
+                    st.rerun()
+                else:
+                    st.info("Requirement already exists")
+            else:
+                st.warning("Please enter a requirement first")
+    
+    with col2:
+        if st.button("🤖 AI: Suggest Requirements", key=f"suggest_req_{capability}", use_container_width=True):
+            try:
+                system_msg = {
+                    "role": "system",
+                    "content": "You are an AI specialized in identifying critical requirements for military/strategic capabilities."
+                }
+                user_msg = {
+                    "role": "user",
+                    "content": (
+                        f"For this capability: '{capability}'\n\n"
+                        "List 3-5 critical requirements (essential conditions, resources, or means) "
+                        "needed for this capability to be fully operative. "
+                        "Separate with semicolons. Be specific and concrete."
+                    )
+                }
+                response = get_chat_completion([system_msg, user_msg], model="gpt-4")
+                new_requirements = [req.strip() for req in response.split(";") if req.strip()]
+                
+                added = []
+                for req in new_requirements:
+                    if req not in st.session_state["requirements"][capability]:
+                        st.session_state["requirements"][capability].append(req)
+                        added.append(req)
+                
+                if added:
+                    st.success("Added new requirements:")
+                    for req in added:
+                        st.write(f"- {req}")
+                    st.rerun()
+                else:
+                    st.info("No new requirements to add")
+            except Exception as e:
+                st.error(f"Error suggesting requirements: {e}")
+    
+    if st.session_state["requirements"][capability]:
+        st.markdown("#### Current Requirements")
+        for i, req in enumerate(st.session_state["requirements"][capability]):
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.write(f"{i+1}. {req}")
+            with col2:
+                if st.button("🗑️", key=f"del_req_{capability}_{i}"):
+                    st.session_state["requirements"][capability].pop(i)
+                    st.rerun()
+        
+        if st.button("Clear Requirements", key=f"clear_req_{capability}"):
+            st.session_state["requirements"][capability].clear()
+            st.rerun()
+
 def cog_analysis():
     # Add custom CSS for better styling
     st.markdown("""
@@ -1410,19 +1640,17 @@ def cog_analysis():
     
     # Create tabs for better organization
     tab1, tab2, tab3, tab4 = st.tabs([
-        "🎯 Basic Info & AI Analysis",
-        "🔄 Capabilities & Requirements",
-        "⚠️ Vulnerabilities & Scoring",
-        "📊 Visualization & Export"
+        "🎯 Basic Info & COG",
+        "💪 Capabilities",
+        "📋 Requirements",
+        "📊 Summary"
     ])
     
     with tab1:
-        st.markdown('<h2 class="section-header">🤖 AI-Assisted Analysis</h2>', unsafe_allow_html=True)
+        st.markdown('<h2 class="section-header">Entity Information</h2>', unsafe_allow_html=True)
         
-        # Entity Information in a cleaner layout
-        st.markdown('<div class="info-box">', unsafe_allow_html=True)
+        # Entity Information
         col1, col2 = st.columns(2)
-        
         with col1:
             entity_type = st.selectbox(
                 "Entity Type",
@@ -1451,62 +1679,46 @@ def cog_analysis():
             help="What outcome do you want to achieve?",
             height=100
         )
-        st.markdown('</div>', unsafe_allow_html=True)
         
-        # AI Generation with better visual feedback
-        if st.button("🤖 Generate Complete COG Analysis", type="primary", use_container_width=True):
+        # COG Selection
+        st.markdown("---")
+        st.markdown("### Center of Gravity Selection")
+        
+        # Auto-generate COG suggestions
+        if st.button("🤖 Generate COG Suggestions", use_container_width=True):
             if not entity_type or not entity_name:
-                st.warning("⚠️ Please provide at least the entity type and name.")
+                st.warning("Please provide at least the entity type and name.")
             else:
-                with st.spinner("🔄 Analyzing entity and generating suggestions..."):
-                    suggestions = generate_cog_suggestions(
+                with st.spinner("Generating suggestions..."):
+                    suggestions = generate_cog_recommendations(
                         entity_type,
                         entity_name,
                         entity_goals,
                         entity_presence,
                         desired_end_state
                     )
-                    if suggestions:
-                        st.session_state["current_suggestions"] = suggestions
-                        st.success("✅ Analysis generated successfully!")
-                        display_ai_suggestions(suggestions)
+                    st.session_state["cog_suggestions"] = suggestions
+                    
+                    st.success("Select from these suggested Centers of Gravity:")
+                    for i, sug in enumerate(suggestions):
+                        if st.button(f"Use: {sug}", key=f"use_cog_{i}"):
+                            st.session_state["final_cog"] = sug
+                            st.rerun()
         
-        # Manual COG Input Option
-        st.markdown("---")
-        st.markdown("### 📝 Manual Center of Gravity Input")
-        st.markdown("""
-        If you prefer to specify your own Center of Gravity, you can enter it manually below.
-        A Center of Gravity is the source of power that provides moral or physical strength, freedom of action, or will to act.
-        """)
-        
-        manual_cog = st.text_area(
+        # Manual COG Input
+        st.markdown("#### Or Enter Manually")
+        manual_cog = st.text_input(
             "Enter Center of Gravity",
-            help="Example: 'Economic Control Network' or 'Allied Coalition Network'",
-            key="manual_cog_input"
+            help="The source of power that provides moral or physical strength, freedom of action, or will to act"
         )
         
-        manual_cog_description = st.text_area(
-            "Description (Optional)",
-            help="Provide a brief description of why this is a Center of Gravity",
-            key="manual_cog_description"
-        )
-        
-        if st.button("✅ Use Manual Center of Gravity", type="primary"):
+        if st.button("Use Manual COG", use_container_width=True):
             if manual_cog.strip():
                 st.session_state["final_cog"] = manual_cog.strip()
-                if manual_cog_description.strip():
-                    st.session_state["cog_description"] = manual_cog_description.strip()
                 st.success(f"Set Center of Gravity to: {manual_cog}")
                 st.rerun()
             else:
-                st.warning("Please enter a Center of Gravity before proceeding.")
-        
-        # Show current suggestions if they exist
-        if "current_suggestions" in st.session_state:
-            display_ai_suggestions(st.session_state["current_suggestions"])
-    
-    with tab2:
-        st.markdown('<h2 class="section-header">💪 Capabilities & Requirements</h2>', unsafe_allow_html=True)
+                st.warning("Please enter a Center of Gravity first")
         
         # Display current COG
         if st.session_state.get("final_cog"):
@@ -1514,137 +1726,74 @@ def cog_analysis():
                 f'<div class="success-box">Current Center of Gravity: <strong>{st.session_state["final_cog"]}</strong></div>',
                 unsafe_allow_html=True
             )
+    
+    with tab2:
+        st.markdown('<h2 class="section-header">Critical Capabilities</h2>', unsafe_allow_html=True)
         
-        # Capabilities Management
-        col1, col2 = st.columns([2, 1])
-        with col1:
+        if st.session_state.get("final_cog"):
             manage_capabilities(
-                st.session_state.get("final_cog", ""),
+                st.session_state["final_cog"],
                 entity_type,
                 entity_name,
                 entity_goals,
                 entity_presence
             )
-        
-        with col2:
-            if st.session_state.get("capabilities"):
-                st.markdown('<div class="info-box">', unsafe_allow_html=True)
-                st.markdown("### Current Capabilities")
-                for cap in st.session_state["capabilities"]:
-                    st.markdown(f"- {cap}")
-                st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.warning("Please select or enter a Center of Gravity first")
     
     with tab3:
-        st.markdown('<h2 class="section-header">🎯 Vulnerabilities & Scoring</h2>', unsafe_allow_html=True)
+        st.markdown('<h2 class="section-header">Critical Requirements</h2>', unsafe_allow_html=True)
         
-        # Vulnerabilities Management
-        manage_vulnerabilities(
-            entity_type,
-            entity_name,
-            entity_goals,
-            entity_presence,
-            st.session_state.get("final_cog", "")
-        )
-        
-        # Scoring Interface
-        if st.session_state.get("vulnerabilities_dict"):
-            all_vulnerabilities_list = [
-                (cap, v_item)
-                for cap in st.session_state["capabilities"]
-                for v_item in st.session_state["vulnerabilities_dict"].get(cap, [])
-            ]
-            score_and_prioritize(all_vulnerabilities_list)
+        if st.session_state.get("capabilities"):
+            for capability in st.session_state["capabilities"]:
+                with st.expander(f"Requirements for: {capability}", expanded=True):
+                    manage_requirements(capability)
+        else:
+            st.warning("Please add capabilities first")
     
     with tab4:
-        st.markdown('<h2 class="section-header">📊 Visualization & Export</h2>', unsafe_allow_html=True)
+        st.markdown('<h2 class="section-header">Analysis Summary</h2>', unsafe_allow_html=True)
         
-        # Network Visualization
         if st.session_state.get("final_cog"):
-            G = visualize_cog_network(
-                st.session_state["final_cog"],
-                st.session_state.get("capabilities", []),
-                st.session_state.get("vulnerabilities_dict", {}),
-                st.session_state.get("requirements_text", "")
-            )
-            if G:
-                st.session_state["cog_graph"] = G
-                
-                # Network Statistics
-                st.markdown("### Network Statistics")
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    total_nodes = G.number_of_nodes()
-                    node_types = {
-                        node_type: len([n for n, attr in G.nodes(data=True) 
-                                      if attr.get('node_type') == node_type])
-                        for node_type in ["cog", "capability", "vulnerability", "requirement"]
+            st.markdown("### Center of Gravity")
+            st.info(st.session_state["final_cog"])
+            
+            if st.session_state.get("capabilities"):
+                st.markdown("### Critical Capabilities")
+                for cap in st.session_state["capabilities"]:
+                    with st.expander(cap):
+                        st.markdown("#### Requirements:")
+                        if cap in st.session_state.get("requirements", {}) and st.session_state["requirements"][cap]:
+                            for req in st.session_state["requirements"][cap]:
+                                st.write(f"- {req}")
+                        else:
+                            st.write("No requirements defined")
+            
+            # Export options
+            st.markdown("---")
+            st.markdown("### Export Analysis")
+            
+            if st.button("Export to JSON"):
+                analysis_data = {
+                    "center_of_gravity": st.session_state["final_cog"],
+                    "capabilities": st.session_state["capabilities"],
+                    "requirements": st.session_state.get("requirements", {}),
+                    "entity_info": {
+                        "type": entity_type,
+                        "name": entity_name,
+                        "goals": entity_goals,
+                        "presence": entity_presence,
+                        "desired_end_state": desired_end_state
                     }
-                    st.metric("Total Nodes", total_nodes,
-                            f"COG: {node_types['cog']}, Cap: {node_types['capability']}, Vuln: {node_types['vulnerability']}")
-                
-                with col2:
-                    total_edges = G.number_of_edges()
-                    edge_types = {
-                        edge_type: len([(u, v) for u, v, attr in G.edges(data=True) 
-                                      if attr.get('link_type') == edge_type])
-                        for edge_type in ["Direct", "Support"]
-                    }
-                    st.metric("Total Links", total_edges,
-                            f"Direct: {edge_types['Direct']}, Support: {edge_types['Support']}")
-                
-                with col3:
-                    avg_refinement = sum(attr['refinement'] for _, attr in G.nodes(data=True)) / total_nodes
-                    st.metric("Average Refinement", f"{avg_refinement:.1f}")
-        
-        # Export Options
-        st.markdown("### 💾 Export Options")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### Analysis Export")
-            if st.button("Export Analysis", type="primary", use_container_width=True):
-                json_data = export_cog_analysis()
+                }
                 st.download_button(
-                    label="⬇️ Download JSON",
-                    data=json_data,
+                    "Download JSON",
+                    data=json.dumps(analysis_data, indent=2),
                     file_name="cog_analysis.json",
-                    mime="application/json",
-                    use_container_width=True
+                    mime="application/json"
                 )
-        
-        with col2:
-            st.markdown("#### Network Graph Export")
-            if st.session_state.get("cog_graph") and HAS_VISUALIZATION:
-                export_format = st.selectbox(
-                    "Select Format",
-                    ["gexf", "graphml", "json"],
-                    help="""
-                    - GEXF: Compatible with Gephi and other graph visualization tools
-                    - GraphML: Standard graph format, widely supported
-                    - JSON: Web-friendly format for custom visualizations
-                    """
-                )
-                if st.button(f"Export as {export_format.upper()}", use_container_width=True):
-                    graph_data = export_graph(st.session_state["cog_graph"], export_format)
-                    if graph_data:
-                        st.download_button(
-                            label=f"⬇️ Download {export_format.upper()}",
-                            data=graph_data,
-                            file_name=f"cog_network.{export_format}",
-                            mime=f"application/{export_format}",
-                            use_container_width=True
-                        )
-            else:
-                st.info("Create a COG network to enable graph export")
-    
-    # Footer with assumptions and references
-    st.markdown("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        manage_assumptions()
-    with col2:
-        search_references()
+        else:
+            st.warning("Please complete the analysis by selecting a Center of Gravity and adding capabilities")
 
 def main():
     cog_analysis()
