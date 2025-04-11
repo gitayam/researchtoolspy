@@ -4,9 +4,12 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime
-from openai import OpenAI
 from typing import Dict, List, Any, Optional, Union
 import json
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 # Try to import OpenAI, but provide fallbacks if not available
 try:
@@ -62,77 +65,101 @@ def chat_gpt(
     Returns:
         str: The text content of the AI's reply.
     """
-    if USE_LOCAL_LLM:
-        # Call the local LLM endpoint using the provided host/port and API key.
-        import requests
-        url = f"http://{LOCAL_LLM_HOST}:{LOCAL_LLM_PORT}/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {LOCAL_LLM_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        json_data = {
-            "model": model,
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-            "top_p": top_p,
-            "n": n,
-            "frequency_penalty": frequency_penalty,
-            "presence_penalty": presence_penalty
-        }
-        response = requests.post(url, headers=headers, json=json_data)
-        response.raise_for_status()
-        return response.json().choices[0].message.content.strip()
-    else:
-        # Fallback to using the OpenAI API.
-        response = client.chat.completions.create(model=model,
-        messages=messages,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        top_p=top_p,
-        n=n,
-        frequency_penalty=frequency_penalty,
-        presence_penalty=presence_penalty)
-        return response.choices[0].message.content.strip()
+    if not OPENAI_AVAILABLE and not USE_LOCAL_LLM:
+        return "AI services are not available. Please check your configuration."
+        
+    try:
+        if USE_LOCAL_LLM:
+            # Call the local LLM endpoint using the provided host/port and API key.
+            import requests
+            url = f"http://{LOCAL_LLM_HOST}:{LOCAL_LLM_PORT}/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {LOCAL_LLM_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            json_data = {
+                "model": model,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "top_p": top_p,
+                "n": n,
+                "frequency_penalty": frequency_penalty,
+                "presence_penalty": presence_penalty
+            }
+            response = requests.post(url, headers=headers, json=json_data)
+            response.raise_for_status()
+            response_json = response.json()
+            return response_json["choices"][0]["message"]["content"].strip()
+        else:
+            # Use the OpenAI API.
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                n=n,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty
+            )
+            return response.choices[0].message.content.strip()
+    except Exception as e:
+        logging.error(f"Error in chat_gpt: {e}")
+        return f"Error generating response: {str(e)}"
 
 
 def generate_advanced_query(search_query, search_platform, model="gpt-4"):
     """
-    Preserves your original function from chatgptService.js logic.
-    Useful if you still want 'advanced query' style prompts.
+    Generates an advanced search query for the specified platform.
+    
+    Args:
+        search_query (str): The basic search query to enhance
+        search_platform (str): The platform to generate the query for
+        model (str): The model to use
+        
+    Returns:
+        str: The enhanced search query
     """
-    # Get today's date
-    today = datetime.now()
-    date_context = f"\nToday's date is {today.strftime('%Y-%m-%d')}. "
+    if not OPENAI_AVAILABLE:
+        return f"Cannot generate advanced query: OpenAI API not available"
+        
+    try:
+        # Get today's date
+        today = datetime.now()
+        date_context = f"\nToday's date is {today.strftime('%Y-%m-%d')}. "
 
-    base_prompt = f"Analyze the intention of this search and create an advanced query to be used on {search_platform}. {date_context}"
+        base_prompt = f"Analyze the intention of this search and create an advanced query to be used on {search_platform}. {date_context}"
 
-    if search_platform == "Windows CMD Search":
-        additional_prompt = (
-            "Take into account the limits and syntax of Windows CMD Search and "
-            "use only commands that do not require installation on the terminal.\n"
-            "Output the exact command to run, do not output any additional explanation, "
-            "do not use markdown codeblocks or backticks."
+        if search_platform == "Windows CMD Search":
+            additional_prompt = (
+                "Take into account the limits and syntax of Windows CMD Search and "
+                "use only commands that do not require installation on the terminal.\n"
+                "Output the exact command to run, do not output any additional explanation, "
+                "do not use markdown codeblocks or backticks."
+            )
+        else:
+            additional_prompt = (
+                "Start by considering what the data would look like... "
+                "Only output the advanced query, no additional explanation, "
+                "do not use markdown codeblocks or backticks."
+            )
+
+        messages = [
+            {"role": "user", "content": base_prompt + additional_prompt + search_query}
+        ]
+
+        # Use the existing client instead of creating a new one
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            max_tokens=250
         )
-    else:
-        additional_prompt = (
-            "Start by considering what the data would look like... "
-            "Only output the advanced query, no additional explanation, "
-            "do not use markdown codeblocks or backticks."
-        )
 
-    messages = [
-        {"role": "user", "content": base_prompt + additional_prompt + search_query}
-    ]
-
-    # Initialize OpenAI client
-    client = OpenAI()
-
-    response = client.chat.completions.create(model=model,
-        messages=messages,
-        max_tokens=250)
-
-    return response.choices[0].message.content
+        return response.choices[0].message.content
+    except Exception as e:
+        logging.error(f"Error generating advanced query: {e}")
+        return f"Error generating advanced query: {str(e)}"
 
 
 def generate_cog_questions(user_details, desired_end_state, custom_prompt="", model="gpt-4"):
@@ -234,7 +261,8 @@ def get_completion(
         The generated text as a string
     """
     if not OPENAI_AVAILABLE:
-        return f"OpenAI package not installed. Cannot process: {prompt[:100]}..."
+        logging.warning("OpenAI package not installed or API key not set")
+        return f"OpenAI services not available. Cannot process: {prompt[:100]}..."
 
     try:
         response = client.chat.completions.create(
@@ -248,7 +276,7 @@ def get_completion(
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"Error in get_completion: {e}")
+        logging.error(f"Error in get_completion: {e}")
         return f"Error generating completion: {str(e)}"
 
 def get_chat_completion(

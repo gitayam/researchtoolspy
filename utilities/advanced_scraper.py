@@ -44,18 +44,47 @@ def generate_google_results(suggestions_text):
     and then performs a Google search for each query.
     Returns a concatenated string of each query's search result summary.
     """
+    if not suggestions_text:
+        return "No suggestions provided."
+        
     results_text = ""
     items = suggestions_text.split(";")
     # Match either "Search:" or "Advanced Google Search Query:" (case insensitive)
     pattern = re.compile(r"(?:Search:|Advanced Google Search Query:)\s*(.+)", re.IGNORECASE)
+    
+    queries_found = False
     for item in items:
+        if not item.strip():
+            continue
+            
         m = pattern.search(item)
         if m:
             query = m.group(1).strip()
-            result = google_search_summary(query)
-            results_text += f"Query: {query}\n{result}\n\n"
+            if query:
+                queries_found = True
+                try:
+                    result = google_search_summary(query)
+                    results_text += f"Query: {query}\n{result}\n\n"
+                except Exception as e:
+                    logging.error(f"Error searching for query '{query}': {e}")
+                    results_text += f"Query: {query}\nError performing search: {str(e)}\n\n"
+    
+    if not queries_found:
+        # If no queries were found with the pattern, try using the raw text
+        logging.info("No queries found with pattern, using raw suggestions")
+        for item in items:
+            item = item.strip()
+            if item:
+                try:
+                    result = google_search_summary(item)
+                    results_text += f"Query: {item}\n{result}\n\n"
+                except Exception as e:
+                    logging.error(f"Error searching for raw query '{item}': {e}")
+                    results_text += f"Query: {item}\nError performing search: {str(e)}\n\n"
+    
     if not results_text:
-        results_text = "No valid advanced search queries found."
+        results_text = "No valid advanced search queries found or all searches failed."
+    
     return results_text
 
 
@@ -300,31 +329,52 @@ def fetch_page_content(url, timeout=10, use_playwright=False):
     Fetch page content using requests. If use_playwright is True and requests fails,
     fallback to using Playwright (if available).
     """
+    if not url:
+        raise ValueError("URL cannot be empty")
+        
+    # Ensure URL has a scheme
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+        
     headers = {
         'User-Agent': (
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
             'AppleWebKit/537.36 (KHTML, like Gecko) '
             'Chrome/90.0.4430.93 Safari/537.36'
-        )
+        ),
+        'Accept': 'text/html,application/xhtml+xml,application/xml',
+        'Accept-Language': 'en-US,en;q=0.9'
     }
+    
     try:
+        logging.info(f"Fetching URL with requests: {url}")
         response = requests.get(url, timeout=timeout, headers=headers)
         response.raise_for_status()
         return response.content
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         logging.error(f"Error fetching URL with requests: {e}")
+        
         if use_playwright and PLAYWRIGHT_AVAILABLE:
             try:
+                logging.info(f"Attempting to fetch URL with Playwright: {url}")
                 with sync_playwright() as p:
                     browser = p.chromium.launch(headless=True)
-                    page = browser.new_page()
-                    page.goto(url, wait_until="networkidle")
-                    content = page.content()
-                    browser.close()
-                    return content
+                    page = browser.new_page(user_agent=headers['User-Agent'])
+                    
+                    try:
+                        page.goto(url, wait_until="networkidle", timeout=timeout * 1000)
+                        content = page.content()
+                        browser.close()
+                        return content
+                    except Exception as pe:
+                        logging.error(f"Playwright navigation error: {pe}")
+                        browser.close()
+                        raise
             except Exception as pe:
                 logging.error(f"Error fetching URL with Playwright: {pe}")
-        raise e
+        
+        # Re-raise the original exception if Playwright is not available or also fails
+        raise
 
 
 def extract_links_from_content(soup, url):
@@ -482,14 +532,46 @@ def advanced_fetch_metadata(url, timeout=10, use_gpt_fallback=True):
     # --- GPT Fallback ---
     if use_gpt_fallback and (title in [None, "No Title"] or description in [None, "No Description"]):
         try:
-            gpt_data = chat_gpt(url)
-            if gpt_data and isinstance(gpt_data, dict):
-                title = gpt_data.get("title", title)
-                description = gpt_data.get("description", description)
-                keywords = gpt_data.get("keywords", keywords)
-                author = gpt_data.get("author", author)
-                date_published = gpt_data.get("date_published", date_published)
-                editor = gpt_data.get("editor", editor)
+            # Create a proper prompt for GPT
+            prompt = f"""
+            Extract metadata from this URL: {url}
+            
+            Return the results as a JSON object with the following fields:
+            - title: The title of the page
+            - description: A brief description of the content
+            - keywords: Keywords related to the content
+            - author: The author of the content
+            - date_published: When the content was published
+            - editor: The editor of the content
+            """
+            
+            gpt_response = chat_gpt(
+                [{"role": "system", "content": "You are a metadata extraction assistant."},
+                 {"role": "user", "content": prompt}],
+                model="gpt-4o-mini"
+            )
+            
+            try:
+                # Try to parse the response as JSON
+                gpt_data = json.loads(gpt_response)
+                if isinstance(gpt_data, dict):
+                    title = gpt_data.get("title", title)
+                    description = gpt_data.get("description", description)
+                    keywords = gpt_data.get("keywords", keywords)
+                    author = gpt_data.get("author", author)
+                    date_published = gpt_data.get("date_published", date_published)
+                    editor = gpt_data.get("editor", editor)
+            except json.JSONDecodeError:
+                # If not valid JSON, try to extract information from the text response
+                logging.warning("GPT response was not valid JSON, attempting to extract data from text")
+                if "title:" in gpt_response.lower():
+                    title_match = re.search(r"title:(.+?)(?:\n|$)", gpt_response, re.IGNORECASE)
+                    if title_match and title == "No Title":
+                        title = title_match.group(1).strip()
+                if "description:" in gpt_response.lower():
+                    desc_match = re.search(r"description:(.+?)(?:\n|$)", gpt_response, re.IGNORECASE)
+                    if desc_match and description == "No Description":
+                        description = desc_match.group(1).strip()
         except Exception as e:
             logging.error(f"Error in GPT fallback extraction for {url}: {e}")
 

@@ -182,15 +182,51 @@ class BaseFramework(ABC):
     
     def generate_ai_suggestion(self, prompt: str, model: str = "gpt-4o-mini") -> str:
         """Generate an AI suggestion using the specified prompt and model"""
+        if not prompt:
+            st.warning("No prompt provided for AI suggestion.")
+            return ""
+            
         try:
-            from utilities.gpt import get_completion
-            return get_completion(prompt, model=model)
+            from utilities.gpt import get_completion, OPENAI_AVAILABLE
+            
+            if not OPENAI_AVAILABLE:
+                st.warning("OpenAI API is not available. Please check your API key configuration.")
+                return self._generate_fallback_suggestion(prompt)
+                
+            response = get_completion(prompt, model=model)
+            
+            # Check if the response indicates an error
+            if response.startswith("Error generating completion:"):
+                st.warning(f"AI suggestion encountered an issue: {response}")
+                return self._generate_fallback_suggestion(prompt)
+                
+            return response
         except ImportError:
             st.warning("AI suggestions are not available. Please install the required packages.")
-            return ""
+            return self._generate_fallback_suggestion(prompt)
         except Exception as e:
             st.error(f"Error generating AI suggestion: {e}")
-            return ""
+            return self._generate_fallback_suggestion(prompt)
+    
+    def _generate_fallback_suggestion(self, prompt: str) -> str:
+        """Generate a fallback suggestion when AI is not available"""
+        # Extract the key request from the prompt
+        prompt_lower = prompt.lower()
+        
+        if "generate questions" in prompt_lower or "suggest questions" in prompt_lower:
+            return "AI suggestions are currently unavailable. Please enter your own questions based on your analysis."
+        
+        if "summarize" in prompt_lower or "summary" in prompt_lower:
+            return "AI summary generation is currently unavailable. Please provide your own summary based on the information you've collected."
+        
+        if "analyze" in prompt_lower or "analysis" in prompt_lower:
+            return "AI analysis is currently unavailable. Please conduct your own analysis based on the available information."
+        
+        if "recommend" in prompt_lower or "suggestion" in prompt_lower:
+            return "AI recommendations are currently unavailable. Please provide your own recommendations based on your expertise."
+        
+        # Default fallback message
+        return "AI suggestions are currently unavailable. Please provide your own input based on your analysis."
     
     def export_to_docx(self, title: str, sections: List[Dict[str, Any]]) -> Optional[bytes]:
         """Export framework data to a Word document"""

@@ -2,7 +2,7 @@
 # Core dependencies
 streamlit>=1.22.0          # Web application framework
 streamlit-extras>=0.2.0    # Additional Streamlit components
-OpenAI>=0.27.0             # OpenAI API integration
+openai>=1.0.0              # OpenAI API integration (updated for new API)
 requests>=2.28.0           # HTTP requests library
 python-dotenv>=1.0.0       # Environment variable management
 pandas>=1.5.0              # Data manipulation and analysis
@@ -22,6 +22,7 @@ pandoc>=2.3                # Document format conversion
 
 # Web scraping and browsing
 beautifulsoup4>=4.12.0     # HTML parsing
+lxml>=4.9.2                # XML/HTML parser (required by BeautifulSoup)
 playwright>=1.32.0         # Browser automation
 selenium>=4.8.0            # Web browser automation
 chromedriver-binary        # Chrome driver for Selenium
@@ -39,6 +40,7 @@ tweepy>=4.13.0             # Twitter API wrapper
 langdetect>=1.0.9          # Language detection
 python-dateutil>=2.8.2     # Date utilities
 imagehash>=4.3.1           # Image hashing for similarity comparison
+validators>=0.20.0         # URL and other validation
 
 # Geographic data processing
 geopandas>=0.12.2          # Geographic data handling

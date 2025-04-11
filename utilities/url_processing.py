@@ -321,8 +321,15 @@ def async_generate_pdf_from_url(target_url):
     Returns:
         bytes: PDF content as bytes
     """
+    if not target_url:
+        logging.error("No URL provided to async_generate_pdf_from_url")
+        return None
+        
+    logging.info(f"Generating PDF for URL: {target_url}")
+    
     try:
         # Try using pdfkit first
+        logging.info("Attempting PDF generation with pdfkit")
         pdf_bytes = generate_pdf_from_url(target_url)
         if pdf_bytes:
             logging.info("Successfully generated PDF using pdfkit")
@@ -337,7 +344,7 @@ def async_generate_pdf_from_url(target_url):
             # Fetch the HTML content
             response = requests.get(target_url, headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/90.0.4430.93 Safari/537.36"
-            })
+            }, timeout=15)
             response.raise_for_status()
             html_content = response.text
             
@@ -348,6 +355,8 @@ def async_generate_pdf_from_url(target_url):
             if not pisa_status.err:
                 logging.info("Successfully generated PDF using xhtml2pdf")
                 return output.getvalue()
+            else:
+                logging.error(f"xhtml2pdf error: {pisa_status.err}")
         except Exception as e:
             logging.error(f"Error generating PDF with xhtml2pdf: {e}")
         
@@ -587,13 +596,15 @@ def wayback_tool_page(use_expander=True):
                 st.warning(f"Could not generate citation: {e}")
                 citation = f"Manual citation needed for: {url}"
 
+            # Initialize archived_url before the try block
+            archived_url = None
             try:
                 resp = requests.post(f"https://web.archive.org/save/{url}", timeout=15)
                 if resp.status_code == 200:
                     archived_url = resp.url
                     st.success("Archived URL (Wayback Machine) successfully!")
                 else:
-                    st.error("Failed to archive the URL with Wayback Machine")
+                    st.error(f"Failed to archive the URL with Wayback Machine. Status code: {resp.status_code}")
             except Exception as e:
                 st.error(f"Error occurred while archiving: {e}")
 
@@ -707,29 +718,44 @@ def generate_pdf_using_playwright(target_url):
         bytes: PDF content as bytes
     """
     try:
+        # Check if playwright is installed
+        import importlib.util
+        if importlib.util.find_spec("playwright") is None:
+            logging.error("Playwright is not installed")
+            return None
+            
         from playwright.sync_api import sync_playwright
         
         with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            
-            # Navigate to the URL with a timeout
-            page.goto(target_url, wait_until="networkidle", timeout=30000)
-            
-            # Wait for content to load
-            page.wait_for_timeout(2000)
-            
-            # Generate PDF
-            pdf_bytes = page.pdf(
-                format="A4",
-                print_background=True,
-                margin={"top": "1cm", "right": "1cm", "bottom": "1cm", "left": "1cm"}
-            )
-            
-            browser.close()
-            return pdf_bytes
+            try:
+                browser = p.chromium.launch()
+                page = browser.new_page()
+                
+                # Navigate to the URL with a timeout
+                page.goto(target_url, wait_until="networkidle", timeout=30000)
+                
+                # Wait for content to load
+                page.wait_for_timeout(2000)
+                
+                # Generate PDF
+                pdf_bytes = page.pdf(
+                    format="A4",
+                    print_background=True,
+                    margin={"top": "1cm", "right": "1cm", "bottom": "1cm", "left": "1cm"}
+                )
+                
+                browser.close()
+                return pdf_bytes
+            except Exception as e:
+                logging.error(f"Error during Playwright PDF generation: {e}")
+                if 'browser' in locals():
+                    browser.close()
+                return None
+    except ImportError as e:
+        logging.error(f"Playwright import error: {e}")
+        return None
     except Exception as e:
-        print(f"Error generating PDF using Playwright: {e}")
+        logging.error(f"Unexpected error in generate_pdf_using_playwright: {e}")
         return None
 
 
