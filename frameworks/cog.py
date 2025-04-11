@@ -6,10 +6,11 @@ from typing import Dict, List, Any, Optional
 import os
 import json
 from frameworks.base_framework import BaseFramework
+import utilities.search_generator as perform_search
 
 # Try to import get_completion, but provide a fallback if it's not available
 try:
-    from utilities.gpt import get_completion
+    from utilities.gpt import get_completion, get_chat_completion
 except ImportError:
     # Fallback function if get_completion is not available
     def get_completion(prompt, **kwargs):
@@ -24,14 +25,15 @@ import uuid
 import psycopg2
 from psycopg2.extras import DictCursor
 
-# Optional imports with fallbacks
+# Import visualization libraries with proper error handling
 try:
     import networkx as nx
     import plotly.graph_objects as go
     HAS_VISUALIZATION = True
-except ImportError:
+except ImportError as e:
+    print(f"Warning: Visualization libraries not available: {e}")
+    print("Please install required packages: pip install networkx plotly")
     HAS_VISUALIZATION = False
-    print("Warning: networkx or plotly not available. Network visualization will be disabled.")
 
 load_dotenv()
 
@@ -163,23 +165,38 @@ def manage_capabilities(final_cog, entity_type, entity_name, entity_goals, entit
                 st.warning("Please specify or select a CoG first.")
             else:
                 try:
-                    system_msg = {"role": "system", "content": "You are an AI specialized in COG analysis."}
-                    user_msg = {
-                        "role": "user",
-                        "content": (
-                            "List ~5 critical capabilities (actions or functions) the CoG can perform, "
-                            "semicolon separated. Here are the details:\n"
-                            f"Entity Type: {entity_type}\n"
-                            f"Entity Name: {entity_name}\n"
-                            f"Goals: {entity_goals}\n"
-                            f"Areas of Presence: {entity_presence}\n"
-                            f"CoG: {final_cog}\n"
+                    # Try using OpenAI first
+                    try:
+                        system_msg = {"role": "system", "content": "You are an AI specialized in COG analysis."}
+                        user_msg = {
+                            "role": "user",
+                            "content": (
+                                "List ~5 critical capabilities (actions or functions) the CoG can perform, "
+                                "semicolon separated. Here are the details:\n"
+                                f"Entity Type: {entity_type}\n"
+                                f"Entity Name: {entity_name}\n"
+                                f"Goals: {entity_goals}\n"
+                                f"Areas of Presence: {entity_presence}\n"
+                                f"CoG: {final_cog}\n"
+                            )
+                        }
+                        response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
+                        new_suggestions = [cap.strip() for cap in response.split(";") if cap.strip()]
+                    except Exception as e:
+                        # If OpenAI fails, use fallback suggestions
+                        st.info("Using fallback suggestions as OpenAI is not available.")
+                        fallback_suggestions = get_fallback_suggestions(
+                            entity_type, entity_name, entity_goals, entity_presence, ""
                         )
-                    }
-                    response = get_completion([system_msg, user_msg], model="gpt-4o-mini")
-                    new_suggestions = [cap.strip() for cap in response.split(";") if cap.strip()]
-                    st.session_state["capabilities"].extend(new_suggestions)
-                    st.success("AI-suggested capabilities added.")
+                        new_suggestions = [cap["name"] for cap in fallback_suggestions["capabilities"]]
+                    
+                    if new_suggestions:
+                        st.session_state["capabilities"].extend(new_suggestions)
+                        st.success("Capabilities added successfully.")
+                        for cap in new_suggestions:
+                            st.write(f"- {cap}")
+                    else:
+                        st.warning("No capabilities were generated. Please try adding them manually.")
                 except Exception as e:
                     st.error(f"Error suggesting capabilities: {e}")
 
@@ -231,7 +248,7 @@ def manage_vulnerabilities(entity_type, entity_name, entity_goals, entity_presen
                         "List 3-5 vulnerabilities for this capability. Use semicolons, no bullet points."
                     )
                     user_msg = {"role": "user", "content": user_msg_content}
-                    vuln_resp = get_completion([system_msg, user_msg], model="gpt-4o-mini")
+                    vuln_resp = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
                     new_vulns = [v.strip() for v in vuln_resp.split(";") if v.strip()]
                     st.session_state["vulnerabilities_dict"][selected_cap].extend(new_vulns)
                     st.success(f"AI-suggested vulnerabilities added to {selected_cap}.")
@@ -246,6 +263,24 @@ def score_and_prioritize(all_vulnerabilities_list):
 
     st.markdown("### 📊 Vulnerability Scoring")
     
+    # Scoring System Selection
+    st.markdown("""
+    <div class="info-box">
+    <h4>Select Scoring System</h4>
+    <p>Choose between two scoring approaches:</p>
+    <ul>
+    <li><strong>Traditional (1-5):</strong> Linear scale where each increment represents equal change</li>
+    <li><strong>Logarithmic (1,3,5,8,12):</strong> Non-linear scale emphasizing significant differences at higher values</li>
+    </ul>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    scoring_system = st.radio(
+        "Scoring System",
+        ["Traditional (1-5)", "Logarithmic (1,3,5,8,12)"],
+        help="Choose your preferred scoring system"
+    )
+
     # Criteria Management
     with st.expander("Manage Scoring Criteria", expanded=False):
         st.markdown("""
@@ -266,14 +301,29 @@ def score_and_prioritize(all_vulnerabilities_list):
             st.session_state["criteria"] = new_list
             st.success("Criteria updated.")
 
-    # Guided Scoring Interface
-    st.markdown("### Score Vulnerabilities")
-    st.markdown("""
-    For each vulnerability, rate it on a scale of 1-10 for each criterion:
-    - 1-3: Low significance/difficulty
-    - 4-7: Moderate significance/difficulty
-    - 8-10: High significance/difficulty
-    """)
+    # Scoring Guide based on selected system
+    if scoring_system == "Traditional (1-5)":
+        st.markdown("""
+        ### Traditional Scoring Guide (1-5)
+        - **1**: Minimal significance/extremely difficult
+        - **2**: Low significance/very difficult
+        - **3**: Moderate significance/achievable
+        - **4**: High significance/fairly easy
+        - **5**: Critical significance/very easy
+        """)
+        min_score = 1
+        max_score = 5
+        step = 1
+    else:
+        st.markdown("""
+        ### Logarithmic Scoring Guide (1,3,5,8,12)
+        - **1**: Minimal significance/extremely difficult
+        - **3**: Low significance/very difficult
+        - **5**: Moderate significance/achievable
+        - **8**: High significance/fairly easy
+        - **12**: Critical significance/very easy
+        """)
+        score_options = [1, 3, 5, 8, 12]
 
     # Initialize data structures
     if not all_vulnerabilities_list:
@@ -284,6 +334,9 @@ def score_and_prioritize(all_vulnerabilities_list):
     capabilities = list(set(cap for cap, _ in all_vulnerabilities_list))
     tabs = st.tabs([f"⚡ {cap}" for cap in capabilities])
 
+    entity_name = st.session_state.get("entity_name", "Entity")
+    final_cog = st.session_state.get("final_cog", "COG")
+
     for cap_idx, capability in enumerate(capabilities):
         with tabs[cap_idx]:
             st.markdown(f"### Scoring Vulnerabilities for: {capability}")
@@ -292,22 +345,33 @@ def score_and_prioritize(all_vulnerabilities_list):
             cap_vulns = [vuln for c, vuln in all_vulnerabilities_list if c == capability]
             
             for vuln in cap_vulns:
-                st.markdown(f"#### 🎯 {vuln}")
+                # Format vulnerability name to include entity and reference to COG
+                formatted_vuln = f"{entity_name}'s {vuln} affecting {final_cog} through {capability}"
+                st.markdown(f"#### 🎯 {formatted_vuln}")
                 cols = st.columns(len(st.session_state["criteria"]))
                 
                 for idx, criterion in enumerate(st.session_state["criteria"]):
                     with cols[idx]:
                         key = (capability, vuln, criterion)
-                        current_score = st.session_state["vulnerability_scores"].get(key, 5)
+                        current_score = st.session_state["vulnerability_scores"].get(key, 1)
                         
-                        new_score = st.slider(
-                            criterion,
-                            min_value=1,
-                            max_value=10,
-                            value=int(current_score),
-                            help=f"Rate the {criterion.lower()} of this vulnerability",
-                            key=f"slider_{capability}_{vuln}_{criterion}"
-                        )
+                        if scoring_system == "Traditional (1-5)":
+                            new_score = st.slider(
+                                criterion,
+                                min_value=min_score,
+                                max_value=max_score,
+                                value=int(current_score),
+                                step=step,
+                                help=f"Rate the {criterion.lower()} of this vulnerability"
+                            )
+                        else:
+                            new_score = st.select_slider(
+                                criterion,
+                                options=score_options,
+                                value=score_options[0] if current_score == 1 else current_score,
+                                help=f"Rate the {criterion.lower()} of this vulnerability"
+                            )
+                        
                         st.session_state["vulnerability_scores"][key] = new_score
 
     # Calculate and Display Results
@@ -321,7 +385,10 @@ def score_and_prioritize(all_vulnerabilities_list):
                 val = st.session_state["vulnerability_scores"].get(key, 1)
                 total_score += val
                 detail_list.append(f"{crit}={val}")
-            final_scores.append((cap, vuln, total_score, detail_list))
+            
+            # Format vulnerability name with entity and COG reference
+            formatted_vuln = f"{entity_name}'s {vuln} affecting {final_cog} through {cap}"
+            final_scores.append((cap, formatted_vuln, total_score, detail_list))
 
         final_scores.sort(key=lambda x: x[2], reverse=True)
         st.session_state["final_scores"] = final_scores
@@ -373,7 +440,10 @@ def score_and_prioritize(all_vulnerabilities_list):
 def visualize_cog_network(cog: str, capabilities: List[str], vulnerabilities_dict: Dict[str, List[str]], requirements_text: str) -> Optional[Any]:
     """Create a network visualization of the COG analysis"""
     if not HAS_VISUALIZATION:
-        st.warning("Network visualization is not available. Please install networkx and plotly to enable this feature.")
+        st.error("""Network visualization is not available. Please install required packages:
+        ```
+        pip install networkx plotly
+        ```""")
         return None
         
     try:
@@ -404,7 +474,7 @@ def visualize_cog_network(cog: str, capabilities: List[str], vulnerabilities_dic
                     G.add_edge(req, cap, link_type="Support", capacity=80)
         
         # Create Plotly figure with improved styling
-        pos = nx.spring_layout(G)
+        pos = nx.spring_layout(G, k=1, iterations=50)
         
         # Edge trace with better visibility and hover info
         edge_x = []
@@ -492,8 +562,8 @@ def visualize_cog_network(cog: str, capabilities: List[str], vulnerabilities_dic
                 margin=dict(b=20, l=5, r=5, t=40),
                 xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                 yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                plot_bgcolor='rgba(255,255,255,0.8)',
-                paper_bgcolor='rgba(255,255,255,0.8)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
                 title=dict(
                     text="Center of Gravity Network Analysis",
                     x=0.5,
@@ -502,7 +572,8 @@ def visualize_cog_network(cog: str, capabilities: List[str], vulnerabilities_dic
             )
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        # Display the figure with proper container width
+        st.plotly_chart(fig, use_container_width=True, theme=None)
         
         return G
     except Exception as e:
@@ -545,7 +616,7 @@ def export_results(final_scores):
     col_export1, col_export2, col_export3 = st.columns(3)
     
     with col_export1:
-        if st.button("Export Vulnerabilities as CSV"):
+        if st.button("Export Vulnerabilities as CSV", key="export_csv_btn"):
             vulns_csv = io.StringIO()
             writer = csv.writer(vulns_csv)
             writer.writerow(["Capability", "Vulnerability", "Score Details", "Composite Score"])
@@ -558,11 +629,12 @@ def export_results(final_scores):
                 label="Download CSV",
                 data=csv_data,
                 file_name="COG_Vulnerabilities.csv",
-                mime="text/csv"
+                mime="text/csv",
+                key="download_csv_btn"
             )
 
     with col_export2:
-        if st.button("Export as PDF"):
+        if st.button("Export as PDF", key="export_pdf_btn"):
             st.info("PDF export will be implemented using ReportLab or pdfkit")
 
     with col_export3:
@@ -572,18 +644,20 @@ def export_results(final_scores):
                 export_format = st.selectbox(
                     "Select Format",
                     ["gexf", "graphml", "json"],
-                    help="Choose export format"
+                    help="Choose export format",
+                    key="export_format_select"
                 )
                 
-                if st.button(f"Export as {export_format.upper()}", use_container_width=True):
+                if st.button(f"Export as {export_format.upper()}", key=f"export_graph_btn_{export_format}", use_container_width=True):
                     graph_data = export_graph(st.session_state["cog_graph"], export_format)
                     if graph_data:
                         st.download_button(
-                            label=f"Download {export_format.upper()}",
+                            label=f"⬇️ Download {export_format.upper()}",
                             data=graph_data,
                             file_name=f"cog_network.{export_format}",
                             mime=f"application/{export_format}",
-                            use_container_width=True
+                            use_container_width=True,
+                            key=f"download_graph_btn_{export_format}"
                         )
             else:
                 st.warning("Graph export is not available. Please install networkx to enable this feature.")
@@ -674,12 +748,13 @@ def save_and_load_analysis():
             label="Download Analysis as JSON",
             data=json_data,
             file_name=f"COG_Analysis_{unique_hash}.json",
-            mime="application/json"
+            mime="application/json",
+            key="download_analysis_btn"
         )
     
     with st.expander("Load Saved Analysis"):
-        imported_json = st.text_area("Paste your saved analysis JSON here", height=200)
-        if st.button("Load Analysis"):
+        imported_json = st.text_area("Paste your saved analysis JSON here", height=200, key="import_json_area")
+        if st.button("Load Analysis", key="load_analysis_btn"):
             load_cog_analysis_from_db(imported_json)
 
 def generate_cog_identification():
@@ -801,16 +876,16 @@ def search_references():
     search_query = st.text_input("Enter keywords to search for e.g. market trends, historical data")
     
     if st.button("Search"):
-        # In this demo, we'll show a placeholder message.
-        # Replace this with actual search logic or integration with resources.
-        st.info(f"Searching for: {search_query} ...")
-        # Dummy results:
-        results = {
-            "Article 1": "https://example.com/article1",
-            "Research Paper A": "https://example.com/researchA"
-        }
-        for title, url in results.items():
-            st.markdown(f"- [{title}]({url})")
+        if search_query:
+            # Here you would implement the actual search logic
+            results = perform_search(search_query)  # This function needs to be defined
+            if results:
+                for title, url in results.items():
+                    st.markdown(f"- [{title}]({url})")
+            else:
+                st.info("No results found for your search.")
+        else:
+            st.warning("Please enter a search query.")
 
 def get_fallback_suggestions(entity_type: str, entity_name: str, entity_goals: str, entity_presence: str, desired_end_state: str) -> Dict:
     """Return context-aware fallback suggestions when AI generation fails"""
@@ -958,21 +1033,37 @@ def display_ai_suggestions(suggestions: Dict):
     if not suggestions:
         return
     
+    # Add unique identifier for this suggestion set
+    suggestion_id = str(uuid.uuid4())[:8]
+    
     st.markdown("""
     <style>
     .suggestion-card {
-        border: 1px solid #e0e0e0;
+        border: 1px solid var(--border-color);
         border-radius: 5px;
         padding: 15px;
         margin: 10px 0;
-        background-color: #f8f9fa;
+        background-color: var(--bg-color);
     }
     .suggestion-card:hover {
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .importance-high { color: #28a745; }
-    .importance-medium { color: #ffc107; }
-    .importance-low { color: #dc3545; }
+    
+    /* Dark mode specific styles */
+    .stApp[data-theme="dark"] .suggestion-card {
+        background-color: rgba(45, 55, 72, 0.5);
+        border-color: rgba(74, 85, 104, 0.5);
+        color: #e2e8f0;
+    }
+    
+    .stApp[data-theme="dark"] .importance-high { color: #68d391; }
+    .stApp[data-theme="dark"] .importance-medium { color: #f6e05e; }
+    .stApp[data-theme="dark"] .importance-low { color: #fc8181; }
+    
+    /* Light mode styles */
+    .stApp[data-theme="light"] .importance-high { color: #28a745; }
+    .stApp[data-theme="light"] .importance-medium { color: #ffc107; }
+    .stApp[data-theme="light"] .importance-low { color: #dc3545; }
     </style>
     """, unsafe_allow_html=True)
     
@@ -989,7 +1080,7 @@ def display_ai_suggestions(suggestions: Dict):
             """,
             unsafe_allow_html=True
         )
-        if st.button("✅ Use This Center of Gravity", type="primary"):
+        if st.button("✅ Use This Center of Gravity", key=f"use_cog_btn_{suggestion_id}", type="primary"):
             st.session_state["final_cog"] = suggestions['cog']['name']
             st.success(f"Set Center of Gravity to: {suggestions['cog']['name']}")
             st.rerun()
@@ -1018,7 +1109,7 @@ def display_ai_suggestions(suggestions: Dict):
                 """,
                 unsafe_allow_html=True
             )
-            if st.button(f"✅ Add Capability: {cap['name']}", key=f"add_cap_{i}"):
+            if st.button(f"✅ Add Capability: {cap['name']}", key=f"add_cap_{suggestion_id}_{i}"):
                 if cap['name'] not in st.session_state["capabilities"]:
                     st.session_state["capabilities"].append(cap['name'])
                     st.success(f"Added capability: {cap['name']}")
@@ -1033,7 +1124,7 @@ def display_ai_suggestions(suggestions: Dict):
                 with st.expander(f"View Requirements for {cap_name}", expanded=True):
                     for item in req_group['items']:
                         st.markdown(f"- {item}")
-                    if st.button(f"✅ Add Requirements for {cap_name}", key=f"add_req_{cap_name}"):
+                    if st.button(f"✅ Add Requirements for {cap_name}", key=f"add_req_{suggestion_id}_{cap_name}"):
                         requirements_text = "; ".join(req_group['items'])
                         current_reqs = st.session_state["requirements_text"]
                         new_reqs = f"{current_reqs}\n{requirements_text}" if current_reqs else requirements_text
@@ -1065,7 +1156,7 @@ def display_ai_suggestions(suggestions: Dict):
                         """,
                         unsafe_allow_html=True
                     )
-                    if st.button(f"✅ Add Vulnerability: {vuln['name']}", key=f"add_vuln_{cap_name}_{i}"):
+                    if st.button(f"✅ Add Vulnerability: {vuln['name']}", key=f"add_vuln_{suggestion_id}_{cap_name}_{i}"):
                         if cap_name not in st.session_state["vulnerabilities_dict"]:
                             st.session_state["vulnerabilities_dict"][cap_name] = []
                         if vuln['name'] not in st.session_state["vulnerabilities_dict"][cap_name]:
@@ -1117,6 +1208,39 @@ def cog_analysis():
             --border-color: var(--border-light);
         }
 
+        /* Dark mode specific overrides */
+        .stApp[data-theme="dark"] {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        .stApp[data-theme="dark"] .main-header,
+        .stApp[data-theme="dark"] .section-header,
+        .stApp[data-theme="dark"] .info-box,
+        .stApp[data-theme="dark"] .success-box,
+        .stApp[data-theme="dark"] .warning-box,
+        .stApp[data-theme="dark"] .suggestion-card {
+            color: var(--text-dark);
+        }
+
+        .stApp[data-theme="dark"] .suggestion-card {
+            background-color: rgba(45, 55, 72, 0.5);
+            border-color: var(--border-dark);
+        }
+
+        .stApp[data-theme="dark"] .info-box {
+            background-color: rgba(45, 55, 72, 0.5);
+        }
+
+        .stApp[data-theme="dark"] .success-box {
+            background-color: rgba(72, 187, 120, 0.2);
+        }
+
+        .stApp[data-theme="dark"] .warning-box {
+            background-color: rgba(237, 137, 54, 0.2);
+        }
+
+        /* General styles */
         .main-header {
             font-size: 2.5rem;
             font-weight: bold;
@@ -1191,21 +1315,18 @@ def cog_analysis():
             font-weight: bold;
         }
 
-        /* Dark mode specific overrides */
-        [data-theme="dark"] .suggestion-card {
-            background-color: rgba(45, 55, 72, 0.3);
+        /* Dark mode text color overrides for specific elements */
+        .stApp[data-theme="dark"] .stMarkdown,
+        .stApp[data-theme="dark"] .stText,
+        .stApp[data-theme="dark"] .stTextInput > div > div > input,
+        .stApp[data-theme="dark"] .stTextArea > div > div > textarea {
+            color: var(--text-dark) !important;
         }
 
-        [data-theme="dark"] .info-box {
-            background-color: rgba(45, 55, 72, 0.3);
-        }
-
-        [data-theme="dark"] .success-box {
-            background-color: rgba(72, 187, 120, 0.1);
-        }
-
-        [data-theme="dark"] .warning-box {
-            background-color: rgba(237, 137, 54, 0.1);
+        /* Dark mode background overrides for specific elements */
+        .stApp[data-theme="dark"] .stTextInput > div > div > input,
+        .stApp[data-theme="dark"] .stTextArea > div > div > textarea {
+            background-color: rgba(45, 55, 72, 0.5) !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -1277,6 +1398,36 @@ def cog_analysis():
                         st.session_state["current_suggestions"] = suggestions
                         st.success("✅ Analysis generated successfully!")
                         display_ai_suggestions(suggestions)
+        
+        # Manual COG Input Option
+        st.markdown("---")
+        st.markdown("### 📝 Manual Center of Gravity Input")
+        st.markdown("""
+        If you prefer to specify your own Center of Gravity, you can enter it manually below.
+        A Center of Gravity is the source of power that provides moral or physical strength, freedom of action, or will to act.
+        """)
+        
+        manual_cog = st.text_area(
+            "Enter Center of Gravity",
+            help="Example: 'Economic Control Network' or 'Allied Coalition Network'",
+            key="manual_cog_input"
+        )
+        
+        manual_cog_description = st.text_area(
+            "Description (Optional)",
+            help="Provide a brief description of why this is a Center of Gravity",
+            key="manual_cog_description"
+        )
+        
+        if st.button("✅ Use Manual Center of Gravity", type="primary"):
+            if manual_cog.strip():
+                st.session_state["final_cog"] = manual_cog.strip()
+                if manual_cog_description.strip():
+                    st.session_state["cog_description"] = manual_cog_description.strip()
+                st.success(f"Set Center of Gravity to: {manual_cog}")
+                st.rerun()
+            else:
+                st.warning("Please enter a Center of Gravity before proceeding.")
         
         # Show current suggestions if they exist
         if "current_suggestions" in st.session_state:

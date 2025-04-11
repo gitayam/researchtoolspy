@@ -38,7 +38,7 @@ USE_LOCAL_LLM = all([
 
 def chat_gpt(
     messages,
-    model="gpt-4o",
+    model="gpt-4",
     max_tokens=512,
     temperature=0.7,
     top_p=1.0,
@@ -96,7 +96,7 @@ def chat_gpt(
         return response.choices[0].message.content.strip()
 
 
-def generate_advanced_query(search_query, search_platform, model="gpt-4o"):
+def generate_advanced_query(search_query, search_platform, model="gpt-4"):
     """
     Preserves your original function from chatgptService.js logic.
     Useful if you still want 'advanced query' style prompts.
@@ -266,7 +266,7 @@ def get_chat_completion(
         The generated text as a string
     """
     if not OPENAI_AVAILABLE:
-        return f"OpenAI package not installed. Cannot process chat messages."
+        return "OpenAI package not installed. Cannot process chat messages."
 
     try:
         response = client.chat.completions.create(

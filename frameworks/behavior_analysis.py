@@ -17,7 +17,7 @@ def generate_executive_summary(context):
         )
         system_msg = {"role": "system", "content": "You are an expert analyst in behavior analysis."}
         user_msg = {"role": "user", "content": prompt}
-        summary = chat_gpt([system_msg, user_msg], model="gpt-4o")
+        summary = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
         return summary.strip()
 
 def generate_recommendations(context):
@@ -33,7 +33,7 @@ def generate_recommendations(context):
         )
         system_msg = {"role": "system", "content": "You are an expert strategic analyst focused on delivering actionable recommendations."}
         user_msg = {"role": "user", "content": prompt}
-        recommendations = chat_gpt([system_msg, user_msg], model="gpt-4o")
+        recommendations = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
         return recommendations.strip()
 
 def behavior_analysis_page():

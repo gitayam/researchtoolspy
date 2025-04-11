@@ -373,3 +373,208 @@ def test_cog_theme_visibility():
                 assert '<p>' in call_content
                 break
         assert found_suggestion_card, "No suggestion card found in markdown calls"
+
+def test_cog_button_key_uniqueness():
+    """Test that all buttons in the COG framework have unique keys"""
+    with patch('streamlit.session_state', new_callable=dict) as mock_state, \
+         patch('streamlit.button', return_value=False) as mock_button:
+        
+        from frameworks.cog import display_ai_suggestions
+        
+        # Test suggestions that would create multiple buttons
+        test_suggestions = {
+            'cog': {
+                'name': 'Test COG',
+                'description': 'Test Description',
+                'rationale': 'Test Rationale'
+            },
+            'capabilities': [
+                {
+                    'name': 'Capability 1',
+                    'type': 'Type 1',
+                    'importance': 8,
+                    'rationale': 'Rationale 1'
+                },
+                {
+                    'name': 'Capability 2',
+                    'type': 'Type 2',
+                    'importance': 7,
+                    'rationale': 'Rationale 2'
+                }
+            ],
+            'requirements': [
+                {
+                    'capability': 'Capability 1',
+                    'items': ['Requirement 1']
+                },
+                {
+                    'capability': 'Capability 2',
+                    'items': ['Requirement 2']
+                }
+            ],
+            'vulnerabilities': [
+                {
+                    'capability': 'Capability 1',
+                    'items': [
+                        {
+                            'name': 'Vulnerability 1',
+                            'impact': 7,
+                            'rationale': 'Rationale 1'
+                        },
+                        {
+                            'name': 'Vulnerability 2',
+                            'impact': 6,
+                            'rationale': 'Rationale 2'
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        # Initialize required session state
+        mock_state["capabilities"] = ["Capability 1"]
+        mock_state["vulnerabilities_dict"] = {}
+        mock_state["requirements_text"] = ""
+        mock_state["final_cog"] = ""
+        
+        # Display suggestions which creates multiple buttons
+        display_ai_suggestions(test_suggestions)
+        
+        # Collect all button keys
+        button_keys = set()
+        for call in mock_button.call_args_list:
+            kwargs = call[1]
+            if 'key' in kwargs:
+                key = kwargs['key']
+                # Verify the key is unique
+                assert key not in button_keys, f"Duplicate button key found: {key}"
+                button_keys.add(key)
+        
+        # Verify we have the expected number of unique keys
+        assert len(button_keys) > 0, "No button keys found"
+        assert len(button_keys) == len(mock_button.call_args_list), "Number of unique keys doesn't match number of buttons"
+
+def test_cog_visualization_requirements():
+    """Test that visualization functionality properly handles missing dependencies"""
+    with patch('streamlit.session_state', new_callable=dict) as mock_state, \
+         patch('streamlit.error') as mock_error, \
+         patch('streamlit.plotly_chart') as mock_plotly_chart:
+        
+        from frameworks.cog import visualize_cog_network
+        
+        # Test case 1: Missing visualization libraries
+        with patch.dict('sys.modules', {'networkx': None, 'plotly': None}):
+            result = visualize_cog_network(
+                cog="Test COG",
+                capabilities=["Cap1", "Cap2"],
+                vulnerabilities_dict={"Cap1": ["Vuln1"], "Cap2": ["Vuln2"]},
+                requirements_text="Req1; Req2"
+            )
+            
+            assert result is None
+            mock_error.assert_called_with("""Network visualization is not available. Please install required packages:
+        ```
+        pip install networkx plotly
+        ```""")
+        
+        # Test case 2: Empty graph
+        result = visualize_cog_network(
+            cog="",
+            capabilities=[],
+            vulnerabilities_dict={},
+            requirements_text=""
+        )
+        assert result is None or result.number_of_nodes() == 0
+        
+        # Test case 3: Valid graph with all components
+        mock_state["final_cog"] = "Test COG"
+        result = visualize_cog_network(
+            cog="Test COG",
+            capabilities=["Cap1", "Cap2"],
+            vulnerabilities_dict={"Cap1": ["Vuln1"], "Cap2": ["Vuln2"]},
+            requirements_text="Req1; Req2"
+        )
+        
+        if result is not None:  # Only check if visualization libraries are available
+            assert result.number_of_nodes() > 0
+            assert result.number_of_edges() > 0
+            mock_plotly_chart.assert_called()
+
+def test_cog_dark_mode_compatibility():
+    """Test that COG visualization works correctly in dark mode"""
+    with patch('streamlit.session_state', new_callable=dict) as mock_state, \
+         patch('streamlit.plotly_chart') as mock_plotly_chart:
+        
+        from frameworks.cog import visualize_cog_network
+        
+        # Test visualization with dark mode settings
+        result = visualize_cog_network(
+            cog="Test COG",
+            capabilities=["Cap1"],
+            vulnerabilities_dict={"Cap1": ["Vuln1"]},
+            requirements_text="Req1"
+        )
+        
+        if result is not None:  # Only check if visualization libraries are available
+            # Verify plotly_chart was called with correct parameters
+            mock_plotly_chart.assert_called()
+            call_args = mock_plotly_chart.call_args[1]
+            
+            # Check that theme is set to None to prevent theme conflicts
+            assert call_args.get('theme') is None
+            
+            # Check that use_container_width is True
+            assert call_args.get('use_container_width') is True
+            
+            # Get the figure from the first positional argument
+            fig = mock_plotly_chart.call_args[0][0]
+            
+            # Verify figure has transparent background
+            assert fig.layout.paper_bgcolor == 'rgba(0,0,0,0)'
+            assert fig.layout.plot_bgcolor == 'rgba(0,0,0,0)'
+
+def test_cog_export_functionality():
+    """Test that COG export functions work correctly"""
+    with patch('streamlit.session_state', new_callable=dict) as mock_state, \
+         patch('streamlit.download_button') as mock_download:
+        
+        from frameworks.cog import export_graph, export_cog_analysis
+        
+        # Test case 1: Graph export with missing libraries
+        with patch.dict('sys.modules', {'networkx': None}):
+            result = export_graph(None, "gexf")
+            assert result is None
+        
+        # Test case 2: Graph export with invalid format
+        mock_state["cog_graph"] = MagicMock()
+        result = export_graph(mock_state["cog_graph"], "invalid_format")
+        assert result is None
+        
+        # Test case 3: Analysis export
+        mock_state.update({
+            "entity_type": "Test Type",
+            "entity_name": "Test Entity",
+            "entity_goals": "Test Goals",
+            "entity_presence": "Test Presence",
+            "domain_answers": {},
+            "cog_suggestions": ["Suggestion 1"],
+            "final_cog": "Final COG",
+            "capabilities": ["Cap1"],
+            "vulnerabilities_dict": {"Cap1": ["Vuln1"]},
+            "requirements_text": "Req1",
+            "criteria": ["Impact"],
+            "vulnerability_scores": {},
+            "final_scores": [],
+            "desired_end_state": "End State"
+        })
+        
+        json_data = export_cog_analysis()
+        assert isinstance(json_data, str)
+        
+        # Verify JSON structure
+        import json
+        exported_data = json.loads(json_data)
+        assert "entity_info" in exported_data
+        assert "capabilities" in exported_data
+        assert "vulnerabilities_dict" in exported_data
+        assert "final_cog" in exported_data

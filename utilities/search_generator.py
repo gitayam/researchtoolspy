@@ -65,3 +65,16 @@ def query_generator_page():
             st.code(f"Advanced query for {search_engine} would appear here")
         else:
             st.warning("Please enter a search topic")
+
+def perform_search(query):
+    # Example static data
+    references = {
+        "Article 1": "https://example.com/article1",
+        "Research Paper A": "https://example.com/researchA",
+        "Control the Panama Canal": "https://example.com/panama-canal",
+        "Economic Influence in Panama": "https://example.com/economic-influence"
+    }
+    
+    # Filter references based on the query
+    results = {title: url for title, url in references.items() if query.lower() in title.lower()}
+    return results
