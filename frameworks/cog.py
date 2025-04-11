@@ -1836,6 +1836,54 @@ def cog_analysis():
             st.markdown("### Center of Gravity")
             st.info(st.session_state["final_cog"])
             
+            # Add Nodal Diagram
+            st.markdown("### 🔄 Nodal Analysis Diagram")
+            
+            # Prepare data for visualization
+            cog = st.session_state["final_cog"]
+            capabilities = st.session_state.get("capabilities", [])
+            requirements = st.session_state.get("requirements", {})
+            vulnerabilities_dict = st.session_state.get("vulnerabilities_dict", {})
+            
+            # Convert requirements dict to text format for visualization
+            requirements_text = []
+            for cap, reqs in requirements.items():
+                requirements_text.extend(reqs)
+            requirements_text = "; ".join(requirements_text)
+            
+            # Create the network visualization
+            if cog and (capabilities or requirements or vulnerabilities_dict):
+                try:
+                    st.markdown("""
+                    This diagram shows the relationships between:
+                    - 🎯 Center of Gravity (Red)
+                    - 💪 Critical Capabilities (Green)
+                    - 📋 Critical Requirements (Blue)
+                    - ⚠️ Vulnerabilities (Pink)
+                    """)
+                    
+                    graph = visualize_cog_network(
+                        cog=cog,
+                        capabilities=capabilities,
+                        vulnerabilities_dict=vulnerabilities_dict,
+                        requirements_text=requirements_text
+                    )
+                    
+                    if graph:
+                        st.session_state["cog_graph"] = graph
+                        
+                        # Add graph statistics
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Total Nodes", graph.number_of_nodes())
+                        with col2:
+                            st.metric("Total Connections", graph.number_of_edges())
+                    
+                except Exception as e:
+                    st.error(f"Error creating visualization: {str(e)}")
+                    st.info("Please ensure networkx and plotly are installed for visualization features.")
+            
+            # Display capabilities and requirements
             if st.session_state.get("capabilities"):
                 st.markdown("### Critical Capabilities")
                 for cap in st.session_state["capabilities"]:
@@ -1851,25 +1899,48 @@ def cog_analysis():
             st.markdown("---")
             st.markdown("### Export Analysis")
             
-            if st.button("Export to JSON"):
-                analysis_data = {
-                    "center_of_gravity": st.session_state["final_cog"],
-                    "capabilities": st.session_state["capabilities"],
-                    "requirements": st.session_state.get("requirements", {}),
-                    "entity_info": {
-                        "type": entity_type,
-                        "name": entity_name,
-                        "goals": entity_goals,
-                        "presence": entity_presence,
-                        "desired_end_state": desired_end_state
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Export to JSON"):
+                    analysis_data = {
+                        "center_of_gravity": st.session_state["final_cog"],
+                        "capabilities": st.session_state["capabilities"],
+                        "requirements": st.session_state.get("requirements", {}),
+                        "vulnerabilities": st.session_state.get("vulnerabilities_dict", {}),
+                        "entity_info": {
+                            "type": entity_type,
+                            "name": entity_name,
+                            "goals": entity_goals,
+                            "presence": entity_presence,
+                            "desired_end_state": desired_end_state
+                        }
                     }
-                }
-                st.download_button(
-                    "Download JSON",
-                    data=json.dumps(analysis_data, indent=2),
-                    file_name="cog_analysis.json",
-                    mime="application/json"
-                )
+                    st.download_button(
+                        "Download JSON",
+                        data=json.dumps(analysis_data, indent=2),
+                        file_name="cog_analysis.json",
+                        mime="application/json"
+                    )
+            
+            with col2:
+                # Add network diagram export
+                if "cog_graph" in st.session_state and st.session_state["cog_graph"] is not None:
+                    export_format = st.selectbox(
+                        "Export Network Diagram As",
+                        ["gexf", "graphml", "json"],
+                        help="Choose the format for exporting the network diagram"
+                    )
+                    
+                    if st.button(f"Export Network as {export_format.upper()}", use_container_width=True):
+                        graph_data = export_graph(st.session_state["cog_graph"], export_format)
+                        if graph_data:
+                            st.download_button(
+                                f"Download {export_format.upper()}",
+                                data=graph_data,
+                                file_name=f"cog_network.{export_format}",
+                                mime=f"application/{export_format}",
+                                use_container_width=True
+                            )
         else:
             st.warning("Please complete the analysis by selecting a Center of Gravity and adding capabilities")
 
