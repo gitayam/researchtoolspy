@@ -1,12 +1,15 @@
 # /utilities/utils_openai.py
 
-import os
-from openai import OpenAI
+import ast
 from dotenv import load_dotenv
 from datetime import datetime
-from typing import Dict, List, Any, Optional, Union
-import json
 import logging
+from openai import OpenAI
+import os
+from pathlib import Path
+import streamlit as st
+from titlecase import titlecase
+from typing import Dict, List, Union
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -335,13 +338,13 @@ def get_chat_completion(
 ) -> str:
     """
     Get a completion from OpenAI's chat models using a conversation format.
-    
+
     Args:
         messages: List of message dictionaries with 'role' and 'content'
         model: The model to use (default: gpt-4)
         temperature: Controls randomness (0-1)
         max_tokens: Maximum number of tokens to generate
-        
+
     Returns:
         The generated text as a string
     """
@@ -359,3 +362,110 @@ def get_chat_completion(
     except Exception as e:
         print(f"Error in get_chat_completion: {e}")
         return f"Error generating chat completion: {str(e)}"
+
+
+def normalize_field_across_entities(field: str):
+    try:
+        all_values = []
+
+        # Step 1: Collect all raw values
+        if field == "requirements":
+            for putar_data in st.session_state.get("potential_utars", {}).values():
+                for cap_data in putar_data.get("capabilities", {}).values():
+                    reqs = cap_data.get("requirements", {})
+                    all_values.extend(reqs.keys())
+        else:
+            for putar_data in st.session_state.get("potential_utars", {}).values():
+                field_dict = putar_data.get(field, {})
+                all_values.extend(field_dict.keys())
+
+        all_values = list(set([val.strip() for val in all_values if val.strip()]))
+
+        if not all_values:
+            st.info(f"No {field} values found to normalize.")
+            return
+
+        # Step 2: Normalize using GPT
+        normalized = [
+            titlecase(v.strip()) for v in chat_normalize(all_values, field) if v.strip()
+        ]
+        value_map = dict(zip(all_values, normalized))
+
+        # Step 3: Rebuild field values
+        for putar, data in st.session_state["potential_utars"].items():
+            if field == "requirements":
+                for cap_name, cap_data in data.get("capabilities", {}).items():
+                    old_reqs = cap_data.get("requirements", {})
+                    new_reqs = {}
+                    for old_req, req_data in old_reqs.items():
+                        new_req = value_map.get(old_req, titlecase(old_req.strip()))
+                        if new_req not in new_reqs:
+                            new_reqs[new_req] = req_data
+                        else:
+                            new_reqs[new_req]["selected"] = (
+                                new_reqs[new_req].get("selected", False)
+                                or req_data.get("selected", False)
+                            )
+                    cap_data["requirements"] = new_reqs
+            else:
+                old_values = data.get(field, {})
+                new_values = {}
+                for old_val, val_data in old_values.items():
+                    new_val = value_map.get(old_val, titlecase(old_val.strip()))
+                    if new_val not in new_values:
+                        new_values[new_val] = val_data
+                    else:
+                        new_values[new_val]["selected"] = (
+                            new_values[new_val].get("selected", False)
+                            or val_data.get("selected", False)
+                        )
+                data[field] = new_values
+
+        st.success(f"All Critical {field} values have been normalized.")
+        st.rerun()
+
+    except Exception as e:
+        st.error(f"Normalization failed: {e}")
+
+
+def chat_normalize(
+    inputs: Union[List[str], List[List[str]]],
+    field: str
+) -> Union[List[str], List[List[str]]]:
+    try:
+        # Detect if input is a flat list or list of lists
+        is_flat = all(isinstance(i, str) for i in inputs)
+
+        # Wrap in a list of lists if it's flat
+        normalized_input = [inputs] if is_flat else inputs
+
+        system_msg = {
+            "role": "system",
+            "content": (
+                "You are a highly capable AI engineered to detect and normalize conceptually "
+                f"synonymous Critical {field}. You are also well versed in Center of Gravity "
+                "(COG) analysis."
+            )
+        }
+
+        user_msg = {
+            "role": "user",
+            "content": (
+                f"Input: {normalized_input}\n\n"
+                f"This input is a list of lists of Critical {field}. Normalize the lists so that any "
+                f"conceptually similar or synonymous Critical {field} are rewritten with identical phrasing. "
+                f"For example, if two items in separate lists mean the same thing, rewrite both with "
+                f"the same wording. Do not explain. Return only the corrected list of lists."
+            )
+        }
+
+        raw_response = get_chat_completion([system_msg, user_msg], model="gpt-4")
+
+        result = ast.literal_eval(raw_response)
+
+        # Flatten back to original format if it started flat
+        return result[0] if is_flat else result
+
+    except Exception as e:
+        print(f"Error generating output: {e}")
+        return inputs  # return original input as fallback

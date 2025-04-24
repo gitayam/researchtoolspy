@@ -28,7 +28,8 @@ def framework_sidebar():
         "Starbursting": "STARBURSTING",
         "Deception Detection": "DECEPTION",
         "Behavioral Analysis": "BEHAVIOR",
-        "Fundamental Flow": "FLOW"
+        "Fundamental Flow": "FLOW",
+        "CauseWay": "CAUSEWAY"
     }
     
     # Create lists of labels and their corresponding values
@@ -73,7 +74,8 @@ def framework_sidebar():
         "STARBURSTING": "starbursting",
         "DECEPTION": "deception_detection",
         "BEHAVIOR": "behavior_analysis",
-        "FLOW": "fundamental_flow"
+        "FLOW": "fundamental_flow",
+        "CAUSEWAY": "causeway"
     }
     
     # If the framework changed, update the query parameter and trigger a rerun
@@ -145,6 +147,11 @@ def framework_sidebar():
         ### Fundamental Flow Resources
         - [Flow Theory in Operations](https://www.sciencedirect.com/science/article/pii/S2212827119305839)
         - [Flow Analysis Methods](https://www.researchgate.net/publication/326462067_Flow_Analysis_Methods)
+        """)
+    elif st.session_state.get("current_framework") == "CAUSEWAY":
+        st.sidebar.markdown("""
+        ### CauseWay Resources
+        - [COG Analysis](https://irregularpedia.org/index.php/Center_of_Gravity_Analysis_Guide)
         """)
     
     # Wiki Links section
@@ -229,7 +236,8 @@ def frameworks_page():
             "dotmlpf": {"module": "frameworks.dotmlpf", "function": "dotmlpf_page"},
             "starbursting": {"module": "frameworks.starbursting", "function": "starbursting_page"},
             "behavior_analysis": {"module": "frameworks.behavior_analysis", "function": "behavior_analysis_page"},
-            "fundamental_flow": {"module": "frameworks.fundamental_flow", "function": "fundamental_flow_page"}
+            "fundamental_flow": {"module": "frameworks.fundamental_flow", "function": "fundamental_flow_page"},
+            "causeway": {"module": "frameworks.causeway", "function": "causeway_page"}
         }
         
         # Handle legacy parameter names
@@ -303,7 +311,8 @@ def main():
             "deception": "DECEPTION",
             "deception_detection": "DECEPTION",
             "behavior_analysis": "BEHAVIOR",
-            "fundamental_flow": "FLOW"
+            "fundamental_flow": "FLOW",
+            "causeway": "CAUSEWAY"
         }
         
         # Update current_framework in session state to ensure sidebar shows the correct selection
@@ -351,7 +360,8 @@ def main():
                 "deception": "DECEPTION",
                 "deception_detection": "DECEPTION",
                 "behavior_analysis": "BEHAVIOR",
-                "fundamental_flow": "FLOW"
+                "fundamental_flow": "FLOW",
+                "causeway": "CAUSEWAY"
             }
             
             # Update current_framework in session state to ensure sidebar shows the correct selection
@@ -374,7 +384,8 @@ def main():
         "dotmlpf": {"module": "frameworks.dotmlpf", "function": "dotmlpf_page"},
         "starbursting": {"module": "frameworks.starbursting", "function": "starbursting_page"},
         "behavior_analysis": {"module": "frameworks.behavior_analysis", "function": "behavior_analysis_page"},
-        "fundamental_flow": {"module": "frameworks.fundamental_flow", "function": "fundamental_flow_page"}
+        "fundamental_flow": {"module": "frameworks.fundamental_flow", "function": "fundamental_flow_page"},
+        "causeway": {"module": "frameworks.causeway", "function": "causeway_page"}
     }
     
     # Handle the framework loading with better error handling
@@ -622,6 +633,21 @@ def display_frameworks_page():
             <div class="card-content">
                 <h4>COG Analysis</h4>
                 <p>Center of Gravity analysis for strategic planning</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # CauseWay Card
+        if st.button("🛤️ CauseWay", key="causeway_button_display"):
+            st.query_params["framework"] = "causeway"
+            st.rerun()
+
+        st.markdown("""
+        <div class="framework-card">
+            <div class="card-icon"></div>
+            <div class="card-content">
+                <h4>CauseWay</h4>
+                <p>Center of Gravity Analysis for issue-focused strategic analysis</p>
             </div>
         </div>
         """, unsafe_allow_html=True)
