@@ -58,3 +58,6 @@ graphviz               # Graph visualization (for starbursting diagram)
 # Reference and citation
 manubot                # Citation handling
 wikipedia              # Wikipedia API access
+
+# Text Formatting
+titlecase
