@@ -367,14 +367,20 @@ def get_chat_completion(
 def normalize_field_across_entities(field: str):
     try:
         all_values = []
-
         # Step 1: Collect all raw values
-        if field == "requirements":
+        if field == "potential_ptars":
+            for putar_data in st.session_state.get("potential_utars", {}).values():
+                for cap_data in putar_data.get("capabilities", {}).values():
+                    reqs = cap_data.get("requirements", {})
+                    for req_data in reqs.values():
+                        pptars = req_data.get("potential_ptars", [])
+                        all_values.extend(pptars)
+        elif field == "requirements":
             for putar_data in st.session_state.get("potential_utars", {}).values():
                 for cap_data in putar_data.get("capabilities", {}).values():
                     reqs = cap_data.get("requirements", {})
                     all_values.extend(reqs.keys())
-        else:
+        elif field == "capabilities":
             for putar_data in st.session_state.get("potential_utars", {}).values():
                 field_dict = putar_data.get(field, {})
                 all_values.extend(field_dict.keys())
@@ -393,7 +399,18 @@ def normalize_field_across_entities(field: str):
 
         # Step 3: Rebuild field values
         for putar, data in st.session_state["potential_utars"].items():
-            if field == "requirements":
+            if field == "potential_ptars":
+                for cap_name, cap_data in data.get("capabilities", {}).items():
+                    reqs = cap_data.get("requirements", {})
+                    for req_name, req_data in reqs.items():
+                        old_pptars = req_data.get("potential_ptars", [])
+                        new_pptars = []
+                        for old_pptar in old_pptars:
+                            new_pptar = value_map.get(old_pptar, titlecase(old_pptar.strip()))
+                            if new_pptar not in new_pptars:
+                                new_pptars.append(new_pptar)
+                        req_data["potential_ptars"] = new_pptars
+            elif field == "requirements":
                 for cap_name, cap_data in data.get("capabilities", {}).items():
                     old_reqs = cap_data.get("requirements", {})
                     new_reqs = {}
@@ -421,7 +438,6 @@ def normalize_field_across_entities(field: str):
                         )
                 data[field] = new_values
 
-        st.success(f"All Critical {field} values have been normalized.")
         st.rerun()
 
     except Exception as e:
@@ -433,9 +449,10 @@ def chat_normalize(
     field: str
 ) -> Union[List[str], List[List[str]]]:
     try:
+        if field == "potetial_ptars":
+            field = "proximate targets"
         # Detect if input is a flat list or list of lists
         is_flat = all(isinstance(i, str) for i in inputs)
-
         # Wrap in a list of lists if it's flat
         normalized_input = [inputs] if is_flat else inputs
 
@@ -443,26 +460,23 @@ def chat_normalize(
             "role": "system",
             "content": (
                 "You are a highly capable AI engineered to detect and normalize conceptually "
-                f"synonymous Critical {field}. You are also well versed in Center of Gravity "
+                f"synonymous {field}. You are also well versed in Center of Gravity "
                 "(COG) analysis."
             )
         }
-
         user_msg = {
             "role": "user",
             "content": (
                 f"Input: {normalized_input}\n\n"
-                f"This input is a list of lists of Critical {field}. Normalize the lists so that any "
-                f"conceptually similar or synonymous Critical {field} are rewritten with identical phrasing. "
+                f"This input is a list of lists of {field}. Normalize the lists so that any "
+                f"conceptually similar or synonymous {field} are rewritten with identical phrasing. "
                 f"For example, if two items in separate lists mean the same thing, rewrite both with "
                 f"the same wording. Do not explain. Return only the corrected list of lists."
             )
         }
 
         raw_response = get_chat_completion([system_msg, user_msg], model="gpt-4")
-
         result = ast.literal_eval(raw_response)
-
         # Flatten back to original format if it started flat
         return result[0] if is_flat else result
 

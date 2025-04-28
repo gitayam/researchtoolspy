@@ -166,7 +166,7 @@ def generate_cog(
                 f"- Desired End State: {desired_end_state}\n"
                 "Propose 3 potential Centers of Gravity; separate them with semicolons."
             )
-            cog_text = get_completion(custom_prompt=prompt, model="gpt-4")
+            cog_text = get_completion(custom_prompt=prompt, model="gpt-4o-mini")
             suggestions = [c.strip() for c in cog_text.split(";") if c.strip()]
             st.session_state["cog_suggestions"] = suggestions
             st.success("AI-Generated Possible Centers of Gravity:")
@@ -1295,7 +1295,7 @@ def generate_cog_recommendations(
             )
         }
         
-        response = get_chat_completion([system_msg, user_msg], model="gpt-4")
+        response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
         suggestions = [s.strip() for s in response.split(";") if s.strip()]
         return suggestions[:5]  # Limit to 5 suggestions
     except Exception as e:
@@ -1361,7 +1361,7 @@ def manage_capabilities(final_cog: str, entity_type: str, entity_name: str, enti
                                 "Separate with semicolons. Be specific and actionable."
                             )
                         }
-                        response = get_chat_completion([system_msg, user_msg], model="gpt-4")
+                        response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
                         new_capabilities = [cap.strip() for cap in response.split(";") if cap.strip()]
                         
                         added = []
@@ -1448,7 +1448,7 @@ def manage_requirements(capability: str) -> None:
                         "Separate with semicolons. Be specific and concrete."
                     )
                 }
-                response = get_chat_completion([system_msg, user_msg], model="gpt-4")
+                response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
                 new_requirements = [req.strip() for req in response.split(";") if req.strip()]
                 
                 added = []

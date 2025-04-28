@@ -53,7 +53,7 @@ def main():
             {"name": "DOTMLPF", "key": "dotmlpf", "desc": "Capability gap analysis"},
             {"name": "Starbursting", "key": "starbursting", "desc": "Question-based exploration"},
             {"name": "Behavioral Analysis", "key": "behavior_analysis", "desc": "Human behavior patterns"},
-            {"name": "CauseWay", "key": "causeway", "desc": "LOREM IPSUM"}
+            {"name": "CauseWay", "key": "causeway", "desc": "Issue-based Center of Gravity analysis"}
         ]
         
         for framework in frameworks:

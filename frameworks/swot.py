@@ -334,7 +334,7 @@ def swot_page():
                     f"Generate 3-5 {category} in semicolon-separated format, no bullet points."
                 )
             }
-            response = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
+            response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
             return response
         except Exception as e:
             st.error(f"AI Error: {e}")
@@ -429,7 +429,7 @@ def swot_page():
                 )
             }
             user_msg = {"role": "user", "content": combined_input}
-            resp = chat_gpt([system_msg, user_msg], model="gpt-3.5-turbo")
+            resp = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
             return resp
         except Exception as e:
             st.error(f"AI Error: {e}")
