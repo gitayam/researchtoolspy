@@ -116,7 +116,7 @@ def ai_suggest_dime(category, scenario, objective=None):
                 "Do not include any additional words or lines."
             )
         user_msg = {"role": "user", "content": user_content}
-        response = chat_gpt([system_msg, user_msg], model="gpt-4o")
+        response = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
         return response
     except Exception as e:
         st.error(f"AI Error: {e}")
@@ -188,7 +188,7 @@ def recommend_dime_category(category, base_text, scenario, objective=None):
                 system_msg,
                 {"role": "user", "content": user_prompt}
             ],
-            model="gpt-4o"
+            model="gpt-4o-mini"
         )
         return recommendation
     except Exception as e:
@@ -219,7 +219,7 @@ def extract_scenario_details(scenario_text):
         {"role": "system", "content": "You are a detail extractor specialized in scenario analysis."},
         {"role": "user", "content": f"{prompt}\n\nScenario Text:\n{scenario_text}"}
     ]
-    response = chat_gpt(messages, model="gpt-4o")
+    response = chat_gpt(messages, model="gpt-4o-mini")
     return response
 
 def dime_page():

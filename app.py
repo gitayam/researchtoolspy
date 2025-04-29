@@ -52,7 +52,8 @@ def main():
             {"name": "PMESII-PT", "key": "pmesii_pt", "desc": "Operational environment analysis"},
             {"name": "DOTMLPF", "key": "dotmlpf", "desc": "Capability gap analysis"},
             {"name": "Starbursting", "key": "starbursting", "desc": "Question-based exploration"},
-            {"name": "Behavioral Analysis", "key": "behavior_analysis", "desc": "Human behavior patterns"}
+            {"name": "Behavioral Analysis", "key": "behavior_analysis", "desc": "Human behavior patterns"},
+            {"name": "CauseWay", "key": "causeway", "desc": "Issue-based Center of Gravity analysis"}
         ]
         
         for framework in frameworks:
