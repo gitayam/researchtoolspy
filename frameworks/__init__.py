@@ -74,6 +74,12 @@ try:
 except ImportError as e:
     logging.warning(f"Could not import Fundamental Flow framework: {e}")
 
+try:
+    from frameworks.causeway import causeway_page
+    framework_functions["causeway"] = causeway_page
+except ImportError as e:
+    logging.warning(f"Could not import CauseWay framework: {e}")
+
 # Create aliases for shorter imports
 swot = framework_functions.get("swot")
 ach = framework_functions.get("ach")
@@ -85,6 +91,7 @@ dotmlpf = framework_functions.get("dotmlpf")
 starbursting = framework_functions.get("starbursting")
 behavior = framework_functions.get("behavior")
 flow = framework_functions.get("flow")
+causeway = framework_functions.get("causeway")
 
 # Framework registry functions
 def get_framework(name: str):
@@ -101,7 +108,8 @@ def get_framework(name: str):
         "behavior_analysis": "behavior",
         "behavioranalysis": "behavior",
         "fundamental_flow": "flow",
-        "fundamentalflow": "flow"
+        "fundamentalflow": "flow",
+        "causeway": "causeway"
     }
     
     # Map the name if it's an alias
@@ -134,6 +142,7 @@ __all__ = [
     'starbursting',
     'behavior',
     'flow',
+    'causeway',
     'BaseFramework',
     'get_framework',
     'get_all_frameworks',

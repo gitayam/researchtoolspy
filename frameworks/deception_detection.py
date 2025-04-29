@@ -56,7 +56,7 @@ def deception_detection():
                 "role": "user",
                 "content": f"For this scenario: {scenario}\nWhat is the recommended priority order for applying these frameworks, and why?"
             }
-            framework_recommendations = chat_gpt([system_msg, user_msg], model="gpt-4-mini")
+            framework_recommendations = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
             st.info("📋 Recommended Framework Priority:\n" + framework_recommendations)
         except Exception as e:
             st.error(f"Error generating framework recommendations: {e}")
@@ -119,7 +119,7 @@ def deception_detection():
                     "role": "user",
                     "content": f"For this scenario: {scenario}\nSuggest specific considerations for Motive, Opportunity, and Means analysis."
                 }
-                suggestions = chat_gpt([system_msg, user_msg], model="gpt-4-mini")
+                suggestions = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                 st.info("AI Suggestions:\n" + suggestions)
             except Exception as e:
                 st.error(f"Error generating suggestions: {e}")
@@ -177,7 +177,7 @@ def deception_detection():
                     "role": "user",
                     "content": f"For this scenario: {scenario}\nSuggest specific considerations for Past Opposition Practices analysis."
                 }
-                suggestions = chat_gpt([system_msg, user_msg], model="gpt-4-mini")
+                suggestions = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                 st.info("AI Suggestions:\n" + suggestions)
             except Exception as e:
                 st.error(f"Error generating suggestions: {e}")
@@ -235,7 +235,7 @@ def deception_detection():
                     "role": "user",
                     "content": f"For this scenario: {scenario}\nSuggest specific considerations for Manipulability of Sources analysis."
                 }
-                suggestions = chat_gpt([system_msg, user_msg], model="gpt-4-mini")
+                suggestions = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                 st.info("AI Suggestions:\n" + suggestions)
             except Exception as e:
                 st.error(f"Error generating suggestions: {e}")
@@ -298,7 +298,7 @@ def deception_detection():
                     "role": "user",
                     "content": f"For this scenario: {scenario}\nSuggest specific considerations for Evaluation of Evidence analysis."
                 }
-                suggestions = chat_gpt([system_msg, user_msg], model="gpt-4-mini")
+                suggestions = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                 st.info("AI Suggestions:\n" + suggestions)
             except Exception as e:
                 st.error(f"Error generating suggestions: {e}")
@@ -336,7 +336,7 @@ def deception_detection():
                 "content": f"Please provide a comprehensive summary of this deception analysis:\n{analysis_content}"
             }
             
-            summary = chat_gpt([system_msg, user_msg], model="gpt-4-mini")
+            summary = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
             st.info("Analysis Summary:\n" + summary)
         except Exception as e:
             st.error(f"Error generating summary: {e}")

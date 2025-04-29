@@ -166,7 +166,7 @@ def generate_cog(
                 f"- Desired End State: {desired_end_state}\n"
                 "Propose 3 potential Centers of Gravity; separate them with semicolons."
             )
-            cog_text = get_completion(custom_prompt=prompt, model="gpt-4")
+            cog_text = get_completion(custom_prompt=prompt, model="gpt-4o-mini")
             suggestions = [c.strip() for c in cog_text.split(";") if c.strip()]
             st.session_state["cog_suggestions"] = suggestions
             st.success("AI-Generated Possible Centers of Gravity:")
@@ -1582,12 +1582,105 @@ def generate_cog_recommendations(
             )
         }
         
-        response = get_chat_completion([system_msg, user_msg], model="gpt-4")
+        response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
         suggestions = [s.strip() for s in response.split(";") if s.strip()]
         return suggestions[:5]  # Limit to 5 suggestions
     except Exception as e:
         logging.error(f"Error generating COG recommendations: {e}")
         return ["Command and Control Network", "Economic Resource Base", "Popular Support"]
+
+def manage_capabilities(final_cog: str, entity_type: str, entity_name: str, entity_goals: str, entity_presence: str) -> None:
+    """Manage critical capabilities for the selected Center of Gravity.
+    
+    Args:
+        final_cog: The selected Center of Gravity
+        entity_type: The type of entity being analyzed
+        entity_name: The name of the entity
+        entity_goals: The goals of the entity
+        entity_presence: Areas where the entity is present
+    """
+    if "capabilities" not in st.session_state:
+        st.session_state["capabilities"] = []
+
+    with st.expander("Add or Suggest Capabilities", expanded=True):
+        st.markdown("""
+        **Critical Capabilities** are the primary abilities that make the Center of Gravity effective 
+        in the operational environment. These are crucial enablers for the COG.
+        """)
+        
+        new_capability = st.text_input(
+            "Add a Critical Capability",
+            help="Enter one capability at a time that is relevant to the selected CoG."
+        )
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            if st.button("➕ Add Capability", use_container_width=True):
+                if new_capability.strip():
+                    if new_capability not in st.session_state["capabilities"]:
+                        st.session_state["capabilities"].append(new_capability.strip())
+                        st.success(f"Added capability: {new_capability.strip()}")
+                        st.rerun()
+                    else:
+                        st.info(f"Capability already exists: {new_capability}")
+                else:
+                    st.warning("Please enter a capability first.")
+        
+        with col2:
+            if st.button("🤖 AI: Suggest Capabilities", use_container_width=True):
+                if not final_cog:
+                    st.warning("Please specify or select a CoG first.")
+                else:
+                    try:
+                        system_msg = {
+                            "role": "system",
+                            "content": "You are an AI specialized in identifying critical capabilities for a Center of Gravity."
+                        }
+                        user_msg = {
+                            "role": "user",
+                            "content": (
+                                f"For this Center of Gravity: '{final_cog}'\n"
+                                f"Entity Type: {entity_type}\n"
+                                f"Entity Name: {entity_name}\n"
+                                f"Goals: {entity_goals}\n"
+                                f"Areas of Presence: {entity_presence}\n\n"
+                                "List 3-5 critical capabilities (key abilities or functions). "
+                                "Separate with semicolons. Be specific and actionable."
+                            )
+                        }
+                        response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
+                        new_capabilities = [cap.strip() for cap in response.split(";") if cap.strip()]
+                        
+                        added = []
+                        for cap in new_capabilities:
+                            if cap not in st.session_state["capabilities"]:
+                                st.session_state["capabilities"].append(cap)
+                                added.append(cap)
+                        
+                        if added:
+                            st.success("Added new capabilities:")
+                            for cap in added:
+                                st.write(f"- {cap}")
+                            st.rerun()
+                        else:
+                            st.info("No new capabilities to add.")
+                    except Exception as e:
+                        st.error(f"Error suggesting capabilities: {e}")
+        
+        if st.session_state["capabilities"]:
+            st.markdown("### Current Capabilities")
+            for i, cap in enumerate(st.session_state["capabilities"]):
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.write(f"{i+1}. {cap}")
+                with col2:
+                    if st.button("🗑️", key=f"del_cap_{i}"):
+                        st.session_state["capabilities"].pop(i)
+                        st.rerun()
+            
+            if st.button("Clear All Capabilities"):
+                st.session_state["capabilities"].clear()
+                st.rerun()
 
 def manage_requirements(capability: str) -> None:
     """Manage requirements for a specific capability.
@@ -1642,7 +1735,7 @@ def manage_requirements(capability: str) -> None:
                         "Separate with semicolons. Be specific and concrete."
                     )
                 }
-                response = get_chat_completion([system_msg, user_msg], model="gpt-4")
+                response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
                 new_requirements = [req.strip() for req in response.split(";") if req.strip()]
                 
                 added = []
