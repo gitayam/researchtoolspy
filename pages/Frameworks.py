@@ -28,7 +28,7 @@ def framework_sidebar():
         "Starbursting": "STARBURSTING",
         "Deception Detection": "DECEPTION",
         "Behavioral Analysis": "BEHAVIOR",
-        "Fundamental Flow": "FLOW",
+        # "Fundamental Flow": "FLOW",
         "CauseWay": "CAUSEWAY"
     }
     
@@ -74,7 +74,7 @@ def framework_sidebar():
         "STARBURSTING": "starbursting",
         "DECEPTION": "deception_detection",
         "BEHAVIOR": "behavior_analysis",
-        "FLOW": "fundamental_flow",
+        # "FLOW": "fundamental_flow",
         "CAUSEWAY": "causeway"
     }
     
@@ -142,12 +142,12 @@ def framework_sidebar():
         - [Behavioral Analysis Methods](https://www.cia.gov/library/center-for-the-study-of-intelligence/kent-csi/vol15no1/html/v15i1a03p_0001.htm)
         - [Human Behavior Analysis Guide](https://www.dni.gov/files/NCSC/documents/campaign/Behavioral_Analysis_Guide.pdf)
         """)
-    elif st.session_state.get("current_framework") == "FLOW":
-        st.sidebar.markdown("""
-        ### Fundamental Flow Resources
-        - [Flow Theory in Operations](https://www.sciencedirect.com/science/article/pii/S2212827119305839)
-        - [Flow Analysis Methods](https://www.researchgate.net/publication/326462067_Flow_Analysis_Methods)
-        """)
+    # elif st.session_state.get("current_framework") == "FLOW":
+    #     st.sidebar.markdown("""
+    #     ### Fundamental Flow Resources
+    #     - [Flow Theory in Operations](https://www.sciencedirect.com/science/article/pii/S2212827119305839)
+    #     - [Flow Analysis Methods](https://www.researchgate.net/publication/326462067_Flow_Analysis_Methods)
+    #     """)
     elif st.session_state.get("current_framework") == "CAUSEWAY":
         st.sidebar.markdown("""
         ### CauseWay Resources
@@ -719,19 +719,19 @@ def display_frameworks_page():
         """, unsafe_allow_html=True)
         
         # Fundamental Flow Card
-        if st.button("🌊 Fundamental Flow", key="flow_button_display"):
-            st.query_params["framework"] = "fundamental_flow"
-            st.rerun()
+        # if st.button("🌊 Fundamental Flow", key="flow_button_display"):
+        #     st.query_params["framework"] = "fundamental_flow"
+        #     st.rerun()
         
-        st.markdown("""
-        <div class="framework-card">
-            <div class="card-icon">🌊</div>
-            <div class="card-content">
-                <h4>Fundamental Flow</h4>
-                <p>Analyze and visualize the five fundamental flows: People, Material, Data, Energy, and Money</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        # st.markdown("""
+        # <div class="framework-card">
+        #     <div class="card-icon">🌊</div>
+        #     <div class="card-content">
+        #         <h4>Fundamental Flow</h4>
+        #         <p>Analyze and visualize the five fundamental flows: People, Material, Data, Energy, and Money</p>
+        #     </div>
+        # </div>
+        # """, unsafe_allow_html=True)
         
         # Deception Detection Card
         if st.button("🕵️ Deception Detection", key="deception_button_display"):
