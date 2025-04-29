@@ -80,8 +80,8 @@ def behavior_analysis_page():
             "no_ai_recommend": True  # Flag to prevent AI recommendations for this field
         },
         "action_behavior": {
-            "label": "Target Action or Behavior",
-            "prompt": "Describe the specific action or behavior you want others to take that would help achieve your objective. This is what you will analyze. Provide context and clear examples in a concise summary.",
+            "label": "Target Action or Behavior (Critical Capability)",
+            "prompt": "Describe the specific action or behavior (critical capability) you want others to take that would help achieve your objective. This behavior represents a critical capability that supports your objective. Provide context and clear examples in a concise summary.",
             "type": "text"
         },
         "location": {
@@ -89,56 +89,62 @@ def behavior_analysis_page():
             "prompt": "Specify the location (city, region, or country) where the behavior is observed.",
             "type": "text"
         },
-        # Behavior Details
+        # Critical Requirements Section
+        "physical_capability": {
+            "label": "Physical Capability Requirements",
+            "prompt": "List the critical physical requirements (skills, strength, endurance) needed to perform this behavior/capability. These are potential vulnerability points. Format as numbered list: '#. [requirement]'.",
+            "type": "textarea"
+        },
+        "psychological_capability": {
+            "label": "Psychological Capability Requirements",
+            "prompt": "List the critical psychological requirements (knowledge, skills, mental capacity) needed for this behavior/capability. These are potential vulnerability points. Format as numbered list: '#. [requirement]'.",
+            "type": "textarea"
+        },
+        "physical_opportunity": {
+            "label": "Physical Opportunity Requirements",
+            "prompt": "List the critical physical environmental requirements (resources, time, location) needed for this behavior/capability. These are potential vulnerability points. Format as numbered list: '#. [requirement]'.",
+            "type": "textarea"
+        },
+        "social_opportunity": {
+            "label": "Social Opportunity Requirements",
+            "prompt": "List the critical social and cultural requirements needed for this behavior/capability. These are potential vulnerability points. Format as numbered list: '#. [requirement]'.",
+            "type": "textarea"
+        },
+        "reflective_motivation": {
+            "label": "Reflective Motivation Requirements",
+            "prompt": "List the critical conscious motivation requirements (goals, plans) needed for this behavior/capability. These are potential vulnerability points. Format as numbered list: '#. [requirement]'.",
+            "type": "textarea"
+        },
+        "automatic_motivation": {
+            "label": "Automatic Motivation Requirements",
+            "prompt": "List the critical habitual/emotional requirements needed for this behavior/capability. These are potential vulnerability points. Format as numbered list: '#. [requirement]'.",
+            "type": "textarea"
+        },
+        # Vulnerabilities Analysis
+        "vulnerabilities": {
+            "label": "Critical Vulnerabilities",
+            "prompt": "Based on the requirements above, list the critical vulnerabilities that could be targeted to affect this behavior/capability. Prioritize vulnerabilities that affect multiple requirements or have cascading effects. Format as numbered list.",
+            "type": "textarea"
+        },
+        # Supporting Analysis
         "behavior_breakdown": {
-            "label": "Behavior Breakdown and Analysis",
-            "prompt": "In a chronological list, describe steps a person or group takes to achieve ultimately conduct or perform the action or behavior as a numbered list. Include eligibility, requirements, and other relevant factors. Do Not include commentary or additional information.",
+            "label": "Behavior/Capability Process Breakdown",
+            "prompt": "Break down the chronological steps needed to execute this behavior/capability. This helps identify additional requirements and vulnerabilities. Include eligibility and prerequisites as a numbered list.",
             "type": "textarea"
         },
         "instances": {
-            "label": "Historical Examples (Who, When, Where, Why)",
-            "prompt": "Provide historical examples of the behavior as a numbered list.",
+            "label": "Historical Examples",
+            "prompt": "Provide historical examples showing how this behavior/capability was executed or disrupted, focusing on requirements and vulnerabilities exploited.",
             "type": "textarea"
         },
         "obstacles": {
-            "label": "Obstacles and Challenges",
-            "prompt": "List potential obstacles and challenges as a numbered list.",
+            "label": "Known Obstacles and Disruptions",
+            "prompt": "List known obstacles or successful disruptions to this behavior/capability, highlighting which requirements or vulnerabilities were exploited.",
             "type": "textarea"
         },
         "associated_symbols": {
             "label": "Associated Symbols and Signals",
             "prompt": "Provide a numbered list of the symbolic objects—such as banners, placards, icons, or other visual cues—that not only represent the behavior but also carry deeper material and semiotic significance. Consider how these objects function as targets, components, or stimuli in contentious politics, reflecting both their tangible and symbolic roles. Provide a numbered list where each entry includes the symbol's name and a brief description of its symbolic relevance.",
-            "type": "textarea"
-        },
-        # COM‑B Analysis
-        "physical_capability": {
-            "label": "Physical Capability",
-            "prompt": "Describe the physical skills, strength, or endurance required to perform the behavior in a numbered list. Format each line as: '#. [capability]' with no additional commentary.",
-            "type": "textarea"
-        },
-        "psychological_capability": {
-            "label": "Psychological Capability",
-            "prompt": "Describe the knowledge, cognitive skills, or mental capacity needed to perform the behavior in a numbered list. Format each line as: '#. [capability]' with no additional commentary.",
-            "type": "textarea"
-        },
-        "physical_opportunity": {
-            "label": "Physical Opportunity",
-            "prompt": "List the physical environmental factors (resources, time, location) that facilitate or hinder the behavior in a numbered list. Format each line as: '#. [opportunity]' with no additional commentary.",
-            "type": "textarea"
-        },
-        "social_opportunity": {
-            "label": "Social Opportunity",
-            "prompt": "Describe the social and cultural factors that influence the behavior, such as norms or interpersonal cues in a numbered list. Format each line as: '#. [opportunity]' with no additional commentary.",
-            "type": "textarea"
-        },
-        "reflective_motivation": {
-            "label": "Reflective Motivation",
-            "prompt": "Describe the conscious motivations, goals, and plans that drive the behavior in a numbered list. Format each line as: '#. [motivation]' with no additional commentary.",
-            "type": "textarea"
-        },
-        "automatic_motivation": {
-            "label": "Automatic Motivation",
-            "prompt": "List the habitual, emotional, or impulse-based drivers that affect the behavior in a numbered list. Format each line as: '#. [motivation]' with no additional commentary.",
             "type": "textarea"
         },
         # Implications & Outcomes
@@ -216,12 +222,12 @@ def behavior_analysis_page():
         }
     }
 
-    # Organize fields into logical sections.
+    # Reorganize sections to match COG analysis flow
     sections = {
         "Basic Info": ["objective_effect", "action_behavior", "location"],
-        "Behavior Details": ["behavior_breakdown", "instances", "obstacles", "associated_symbols"],
-        "COM-B Analysis": ["physical_capability", "psychological_capability", "physical_opportunity", "social_opportunity", "reflective_motivation", "automatic_motivation"],
-        "Implications & Outcomes": ["consequences", "environmental_factors", "impact_strategies"],
+        "Critical Requirements Analysis": ["physical_capability", "psychological_capability", "physical_opportunity", "social_opportunity", "reflective_motivation", "automatic_motivation"],
+        "Vulnerabilities Analysis": ["vulnerabilities", "behavior_breakdown", "instances", "obstacles"],
+        "Supporting Details": ["associated_symbols", "consequences", "environmental_factors", "impact_strategies"],
         "Stakeholders": ["primary_ta", "secondary_ta", "engaging_actors", "beneficiaries", "harmed_parties", "influencers", "enablers", "opposers"],
         "Additional Considerations": ["additional_notes", "cultural_considerations", "legal_ethics"]
     }

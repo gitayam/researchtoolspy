@@ -186,68 +186,187 @@ def generate_cog(
             st.warning("Using fallback suggestions due to AI service error.")
             st.write("1. " + fallback["cog"]["name"])
 
-def manage_capabilities(final_cog, entity_type, entity_name, entity_goals, entity_presence):
+def manage_capabilities(final_cog: str, entity_type: str, entity_name: str, entity_goals: str, entity_presence: str) -> None:
+    """Manage critical capabilities for the selected Center of Gravity."""
     if "capabilities" not in st.session_state:
         st.session_state["capabilities"] = []
 
-    with st.expander("Add or Suggest Capabilities (Optional)", expanded=False):
-        new_capability = st.text_input(
-            "Add a Critical Capability",
-            help="Enter one capability at a time that is relevant to the selected CoG."
-        )
-        if st.button("Add Capability"):
-            if new_capability.strip():
-                st.session_state["capabilities"].append(new_capability.strip())
-                st.success(f"Added capability: {new_capability.strip()}")
-            else:
-                st.warning("Capability cannot be empty.")
-
-        if st.button("AI: Suggest Capabilities"):
-            if not final_cog:
-                st.warning("Please specify or select a CoG first.")
-            else:
-                try:
-                    # Try using OpenAI first
-                    try:
-                        system_msg = {"role": "system", "content": "You are an AI specialized in COG analysis."}
-                        user_msg = {
-                            "role": "user",
-                            "content": (
-                                "List ~5 critical capabilities (actions or functions) the CoG can perform, "
-                                "semicolon separated. Here are the details:\n"
-                                f"Entity Type: {entity_type}\n"
-                                f"Entity Name: {entity_name}\n"
-                                f"Goals: {entity_goals}\n"
-                                f"Areas of Presence: {entity_presence}\n"
-                                f"CoG: {final_cog}\n"
-                            )
-                        }
-                        response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
-                        new_suggestions = [cap.strip() for cap in response.split(";") if cap.strip()]
-                    except Exception as e:
-                        # If OpenAI fails, use fallback suggestions
-                        st.info("Using fallback suggestions as OpenAI is not available.")
-                        fallback_suggestions = get_fallback_suggestions(
-                            entity_type, entity_name, entity_goals, entity_presence, ""
-                        )
-                        new_suggestions = [cap["name"] for cap in fallback_suggestions["capabilities"]]
-                    
-                    if new_suggestions:
-                        st.session_state["capabilities"].extend(new_suggestions)
-                        st.success("Capabilities added successfully.")
-                        for cap in new_suggestions:
-                            st.write(f"- {cap}")
+    with st.expander("Add or Suggest Capabilities", expanded=True):
+        st.markdown("""
+        ### Critical Capabilities
+        Critical Capabilities are the primary abilities that make the Center of Gravity effective 
+        in the operational environment. These are crucial enablers for the COG.
+        
+        You can:
+        - Add capabilities manually
+        - Get AI suggestions
+        - Parse multiple capabilities at once
+        - Edit or remove individual capabilities
+        """)
+        
+        # Add capability options in tabs
+        add_tab, parse_tab = st.tabs(["Add Single Capability", "Parse Multiple Capabilities"])
+        
+        with add_tab:
+            new_capability = st.text_input(
+                "Add a Critical Capability",
+                help="Enter one capability at a time that is relevant to the selected CoG."
+            )
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                if st.button("➕ Add Capability", use_container_width=True):
+                    if new_capability.strip():
+                        if new_capability not in st.session_state["capabilities"]:
+                            st.session_state["capabilities"].append(new_capability.strip())
+                            st.success(f"Added capability: {new_capability.strip()}")
+                            st.rerun()
+                        else:
+                            st.info(f"Capability already exists: {new_capability}")
                     else:
-                        st.warning("No capabilities were generated. Please try adding them manually.")
-                except Exception as e:
-                    st.error(f"Error suggesting capabilities: {e}")
-
+                        st.warning("Please enter a capability first.")
+            
+            with col2:
+                if st.button("🤖 AI: Suggest Capabilities", use_container_width=True):
+                    if not final_cog:
+                        st.warning("Please specify or select a CoG first.")
+                    else:
+                        try:
+                            system_msg = {
+                                "role": "system",
+                                "content": "You are an AI specialized in identifying critical capabilities for a Center of Gravity."
+                            }
+                            user_msg = {
+                                "role": "user",
+                                "content": (
+                                    f"For this Center of Gravity: '{final_cog}'\n"
+                                    f"Entity Type: {entity_type}\n"
+                                    f"Entity Name: {entity_name}\n"
+                                    f"Goals: {entity_goals}\n"
+                                    f"Areas of Presence: {entity_presence}\n\n"
+                                    "List 3-5 critical capabilities (key abilities or functions). "
+                                    "Separate with semicolons. Be specific and actionable."
+                                )
+                            }
+                            response = get_chat_completion([system_msg, user_msg], model="gpt-4")
+                            new_capabilities = [cap.strip() for cap in response.split(";") if cap.strip()]
+                            
+                            # Show suggestions with individual add buttons
+                            st.success("AI Suggestions:")
+                            for cap in new_capabilities:
+                                col1, col2 = st.columns([4, 1])
+                                with col1:
+                                    st.write(f"- {cap}")
+                                with col2:
+                                    if st.button("Add", key=f"add_sug_{cap}"):
+                                        if cap not in st.session_state["capabilities"]:
+                                            st.session_state["capabilities"].append(cap)
+                                            st.success(f"Added: {cap}")
+                                            st.rerun()
+                                        else:
+                                            st.info(f"Already exists: {cap}")
+                        except Exception as e:
+                            st.error(f"Error suggesting capabilities: {e}")
+        
+        with parse_tab:
+            st.markdown("""
+            Enter multiple capabilities separated by semicolons (;) or new lines.
+            Example:
+            ```
+            Capability 1; Capability 2
+            Capability 3
+            ```
+            """)
+            
+            bulk_capabilities = st.text_area(
+                "Enter Multiple Capabilities",
+                height=150,
+                help="Enter multiple capabilities separated by semicolons (;) or new lines"
+            )
+            
+            if st.button("Parse & Add Capabilities", use_container_width=True):
+                if bulk_capabilities.strip():
+                    # Split by both semicolons and newlines
+                    new_caps = []
+                    for line in bulk_capabilities.split('\n'):
+                        new_caps.extend([cap.strip() for cap in line.split(';') if cap.strip()])
+                    
+                    added = []
+                    skipped = []
+                    for cap in new_caps:
+                        if cap not in st.session_state["capabilities"]:
+                            st.session_state["capabilities"].append(cap)
+                            added.append(cap)
+                        else:
+                            skipped.append(cap)
+                    
+                    if added:
+                        st.success("Added capabilities:")
+                        for cap in added:
+                            st.write(f"- {cap}")
+                    if skipped:
+                        st.info("Skipped (already exist):")
+                        for cap in skipped:
+                            st.write(f"- {cap}")
+                    
+                    if added:
+                        st.rerun()
+                else:
+                    st.warning("Please enter capabilities to parse.")
+        
+        # Display and manage current capabilities
         if st.session_state["capabilities"]:
-            st.write("Current Capabilities:")
-            for i, cap in enumerate(st.session_state["capabilities"]):
-                st.write(f"{i+1}. {cap}")
-            if st.button("Clear All Capabilities"):
-                st.session_state["capabilities"].clear()
+            st.markdown("### Current Capabilities")
+            
+            # Allow reordering capabilities
+            st.markdown("Drag and drop to reorder capabilities:")
+            reordered_caps = st.session_state["capabilities"].copy()
+            for i in range(len(reordered_caps)):
+                col1, col2, col3, col4 = st.columns([4, 1, 1, 1])
+                with col1:
+                    # Make capability editable
+                    edited_cap = st.text_input(
+                        "Capability",
+                        value=reordered_caps[i],
+                        key=f"edit_cap_{i}",
+                        label_visibility="collapsed"
+                    )
+                    if edited_cap != reordered_caps[i]:
+                        st.session_state["capabilities"][i] = edited_cap
+                
+                with col2:
+                    if i > 0 and st.button("↑", key=f"up_{i}"):
+                        reordered_caps[i], reordered_caps[i-1] = reordered_caps[i-1], reordered_caps[i]
+                        st.session_state["capabilities"] = reordered_caps
+                        st.rerun()
+                
+                with col3:
+                    if i < len(reordered_caps)-1 and st.button("↓", key=f"down_{i}"):
+                        reordered_caps[i], reordered_caps[i+1] = reordered_caps[i+1], reordered_caps[i]
+                        st.session_state["capabilities"] = reordered_caps
+                        st.rerun()
+                
+                with col4:
+                    if st.button("🗑️", key=f"del_cap_{i}"):
+                        st.session_state["capabilities"].pop(i)
+                        # Also remove related requirements and vulnerabilities
+                        if "requirements" in st.session_state and reordered_caps[i] in st.session_state["requirements"]:
+                            del st.session_state["requirements"][reordered_caps[i]]
+                        if "vulnerabilities_dict" in st.session_state and reordered_caps[i] in st.session_state["vulnerabilities_dict"]:
+                            del st.session_state["vulnerabilities_dict"][reordered_caps[i]]
+                        st.rerun()
+            
+            col1, col2 = st.columns([1, 4])
+            with col1:
+                if st.button("Clear All Capabilities"):
+                    if st.session_state["capabilities"]:
+                        # Also clear related requirements and vulnerabilities
+                        st.session_state["capabilities"].clear()
+                        if "requirements" in st.session_state:
+                            st.session_state["requirements"].clear()
+                        if "vulnerabilities_dict" in st.session_state:
+                            st.session_state["vulnerabilities_dict"].clear()
+                        st.rerun()
 
 def manage_vulnerabilities(entity_type, entity_name, entity_goals, entity_presence, final_cog):
     if "vulnerabilities_dict" not in st.session_state:
@@ -301,18 +420,32 @@ def score_and_prioritize(all_vulnerabilities_list):
     import pandas as pd
 
     if "criteria" not in st.session_state:
-        st.session_state["criteria"] = ["Impact", "Attainability", "Strategic Advantage Potential"]
+        # Updated default criteria based on the guide
+        st.session_state["criteria"] = {
+            "Impact": {
+                "weight": 0.4,
+                "description": "How significantly would exploiting the vulnerability affect the COG? Consider both immediate impact and potential for escalated disruptions."
+            },
+            "Attainability": {
+                "weight": 0.4,
+                "description": "How feasible is exploiting the vulnerability with available resources? Consider logistical, technological, and temporal requirements."
+            },
+            "Strategic_Advantage": {
+                "weight": 0.2,
+                "description": "What strategic advantages or follow-up actions would be enabled by exploiting this vulnerability?"
+            }
+        }
 
-    st.markdown("### 📊 Vulnerability Scoring")
+    st.markdown("### 📊 Vulnerability Scoring and Prioritization")
     
-    # Scoring System Selection
+    # Scoring System Selection with improved descriptions
     st.markdown("""
     <div class="info-box">
     <h4>Select Scoring System</h4>
-    <p>Choose between two scoring approaches:</p>
+    <p>Choose your scoring approach:</p>
     <ul>
-    <li><strong>Traditional (1-5):</strong> Linear scale where each increment represents equal change</li>
-    <li><strong>Logarithmic (1,3,5,8,12):</strong> Non-linear scale emphasizing significant differences at higher values</li>
+    <li><strong>Traditional (1-5):</strong> Linear scale where each increment represents equal change. Best for straightforward evaluations.</li>
+    <li><strong>Logarithmic (1,3,5,8,12):</strong> Non-linear scale that emphasizes significant differences at higher values. Better for complex scenarios where small changes can have exponential effects.</li>
     </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -320,38 +453,65 @@ def score_and_prioritize(all_vulnerabilities_list):
     scoring_system = st.radio(
         "Scoring System",
         ["Traditional (1-5)", "Logarithmic (1,3,5,8,12)"],
-        help="Choose your preferred scoring system"
+        help="Choose your preferred scoring system based on the complexity of your analysis"
     )
 
-    # Criteria Management
+    # Criteria Management with weights
     with st.expander("Manage Scoring Criteria", expanded=False):
         st.markdown("""
-        Define the criteria used to evaluate each vulnerability. Default criteria are:
-        - **Impact**: The potential effect if the vulnerability is exploited
-        - **Attainability**: How feasible it is to exploit this vulnerability
-        - **Strategic Advantage**: The strategic benefit gained from exploiting this vulnerability
+        ### Scoring Criteria and Weights
+        
+        Each criterion is weighted to reflect its importance in the overall analysis:
+        
+        - **Impact (40%)**: Evaluate how a vulnerability affects the COG's essential functionality
+        - **Attainability (40%)**: Assess the feasibility of exploiting the vulnerability
+        - **Strategic Advantage (20%)**: Measure potential follow-up opportunities
+        
+        Adjust weights and descriptions below:
         """)
         
-        criteria_text = st.text_area(
-            "Current Criteria (one per line)",
-            value="\n".join(st.session_state["criteria"]),
-            height=100,
-            help="Edit the list of criteria below. Each line is a separate criterion."
-        )
-        if st.button("Update Criteria"):
-            new_list = [c.strip() for c in criteria_text.split("\n") if c.strip()]
-            st.session_state["criteria"] = new_list
-            st.success("Criteria updated.")
+        # Allow customization of weights and descriptions
+        for criterion, details in st.session_state["criteria"].items():
+            st.markdown(f"#### {criterion}")
+            new_weight = st.slider(
+                f"Weight for {criterion}",
+                min_value=0.0,
+                max_value=1.0,
+                value=details["weight"],
+                step=0.1,
+                key=f"weight_{criterion}",
+                help="Set the weight (importance) of this criterion in the overall score"
+            )
+            new_desc = st.text_area(
+                f"Description for {criterion}",
+                value=details["description"],
+                key=f"desc_{criterion}",
+                help="Describe how to evaluate this criterion"
+            )
+            st.session_state["criteria"][criterion] = {
+                "weight": new_weight,
+                "description": new_desc
+            }
+
+        # Normalize weights to ensure they sum to 1
+        total_weight = sum(c["weight"] for c in st.session_state["criteria"].values())
+        if total_weight != 1.0:
+            st.warning("Weights will be normalized to sum to 1.0")
+            for criterion in st.session_state["criteria"]:
+                st.session_state["criteria"][criterion]["weight"] /= total_weight
 
     # Scoring Guide based on selected system
     if scoring_system == "Traditional (1-5)":
         st.markdown("""
         ### Traditional Scoring Guide (1-5)
-        - **1**: Minimal significance/extremely difficult
-        - **2**: Low significance/very difficult
-        - **3**: Moderate significance/achievable
-        - **4**: High significance/fairly easy
-        - **5**: Critical significance/very easy
+        
+        For each criterion, rate the vulnerability using this scale:
+        
+        - **1**: Minimal - Very low impact/extremely difficult to exploit/minimal advantage
+        - **2**: Low - Limited impact/very difficult to exploit/minor advantage
+        - **3**: Moderate - Notable impact/achievable with effort/moderate advantage
+        - **4**: High - Significant impact/readily achievable/significant advantage
+        - **5**: Critical - Severe impact/easily exploitable/major strategic advantage
         """)
         min_score = 1
         max_score = 5
@@ -359,11 +519,16 @@ def score_and_prioritize(all_vulnerabilities_list):
     else:
         st.markdown("""
         ### Logarithmic Scoring Guide (1,3,5,8,12)
-        - **1**: Minimal significance/extremely difficult
-        - **3**: Low significance/very difficult
-        - **5**: Moderate significance/achievable
-        - **8**: High significance/fairly easy
-        - **12**: Critical significance/very easy
+        
+        For each criterion, rate the vulnerability using this exponential scale:
+        
+        - **1**: Minimal - Very low impact/extremely difficult to exploit/minimal advantage
+        - **3**: Low - Limited impact/very difficult to exploit/minor advantage
+        - **5**: Moderate - Notable impact/achievable with effort/moderate advantage
+        - **8**: High - Significant impact/readily achievable/significant advantage
+        - **12**: Critical - Severe impact/easily exploitable/major strategic advantage
+        
+        This scale emphasizes the increased significance of higher ratings.
         """)
         score_options = [1, 3, 5, 8, 12]
 
@@ -372,7 +537,7 @@ def score_and_prioritize(all_vulnerabilities_list):
         st.warning("No vulnerabilities to score. Please add vulnerabilities first.")
         return
 
-    # Create tabs for each capability to organize scoring
+    # Create tabs for each capability
     capabilities = list(set(cap for cap, _ in all_vulnerabilities_list))
     tabs = st.tabs([f"⚡ {cap}" for cap in capabilities])
 
@@ -383,80 +548,112 @@ def score_and_prioritize(all_vulnerabilities_list):
         with tabs[cap_idx]:
             st.markdown(f"### Scoring Vulnerabilities for: {capability}")
             
-            # Get vulnerabilities for this capability
             cap_vulns = [vuln for c, vuln in all_vulnerabilities_list if c == capability]
             
             for vuln in cap_vulns:
-                # Format vulnerability name to include entity and reference to COG
                 formatted_vuln = f"{entity_name}'s {vuln} affecting {final_cog} through {capability}"
                 st.markdown(f"#### 🎯 {formatted_vuln}")
+                
+                # Create columns for each criterion
                 cols = st.columns(len(st.session_state["criteria"]))
                 
-                for idx, criterion in enumerate(st.session_state["criteria"]):
+                for idx, (criterion, details) in enumerate(st.session_state["criteria"].items()):
                     with cols[idx]:
                         key = (capability, vuln, criterion)
-                        current_score = st.session_state["vulnerability_scores"].get(key, 1)
+                        current_score = st.session_state.get("vulnerability_scores", {}).get(key, 1)
+                        
+                        st.markdown(f"**{criterion}** (Weight: {details['weight']:.1%})")
+                        st.markdown(f"*{details['description']}*")
                         
                         if scoring_system == "Traditional (1-5)":
                             new_score = st.slider(
-                                criterion,
+                                f"Score for {criterion}",
                                 min_value=min_score,
                                 max_value=max_score,
                                 value=int(current_score),
                                 step=step,
-                                help=f"Rate the {criterion.lower()} of this vulnerability"
+                                key=f"score_{key}",
+                                help=details["description"]
                             )
                         else:
                             new_score = st.select_slider(
-                                criterion,
+                                f"Score for {criterion}",
                                 options=score_options,
                                 value=score_options[0] if current_score == 1 else current_score,
-                                help=f"Rate the {criterion.lower()} of this vulnerability"
+                                key=f"score_{key}",
+                                help=details["description"]
                             )
                         
+                        if "vulnerability_scores" not in st.session_state:
+                            st.session_state["vulnerability_scores"] = {}
                         st.session_state["vulnerability_scores"][key] = new_score
 
-    # Calculate and Display Results
+    # Calculate and Display Results with weighted scores
     if st.button("📊 Calculate & Show Results", type="primary", use_container_width=True):
         final_scores = []
         for cap, vuln in all_vulnerabilities_list:
-            total_score = 0
+            weighted_score = 0
             detail_list = []
-            for crit in st.session_state["criteria"]:
-                key = (cap, vuln, crit)
-                val = st.session_state["vulnerability_scores"].get(key, 1)
-                total_score += val
-                detail_list.append(f"{crit}={val}")
             
-            # Format vulnerability name with entity and COG reference
+            # Calculate weighted score
+            for criterion, details in st.session_state["criteria"].items():
+                key = (cap, vuln, criterion)
+                val = st.session_state["vulnerability_scores"].get(key, 1)
+                weighted_val = val * details["weight"]
+                weighted_score += weighted_val
+                detail_list.append(f"{criterion}={val} (weighted: {weighted_val:.2f})")
+            
             formatted_vuln = f"{entity_name}'s {vuln} affecting {final_cog} through {cap}"
-            final_scores.append((cap, formatted_vuln, total_score, detail_list))
+            final_scores.append((
+                cap,
+                formatted_vuln,
+                weighted_score,
+                detail_list,
+                {criterion: st.session_state["vulnerability_scores"].get((cap, vuln, criterion), 1)
+                 for criterion in st.session_state["criteria"]}
+            ))
 
+        # Sort by weighted score
         final_scores.sort(key=lambda x: x[2], reverse=True)
         st.session_state["final_scores"] = final_scores
 
-        # Display Results
+        # Display Results with improved visualization
         st.markdown("### 📈 Prioritized Vulnerabilities")
-        for idx, (cap, vuln, score, details) in enumerate(final_scores, 1):
+        for idx, (cap, vuln, weighted_score, details, raw_scores) in enumerate(final_scores, 1):
             with st.container():
+                # Calculate color based on weighted score
+                max_possible_score = (
+                    5 if scoring_system == "Traditional (1-5)" else 12
+                )
+                score_percentage = weighted_score / max_possible_score
+                color = (
+                    "#dc3545" if score_percentage > 0.8 else
+                    "#fd7e14" if score_percentage > 0.6 else
+                    "#ffc107" if score_percentage > 0.4 else
+                    "#28a745" if score_percentage > 0.2 else
+                    "#17a2b8"
+                )
+                
                 st.markdown(
                     f"""
-                    <div class="suggestion-card">
+                    <div class="suggestion-card" style="border-left: 5px solid {color}">
                     <h4>{idx}. {vuln}</h4>
                     <p><strong>Capability:</strong> {cap}</p>
-                    <p><strong>Composite Score:</strong> {score}</p>
-                    <p><strong>Detailed Scores:</strong> {', '.join(details)}</p>
+                    <p><strong>Weighted Score:</strong> {weighted_score:.2f}</p>
+                    <p><strong>Detailed Scores:</strong></p>
+                    <ul>
+                    {"".join(f"<li>{detail}</li>" for detail in details)}
+                    </ul>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
 
-        # Export Options
+        # Export Options with improved data structure
         st.markdown("### 💾 Export Results")
         col1, col2 = st.columns(2)
         
         with col1:
-            # Export as CSV
             if st.button("📄 Export as CSV", use_container_width=True):
                 csv_data = export_results(final_scores)
                 st.download_button(
@@ -468,7 +665,6 @@ def score_and_prioritize(all_vulnerabilities_list):
                 )
         
         with col2:
-            # Export as JSON
             if st.button("📋 Export as JSON", use_container_width=True):
                 json_data = export_cog_analysis()
                 st.download_button(
@@ -1058,7 +1254,7 @@ def clean_json_response(response_text: str) -> str:
     return response_text
 
 def generate_cog_suggestions(entity_type: str, entity_name: str, entity_goals: str, entity_presence: str, desired_end_state: str) -> Dict:
-    """Generate AI suggestions for COG analysis components"""
+    """Generate AI suggestions for COG analysis components with prioritized vulnerabilities"""
     try:
         # First check if OpenAI is available
         try:
@@ -1070,22 +1266,62 @@ def generate_cog_suggestions(entity_type: str, entity_name: str, entity_goals: s
         system_msg = {
             "role": "system",
             "content": """You are an AI specialized in Center of Gravity analysis. 
+            Follow this strict prioritization flow: COG > Critical Capabilities > Critical Requirements > Critical Vulnerabilities.
+            Each vulnerability MUST be linked to specific requirements, which are linked to specific capabilities.
             You must respond ONLY with valid JSON conforming exactly to this schema:
             {
-                "capabilities": [{"name": "string", "description": "string"}],
-                "requirements": [{"name": "string", "description": "string"}],
-                "vulnerabilities": [{"name": "string", "description": "string", "related_capability": "string"}]
+                "capabilities": [
+                    {
+                        "name": "string",
+                        "description": "string",
+                        "priority": number,  # 1-5, where 1 is highest priority
+                        "cog_relationship": "string"  # How this capability supports the COG
+                    }
+                ],
+                "requirements": [
+                    {
+                        "name": "string",
+                        "description": "string",
+                        "priority": number,  # 1-5, where 1 is highest priority
+                        "capability": "string",  # Name of the related capability
+                        "requirement_type": "string"  # Physical, Moral, or Cyber
+                    }
+                ],
+                "vulnerabilities": [
+                    {
+                        "name": "string",
+                        "description": "string",
+                        "priority": number,  # 1-5, where 1 is highest priority
+                        "related_requirements": ["string"],  # List of requirement names this affects
+                        "related_capability": "string",  # Name of the ultimately affected capability
+                        "cascade_potential": number,  # 1-5, how likely effects cascade to other requirements
+                        "exploitation_difficulty": number  # 1-5, how difficult to exploit (1 is easiest)
+                    }
+                ]
             }"""
         }
         
         user_msg = {
             "role": "user",
-            "content": f"""Analyze this entity and suggest components for COG analysis:
+            "content": f"""Analyze this entity and suggest components for COG analysis, following the strict prioritization flow of COG > Capabilities > Requirements > Vulnerabilities.
+            Focus on identifying vulnerabilities that affect multiple requirements or have cascading effects.
+            
             Entity Type: {entity_type}
             Entity Name: {entity_name}
             Goals: {entity_goals}
             Areas of Presence: {entity_presence}
-            Desired End State: {desired_end_state}"""
+            Desired End State: {desired_end_state}
+            
+            For each component:
+            1. Capabilities: How does each capability directly support the COG?
+            2. Requirements: What specific requirements enable each capability?
+            3. Vulnerabilities: Which requirements, if exploited, would have the greatest impact on capabilities?
+            
+            Prioritize based on:
+            - Impact on COG
+            - Cascading effects
+            - Exploitation feasibility
+            """
         }
         
         response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
@@ -1095,7 +1331,30 @@ def generate_cog_suggestions(entity_type: str, entity_name: str, entity_goals: s
         
         try:
             suggestions = json.loads(cleaned_response)
+            
+            # Sort capabilities by priority
+            if "capabilities" in suggestions:
+                suggestions["capabilities"].sort(key=lambda x: x.get("priority", 5))
+            
+            # Sort requirements by priority
+            if "requirements" in suggestions:
+                suggestions["requirements"].sort(key=lambda x: x.get("priority", 5))
+            
+            # Sort vulnerabilities by a weighted score
+            if "vulnerabilities" in suggestions:
+                for vuln in suggestions["vulnerabilities"]:
+                    # Calculate weighted score based on priority, cascade potential, and exploitation ease
+                    weight_score = (
+                        (6 - vuln.get("priority", 5)) * 0.4 +  # Inverse priority (1 is best)
+                        vuln.get("cascade_potential", 1) * 0.4 +  # Higher cascade is better
+                        (6 - vuln.get("exploitation_difficulty", 5)) * 0.2  # Easier exploitation is better
+                    )
+                    vuln["weight_score"] = weight_score
+                
+                suggestions["vulnerabilities"].sort(key=lambda x: x.get("weight_score", 0), reverse=True)
+            
             return suggestions
+            
         except json.JSONDecodeError as e:
             st.error("AI response was not valid JSON even after cleaning. Using enhanced fallback suggestions.")
             
@@ -1134,6 +1393,14 @@ def display_ai_suggestions(suggestions: Dict):
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
+    .priority-indicator {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 0.8em;
+        margin-left: 10px;
+    }
+    
     /* Dark mode specific styles */
     .stApp[data-theme="dark"] .suggestion-card {
         background-color: rgba(45, 55, 72, 0.5);
@@ -1141,112 +1408,132 @@ def display_ai_suggestions(suggestions: Dict):
         color: #e2e8f0;
     }
     
-    .stApp[data-theme="dark"] .importance-high { color: #68d391; }
-    .stApp[data-theme="dark"] .importance-medium { color: #f6e05e; }
-    .stApp[data-theme="dark"] .importance-low { color: #fc8181; }
-    
-    /* Light mode styles */
-    .stApp[data-theme="light"] .importance-high { color: #28a745; }
-    .stApp[data-theme="light"] .importance-medium { color: #ffc107; }
-    .stApp[data-theme="light"] .importance-low { color: #dc3545; }
+    .priority-1 { background-color: #dc3545; color: white; }
+    .priority-2 { background-color: #fd7e14; color: white; }
+    .priority-3 { background-color: #ffc107; color: black; }
+    .priority-4 { background-color: #28a745; color: white; }
+    .priority-5 { background-color: #17a2b8; color: white; }
     </style>
     """, unsafe_allow_html=True)
     
-    # Display COG suggestion in a prominent card if available
-    if 'cog' in suggestions:
-        st.markdown("### 🎯 Suggested Center of Gravity")
-        with st.container():
-            st.markdown(
-                f"""
-                <div class="suggestion-card">
-                <h4>{suggestions['cog'].get('name', 'Unnamed COG')}</h4>
-                <p><strong>Description:</strong> {suggestions['cog'].get('description', 'No description available')}</p>
-                <p><strong>Rationale:</strong> {suggestions['cog'].get('rationale', 'No rationale available')}</p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            if st.button("✅ Use This Center of Gravity", key=f"use_cog_btn_{suggestion_id}", type="primary"):
-                st.session_state["final_cog"] = suggestions['cog']['name']
-                st.success(f"Set Center of Gravity to: {suggestions['cog']['name']}")
-                st.rerun()
-    
-    # Display capabilities and requirements side by side if available
+    # Display capabilities and requirements side by side
     if 'capabilities' in suggestions or 'requirements' in suggestions:
-        st.markdown("### 🔄 Capabilities and Requirements")
-        col1, col2 = st.columns(2)
+        st.markdown("### 🔄 Critical Capabilities and Requirements")
+        st.info("Analyzing vulnerabilities in order of: COG > Capabilities > Requirements > Vulnerabilities")
         
-        with col1:
-            if 'capabilities' in suggestions:
-                st.markdown("#### Critical Capabilities")
-                for i, cap in enumerate(suggestions['capabilities']):
-                    importance_class = "importance-medium"  # Default to medium importance if not specified
-                    if 'importance' in cap:
-                        importance_class = (
-                            "importance-high" if cap['importance'] >= 8
-                            else "importance-medium" if cap['importance'] >= 5
-                            else "importance-low"
-                        )
-                    
+        # Display capabilities first
+        if 'capabilities' in suggestions:
+            st.markdown("#### Critical Capabilities")
+            for i, cap in enumerate(suggestions['capabilities']):
+                priority = cap.get('priority', 5)
+                st.markdown(
+                    f"""
+                    <div class="suggestion-card">
+                    <h4>{cap.get('name', 'Unnamed Capability')}
+                    <span class="priority-indicator priority-{priority}">P{priority}</span></h4>
+                    <p><strong>Description:</strong> {cap.get('description', 'No description available')}</p>
+                    <p><strong>COG Relationship:</strong> {cap.get('cog_relationship', 'Not specified')}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+                
+                if st.button("➕ Add Capability", key=f"add_cap_btn_{suggestion_id}_{i}"):
+                    if cap['name'] not in st.session_state["capabilities"]:
+                        st.session_state["capabilities"].append(cap['name'])
+                        st.success(f"Added capability: {cap['name']}")
+                        st.rerun()
+                    else:
+                        st.info(f"Capability already added: {cap['name']}")
+        
+        # Display requirements grouped by capability
+        if 'requirements' in suggestions:
+            st.markdown("#### Critical Requirements")
+            # Group requirements by capability
+            req_by_cap = {}
+            for req in suggestions['requirements']:
+                cap = req.get('capability', 'Ungrouped')
+                if cap not in req_by_cap:
+                    req_by_cap[cap] = []
+                req_by_cap[cap].append(req)
+            
+            for cap, reqs in req_by_cap.items():
+                st.markdown(f"**For Capability: {cap}**")
+                for i, req in enumerate(reqs):
+                    priority = req.get('priority', 5)
                     st.markdown(
                         f"""
                         <div class="suggestion-card">
-                        <h4 class="{importance_class}">{cap.get('name', 'Unnamed Capability')}</h4>
-                        <p>{cap.get('description', cap.get('rationale', 'No description available'))}</p>
+                        <h4>{req.get('name', 'Unnamed Requirement')}
+                        <span class="priority-indicator priority-{priority}">P{priority}</span></h4>
+                        <p><strong>Description:</strong> {req.get('description', 'No description available')}</p>
+                        <p><strong>Type:</strong> {req.get('requirement_type', 'Not specified')}</p>
                         </div>
                         """,
                         unsafe_allow_html=True
                     )
                     
-                    if st.button("➕ Add Capability", key=f"add_cap_btn_{suggestion_id}_{i}"):
-                        if cap['name'] not in st.session_state["capabilities"]:
-                            st.session_state["capabilities"].append(cap['name'])
-                            st.success(f"Added capability: {cap['name']}")
-                            st.rerun()
-                        else:
-                            st.info(f"Capability already added: {cap['name']}")
-        
-        with col2:
-            if 'requirements' in suggestions:
-                st.markdown("#### Critical Requirements")
-                for i, req in enumerate(suggestions['requirements']):
-                    st.markdown(
-                        f"""
-                        <div class="suggestion-card">
-                        <h4>{req.get('name', 'Unnamed Requirement')}</h4>
-                        <p>{req.get('description', 'No description available')}</p>
-                        <p><em>Related to: {req.get('related_capability', req.get('capability', 'Unknown Capability'))}</em></p>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-                    
-                    if st.button("➕ Add Requirement", key=f"add_req_btn_{suggestion_id}_{i}"):
-                        if req['name'] not in st.session_state["requirements"]:
+                    if st.button("➕ Add Requirement", key=f"add_req_btn_{suggestion_id}_{i}_{cap}"):
+                        if req['name'] not in st.session_state.get("requirements", []):
+                            if "requirements" not in st.session_state:
+                                st.session_state["requirements"] = []
                             st.session_state["requirements"].append(req['name'])
                             st.success(f"Added requirement: {req['name']}")
                             st.rerun()
                         else:
                             st.info(f"Requirement already added: {req['name']}")
     
-    # Display vulnerabilities if available
+    # Display vulnerabilities with detailed scoring
     if 'vulnerabilities' in suggestions:
-        st.markdown("### 🎯 Critical Vulnerabilities")
+        st.markdown("### ⚠️ Critical Vulnerabilities (Prioritized)")
+        st.info("Vulnerabilities are prioritized based on their impact on requirements, cascade potential, and exploitation feasibility.")
+        
         for i, vuln in enumerate(suggestions['vulnerabilities']):
+            priority = vuln.get('priority', 5)
+            cascade = vuln.get('cascade_potential', 1)
+            difficulty = vuln.get('exploitation_difficulty', 5)
+            weight_score = vuln.get('weight_score', 0)
+            
+            # Create progress bars for scores
+            cascade_width = cascade * 20
+            difficulty_width = (6 - difficulty) * 20  # Inverse scale for difficulty
+            
             st.markdown(
                 f"""
                 <div class="suggestion-card">
-                <h4>{vuln['name']}</h4>
-                <p>{vuln['description']}</p>
-                <p><em>Related to: {vuln['related_capability']}</em></p>
+                <h4>{vuln['name']}
+                <span class="priority-indicator priority-{priority}">P{priority}</span></h4>
+                <p><strong>Description:</strong> {vuln['description']}</p>
+                <p><strong>Affects Capability:</strong> {vuln['related_capability']}</p>
+                <p><strong>Affects Requirements:</strong> {', '.join(vuln.get('related_requirements', []))}</p>
+                <p>
+                    <strong>Cascade Potential:</strong> 
+                    <div style="background: #eee; width: 100px; height: 10px; display: inline-block; margin: 0 10px;">
+                        <div style="background: #28a745; width: {cascade_width}px; height: 10px;"></div>
+                    </div>
+                    {cascade}/5
+                </p>
+                <p>
+                    <strong>Exploitation Ease:</strong>
+                    <div style="background: #eee; width: 100px; height: 10px; display: inline-block; margin: 0 10px;">
+                        <div style="background: #dc3545; width: {difficulty_width}px; height: 10px;"></div>
+                    </div>
+                    {6-difficulty}/5
+                </p>
+                <p><strong>Overall Score:</strong> {weight_score:.2f}</p>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
             
             if st.button("➕ Add Vulnerability", key=f"add_vuln_btn_{suggestion_id}_{i}"):
-                if vuln['name'] not in st.session_state["vulnerabilities"]:
-                    st.session_state["vulnerabilities"].append(vuln['name'])
+                if "vulnerabilities_dict" not in st.session_state:
+                    st.session_state["vulnerabilities_dict"] = {}
+                if vuln['related_capability'] not in st.session_state["vulnerabilities_dict"]:
+                    st.session_state["vulnerabilities_dict"][vuln['related_capability']] = []
+                
+                if vuln['name'] not in st.session_state["vulnerabilities_dict"][vuln['related_capability']]:
+                    st.session_state["vulnerabilities_dict"][vuln['related_capability']].append(vuln['name'])
                     st.success(f"Added vulnerability: {vuln['name']}")
                     st.rerun()
                 else:
@@ -1301,99 +1588,6 @@ def generate_cog_recommendations(
     except Exception as e:
         logging.error(f"Error generating COG recommendations: {e}")
         return ["Command and Control Network", "Economic Resource Base", "Popular Support"]
-
-def manage_capabilities(final_cog: str, entity_type: str, entity_name: str, entity_goals: str, entity_presence: str) -> None:
-    """Manage critical capabilities for the selected Center of Gravity.
-    
-    Args:
-        final_cog: The selected Center of Gravity
-        entity_type: The type of entity being analyzed
-        entity_name: The name of the entity
-        entity_goals: The goals of the entity
-        entity_presence: Areas where the entity is present
-    """
-    if "capabilities" not in st.session_state:
-        st.session_state["capabilities"] = []
-
-    with st.expander("Add or Suggest Capabilities", expanded=True):
-        st.markdown("""
-        **Critical Capabilities** are the primary abilities that make the Center of Gravity effective 
-        in the operational environment. These are crucial enablers for the COG.
-        """)
-        
-        new_capability = st.text_input(
-            "Add a Critical Capability",
-            help="Enter one capability at a time that is relevant to the selected CoG."
-        )
-        col1, col2 = st.columns([1, 1])
-        
-        with col1:
-            if st.button("➕ Add Capability", use_container_width=True):
-                if new_capability.strip():
-                    if new_capability not in st.session_state["capabilities"]:
-                        st.session_state["capabilities"].append(new_capability.strip())
-                        st.success(f"Added capability: {new_capability.strip()}")
-                        st.rerun()
-                    else:
-                        st.info(f"Capability already exists: {new_capability}")
-                else:
-                    st.warning("Please enter a capability first.")
-        
-        with col2:
-            if st.button("🤖 AI: Suggest Capabilities", use_container_width=True):
-                if not final_cog:
-                    st.warning("Please specify or select a CoG first.")
-                else:
-                    try:
-                        system_msg = {
-                            "role": "system",
-                            "content": "You are an AI specialized in identifying critical capabilities for a Center of Gravity."
-                        }
-                        user_msg = {
-                            "role": "user",
-                            "content": (
-                                f"For this Center of Gravity: '{final_cog}'\n"
-                                f"Entity Type: {entity_type}\n"
-                                f"Entity Name: {entity_name}\n"
-                                f"Goals: {entity_goals}\n"
-                                f"Areas of Presence: {entity_presence}\n\n"
-                                "List 3-5 critical capabilities (key abilities or functions). "
-                                "Separate with semicolons. Be specific and actionable."
-                            )
-                        }
-                        response = get_chat_completion([system_msg, user_msg], model="gpt-4")
-                        new_capabilities = [cap.strip() for cap in response.split(";") if cap.strip()]
-                        
-                        added = []
-                        for cap in new_capabilities:
-                            if cap not in st.session_state["capabilities"]:
-                                st.session_state["capabilities"].append(cap)
-                                added.append(cap)
-                        
-                        if added:
-                            st.success("Added new capabilities:")
-                            for cap in added:
-                                st.write(f"- {cap}")
-                            st.rerun()
-                        else:
-                            st.info("No new capabilities to add.")
-                    except Exception as e:
-                        st.error(f"Error suggesting capabilities: {e}")
-        
-        if st.session_state["capabilities"]:
-            st.markdown("### Current Capabilities")
-            for i, cap in enumerate(st.session_state["capabilities"]):
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    st.write(f"{i+1}. {cap}")
-                with col2:
-                    if st.button("🗑️", key=f"del_cap_{i}"):
-                        st.session_state["capabilities"].pop(i)
-                        st.rerun()
-            
-            if st.button("Clear All Capabilities"):
-                st.session_state["capabilities"].clear()
-                st.rerun()
 
 def manage_requirements(capability: str) -> None:
     """Manage requirements for a specific capability.
