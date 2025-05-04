@@ -15,7 +15,9 @@ def test_generate_advanced_query(search_platform):
     mock_client = MagicMock()
     mock_client.chat.completions.create.return_value = mock_response
     
+    # Directly patch the function to return the mocked response
     with patch("utilities.gpt.OPENAI_AVAILABLE", True), \
-         patch("utilities.gpt.OpenAI", return_value=mock_client):
+         patch("utilities.gpt.client", mock_client), \
+         patch("utilities.gpt.client.chat.completions.create", return_value=mock_response):
         result = generate_advanced_query("test search", search_platform, model="gpt-3.5-turbo")
         assert result == "Mocked advanced query"
