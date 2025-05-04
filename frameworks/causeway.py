@@ -9,6 +9,12 @@ import logging
 from typing import Dict, List, Any, Optional, Tuple, Iterable
 import uuid
 import urllib.parse
+import zipfile
+import sys
+import os
+
+# Add the parent directory to sys.path to allow imports from utilities
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import networkx as nx
 import pandas as pd
@@ -497,7 +503,7 @@ def identify_capabilities(
                         key=f"save_{putar}_{cap}_{i}",
                         use_container_width=True
                         ):
-                        st.session_state.pop(f"edit_mode_{putar}_{cap}_{i}", None)
+                        st.session_state.pop(f"edit_mode_{putar}_{cap}_{i}")
                         if edited and edited != cap:
                             old_data = capabilities[cap]
                             capabilities.pop(cap)
@@ -710,76 +716,98 @@ def identify_proximate_targets(
         unsafe_allow_html=True
         )
 
-    for cap, cap_data in capabilities.items():
-        if not cap_data.get("requirements"):
-            continue
-        with st.expander(
-            f"Proximate Targets for Critical Capability: {cap}",
-            expanded=False
-            ):
-            for req, req_data in cap_data["requirements"].items():
-                st.markdown(
-                    f"<h5 style='color: #42a5f5; font-weight: 550;'>⚙️ Requirement: {req}</h5>",
-                    unsafe_allow_html=True
-                    )
-                if "potential_ptars" not in req_data:
-                    req_data["potential_ptars"] = []
-                new_pptar = st.text_input(
-                    label=" ",
-                    placeholder=(
-                        "Manually enter a Proximate Target for this Critical Requirement if desired"
-                        ),
-                    help="Example: Deutsche Bank, Internet Research Agency, Etesalat d’Algérie",
-                    key=f"add_pptar_{putar}_{cap}_{req}"
-                    )
-                col1, col2 = st.columns([1, 1])
-                with col1:
-                    if st.button(
-                        label="➕ Add Manually Entered Proximate Target",
-                        key=f"add_btn_{putar}_{cap}_{req}_{iteration}",
-                        use_container_width=True
-                        ):
-                        cleaned = titlecase(new_pptar.strip())
-                        if cleaned and cleaned not in req_data["potential_ptars"]:
-                            req_data["potential_ptars"].append(cleaned)
-                            st.success(f"Added: {new_pptar}")
-                            st.rerun()
-                with col2:
-                    if st.button(
-                        label="🤖 AI: Suggest Proximate Targets",
-                        key=f"{putar}_{cap}_{req}_gpt_{iteration}",
-                        use_container_width=True
-                        ):
-                        try:
-                            with st.spinner("Generating suggestions..."):
-                                system_msg = {
-                                    "role": "system",
-                                    "content": "You are an AI assistant helping identify proximate targets in a COG "
-                                    "framework."
-                                    }
-                                user_msg = {
-                                    "role": "user",
-                                    "content": (
-                                        f"Actor: {putar}\n"
-                                        f"Objective: {actor_objective}\n"
-                                        f"Issue: {issue}\n"
-                                        f"Threat: {threat}\n"
-                                        f"Location: {location}\n"
-                                        f"Critical Capability: {cap}\n"
-                                        f"Critical Requirement: {req}\n"
-                                        "List up to 5 real-world entities (organizations, companies, individuals) that "
-                                        "this actor relies upon to support this Critical Requirement for this specific "
-                                        "Critical Capability. No explanations, numbering or periods to mark the end of "
-                                        "your output. Separate with semicolons."
-                                        )
-                                    }
-                                response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
-                                suggestions = [titlecase(s.strip()) for s in response.split(";") if s.strip()]
-                                for s in suggestions:
-                                    if s not in req_data["potential_ptars"]:
-                                        req_data["potential_ptars"].append(s)
-                        except Exception as e:
-                            st.error(f"Error generating suggestions: {e}")
+    # === Gather capability data for the currently selected PUTAR ===
+    current_data = potential_utars[current]
+    capabilities = current_data.get("capabilities", {})
+
+    # Keep only those capabilities that already have at least one requirement
+    valid_caps = {
+        cap: cap_data
+        for cap, cap_data in capabilities.items()
+        if cap_data.get("requirements")
+    }
+    if not capabilities:
+        # No Critical Capabilities have been added yet – guide the user.
+        st.info(
+            f"Please add at least one **Critical Capability** for "
+            f"**{current}** in Tab 3 (Critical Capabilities)."
+            )
+    elif not valid_caps:
+        # Capabilities exist but none contain Requirements – guide the user.
+        st.info(
+            f"Please define at least one **Critical Requirement** for "
+            f"**{current}'s** capabilities in Tab 4 (Critical Requirements)."
+            )
+    else:
+        # All prerequisites met – allow the user to work on Proximate Targets.
+        for cap, cap_data in valid_caps.items():
+            with st.expander(
+                f"Proximate Targets for Critical Capability: {cap}",
+                expanded=False
+                ):
+                for req, req_data in cap_data["requirements"].items():
+                    st.markdown(
+                        f"<h5 style='color: #42a5f5; font-weight: 550;'>⚙️ Requirement: {req}</h5>",
+                        unsafe_allow_html=True
+                        )
+                    if "potential_ptars" not in req_data:
+                        req_data["potential_ptars"] = []
+                    new_pptar = st.text_input(
+                        label=" ",
+                        placeholder=(
+                            "Manually enter a Proximate Target for this Critical Requirement if desired"
+                            ),
+                        help="Example: Deutsche Bank, Internet Research Agency, Etesalat d’Algérie",
+                        key=f"add_pptar_{putar}_{cap}_{req}"
+                        )
+                    col1, col2 = st.columns([1, 1])
+                    with col1:
+                        if st.button(
+                            label="➕ Add Manually Entered Proximate Target",
+                            key=f"add_btn_{putar}_{cap}_{req}_{iteration}",
+                            use_container_width=True
+                            ):
+                            cleaned = titlecase(new_pptar.strip())
+                            if cleaned and cleaned not in req_data["potential_ptars"]:
+                                req_data["potential_ptars"].append(cleaned)
+                                st.success(f"Added: {new_pptar}")
+                                st.rerun()
+                    with col2:
+                        if st.button(
+                            label="🤖 AI: Suggest Proximate Targets",
+                            key=f"{putar}_{cap}_{req}_gpt_{iteration}",
+                            use_container_width=True
+                            ):
+                            try:
+                                with st.spinner("Generating suggestions..."):
+                                    system_msg = {
+                                        "role": "system",
+                                        "content": "You are an AI assistant helping identify proximate targets in a COG "
+                                        "framework."
+                                        }
+                                    user_msg = {
+                                        "role": "user",
+                                        "content": (
+                                            f"Actor: {putar}\n"
+                                            f"Objective: {actor_objective}\n"
+                                            f"Issue: {issue}\n"
+                                            f"Threat: {threat}\n"
+                                            f"Location: {location}\n"
+                                            f"Critical Capability: {cap}\n"
+                                            f"Critical Requirement: {req}\n"
+                                            "List up to 5 real-world entities (organizations, companies, individuals) that "
+                                            "this actor relies upon to support this Critical Requirement for this specific "
+                                            "Critical Capability. No explanations, numbering or periods to mark the end of "
+                                            "your output. Separate with semicolons."
+                                            )
+                                        }
+                                    response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
+                                    suggestions = [titlecase(s.strip()) for s in response.split(";") if s.strip()]
+                                    for s in suggestions:
+                                        if s not in req_data["potential_ptars"]:
+                                            req_data["potential_ptars"].append(s)
+                            except Exception as e:
+                                st.error(f"Error generating suggestions: {e}")
                 if req_data["potential_ptars"]:
                     st.markdown(f"##### 🚩 Current Proximate Targets for {req}")
                     cols = st.columns(2)
@@ -789,7 +817,7 @@ def identify_proximate_targets(
                             col1, col2, col3, col4 = st.columns([0.8, 8.0, 1.5, 1.5])
                             with col1:
                                 query = urllib.parse.quote(
-                                    '("' + putar +  ')" AND ' + '("' + pptar + '")'
+                                    '("' + putar +  '") AND ' + '("' + pptar + '")'
                                     )
                                 st.markdown(
                                     f"""
@@ -856,6 +884,37 @@ def identify_proximate_targets(
                                     ):
                                     st.session_state.pop(f"edit_mode_{putar}_{cap}_{req}_{pptar}_{i}", None)
                                     st.rerun()
+            
+            col1, col2, _ = st.columns([0.3, 0.1, 0.74])
+            with col1:
+                # Normalisation uses GPT to harmonise naming of Proximate Targets across the dataset.
+                clicked = st.button(
+                    label="🔄 Normalize Proximate Targets",
+                    use_container_width=True,
+                    key="normalize_all_pptars"
+                    )
+            with col2:
+                # Helper tooltip explaining what the normalisation button does.
+                st.markdown(
+                    """
+                    <div title="Leverages AI to standardize Proximate Target phrasing within
+                    and across Ultimate Targets. It may be necessary to run this multiple times. 
+                    Perform QC for best results." 
+                    style=
+                        cursor: help;
+                        font-size: 18px;
+                        display: flex;
+                        align-items: center;
+                        height: 40px;">
+                        ℹ️
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                    )
+
+            # Trigger function if clicked
+            if clicked:
+                normalize_field_across_entities("potential_ptars")
 
 
 def build_graph(
@@ -950,212 +1009,16 @@ def convert_graph_to_d3(graph: nx.Graph) -> dict:
 
 
 def causeway_page():
-    # Add custom CSS for better styling
-    st.markdown(
-        """
-        <style>
-        /* Base styles */
-        :root {
-            --primary-color: #4299e1;
-            --success-color: #48bb78;
-            --warning-color: #ed8936;
-            --bg-light: #f8f9fa;
-            --bg-dark: #1a202c;
-            --text-light: #2d3748;
-            --text-dark: #e2e8f0;
-            --border-light: #e2e8f0;
-            --border-dark: #4a5568;
-        }
-
-        /* Dark mode adjustments */
-        [data-theme="dark"] {
-            --bg-color: var(--bg-dark);
-            --text-color: var(--text-dark);
-            --border-color: var(--border-dark);
-        }
-
-        [data-theme="light"] {
-            --bg-color: var(--bg-light);
-            --text-color: var(--text-light);
-            --border-color: var(--border-light);
-        }
-
-        /* Dark mode specific overrides */
-        .stApp[data-theme="dark"] {
-            background-color: var(--bg-dark);
-            color: var(--text-dark);
-        }
-
-        .stApp[data-theme="dark"] .main-header,
-        .stApp[data-theme="dark"] .section-header,
-        .stApp[data-theme="dark"] .info-box,
-        .stApp[data-theme="dark"] .success-box,
-        .stApp[data-theme="dark"] .warning-box,
-        .stApp[data-theme="dark"] .suggestion-card {
-            color: var(--text-dark);
-        }
-
-        .stApp[data-theme="dark"] .suggestion-card {
-            background-color: rgba(45, 55, 72, 0.5);
-            border-color: var(--border-dark);
-        }
-
-        .stApp[data-theme="dark"] .info-box {
-            background-color: rgba(45, 55, 72, 0.5);
-        }
-
-        .stApp[data-theme="dark"] .success-box {
-            background-color: rgba(72, 187, 120, 0.2);
-        }
-
-        .stApp[data-theme="dark"] .warning-box {
-            background-color: rgba(237, 137, 54, 0.2);
-        }
-
-        /* General styles */
-        .main-header {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 2rem;
-            color: var(--text-color);
-        }
-
-        .section-header {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin: 1.5rem 0;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--border-color);
-            color: var(--text-color);
-        }
-
-        .info-box {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            background-color: var(--bg-color);
-            border-left: 4px solid var(--primary-color);
-            margin: 1rem 0;
-            color: var(--text-color);
-        }
-
-        .success-box {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            background-color: rgba(72, 187, 120, 0.1);
-            border-left: 4px solid var(--success-color);
-            margin: 1rem 0;
-            color: var(--text-color);
-        }
-
-        .warning-box {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            background-color: rgba(237, 137, 54, 0.1);
-            border-left: 4px solid var(--warning-color);
-            margin: 1rem 0;
-            color: var(--text-color);
-        }
-
-        .suggestion-card {
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin: 0.5rem 0;
-            background-color: var(--bg-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            color: var(--text-color);
-        }
-
-        .suggestion-card:hover {
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: all 0.2s ease;
-        }
-
-        /* Importance indicators */
-        .importance-high {
-            color: #48bb78;
-            font-weight: bold;
-        }
-
-        .importance-medium {
-            color: #ecc94b;
-            font-weight: bold;
-        }
-
-        .importance-low {
-            color: #f56565;
-            font-weight: bold;
-        }
-
-        /* Dark mode text color overrides for specific elements */
-        .stApp[data-theme="dark"] .stMarkdown,
-        .stApp[data-theme="dark"] .stText,
-        .stApp[data-theme="dark"] .stTextInput > div > div > input,
-        .stApp[data-theme="dark"] .stTextArea > div > div > textarea {
-            color: var(--text-dark) !important;
-        }
-
-        /* Dark mode background overrides for specific elements */
-        .stApp[data-theme="dark"] .stTextInput > div > div > input,
-        .stApp[data-theme="dark"] .stTextArea > div > div > textarea {
-            background-color: rgba(45, 55, 72, 0.5) !important;
-        }
-
-        .custom-icon-button {
-            background-color: #12141C;
-            border: 1px solid #353842;
-            height: 40px;
-            width: 40px;
-            padding: 0;
-            border-radius: 0.5rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        /* New tweak for images inside custom buttons */
-        .custom-icon-button img {
-            height: 20px;
-            margin: 0;
-        }
-        .custom-icon-button:hover {
-            background-color: #1a1d29; /* Slightly lighter on hover */
-        }
-        div.stButton > button {
-            background-color: #12141C;
-            border: 1px solid #353842;
-            color: white;
-            font-size: 16px;
-            border-radius: 8px;
-            height: 40px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        div.stButton > button:hover {
-            background-color: #1a1d29;
-        }
-
-        /* Global rule for st.markdown paragraphs */
-        div.st-markdown-custom {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: flex;
-            align-items: center;
-            height: 42px; /* Slightly taller for breathing room */
-            font-size: 16px;
-            line-height: 1.2; /* More natural vertical rhythm */
-        }
-        </style>
-    """,
-        unsafe_allow_html=True,
+    # Inject shared CSS file
+    try:
+        with open('frameworks/visualization_styles.css', 'r', encoding='utf-8') as f:
+            css_content = f.read()
+        st.markdown(
+            f"<style>{css_content}</style>",
+            unsafe_allow_html=True,
         )
-
+    except Exception as e:
+        st.error(f"Error loading CSS: {e}")
     st.markdown(
         '<h1 class="main-header">🛤️ CauseWay</h1>',
         unsafe_allow_html=True,
@@ -1264,7 +1127,7 @@ def causeway_page():
                     <div title="Leverages AI to standardize Critical Capability phrasing within
                     and across Ultimate Targets. It may be necessary to run this multiple times. 
                     Perform QC for best results." 
-                    style="
+                    style=
                         cursor: help;
                         font-size: 18px;
                         display: flex;
@@ -1274,7 +1137,7 @@ def causeway_page():
                     </div>
                     """,
                     unsafe_allow_html=True
-                )
+                    )
 
             # Trigger function if clicked
             if clicked:
@@ -1406,7 +1269,7 @@ def causeway_page():
                     cap: cap_data
                     for cap, cap_data in capabilities.items()
                     if cap_data.get("requirements")
-                    }
+                }
                 if not capabilities:
                     st.info(
                         f"Please add at least one **Critical Capability** for "
@@ -1469,45 +1332,69 @@ def causeway_page():
                 )
         else:
             potential_utars = st.session_state["potential_utars"]
-            col1, col2, col3, col4, col5 = st.columns(5)
-            with col1:
-                filter_out_reqs = st.checkbox(label="Hide Requirements", value=False)
-            with col2:
-                filter_out_caps = st.checkbox(label="Hide Capabilities", value=False)
-            with col3:
-                filter_out_pptars = st.checkbox(label="Hide Proximate Targets", value=False)
-            with col4:
+
+            # === Filter toggles (stateful) ===
+            filter_out_reqs = st.checkbox("Hide Requirements", key="filter_out_reqs")
+            filter_out_caps = st.checkbox("Hide Capabilities", key="filter_out_caps")
+            filter_out_pptars = st.checkbox("Hide Proximate Targets", key="filter_out_pptars")
+
+            # === Layout / visual controls ===
+            repulsion_strength = st.slider(
+                "Node Repulsion", 100, 1000, 300, 50, key="repulsion_strength"
+            )
+            node_size = st.slider("Node Size", 8, 40, 15, 1, key="node_size")
+            show_legend = st.checkbox("Show Legend", value=True, key="show_legend")
+
+            # === Export utilities ===
+            export_cols = st.columns(4)
+            with export_cols[0]:
                 full_graph = build_graph(potential_utars, False, False, False)
-                # make nodes table
                 nodes_df = pd.DataFrame([
-                    { **data, "id": node_id }
-                    for node_id, data in full_graph.nodes(data=True)
-                    ])
-                csv_nodes = nodes_df.to_csv(index=False).encode("utf-8")
+                    {**data, "id": node_id} for node_id, data in full_graph.nodes(data=True)
+                ])
                 st.download_button(
-                    "🔽 Export Nodes Table",
-                    data=csv_nodes,
+                    "🔽 Export Nodes CSV",
+                    data=nodes_df.to_csv(index=False).encode("utf-8"),
                     file_name="all_nodes.csv",
                     mime="text/csv",
                     key='download_nodes'
-                    )
-            with col5:
-                full_graph = build_graph(potential_utars, False, False, False)
-                # make edge table
+                )
+            with export_cols[1]:
                 edges_df = pd.DataFrame([
-                    {"source": u, "target": v}
-                    for u,v in full_graph.edges()
-                    ])
-                csv_edges = edges_df.to_csv(index=False).encode("utf-8")
+                    {"source": u, "target": v} for u, v in full_graph.edges()
+                ])
                 st.download_button(
-                    "🔽 Export Edges Table",
-                    data=csv_edges,
+                    "🔽 Export Edges CSV",
+                    data=edges_df.to_csv(index=False).encode("utf-8"),
                     file_name="all_edges.csv",
                     mime="text/csv",
                     key='download_edges'
-                    )
+                )
+            with export_cols[2]:
+                graphml_io = io.StringIO()
+                nx.write_graphml(full_graph, graphml_io)
+                st.download_button(
+                    "🔽 Export GraphML",
+                    data=graphml_io.getvalue(),
+                    file_name="cog_graph.graphml",
+                    mime="application/xml",
+                    key="download_graphml",
+                )
+            with export_cols[3]:
+                gexf_io = io.StringIO()
+                nx.write_gexf(full_graph, gexf_io)
+                st.download_button(
+                    "🔽 Export GEXF",
+                    data=gexf_io.getvalue(),
+                    file_name="cog_graph.gexf",
+                    mime="application/xml",
+                    key="download_gexf",
+                )
 
-            graph = build_graph(potential_utars, filter_out_reqs, filter_out_caps, filter_out_pptars)
+            # === Build and render interactive graph ===
+            graph = build_graph(
+                potential_utars, filter_out_reqs, filter_out_caps, filter_out_pptars
+            )
             d3_data = convert_graph_to_d3(graph)
             d3_json = json.dumps(d3_data)
             html_code = f"""
@@ -1524,37 +1411,46 @@ def causeway_page():
                   font-size: 16px;
                   fill: white;
                 }}
+                #resetZoom {{
+                  background:#12141C;
+                  color:white;
+                  border:1px solid #353842;
+                  padding:6px 12px;
+                  border-radius:6px;
+                  cursor:pointer;
+                }}
               </style>
             </head>
             <body>
+            <button id="resetZoom">Reset Zoom</button>
             <div id="graph-container"
-                 style="background-color: #0F1117; width: 100%; height: 700px; margin: 0 auto;">
+                 style="background-color:#0F1117;width:100%;height:700px;margin:0 auto;position:relative;">
               <svg width="100%" height="100%"></svg>
             </div>
             <script src="https://d3js.org/d3.v6.min.js"></script>
             <script>
             const graph = {d3_json};
+            const NODE_SIZE = {node_size};
+            const REPULSION = -{repulsion_strength};
 
-            // Select elements
             const container = document.getElementById("graph-container");
             const svg = d3.select("svg");
             const zoomGroup = svg.append("g");
 
-            // Zoom behavior
             const zoom = d3.zoom()
               .scaleExtent([0.1, 2])
-              .on("zoom", event => {{
-                zoomGroup.attr("transform", event.transform);
+              .on("zoom", e => {{
+                zoomGroup.attr("transform", e.transform);
               }});
             svg.call(zoom);
 
-            // Initial simulation (will re-center on resize)
             const simulation = d3.forceSimulation(graph.nodes)
-              .force("link", d3.forceLink(graph.links).id(d => d.id).distance(100))
-              .force("charge", d3.forceManyBody().strength(-300))
-              .force("center", d3.forceCenter(0, 0));  // placeholder
+              .force("link", d3.forceLink(graph.links).id(d => d.id).distance(NODE_SIZE * 6))
+              .force("charge", d3.forceManyBody().strength(REPULSION))
+              .force("center", d3.forceCenter(0, 0))
+              .force("collide", d3.forceCollide(NODE_SIZE + 4));
 
-            // Draw links
+            // Links
             zoomGroup.append("g")
               .selectAll("line")
               .data(graph.links)
@@ -1562,36 +1458,38 @@ def causeway_page():
               .attr("stroke", "#aaa")
               .attr("stroke-width", 2);
 
-            // Draw nodes
+            // Nodes with symbols
+            const symbolMap = {{
+              "putar": d3.symbolSquare,
+              "capability": d3.symbolCircle,
+              "requirement": d3.symbolTriangle,
+              "pptar": d3.symbolDiamond
+            }};
             const node = zoomGroup.append("g")
-              .selectAll("circle")
+              .selectAll("path")
               .data(graph.nodes)
-              .enter().append("circle")
-              .attr("r", 15)
+              .enter().append("path")
+              .attr("d", d => d3.symbol().type(symbolMap[d.type] || d3.symbolCircle).size(Math.pow(NODE_SIZE, 2))())
               .attr("fill", d => d.group_color)
               .attr("stroke", d => d.border_color)
-              .attr("stroke-width", 4)
+              .attr("stroke-width", 3)
               .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
-                .on("end", dragended)
-              );
+                .on("end", dragended));
+            node.append("title").text(d => d.label);
 
-            // Draw labels
+            // Labels
             const label = zoomGroup.append("g")
               .selectAll("text")
               .data(graph.nodes)
               .enter().append("text")
                 .attr("class", "node-label")
                 .attr("text-anchor", "middle")
-                .attr("dy", "0.35em")
-                .style("font-size", d => 
-                   d.type === "putar" ? "20px" :
-                   d.type === "pptar" ? "14px" :
-                   "12px"
-                )
-    .style("font-weight", d => (d.type === "putar" || d.type === "pptar") ? "bold" : "normal")
-    .text(d => d.label);
+                .attr("dy", -NODE_SIZE - 2)
+                .style("font-size", d => d.type === "putar" ? "20px" : d.type === "pptar" ? "14px" : "12px")
+                .style("font-weight", d => (d.type === "putar" || d.type === "pptar") ? "bold" : "normal")
+                .text(d => d.label);
 
             // Legend
             const legend = svg.append("g")
@@ -1605,25 +1503,27 @@ def causeway_page():
               {{ label: "Proximate Target", color: "#5e548e" }}
             ];
 
-            legend.selectAll("circle")
+            legend.selectAll("path")
               .data(legendData)
-              .enter().append("circle")
-              .attr("cx", 0)
-              .attr("cy", (d, i) => i * 20)
-              .attr("r", 6)
-              .attr("fill", "transparent")
-              .attr("stroke", d => d.color)
-              .attr("stroke-width", 3);
+              .enter().append("path")
+                .attr("d", d3.symbol().type(d3.symbolSquare).size(100))
+                .attr("transform", (d,i) => `translate(0,${i*20})`)
+                .attr("fill", "transparent")
+                .attr("stroke", d => d.color)
+                .attr("stroke-width", 3);
 
             legend.selectAll("text")
               .data(legendData)
               .enter().append("text")
-              .attr("x", 12)
-              .attr("y", (d, i) => i * 20 + 4)
-              .attr("fill", "white")
-              .text(d => d.label);
+                .attr("x", 12)
+                .attr("y", (d,i) => i * 20 + 4)
+                .attr("fill", "white")
+                .text(d => d.label);
 
-            // Tick update
+            if ({str(show_legend).lower()} === false) {{
+              legend.style("display", "none");
+            }}
+
             simulation.on("tick", () => {{
               zoomGroup.selectAll("line")
                 .attr("x1", d => d.source.x)
@@ -1631,53 +1531,32 @@ def causeway_page():
                 .attr("x2", d => d.target.x)
                 .attr("y2", d => d.target.y);
 
-              node
-                .attr("cx", d => d.x)
-                .attr("cy", d => d.y);
-
-              zoomGroup.selectAll("text")
+              node.attr("transform", d => `translate(${d.x},${d.y})`);
+              label
                 .attr("x", d => d.x)
-                .attr("y", d => d.y);
+                .attr("y", d => d.y - NODE_SIZE - 2);
             }});
 
-            // Drag handlers
             function dragstarted(event, d) {{
               if (!event.active) simulation.alphaTarget(0.3).restart();
-              d.fx = d.x;
-              d.fy = d.y;
+              d.fx = d.x; d.fy = d.y;
             }}
             function dragged(event, d) {{
-              d.fx = event.x;
-              d.fy = event.y;
+              d.fx = event.x; d.fy = event.y;
             }}
             function dragended(event, d) {{
               if (!event.active) simulation.alphaTarget(0);
-              d.fx = null;
-              d.fy = null;
+              d.fx = null; d.fy = null;
             }}
 
-            // ResizeObserver to center once we have the real size
-            const ro = new ResizeObserver(entries => {{
-              const {{ width, height }} = entries[0].contentRect;
-              // update center force
-              simulation.force("center", d3.forceCenter(width / 2, height / 2));
-              // reheat & restart
-              simulation.alpha(1).restart();
-              // apply an initial zoom transform so graph is centered
-              svg.call(
-                zoom.transform,
-                d3.zoomIdentity.translate(width / 2, height / 2)
-                  .scale(1)
-                  .translate(-width / 2, -height / 2)
-              );
-              ro.disconnect();
+            // Reset zoom
+            document.getElementById("resetZoom").addEventListener("click", () => {{
+              svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
             }});
-            ro.observe(container);
             </script>
             </body>
             </html>
             """
-
             components.html(html_code, height=700)
 
 

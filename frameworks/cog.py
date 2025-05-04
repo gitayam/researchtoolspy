@@ -1,13 +1,25 @@
 # /frameworks/COG.py
 
-import streamlit as st
-from dotenv import load_dotenv
-from typing import Dict, List, Any, Optional, Tuple
-import os
 import json
+import logging
+import streamlit as st
+from typing import Dict, List, Any, Optional, Tuple
+from dotenv import load_dotenv
+import sys
+import os
 import re  # Add import for regex
 from frameworks.base_framework import BaseFramework
 import utilities.search_generator as perform_search
+import csv
+import io
+import pandas as pd
+import uuid
+import psycopg2
+from psycopg2.extras import DictCursor
+import graph_utils
+
+# Add the parent directory to sys.path to allow imports from utilities
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import get_completion, but provide a fallback if it's not available
 try:
@@ -19,9 +31,10 @@ except ImportError:
         return f"AI analysis not available. Please implement the get_completion function.\n\nPrompt: {prompt[:100]}..."
 
 from utilities.helpers import clean_text
-import csv
+import networkx as nx
 import io
-import pandas as pd
+import csv
+import json
 import uuid
 import psycopg2
 from psycopg2.extras import DictCursor
@@ -29,11 +42,10 @@ from psycopg2.extras import DictCursor
 # Import visualization libraries with proper error handling
 try:
     import networkx as nx
-    import plotly.graph_objects as go
     HAS_VISUALIZATION = True
 except ImportError as e:
     print(f"Warning: Visualization libraries not available: {e}")
-    print("Please install required packages: pip install networkx plotly")
+    print("Please install required packages: pip install networkx")
     HAS_VISUALIZATION = False
 
 load_dotenv()
@@ -304,6 +316,7 @@ def manage_capabilities(final_cog: str, entity_type: str, entity_name: str, enti
                         st.success("Added capabilities:")
                         for cap in added:
                             st.write(f"- {cap}")
+                        st.rerun()
                     if skipped:
                         st.info("Skipped (already exist):")
                         for cap in skipped:
@@ -661,9 +674,9 @@ def score_and_prioritize(all_vulnerabilities_list):
                     data=csv_data,
                     file_name="vulnerability_scores.csv",
                     mime="text/csv",
-                    use_container_width=True
+                    key="download_csv_btn"
                 )
-        
+
         with col2:
             if st.button("📋 Export as JSON", use_container_width=True):
                 json_data = export_cog_analysis()
@@ -672,7 +685,7 @@ def score_and_prioritize(all_vulnerabilities_list):
                     data=json_data,
                     file_name="cog_analysis.json",
                     mime="application/json",
-                    use_container_width=True
+                    key="download_json_btn"
                 )
 
 def visualize_cog_network(cog: str, capabilities: List[str], vulnerabilities_dict: Dict[str, List[str]], requirements_text: str) -> Optional[Any]:
@@ -686,11 +699,11 @@ def visualize_cog_network(cog: str, capabilities: List[str], vulnerabilities_dic
     # Check if required visualization libraries are installed
     try:
         import networkx as nx
-        import plotly.graph_objects as go
+        from frameworks.graph_utils import convert_graph_to_d3
     except ImportError:
         st.error("""Network visualization is not available. Please install required packages:
         ```
-        pip install networkx plotly
+        pip install networkx
         ```""")
         return None
     except Exception as e:
@@ -705,110 +718,139 @@ def visualize_cog_network(cog: str, capabilities: List[str], vulnerabilities_dic
     G = nx.Graph()
     
     # Add COG as central node
-    G.add_node(cog, type="cog", refinement=5.0)
+    G.add_node(cog, type="cog", label=cog, group_color="#3f37c9")
     
     # Add capabilities and link to COG
     for cap in capabilities:
         if cap.strip():  # Check for non-empty capability
-            G.add_node(cap, type="capability", refinement=4.0)
-            G.add_edge(cog, cap, link_type="Direct")
+            G.add_node(cap, type="capability", label=cap, group_color="#264653")
+            G.add_edge(cog, cap)
     
     # Process requirements
     if requirements_text:
         requirements = [req.strip() for req in requirements_text.split(';') if req.strip()]
         for req in requirements:
-            G.add_node(req, type="requirement", refinement=3.0)
+            G.add_node(req, type="requirement", label=req, group_color="#e76f51")
             # Connect requirements to capabilities
             for cap in capabilities:
                 if cap.strip():
-                    G.add_edge(cap, req, link_type="Support")
+                    G.add_edge(cap, req)
     
     # Add vulnerabilities and link to capabilities
     for cap, vulns in vulnerabilities_dict.items():
         for vuln in vulns:
             if vuln.strip():  # Check for non-empty vulnerability
-                G.add_node(vuln, type="vulnerability", refinement=3.5)
+                G.add_node(vuln, type="vulnerability", label=vuln, group_color="#5e548e")
                 # Find the capability node to connect to
                 for node in G.nodes():
                     if node == cap and G.nodes[node]['type'] == "capability":
-                        G.add_edge(cap, vuln, link_type="Support")
+                        G.add_edge(cap, vuln)
                         break
     
     # Store node and edge counts
     node_count = len(G.nodes())
     edge_count = len(G.edges())
     
-    # Position nodes using a spring layout
-    pos = nx.spring_layout(G)
+    # Convert the graph to D3 format
+    d3_data = convert_graph_to_d3(G)
     
-    # Create edge trace
-    edge_x = []
-    edge_y = []
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
+    # Create a D3.js visualization
+    d3_component = """
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <div id="cog-network" style="width: 100%; height: 600px;"></div>
+    <script>
+    const data = """ + json.dumps(d3_data) + """;
     
-    edge_trace = go.Scatter(
-        x=edge_x, y=edge_y,
-        line=dict(width=0.8, color='#888'),
-        hoverinfo='none',
-        mode='lines',
-        showlegend=False
-    )
+    // Set up the D3 visualization
+    const width = document.getElementById('cog-network').clientWidth;
+    const height = 600;
     
-    # Create node traces for each node type
-    node_traces = {}
-    colors = {"cog": "#FF5733", "capability": "#33FF57", "requirement": "#3357FF", "vulnerability": "#FF33A8"}
+    // Create SVG container
+    const svg = d3.select('#cog-network')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height);
     
-    for node_type, color in colors.items():
-        node_traces[node_type] = go.Scatter(
-            x=[],
-            y=[],
-            text=[],
-            mode='markers',
-            name=node_type.capitalize(),
-            hoverinfo='text',
-            marker=dict(
-                color=color,
-                size=15,
-                line=dict(width=2)
-            )
-        )
+    // Create simulation
+    const simulation = d3.forceSimulation(data.nodes)
+        .force('link', d3.forceLink(data.links).id(d => d.id).distance(100))
+        .force('charge', d3.forceManyBody().strength(-300))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(50));
     
-    # Add nodes to appropriate traces
-    for node in G.nodes():
-        x, y = pos[node]
-        node_type = G.nodes[node]['type']
-        node_traces[node_type]['x'] = node_traces[node_type]['x'] + (x,)
-        node_traces[node_type]['y'] = node_traces[node_type]['y'] + (y,)
-        node_traces[node_type]['text'] = node_traces[node_type]['text'] + (node,)
+    // Create links
+    const link = svg.append('g')
+        .selectAll('line')
+        .data(data.links)
+        .enter()
+        .append('line')
+        .style('stroke', '#999')
+        .style('stroke-width', 1.5);
     
-    # Create figure
-    fig = go.Figure(
-        data=[edge_trace] + list(node_traces.values()),
-        layout=go.Layout(
-            title=dict(
-                text=f'Network Analysis: {cog}',
-                font=dict(size=16)
-            ),
-            showlegend=True,
-            hovermode='closest',
-            margin=dict(b=20,l=5,r=5,t=40),
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            width=700,
-            height=500,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-    )
+    // Create node containers
+    const node = svg.append('g')
+        .selectAll('.node')
+        .data(data.nodes)
+        .enter()
+        .append('g')
+        .attr('class', 'node')
+        .call(d3.drag()
+            .on('start', dragstarted)
+            .on('drag', dragged)
+            .on('end', dragended));
     
-    # Display the figure in Streamlit
-    st.plotly_chart(fig, theme=None, use_container_width=True)
+    // Add circles to nodes
+    node.append('circle')
+        .attr('r', d => d.type === 'cog' ? 25 : 15)
+        .style('fill', d => d.group_color)
+        .style('stroke', d => d.border_color)
+        .style('stroke-width', 2);
     
-    # Create a custom class to wrap the figure and provide test properties
+    // Add labels to nodes
+    node.append('text')
+        .attr('dx', 0)
+        .attr('dy', d => d.type === 'cog' ? 35 : 25)
+        .attr('text-anchor', 'middle')
+        .text(d => d.label)
+        .style('font-size', d => d.type === 'cog' ? '14px' : '12px')
+        .style('fill', '#333')
+        .style('pointer-events', 'none');
+    
+    // Update positions on simulation tick
+    simulation.on('tick', () => {
+        link
+            .attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y);
+        
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+    
+    // Drag functions
+    function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+    
+    function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+    }
+    
+    function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+    }
+    </script>
+    """
+    
+    # Display the D3 visualization
+    st.components.v1.html(d3_component, height=650)
+    
+    # Create a custom class to wrap the visualization and provide test properties
     class GraphVisualization:
         def __init__(self, figure, nodes, edges, graph=None):
             self.figure = figure
@@ -830,7 +872,7 @@ def visualize_cog_network(cog: str, capabilities: List[str], vulnerabilities_dic
                 return self.graph.edges
             return getattr(self.figure, name)
     
-    return GraphVisualization(fig, node_count, edge_count, G)
+    return GraphVisualization(None, node_count, edge_count, G)
 
 def export_graph(G: Optional[Any], format: str = "gexf") -> Optional[str]:
     """Export the COG network graph in various formats"""
@@ -891,7 +933,7 @@ def export_results(final_scores):
 
     with col_export3:
         # Add graph export functionality
-        if "cog_graph" in st.session_state and st.session_state.cog_graph is not None:
+        if "cog_graph" in st.session_state and st.session_state.get("cog_graph") is not None:
             if HAS_VISUALIZATION:
                 export_format = st.selectbox(
                     "Select Format",
@@ -1648,7 +1690,7 @@ def manage_capabilities(final_cog: str, entity_type: str, entity_name: str, enti
                                 "Separate with semicolons. Be specific and actionable."
                             )
                         }
-                        response = get_chat_completion([system_msg, user_msg], model="gpt-4o-mini")
+                        response = get_chat_completion([system_msg, user_msg], model="gpt-4")
                         new_capabilities = [cap.strip() for cap in response.split(";") if cap.strip()]
                         
                         added = []
@@ -1663,7 +1705,7 @@ def manage_capabilities(final_cog: str, entity_type: str, entity_name: str, enti
                                 st.write(f"- {cap}")
                             st.rerun()
                         else:
-                            st.info("No new capabilities to add.")
+                            st.info("No new capabilities to add")
                     except Exception as e:
                         st.error(f"Error suggesting capabilities: {e}")
         
@@ -1771,156 +1813,15 @@ def manage_requirements(capability: str) -> None:
 
 def cog_analysis():
     # Add custom CSS for better styling
-    st.markdown("""
-        <style>
-        /* Base styles */
-        :root {
-            --primary-color: #4299e1;
-            --success-color: #48bb78;
-            --warning-color: #ed8936;
-            --bg-light: #f8f9fa;
-            --bg-dark: #1a202c;
-            --text-light: #2d3748;
-            --text-dark: #e2e8f0;
-            --border-light: #e2e8f0;
-            --border-dark: #4a5568;
-        }
-
-        /* Dark mode adjustments */
-        [data-theme="dark"] {
-            --bg-color: var(--bg-dark);
-            --text-color: var(--text-dark);
-            --border-color: var(--border-dark);
-        }
-
-        [data-theme="light"] {
-            --bg-color: var(--bg-light);
-            --text-color: var(--text-light);
-            --border-color: var(--border-light);
-        }
-
-        /* Dark mode specific overrides */
-        .stApp[data-theme="dark"] {
-            background-color: var(--bg-dark);
-            color: var(--text-dark);
-        }
-
-        .stApp[data-theme="dark"] .main-header,
-        .stApp[data-theme="dark"] .section-header,
-        .stApp[data-theme="dark"] .info-box,
-        .stApp[data-theme="dark"] .success-box,
-        .stApp[data-theme="dark"] .warning-box,
-        .stApp[data-theme="dark"] .suggestion-card {
-            color: var(--text-dark);
-        }
-
-        .stApp[data-theme="dark"] .suggestion-card {
-            background-color: rgba(45, 55, 72, 0.5);
-            border-color: var(--border-dark);
-        }
-
-        .stApp[data-theme="dark"] .info-box {
-            background-color: rgba(45, 55, 72, 0.5);
-        }
-
-        .stApp[data-theme="dark"] .success-box {
-            background-color: rgba(72, 187, 120, 0.2);
-        }
-
-        .stApp[data-theme="dark"] .warning-box {
-            background-color: rgba(237, 137, 54, 0.2);
-        }
-
-        /* General styles */
-        .main-header {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 2rem;
-            color: var(--text-color);
-        }
-
-        .section-header {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin: 1.5rem 0;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--border-color);
-            color: var(--text-color);
-        }
-
-        .info-box {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            background-color: var(--bg-color);
-            border-left: 4px solid var(--primary-color);
-            margin: 1rem 0;
-            color: var(--text-color);
-        }
-
-        .success-box {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            background-color: rgba(72, 187, 120, 0.1);
-            border-left: 4px solid var(--success-color);
-            margin: 1rem 0;
-            color: var(--text-color);
-        }
-
-        .warning-box {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            background-color: rgba(237, 137, 54, 0.1);
-            border-left: 4px solid var(--warning-color);
-            margin: 1rem 0;
-            color: var(--text-color);
-        }
-
-        .suggestion-card {
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin: 0.5rem 0;
-            background-color: var(--bg-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            color: var(--text-color);
-        }
-
-        .suggestion-card:hover {
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: all 0.2s ease;
-        }
-
-        /* Importance indicators */
-        .importance-high {
-            color: #48bb78;
-            font-weight: bold;
-        }
-
-        .importance-medium {
-            color: #ecc94b;
-            font-weight: bold;
-        }
-
-        .importance-low {
-            color: #f56565;
-            font-weight: bold;
-        }
-
-        /* Dark mode text color overrides for specific elements */
-        .stApp[data-theme="dark"] .stMarkdown,
-        .stApp[data-theme="dark"] .stText,
-        .stApp[data-theme="dark"] .stTextInput > div > div > input,
-        .stApp[data-theme="dark"] .stTextArea > div > div > textarea {
-            color: var(--text-dark) !important;
-        }
-
-        /* Dark mode background overrides for specific elements */
-        .stApp[data-theme="dark"] .stTextInput > div > div > input,
-        .stApp[data-theme="dark"] .stTextArea > div > div > textarea {
-            background-color: rgba(45, 55, 72, 0.5) !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+    try:
+        with open('frameworks/visualization_styles.css', 'r', encoding='utf-8') as f:
+            css_content = f.read()
+        st.markdown(
+            f"<style>{css_content}</style>",
+            unsafe_allow_html=True
+        )
+    except Exception as e:
+        st.error(f"Error loading CSS: {e}")
 
     st.markdown('<h1 class="main-header">Center of Gravity (COG) Analysis</h1>', unsafe_allow_html=True)
     
@@ -2168,7 +2069,7 @@ def cog_analysis():
                     
                 except Exception as e:
                     st.error(f"Error creating visualization: {str(e)}")
-                    st.info("Please ensure networkx and plotly are installed for visualization features.")
+                    st.info("Please ensure networkx is installed for visualization features.")
             
             # Display capabilities and requirements
             if st.session_state.get("capabilities"):
@@ -2203,7 +2104,7 @@ def cog_analysis():
                         }
                     }
                     st.download_button(
-                        "Download JSON",
+                        label="Download JSON",
                         data=json.dumps(analysis_data, indent=2),
                         file_name="cog_analysis.json",
                         mime="application/json"
@@ -2211,22 +2112,24 @@ def cog_analysis():
             
             with col2:
                 # Add network diagram export
-                if "cog_graph" in st.session_state and st.session_state["cog_graph"] is not None:
+                if "cog_graph" in st.session_state and st.session_state.get("cog_graph") is not None:
                     export_format = st.selectbox(
-                        "Export Network Diagram As",
+                        "Select Format",
                         ["gexf", "graphml", "json"],
-                        help="Choose the format for exporting the network diagram"
+                        help="Choose export format",
+                        key="export_format_select"
                     )
                     
-                    if st.button(f"Export Network as {export_format.upper()}", use_container_width=True):
+                    if st.button(f"Export as {export_format.upper()}", key=f"export_graph_btn_{export_format}", use_container_width=True):
                         graph_data = export_graph(st.session_state["cog_graph"], export_format)
                         if graph_data:
                             st.download_button(
-                                f"Download {export_format.upper()}",
+                                label=f"⬇️ Download {export_format.upper()}",
                                 data=graph_data,
                                 file_name=f"cog_network.{export_format}",
                                 mime=f"application/{export_format}",
-                                use_container_width=True
+                                use_container_width=True,
+                                key=f"download_graph_btn_{export_format}"
                             )
         else:
             st.warning("Please complete the analysis by selecting a Center of Gravity and adding capabilities")
