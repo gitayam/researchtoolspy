@@ -24,7 +24,7 @@ import streamlit.components.v1 as components
 from titlecase import titlecase
 
 from utilities.gpt import get_completion, get_chat_completion, normalize_field_across_entities
-
+from frameworks.graph_utils import build_graph, convert_graph_to_d3, build_edge_trace, build_node_traces
 
 def identify_threat() -> None:
     st.markdown(
@@ -334,8 +334,8 @@ def nominate_putars(
 def identify_capabilities(
     putar: str,
     issue: str,
-    location: str,
     threat: str,
+    location: str,
     iteration: int,
     ) -> None:
     # === Skip if this PUTAR is not currently selected
@@ -420,9 +420,7 @@ def identify_capabilities(
                 try:
                     system_msg = {
                         "role": "system",
-                        "content": (
-                            "You are a strategic planning AI specialized in COG analysis."
-                            )
+                        "content": "You are a strategic planning AI specialized in COG analysis."
                         }
                     user_msg = {
                         "role": "user",
@@ -923,89 +921,24 @@ def build_graph(
     filter_out_caps=False,
     filter_out_pptars=False
     ):
-    G = nx.Graph()
-    color_palette = [
-        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-        "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
-        "#bcbd22", "#17becf"
-    ]
-
-    pptar_to_putars = defaultdict(set)
-    for putar, putar_data in data_structure.items():
-        for cap_data in putar_data.get("capabilities", {}).values():
-            for req_data in cap_data.get("requirements", {}).values():
-                for pptar in req_data.get("potential_ptars", []):
-                    pptar_to_putars[pptar].add(putar)
-
-    for i, (putar, putar_data) in enumerate(data_structure.items()):
-        group_color = color_palette[i % len(color_palette)]
-        putar_id = f"putar_{putar}"
-        G.add_node(putar_id, label=putar, type='putar', group_color=group_color)
-
-        for cap, cap_data in putar_data.get("capabilities", {}).items():
-            cap_id = f"cap_{putar}_{cap}"
-            if not filter_out_caps:
-                G.add_node(cap_id, label=cap, type='capability', group_color=group_color)
-                G.add_edge(putar_id, cap_id)
-
-            for req, req_data in cap_data.get("requirements", {}).items():
-                req_id = f"req_{putar}_{cap}_{req}"
-                pptars = req_data.get("potential_ptars", [])
-
-                if not filter_out_reqs:
-                    G.add_node(req_id, label=req, type='requirement', group_color=group_color)
-                    parent_id = cap_id if not filter_out_caps else putar_id
-                    G.add_edge(parent_id, req_id)
-                else:
-                    parent_id = cap_id if not filter_out_caps else putar_id
-
-                if not filter_out_pptars:
-                    for pptar in pptars:
-                        pptar_id = f"pptar_{pptar}"
-                        is_shared = len(pptar_to_putars[pptar]) > 1
-                        pptar_color = "#999999" if is_shared else group_color
-
-                        if pptar_id not in G:
-                            G.add_node(
-                                pptar_id,
-                                label=pptar,
-                                type='pptar',
-                                group_color=pptar_color
-                            )
-
-                        # Connect pptar to appropriate parent
-                        if not filter_out_reqs:
-                            G.add_edge(req_id, pptar_id)
-                        elif not filter_out_caps:
-                            G.add_edge(cap_id, pptar_id)
-                        else:
-                            G.add_edge(putar_id, pptar_id)
-
-    return G
+    """
+    This function is now imported from graph_utils.py
+    """
+    from frameworks.graph_utils import build_graph as graph_utils_build_graph
+    return graph_utils_build_graph(
+        data_structure,
+        filter_out_reqs=filter_out_reqs,
+        filter_out_caps=filter_out_caps,
+        filter_out_pptars=filter_out_pptars
+    )
 
 # --- Convert to D3.js compatible format ---
-def convert_graph_to_d3(graph: nx.Graph) -> dict:
-    def get_border_color(node_type: str) -> str:
-        return {
-            "putar": "#3f37c9",
-            "capability": "#264653",
-            "requirement": "#e76f51",
-            "pptar": "#5e548e",
-        }.get(node_type, "#999999")
-
-    nodes = []
-    links = []
-    for node_id, data in graph.nodes(data=True):
-        nodes.append({
-            "id": node_id,
-            "label": data.get("label", node_id),
-            "type": data.get("type", "unknown"),
-            "group_color": data.get("group_color", "#cccccc"),
-            "border_color": get_border_color(data.get("type", "unknown")),
-        })
-    for source, target in graph.edges():
-        links.append({"source": source, "target": target})
-    return {"nodes": nodes, "links": links}
+def convert_graph_to_d3(graph: nx.Graph):
+    """
+    This function is now imported from graph_utils.py
+    """
+    from frameworks.graph_utils import convert_graph_to_d3 as graph_utils_convert_graph_to_d3
+    return graph_utils_convert_graph_to_d3(graph)
 
 
 def causeway_page():
@@ -1395,169 +1328,20 @@ def causeway_page():
             graph = build_graph(
                 potential_utars, filter_out_reqs, filter_out_caps, filter_out_pptars
             )
-            d3_data = convert_graph_to_d3(graph)
-            d3_json = json.dumps(d3_data)
-            html_code = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta charset="utf-8">
-              <style>
-                .node-label {{
-                  pointer-events: none;
-                  fill: white;
-                }}
-                .legend text {{
-                  font-size: 16px;
-                  fill: white;
-                }}
-                #resetZoom {{
-                  background:#12141C;
-                  color:white;
-                  border:1px solid #353842;
-                  padding:6px 12px;
-                  border-radius:6px;
-                  cursor:pointer;
-                }}
-              </style>
-            </head>
-            <body>
-            <button id="resetZoom">Reset Zoom</button>
-            <div id="graph-container"
-                 style="background-color:#0F1117;width:100%;height:700px;margin:0 auto;position:relative;">
-              <svg width="100%" height="100%"></svg>
-            </div>
-            <script src="https://d3js.org/d3.v6.min.js"></script>
-            <script>
-            const graph = {d3_json};
-            const NODE_SIZE = {node_size};
-            const REPULSION = -{repulsion_strength};
-
-            const container = document.getElementById("graph-container");
-            const svg = d3.select("svg");
-            const zoomGroup = svg.append("g");
-
-            const zoom = d3.zoom()
-              .scaleExtent([0.1, 2])
-              .on("zoom", e => {{
-                zoomGroup.attr("transform", e.transform);
-              }});
-            svg.call(zoom);
-
-            const simulation = d3.forceSimulation(graph.nodes)
-              .force("link", d3.forceLink(graph.links).id(d => d.id).distance(NODE_SIZE * 6))
-              .force("charge", d3.forceManyBody().strength(REPULSION))
-              .force("center", d3.forceCenter(0, 0))
-              .force("collide", d3.forceCollide(NODE_SIZE + 4));
-
-            // Links
-            zoomGroup.append("g")
-              .selectAll("line")
-              .data(graph.links)
-              .enter().append("line")
-              .attr("stroke", "#aaa")
-              .attr("stroke-width", 2);
-
-            // Nodes with symbols
-            const symbolMap = {{
-              "putar": d3.symbolSquare,
-              "capability": d3.symbolCircle,
-              "requirement": d3.symbolTriangle,
-              "pptar": d3.symbolDiamond
-            }};
-            const node = zoomGroup.append("g")
-              .selectAll("path")
-              .data(graph.nodes)
-              .enter().append("path")
-              .attr("d", d => d3.symbol().type(symbolMap[d.type] || d3.symbolCircle).size(Math.pow(NODE_SIZE, 2))())
-              .attr("fill", d => d.group_color)
-              .attr("stroke", d => d.border_color)
-              .attr("stroke-width", 3)
-              .call(d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended));
-            node.append("title").text(d => d.label);
-
-            // Labels
-            const label = zoomGroup.append("g")
-              .selectAll("text")
-              .data(graph.nodes)
-              .enter().append("text")
-                .attr("class", "node-label")
-                .attr("text-anchor", "middle")
-                .attr("dy", -NODE_SIZE - 2)
-                .style("font-size", d => d.type === "putar" ? "20px" : d.type === "pptar" ? "14px" : "12px")
-                .style("font-weight", d => (d.type === "putar" || d.type === "pptar") ? "bold" : "normal")
-                .text(d => d.label);
-
-            // Legend
-            const legend = svg.append("g")
-              .attr("class", "legend")
-              .attr("transform", "translate(20,20)");
-
-            const legendData = [
-              {{ label: "Ultimate Target", color: "#3f37c9" }},
-              {{ label: "Capability", color: "#264653" }},
-              {{ label: "Requirement", color: "#e76f51" }},
-              {{ label: "Proximate Target", color: "#5e548e" }}
-            ];
-
-            legend.selectAll("path")
-              .data(legendData)
-              .enter().append("path")
-                .attr("d", d3.symbol().type(d3.symbolSquare).size(100))
-                .attr("transform", (d,i) => `translate(0,${i*20})`)
-                .attr("fill", "transparent")
-                .attr("stroke", d => d.color)
-                .attr("stroke-width", 3);
-
-            legend.selectAll("text")
-              .data(legendData)
-              .enter().append("text")
-                .attr("x", 12)
-                .attr("y", (d,i) => i * 20 + 4)
-                .attr("fill", "white")
-                .text(d => d.label);
-
-            if ({str(show_legend).lower()} === false) {{
-              legend.style("display", "none");
-            }}
-
-            simulation.on("tick", () => {{
-              zoomGroup.selectAll("line")
-                .attr("x1", d => d.source.x)
-                .attr("y1", d => d.source.y)
-                .attr("x2", d => d.target.x)
-                .attr("y2", d => d.target.y);
-
-              node.attr("transform", d => `translate(${d.x},${d.y})`);
-              label
-                .attr("x", d => d.x)
-                .attr("y", d => d.y - NODE_SIZE - 2);
-            }});
-
-            function dragstarted(event, d) {{
-              if (!event.active) simulation.alphaTarget(0.3).restart();
-              d.fx = d.x; d.fy = d.y;
-            }}
-            function dragged(event, d) {{
-              d.fx = event.x; d.fy = event.y;
-            }}
-            function dragended(event, d) {{
-              if (!event.active) simulation.alphaTarget(0);
-              d.fx = null; d.fy = null;
-            }}
-
-            // Reset zoom
-            document.getElementById("resetZoom").addEventListener("click", () => {{
-              svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
-            }});
-            </script>
-            </body>
-            </html>
-            """
-            components.html(html_code, height=700)
+            pos = nx.spring_layout(graph)
+            edge_trace = build_edge_trace(graph, pos)
+            node_traces = build_node_traces(graph, pos)
+            fig = go.Figure(data=[edge_trace] + node_traces)
+            fig.update_layout(
+                showlegend=show_legend,
+                hovermode='x',
+                margin=dict(b=20,l=5,r=5,t=40),
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                height=700,
+                width=1000,
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
 
     with tab7:

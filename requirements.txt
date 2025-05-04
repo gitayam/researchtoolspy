@@ -7,7 +7,6 @@ requests            # HTTP requests library
 python-dotenv       # Environment variable management
 pandas              # Data manipulation and analysis
 networkx            # Graph manipulation
-plotly              # Plotting library
 
 # Testing and development
 pytest              # Testing framework

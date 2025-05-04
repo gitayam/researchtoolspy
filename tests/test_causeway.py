@@ -32,11 +32,12 @@ def test_build_graph_basic():
     # Check nodes and edges
     nodes = set(graph.nodes)
     edges = set(graph.edges)
-    assert 'UT1' in nodes
-    assert 'Cap1' in nodes
-    assert 'Req1' in nodes
-    assert ('UT1', 'Cap1') in edges
-    assert ('Cap1', 'Req1') in edges
+    # Updated assertions to match the actual node naming convention
+    assert 'putar::UT1' in nodes
+    assert 'cap::UT1::Cap1' in nodes
+    assert 'req::UT1::Cap1::Req1' in nodes
+    assert ('putar::UT1', 'cap::UT1::Cap1') in edges
+    assert ('cap::UT1::Cap1', 'req::UT1::Cap1::Req1') in edges
 
 # Test build_edge_trace returns a Plotly Scatter object
 def test_build_edge_trace_type():
@@ -62,17 +63,33 @@ def test_main_smoke(monkeypatch):
     # Patch streamlit functions to avoid UI calls
     import types
     import streamlit as st
+    
+    # Create a context manager compatible SimpleNamespace
+    class ContextManagerNamespace(types.SimpleNamespace):
+        def __enter__(self):
+            return self
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            return False
+    
+    # Handle both integer and list arguments for columns
+    def mock_columns(*a, **k):
+        if a and isinstance(a[0], list):
+            return [ContextManagerNamespace() for _ in range(len(a[0]))]
+        else:
+            return [ContextManagerNamespace() for _ in range(a[0] if a else 2)]
+    
     monkeypatch.setattr(st, 'markdown', lambda *a, **k: None)
     monkeypatch.setattr(st, 'text_input', lambda *a, **k: '')
-    monkeypatch.setattr(st, 'columns', lambda *a, **k: [types.SimpleNamespace() for _ in range(a[0] if a else 2)])
+    monkeypatch.setattr(st, 'columns', mock_columns)
     monkeypatch.setattr(st, 'button', lambda *a, **k: False)
     monkeypatch.setattr(st, 'warning', lambda *a, **k: None)
-    monkeypatch.setattr(st, 'spinner', lambda *a, **k: types.SimpleNamespace(__enter__=lambda s: None, __exit__=lambda s, exc_type, exc_val, exc_tb: None))
+    monkeypatch.setattr(st, 'spinner', lambda *a, **k: ContextManagerNamespace())
     monkeypatch.setattr(st, 'session_state', {})
     monkeypatch.setattr(st, 'info', lambda *a, **k: None)
     monkeypatch.setattr(st, 'checkbox', lambda *a, **k: False)
     monkeypatch.setattr(st, 'plotly_chart', lambda *a, **k: None)
     monkeypatch.setattr(st, 'write', lambda *a, **k: None)
+    monkeypatch.setattr(st, 'tabs', lambda *a, **k: [ContextManagerNamespace() for _ in range(len(a[0]) if a else 2)])
     # Patch rerun
     monkeypatch.setattr(st, 'rerun', lambda: None)
     # Patch get_completion and get_chat_completion
@@ -80,7 +97,5 @@ def test_main_smoke(monkeypatch):
     monkeypatch.setattr(causeway, 'get_chat_completion', lambda *a, **k: '')
     # Patch normalize_field_across_entities
     monkeypatch.setattr(causeway, 'normalize_field_across_entities', lambda *a, **k: None)
-    # Patch suggest_actor_objective_with_ai
-    monkeypatch.setattr(causeway, 'suggest_actor_objective_with_ai', lambda *a, **k: None)
     # Run main (should not raise)
     causeway.main()
