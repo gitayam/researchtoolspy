@@ -11,8 +11,10 @@ import uuid
 import urllib.parse
 
 import networkx as nx
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 from titlecase import titlecase
 
 from utilities.gpt import get_completion, get_chat_completion, normalize_field_across_entities
@@ -212,7 +214,7 @@ def nominate_putars(
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button(
-            label="➕ Add Manually Entered Potential Ultimate Target",
+            label="➕ Add Manually Entered Ultimate Target",
             use_container_width=True
             ):
             putar = titlecase(putar.strip())
@@ -223,7 +225,7 @@ def nominate_putars(
                 st.info(f"Potential target already exists: {putar}")
     with col2:
         if st.button(
-            label="🤖 AI: Suggest Potential Ultimate Targets",
+            label="🤖 AI: Suggest Ultimate Targets",
             use_container_width=True
             ):
             try:
@@ -262,7 +264,7 @@ def nominate_putars(
 
     if st.session_state["select_status"]:
         st.markdown(
-            "##### 🎯 Potential Ultimate Targets",
+            "##### 🎯 Ultimate Targets",
             unsafe_allow_html=True
             )
         cols = st.columns(2)
@@ -317,7 +319,7 @@ def nominate_putars(
             elif not is_selected and putar in st.session_state["potential_utars"]:
                 st.session_state["potential_utars"].pop(putar)
 
-        if st.button(label="🧹 Clear Potential Ultimate Targets"):
+        if st.button(label="🧹 Clear Ultimate Targets"):
             st.session_state["select_status"].clear()
             st.session_state["potential_utars"].clear()
             st.rerun()
@@ -784,8 +786,24 @@ def identify_proximate_targets(
                     for i, pptar in enumerate(req_data["potential_ptars"]):
                         pptar_cell = cols[i % 2]
                         with pptar_cell:
-                            col1, col2, col3 = st.columns([5, 1.2, 1.2])
+                            col1, col2, col3, col4 = st.columns([0.8, 8.0, 1.5, 1.5])
                             with col1:
+                                query = urllib.parse.quote(
+                                    '("' + putar +  ')" AND ' + '("' + pptar + '")'
+                                    )
+                                st.markdown(
+                                    f"""
+                                    <div style='padding-left: 10px;'>
+                                        <a href="https://google.com/search?q={query}" target="_blank" style="text-decoration: none;">
+                                            <button class="custom-icon-button">
+                                                <img src="https://www.google.com/favicon.ico" style="height: 20px;">
+                                            </button>
+                                        </a>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                    )                            
+                            with col2:
                                 st.markdown(
                                     f"""
                                     <div class="st-markdown-custom" style="
@@ -797,14 +815,14 @@ def identify_proximate_targets(
                                     """,
                                     unsafe_allow_html=True
                                     )
-                            with col2:
+                            with col3:
                                 if st.button(
                                     label="Edit",
                                     key=f"edit_{putar}_{cap}_{req}_{pptar}_{i}",
                                     use_container_width=True
                                     ):
                                     st.session_state[f"edit_mode_{putar}_{cap}_{req}_{pptar}_{i}"] = True
-                            with col3:
+                            with col4:
                                 if st.button(
                                     label="Delete",
                                     key=f"del_{putar}_{cap}_{req}_{pptar}_{i}",
@@ -843,162 +861,92 @@ def identify_proximate_targets(
 def build_graph(
     data_structure,
     filter_out_reqs=False,
-    filter_out_caps=False
+    filter_out_caps=False,
+    filter_out_pptars=False
     ):
     G = nx.Graph()
     color_palette = [
         "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
         "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
         "#bcbd22", "#17becf"
-        ]
+    ]
 
     pptar_to_putars = defaultdict(set)
-    # First pass: track shared pptars
     for putar, putar_data in data_structure.items():
         for cap_data in putar_data.get("capabilities", {}).values():
             for req_data in cap_data.get("requirements", {}).values():
                 for pptar in req_data.get("potential_ptars", []):
                     pptar_to_putars[pptar].add(putar)
 
-    # Second pass: build graph nodes and edges
     for i, (putar, putar_data) in enumerate(data_structure.items()):
         group_color = color_palette[i % len(color_palette)]
         putar_id = f"putar_{putar}"
         G.add_node(putar_id, label=putar, type='putar', group_color=group_color)
+
         for cap, cap_data in putar_data.get("capabilities", {}).items():
             cap_id = f"cap_{putar}_{cap}"
             if not filter_out_caps:
                 G.add_node(cap_id, label=cap, type='capability', group_color=group_color)
                 G.add_edge(putar_id, cap_id)
+
             for req, req_data in cap_data.get("requirements", {}).items():
                 req_id = f"req_{putar}_{cap}_{req}"
                 pptars = req_data.get("potential_ptars", [])
+
                 if not filter_out_reqs:
                     G.add_node(req_id, label=req, type='requirement', group_color=group_color)
-                    parent = cap_id if not filter_out_caps else putar_id
-                    G.add_edge(parent, req_id)
-                for pptar in pptars:
-                    pptar_id = f"pptar_{pptar}"
-                    is_shared = len(pptar_to_putars[pptar]) > 1
-                    pptar_color = "#999999" if is_shared else group_color
-                    if pptar_id not in G:
-                        G.add_node(
-                            pptar_id,
-                            label=pptar,
-                            type='pptar',
-                            group_color=pptar_color
+                    parent_id = cap_id if not filter_out_caps else putar_id
+                    G.add_edge(parent_id, req_id)
+                else:
+                    parent_id = cap_id if not filter_out_caps else putar_id
+
+                if not filter_out_pptars:
+                    for pptar in pptars:
+                        pptar_id = f"pptar_{pptar}"
+                        is_shared = len(pptar_to_putars[pptar]) > 1
+                        pptar_color = "#999999" if is_shared else group_color
+
+                        if pptar_id not in G:
+                            G.add_node(
+                                pptar_id,
+                                label=pptar,
+                                type='pptar',
+                                group_color=pptar_color
                             )
-                    # Decide the most appropriate parent node to attach pptar
-                    if not filter_out_reqs:
-                        parent_id = req_id
-                    elif not filter_out_caps:
-                        parent_id = cap_id
-                    else:
-                        parent_id = putar_id
-                    G.add_edge(parent_id, pptar_id)
+
+                        # Connect pptar to appropriate parent
+                        if not filter_out_reqs:
+                            G.add_edge(req_id, pptar_id)
+                        elif not filter_out_caps:
+                            G.add_edge(cap_id, pptar_id)
+                        else:
+                            G.add_edge(putar_id, pptar_id)
 
     return G
 
+# --- Convert to D3.js compatible format ---
+def convert_graph_to_d3(graph: nx.Graph) -> dict:
+    def get_border_color(node_type: str) -> str:
+        return {
+            "putar": "#3f37c9",
+            "capability": "#264653",
+            "requirement": "#e76f51",
+            "pptar": "#5e548e",
+        }.get(node_type, "#999999")
 
-def build_figure(edge_trace, node_traces):
-    return go.Figure(
-        data=[edge_trace] + node_traces,
-        layout=go.Layout(
-            title="Network Graph with Node Categories",
-            hovermode='closest',
-            showlegend=True,
-            margin=dict(t=40, b=20),
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
-            )
-        )
-
-
-def build_edge_trace(graph, pos):
-    edge_x, edge_y = [], []
-    for edge in graph.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
-
-    return go.Scatter(
-        x=edge_x, y=edge_y,
-        mode='lines',
-        line=dict(width=2, color='gray'),
-        hoverinfo='none'
-        )
-
-
-def build_node_traces(graph, pos, filter_out_reqs=False, filter_out_caps=False):
-    traces = []
-    text_positions = ["top center", "bottom center", "top right", "bottom right"]
-
-    type_styles = {
-        "putar": {"size": 40, "border_color": "#3f37c9", "font_size": 18, "legend": "Ultimate Targets"},
-        "capability": {"size": 20, "border_color": "#264653", "font_size": 10, "legend": "Critical Capabilities"},
-        "requirement": {"size": 20, "border_color": "#e76f51", "font_size": 10, "legend": "Critical Requirements"},
-        "pptar": {"size": 20, "border_color": "#5e548e", "font_size": 11, "legend": "Proximate Targets"},
-        }
-
-    for node_type, style in type_styles.items():
-        node_x, node_y, node_text, node_colors, text_position_cycle, opacities = [], [], [], [], [], []
-        relevant_nodes = [n for n in graph.nodes() if graph.nodes[n].get("type") == node_type]
-        for i, node in enumerate(relevant_nodes):
-            x, y = pos[node]
-            label = graph.nodes[node].get("label", node)
-            color = graph.nodes[node].get("group_color", "#cccccc")
-            node_x.append(x)
-            node_y.append(y)
-            node_text.append(label)
-            node_colors.append(color)
-            text_position_cycle.append(text_positions[i % len(text_positions)])
-            # Apply lower opacity if node is filtered
-            if (node_type == "capability" and filter_out_caps) or (node_type == "requirement" and filter_out_reqs):
-                opacities.append(0.2)
-            else:
-                opacities.append(1.0)
-        # Dummy trace for legend entry
-        dummy = go.Scatter(
-            x=[None],
-            y=[None],
-            mode='markers',
-            marker=dict(
-                color="#1f77b4",
-                size=style["size"],
-                symbol='circle',
-                line=dict(width=4, color=style["border_color"])
-                ),
-            name=style["legend"],
-            hoverinfo='skip',
-            showlegend=True
-            )
-        traces.append(dummy)
-        if node_x:
-            trace = go.Scatter(
-                x=node_x,
-                y=node_y,
-                mode='markers+text',
-                hoverinfo='text+name',
-                marker=dict(
-                    color=node_colors,
-                    size=style["size"],
-                    symbol='circle',
-                    line=dict(width=4, color=style["border_color"]),
-                    opacity=opacities
-                    ),
-                text=node_text,
-                textposition=text_position_cycle,
-                textfont=dict(
-                    size=style["font_size"],
-                    family="Arial Black" if node_type in ["putar", "pptar"] else "Arial"
-                    ),
-                name=style["legend"],
-                showlegend=False
-                )
-            traces.append(trace)
-
-    return traces
+    nodes = []
+    links = []
+    for node_id, data in graph.nodes(data=True):
+        nodes.append({
+            "id": node_id,
+            "label": data.get("label", node_id),
+            "type": data.get("type", "unknown"),
+            "group_color": data.get("group_color", "#cccccc"),
+            "border_color": get_border_color(data.get("type", "unknown")),
+        })
+    for source, target in graph.edges():
+        links.append({"source": source, "target": target})
+    return {"nodes": nodes, "links": links}
 
 
 def causeway_page():
@@ -1224,21 +1172,20 @@ def causeway_page():
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
         [
             "⚠️ Threat",
-            "🎯 Potential Ultimate Targets",
+            "🎯 Ultimate Targets",
             "💪 Critical Capabilities",
             "⚙️ Critical Requirements",
             "🚩 Proximate Targets",
             "📊 Visualize",
             "🗂️ Data Structure"
-            ]
-            )
+            ])
 
     with tab1:
         identify_threat()
 
     with tab2:
         st.markdown(
-            "<h3 style='color: #8fbc8f; font-weight: 700;'>Develop Potential Ultimate Targets</h3>",
+            "<h3 style='color: #8fbc8f; font-weight: 700;'>Develop Ultimate Targets</h3>",
             unsafe_allow_html=True
             )
 
@@ -1273,8 +1220,8 @@ def causeway_page():
         iteration = 1
         if not potential_utars:
             st.info(
-                "Please select at least one **Potential Ultimate "
-                "Target** in Tab 2 (Potential Ultimate Targets)."
+                "Please select at least one **Ultimate "
+                "Target** in Tab 2 (Ultimate Targets)."
                 )
         else:
             # === BUTTON PANEL (always appears at top)
@@ -1347,8 +1294,8 @@ def causeway_page():
         iteration = 1
         if not potential_utars:
             st.info(
-                "Please select at least one **Potential Ultimate "
-                "Target** in Tab 2 (Potential Ultimate Targets)."
+                "Please select at least one **Ultimate "
+                "Target** in Tab 2 (Potential Targets)."
                 )
         else:
             # === BUTTON PANEL (always appears at top)
@@ -1428,8 +1375,8 @@ def causeway_page():
         potential_utars = st.session_state.get("potential_utars", {})
         if not potential_utars:
             st.info(
-                "Please select at least one **Potential Ultimate "
-                "Target** in Tab 2 (Potential Ultimate Targets)."
+                "Please select at least one **Ultimate "
+                "Target** in Tab 2 (Ultimate Targets)."
                 )
         else:
             if "open_ptar_panel" not in st.session_state:
@@ -1515,43 +1462,249 @@ def causeway_page():
             unsafe_allow_html=True
             )
 
-        potential_utars = st.session_state.get("potential_utars", {})
-        if not potential_utars:
+        if not st.session_state.get("potential_utars", {}):
             st.info(
-                "Select at least one **Potential Ultimate Target** in Tab 2 to begin "
+                "Select at least one **Ultimate Target** in Tab 2 to begin "
                 "building the COG network graph."
                 )
         else:
-            # Use local variables only — no session_state needed
-            col1, col2 = st.columns([1, 1])
+            potential_utars = st.session_state["potential_utars"]
+            col1, col2, col3, col4, col5 = st.columns(5)
             with col1:
                 filter_out_reqs = st.checkbox(label="Hide Requirements", value=False)
             with col2:
                 filter_out_caps = st.checkbox(label="Hide Capabilities", value=False)
-            # Build graph using current filter settings
-            graph = build_graph(
-                potential_utars,
-                filter_out_reqs=filter_out_reqs,
-                filter_out_caps=filter_out_caps
+            with col3:
+                filter_out_pptars = st.checkbox(label="Hide Proximate Targets", value=False)
+            with col4:
+                full_graph = build_graph(potential_utars, False, False, False)
+                # make nodes table
+                nodes_df = pd.DataFrame([
+                    { **data, "id": node_id }
+                    for node_id, data in full_graph.nodes(data=True)
+                    ])
+                csv_nodes = nodes_df.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "🔽 Export Nodes Table",
+                    data=csv_nodes,
+                    file_name="all_nodes.csv",
+                    mime="text/csv",
+                    key='download_nodes'
+                    )
+            with col5:
+                full_graph = build_graph(potential_utars, False, False, False)
+                # make edge table
+                edges_df = pd.DataFrame([
+                    {"source": u, "target": v}
+                    for u,v in full_graph.edges()
+                    ])
+                csv_edges = edges_df.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "🔽 Export Edges Table",
+                    data=csv_edges,
+                    file_name="all_edges.csv",
+                    mime="text/csv",
+                    key='download_edges'
+                    )
+
+            graph = build_graph(potential_utars, filter_out_reqs, filter_out_caps, filter_out_pptars)
+            d3_data = convert_graph_to_d3(graph)
+            d3_json = json.dumps(d3_data)
+            html_code = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <style>
+                .node-label {{
+                  pointer-events: none;
+                  fill: white;
+                }}
+                .legend text {{
+                  font-size: 16px;
+                  fill: white;
+                }}
+              </style>
+            </head>
+            <body>
+            <div id="graph-container"
+                 style="background-color: #0F1117; width: 100%; height: 700px; margin: 0 auto;">
+              <svg width="100%" height="100%"></svg>
+            </div>
+            <script src="https://d3js.org/d3.v6.min.js"></script>
+            <script>
+            const graph = {d3_json};
+
+            // Select elements
+            const container = document.getElementById("graph-container");
+            const svg = d3.select("svg");
+            const zoomGroup = svg.append("g");
+
+            // Zoom behavior
+            const zoom = d3.zoom()
+              .scaleExtent([0.1, 2])
+              .on("zoom", event => {{
+                zoomGroup.attr("transform", event.transform);
+              }});
+            svg.call(zoom);
+
+            // Initial simulation (will re-center on resize)
+            const simulation = d3.forceSimulation(graph.nodes)
+              .force("link", d3.forceLink(graph.links).id(d => d.id).distance(100))
+              .force("charge", d3.forceManyBody().strength(-300))
+              .force("center", d3.forceCenter(0, 0));  // placeholder
+
+            // Draw links
+            zoomGroup.append("g")
+              .selectAll("line")
+              .data(graph.links)
+              .enter().append("line")
+              .attr("stroke", "#aaa")
+              .attr("stroke-width", 2);
+
+            // Draw nodes
+            const node = zoomGroup.append("g")
+              .selectAll("circle")
+              .data(graph.nodes)
+              .enter().append("circle")
+              .attr("r", 15)
+              .attr("fill", d => d.group_color)
+              .attr("stroke", d => d.border_color)
+              .attr("stroke-width", 4)
+              .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended)
+              );
+
+            // Draw labels
+            const label = zoomGroup.append("g")
+              .selectAll("text")
+              .data(graph.nodes)
+              .enter().append("text")
+                .attr("class", "node-label")
+                .attr("text-anchor", "middle")
+                .attr("dy", "0.35em")
+                .style("font-size", d => 
+                   d.type === "putar" ? "20px" :
+                   d.type === "pptar" ? "14px" :
+                   "12px"
                 )
-            pos = nx.spring_layout(graph, seed=42, k=0.25)
-            edge_trace = build_edge_trace(graph, pos)
-            node_traces = build_node_traces(graph, pos)
-            figure = build_figure(edge_trace, node_traces)
-            st.plotly_chart(figure, use_container_width=True)
+    .style("font-weight", d => (d.type === "putar" || d.type === "pptar") ? "bold" : "normal")
+    .text(d => d.label);
+
+            // Legend
+            const legend = svg.append("g")
+              .attr("class", "legend")
+              .attr("transform", "translate(20,20)");
+
+            const legendData = [
+              {{ label: "Ultimate Target", color: "#3f37c9" }},
+              {{ label: "Capability", color: "#264653" }},
+              {{ label: "Requirement", color: "#e76f51" }},
+              {{ label: "Proximate Target", color: "#5e548e" }}
+            ];
+
+            legend.selectAll("circle")
+              .data(legendData)
+              .enter().append("circle")
+              .attr("cx", 0)
+              .attr("cy", (d, i) => i * 20)
+              .attr("r", 6)
+              .attr("fill", "transparent")
+              .attr("stroke", d => d.color)
+              .attr("stroke-width", 3);
+
+            legend.selectAll("text")
+              .data(legendData)
+              .enter().append("text")
+              .attr("x", 12)
+              .attr("y", (d, i) => i * 20 + 4)
+              .attr("fill", "white")
+              .text(d => d.label);
+
+            // Tick update
+            simulation.on("tick", () => {{
+              zoomGroup.selectAll("line")
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+              node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+              zoomGroup.selectAll("text")
+                .attr("x", d => d.x)
+                .attr("y", d => d.y);
+            }});
+
+            // Drag handlers
+            function dragstarted(event, d) {{
+              if (!event.active) simulation.alphaTarget(0.3).restart();
+              d.fx = d.x;
+              d.fy = d.y;
+            }}
+            function dragged(event, d) {{
+              d.fx = event.x;
+              d.fy = event.y;
+            }}
+            function dragended(event, d) {{
+              if (!event.active) simulation.alphaTarget(0);
+              d.fx = null;
+              d.fy = null;
+            }}
+
+            // ResizeObserver to center once we have the real size
+            const ro = new ResizeObserver(entries => {{
+              const {{ width, height }} = entries[0].contentRect;
+              // update center force
+              simulation.force("center", d3.forceCenter(width / 2, height / 2));
+              // reheat & restart
+              simulation.alpha(1).restart();
+              // apply an initial zoom transform so graph is centered
+              svg.call(
+                zoom.transform,
+                d3.zoomIdentity.translate(width / 2, height / 2)
+                  .scale(1)
+                  .translate(-width / 2, -height / 2)
+              );
+              ro.disconnect();
+            }});
+            ro.observe(container);
+            </script>
+            </body>
+            </html>
+            """
+
+            components.html(html_code, height=700)
+
 
     with tab7:
         st.markdown(
             "<h3 style='color: #8fbc8f; font-weight: 700;'>Data Structure</h3>",
             unsafe_allow_html=True
             )
-        if st.session_state.get("potential_utars", {}):
-            st.write(st.session_state["potential_utars"])
+
+        data = st.session_state.get("potential_utars", {})
+        if data:
+            # serialize and offer download
+            json_str = json.dumps(data, indent=2)
+            st.download_button(
+                label="🔽 Export Data Structure (JSON)",
+                data=json_str,
+                file_name="causeway_data_structure.json",
+                mime="application/json"
+                )
+            # show it
+            st.write(data)
+
         else:
             st.info(
-                "The data structure will beging to populate as soon as "
+                "The data structure will begin to populate as soon as "
                 "at least one potential **Ultimate Target** is selected in "
-                " Tab 2 (Potential Ultimate Targets)."
+                "Tab 2 (Ultimate Targets)."
                 )
 
 
