@@ -65,6 +65,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
             "pop_responses": {},
             "moses_responses": {},
             "eve_responses": {},
+            "selected_framework": "ALL"
         }
         for k, v in defaults.items():
             if k not in st.session_state:
@@ -106,21 +107,31 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                 st.markdown("---")
                 if st.button(" Reset Analysis"):
                     for k in list(st.session_state.keys()):
-                        if k in ["scenario", "url_input", "scraped_content", "scraped_metadata", "mom_responses", "pop_responses", "moses_responses", "eve_responses"]:
+                        if k in ["scenario", "url_input", "scraped_content", "scraped_metadata", "mom_responses", "pop_responses", "moses_responses", "eve_responses", "selected_framework"]:
                             del st.session_state[k]
                     st.experimental_rerun()
                 st.markdown("---")
                 st.markdown("<small>Framework by Richards J. Heuer Jr. / CIA SATs</small>", unsafe_allow_html=True)
 
             self._render_header()
+            selected = self.framework_selector()
             self._render_scenario_section()
             # Only show framework sections if a scenario is provided
             if st.session_state.get("scenario", ""):
-                self._render_mom_section()
-                self._render_pop_section()
-                self._render_moses_section()
-                self._render_eve_section()
-                self._render_summary_section()
+                if selected == "ALL":
+                    self._render_mom_section()
+                    self._render_pop_section()
+                    self._render_moses_section()
+                    self._render_eve_section()
+                    self._render_summary_section()
+                elif selected == "MOM":
+                    self._render_mom_section()
+                elif selected == "POP":
+                    self._render_pop_section()
+                elif selected == "MOSES":
+                    self._render_moses_section()
+                elif selected == "EVE":
+                    self._render_eve_section()
         except Exception as e:
             error_msg = f"Error rendering Deception Detection framework: {e}"
             logging.error(error_msg)
@@ -296,7 +307,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                                     
                                     # Display the analysis in a nice format
                                     st.markdown("""
-                                    <div style="background-color:#f0f8ff; padding:15px; border-radius:5px; border:1px solid #b3d1ff;">
+                                    <div style="background-color:#f0f8ff; padding:20px; border-radius:5px; border:1px solid #b3d1ff;">
                                         <h3 style="color:#0066cc; margin-top:0;">Analysis Results</h3>
                                     """, unsafe_allow_html=True)
                                     
@@ -363,6 +374,68 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
         else:
             st.info("Please provide a scenario description to continue with the analysis.")
     
+    def framework_selector(self) -> str:
+        """
+        Render a framework selection UI and return the selected framework key.
+        """
+        frameworks = {
+            "MOM": {
+                "label": "Motive, Opportunity & Means",
+                "desc": "Does the subject have a reason, a chance, and the ability to deceive?",
+                "hint": (
+                    "- Motive: Who benefits?\n"
+                    "- Opportunity: Did they have the chance?\n"
+                    "- Means: Do they have the resources?\n"
+                    "If all three are present, the risk of deception is higher."
+                )
+            },
+            "POP": {
+                "label": "Past Opposition Practices",
+                "desc": "What’s their track record? Have they deceived before?",
+                "hint": (
+                    "- Look for patterns or repeated deception.\n"
+                    "- Past behavior predicts future behavior."
+                )
+            },
+            "MOSES": {
+                "label": "Manipulability of Sources",
+                "desc": "Can the information be trusted? Who controls the sources?",
+                "hint": (
+                    "- Who controls the info?\n"
+                    "- Is it independently verified?\n"
+                    "- Easily manipulated sources = higher risk."
+                )
+            },
+            "EVE": {
+                "label": "Evaluation of Evidence",
+                "desc": "Is the evidence reliable, consistent, and corroborated?",
+                "hint": (
+                    "- Is it consistent?\n"
+                    "- Multiple sources?\n"
+                    "- Any missing or unverifiable info?"
+                )
+            },
+            "ALL": {
+                "label": "Show All",
+                "desc": "View and complete the entire deception detection workflow.",
+                "hint": "Go through all frameworks in sequence for a comprehensive analysis."
+            }
+        }
+        st.markdown("""
+        <div style='margin-bottom:10px;'><h3 style='margin-bottom:5px;'>Choose a Deception Detection Framework</h3></div>
+        """, unsafe_allow_html=True)
+        cols = st.columns(len(frameworks))
+        selected = st.session_state.get("selected_framework", "ALL")
+        for i, (fw_key, fw) in enumerate(frameworks.items()):
+            with cols[i]:
+                if st.button(fw["label"], key=f"fw_btn_{fw_key}", use_container_width=True):
+                    st.session_state["selected_framework"] = fw_key
+                    selected = fw_key
+                st.markdown(f"<div style='font-size:12px; color:#444;'>{fw['desc']}</div>", unsafe_allow_html=True)
+                with st.expander("How to use", expanded=False):
+                    st.markdown(fw["hint"])
+        return selected
+
     def _render_mom_section(self) -> None:
         """Render the Motive, Opportunity, and Means (MOM) section."""
         self._section_header(2, "Motive, Opportunity, and Means (MOM)")
@@ -1102,7 +1175,7 @@ def _legacy_deception_detection():
         """, unsafe_allow_html=True)
         
         moses_questions = {
-            "control": "How much control does the potential deceiver have over our sources?",
+            "control": "How much control does the adversary have over our sources?",
             "access": "Do they have access to our collection methods?",
             "vulnerability": "How vulnerable are our sources to manipulation?"
         }
