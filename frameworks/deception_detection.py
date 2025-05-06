@@ -47,14 +47,84 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
         # Call parent class constructor if available
         if BASE_FRAMEWORK_AVAILABLE:
             super().__init__("Deception Detection")
-            # Define components for BaseFramework compatibility
             self.components = ["scenario", "mom", "pop", "moses", "eve"]
-            # Initialize questions for each component
             for component in self.components:
                 self.questions[component] = self.generate_questions(component)
         else:
             self.framework_name = "Deception Detection"
-            self.initialize_session_state_dict()
+        self.initialize_session_state_dict()
+
+    def initialize_session_state_dict(self) -> None:
+        """Ensure all required session state variables are initialized."""
+        defaults = {
+            "scenario": "",
+            "url_input": "",
+            "scraped_content": "",
+            "scraped_metadata": {},
+            "mom_responses": {k: "" for k in ["motive", "channels", "risks", "costs", "feedback"]},
+            "pop_responses": {},
+            "moses_responses": {},
+            "eve_responses": {},
+        }
+        for k, v in defaults.items():
+            if k not in st.session_state:
+                st.session_state[k] = v
+    
+    def _card_container(self, content: str, color: str = "#ffffff", border: str = "#ddd") -> None:
+        st.markdown(f'<div style="background-color:{color}; padding:15px; border-radius:5px; border:1px solid {border}; margin-bottom:20px;">{content}</div>', unsafe_allow_html=True)
+
+    def _section_header(self, number: int, title: str, color: str = "#FF4B4B") -> None:
+        st.markdown(f"""
+        <div style="display:flex; align-items:center; margin:30px 0 10px 0;">
+            <div style="background-color:{color}; color:white; width:30px; height:30px; border-radius:50%; 
+                    display:flex; align-items:center; justify-content:center; margin-right:10px; font-weight:bold;">
+                {number}
+            </div>
+            <h2 style="margin:0; color:#1E1E1E;">{title}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+
+    def render(self) -> None:
+        """Render the Deception Detection framework UI with improved UX."""
+        try:
+            # Sidebar navigation and progress summary
+            with st.sidebar:
+                st.title(" Deception Detection")
+                st.markdown("""
+                <div style='font-size:15px; margin-bottom:20px;'>
+                This tool guides you through a structured analysis to detect possible deception in intelligence scenarios.
+                </div>
+                """, unsafe_allow_html=True)
+                progress = 0.0
+                if st.session_state.get("scenario"): progress += 0.2
+                if any(st.session_state.get("mom_responses", {}).values()): progress += 0.2
+                if any(st.session_state.get("pop_responses", {}).values()): progress += 0.2
+                if any(st.session_state.get("moses_responses", {}).values()): progress += 0.2
+                if any(st.session_state.get("eve_responses", {}).values()): progress += 0.2
+                st.progress(progress)
+                st.markdown(f"**Progress:** {int(progress*100)}% Complete")
+                st.markdown("---")
+                if st.button(" Reset Analysis"):
+                    for k in list(st.session_state.keys()):
+                        if k in ["scenario", "url_input", "scraped_content", "scraped_metadata", "mom_responses", "pop_responses", "moses_responses", "eve_responses"]:
+                            del st.session_state[k]
+                    st.experimental_rerun()
+                st.markdown("---")
+                st.markdown("<small>Framework by Richards J. Heuer Jr. / CIA SATs</small>", unsafe_allow_html=True)
+
+            self._render_header()
+            self._render_scenario_section()
+            # Only show framework sections if a scenario is provided
+            if st.session_state.get("scenario", ""):
+                self._render_mom_section()
+                self._render_pop_section()
+                self._render_moses_section()
+                self._render_eve_section()
+                self._render_summary_section()
+        except Exception as e:
+            error_msg = f"Error rendering Deception Detection framework: {e}"
+            logging.error(error_msg)
+            st.error(error_msg)
     
     def generate_questions(self, component: str) -> List[str]:
         """
@@ -101,55 +171,6 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
         
         return questions.get(component.lower(), [])
         
-    def initialize_session_state_dict(self) -> Dict[str, Any]:
-        """Return a dictionary of default session state values."""
-        return {
-            "mom_responses": {},
-            "pop_responses": {},
-            "moses_responses": {},
-            "eve_responses": {},
-            "scenario": "",
-            "search_results": {},
-            "analysis_history": [],
-            "current_analysis_id": None,
-            "saved_analyses": {},
-            "url_input": "",
-            "scraped_content": "",
-            "scraped_metadata": {},
-            "url_analysis_summary": ""
-        }
-    
-    def initialize_session_state(self) -> None:
-        """Initialize all required session state variables with default values."""
-        if BASE_FRAMEWORK_AVAILABLE:
-            # Use the BaseFramework method with a prefix
-            defaults = self.initialize_session_state_dict()
-            super().initialize_session_state("deception", defaults)
-        else:
-            # Use our own implementation
-            defaults = self.initialize_session_state_dict()
-            for key, value in defaults.items():
-                if key not in st.session_state:
-                    st.session_state[key] = value
-    
-    def render(self) -> None:
-        """Render the Deception Detection framework UI."""
-        try:
-            self._render_header()
-            self._render_scenario_section()
-            
-            # Only show framework sections if a scenario is provided
-            if st.session_state.get("scenario", ""):
-                self._render_mom_section()
-                self._render_pop_section()
-                self._render_moses_section()
-                self._render_eve_section()
-                self._render_summary_section()
-        except Exception as e:
-            error_msg = f"Error rendering Deception Detection framework: {e}"
-            logging.error(error_msg)
-            st.error(error_msg)
-    
     def _render_header(self) -> None:
         """Render the framework header and description."""
         st.markdown("""
@@ -222,7 +243,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
             """, unsafe_allow_html=True)
             
             # Create tabs for different actions
-            tab1, tab2, tab3 = st.tabs(["📊 URL Analysis", "🔍 Search", "🧠 AI Recommendations"])
+            tab1, tab2, tab3 = st.tabs([" URL Analysis", " Search", " AI Recommendations"])
             
             with tab1:
                 st.subheader("URL Content Analysis")
@@ -236,7 +257,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                 col1, col2 = st.columns([1, 1])
                 
                 with col1:
-                    if st.button("📥 Scrape URL Content", use_container_width=True, type="primary"):
+                    if st.button(" Scrape URL Content", use_container_width=True, type="primary"):
                         if not url_input:
                             st.warning("Please enter a URL to analyze.")
                         else:
@@ -261,7 +282,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                                     st.error(f"Error scraping URL: {e}")
                 
                 with col2:
-                    if st.button("🔎 Analyze Scraped Content", use_container_width=True, type="primary"):
+                    if st.button(" Analyze Scraped Content", use_container_width=True, type="primary"):
                         if not st.session_state.get("scraped_content"):
                             st.warning("Please scrape URL content first.")
                         else:
@@ -299,7 +320,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                     help="Enter keywords to search for information related to your scenario"
                 )
                 
-                if st.button("🔍 Search", type="primary", use_container_width=True):
+                if st.button(" Search", type="primary", use_container_width=True):
                     self._perform_search(search_query)
             
             with tab3:
@@ -310,7 +331,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                 </p>
                 """, unsafe_allow_html=True)
                 
-                if st.button("💡 Get Framework Recommendations", type="primary", use_container_width=True):
+                if st.button(" Get Framework Recommendations", type="primary", use_container_width=True):
                     try:
                         system_msg = {
                             "role": "system",
@@ -330,7 +351,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                             st.markdown("""
                             <div style="background-color:#f5f5f5; padding:20px; border-radius:5px; border-left:4px solid #9c27b0;">
                                 <h3 style="color:#9c27b0; margin-top:0;">
-                                    <span style="font-size:24px;">💡</span> Recommended Framework Priority
+                                    <span style="font-size:24px;"></span> Recommended Framework Priority
                                 </h3>
                             """, unsafe_allow_html=True)
                             
@@ -344,15 +365,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
     
     def _render_mom_section(self) -> None:
         """Render the Motive, Opportunity, and Means (MOM) section."""
-        st.markdown("""
-        <div style="display:flex; align-items:center; margin:30px 0 10px 0;">
-            <div style="background-color:#FF4B4B; color:white; width:30px; height:30px; border-radius:50%; 
-                    display:flex; align-items:center; justify-content:center; margin-right:10px; font-weight:bold;">
-                2
-            </div>
-            <h2 style="margin:0; color:#1E1E1E;">Motive, Opportunity, and Means (MOM)</h2>
-        </div>
-        """, unsafe_allow_html=True)
+        self._section_header(2, "Motive, Opportunity, and Means (MOM)")
         
         st.markdown("""
         <div style="background-color:#fff3f3; padding:15px; border-radius:5px; margin-bottom:20px; font-size:15px;">
@@ -382,10 +395,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                     st.session_state["mom_responses"] = {}
                 st.session_state["mom_responses"][key] = ""
             
-            st.markdown(f"""
-            <div style="background-color:white; padding:15px; border-radius:5px; border:1px solid #ddd; margin-bottom:15px;">
-                <h4 style="margin-top:0; color:#FF4B4B; font-size:16px;">{question}</h4>
-            """, unsafe_allow_html=True)
+            self._card_container(question)
             
             col1, col2 = st.columns([3, 1])
             
@@ -404,11 +414,9 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
             
             with col2:
                 # Add search button for each question with improved styling
-                if st.button("🔍 Search", key=f"search_mom_{key}", use_container_width=True):
+                if st.button(" Search", key=f"search_mom_{key}", use_container_width=True):
                     search_query = f"{question} {st.session_state['scenario']}"
                     self._perform_search(search_query)
-            
-            st.markdown("</div>", unsafe_allow_html=True)
         
         # AI suggestions button with improved styling
         st.markdown("""
@@ -416,7 +424,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
             <h4 style="margin-top:0; color:#1E1E1E;">Need help? Get AI-powered suggestions</h4>
         """, unsafe_allow_html=True)
         
-        if st.button("💡 AI: Suggest MOM Considerations", use_container_width=True, type="primary"):
+        if st.button(" AI: Suggest MOM Considerations", use_container_width=True, type="primary"):
             if not st.session_state["scenario"]:
                 st.warning("Please provide a scenario description first.")
             else:
@@ -641,8 +649,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
 
     def _render_pop_section(self) -> None:
         """Render the Past Opposition Practices (POP) section."""
-        st.markdown("---")
-        st.subheader("2. Past Opposition Practices (POP)")
+        self._section_header(3, "Past Opposition Practices (POP)")
         
         # Initialize pop_responses in session state if not present
         if "pop_responses" not in st.session_state:
@@ -659,6 +666,8 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
         for key, question in pop_questions.items():
             if key not in st.session_state["pop_responses"]:
                 st.session_state["pop_responses"][key] = ""
+            
+            self._card_container(question)
             
             col1, col2 = st.columns([4, 1])
             with col1:
@@ -696,8 +705,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
 
     def _render_moses_section(self) -> None:
         """Render the Manipulability of Sources (MOSES) section."""
-        st.markdown("---")
-        st.subheader("3. Manipulability of Sources (MOSES)")
+        self._section_header(4, "Manipulability of Sources (MOSES)")
         
         # Initialize moses_responses in session state if not present
         if "moses_responses" not in st.session_state:
@@ -714,6 +722,8 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
         for key, question in moses_questions.items():
             if key not in st.session_state["moses_responses"]:
                 st.session_state["moses_responses"][key] = ""
+            
+            self._card_container(question)
             
             col1, col2 = st.columns([4, 1])
             with col1:
@@ -751,8 +761,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
 
     def _render_eve_section(self) -> None:
         """Render the Evaluation of Evidence (EVE) section."""
-        st.markdown("---")
-        st.subheader("4. Evaluation of Evidence (EVE)")
+        self._section_header(5, "Evaluation of Evidence (EVE)")
         
         # Initialize eve_responses in session state if not present
         if "eve_responses" not in st.session_state:
@@ -769,6 +778,8 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
         for key, question in eve_questions.items():
             if key not in st.session_state["eve_responses"]:
                 st.session_state["eve_responses"][key] = ""
+            
+            self._card_container(question)
             
             col1, col2 = st.columns([4, 1])
             with col1:
@@ -806,8 +817,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
 
     def _render_summary_section(self) -> None:
         """Render the summary and export section."""
-        st.markdown("---")
-        st.subheader("Summary and Export")
+        self._section_header(6, "Summary and Export")
 
         if st.button("Generate Analysis Summary"):
             try:
@@ -1216,7 +1226,7 @@ def _legacy_deception_detection():
             """, unsafe_allow_html=True)
             
             # Export button
-            if st.button("📥 Export Analysis", type="primary"):
+            if st.button(" Export Analysis", type="primary"):
                 # Create export data
                 export_data = {
                     "framework": "Deception Detection",
