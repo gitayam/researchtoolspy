@@ -27,6 +27,11 @@ selenium              # Web browser automation
 chromedriver-binary   # Chrome driver for Selenium
 webdriver-manager     # WebDriver management
 
+# Advanced Scraper Framework - ensure all dependencies for advanced_scraper.py are present
+
+# Additional dependencies used in advanced_scraper.py
+wikipedia             # Wikipedia API
+
 # Media and content downloading
 yt-dlp                 # YouTube video downloader
 instaloader            # Instagram content downloader
@@ -56,7 +61,6 @@ graphviz               # Graph visualization (for starbursting diagram)
 
 # Reference and citation
 manubot                # Citation handling
-wikipedia              # Wikipedia API access
 
 # Text Formatting
 titlecase

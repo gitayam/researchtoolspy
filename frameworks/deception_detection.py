@@ -5,20 +5,19 @@ Deception Detection Framework based on the work of Richards J. Heuer Jr. and CIA
 import json
 import logging
 import os
+import re
 import sys
 import urllib.parse
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any
 from datetime import datetime
-
 import requests
 import streamlit as st
 from bs4 import BeautifulSoup
+from utilities.gpt import chat_gpt
+from utilities import search_generator
 
 # Add the parent directory to sys.path to allow imports from utilities
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from utilities.gpt import chat_gpt, get_completion, get_chat_completion
-from utilities import search_generator
 
 # Only import BaseFramework if it's available
 try:
@@ -42,6 +41,30 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
     deception is present, and figure out what to do to avoid being deceived.
     """
     
+    # Class-level question dictionaries for use in all sections
+    MOM_QUESTIONS = {
+        "motive": "What are the goals and motives of the potential deceiver?",
+        "channels": "What means are available to feed information to us?",
+        "risks": "What consequences would the adversary suffer if deception was revealed?",
+        "costs": "Would they need to sacrifice sensitive information for credibility?",
+        "feedback": "Do they have a way to monitor the impact of the deception?"
+    }
+    POP_QUESTIONS = {
+        "history": "What is the history of deception by this actor or similar actors?",
+        "patterns": "Are there patterns or signatures in their previous deception attempts?",
+        "success": "How successful have their previous deception operations been?"
+    }
+    MOSES_QUESTIONS = {
+        "control": "How much control does the potential deceiver have over our sources?",
+        "access": "Do they have access to our collection methods?",
+        "vulnerability": "How vulnerable are our sources to manipulation?"
+    }
+    EVE_QUESTIONS = {
+        "consistency": "Is the information internally consistent?",
+        "corroboration": "Is it confirmed by multiple independent sources?",
+        "gaps": "Are there gaps or missing information in the evidence?"
+    }
+    
     def __init__(self):
         """Initialize the Deception Detection framework."""
         # Call parent class constructor if available
@@ -61,11 +84,13 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
             "url_input": "",
             "scraped_content": "",
             "scraped_metadata": {},
-            "mom_responses": {k: "" for k in ["motive", "channels", "risks", "costs", "feedback"]},
-            "pop_responses": {},
-            "moses_responses": {},
-            "eve_responses": {},
-            "selected_framework": "ALL"
+            "mom_responses": {k: "" for k in self.MOM_QUESTIONS.keys()},
+            "pop_responses": {k: "" for k in self.POP_QUESTIONS.keys()},
+            "moses_responses": {k: "" for k in self.MOSES_QUESTIONS.keys()},
+            "eve_responses": {k: "" for k in self.EVE_QUESTIONS.keys()},
+            "selected_framework": "ALL",
+            "auto_scraped_url": "",
+            "scenario_5w_summary": ""
         }
         for k, v in defaults.items():
             if k not in st.session_state:
@@ -107,7 +132,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                 st.markdown("---")
                 if st.button(" Reset Analysis"):
                     for k in list(st.session_state.keys()):
-                        if k in ["scenario", "url_input", "scraped_content", "scraped_metadata", "mom_responses", "pop_responses", "moses_responses", "eve_responses", "selected_framework"]:
+                        if k in ["scenario", "url_input", "scraped_content", "scraped_metadata", "mom_responses", "pop_responses", "moses_responses", "eve_responses", "selected_framework", "auto_scraped_url", "scenario_5w_summary"]:
                             del st.session_state[k]
                     st.experimental_rerun()
                 st.markdown("---")
@@ -132,7 +157,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                     self._render_moses_section()
                 elif selected == "EVE":
                     self._render_eve_section()
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, requests.RequestException) as e:
             error_msg = f"Error rendering Deception Detection framework: {e}"
             logging.error(error_msg)
             st.error(error_msg)
@@ -204,33 +229,51 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
         """, unsafe_allow_html=True)
     
     def _render_scenario_section(self) -> None:
-        """Render the scenario description section."""
-        st.markdown("""
-        <div style="display:flex; align-items:center; margin-bottom:10px;">
-            <div style="background-color:#FF4B4B; color:white; width:30px; height:30px; border-radius:50%; 
-                    display:flex; align-items:center; justify-content:center; margin-right:10px; font-weight:bold;">
-                1
-            </div>
-            <h2 style="margin:0; color:#1E1E1E;">Scenario Description</h2>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Create a card-like container for the scenario input
+        """Render the scenario description section with auto-scrape and 5W analysis if a URL is present."""
+        self._section_header(1, "Scenario Description")
         st.markdown('<div style="background-color:white; padding:15px; border-radius:5px; border:1px solid #ddd; margin-bottom:20px;">', unsafe_allow_html=True)
-        
         scenario = st.text_area(
             "Describe the scenario or information being analyzed",
             value=st.session_state.get("scenario", ""),
             height=150,
-            help="Provide detailed context about the situation where deception might be present. Include key actors, timeline, and any suspicious patterns or anomalies.",
-            placeholder="Example: A foreign company has made an unexpected offer to acquire a strategic technology firm. The offer seems unusually generous, and the company's background is difficult to verify.\nExample: An organizational social media account made a post claiming major policy changes that seems inconsistent with previous communications and lacks typical approval channels."
+            help="Provide detailed context about the situation where deception might be present. Include key actors, timeline, and any suspicious patterns or anomalies. If you paste a URL, the content will be automatically analyzed.",
+            placeholder="Example: A foreign company has made an unexpected offer to acquire a strategic technology firm... or paste a news article URL."
         )
-        
         st.session_state["scenario"] = scenario
-        
-        # Close the card container
-        st.markdown('</div>', unsafe_allow_html=True)
-        
+        url = self._extract_url(scenario)
+        fivew_summary = None
+        if url:
+            st.info(f"Detected URL in scenario: {url}")
+            if st.button("Scrape and Summarize", key="scrape_summarize_btn"):
+                with st.spinner("Scraping content from URL and generating 5W summary..."):
+                    if ADVANCED_SCRAPER_AVAILABLE:
+                        try:
+                            title, description, keywords, author, date_published, editor, referenced_links = advanced_fetch_metadata(url)
+                            body_content = scrape_body_content(url)
+                            context_block = (
+                                f"Title: {title}\n"
+                                f"Description: {description}\n"
+                                f"Author: {author}\n"
+                                f"Published Date: {date_published}\n"
+                                f"Editor: {editor}\n"
+                                f"Keywords: {keywords}\n"
+                                f"Referenced Links: {', '.join(referenced_links) if referenced_links else 'None'}\n"
+                                f"Body Content: {body_content}"
+                            )
+                            fivew_summary = self._objective_5w_summary(context_block)
+                            st.session_state["scenario_5w_summary"] = fivew_summary
+                        except (ValueError, KeyError, RuntimeError, requests.RequestException) as e:
+                            logging.error(f"Advanced scraping failed: {e}")
+                            st.warning("Advanced scraping failed. Falling back to basic extraction.")
+                            fivew_summary = self._objective_5w_summary(body_content if 'body_content' in locals() else scenario)
+                            st.session_state["scenario_5w_summary"] = fivew_summary
+                    else:
+                        st.warning("Advanced scraper not available. Using basic extraction.")
+                        fivew_summary = self._objective_5w_summary(scenario)
+                        st.session_state["scenario_5w_summary"] = fivew_summary
+        else:
+            st.session_state["scenario_5w_summary"] = ""
+
         # Progress indicator
         if scenario:
             progress_value = 0.2  # 20% complete with scenario filled
@@ -241,139 +284,44 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                 <span style="font-weight:bold;">{int(progress_value * 100)}% Complete</span>
             </div>
             """, unsafe_allow_html=True)
-        
-        # Only show the additional options if a scenario is provided
-        if scenario:
-            st.markdown("""
-            <div style="background-color:#f8f9fa; padding:15px; border-radius:5px; margin:20px 0; border-left:3px solid #4CAF50;">
-                <h3 style="margin-top:0; color:#1E1E1E; font-size:18px;">
-                    <span style="color:#4CAF50;">✓</span> Scenario Provided
-                </h3>
-                <p style="margin-bottom:0;">You can now explore additional tools to help with your analysis.</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Create tabs for different actions
-            tab1, tab2, tab3 = st.tabs([" URL Analysis", " Search", " AI Recommendations"])
-            
-            with tab1:
-                st.subheader("URL Content Analysis")
-                url_input = st.text_input(
-                    "Enter a URL to analyze for potential deception",
-                    value=st.session_state.get("url_input", ""),
-                    placeholder="https://example.com/article-to-analyze"
-                )
-                st.session_state["url_input"] = url_input
-                
-                col1, col2 = st.columns([1, 1])
-                
-                with col1:
-                    if st.button(" Scrape URL Content", use_container_width=True, type="primary"):
-                        if not url_input:
-                            st.warning("Please enter a URL to analyze.")
-                        else:
-                            with st.spinner("Scraping content from URL..."):
-                                try:
-                                    content, metadata = self._scrape_url_content(url_input)
-                                    st.session_state["scraped_content"] = content
-                                    st.session_state["scraped_metadata"] = metadata
-                                    
-                                    # Show a preview of the scraped content
-                                    with st.expander("Content Preview", expanded=True):
-                                        st.markdown("### Metadata")
-                                        for key, value in metadata.items():
-                                            st.markdown(f"**{key}:** {value}")
-                                        
-                                        st.markdown("### Content Preview")
-                                        preview = content[:500] + "..." if len(content) > 500 else content
-                                        st.markdown(preview)
-                                    
-                                    st.success("URL content scraped successfully!")
-                                except Exception as e:
-                                    st.error(f"Error scraping URL: {e}")
-                
-                with col2:
-                    if st.button(" Analyze Scraped Content", use_container_width=True, type="primary"):
-                        if not st.session_state.get("scraped_content"):
-                            st.warning("Please scrape URL content first.")
-                        else:
-                            with st.spinner("Analyzing content for deception indicators..."):
-                                try:
-                                    analysis = self._analyze_scraped_content(
-                                        st.session_state["scraped_content"],
-                                        st.session_state["scraped_metadata"]
-                                    )
-                                    st.session_state["url_analysis_summary"] = analysis
-                                    
-                                    # Display the analysis in a nice format
-                                    st.markdown("""
-                                    <div style="background-color:#f0f8ff; padding:20px; border-radius:5px; border:1px solid #b3d1ff;">
-                                        <h3 style="color:#0066cc; margin-top:0;">Analysis Results</h3>
-                                    """, unsafe_allow_html=True)
-                                    
-                                    st.markdown(analysis)
-                                    
-                                    st.markdown("</div>", unsafe_allow_html=True)
-                                except Exception as e:
-                                    st.error(f"Error analyzing content: {e}")
-            
-            with tab2:
-                st.subheader("Search for Related Information")
-                st.markdown("""
-                <p style="color:#555; font-size:14px;">
-                    Search for additional information related to your scenario to enhance your analysis.
-                </p>
-                """, unsafe_allow_html=True)
-                
-                search_query = st.text_input(
-                    "Search query",
-                    value=scenario[:100] if len(scenario) > 100 else scenario,
-                    help="Enter keywords to search for information related to your scenario"
-                )
-                
-                if st.button(" Search", type="primary", use_container_width=True):
-                    self._perform_search(search_query)
-            
-            with tab3:
-                st.subheader("AI Framework Recommendations")
-                st.markdown("""
-                <p style="color:#555; font-size:14px;">
-                    Get AI-powered recommendations on which analytical frameworks might be most useful for your scenario.
-                </p>
-                """, unsafe_allow_html=True)
-                
-                if st.button(" Get Framework Recommendations", type="primary", use_container_width=True):
-                    try:
-                        system_msg = {
-                            "role": "system",
-                            "content": (
-                                "You are an expert in intelligence analysis frameworks. "
-                                "Your task is to recommend which analytical frameworks would be most useful "
-                                "for the given scenario, and in what order they should be applied."
-                            )
-                        }
-                        user_msg = {
-                            "role": "user",
-                            "content": f"For this scenario: {st.session_state['scenario']}\nWhat is the recommended priority order for applying these frameworks, and why?"
-                        }
-                        with st.spinner("Generating recommendations..."):
-                            framework_recommendations = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-                            
-                            st.markdown("""
-                            <div style="background-color:#f5f5f5; padding:20px; border-radius:5px; border-left:4px solid #9c27b0;">
-                                <h3 style="color:#9c27b0; margin-top:0;">
-                                    <span style="font-size:24px;"></span> Recommended Framework Priority
-                                </h3>
-                            """, unsafe_allow_html=True)
-                            
-                            st.markdown(framework_recommendations)
-                            
-                            st.markdown("</div>", unsafe_allow_html=True)
-                    except Exception as e:
-                        st.error(f"Error generating framework recommendations: {e}")
-        else:
-            st.info("Please provide a scenario description to continue with the analysis.")
-    
+        if scenario and not url:
+            st.info("Tip: Paste a URL in your scenario to auto-extract actors and actions using 5W analysis.")
+
+        # Show the 5W summary if available
+        if st.session_state.get("scenario_5w_summary"):
+            with st.expander("5W Analysis (Who, What, When, Where, Why)", expanded=False):
+                st.markdown(st.session_state["scenario_5w_summary"])
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    def _extract_url(self, text: str) -> Optional[str]:
+        """Extract the first URL found in a string, if any."""
+        url_pattern = re.compile(r'(https?://\S+)')
+        match = url_pattern.search(text)
+        if match:
+            return match.group(1)
+        return None
+
+    def _objective_5w_summary(self, content: str) -> str:
+        """
+        Use GPT to extract 5W (Who, What, When, Where, Why) analysis from provided content.
+        Content should include metadata and body for best results.
+        """
+        prompt = (
+            "Extract the following from the provided text using the 5W framework. "
+            "Return your answer in markdown with clear sections for each W.\n"
+            "Who: List all actors, organizations, or key people involved.\n"
+            "What: Summarize the main actions or events.\n"
+            "When: Identify the timeline or key dates.\n"
+            "Where: Note locations or settings.\n"
+            "Why: Explain the motivations or context.\n"
+            "Text: " + content[:3000]  # Limit for prompt size
+        )
+        try:
+            return chat_gpt([{"role": "system", "content": "You are an AI expert in 5W analysis."}, {"role": "user", "content": prompt}], model="gpt-4o-mini")
+        except (ValueError, KeyError, RuntimeError, requests.RequestException) as e:
+            logging.error(f"5W GPT extraction failed: {e}")
+            return "Could not extract 5W summary."
+
     def framework_selector(self) -> str:
         """
         Render a framework selection UI and return the selected framework key.
@@ -436,10 +384,35 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                     st.markdown(fw["hint"])
         return selected
 
+    def _ai_suggested_answer(self, question: str, scenario: str, fivew: Optional[str] = None, cache_key: Optional[str] = None) -> str:
+        """
+        Generate an AI-suggested answer for a given question and scenario context.
+        Uses the 5W summary if available, otherwise the scenario text.
+        Results are cached in session state for efficiency.
+        """
+        if not scenario:
+            return "(Provide a scenario above for AI suggestions.)"
+        cache_key = cache_key or f"ai_suggestion_{hash(question + scenario + str(fivew))}"
+        if cache_key in st.session_state:
+            return st.session_state[cache_key]
+        context = fivew if fivew else scenario
+        prompt = (
+            f"Given the following scenario/context, suggest a likely answer or insight for the question below. "
+            f"Context:\n{context}\n"
+            f"Question: {question}\n"
+            f"Respond with a concise, objective, and actionable suggestion."
+        )
+        try:
+            answer = chat_gpt([{"role": "system", "content": "You are an AI expert in deception analysis."}, {"role": "user", "content": prompt}], model="gpt-4o-mini")
+        except (ValueError, KeyError, RuntimeError, requests.RequestException) as e:
+            logging.error(f"AI suggestion failed: {e}")
+            answer = "(AI suggestion unavailable.)"
+        st.session_state[cache_key] = answer
+        return answer
+
     def _render_mom_section(self) -> None:
-        """Render the Motive, Opportunity, and Means (MOM) section."""
+        """Render the Motive, Opportunity, and Means (MOM) section with AI suggestions."""
         self._section_header(2, "Motive, Opportunity, and Means (MOM)")
-        
         st.markdown("""
         <div style="background-color:#fff3f3; padding:15px; border-radius:5px; margin-bottom:20px; font-size:15px;">
             <p style="margin:0;">
@@ -448,30 +421,16 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
             </p>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Create a card-like container for each question
-        mom_questions = {
-            "motive": "What are the goals and motives of the potential deceiver?",
-            "channels": "What means are available to feed information to us?",
-            "risks": "What consequences would the adversary suffer if deception was revealed?",
-            "costs": "Would they need to sacrifice sensitive information for credibility?",
-            "feedback": "Do they have a way to monitor the impact of the deception?"
-        }
-        
-        # Track if any responses have been provided
         has_responses = False
-        
-        for key, question in mom_questions.items():
-            # Initialize in session state if not present
+        scenario = st.session_state.get("scenario", "")
+        fivew = st.session_state.get("scenario_5w_summary", None)
+        for key, question in self.MOM_QUESTIONS.items():
             if key not in st.session_state.get("mom_responses", {}):
                 if "mom_responses" not in st.session_state:
                     st.session_state["mom_responses"] = {}
                 st.session_state["mom_responses"][key] = ""
-            
             self._card_container(question)
-            
-            col1, col2 = st.columns([3, 1])
-            
+            col1, col2 = st.columns([3, 2])
             with col1:
                 response = st.text_area(
                     f"Answer for: {question}",
@@ -481,22 +440,19 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                     height=100
                 )
                 st.session_state["mom_responses"][key] = response
-                
                 if response:
                     has_responses = True
-            
             with col2:
-                # Add search button for each question with improved styling
+                with st.expander("AI-Suggested Insight", expanded=False):
+                    suggestion = self._ai_suggested_answer(question, scenario, fivew, cache_key=f"ai_mom_{key}")
+                    st.markdown(suggestion)
                 if st.button(" Search", key=f"search_mom_{key}", use_container_width=True):
                     search_query = f"{question} {st.session_state['scenario']}"
                     self._perform_search(search_query)
-        
-        # AI suggestions button with improved styling
         st.markdown("""
         <div style="background-color:#f8f9fa; padding:15px; border-radius:5px; margin:20px 0; border:1px solid #ddd;">
             <h4 style="margin-top:0; color:#1E1E1E;">Need help? Get AI-powered suggestions</h4>
         """, unsafe_allow_html=True)
-        
         if st.button(" AI: Suggest MOM Considerations", use_container_width=True, type="primary"):
             if not st.session_state["scenario"]:
                 st.warning("Please provide a scenario description first.")
@@ -505,388 +461,150 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                     try:
                         system_msg = {"role": "system", "content": "You are an expert in deception analysis using the MOM framework (Motive, Opportunity, and Means)."}
                         user_msg = {"role": "user", "content": f"For this scenario: {st.session_state['scenario']}\n\nProvide specific considerations for MOM analysis. Format your response with clear headings and bullet points."}
-                        
                         suggestions = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-                        
                         st.markdown("""
                         <div style="background-color:#f0f8ff; padding:20px; border-radius:5px; border-left:4px solid #4CAF50;">
                             <h3 style="color:#4CAF50; margin-top:0;">AI Suggestions</h3>
                         """, unsafe_allow_html=True)
-                        
                         st.markdown(suggestions)
-                        
                         st.markdown("</div>", unsafe_allow_html=True)
-                    except Exception as e:
+                    except (ValueError, KeyError, RuntimeError, requests.RequestException) as e:
                         error_msg = f"Error generating suggestions: {e}"
                         logging.error(error_msg)
                         st.error(error_msg)
-        
         st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Progress indicator update if responses provided
-        if has_responses:
-            progress_value = 0.4  # 40% complete with MOM section filled
-            st.progress(progress_value)
-            st.markdown(f"""
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px; font-size:14px;">
-                <span>Progress</span>
-                <span style="font-weight:bold;">{int(progress_value * 100)}% Complete</span>
-            </div>
-            """, unsafe_allow_html=True)
-
-    def _scrape_url_content(self, url: str) -> Tuple[str, Dict[str, str]]:
-        """
-        Scrape content from a URL using advanced_scraper if available, or fallback to basic scraping.
-        
-        Args:
-            url: The URL to scrape
-            
-        Returns:
-            Tuple containing (scraped_content, metadata_dict)
-        """
-        try:
-            if ADVANCED_SCRAPER_AVAILABLE:
-                # Use advanced scraper
-                title, description, keywords, author, date_published, editor, referenced_links = advanced_fetch_metadata(url)
-                body_content = scrape_body_content(url)
-                
-                metadata = {
-                    "Title": title,
-                    "Description": description,
-                    "Keywords": keywords,
-                    "Author": author,
-                    "Date Published": date_published,
-                    "Editor": editor,
-                    "Referenced Links": ", ".join(referenced_links) if referenced_links else "None"
-                }
-                
-                return body_content, metadata
-            else:
-                # Basic scraping fallback
-                headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-                }
-                response = requests.get(url, headers=headers, timeout=10)
-                response.raise_for_status()
-                
-                soup = BeautifulSoup(response.text, "html.parser")
-                
-                # Extract basic metadata
-                title = soup.title.text if soup.title else "No title found"
-                description = soup.find("meta", {"name": "description"})
-                description = description["content"] if description else "No description found"
-                
-                # Extract content from article or main content
-                content = ""
-                article = soup.find("article")
-                if article:
-                    content = article.get_text(separator="\n", strip=True)
-                else:
-                    main = soup.find("main")
-                    if main:
-                        content = main.get_text(separator="\n", strip=True)
-                    else:
-                        # Fallback to body
-                        body = soup.find("body")
-                        if body:
-                            content = body.get_text(separator="\n", strip=True)
-                
-                metadata = {
-                    "Title": title,
-                    "Description": description,
-                    "URL": url
-                }
-                
-                return content, metadata
-        except Exception as e:
-            error_msg = f"Error scraping URL: {e}"
-            logging.error(error_msg)
-            st.error(error_msg)
-            return f"Error scraping URL: {e}", {"Error": str(e)}
-    
-    def _analyze_scraped_content(self, content: str, metadata: Dict[str, str]) -> str:
-        """
-        Analyze scraped content for potential deception using AI.
-        
-        Args:
-            content: The scraped content text
-            metadata: Dictionary of metadata about the content
-            
-        Returns:
-            Analysis summary text
-        """
-        try:
-            # Prepare the content for analysis
-            formatted_content = f"""
-            Title: {metadata.get('Title', 'Unknown')}
-            URL: {metadata.get('URL', 'Unknown')}
-            Author: {metadata.get('Author', 'Unknown')}
-            Date Published: {metadata.get('Date Published', 'Unknown')}
-            
-            Content:
-            {content[:3000]}  # Limit content to 3000 chars to avoid token limits
-            """
-            
-            # Generate analysis using AI
-            system_msg = {
-                "role": "system",
-                "content": """You are an expert in deception detection and intelligence analysis. 
-                Analyze the provided content for potential deception using the SATs framework:
-                
-                1. MOM (Motive, Opportunity, and Means)
-                2. POP (Past Opposition Practices)
-                3. MOSES (Manipulability of Sources)
-                4. EVE (Evaluation of Evidence)
-                
-                Provide a comprehensive summary that identifies potential deception indicators, 
-                source reliability concerns, and key points that should be further investigated.
-                Your analysis should be objective, balanced, and highlight both indicators of 
-                potential deception and indicators of reliability.
-                """
-            }
-            
-            user_msg = {
-                "role": "user",
-                "content": f"Please analyze this content for potential deception:\n\n{formatted_content}"
-            }
-            
-            analysis = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-            return analysis
-        except Exception as e:
-            error_msg = f"Error analyzing content: {e}"
-            logging.error(error_msg)
-            st.error(error_msg)
-            return f"Error analyzing content: {e}"
-
-    def _perform_search(self, query: str) -> Dict[str, Any]:
-        """
-        Perform a web search for information related to the scenario.
-        
-        Args:
-            query: The search query string
-            
-        Returns:
-            Dictionary containing search results or empty dict if search failed
-        """
-        try:
-            # Encode the query for search (sanitize input)
-            search_query = urllib.parse.quote(query)
-            
-            # Create a safe URL for Google search
-            google_search_url = f"https://google.com/search?q={search_query}"
-            
-            # Display search button that opens in new tab
-            st.markdown(
-                f"""
-                <div style="text-align: center; margin: 10px 0;">
-                    <a href="{google_search_url}" target="_blank" style="text-decoration: none;">
-                        <button style="background-color: #4285F4; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-                            <img src="https://www.google.com/favicon.ico" style="height: 20px; vertical-align: middle; margin-right: 10px;">
-                            Search Google for more information
-                        </button>
-                    </a>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            
-            # Use the search_generator utility if available
-            try:
-                search_results = search_generator.generate_search(query)
-                if search_results:
-                    st.session_state["search_results"] = search_results
-                    st.success("Search completed successfully")
-                    
-                    with st.expander("View Search Results", expanded=True):
-                        for i, result in enumerate(search_results[:5]):  # Show top 5 results
-                            title = result.get('title', 'No Title')
-                            link = result.get('link', '#')
-                            snippet = result.get('snippet', 'No description available')
-                            
-                            st.markdown(f"**{i+1}. [{title}]({link})**")
-                            st.markdown(f"{snippet}")
-                            st.markdown("---")
-                    
-                    return search_results
-            except Exception as e:
-                error_msg = f"Could not use advanced search: {e}"
-                logging.warning(error_msg)
-                st.warning(error_msg)
-                
-            return {}
-        except Exception as e:
-            error_msg = f"Error performing search: {e}"
-            logging.error(error_msg)
-            st.error(error_msg)
-            return {}
 
     def _render_pop_section(self) -> None:
-        """Render the Past Opposition Practices (POP) section."""
+        """Render the Past Opposition Practices (POP) section with AI suggestions."""
         self._section_header(3, "Past Opposition Practices (POP)")
-        
-        # Initialize pop_responses in session state if not present
-        if "pop_responses" not in st.session_state:
-            st.session_state["pop_responses"] = {}
-        
-        pop_questions = {
-            "history": "What is the adversary's history of using deception?",
-            "patterns": "What patterns or signatures have been observed in past deceptions?",
-            "targets": "What types of targets have they focused on in the past?",
-            "techniques": "What specific deception techniques have they employed before?",
-            "success": "How successful have their past deception operations been?"
-        }
-        
-        for key, question in pop_questions.items():
-            if key not in st.session_state["pop_responses"]:
+        st.markdown("""
+        <div style="background-color:#fff3f3; padding:15px; border-radius:5px; margin-bottom:20px; font-size:15px;">
+            <p style="margin:0;">
+                <strong>POP</strong> analysis examines the track record of the potential deceiver or their organization.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        has_responses = False
+        scenario = st.session_state.get("scenario", "")
+        fivew = st.session_state.get("scenario_5w_summary", None)
+        for key, question in self.POP_QUESTIONS.items():
+            if key not in st.session_state.get("pop_responses", {}):
+                if "pop_responses" not in st.session_state:
+                    st.session_state["pop_responses"] = {}
                 st.session_state["pop_responses"][key] = ""
-            
             self._card_container(question)
-            
-            col1, col2 = st.columns([4, 1])
+            col1, col2 = st.columns([3, 2])
             with col1:
-                st.session_state["pop_responses"][key] = st.text_area(
-                    question,
-                    value=st.session_state["pop_responses"][key],
-                    key=f"pop_{key}"
+                response = st.text_area(
+                    f"Answer for: {question}",
+                    value=st.session_state["pop_responses"].get(key, ""),
+                    label_visibility="collapsed",
+                    key=f"pop_{key}",
+                    height=100
                 )
+                st.session_state["pop_responses"][key] = response
+                if response:
+                    has_responses = True
             with col2:
-                # Add search button for each question
-                if st.button(" Search", key=f"search_pop_{key}"):
+                with st.expander("AI-Suggested Insight", expanded=False):
+                    suggestion = self._ai_suggested_answer(question, scenario, fivew, cache_key=f"ai_pop_{key}")
+                    st.markdown(suggestion)
+                if st.button(" Search", key=f"search_pop_{key}", use_container_width=True):
                     search_query = f"{question} {st.session_state['scenario']}"
                     self._perform_search(search_query)
-        
-        # AI Suggestions for POP
-        if st.button(" AI: Suggest POP Considerations", use_container_width=True):
-            if not st.session_state["scenario"]:
-                st.warning("Please provide a scenario description first.")
-            else:
-                try:
-                    system_msg = {
-                        "role": "system",
-                        "content": "You are an AI expert in deception analysis. Provide specific considerations for POP analysis."
-                    }
-                    user_msg = {
-                        "role": "user",
-                        "content": f"For this scenario: {st.session_state['scenario']}\n\nProvide specific considerations for Past Opposition Practices analysis."
-                    }
-                    suggestions = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-                    st.info("AI Suggestions:\n" + suggestions)
-                except Exception as e:
-                    error_msg = f"Error generating suggestions: {e}"
-                    logging.error(error_msg)
-                    st.error(error_msg)
+        st.markdown("""
+        <div style="background-color:#f8f9fa; padding:15px; border-radius:5px; margin:20px 0; border:1px solid #ddd;">
+            <h4 style="margin-top:0; color:#1E1E1E;">Need help? Get AI-powered suggestions</h4>
+        """, unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     def _render_moses_section(self) -> None:
-        """Render the Manipulability of Sources (MOSES) section."""
+        """Render the Manipulability of Sources (MOSES) section with AI suggestions."""
         self._section_header(4, "Manipulability of Sources (MOSES)")
-        
-        # Initialize moses_responses in session state if not present
-        if "moses_responses" not in st.session_state:
-            st.session_state["moses_responses"] = {}
-        
-        moses_questions = {
-            "control": "How much control does the adversary have over our sources?",
-            "access": "Can they access or influence the channels we use to gather information?",
-            "credibility": "Are our sources established with a track record of reliability?",
-            "corroboration": "Can information be independently verified through multiple sources?",
-            "technical": "Are there technical vulnerabilities in our collection methods?"
-        }
-        
-        for key, question in moses_questions.items():
-            if key not in st.session_state["moses_responses"]:
+        st.markdown("""
+        <div style="background-color:#fff3f3; padding:15px; border-radius:5px; margin-bottom:20px; font-size:15px;">
+            <p style="margin:0;">
+                <strong>MOSES</strong> analysis looks at the reliability and control of information sources.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        has_responses = False
+        scenario = st.session_state.get("scenario", "")
+        fivew = st.session_state.get("scenario_5w_summary", None)
+        for key, question in self.MOSES_QUESTIONS.items():
+            if key not in st.session_state.get("moses_responses", {}):
+                if "moses_responses" not in st.session_state:
+                    st.session_state["moses_responses"] = {}
                 st.session_state["moses_responses"][key] = ""
-            
             self._card_container(question)
-            
-            col1, col2 = st.columns([4, 1])
+            col1, col2 = st.columns([3, 2])
             with col1:
-                st.session_state["moses_responses"][key] = st.text_area(
-                    question,
-                    value=st.session_state["moses_responses"][key],
-                    key=f"moses_{key}"
+                response = st.text_area(
+                    f"Answer for: {question}",
+                    value=st.session_state["moses_responses"].get(key, ""),
+                    label_visibility="collapsed",
+                    key=f"moses_{key}",
+                    height=100
                 )
+                st.session_state["moses_responses"][key] = response
+                if response:
+                    has_responses = True
             with col2:
-                # Add search button for each question
-                if st.button(" Search", key=f"search_moses_{key}"):
+                with st.expander("AI-Suggested Insight", expanded=False):
+                    suggestion = self._ai_suggested_answer(question, scenario, fivew, cache_key=f"ai_moses_{key}")
+                    st.markdown(suggestion)
+                if st.button(" Search", key=f"search_moses_{key}", use_container_width=True):
                     search_query = f"{question} {st.session_state['scenario']}"
                     self._perform_search(search_query)
-        
-        # AI Suggestions for MOSES
-        if st.button(" AI: Suggest MOSES Considerations", use_container_width=True):
-            if not st.session_state["scenario"]:
-                st.warning("Please provide a scenario description first.")
-            else:
-                try:
-                    system_msg = {
-                        "role": "system",
-                        "content": "You are an AI expert in deception analysis. Provide specific considerations for MOSES analysis."
-                    }
-                    user_msg = {
-                        "role": "user",
-                        "content": f"For this scenario: {st.session_state['scenario']}\n\nProvide specific considerations for Manipulability of Sources analysis."
-                    }
-                    suggestions = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-                    st.info("AI Suggestions:\n" + suggestions)
-                except Exception as e:
-                    error_msg = f"Error generating suggestions: {e}"
-                    logging.error(error_msg)
-                    st.error(error_msg)
+        st.markdown("""
+        <div style="background-color:#f8f9fa; padding:15px; border-radius:5px; margin:20px 0; border:1px solid #ddd;">
+            <h4 style="margin-top:0; color:#1E1E1E;">Need help? Get AI-powered suggestions</h4>
+        """, unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     def _render_eve_section(self) -> None:
-        """Render the Evaluation of Evidence (EVE) section."""
+        """Render the Evaluation of Evidence (EVE) section with AI suggestions."""
         self._section_header(5, "Evaluation of Evidence (EVE)")
-        
-        # Initialize eve_responses in session state if not present
-        if "eve_responses" not in st.session_state:
-            st.session_state["eve_responses"] = {}
-        
-        eve_questions = {
-            "consistency": "Is the information internally consistent and logical?",
-            "contradictions": "Are there contradictions with other reliable information?",
-            "anomalies": "What anomalies or unusual patterns are present?",
-            "timing": "Is the timing of information suspicious or convenient?",
-            "omissions": "What important information might be deliberately omitted?"
-        }
-        
-        for key, question in eve_questions.items():
-            if key not in st.session_state["eve_responses"]:
+        st.markdown("""
+        <div style="background-color:#fff3f3; padding:15px; border-radius:5px; margin-bottom:20px; font-size:15px;">
+            <p style="margin:0;">
+                <strong>EVE</strong> analysis critically assesses the evidence itself.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        has_responses = False
+        scenario = st.session_state.get("scenario", "")
+        fivew = st.session_state.get("scenario_5w_summary", None)
+        for key, question in self.EVE_QUESTIONS.items():
+            if key not in st.session_state.get("eve_responses", {}):
+                if "eve_responses" not in st.session_state:
+                    st.session_state["eve_responses"] = {}
                 st.session_state["eve_responses"][key] = ""
-            
             self._card_container(question)
-            
-            col1, col2 = st.columns([4, 1])
+            col1, col2 = st.columns([3, 2])
             with col1:
-                st.session_state["eve_responses"][key] = st.text_area(
-                    question,
-                    value=st.session_state["eve_responses"][key],
-                    key=f"eve_{key}"
+                response = st.text_area(
+                    f"Answer for: {question}",
+                    value=st.session_state["eve_responses"].get(key, ""),
+                    label_visibility="collapsed",
+                    key=f"eve_{key}",
+                    height=100
                 )
+                st.session_state["eve_responses"][key] = response
+                if response:
+                    has_responses = True
             with col2:
-                # Add search button for each question
-                if st.button(" Search", key=f"search_eve_{key}"):
+                with st.expander("AI-Suggested Insight", expanded=False):
+                    suggestion = self._ai_suggested_answer(question, scenario, fivew, cache_key=f"ai_eve_{key}")
+                    st.markdown(suggestion)
+                if st.button(" Search", key=f"search_eve_{key}", use_container_width=True):
                     search_query = f"{question} {st.session_state['scenario']}"
                     self._perform_search(search_query)
-        
-        # AI Suggestions for EVE
-        if st.button(" AI: Suggest EVE Considerations", use_container_width=True):
-            if not st.session_state["scenario"]:
-                st.warning("Please provide a scenario description first.")
-            else:
-                try:
-                    system_msg = {
-                        "role": "system",
-                        "content": "You are an AI expert in deception analysis. Provide specific considerations for EVE analysis."
-                    }
-                    user_msg = {
-                        "role": "user",
-                        "content": f"For this scenario: {st.session_state['scenario']}\n\nProvide specific considerations for Evaluation of Evidence analysis."
-                    }
-                    suggestions = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
-                    st.info("AI Suggestions:\n" + suggestions)
-                except Exception as e:
-                    error_msg = f"Error generating suggestions: {e}"
-                    logging.error(error_msg)
-                    st.error(error_msg)
+        st.markdown("""
+        <div style="background-color:#f8f9fa; padding:15px; border-radius:5px; margin:20px 0; border:1px solid #ddd;">
+            <h4 style="margin-top:0; color:#1E1E1E;">Need help? Get AI-powered suggestions</h4>
+        """, unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     def _render_summary_section(self) -> None:
         """Render the summary and export section."""
@@ -923,7 +641,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                 
                 summary = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
                 st.info("Analysis Summary:\n" + summary)
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, requests.RequestException) as e:
                 error_msg = f"Error generating summary: {e}"
                 logging.error(error_msg)
                 st.error(error_msg)
@@ -936,13 +654,13 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                     f"Deception Detection Analysis\n\n"
                     f"Scenario:\n{st.session_state['scenario']}\n\n"
                     "1. Motive, Opportunity, and Means (MOM):\n"
-                    + "".join(f"- {q}: {st.session_state['mom_responses'].get(k, '')}\n" for k, q in mom_questions.items()) + "\n"
+                    + "".join(f"- {q}: {st.session_state['mom_responses'].get(k, '')}\n" for k, q in self.MOM_QUESTIONS.items()) + "\n"
                     "2. Past Opposition Practices (POP):\n"
-                    + "".join(f"- {q}: {st.session_state['pop_responses'].get(k, '')}\n" for k, q in pop_questions.items()) + "\n"
+                    + "".join(f"- {q}: {st.session_state['pop_responses'].get(k, '')}\n" for k, q in self.POP_QUESTIONS.items()) + "\n"
                     "3. Manipulability of Sources (MOSES):\n"
-                    + "".join(f"- {q}: {st.session_state['moses_responses'].get(k, '')}\n" for k, q in moses_questions.items()) + "\n"
+                    + "".join(f"- {q}: {st.session_state['moses_responses'].get(k, '')}\n" for k, q in self.MOSES_QUESTIONS.items()) + "\n"
                     "4. Evaluation of Evidence (EVE):\n"
-                    + "".join(f"- {q}: {st.session_state['eve_responses'].get(k, '')}\n" for k, q in eve_questions.items())
+                    + "".join(f"- {q}: {st.session_state['eve_responses'].get(k, '')}\n" for k, q in self.EVE_QUESTIONS.items())
                 )
                 
                 # Create a download button
@@ -952,7 +670,7 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                     file_name="deception_detection_analysis.txt",
                     mime="text/plain"
                 )
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, requests.RequestException) as e:
                 error_msg = f"Error exporting analysis: {e}"
                 logging.error(error_msg)
                 st.error(error_msg)
@@ -963,6 +681,65 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
         of this analysis as new information becomes available is recommended. Consider using this framework
         in conjunction with other analytical techniques such as Analysis of Competing Hypotheses (ACH).
         """)
+
+    def _perform_search(self, query: str) -> Dict[str, Any]:
+        """
+        Perform a web search for information related to the scenario.
+        
+        Args:
+            query: The search query string
+            
+        Returns:
+            Dictionary containing search results or empty dict if search failed
+        """
+        try:
+            # Encode the query for search (sanitize input)
+            search_query = urllib.parse.quote(query)
+            # Create a safe URL for Google search
+            google_search_url = f"https://google.com/search?q={search_query}"
+            # Display search button that opens in new tab
+            st.markdown(
+                f"""
+                <div style="text-align: center; margin: 10px 0;">
+                    <a href="{google_search_url}" target="_blank" style="text-decoration: none;">
+                        <button style="background-color: #4285F4; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                            <img src="https://www.google.com/favicon.ico" style="height: 20px; vertical-align: middle; margin-right: 10px;">
+                            Search Google for more information
+                        </button>
+                    </a>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            # Use the search_generator utility if available and has the function
+            if hasattr(search_generator, "generate_search"):
+                try:
+                    search_results = search_generator.generate_search(query)
+                    if search_results:
+                        st.session_state["search_results"] = search_results
+                        st.success("Search completed successfully")
+                        with st.expander("View Search Results", expanded=True):
+                            for i, result in enumerate(search_results[:5]):  # Show top 5 results
+                                title = result.get('title', 'No Title')
+                                link = result.get('link', '#')
+                                snippet = result.get('snippet', 'No description available')
+                                st.markdown(f"**{i+1}. [{title}]({link})**")
+                                st.markdown(f"{snippet}")
+                                st.markdown("---")
+                        return search_results
+                except (ValueError, KeyError, RuntimeError, requests.RequestException) as e:
+                    error_msg = f"Could not use advanced search: {e}"
+                    logging.warning(error_msg)
+                    st.warning(error_msg)
+            else:
+                st.warning("Search functionality is not implemented in search_generator.")
+                return {}
+            return {}
+        except (ValueError, KeyError, RuntimeError, requests.RequestException) as e:
+            error_msg = f"Error performing search: {e}"
+            logging.error(error_msg)
+            st.error(error_msg)
+            return {}
 
 def _legacy_deception_detection():
     """Legacy implementation as a fallback in case the class-based version fails."""
@@ -1017,7 +794,7 @@ def _legacy_deception_detection():
         value=st.session_state.get("scenario", ""),
         height=150,
         help="Provide detailed context about the situation where deception might be present. Include key actors, timeline, and any suspicious patterns or anomalies.",
-        placeholder="Example: A foreign company has made an unexpected offer to acquire a strategic technology firm. The offer seems unusually generous, and the company's background is difficult to verify.\nExample: An organizational social media account made a post claiming major policy changes that seems inconsistent with previous communications and lacks typical approval channels."
+        placeholder="Example: A foreign company has made an unexpected offer to acquire a strategic technology firm. The offer seems unusually generous, and the company's background is difficult to verify."
     )
     
     st.session_state["scenario"] = scenario
