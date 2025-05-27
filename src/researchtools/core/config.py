@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     DEBUG: bool = Field(default=False, env="DEBUG")
     
     # Database settings
-    DATABASE_URL: str = Field(..., env="DATABASE_URL")
+    DATABASE_URL: str = Field(default="sqlite:///./test.db", env="DATABASE_URL")
     DATABASE_POOL_SIZE: int = Field(default=5, env="DATABASE_POOL_SIZE")
     DATABASE_MAX_OVERFLOW: int = Field(default=10, env="DATABASE_MAX_OVERFLOW")
     
@@ -30,14 +30,14 @@ class Settings(BaseSettings):
     LOG_FILE: Optional[Path] = Field(None, env="LOG_FILE")
     
     # Security settings
-    SECRET_KEY: str = Field(..., env="SECRET_KEY")
+    SECRET_KEY: str = Field(default="test_secret", env="SECRET_KEY")
     ALLOWED_HOSTS: list[str] = Field(default=["*"], env="ALLOWED_HOSTS")
     
     # File storage settings
     UPLOAD_DIR: Path = Field(default=Path("uploads"), env="UPLOAD_DIR")
     MAX_UPLOAD_SIZE: int = Field(default=10 * 1024 * 1024, env="MAX_UPLOAD_SIZE")  # 10MB
     
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="allow")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
