@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base, Session
 from sqlalchemy import Column, Integer, DateTime, String
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from ..core.exceptions import DatabaseError, ResourceNotFoundError
 from ..utils.logging import logger
