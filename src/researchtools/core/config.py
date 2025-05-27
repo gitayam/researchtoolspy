@@ -1,5 +1,6 @@
 from typing import Optional
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -36,9 +37,7 @@ class Settings(BaseSettings):
     UPLOAD_DIR: Path = Field(default=Path("uploads"), env="UPLOAD_DIR")
     MAX_UPLOAD_SIZE: int = Field(default=10 * 1024 * 1024, env="MAX_UPLOAD_SIZE")  # 10MB
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
