@@ -64,7 +64,7 @@ argparse>=1.4.0
 graphviz>=0.20.1
 
 # Reference and citation
-manubot>=0.7.0
+manubot>=0.6.1
 
 # Text Formatting
 titlecase>=2.3
