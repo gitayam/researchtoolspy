@@ -1,66 +1,76 @@
 # /researchtools_streamlit/requirements.txt
 # Core dependencies
-streamlit           # Web application framework
-streamlit-extras    # Additional Streamlit components
-openai              # OpenAI API integration (updated for new API)
-requests            # HTTP requests library
-python-dotenv       # Environment variable management
-pandas              # Data manipulation and analysis
-networkx            # Graph manipulation
-
-# Testing and development
-pytest              # Testing framework
-
-# Document processing
-xhtml2pdf           # HTML to PDF conversion
-python-docx         # Microsoft Word document processing
-openpyxl            # Excel file processing
-fpdf                # PDF generation
-pdfkit              # HTML to PDF conversion using wkhtmltopdf
-pandoc              # Document format conversion
-
-# Web scraping and browsing
-beautifulsoup4        # HTML parsing
-lxml                  # XML/HTML parser (required by BeautifulSoup)
-playwright            # Browser automation
-selenium              # Web browser automation
-chromedriver-binary   # Chrome driver for Selenium
-webdriver-manager     # WebDriver management
-
-# Advanced Scraper Framework - ensure all dependencies for advanced_scraper.py are present
-
-# Additional dependencies used in advanced_scraper.py
-wikipedia             # Wikipedia API
-
-# Media and content downloading
-yt-dlp                 # YouTube video downloader
-instaloader            # Instagram content downloader
-
-# Social media APIs
-praw                  # Reddit API wrapper
-tweepy                # Twitter API wrapper
-
-# Data processing and analysis
-langdetect            # Language detection
-python-dateutil       # Date utilities
-imagehash             # Image hashing for similarity comparison
-validators            # URL and other validation
-
-# Geographic data processing
-geopandas              # Geographic data handling
-shapely                # Geometric objects
-geopy                  # Geocoding
-pykml                  # KML file processing
-argparse               # Command line argument parsing
+streamlit>=1.32.0
+streamlit-extras>=0.3.5
+openai>=1.12.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+pandas>=2.2.0
+networkx>=3.2.1
 
 # Database
-psycopg2-binary        # PostgreSQL adapter
+sqlalchemy>=2.0.27
+alembic>=1.13.1
+psycopg2-binary>=2.9.9
+pydantic>=2.6.1
+
+# Testing
+pytest>=8.0.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.23.5
+httpx>=0.26.0
+
+# Document processing
+xhtml2pdf>=0.2.13
+python-docx>=1.1.0
+openpyxl>=3.1.2
+fpdf>=1.7.2
+pdfkit>=1.0.0
+pandoc>=2.3
+
+# Web scraping and browsing
+beautifulsoup4>=4.12.3
+lxml>=5.1.0
+playwright>=1.41.2
+selenium>=4.18.1
+chromedriver-binary>=121.0.6167.85
+webdriver-manager>=4.0.1
+
+# Advanced Scraper Framework
+wikipedia>=1.4.0
+
+# Media and content downloading
+yt-dlp>=2024.3.10
+instaloader>=4.10.1
+
+# Social media APIs
+praw>=7.7.1
+tweepy>=4.14.0
+
+# Data processing and analysis
+langdetect>=1.0.9
+python-dateutil>=2.8.2
+imagehash>=4.3.1
+validators>=0.22.0
+
+# Geographic data processing
+geopandas>=0.14.3
+shapely>=2.0.3
+geopy>=2.4.1
+pykml>=0.2.0
+argparse>=1.4.0
 
 # Visualization and UI enhancements
-graphviz               # Graph visualization (for starbursting diagram)
+graphviz>=0.20.1
 
 # Reference and citation
-manubot                # Citation handling
+manubot>=0.7.0
 
 # Text Formatting
-titlecase
+titlecase>=2.3
+
+# Development tools
+black>=24.2.0
+isort>=5.13.2
+flake8>=7.0.0
+mypy>=1.8.0
