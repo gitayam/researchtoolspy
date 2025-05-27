@@ -1,55 +1,119 @@
 import logging
 import sys
+import json
+from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
+import structlog
 from ..core.config import settings
+from ..core.exceptions import ResearchToolsError, ErrorSeverity
 
-def setup_logging(
-    log_file: Optional[Path] = None,
-    log_level: Optional[str] = None,
-    log_format: Optional[str] = None
-) -> logging.Logger:
-    """
-    Set up logging configuration for the application.
+# Configure structlog
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.stdlib.add_log_level,
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.JSONRenderer()
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
+
+# Create logger
+logger = structlog.get_logger()
+
+class StructuredLogger:
+    """Enhanced logger with structured logging capabilities."""
     
-    Args:
-        log_file: Optional path to log file. If None, logs to stdout.
-        log_level: Optional log level. If None, uses settings.LOG_LEVEL.
-        log_format: Optional log format string. If None, uses default format.
+    def __init__(self, name: str):
+        self.logger = structlog.get_logger(name)
+        self._setup_file_handler()
     
-    Returns:
-        logging.Logger: Configured logger instance.
-    """
-    # Use provided values or fall back to settings
-    log_level = log_level or settings.LOG_LEVEL
-    log_file = log_file or settings.LOG_FILE
-    log_format = log_format or (
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    def _setup_file_handler(self):
+        """Setup file handler for logging."""
+        if settings.LOG_FILE:
+            log_path = Path(settings.LOG_FILE)
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            file_handler = logging.FileHandler(log_path)
+            file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            ))
+            
+            root_logger = logging.getLogger()
+            root_logger.addHandler(file_handler)
     
-    # Create logger
-    logger = logging.getLogger("researchtools")
-    logger.setLevel(getattr(logging, log_level.upper()))
+    def _log_with_context(
+        self,
+        level: str,
+        message: str,
+        error: Optional[Exception] = None,
+        context: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ):
+        """Log message with context and error information."""
+        log_data = {
+            "message": message,
+            "timestamp": datetime.utcnow().isoformat(),
+            **(context or {}),
+            **kwargs
+        }
+        
+        if error:
+            if isinstance(error, ResearchToolsError):
+                log_data.update(error.to_dict())
+            else:
+                log_data.update({
+                    "error_type": error.__class__.__name__,
+                    "error_message": str(error),
+                    "traceback": getattr(error, "traceback", None)
+                })
+        
+        getattr(self.logger, level.lower())(**log_data)
     
-    # Create formatter
-    formatter = logging.Formatter(log_format)
+    def debug(self, message: str, **kwargs):
+        """Log debug message."""
+        self._log_with_context("debug", message, **kwargs)
     
-    # Add handlers
-    if log_file:
-        # File handler
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+    def info(self, message: str, **kwargs):
+        """Log info message."""
+        self._log_with_context("info", message, **kwargs)
     
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
+    def warning(self, message: str, **kwargs):
+        """Log warning message."""
+        self._log_with_context("warning", message, **kwargs)
     
-    return logger
+    def error(self, message: str, error: Optional[Exception] = None, **kwargs):
+        """Log error message."""
+        self._log_with_context("error", message, error=error, **kwargs)
+    
+    def critical(self, message: str, error: Optional[Exception] = None, **kwargs):
+        """Log critical message."""
+        self._log_with_context("critical", message, error=error, **kwargs)
+    
+    def log_operation(
+        self,
+        operation: str,
+        status: str,
+        details: Optional[Dict[str, Any]] = None,
+        error: Optional[Exception] = None
+    ):
+        """Log operation with status and details."""
+        self._log_with_context(
+            "info" if status == "success" else "error",
+            f"Operation {operation} {status}",
+            error=error,
+            operation=operation,
+            status=status,
+            **(details or {})
+        )
 
 # Create default logger instance
-logger = setup_logging()
+default_logger = StructuredLogger("researchtools")
 
-# Export logger for use in other modules
-__all__ = ["logger", "setup_logging"] 
+# Export for use in other modules
+__all__ = ["logger", "StructuredLogger", "default_logger"] 
