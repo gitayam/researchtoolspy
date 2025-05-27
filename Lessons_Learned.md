@@ -11,6 +11,7 @@ This document captures key lessons learned during the development and debugging 
 6. [Code Organization and Structure](#code-organization-and-structure)
 7. [SSL/TLS and Network Issues](#ssltls-and-network-issues)
 8. [Standard Operating Procedures](#standard-operating-procedures)
+9. [Docker Build Issues](#docker-build-issues)
 
 ---
 
@@ -386,3 +387,109 @@ if Config.MATRIX_DISABLE_SSL_VERIFICATION:
 10. **Configuration** should be externalized and validated at startup
 
 This document should be updated as new lessons are learned during continued development of the project. 
+
+---
+
+## Docker Build Issues
+
+### ❌ What Didn't Work
+
+**Problem**: Complex dependency resolution causing "resolution-too-deep" errors
+```
+error: resolution-too-deep
+× Dependency resolution exceeded maximum depth
+```
+
+**Root Cause**: 
+- Too many dependencies with complex version constraints
+- Conflicting package requirements (especially with `streamlit-extras` and its dependencies)
+- Python 3.9 compatibility issues with newer package versions
+
+**Problem**: Long build times and timeouts during pip install
+- Build process getting killed during dependency resolution
+- Network timeouts with large package downloads
+
+### ✅ What Worked
+
+**Solution 1**: Split requirements into base and extra files
+```dockerfile
+# requirements-base.txt - Core dependencies only
+streamlit>=1.45.1
+pandas>=2.2.3
+sqlalchemy>=2.0.41
+# ... other essential packages
+
+# requirements-extra.txt - Optional/problematic packages
+streamlit-extras>=0.7.1
+playwright>=1.52.0
+# ... other optional packages
+```
+
+**Solution 2**: Multi-stage dependency installation
+```dockerfile
+# Install base requirements first
+RUN pip install --no-cache-dir -r requirements-base.txt
+
+# Try to install extra dependencies (allow failure)
+RUN pip install --no-cache-dir -r requirements-extra.txt || true
+```
+
+**Solution 3**: Create .dockerignore to reduce build context
+```
+# .dockerignore
+__pycache__/
+*.py[cod]
+.git/
+.pytest_cache/
+venv/
+env/
+*.log
+.DS_Store
+```
+
+**Solution 4**: Optimize Dockerfile for better caching
+```dockerfile
+# Copy requirements first to leverage Docker cache
+COPY requirements*.txt .
+# Install dependencies before copying application code
+RUN pip install ...
+# Copy application code last
+COPY . .
+```
+
+### 🔧 Standard Operating Procedure
+
+1. **Keep dependencies minimal** in Docker images
+   - Separate core from optional dependencies
+   - Use version constraints carefully
+   - Test with the target Python version
+
+2. **Optimize Docker builds**
+   - Use .dockerignore to exclude unnecessary files
+   - Order Dockerfile commands for optimal caching
+   - Copy requirements before application code
+
+3. **Handle dependency conflicts**
+   - Use `pip install --no-deps` for problematic packages
+   - Allow non-critical installations to fail
+   - Consider using pip-tools or poetry for better dependency management
+
+4. **Debug build issues**
+   - Build with `--no-cache` to ensure clean builds
+   - Check pip version compatibility
+   - Use `pip install -v` for verbose output during debugging
+
+5. **Environment-specific considerations**
+   - Set appropriate pip timeouts: `PIP_DEFAULT_TIMEOUT=100`
+   - Disable pip cache in Docker: `PIP_NO_CACHE_DIR=1`
+   - Use build-essential for packages that need compilation
+
+### Key Takeaways for Docker Builds
+
+1. **Simplify dependencies** - Not all packages need to be in the Docker image
+2. **Use multi-stage builds** - Separate build dependencies from runtime
+3. **Leverage caching** - Order Dockerfile commands strategically
+4. **Handle failures gracefully** - Allow optional dependencies to fail
+5. **Monitor build context size** - Use .dockerignore effectively
+6. **Test locally first** - Ensure dependencies resolve before Docker build
+7. **Document build issues** - Keep track of problematic packages and solutions 
