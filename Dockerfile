@@ -42,4 +42,4 @@ COPY . .
 EXPOSE 8502
 
 # Run the application
-CMD ["streamlit", "run", "src/researchtools/app.py", "--server.port=8502", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "app.py", "--server.port=8502", "--server.address=0.0.0.0"]
