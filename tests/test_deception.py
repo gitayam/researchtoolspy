@@ -64,5 +64,150 @@ class TestDeceptionDetection(unittest.TestCase):
         for key in expected_keys:
             self.assertIn(key, mock_session_state)
 
+    @patch('streamlit.text_area')
+    @patch('streamlit.button')
+    @patch('streamlit.markdown')
+    def test_render_scenario_section(self, mock_markdown, mock_button, mock_text_area):
+        """Test that the scenario section renders correctly."""
+        # Create an instance of DeceptionDetection
+        dd = DeceptionDetection()
+        
+        # Mock session state
+        self.mock_session_state["scenario"] = "Test scenario"
+        
+        # Call the _render_scenario_section method
+        dd._render_scenario_section()
+        
+        # Verify that text_area was called with the correct parameters
+        mock_text_area.assert_called_with(
+            "Describe the scenario or information being analyzed",
+            value="Test scenario",
+            height=150,
+            help="Provide detailed context about the situation where deception might be present. Include key actors, timeline, and any suspicious patterns or anomalies. If you paste a URL, the content will be automatically analyzed.",
+            placeholder="Example: A foreign company has made an unexpected offer to acquire a strategic technology firm... or paste a news article URL."
+        )
+        
+        # Verify that markdown was called (content check not needed for this test)
+        mock_markdown.assert_called()
+        
+        # Verify that button was called (content check not needed for this test)
+        mock_button.assert_called()
+
+    @patch('streamlit.text_area')
+    @patch('streamlit.button')
+    @patch('streamlit.markdown')
+    def test_render_mom_section(self, mock_markdown, mock_button, mock_text_area):
+        """Test that the MOM section renders correctly."""
+        # Create an instance of DeceptionDetection
+        dd = DeceptionDetection()
+        
+        # Mock session state
+        self.mock_session_state["mom_responses"] = {"motive": "Test motive"}
+        
+        # Call the _render_mom_section method
+        dd._render_mom_section()
+        
+        # Verify that text_area was called with the correct parameters
+        mock_text_area.assert_called_with(
+            "Answer for: What are the goals and motives of the potential deceiver?",
+            value="Test motive",
+            label_visibility="collapsed",
+            key="mom_motive",
+            height=100
+        )
+        
+        # Verify that markdown was called (content check not needed for this test)
+        mock_markdown.assert_called()
+        
+        # Verify that button was called (content check not needed for this test)
+        mock_button.assert_called()
+
+    @patch('streamlit.text_area')
+    @patch('streamlit.button')
+    @patch('streamlit.markdown')
+    def test_render_pop_section(self, mock_markdown, mock_button, mock_text_area):
+        """Test that the POP section renders correctly."""
+        # Create an instance of DeceptionDetection
+        dd = DeceptionDetection()
+        
+        # Mock session state
+        self.mock_session_state["pop_responses"] = {"history": "Test history"}
+        
+        # Call the _render_pop_section method
+        dd._render_pop_section()
+        
+        # Verify that text_area was called with the correct parameters
+        mock_text_area.assert_called_with(
+            "Answer for: What is the history of deception by this actor or similar actors?",
+            value="Test history",
+            label_visibility="collapsed",
+            key="pop_history",
+            height=100
+        )
+        
+        # Verify that markdown was called (content check not needed for this test)
+        mock_markdown.assert_called()
+        
+        # Verify that button was called (content check not needed for this test)
+        mock_button.assert_called()
+
+    @patch('streamlit.text_area')
+    @patch('streamlit.button')
+    @patch('streamlit.markdown')
+    def test_render_moses_section(self, mock_markdown, mock_button, mock_text_area):
+        """Test that the MOSES section renders correctly."""
+        # Create an instance of DeceptionDetection
+        dd = DeceptionDetection()
+        
+        # Mock session state
+        self.mock_session_state["moses_responses"] = {"control": "Test control"}
+        
+        # Call the _render_moses_section method
+        dd._render_moses_section()
+        
+        # Verify that text_area was called with the correct parameters
+        mock_text_area.assert_called_with(
+            "Answer for: How much control does the potential deceiver have over our sources?",
+            value="Test control",
+            label_visibility="collapsed",
+            key="moses_control",
+            height=100
+        )
+        
+        # Verify that markdown was called (content check not needed for this test)
+        mock_markdown.assert_called()
+        
+        # Verify that button was called (content check not needed for this test)
+        mock_button.assert_called()
+
+    @patch('streamlit.text_area')
+    @patch('streamlit.button')
+    @patch('streamlit.markdown')
+    def test_render_eve_section(self, mock_markdown, mock_button, mock_text_area):
+        """Test that the EVE section renders correctly."""
+        # Create an instance of DeceptionDetection
+        dd = DeceptionDetection()
+        
+        # Mock session state
+        self.mock_session_state["eve_responses"] = {"consistency": "Test consistency"}
+        
+        # Call the _render_eve_section method
+        dd._render_eve_section()
+        
+        # Verify that text_area was called with the correct parameters
+        mock_text_area.assert_called_with(
+            "Answer for: Is the information internally consistent?",
+            value="Test consistency",
+            label_visibility="collapsed",
+            key="eve_consistency",
+            height=100
+        )
+        
+        # Verify that markdown was called (content check not needed for this test)
+        mock_markdown.assert_called()
+        
+        # Verify that button was called (content check not needed for this test)
+        mock_button.assert_called()
+
 if __name__ == '__main__':
     unittest.main()
