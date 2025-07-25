@@ -1,26 +1,4 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: research-tools-db
-    environment:
-      POSTGRES_DB: research_tools
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - research-tools-network
-
   redis:
     image: redis:7-alpine
     container_name: research-tools-redis
@@ -48,17 +26,16 @@ services:
       - SECRET_KEY=django-insecure-development-key-change-in-production
       - DEBUG=True
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend,frontend
-      - DATABASE_URL=postgresql://postgres:postgres_password@postgres:5432/research_tools
+      - DATABASE_URL=sqlite:///app/db.sqlite3
       - REDIS_URL=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
       - backend_static:/app/staticfiles
       - backend_media:/app/media
+      - backend_data:/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
       interval: 30s
@@ -74,9 +51,7 @@ services:
       dockerfile: Dockerfile
     container_name: research-tools-frontend
     ports:
-      - "80:80"
-    depends_on:
-      - backend
+      - "3080:80"
     environment:
       - REACT_APP_API_URL=http://localhost:8000/api
     healthcheck:
@@ -89,35 +64,11 @@ services:
     networks:
       - research-tools-network
 
-  celery-worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: research-tools-celery
-    command: celery -A research_tools_project worker --loglevel=info
-    environment:
-      - SECRET_KEY=django-insecure-development-key-change-in-production
-      - DEBUG=True
-      - DATABASE_URL=postgresql://postgres:postgres_password@postgres:5432/research_tools
-      - REDIS_URL=redis://redis:6379/0
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - backend_static:/app/staticfiles
-      - backend_media:/app/media
-    restart: unless-stopped
-    networks:
-      - research-tools-network
-
 volumes:
-  postgres_data:
   redis_data:
   backend_static:
   backend_media:
+  backend_data:
 
 networks:
   research-tools-network:
