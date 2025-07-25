@@ -179,3 +179,22 @@ cython_debug/
 .DS_Store
 tests/wiki.py
 *.DS_Store
+
+# --- Project-specific ignores ---
+# Frontend dependencies
+node_modules/
+# Build artifacts
+frontend/dist/
+frontend/build/
+# Media and uploads (runtime-generated)
+media/
+uploads/
+# Local test database
+/test.db
+# Docker local override
+/docker-compose.override.yml
+# Docker runtime files
+*.pid
+*.sock
+# Backup files
+*.bak
