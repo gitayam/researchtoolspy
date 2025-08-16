@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Save, Search, X, CheckCircle, XCircle, AlertCircle, Trash2 } from 'lucide-react'
+import { Plus, Save, Search, X, CheckCircle, XCircle, AlertCircle, Trash2, Calculator, BarChart3, Trophy } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -191,6 +191,80 @@ export default function CreateACHPage() {
       default:
         return 'bg-gray-100 text-gray-600 border-gray-200'
     }
+  }
+
+  const calculateHypothesisScore = (hypothesisId: string) => {
+    const scores = achData.evidence.map(e => e.hypotheses_scores[hypothesisId]).filter(Boolean)
+    if (scores.length === 0) return { supports: 0, contradicts: 0, neutral: 0, not_applicable: 0, weightedScore: 0 }
+    
+    const counts = {
+      supports: scores.filter(s => s === 'supports').length,
+      contradicts: scores.filter(s => s === 'contradicts').length,
+      neutral: scores.filter(s => s === 'neutral').length,
+      not_applicable: scores.filter(s => s === 'not_applicable').length
+    }
+    
+    // Calculate weighted score based on legacy ACH implementation
+    // Supports = +1, Contradicts = -1, Neutral = 0, N/A = 0
+    const weightedScore = counts.supports * 1.0 + counts.contradicts * -1.0
+    
+    return { ...counts, weightedScore }
+  }
+  
+  const calculateAllHypothesesScores = () => {
+    const hypothesesWithScores = achData.hypotheses.map(hypothesis => {
+      const score = calculateHypothesisScore(hypothesis.id)
+      return {
+        ...hypothesis,
+        ...score
+      }
+    })
+    
+    // Sort by weighted score (highest first)
+    return hypothesesWithScores.sort((a, b) => b.weightedScore - a.weightedScore)
+  }
+  
+  const performAnalysis = () => {
+    if (achData.hypotheses.length === 0) {
+      toast({
+        title: 'No Hypotheses',
+        description: 'Add hypotheses first to analyze',
+        variant: 'destructive'
+      })
+      return
+    }
+    
+    if (achData.evidence.length === 0) {
+      toast({
+        title: 'No Evidence',
+        description: 'Add evidence to evaluate hypotheses',
+        variant: 'destructive'
+      })
+      return
+    }
+    
+    toast({
+      title: 'Analysis Complete',
+      description: 'Hypotheses ranked by consistency scores'
+    })
+  }
+  
+  const showBestHypothesis = () => {
+    const scores = calculateAllHypothesesScores()
+    if (scores.length === 0) {
+      toast({
+        title: 'No Hypotheses',
+        description: 'Add hypotheses to analyze',
+        variant: 'destructive'
+      })
+      return
+    }
+    
+    const best = scores[0]
+    toast({
+      title: 'Strongest Hypothesis',
+      description: `"${best.text}" has the highest score (${best.weightedScore})`
+    })
   }
 
   return (
@@ -386,6 +460,88 @@ export default function CreateACHPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Analysis Section */}
+      {achData.hypotheses.length > 0 && achData.evidence.length > 0 && (
+        <Card className="border-2 border-dashed border-orange-300 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Hypothesis Analysis & Ranking
+            </CardTitle>
+            <CardDescription>
+              Analyze and rank hypotheses based on evidence consistency scores
+            </CardDescription>
+            <div className="flex gap-2 mt-4">
+              <Button 
+                onClick={performAnalysis}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Calculator className="h-4 w-4" />
+                Analyze Hypotheses
+              </Button>
+              <Button 
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={showBestHypothesis}
+              >
+                <Trophy className="h-4 w-4" />
+                Show Best Hypothesis
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {calculateAllHypothesesScores().map((hypothesis, index) => {
+                const rank = index + 1
+                const isTop = index < 3
+                
+                return (
+                  <div key={hypothesis.id} className={`flex items-center gap-3 p-3 rounded-lg border ${
+                    rank === 1 ? 'border-green-300 bg-green-50' :
+                    rank === 2 ? 'border-blue-300 bg-blue-50' :
+                    rank === 3 ? 'border-yellow-300 bg-yellow-50' :
+                    'border-gray-200 bg-white'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={isTop ? "default" : "outline"}
+                        className={
+                          rank === 1 ? 'bg-green-600' :
+                          rank === 2 ? 'bg-blue-600' :
+                          rank === 3 ? 'bg-yellow-600' : ''
+                        }
+                      >
+                        #{rank}
+                      </Badge>
+                      {rank === 1 && <Trophy className="h-4 w-4 text-yellow-600" />}
+                    </div>
+                    
+                    <div className="flex-1">
+                      <p className="text-sm font-medium leading-relaxed">
+                        {hypothesis.text || `Hypothesis ${rank}`}
+                      </p>
+                    </div>
+                    
+                    <div className="text-right">
+                      <div className={`text-lg font-bold ${
+                        hypothesis.weightedScore > 0 ? 'text-green-600' : 
+                        hypothesis.weightedScore < 0 ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {hypothesis.weightedScore > 0 ? '+' : ''}{hypothesis.weightedScore}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {hypothesis.supports}S / {hypothesis.contradicts}C
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Legend */}
       <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600">
