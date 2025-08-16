@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,155 +12,275 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Progress } from '@/components/ui/progress'
-import { Download, Settings, Play, Pause, Eye, Code, FileText } from 'lucide-react'
+import { Download, Settings, Play, Pause, Eye, Code, FileText, ExternalLink, Image, Link as LinkIcon } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
+import { apiClient } from '@/lib/api'
 
 interface ScrapingJob {
-  id: string
-  name: string
-  urls: string[]
-  status: 'pending' | 'running' | 'completed' | 'failed'
-  progress: number
-  startedAt?: string
-  completedAt?: string
+  job_id: number
+  status: string
+  progress_percentage: number
+  current_step?: string
+  started_at?: string
+  estimated_completion?: string
+  message: string
+  name?: string
+  urls?: string[]
   results?: ScrapingResult[]
-  settings: ScrapingSettings
 }
 
 interface ScrapingResult {
   url: string
   title?: string
   content: string
-  images: string[]
-  links: string[]
-  metadata: Record<string, any>
-  scrapedAt: string
+  content_length?: number
+  images?: string[]
+  links?: Array<{ url: string; text: string }>
+  metadata?: Record<string, any>
+  status_code?: number
+  headers?: Record<string, any>
+  error?: string
 }
 
-interface ScrapingSettings {
-  respectRobots: boolean
-  delay: number
-  maxPages: number
-  extractText: boolean
-  extractImages: boolean
-  extractLinks: boolean
-  customSelectors: string
+interface ScrapingRequest {
+  url: string
+  extract_images: boolean
+  extract_links: boolean
+  follow_redirects: boolean
+  max_depth: number
+  delay_seconds: number
+  user_agent?: string
+}
+
+interface BatchScrapingRequest {
+  urls: string[]
+  extract_images: boolean
+  extract_links: boolean
+  follow_redirects: boolean
+  delay_seconds: number
 }
 
 export default function WebScrapingTool() {
   const [activeTab, setActiveTab] = useState('create')
   const [jobs, setJobs] = useState<ScrapingJob[]>([])
-  const [currentJob, setCurrentJob] = useState<Partial<ScrapingJob>>({
-    name: '',
-    urls: [],
-    settings: {
-      respectRobots: true,
-      delay: 1000,
-      maxPages: 50,
-      extractText: true,
-      extractImages: true,
-      extractLinks: true,
-      customSelectors: ''
-    }
-  })
+  const [loading, setLoading] = useState(false)
+  const [pollingJobId, setPollingJobId] = useState<number | null>(null)
+  const { toast } = useToast()
+  
+  // Form state
+  const [jobName, setJobName] = useState('')
+  const [urls, setUrls] = useState<string[]>([])
   const [urlInput, setUrlInput] = useState('')
+  const [extractImages, setExtractImages] = useState(true)
+  const [extractLinks, setExtractLinks] = useState(true)
+  const [followRedirects, setFollowRedirects] = useState(true)
+  const [maxDepth, setMaxDepth] = useState(1)
+  const [delaySeconds, setDelaySeconds] = useState(1.0)
+  const [userAgent, setUserAgent] = useState('')
+
+  // Load jobs on component mount
+  useEffect(() => {
+    loadJobs()
+  }, [])
+
+  // Poll job status for running jobs
+  useEffect(() => {
+    if (pollingJobId) {
+      const interval = setInterval(async () => {
+        try {
+          const response = await apiClient.get<ScrapingJob>(`/tools/web-scraping/jobs/${pollingJobId}/status`)
+          const updatedJob = response
+          
+          setJobs(prev => prev.map(job => 
+            job.job_id === pollingJobId ? updatedJob : job
+          ))
+
+          // Stop polling if job is completed or failed
+          if (updatedJob.status === 'completed' || updatedJob.status === 'failed') {
+            setPollingJobId(null)
+            if (updatedJob.status === 'completed') {
+              loadJobResults(pollingJobId)
+            }
+          }
+        } catch (error) {
+          console.error('Error polling job status:', error)
+          setPollingJobId(null)
+        }
+      }, 2000)
+
+      return () => clearInterval(interval)
+    }
+  }, [pollingJobId])
+
+  const loadJobs = async () => {
+    try {
+      const response = await apiClient.get<ScrapingJob[]>('/tools/web-scraping/jobs')
+      setJobs(response)
+    } catch (error) {
+      console.error('Error loading jobs:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to load scraping jobs',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const loadJobResults = async (jobId: number) => {
+    try {
+      const response = await apiClient.get(`/tools/web-scraping/jobs/${jobId}/results`)
+      setJobs(prev => prev.map(job => 
+        job.job_id === jobId ? { ...job, results: response.results } : job
+      ))
+    } catch (error) {
+      console.error('Error loading job results:', error)
+    }
+  }
 
   const handleAddUrl = () => {
-    if (urlInput.trim() && !currentJob.urls?.includes(urlInput.trim())) {
-      setCurrentJob(prev => ({
-        ...prev,
-        urls: [...(prev.urls || []), urlInput.trim()]
-      }))
+    if (urlInput.trim() && !urls.includes(urlInput.trim())) {
+      setUrls(prev => [...prev, urlInput.trim()])
       setUrlInput('')
     }
   }
 
   const removeUrl = (urlToRemove: string) => {
-    setCurrentJob(prev => ({
-      ...prev,
-      urls: prev.urls?.filter(url => url !== urlToRemove) || []
-    }))
+    setUrls(prev => prev.filter(url => url !== urlToRemove))
   }
 
   const handleStartJob = async () => {
-    if (!currentJob.name || !currentJob.urls?.length) return
-
-    const newJob: ScrapingJob = {
-      id: Date.now().toString(),
-      name: currentJob.name,
-      urls: currentJob.urls,
-      status: 'running',
-      progress: 0,
-      startedAt: new Date().toISOString(),
-      settings: currentJob.settings!
+    if (!jobName.trim() || urls.length === 0) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please provide a job name and at least one URL',
+        variant: 'destructive'
+      })
+      return
     }
 
-    setJobs(prev => [newJob, ...prev])
-    setActiveTab('jobs')
+    setLoading(true)
+    try {
+      let response: ScrapingJob
 
-    // Simulate job progress
-    const jobIndex = 0
-    for (let progress = 0; progress <= 100; progress += 10) {
-      await new Promise(resolve => setTimeout(resolve, 500))
-      setJobs(prev => prev.map((job, index) => 
-        index === jobIndex ? { ...job, progress } : job
-      ))
-    }
-
-    // Complete job
-    setJobs(prev => prev.map((job, index) => 
-      index === jobIndex ? {
-        ...job,
-        status: 'completed',
-        completedAt: new Date().toISOString(),
-        results: currentJob.urls?.map(url => ({
-          url,
-          title: `Sample Title for ${new URL(url).hostname}`,
-          content: 'Sample scraped content would appear here...',
-          images: [`${url}/image1.jpg`, `${url}/image2.jpg`],
-          links: [`${url}/page1`, `${url}/page2`],
-          metadata: { wordCount: 500, lastModified: new Date().toISOString() },
-          scrapedAt: new Date().toISOString()
-        }))
-      } : job
-    ))
-
-    // Reset form
-    setCurrentJob({
-      name: '',
-      urls: [],
-      settings: {
-        respectRobots: true,
-        delay: 1000,
-        maxPages: 50,
-        extractText: true,
-        extractImages: true,
-        extractLinks: true,
-        customSelectors: ''
+      if (urls.length === 1) {
+        // Single URL scraping
+        const request: ScrapingRequest = {
+          url: urls[0],
+          extract_images: extractImages,
+          extract_links: extractLinks,
+          follow_redirects: followRedirects,
+          max_depth: maxDepth,
+          delay_seconds: delaySeconds,
+          user_agent: userAgent || undefined
+        }
+        
+        response = await apiClient.post<ScrapingJob>('/tools/web-scraping/scrape', request)
+      } else {
+        // Batch URL scraping
+        const request: BatchScrapingRequest = {
+          urls: urls,
+          extract_images: extractImages,
+          extract_links: extractLinks,
+          follow_redirects: followRedirects,
+          delay_seconds: delaySeconds
+        }
+        
+        response = await apiClient.post<ScrapingJob>('/tools/web-scraping/scrape/batch', request)
       }
-    })
+
+      // Add job name and urls for display
+      const newJob = { 
+        ...response, 
+        name: jobName,
+        urls: urls
+      }
+      
+      setJobs(prev => [newJob, ...prev])
+      setPollingJobId(response.job_id)
+      setActiveTab('jobs')
+
+      // Reset form
+      setJobName('')
+      setUrls([])
+      setUrlInput('')
+      setExtractImages(true)
+      setExtractLinks(true)
+      setFollowRedirects(true)
+      setMaxDepth(1)
+      setDelaySeconds(1.0)
+      setUserAgent('')
+
+      toast({
+        title: 'Success',
+        description: 'Scraping job started successfully',
+      })
+
+    } catch (error: any) {
+      console.error('Error starting scraping job:', error)
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to start scraping job',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const exportResults = (job: ScrapingJob) => {
+    if (!job.results) {
+      toast({
+        title: 'No Results',
+        description: 'This job has no results to export',
+        variant: 'destructive'
+      })
+      return
+    }
+
     const data = JSON.stringify(job.results, null, 2)
     const blob = new Blob([data], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `scraping-results-${job.name}.json`
+    a.download = `scraping-results-${job.name || job.job_id}.json`
     a.click()
     URL.revokeObjectURL(url)
+
+    toast({
+      title: 'Success',
+      description: 'Results exported successfully',
+    })
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'completed':
         return 'bg-green-100 text-green-800'
-      case 'running':
+      case 'in_progress':
+      case 'pending':
         return 'bg-blue-100 text-blue-800'
       case 'failed':
+      case 'cancelled':
         return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'in_progress':
+        return 'Running'
+      case 'pending':
+        return 'Pending'
+      case 'completed':
+        return 'Completed'
+      case 'failed':
+        return 'Failed'
+      case 'cancelled':
+        return 'Cancelled'
+      default:
+        return status
     }
   }
 
@@ -197,8 +317,8 @@ export default function WebScrapingTool() {
                 <Input
                   id="jobName"
                   placeholder="Enter job name"
-                  value={currentJob.name || ''}
-                  onChange={(e) => setCurrentJob(prev => ({ ...prev, name: e.target.value }))}
+                  value={jobName}
+                  onChange={(e) => setJobName(e.target.value)}
                 />
               </div>
 
@@ -215,9 +335,9 @@ export default function WebScrapingTool() {
                     Add URL
                   </Button>
                 </div>
-                {currentJob.urls && currentJob.urls.length > 0 && (
+                {urls.length > 0 && (
                   <div className="space-y-2 mt-3">
-                    {currentJob.urls.map((url, index) => (
+                    {urls.map((url, index) => (
                       <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
                         <span className="text-sm truncate">{url}</span>
                         <Button
@@ -235,25 +355,24 @@ export default function WebScrapingTool() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Delay (ms)</Label>
+                  <Label>Delay (seconds)</Label>
                   <Input
                     type="number"
-                    value={currentJob.settings?.delay || 1000}
-                    onChange={(e) => setCurrentJob(prev => ({
-                      ...prev,
-                      settings: { ...prev.settings!, delay: parseInt(e.target.value) }
-                    }))}
+                    step="0.5"
+                    min="0.5"
+                    max="10"
+                    value={delaySeconds}
+                    onChange={(e) => setDelaySeconds(parseFloat(e.target.value) || 1.0)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Max Pages</Label>
+                  <Label>Max Depth</Label>
                   <Input
                     type="number"
-                    value={currentJob.settings?.maxPages || 50}
-                    onChange={(e) => setCurrentJob(prev => ({
-                      ...prev,
-                      settings: { ...prev.settings!, maxPages: parseInt(e.target.value) }
-                    }))}
+                    min="1"
+                    max="5"
+                    value={maxDepth}
+                    onChange={(e) => setMaxDepth(parseInt(e.target.value) || 1)}
                   />
                 </div>
               </div>
@@ -262,44 +381,44 @@ export default function WebScrapingTool() {
                 <Label>Extraction Options</Label>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Extract Text</span>
+                    <span className="text-sm">Follow Redirects</span>
                     <Switch
-                      checked={currentJob.settings?.extractText}
-                      onCheckedChange={(checked) => setCurrentJob(prev => ({
-                        ...prev,
-                        settings: { ...prev.settings!, extractText: checked }
-                      }))}
+                      checked={followRedirects}
+                      onCheckedChange={setFollowRedirects}
                     />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Extract Images</span>
                     <Switch
-                      checked={currentJob.settings?.extractImages}
-                      onCheckedChange={(checked) => setCurrentJob(prev => ({
-                        ...prev,
-                        settings: { ...prev.settings!, extractImages: checked }
-                      }))}
+                      checked={extractImages}
+                      onCheckedChange={setExtractImages}
                     />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Extract Links</span>
                     <Switch
-                      checked={currentJob.settings?.extractLinks}
-                      onCheckedChange={(checked) => setCurrentJob(prev => ({
-                        ...prev,
-                        settings: { ...prev.settings!, extractLinks: checked }
-                      }))}
+                      checked={extractLinks}
+                      onCheckedChange={setExtractLinks}
                     />
                   </div>
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label>User Agent (optional)</Label>
+                <Input
+                  placeholder="Research Tools Web Scraper 1.0"
+                  value={userAgent}
+                  onChange={(e) => setUserAgent(e.target.value)}
+                />
+              </div>
+
               <Button 
                 onClick={handleStartJob}
-                disabled={!currentJob.name || !currentJob.urls?.length}
+                disabled={!jobName.trim() || urls.length === 0 || loading}
                 className="w-full"
               >
-                Start Scraping Job
+                {loading ? 'Starting...' : 'Start Scraping Job'}
               </Button>
             </CardContent>
           </Card>
@@ -318,20 +437,21 @@ export default function WebScrapingTool() {
             </Card>
           ) : (
             jobs.map((job) => (
-              <Card key={job.id}>
+              <Card key={job.job_id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-lg">{job.name}</CardTitle>
+                      <CardTitle className="text-lg">{job.name || `Job ${job.job_id}`}</CardTitle>
                       <CardDescription>
-                        {job.urls.length} URLs • Started {new Date(job.startedAt!).toLocaleString()}
+                        {job.urls?.length || 0} URLs • {job.message}
+                        {job.started_at && ` • Started ${new Date(job.started_at).toLocaleString()}`}
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className={getStatusColor(job.status)}>
-                        {job.status}
+                        {getStatusLabel(job.status)}
                       </Badge>
-                      {job.status === 'completed' && (
+                      {job.status === 'completed' && job.results && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -344,34 +464,88 @@ export default function WebScrapingTool() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {job.status === 'running' && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Progress</span>
-                        <span>{job.progress}%</span>
-                      </div>
-                      <Progress value={job.progress} />
+                  {job.current_step && (
+                    <div className="text-sm text-gray-600">
+                      <strong>Current step:</strong> {job.current_step}
                     </div>
                   )}
 
-                  {job.results && (
+                  {(job.status === 'in_progress' || job.status === 'pending') && (
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">Results</Label>
+                      <div className="flex justify-between text-sm">
+                        <span>Progress</span>
+                        <span>{job.progress_percentage}%</span>
+                      </div>
+                      <Progress value={job.progress_percentage} />
+                    </div>
+                  )}
+
+                  {job.results && job.results.length > 0 && (
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Scraped Content</Label>
                       <div className="text-sm text-gray-600">
                         Successfully scraped {job.results.length} pages
                       </div>
-                      <div className="max-h-40 overflow-y-auto space-y-1">
-                        {job.results.slice(0, 3).map((result, index) => (
-                          <div key={index} className="bg-gray-50 p-2 rounded text-xs">
-                            <div className="font-medium">{result.title}</div>
-                            <div className="text-gray-500">{result.url}</div>
+                      <div className="max-h-80 overflow-y-auto space-y-3">
+                        {job.results.map((result, index) => (
+                          <div key={index} className="bg-gray-50 p-3 rounded-lg space-y-2">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">{result.title || 'Untitled'}</div>
+                                <div className="text-xs text-gray-500 flex items-center gap-1">
+                                  <ExternalLink className="h-3 w-3" />
+                                  <a href={result.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                    {result.url}
+                                  </a>
+                                </div>
+                              </div>
+                              {result.status_code && (
+                                <Badge variant="outline" className="text-xs">
+                                  {result.status_code}
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {result.content && (
+                              <div className="text-xs">
+                                <div className="text-gray-600 mb-1">Content preview:</div>
+                                <div className="bg-white p-2 rounded border text-gray-700 max-h-20 overflow-y-auto">
+                                  {result.content.substring(0, 200)}
+                                  {result.content.length > 200 && '...'}
+                                </div>
+                                {result.content_length && (
+                                  <div className="text-gray-500 mt-1">
+                                    {result.content_length.toLocaleString()} characters
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {result.images && result.images.length > 0 && (
+                              <div className="text-xs">
+                                <div className="flex items-center gap-1 text-gray-600 mb-1">
+                                  <Image className="h-3 w-3" />
+                                  {result.images.length} images found
+                                </div>
+                              </div>
+                            )}
+
+                            {result.links && result.links.length > 0 && (
+                              <div className="text-xs">
+                                <div className="flex items-center gap-1 text-gray-600 mb-1">
+                                  <LinkIcon className="h-3 w-3" />
+                                  {result.links.length} links found
+                                </div>
+                              </div>
+                            )}
+
+                            {result.error && (
+                              <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                                Error: {result.error}
+                              </div>
+                            )}
                           </div>
                         ))}
-                        {job.results.length > 3 && (
-                          <div className="text-xs text-gray-500 text-center py-1">
-                            +{job.results.length - 3} more results
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
@@ -386,56 +560,54 @@ export default function WebScrapingTool() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                Scraping Settings
+                Scraping Information
               </CardTitle>
               <CardDescription>
-                Configure default scraping behavior and preferences
+                Learn about web scraping capabilities and limitations
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm font-medium">Respect robots.txt</Label>
-                    <p className="text-xs text-gray-500">Follow website crawling guidelines</p>
+                <Alert>
+                  <AlertDescription>
+                    <strong>Scraping Features:</strong>
+                    <ul className="mt-2 space-y-1 text-sm">
+                      <li>• Extract text content, images, and links</li>
+                      <li>• Follow HTTP redirects automatically</li>
+                      <li>• Configurable delays to respect server limits</li>
+                      <li>• Support for single URL and batch processing</li>
+                      <li>• Real-time progress tracking</li>
+                      <li>• Content metadata extraction</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+
+                <Alert>
+                  <AlertDescription>
+                    <strong>Limitations:</strong>
+                    <ul className="mt-2 space-y-1 text-sm">
+                      <li>• Maximum 50 URLs per batch job</li>
+                      <li>• Maximum depth of 5 levels for recursive scraping</li>
+                      <li>• Delay between requests: 0.5-10 seconds</li>
+                      <li>• Content limited to 10,000 characters per page</li>
+                      <li>• No JavaScript execution (static content only)</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="text-sm">
+                    <strong className="text-blue-800">Best Practices:</strong>
+                    <ul className="mt-2 space-y-1 text-blue-700">
+                      <li>• Always respect website robots.txt files</li>
+                      <li>• Use appropriate delays to avoid overloading servers</li>
+                      <li>• Check website terms of service before scraping</li>
+                      <li>• Consider rate limiting for large-scale operations</li>
+                      <li>• Monitor for changes in website structure</li>
+                    </ul>
                   </div>
-                  <Switch defaultChecked />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">User Agent</Label>
-                  <Input 
-                    placeholder="Custom user agent string"
-                    defaultValue="ResearchTools Web Scraper 1.0"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Custom Selectors</Label>
-                  <Textarea
-                    placeholder="CSS selectors for custom data extraction (one per line)"
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Output Format</Label>
-                  <Select defaultValue="json">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="json">JSON</SelectItem>
-                      <SelectItem value="csv">CSV</SelectItem>
-                      <SelectItem value="xml">XML</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
-
-              <Button className="w-full" variant="outline">
-                Save Settings
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
