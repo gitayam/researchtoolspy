@@ -43,6 +43,7 @@ const navigation = [
     href: '/tools', 
     icon: Search,
     children: [
+      { name: 'Content Extraction', href: '/tools/content-extraction' },
       { name: 'URL Processing', href: '/tools/url' },
       { name: 'Citations', href: '/tools/citations' },
       { name: 'Web Scraping', href: '/tools/scraping' },

@@ -16,12 +16,12 @@ import { Badge } from '@/components/ui/badge'
 
 const tools = [
   {
-    id: 'url',
-    title: 'URL Research',
-    description: 'Extract and analyze content from web pages',
+    id: 'content-extraction',
+    title: 'Content Extraction',
+    description: 'Extract and summarize content from web pages with AI',
     icon: Globe,
-    status: 'coming-soon',
-    href: '/tools/url'
+    status: 'available',
+    href: '/tools/content-extraction'
   },
   {
     id: 'citations',
@@ -75,49 +75,92 @@ export default function ToolsPage() {
         </p>
       </div>
 
-      <Card className="mb-6 bg-blue-50 border-blue-200">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-blue-600" />
-            <CardTitle className="text-blue-900">Coming Soon</CardTitle>
+      {/* Available Tools */}
+      {tools.some(tool => tool.status === 'available') && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4 text-green-700">Available Tools</h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {tools.filter(tool => tool.status === 'available').map((tool) => {
+              const Icon = tool.icon
+              return (
+                <Card 
+                  key={tool.id} 
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                >
+                  <Link href={tool.href}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <Icon className="h-8 w-8 text-green-600" />
+                        <Badge className="bg-green-100 text-green-800">Available</Badge>
+                      </div>
+                      <CardTitle className="mt-4">{tool.title}</CardTitle>
+                      <CardDescription>{tool.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center text-sm text-green-600">
+                        <span>Use now</span>
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </div>
+                    </CardContent>
+                  </Link>
+                </Card>
+              )
+            })}
           </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-blue-800">
-            Research tools are being developed and will be available in Phase 4.4 of our roadmap. 
-            These tools will integrate with your analysis frameworks to provide comprehensive research capabilities.
-          </p>
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {tools.map((tool) => {
-          const Icon = tool.icon
-          return (
-            <Card 
-              key={tool.id} 
-              className="hover:shadow-lg transition-shadow cursor-pointer opacity-75"
-            >
-              <Link href={tool.href}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <Icon className="h-8 w-8 text-gray-400" />
-                    <Badge variant="secondary">Coming Soon</Badge>
-                  </div>
-                  <CardTitle className="mt-4">{tool.title}</CardTitle>
-                  <CardDescription>{tool.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <span>Learn more</span>
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </div>
-                </CardContent>
-              </Link>
-            </Card>
-          )
-        })}
-      </div>
+      {/* Coming Soon Tools */}
+      {tools.some(tool => tool.status === 'coming-soon') && (
+        <>
+          <Card className="mb-6 bg-blue-50 border-blue-200">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-blue-600" />
+                <CardTitle className="text-blue-900">Coming Soon</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-blue-800">
+                Additional research tools are being developed and will be available in upcoming releases. 
+                These tools will integrate with your analysis frameworks to provide comprehensive research capabilities.
+              </p>
+            </CardContent>
+          </Card>
+
+          <div>
+            <h2 className="text-xl font-semibold mb-4 text-gray-600">In Development</h2>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {tools.filter(tool => tool.status === 'coming-soon').map((tool) => {
+                const Icon = tool.icon
+                return (
+                  <Card 
+                    key={tool.id} 
+                    className="hover:shadow-lg transition-shadow cursor-pointer opacity-75"
+                  >
+                    <Link href={tool.href}>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <Icon className="h-8 w-8 text-gray-400" />
+                          <Badge variant="secondary">Coming Soon</Badge>
+                        </div>
+                        <CardTitle className="mt-4">{tool.title}</CardTitle>
+                        <CardDescription>{tool.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <span>Learn more</span>
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </div>
+                      </CardContent>
+                    </Link>
+                  </Card>
+                )
+              })}
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="mt-8 p-6 bg-gray-50 rounded-lg">
         <h2 className="text-xl font-semibold mb-3">Planned Features</h2>
