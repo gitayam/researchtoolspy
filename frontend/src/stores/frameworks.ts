@@ -34,7 +34,38 @@ export const useFrameworkStore = create<FrameworkState>()(
       // Initial state
       currentSession: null,
       sessions: [],
-      recentSessions: [],
+      recentSessions: [
+        {
+          id: 1,
+          title: "Q4 2024 Strategic Assessment",
+          framework_type: "swot",
+          status: "completed",
+          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          data: {},
+          user_id: 1
+        },
+        {
+          id: 2,
+          title: "COG Analysis - Market Entry",
+          framework_type: "cog",
+          status: "in_progress",
+          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          data: {},
+          user_id: 1
+        },
+        {
+          id: 3,
+          title: "PMESII-PT Threat Assessment",
+          framework_type: "pmesii-pt",
+          status: "draft",
+          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          data: {},
+          user_id: 1
+        }
+      ],
       isLoading: false,
       error: null,
 
