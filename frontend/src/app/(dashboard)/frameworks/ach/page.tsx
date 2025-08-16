@@ -39,7 +39,7 @@ const mockAnalyses = [
   {
     id: '3',
     title: 'Competitor Strategy Assessment',
-    description: 'Understanding competitor's next strategic moves',
+    description: 'Understanding competitor\'s next strategic moves',
     hypotheses: 6,
     evidence: 32,
     diagnosticity: 'High',

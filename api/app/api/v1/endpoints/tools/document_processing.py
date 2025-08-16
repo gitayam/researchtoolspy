@@ -14,8 +14,8 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
-from app.core.database import get_async_db
-from app.core.auth import get_current_user
+from app.core.database import get_db
+from app.api.v1.endpoints.auth import get_current_user
 from app.core.logging import get_logger
 from app.models.user import User
 from app.models.research_tool import ResearchJob, ResearchJobStatus, ResearchJobType
@@ -513,7 +513,7 @@ async def process_document(
     file_id: str,
     request: DocumentProcessingRequest,
     background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> DocumentProcessingJobResponse:
     """
@@ -607,7 +607,7 @@ async def process_document(
 @router.get("/jobs/{job_id}/status", response_model=DocumentProcessingJobResponse)
 async def get_processing_job_status(
     job_id: int,
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> DocumentProcessingJobResponse:
     """
@@ -665,7 +665,7 @@ async def get_processing_job_status(
 @router.get("/jobs/{job_id}/results")
 async def get_processing_job_results(
     job_id: int,
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> dict:
     """
@@ -738,7 +738,7 @@ async def get_processing_job_results(
 
 @router.get("/jobs")
 async def get_processing_jobs(
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(50, ge=1, le=100, description="Number of records to return"),
@@ -802,7 +802,7 @@ async def get_processing_jobs(
 @router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def cancel_processing_job(
     job_id: int,
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """

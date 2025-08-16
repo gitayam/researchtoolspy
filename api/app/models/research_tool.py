@@ -114,7 +114,7 @@ class ProcessedUrl(BaseModel):
     )
     
     # Additional Metadata (JSON)
-    metadata: Mapped[str | None] = mapped_column(
+    additional_metadata: Mapped[str | None] = mapped_column(
         Text,  # JSON string
         nullable=True,
     )
