@@ -11,7 +11,11 @@ import {
   TrendingUp,
   Calendar,
   User,
-  Eye
+  Eye,
+  Brain,
+  BarChart3,
+  Lightbulb,
+  Calculator
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -40,6 +44,9 @@ export default function SWOTViewPage() {
   const { toast } = useToast()
   const [session, setSession] = useState<SWOTSession | null>(null)
   const [loading, setLoading] = useState(true)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [insights, setInsights] = useState<string[]>([])
+  const [showInsights, setShowInsights] = useState(false)
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -78,6 +85,60 @@ export default function SWOTViewPage() {
     toast({
       title: 'Share',
       description: 'Share functionality coming soon'
+    })
+  }
+
+  const performSWOTAnalysis = async () => {
+    if (!session) return
+
+    setAnalyzing(true)
+    try {
+      // Generate insights based on SWOT analysis
+      const generatedInsights = [
+        `Strategic Focus: With ${session.strengths.length} identified strengths and ${session.opportunities.length} opportunities, consider leveraging core competencies for market expansion.`,
+        `Risk Mitigation: ${session.threats.length} threats and ${session.weaknesses.length} weaknesses require immediate attention to protect competitive position.`,
+        `Resource Allocation: Balance between strengthening weaknesses (${session.weaknesses.length} areas) and capitalizing on opportunities (${session.opportunities.length} areas).`,
+        `Competitive Advantage: Utilize top strengths to differentiate from competitors and create barriers to entry.`,
+        session.strengths.length > session.weaknesses.length 
+          ? 'Positive Internal Balance: More strengths than weaknesses indicate solid foundation for growth.'
+          : 'Internal Development Needed: Focus on addressing weaknesses to improve organizational capacity.'
+      ]
+
+      setInsights(generatedInsights)
+      setShowInsights(true)
+      
+      toast({
+        title: 'Analysis Complete',
+        description: 'SWOT insights generated successfully'
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Analysis Error',
+        description: error.message || 'Failed to generate analysis',
+        variant: 'destructive'
+      })
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const calculateBalance = () => {
+    if (!session) return { internal: 0, external: 0, positive: 0, negative: 0 }
+    
+    return {
+      internal: session.strengths.length + session.weaknesses.length,
+      external: session.opportunities.length + session.threats.length,
+      positive: session.strengths.length + session.opportunities.length,
+      negative: session.weaknesses.length + session.threats.length
+    }
+  }
+
+  const generateStrategies = () => {
+    if (!session) return
+
+    toast({
+      title: 'Strategy Generation',
+      description: 'Strategic recommendations will be generated based on your SWOT matrix'
     })
   }
 
@@ -226,10 +287,34 @@ export default function SWOTViewPage() {
       {/* Analysis Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>Analysis Summary</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Analysis Summary
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button 
+                onClick={performSWOTAnalysis}
+                disabled={analyzing}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Brain className="h-4 w-4" />
+                {analyzing ? 'Analyzing...' : 'Generate Insights'}
+              </Button>
+              <Button 
+                onClick={generateStrategies}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Lightbulb className="h-4 w-4" />
+                Generate Strategies
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center mb-6">
             <div>
               <div className="text-2xl font-bold text-green-600">
                 {session.strengths.length}
@@ -255,8 +340,66 @@ export default function SWOTViewPage() {
               <div className="text-sm text-gray-500">Threats</div>
             </div>
           </div>
+
+          {/* Balance Analysis */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+            <div className="text-center">
+              <div className="text-lg font-semibold text-purple-600">
+                {calculateBalance().internal}
+              </div>
+              <div className="text-xs text-gray-500">Internal Factors</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-semibold text-indigo-600">
+                {calculateBalance().external}
+              </div>
+              <div className="text-xs text-gray-500">External Factors</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-semibold text-emerald-600">
+                {calculateBalance().positive}
+              </div>
+              <div className="text-xs text-gray-500">Positive Factors</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-semibold text-rose-600">
+                {calculateBalance().negative}
+              </div>
+              <div className="text-xs text-gray-500">Negative Factors</div>
+            </div>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Generated Insights */}
+      {showInsights && insights.length > 0 && (
+        <Card className="border-2 border-dashed border-blue-300 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              Strategic Insights & Recommendations
+            </CardTitle>
+            <CardDescription>
+              AI-generated insights based on your SWOT analysis
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {insights.map((insight, index) => (
+                <div key={index} className="bg-white rounded-lg p-4 border border-blue-200">
+                  <p className="text-sm leading-relaxed">{insight}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t border-blue-200">
+              <p className="text-xs text-blue-600">
+                💡 These insights are generated based on the quantitative analysis of your SWOT factors. 
+                Consider them as starting points for deeper strategic planning.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

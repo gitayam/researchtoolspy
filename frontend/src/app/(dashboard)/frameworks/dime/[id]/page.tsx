@@ -11,7 +11,12 @@ import {
   Wifi, 
   DollarSign,
   Calendar,
-  Eye
+  Eye,
+  Brain,
+  BarChart3,
+  Target,
+  Lightbulb,
+  Calculator
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -43,6 +48,9 @@ export default function DIMEViewPage() {
   const { toast } = useToast()
   const [session, setSession] = useState<DIMESession | null>(null)
   const [loading, setLoading] = useState(true)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [powerAssessment, setPowerAssessment] = useState<any>(null)
+  const [showAssessment, setShowAssessment] = useState(false)
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -81,6 +89,65 @@ export default function DIMEViewPage() {
     toast({
       title: 'Share',
       description: 'Share functionality coming soon'
+    })
+  }
+
+  const performPowerAnalysis = async () => {
+    if (!session) return
+
+    setAnalyzing(true)
+    try {
+      const totalElements = instruments.reduce((sum, instrument) => sum + instrument.items.length, 0)
+      
+      // Calculate power distribution
+      const powerDistribution = instruments.map(instrument => ({
+        instrument: instrument.title,
+        count: instrument.items.length,
+        percentage: totalElements > 0 ? Math.round((instrument.items.length / totalElements) * 100) : 0,
+        strength: instrument.items.length > 3 ? 'Strong' : instrument.items.length > 1 ? 'Moderate' : instrument.items.length > 0 ? 'Weak' : 'None'
+      }))
+
+      // Generate strategic insights
+      const dominantInstruments = powerDistribution.filter(p => p.percentage > 25)
+      const underutilizedInstruments = powerDistribution.filter(p => p.count === 0)
+      
+      const assessment = {
+        distribution: powerDistribution,
+        insights: [
+          `Power Balance: ${dominantInstruments.length > 0 ? `Primarily focused on ${dominantInstruments.map(d => d.instrument).join(' and ')} instruments` : 'Balanced across all DIME instruments'}`,
+          `Coverage: ${4 - underutilizedInstruments.length} out of 4 DIME instruments are actively utilized`,
+          `Strategic Posture: ${totalElements > 12 ? 'Comprehensive multi-domain approach' : totalElements > 6 ? 'Moderate engagement' : 'Limited scope analysis'}`,
+          underutilizedInstruments.length > 0 ? `Gaps: ${underutilizedInstruments.map(u => u.instrument).join(', ')} instruments need development` : 'All instruments are engaged',
+          `Recommendation: ${dominantInstruments.length === 1 ? 'Consider diversifying power instruments for resilience' : 'Maintain current balanced approach while strengthening weaker areas'}`
+        ],
+        totalPowerElements: totalElements,
+        balanceScore: Math.round(((4 - underutilizedInstruments.length) / 4) * 100)
+      }
+
+      setPowerAssessment(assessment)
+      setShowAssessment(true)
+      
+      toast({
+        title: 'Power Analysis Complete',
+        description: 'National power assessment generated successfully'
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Analysis Error',
+        description: error.message || 'Failed to generate power analysis',
+        variant: 'destructive'
+      })
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const generateStrategies = () => {
+    if (!session) return
+
+    toast({
+      title: 'Strategy Generation',
+      description: 'Multi-domain strategies will be generated based on your DIME analysis'
     })
   }
 
@@ -191,13 +258,34 @@ export default function DIMEViewPage() {
       {/* Analysis Summary */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Analysis Overview
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Power Analysis Overview
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button 
+                onClick={performPowerAnalysis}
+                disabled={analyzing}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Brain className="h-4 w-4" />
+                {analyzing ? 'Analyzing...' : 'Analyze Power'}
+              </Button>
+              <Button 
+                onClick={generateStrategies}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Target className="h-4 w-4" />
+                Generate Strategies
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-6">
             <div>
               <div className="text-2xl font-bold text-red-600">{totalElements}</div>
               <div className="text-sm text-gray-500">Total Elements</div>
@@ -216,8 +304,27 @@ export default function DIMEViewPage() {
               <div className="text-2xl font-bold text-orange-600">
                 {Math.round((instruments.filter(i => i.items.length > 0).length / 4) * 100)}%
               </div>
-              <div className="text-sm text-gray-500">Completion</div>
+              <div className="text-sm text-gray-500">Coverage</div>
             </div>
+          </div>
+
+          {/* Power Distribution */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+            {instruments.map((instrument) => (
+              <div key={instrument.key} className="text-center">
+                <div className={`text-lg font-semibold ${
+                  instrument.items.length > 3 ? 'text-green-600' :
+                  instrument.items.length > 1 ? 'text-yellow-600' :
+                  instrument.items.length > 0 ? 'text-orange-600' : 'text-red-600'
+                }`}>
+                  {instrument.items.length}
+                </div>
+                <div className="text-xs text-gray-500">{instrument.title}</div>
+                <div className="text-xs text-gray-400">
+                  {totalElements > 0 ? Math.round((instrument.items.length / totalElements) * 100) : 0}%
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -256,6 +363,84 @@ export default function DIMEViewPage() {
           </Card>
         ))}
       </div>
+
+      {/* Power Assessment Results */}
+      {showAssessment && powerAssessment && (
+        <Card className="border-2 border-dashed border-red-300 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              National Power Assessment
+            </CardTitle>
+            <CardDescription>
+              Analysis of power distribution across DIME instruments
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Power Distribution Chart */}
+            <div className="mb-6">
+              <h4 className="font-medium text-red-800 mb-3">Power Distribution</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {powerAssessment.distribution.map((item: any) => (
+                  <div key={item.instrument} className="bg-white rounded-lg p-3 border border-red-200">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium">{item.instrument}</span>
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        item.strength === 'Strong' ? 'bg-green-100 text-green-800' :
+                        item.strength === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                        item.strength === 'Weak' ? 'bg-orange-100 text-orange-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {item.strength}
+                      </span>
+                    </div>
+                    <div className="text-2xl font-bold text-red-600">{item.count}</div>
+                    <div className="text-xs text-gray-500">{item.percentage}% of total</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Strategic Insights */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-red-800">Strategic Insights</h4>
+              {powerAssessment.insights.map((insight: string, index: number) => (
+                <div key={index} className="bg-white rounded-lg p-4 border border-red-200">
+                  <p className="text-sm leading-relaxed">{insight}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Assessment Summary */}
+            <div className="mt-6 pt-4 border-t border-red-200">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-lg font-bold text-red-600">
+                    {powerAssessment.totalPowerElements}
+                  </div>
+                  <div className="text-xs text-gray-500">Total Power Elements</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-green-600">
+                    {powerAssessment.balanceScore}%
+                  </div>
+                  <div className="text-xs text-gray-500">Balance Score</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-blue-600">
+                    {powerAssessment.distribution.filter((d: any) => d.count > 0).length}/4
+                  </div>
+                  <div className="text-xs text-gray-500">Active Instruments</div>
+                </div>
+              </div>
+              <p className="text-xs text-red-600 mt-4">
+                💡 This assessment analyzes the distribution and utilization of national power instruments. 
+                A balanced approach across all DIME instruments typically provides the most strategic flexibility.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
