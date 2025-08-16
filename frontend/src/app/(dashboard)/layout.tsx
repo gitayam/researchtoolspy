@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth'
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
+import { ToastProvider } from '@/components/ui/use-toast'
 
 export default function DashboardLayout({
   children,
@@ -30,16 +31,18 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <DashboardSidebar />
-      <div className="lg:pl-64">
-        <DashboardHeader />
-        <main className="py-6">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            {children}
-          </div>
-        </main>
+    <ToastProvider>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <DashboardSidebar />
+        <div className="lg:pl-64">
+          <DashboardHeader />
+          <main className="py-6">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </ToastProvider>
   )
 }
