@@ -1,19 +1,129 @@
-# ROADMAP.md
+# ResearchTools Platform Roadmap
 
-## Current Features
+## Completed Phases ✅
 
-- [x] CSV to JSON and JSON to CSV converters for data format transformation.
-- [x] Image SHA for reverse image search to find similar images across the web.
-- [x] Wayback Tool for accessing archived web pages via archive links.
-- [x] Text analysis tools for extracting insights from textual data.
+### Phase 1: Foundation & Backend API Core ✅
+- FastAPI backend with async support
+- PostgreSQL database with SQLAlchemy ORM
+- JWT authentication & authorization
+- Base models for users, projects, analyses
+- API documentation with Swagger/OpenAPI
+- Docker containerization
+- Basic CORS and security middleware
 
-## Work in Progress
-- [ ] SWOT analysis for analyzing strengths, weaknesses, opportunities, and threats.
-- [ ] ACH analysis for analyzing capabilities, constraints, and threats.
-- [ ] COG Analysis for understanding centers of gravity in strategic contexts.
+### Phase 2: Analysis Frameworks API ✅
+- SWOT Analysis API endpoints
+- Center of Gravity (COG) Analysis API
+- PMESII-PT Framework API
+- Analysis of Competing Hypotheses (ACH) API
+- DIME Framework API
+- VRIO Analysis API
+- PEST Analysis API
+- Stakeholder Analysis API
+- Trend Analysis API
+- Surveillance Detection API
 
+### Phase 3: Research Tools & Data Processing APIs ✅
+- URL research & web scraping endpoints
+- Citation management system
+- Social media data collection APIs
+- Document processing & OCR
+- CSV/JSON converters
+- Text analysis & NLP tools
+- Wayback Machine integration
+- Image reverse search capabilities
 
-## Planned Features
-- Structured Analytic Techniques (SAT):
-    - [ ] PMESII-PT framework for analyzing political, military, economic, social, information, infrastructure, physical environment, and time factors.
-    - [ ] Multi-Hypothesis Generation for generating multiple hypotheses from a single input.
+## Current Phase: Phase 4 - Modern Frontend Development 🚧
+
+### Phase 4.1: Foundation Setup ✅
+- Next.js 14 with App Router
+- TypeScript configuration
+- Tailwind CSS & Headless UI
+- Authentication flow
+- Protected routes
+
+### Phase 4.2: Core Framework Implementation ✅
+- SWOT Analysis interface
+- COG Analysis interface
+- PMESII-PT Analysis interface
+- ACH Analysis interface
+
+### Phase 4.3: Remaining Frameworks (IN PROGRESS) 🔄
+- [x] DIME Framework interface
+- [x] VRIO Framework interface
+- [x] PEST Analysis interface
+- [x] Stakeholder Analysis interface
+- [ ] Trend Analysis interface
+- [ ] Surveillance Analysis interface
+- [x] Framework listing pages (fixed routing issues)
+
+### Phase 4.4: Research Tools Integration (PENDING)
+- [ ] URL Research Tool UI
+- [ ] Citation Manager UI
+- [ ] Web Scraping Tool UI
+- [ ] Social Media Analysis UI
+- [ ] Document Processing UI
+- [ ] Advanced Search UI
+
+### Phase 4.5: Mobile Optimization & Polish (PENDING)
+- [ ] Responsive design improvements
+- [ ] PWA capabilities
+- [ ] Offline mode
+- [ ] Performance optimizations
+
+## Upcoming Phases 📋
+
+### Phase 5: AI Enhancement & Integration
+- LLM integration for analysis assistance
+- Auto-suggestions and insights
+- Natural language query processing
+- Automated report generation
+- Smart data extraction from sources
+
+### Phase 6: Production Readiness & Deployment
+- Production database setup
+- Redis caching layer
+- Email service integration
+- Rate limiting & API quotas
+- Monitoring & logging (Sentry, LogRocket)
+- CI/CD pipeline
+- Security audit & penetration testing
+- Documentation & user guides
+- Deployment to cloud infrastructure
+
+## Authentication Updates ✅
+- **Implemented Mullvad-style hash authentication**
+- 32-character hexadecimal account hashes
+- No username/password required
+- Test hash available for development
+- Secure, privacy-focused authentication
+
+## Known Issues & Fixes Needed 🔧
+
+### Frontend Routes Status:
+#### Working ✅:
+- `/` - Landing page
+- `/login` - Hash-based login
+- `/dashboard` - Main dashboard
+- `/frameworks` - Framework selection page
+- All framework listing pages (SWOT, ACH, COG, DIME, PMESII-PT, PEST, VRIO, Stakeholder)
+- All framework creation pages
+
+#### Placeholder/Coming Soon 🕐:
+- `/tools/*` - Research tools (Phase 4.4)
+- Framework pages not yet implemented:
+  - `/frameworks/behavioral` - Not in current roadmap
+  - `/frameworks/dotmlpf` - Not in current roadmap
+  - `/frameworks/trend` - Phase 4.3 (pending)
+  - `/frameworks/surveillance` - Phase 4.3 (pending)
+
+## Technical Debt & Improvements 📝
+- [ ] Connect frontend to actual backend API (currently using mocks)
+- [ ] Implement real hash authentication in backend
+- [ ] Add comprehensive error handling
+- [ ] Implement data persistence layer
+- [ ] Add unit and integration tests
+- [ ] Set up state management for complex forms
+- [ ] Optimize bundle size
+- [ ] Add loading states and skeletons
+- [ ] Implement proper form validation

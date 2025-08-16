@@ -1,7 +1,7 @@
-# ResearchTools by OmniCore - Modern Stack Refactor Roadmap
+# OmniCore Modern Stack Refactor Roadmap
 
 ## Executive Summary
-Complete modernization of the ResearchTools intelligence analysis platform from Streamlit-based monolith to a scalable, microservices-based architecture optimized for intel analysts and researchers. ResearchTools is a free service for the IrregularChat community, providing advanced intelligence analysis capabilities without cost barriers.
+Complete modernization of the OmniCore intelligence analysis platform from Streamlit-based monolith to a scalable, microservices-based architecture optimized for intel analysts and researchers.
 
 ## Modern Technology Stack Recommendation
 
@@ -58,12 +58,6 @@ Complete modernization of the ResearchTools intelligence analysis platform from 
 - [x] API rate limiting and security headers
 - [x] Input validation with Pydantic models
 - [x] Secure API key management for external services
-- [ ] **Hash-based Authentication System** (Phase 4.1 Enhancement)
-  - [ ] Implement Mullvad VPN-style hash-based login system
-  - [ ] Generate unique authentication hashes for users
-  - [ ] Remove traditional username/password authentication
-  - [ ] Hash-based session management and security
-  - [ ] Account hash regeneration capabilities
 
 ### Core API Foundation
 - [x] User management endpoints
@@ -165,89 +159,63 @@ Complete modernization of the ResearchTools intelligence analysis platform from 
 
 ---
 
-## Phase 3: Research Tools & Data Processing APIs ✅
+## Phase 3: Research Tools & Data Processing APIs
 **Duration**: 2-3 weeks | **Goal**: Modernize all research and data processing tools
 
 ### Data Collection APIs
-- [x] **Web Scraping API**
-  - [x] POST /api/tools/scraping/scrape - Scrape URL with multiple methods
-  - [x] GET /api/tools/scraping/jobs/{job_id}/status - Get scraping job status
-  - [x] GET /api/tools/scraping/jobs/{job_id}/results - Get scraping results
-  - [x] POST /api/tools/scraping/scrape/batch - Batch URL processing
-  - [x] GET /api/tools/scraping/jobs - List scraping jobs
-  - [x] DELETE /api/tools/scraping/jobs/{job_id} - Cancel scraping job
+- [ ] **Web Scraping API**
+  - [ ] POST /api/tools/scrape - Scrape URL with multiple methods
+  - [ ] GET /api/tools/scrape/{job_id} - Get scraping results
+  - [ ] POST /api/tools/scrape/batch - Batch URL processing
 
-- [x] **Social Media Download API**
-  - [x] POST /api/tools/social-media/download - Download social media content
-  - [x] GET /api/tools/social-media/platforms - Get supported platforms
-  - [x] POST /api/tools/social-media/download/batch - Batch social media downloads
-  - [x] GET /api/tools/social-media/jobs/{job_id}/status - Get download job status
-  - [x] GET /api/tools/social-media/jobs/{job_id}/results - Get download results
-  - [x] GET /api/tools/social-media/jobs - List download jobs
-  - [x] DELETE /api/tools/social-media/jobs/{job_id} - Cancel download job
+- [ ] **Social Media Download API**
+  - [ ] POST /api/tools/social-media/download - Download social media content
+  - [ ] GET /api/tools/social-media/platforms - Get supported platforms
+  - [ ] POST /api/tools/social-media/auth - Manage platform authentication
 
-- [ ] **Google Search API** (Future Enhancement)
+- [ ] **Google Search API**
   - [ ] POST /api/tools/search/google - Perform Google searches
   - [ ] POST /api/tools/search/advanced-query - Generate advanced queries
 
-- [ ] **Image Processing API** (Future Enhancement)
+- [ ] **Image Processing API**
   - [ ] POST /api/tools/image/hash - Generate image hashes
   - [ ] POST /api/tools/image/search - Reverse image search
 
 ### URL Processing & Citation APIs
-- [x] **URL Processing API**
-  - [x] POST /api/tools/url/process - Process and analyze URLs
-  - [x] POST /api/tools/url/process/batch - Batch URL processing
-  - [x] GET /api/tools/url/processed - List processed URLs
-  - [x] GET /api/tools/url/processed/{url_id} - Get specific processed URL
-  - [x] DELETE /api/tools/url/processed/{url_id} - Delete processed URL
-  - [x] POST /api/tools/url/archive/{url_id} - Archive with Wayback Machine
-  - [x] GET /api/tools/url/stats - Get URL processing statistics
-  - [x] GET /api/tools/url/domains - Get processed domains with stats
+- [ ] **URL Processing API**
+  - [ ] POST /api/tools/url/process - Process and analyze URLs
+  - [ ] POST /api/tools/url/wayback - Archive with Wayback Machine
+  - [ ] POST /api/tools/url/citation - Generate academic citations
+  - [ ] GET /api/tools/url/metadata/{url_hash} - Get cached metadata
 
-- [x] **Citation Management API**
-  - [x] POST /api/tools/citations - Create citation
-  - [x] GET /api/tools/citations - List user citations with filtering
-  - [x] GET /api/tools/citations/{citation_id} - Get specific citation
-  - [x] PUT /api/tools/citations/{citation_id} - Update citation
-  - [x] DELETE /api/tools/citations/{citation_id} - Remove citation
-  - [x] POST /api/tools/citations/export/bibliography - Export bibliography
-  - [x] GET /api/tools/citations/stats/overview - Get citation statistics
-
-### Document Processing APIs
-- [x] **Document Processing API**
-  - [x] POST /api/tools/documents/upload - Upload documents
-  - [x] POST /api/tools/documents/process/{file_id} - Process uploaded documents
-  - [x] GET /api/tools/documents/jobs/{job_id}/status - Get processing job status
-  - [x] GET /api/tools/documents/jobs/{job_id}/results - Get processing results
-  - [x] GET /api/tools/documents/jobs - List processing jobs
-  - [x] DELETE /api/tools/documents/jobs/{job_id} - Cancel processing job
-  - [x] GET /api/tools/documents/supported-formats - Get supported formats
+- [ ] **Citation Management API**
+  - [ ] POST /api/citations - Create citation
+  - [ ] GET /api/citations - List user citations
+  - [ ] PUT /api/citations/{id} - Update citation
+  - [ ] DELETE /api/citations/{id} - Remove citation
+  - [ ] POST /api/citations/export - Export bibliography
 
 ### Data Transformation APIs
-- [ ] **File Conversion API** (Integrated into Document Processing)
-  - [x] Document format conversion (PDF, DOCX, TXT, HTML, etc.)
-  - [ ] CSV to JSON conversion (Future Enhancement)
-  - [ ] Locations to KML conversion (Future Enhancement)
+- [ ] **File Conversion API**
+  - [ ] POST /api/tools/convert/csv-json - Convert between CSV and JSON
+  - [ ] POST /api/tools/convert/locations-kml - Convert locations to KML
+  - [ ] POST /api/tools/convert/document - Convert document formats
 
-- [ ] **Advanced Query Generator API** (Future Enhancement)
+- [ ] **Advanced Query Generator API**
   - [ ] POST /api/tools/query/generate - Generate advanced search queries
   - [ ] GET /api/tools/query/platforms - Get supported platforms
 
 ### Background Job Processing
-- [x] Research job system for long-running operations
-- [x] Job status tracking and progress updates
-- [x] Result storage and retrieval
-- [x] Error handling and retry logic
-- [x] Job cancellation and cleanup
+- [ ] Celery task queue for long-running operations
+- [ ] Job status tracking and progress updates
+- [ ] Result caching and cleanup
+- [ ] Error handling and retry logic
 
 **Phase 3 Deliverables**:
-- ✅ All core research tools converted to REST APIs
-- ✅ Asynchronous processing for long-running tasks
-- ✅ File upload/download management
-- ✅ Tool integration with framework APIs
-- ✅ 30+ new research tool endpoints
-- ✅ Comprehensive job management system
+- All research tools converted to REST APIs
+- Asynchronous processing for long-running tasks
+- File upload/download management
+- Tool integration with framework APIs
 
 ---
 
@@ -255,31 +223,13 @@ Complete modernization of the ResearchTools intelligence analysis platform from 
 **Duration**: 4-5 weeks | **Goal**: Build responsive, accessible React frontend
 
 ### Frontend Foundation
-- [x] Next.js 14 project setup with TypeScript
-- [x] Tailwind CSS configuration with design system
-- [x] Component library setup (Headless UI)
-- [x] Authentication integration with JWT
-- [x] API client setup with React Query
-- [x] State management with Zustand
-- [x] Route protection and role-based access
-
-### Phase 4.1: Foundation Setup ✅
-- [x] Complete Next.js 14 application structure
-- [x] Authentication system with toast notifications
-- [x] Responsive dashboard layout with sidebar navigation
-- [x] Landing page with ResearchTools branding
-- [x] Login/registration forms (ready for hash-based auth migration)
-- [x] User profile management and session handling
-
-### Phase 4.2: Core Framework Implementation ✅
-- [x] Framework selection page with 10 frameworks (4 implemented, 6 coming soon)
-- [x] **SWOT Analysis** - Complete create/view interface with 4-quadrant system
-- [x] **COG Analysis** - Center of Gravity analysis with 4-component structure
-- [x] **PMESII-PT Analysis** - 8-domain environmental analysis framework
-- [x] **ACH Analysis** - Analysis of Competing Hypotheses with evidence matrix
-- [x] Session management, status tracking, and data persistence
-- [x] Professional UI with framework-specific branding and colors
-- [x] Responsive design and accessibility features
+- [ ] Next.js 14 project setup with TypeScript
+- [ ] Tailwind CSS configuration with design system
+- [ ] Component library setup (Headless UI)
+- [ ] Authentication integration with JWT
+- [ ] API client setup with React Query
+- [ ] State management with Zustand
+- [ ] Route protection and role-based access
 
 ### Core UI Components
 - [ ] **Layout Components**
@@ -289,14 +239,10 @@ Complete modernization of the ResearchTools intelligence analysis platform from 
   - [ ] Dark/light theme toggle
 
 - [ ] **Authentication UI**
-  - [x] Login/registration forms (current implementation)
-  - [ ] **Hash-based Authentication Migration**
-    - [ ] Replace username/password with hash-based login
-    - [ ] Hash generation and regeneration interface
-    - [ ] Secure hash storage and validation
-    - [ ] Migration tool for existing accounts
-  - [ ] User profile management enhancements
-  - [ ] Role-based feature access refinement
+  - [ ] Login/registration forms
+  - [ ] Password reset flow
+  - [ ] User profile management
+  - [ ] Role-based feature access
 
 - [ ] **Data Visualization Components**
   - [ ] Interactive charts for framework outputs

@@ -111,7 +111,7 @@ const frameworks = [
     category: 'Relationship Mapping',
     complexity: 'Beginner',
     estimatedTime: '15-25 min',
-    available: false
+    available: true
   },
   {
     id: 'trend',
@@ -123,7 +123,7 @@ const frameworks = [
     category: 'Forecasting',
     complexity: 'Intermediate',
     estimatedTime: '30-40 min',
-    available: false
+    available: true
   },
   {
     id: 'surveillance',
@@ -135,7 +135,7 @@ const frameworks = [
     category: 'Intelligence',
     complexity: 'Advanced',
     estimatedTime: '45-60 min',
-    available: false
+    available: true
   }
 ]
 

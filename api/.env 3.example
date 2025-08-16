@@ -1,0 +1,72 @@
+# OmniCore API Configuration
+# Copy this file to .env and update with your values
+
+# Environment
+ENVIRONMENT=development
+PROJECT_NAME="OmniCore Intelligence Analysis Platform"
+VERSION=0.1.0
+
+# Security
+SECRET_KEY=your-secret-key-here-change-in-production
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Database
+POSTGRES_SERVER=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=omnicore
+POSTGRES_PASSWORD=omnicore_dev
+POSTGRES_DB=omnicore
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_PASSWORD=
+
+# OpenAI Configuration (GPT-5 for Intel Analysis)
+OPENAI_API_KEY=your-openai-api-key-here
+OPENAI_MODEL=gpt-5-mini  # Options: gpt-5, gpt-5-mini, gpt-5-nano
+OPENAI_MAX_TOKENS=2000
+OPENAI_TEMPERATURE=0.7
+
+# Local LLM (Ollama) - Optional fallback
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+USE_LOCAL_LLM=false
+
+# CORS
+BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:8080,http://localhost
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# File Storage
+UPLOAD_DIR=uploads
+MAX_UPLOAD_SIZE=10485760  # 10MB in bytes
+
+# External APIs
+WAYBACK_MACHINE_API_URL=https://web.archive.org
+
+# Social Media APIs (Optional)
+REDDIT_CLIENT_ID=
+REDDIT_CLIENT_SECRET=
+REDDIT_USER_AGENT="OmniCore:1.0.0 (by /u/omnicore)"
+TWITTER_BEARER_TOKEN=
+
+# Rate Limiting
+RATE_LIMIT_PER_MINUTE=60
+
+# Logging
+LOG_LEVEL=INFO
+
+# Email (Optional - for notifications)
+SMTP_TLS=true
+SMTP_PORT=587
+SMTP_HOST=
+SMTP_USER=
+SMTP_PASSWORD=
+EMAILS_FROM_EMAIL=
+EMAILS_FROM_NAME=
+
+# Monitoring
+ENABLE_METRICS=false
+METRICS_PORT=9090
