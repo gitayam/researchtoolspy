@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
-import type { User, AuthTokens, LoginRequest, RegisterRequest } from '@/types/auth'
+import type { User, AuthTokens, LoginRequest, RegisterRequest, HashLoginRequest } from '@/types/auth'
 import { apiClient, type APIError } from '@/lib/api'
 
 interface AuthState {
@@ -12,6 +12,7 @@ interface AuthState {
 
   // Actions
   login: (credentials: LoginRequest) => Promise<void>
+  loginWithHash: (hashCredentials: HashLoginRequest) => Promise<void>
   register: (userData: RegisterRequest) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
@@ -46,6 +47,27 @@ export const useAuthStore = create<AuthState>()(
             set({
               isLoading: false,
               error: apiError.message || 'Login failed'
+            })
+            throw error
+          }
+        },
+
+        loginWithHash: async (hashCredentials: HashLoginRequest) => {
+          set({ isLoading: true, error: null })
+          
+          try {
+            const response = await apiClient.loginWithHash(hashCredentials)
+            set({
+              user: response.user,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null
+            })
+          } catch (error) {
+            const apiError = error as APIError
+            set({
+              isLoading: false,
+              error: apiError.message || 'Hash login failed'
             })
             throw error
           }

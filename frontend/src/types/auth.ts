@@ -8,6 +8,7 @@ export interface User {
   is_verified: boolean
   organization?: string
   department?: string
+  account_hash?: string
   created_at: string
   updated_at: string
 }
@@ -29,6 +30,10 @@ export interface AuthTokens {
 export interface LoginRequest {
   username: string
   password: string
+}
+
+export interface HashLoginRequest {
+  account_hash: string
 }
 
 export interface RegisterRequest {
