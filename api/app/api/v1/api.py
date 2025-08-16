@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     ach,
     auth,
+    behavioral,
     cog,
     deception,
     dotmlpf,
@@ -32,3 +33,4 @@ api_router.include_router(pmesii_pt.router, prefix="/frameworks/pmesii-pt", tags
 api_router.include_router(ach.router, prefix="/frameworks/ach", tags=["ach-analysis"])
 api_router.include_router(dotmlpf.router, prefix="/frameworks/dotmlpf", tags=["dotmlpf-analysis"])
 api_router.include_router(deception.router, prefix="/frameworks/deception", tags=["deception-detection"])
+api_router.include_router(behavioral.router, prefix="/frameworks/behavioral", tags=["behavioral-analysis"])
