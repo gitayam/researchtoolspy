@@ -34,6 +34,7 @@ class FrameworkSessionResponse(BaseModel):
     version: int
     created_at: str
     updated_at: str
+    user_id: str
     
     class Config:
         from_attributes = True
@@ -85,6 +86,7 @@ async def list_framework_sessions(
             version=1,
             created_at="2024-01-01T00:00:00Z",
             updated_at="2024-01-01T00:00:00Z",
+            user_id=current_user.username,
         ),
         FrameworkSessionResponse(
             id=2,
@@ -183,14 +185,27 @@ async def get_framework_session(
             framework_type=FrameworkType.SWOT,
             status=FrameworkStatus.IN_PROGRESS,
             data={
-                "strengths": ["Strong brand", "Good technology"],
-                "weaknesses": ["High costs", "Limited reach"],
-                "opportunities": ["New markets", "Digital transformation"],
-                "threats": ["Competition", "Economic downturn"]
+                "strengths": [
+                    {"id": "1", "text": "Strong brand recognition and customer loyalty"},
+                    {"id": "2", "text": "Advanced technology stack and capabilities"}
+                ],
+                "weaknesses": [
+                    {"id": "3", "text": "High operational costs compared to competitors"},
+                    {"id": "4", "text": "Limited market reach in key demographics"}
+                ],
+                "opportunities": [
+                    {"id": "5", "text": "Expansion into emerging markets"},
+                    {"id": "6", "text": "Digital transformation initiatives"}
+                ],
+                "threats": [
+                    {"id": "7", "text": "Increased competition from new entrants"},
+                    {"id": "8", "text": "Economic downturn affecting consumer spending"}
+                ]
             },
             version=1,
             created_at="2024-01-01T00:00:00Z",
             updated_at="2024-01-01T00:00:00Z",
+            user_id=current_user.username,
         )
     
     raise HTTPException(

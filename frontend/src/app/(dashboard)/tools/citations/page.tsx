@@ -113,7 +113,7 @@ export default function CitationManager() {
       citation.authors.some(author => author.toLowerCase().includes(searchTerm.toLowerCase())) ||
       citation.sourceName?.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesTag = filterTag === '' || citation.tags.includes(filterTag)
+    const matchesTag = filterTag === '' || filterTag === 'all' || citation.tags.includes(filterTag)
     
     return matchesSearch && matchesTag
   })
@@ -293,7 +293,7 @@ export default function CitationManager() {
                     <SelectValue placeholder="Filter by tag" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All tags</SelectItem>
+                    <SelectItem value="all">All tags</SelectItem>
                     {allTags.map(tag => (
                       <SelectItem key={tag} value={tag}>{tag}</SelectItem>
                     ))}
