@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Save, Shield, Wifi, Briefcase, DollarSign, Trash2 } from 'lucide-react'
+import { Plus, Save, Shield, Wifi, Briefcase, DollarSign, Trash2, Globe, Target, Map } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
 
@@ -26,7 +27,12 @@ export default function CreateDIMEPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
+  const [scenario, setScenario] = useState('')
+  const [region, setRegion] = useState('')
+  const [timeframe, setTimeframe] = useState('')
+  const [strategicObjective, setStrategicObjective] = useState('')
+  const [urlInput, setUrlInput] = useState('')
+  const [urls, setUrls] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   
   const [dimeData, setDIMEData] = useState<DIMEData>({
@@ -63,6 +69,50 @@ export default function CreateDIMEPage() {
     }))
   }
 
+  const addUrl = () => {
+    if (urlInput.trim() && !urls.includes(urlInput.trim())) {
+      setUrls(prev => [...prev, urlInput.trim()])
+      setUrlInput('')
+    }
+  }
+
+  const removeUrl = (urlToRemove: string) => {
+    setUrls(prev => prev.filter(url => url !== urlToRemove))
+  }
+
+  const scrapeUrls = async () => {
+    if (urls.length === 0) {
+      toast({
+        title: 'No URLs',
+        description: 'Please add URLs to scrape',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    try {
+      // Start scraping job for the URLs
+      const scrapingRequest = urls.length === 1 
+        ? { url: urls[0], extract_images: false, extract_links: true, follow_redirects: true, max_depth: 1, delay_seconds: 1.0 }
+        : { urls: urls, extract_images: false, extract_links: true, follow_redirects: true, delay_seconds: 1.0 }
+
+      const endpoint = urls.length === 1 ? '/tools/web-scraping/scrape' : '/tools/web-scraping/scrape/batch'
+      const response = await apiClient.post(endpoint, scrapingRequest)
+
+      toast({
+        title: 'Scraping Started',
+        description: `Started scraping ${urls.length} URL(s). Results will be available in the Tools > Web Scraping section.`,
+      })
+
+    } catch (error: any) {
+      toast({
+        title: 'Scraping Error',
+        description: error.message || 'Failed to start web scraping',
+        variant: 'destructive'
+      })
+    }
+  }
+
   const handleSave = async () => {
     if (!title.trim()) {
       toast({
@@ -73,29 +123,34 @@ export default function CreateDIMEPage() {
       return
     }
 
+    if (!scenario.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please provide a scenario for your DIME analysis',
+        variant: 'destructive'
+      })
+      return
+    }
+
     setSaving(true)
     try {
       const payload = {
         title: title.trim(),
-        description: description.trim(),
-        framework_type: 'dime',
-        data: {
-          diplomatic: dimeData.diplomatic.filter(item => item.text.trim()),
-          information: dimeData.information.filter(item => item.text.trim()),
-          military: dimeData.military.filter(item => item.text.trim()),
-          economic: dimeData.economic.filter(item => item.text.trim())
-        },
-        status: 'draft'
+        scenario: scenario.trim(),
+        region: region.trim() || undefined,
+        timeframe: timeframe.trim() || undefined,
+        strategic_objective: strategicObjective.trim() || undefined,
+        request_ai_analysis: true
       }
 
-      const response = await apiClient.post<{ id: string }>('/frameworks/sessions/', payload)
+      const response = await apiClient.post<{ session_id: number }>('/frameworks/dime/', payload)
       
       toast({
         title: 'Success',
-        description: 'DIME analysis saved successfully'
+        description: 'DIME analysis created successfully'
       })
 
-      router.push(`/frameworks/dime/${response.id}`)
+      router.push(`/frameworks/dime/${response.session_id}`)
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -170,14 +225,15 @@ export default function CreateDIMEPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
+            <Target className="h-5 w-5" />
             Analysis Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Title</label>
+            <Label htmlFor="title">Title</Label>
             <Input
+              id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Regional Power Assessment"
@@ -185,15 +241,109 @@ export default function CreateDIMEPage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Description (optional)</label>
+            <Label htmlFor="scenario">Scenario (Situation Context)</Label>
             <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of the analysis scope and objectives..."
+              id="scenario"
+              value={scenario}
+              onChange={(e) => setScenario(e.target.value)}
+              placeholder="Describe the situation, background, and context for this analysis..."
               className="mt-1"
               rows={3}
             />
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="strategic-objective">Strategic Objective (Goal)</Label>
+              <Input
+                id="strategic-objective"
+                value={strategicObjective}
+                onChange={(e) => setStrategicObjective(e.target.value)}
+                placeholder="e.g., Assess regional stability"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="region">Region</Label>
+              <Input
+                id="region"
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                placeholder="e.g., Southeast Asia"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="timeframe">Timeframe</Label>
+            <Input
+              id="timeframe"
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value)}
+              placeholder="e.g., 6 months, Q1 2024"
+              className="mt-1"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* URL Scraping Integration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            URL Scraping Integration
+          </CardTitle>
+          <CardDescription>
+            Add URLs to scrape for relevant information to inform your DIME analysis
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="url-input">Add URLs for Analysis</Label>
+            <div className="flex gap-2 mt-1">
+              <Input
+                id="url-input"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://example.com/relevant-article"
+                onKeyPress={(e) => e.key === 'Enter' && addUrl()}
+              />
+              <Button type="button" onClick={addUrl} disabled={!urlInput.trim()}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add
+              </Button>
+            </div>
+          </div>
+          
+          {urls.length > 0 && (
+            <div className="space-y-2">
+              <Label>URLs to Scrape ({urls.length})</Label>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {urls.map((url, index) => (
+                  <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                    <span className="text-sm truncate flex-1 mr-2">{url}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeUrl(url)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button 
+                type="button" 
+                onClick={scrapeUrls} 
+                variant="outline" 
+                className="w-full"
+              >
+                <Globe className="h-4 w-4 mr-2" />
+                Start Scraping URLs
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
