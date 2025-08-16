@@ -21,6 +21,8 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/utils'
+import { ErrorState } from '@/components/ui/error-state'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface StarburstingSession {
   id: string
@@ -52,19 +54,22 @@ export default function StarburstingViewPage() {
   const { toast } = useToast()
   const [session, setSession] = useState<StarburstingSession | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchSession = async () => {
       try {
+        setError(null)
         const data = await apiClient.get<StarburstingSession>(`/frameworks/sessions/${params.id}`)
         setSession(data)
       } catch (error: any) {
+        const errorMessage = error.message || 'Failed to load Starbursting analysis'
+        setError(errorMessage)
         toast({
           title: 'Error',
-          description: error.message || 'Failed to load Starbursting analysis',
+          description: errorMessage,
           variant: 'destructive'
         })
-        router.push('/frameworks')
       } finally {
         setLoading(false)
       }
@@ -73,7 +78,24 @@ export default function StarburstingViewPage() {
     if (params.id) {
       fetchSession()
     }
-  }, [params.id, router, toast])
+  }, [params.id, toast])
+
+  const retryFetch = () => {
+    setLoading(true)
+    setError(null)
+    const fetchSession = async () => {
+      try {
+        const data = await apiClient.get<StarburstingSession>(`/frameworks/sessions/${params.id}`)
+        setSession(data)
+      } catch (error: any) {
+        const errorMessage = error.message || 'Failed to load Starbursting analysis'
+        setError(errorMessage)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchSession()
+  }
 
   const handleEdit = () => {
     router.push(`/frameworks/starbursting/${params.id}/edit`)
@@ -102,17 +124,62 @@ export default function StarburstingViewPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading Starbursting analysis...</p>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex items-start justify-between">
+          <div className="space-y-1 flex-1">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-6 w-20" />
+            </div>
+            <Skeleton className="h-4 w-96" />
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-20" />
+            <Skeleton className="h-10 w-20" />
+            <Skeleton className="h-10 w-16" />
+          </div>
+        </div>
+
+        {/* Cards Skeleton */}
+        <div className="space-y-6">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-96 w-full" />
         </div>
       </div>
     )
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <ErrorState
+          title="Failed to Load Analysis"
+          description="There was an error loading your Starbursting analysis."
+          error={error}
+          onRetry={retryFetch}
+          showHomeButton={true}
+        />
+      </div>
+    )
+  }
+
   if (!session) {
-    return null
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <ErrorState
+          title="Analysis Not Found"
+          description="The requested Starbursting analysis could not be found."
+          showHomeButton={true}
+        />
+      </div>
+    )
   }
 
   const statusColors = {

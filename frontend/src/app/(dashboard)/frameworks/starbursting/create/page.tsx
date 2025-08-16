@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Save, Lightbulb, Globe, HelpCircle, Trash2, Calculator, Brain } from 'lucide-react'
+import { Plus, Save, Lightbulb, Globe, HelpCircle, Trash2, Calculator, Brain, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
+import { useErrorHandler } from '@/components/error-boundary'
 
 interface Question {
   id: string
@@ -28,6 +29,7 @@ interface FiveWAnalysis {
 export default function CreateStarburstingPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const handleError = useErrorHandler()
   const [title, setTitle] = useState('')
   const [centralIdea, setCentralIdea] = useState('')
   const [urlInput, setUrlInput] = useState('')
@@ -43,6 +45,7 @@ export default function CreateStarburstingPage() {
   const [saving, setSaving] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [loadingQuestions, setLoadingQuestions] = useState(false)
+  const [urlError, setUrlError] = useState<string | null>(null)
 
   const addQuestion = () => {
     const newQuestion: Question = {
@@ -74,6 +77,8 @@ export default function CreateStarburstingPage() {
     }
 
     setProcessing(true)
+    setUrlError(null)
+    
     try {
       // Use the web scraping API to process the URL
       const response = await apiClient.post('/tools/web-scraping/scrape', {
@@ -96,13 +101,22 @@ export default function CreateStarburstingPage() {
           title: 'URL Processed',
           description: 'Content extracted and 5W analysis performed'
         })
+      } else {
+        throw new Error('No content could be extracted from the URL')
       }
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to process URL'
+      setUrlError(errorMessage)
       toast({
         title: 'Processing Error',
-        description: error.message || 'Failed to process URL',
+        description: errorMessage,
         variant: 'destructive'
       })
+      
+      // Log error for debugging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('URL processing error:', error)
+      }
     } finally {
       setProcessing(false)
     }
@@ -208,7 +222,7 @@ Content: ${content.substring(0, 2000)}...`
           processed_content: processedContent,
           five_w_analysis: fiveWAnalysis,
           questions: questions.filter(q => q.text.trim()),
-          url_source: urlInput
+          url_source: urlInput.trim() || undefined
         }
       }
 
@@ -221,11 +235,19 @@ Content: ${content.substring(0, 2000)}...`
 
       router.push(`/frameworks/starbursting/${response.id}`)
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to save Starbursting analysis'
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to save Starbursting analysis',
+        title: 'Save Error',
+        description: errorMessage,
         variant: 'destructive'
       })
+      
+      // Log error for debugging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Save error:', error)
+      }
+      
+      // Don't navigate away from page on error
     } finally {
       setSaving(false)
     }
@@ -293,7 +315,10 @@ Content: ${content.substring(0, 2000)}...`
             <div className="flex gap-2 mt-1">
               <Input
                 value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
+                onChange={(e) => {
+                  setUrlInput(e.target.value)
+                  setUrlError(null) // Clear error when user types
+                }}
                 placeholder="https://example.com/article"
                 className="flex-1"
               />
@@ -306,6 +331,15 @@ Content: ${content.substring(0, 2000)}...`
                 {processing ? 'Processing...' : 'Process URL'}
               </Button>
             </div>
+            {urlError && (
+              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex items-center gap-2 text-red-700">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Processing Error</span>
+                </div>
+                <p className="text-sm text-red-600 mt-1">{urlError}</p>
+              </div>
+            )}
           </div>
           
           {processedContent && (

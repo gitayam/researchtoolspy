@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -45,9 +46,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <QueryProvider>
-          {children}
-        </QueryProvider>
+        <ErrorBoundary>
+          <QueryProvider>
+            {children}
+          </QueryProvider>
+        </ErrorBoundary>
         <ServiceWorkerRegistration />
       </body>
     </html>

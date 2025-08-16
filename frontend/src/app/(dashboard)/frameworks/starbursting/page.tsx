@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/utils'
+import { SessionListSkeleton } from '@/components/loading/session-card-skeleton'
 
 interface StarburstingSession {
   id: string
@@ -58,11 +59,53 @@ export default function StarburstingPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading Starbursting analyses...</p>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Starbursting Framework</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Explore ideas through systematic questioning and 5W analysis
+            </p>
+          </div>
+          <Button disabled>
+            <Plus className="h-4 w-4 mr-2" />
+            New Analysis
+          </Button>
         </div>
+
+        {/* Framework Description */}
+        <Card className="border-2 border-dashed border-blue-300 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5" />
+              About Starbursting Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700 mb-4">
+              Starbursting is a brainstorming technique that focuses on generating questions rather than answers. 
+              It helps systematically explore topics by asking Who, What, Where, When, Why, and How questions.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="bg-white p-3 rounded-lg">
+                <h4 className="font-medium text-blue-800">Central Idea</h4>
+                <p className="text-sm text-gray-600">Start with a topic or URL</p>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <h4 className="font-medium text-blue-800">5W Questions</h4>
+                <p className="text-sm text-gray-600">Who, What, Where, When, Why</p>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <h4 className="font-medium text-blue-800">URL Processing</h4>
+                <p className="text-sm text-gray-600">Extract key insights from links</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Loading Sessions */}
+        <SessionListSkeleton />
       </div>
     )
   }

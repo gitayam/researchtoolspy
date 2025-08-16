@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
   Target, 
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { FrameworkListSkeleton } from '@/components/loading/framework-card-skeleton'
 
 const frameworks = [
   {
@@ -155,6 +157,36 @@ const frameworks = [
 const categories = ['All', 'Strategic Planning', 'Military Strategy', 'Environmental Analysis', 'Hypothesis Testing', 'National Power', 'Competitive Analysis', 'Relationship Mapping', 'Forecasting', 'Research', 'Question Analysis']
 
 export default function FrameworksPage() {
+  const [loading, setLoading] = useState(true)
+
+  // Simulate loading state for initial render
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold">Analysis Frameworks</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Choose from 10 research analysis frameworks to structure your research and analysis
+          </p>
+        </div>
+
+        {/* Loading Frameworks */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4 text-green-700 dark:text-green-400">Available Frameworks</h2>
+          <FrameworkListSkeleton />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
