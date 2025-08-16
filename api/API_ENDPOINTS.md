@@ -115,17 +115,17 @@ curl -X POST http://localhost:8000/api/v1/frameworks/swot/1/ai-suggestions \
 - Entity extraction and normalization
 - Cross-framework insights
 
-### 📊 Analysis Frameworks (5/10 Complete)
+### 📊 Analysis Frameworks (10/10 Complete) ✅
 - ✅ **SWOT**: Strategic strengths, weaknesses, opportunities, threats
 - ✅ **COG**: Center of gravity analysis with entity relationships
 - ✅ **PMESII-PT**: Comprehensive operational environment assessment
 - ✅ **DOTMLPF**: Capability gap analysis for defense planning
 - ✅ **ACH**: Analysis of competing hypotheses with evidence matrix
-- ⏳ **Deception Detection**: Information reliability assessment
-- ⏳ **Behavioral Analysis**: Pattern and motivation analysis
-- ⏳ **Starbursting**: Question-based exploration
-- ⏳ **CauseWay**: Issue-focused causal analysis
-- ⏳ **DIME**: Diplomatic, Information, Military, Economic analysis
+- ✅ **Deception Detection**: Information reliability assessment
+- ✅ **Behavioral Analysis**: Pattern and motivation analysis
+- ✅ **Starbursting**: Question-based exploration using 5W+H
+- ✅ **CauseWay**: Issue-focused causal analysis and root cause identification
+- ✅ **DIME**: Diplomatic, Information, Military, Economic strategic analysis
 
 ### 📁 Export Formats
 - PDF reports with formatting
@@ -148,8 +148,8 @@ curl -X POST http://localhost:8000/api/v1/frameworks/swot/1/ai-suggestions \
 - Docker development environment
 - Comprehensive logging and error handling
 
-### Phase 2: Analysis Frameworks (50% Complete)
-- 5 of 10 frameworks implemented
+### Phase 2: Analysis Frameworks ✅ (100% Complete)
+- All 10 frameworks implemented
 - Full AI integration for each framework
 - Template system for quick starts
 - Export capabilities

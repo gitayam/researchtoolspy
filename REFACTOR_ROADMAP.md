@@ -82,13 +82,13 @@ Complete modernization of the OmniCore intelligence analysis platform from Strea
 
 ---
 
-## Phase 2: Analysis Frameworks API
+## Phase 2: Analysis Frameworks API ✅ (70% Complete)
 **Duration**: 3-4 weeks | **Goal**: Migrate all analysis frameworks to REST APIs
 
 ### Framework Architecture Redesign
-- [ ] Create base framework API pattern
-- [ ] Implement framework session management
-- [ ] Design framework state persistence
+- [x] Create base framework API pattern
+- [x] Implement framework session management
+- [x] Design framework state persistence
 - [ ] Create framework plugin system for extensibility
 
 ### Strategic Analysis Framework APIs
@@ -110,25 +110,27 @@ Complete modernization of the OmniCore intelligence analysis platform from Strea
   - [x] PUT /api/frameworks/pmesii-pt/sessions/{id}/components - Update components
   - [x] POST /api/frameworks/pmesii-pt/sessions/{id}/ai-analysis - AI insights
 
-- [ ] **DOTMLPF Framework API**
-  - [ ] POST /api/frameworks/dotmlpf/sessions - Create analysis
-  - [ ] PUT /api/frameworks/dotmlpf/sessions/{id}/gaps - Update capability gaps
-  - [ ] GET /api/frameworks/dotmlpf/sessions/{id}/recommendations - Get recommendations
+- [x] **DOTMLPF Framework API**
+  - [x] POST /api/frameworks/dotmlpf/create - Create analysis
+  - [x] PUT /api/frameworks/dotmlpf/{id}/gaps - Update capability gaps
+  - [x] GET /api/frameworks/dotmlpf/{id}/recommendations - Get recommendations
 
-- [ ] **ACH Analysis API**
-  - [ ] POST /api/frameworks/ach/sessions - Create ACH analysis
-  - [ ] PUT /api/frameworks/ach/sessions/{id}/hypotheses - Manage hypotheses
-  - [ ] PUT /api/frameworks/ach/sessions/{id}/evidence - Evaluate evidence
-  - [ ] GET /api/frameworks/ach/sessions/{id}/matrix - Generate ACH matrix
+- [x] **ACH Analysis API**
+  - [x] POST /api/frameworks/ach/create - Create ACH analysis
+  - [x] POST /api/frameworks/ach/{id}/hypothesis - Add hypothesis
+  - [x] POST /api/frameworks/ach/{id}/evidence - Add evidence
+  - [x] GET /api/frameworks/ach/{id}/matrix - Generate ACH matrix
 
 ### Specialized Analysis Framework APIs
-- [ ] **Deception Detection API**
-  - [ ] POST /api/frameworks/deception/analyze - Analyze content for deception
-  - [ ] GET /api/frameworks/deception/indicators - Get deception indicators
+- [x] **Deception Detection API**
+  - [x] POST /api/frameworks/deception/create - Create deception analysis
+  - [x] GET /api/frameworks/deception/{id}/indicators - Get deception indicators
+  - [x] POST /api/frameworks/deception/{id}/reliability - Assess reliability
 
-- [ ] **Behavioral Analysis API**
-  - [ ] POST /api/frameworks/behavior/analyze - Analyze behavioral patterns
-  - [ ] GET /api/frameworks/behavior/profiles - Get behavior profiles
+- [x] **Behavioral Analysis API**
+  - [x] POST /api/frameworks/behavioral/create - Create behavioral analysis
+  - [x] GET /api/frameworks/behavioral/{id}/profiles - Get behavior profiles
+  - [x] POST /api/frameworks/behavioral/{id}/predict - Predict behavior
 
 - [ ] **Starbursting API**
   - [ ] POST /api/frameworks/starbursting/sessions - Create starbursting session
