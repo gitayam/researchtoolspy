@@ -51,25 +51,31 @@ def create_application() -> FastAPI:
     )
 
     # Security middleware
-    # Allow CORS for development - be more permissive
-    cors_origins = []
-    if settings.BACKEND_CORS_ORIGINS:
-        cors_origins = [str(origin) for origin in settings.BACKEND_CORS_ORIGINS]
-    
-    # For development, add common frontend origins if none specified
-    if settings.ENVIRONMENT == "development" and not cors_origins:
+    # CORS configuration for development
+    if settings.ENVIRONMENT == "development":
         cors_origins = [
             "http://localhost:3000",
             "http://localhost:3003", 
             "http://127.0.0.1:3000",
             "http://127.0.0.1:3003"
         ]
-    
-    # Always add CORS middleware in development
-    if settings.ENVIRONMENT == "development" or cors_origins:
+        
+        # Override with environment variable if set
+        if settings.BACKEND_CORS_ORIGINS:
+            cors_origins.extend([str(origin) for origin in settings.BACKEND_CORS_ORIGINS])
+        
         app.add_middleware(
             CORSMiddleware,
             allow_origins=cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        print(f"CORS configured for development with origins: {cors_origins}")
+    elif settings.BACKEND_CORS_ORIGINS:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
