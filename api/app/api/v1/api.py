@@ -4,7 +4,7 @@ Main API router for v1 endpoints.
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, cog, frameworks, health, swot, users
+from app.api.v1.endpoints import auth, cog, frameworks, health, pmesii_pt, swot, users
 
 api_router = APIRouter()
 
@@ -17,3 +17,4 @@ api_router.include_router(frameworks.router, prefix="/frameworks", tags=["framew
 # Analysis Framework Endpoints
 api_router.include_router(swot.router, prefix="/frameworks/swot", tags=["swot-analysis"])
 api_router.include_router(cog.router, prefix="/frameworks/cog", tags=["cog-analysis"])
+api_router.include_router(pmesii_pt.router, prefix="/frameworks/pmesii-pt", tags=["pmesii-pt-analysis"])

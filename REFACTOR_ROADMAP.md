@@ -105,10 +105,10 @@ Complete modernization of the OmniCore intelligence analysis platform from Strea
   - [x] POST /api/frameworks/cog/sessions/{id}/normalize - AI normalization
   - [x] GET /api/frameworks/cog/sessions/{id}/report - Generate report
 
-- [ ] **PMESII-PT Framework API**
-  - [ ] POST /api/frameworks/pmesii-pt/sessions - Create analysis
-  - [ ] PUT /api/frameworks/pmesii-pt/sessions/{id}/components - Update components
-  - [ ] POST /api/frameworks/pmesii-pt/sessions/{id}/ai-analysis - AI insights
+- [x] **PMESII-PT Framework API**
+  - [x] POST /api/frameworks/pmesii-pt/sessions - Create analysis
+  - [x] PUT /api/frameworks/pmesii-pt/sessions/{id}/components - Update components
+  - [x] POST /api/frameworks/pmesii-pt/sessions/{id}/ai-analysis - AI insights
 
 - [ ] **DOTMLPF Framework API**
   - [ ] POST /api/frameworks/dotmlpf/sessions - Create analysis
