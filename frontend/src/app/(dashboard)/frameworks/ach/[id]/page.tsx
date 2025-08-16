@@ -13,7 +13,11 @@ import {
   X,
   Calendar,
   Eye,
-  TrendingUp
+  TrendingUp,
+  BarChart3,
+  Calculator,
+  Trophy,
+  Brain
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -135,14 +139,40 @@ export default function ACHViewPage() {
 
   const calculateHypothesisScore = (hypothesisId: string) => {
     const scores = session.data.evidence.map(e => e.hypotheses_scores[hypothesisId]).filter(Boolean)
-    if (scores.length === 0) return { supports: 0, contradicts: 0, neutral: 0, not_applicable: 0 }
+    if (scores.length === 0) return { supports: 0, contradicts: 0, neutral: 0, not_applicable: 0, weightedScore: 0 }
     
-    return {
+    const counts = {
       supports: scores.filter(s => s === 'supports').length,
       contradicts: scores.filter(s => s === 'contradicts').length,
       neutral: scores.filter(s => s === 'neutral').length,
       not_applicable: scores.filter(s => s === 'not_applicable').length
     }
+    
+    // Calculate weighted score based on legacy ACH implementation
+    // Supports = +1, Contradicts = -1, Neutral = 0, N/A = 0
+    const weightedScore = counts.supports * 1.0 + counts.contradicts * -1.0
+    
+    return { ...counts, weightedScore }
+  }
+  
+  const calculateAllHypothesesScores = () => {
+    const hypothesesWithScores = session.data.hypotheses.map(hypothesis => {
+      const score = calculateHypothesisScore(hypothesis.id)
+      return {
+        ...hypothesis,
+        ...score
+      }
+    })
+    
+    // Sort by weighted score (highest first)
+    return hypothesesWithScores.sort((a, b) => b.weightedScore - a.weightedScore)
+  }
+  
+  const performAnalysis = () => {
+    toast({
+      title: 'Analysis Complete',
+      description: 'Hypotheses ranked by consistency scores'
+    })
   }
 
   const statusColors = {
@@ -235,6 +265,66 @@ export default function ACHViewPage() {
         </CardContent>
       </Card>
 
+      {/* Hypothesis Ranking */}
+      <Card className="border-2 border-dashed border-orange-300 bg-orange-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Hypothesis Ranking (by Weighted Score)
+          </CardTitle>
+          <CardDescription>
+            Ranked by consistency scores - higher scores indicate stronger hypotheses
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {calculateAllHypothesesScores().map((hypothesis, index) => {
+              const rank = index + 1
+              const isTop = index < 3
+              
+              return (
+                <div key={hypothesis.id} className={`flex items-center gap-3 p-3 rounded-lg border ${
+                  rank === 1 ? 'border-green-300 bg-green-50' :
+                  rank === 2 ? 'border-blue-300 bg-blue-50' :
+                  rank === 3 ? 'border-yellow-300 bg-yellow-50' :
+                  'border-gray-200 bg-white'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <Badge 
+                      variant={isTop ? "default" : "outline"}
+                      className={
+                        rank === 1 ? 'bg-green-600' :
+                        rank === 2 ? 'bg-blue-600' :
+                        rank === 3 ? 'bg-yellow-600' : ''
+                      }
+                    >
+                      #{rank}
+                    </Badge>
+                    {rank === 1 && <Trophy className="h-4 w-4 text-yellow-600" />}
+                  </div>
+                  
+                  <div className="flex-1">
+                    <p className="text-sm font-medium leading-relaxed">{hypothesis.text}</p>
+                  </div>
+                  
+                  <div className="text-right">
+                    <div className={`text-lg font-bold ${
+                      hypothesis.weightedScore > 0 ? 'text-green-600' : 
+                      hypothesis.weightedScore < 0 ? 'text-red-600' : 'text-gray-600'
+                    }`}>
+                      {hypothesis.weightedScore > 0 ? '+' : ''}{hypothesis.weightedScore}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {hypothesis.supports}S / {hypothesis.contradicts}C
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Hypotheses Analysis */}
       <Card>
         <CardHeader>
@@ -242,19 +332,63 @@ export default function ACHViewPage() {
             <Search className="h-5 w-5" />
             Hypotheses Analysis
           </CardTitle>
+          <div className="flex gap-2 mt-4">
+            <Button 
+              onClick={performAnalysis}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Calculator className="h-4 w-4" />
+              Analyze Hypotheses
+            </Button>
+            <Button 
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => {
+                const scores = calculateAllHypothesesScores()
+                toast({
+                  title: 'Strongest Hypothesis',
+                  description: `"${scores[0]?.text}" has the highest score (${scores[0]?.weightedScore})`
+                })
+              }}
+            >
+              <Trophy className="h-4 w-4" />
+              Show Best Hypothesis
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {session.data.hypotheses.map((hypothesis, index) => {
-              const scores = calculateHypothesisScore(hypothesis.id)
-              const total = scores.supports + scores.contradicts + scores.neutral + scores.not_applicable
+            {calculateAllHypothesesScores().map((hypothesis, index) => {
+              const total = hypothesis.supports + hypothesis.contradicts + hypothesis.neutral + hypothesis.not_applicable
+              const isStrongest = index === 0
               
               return (
-                <div key={hypothesis.id} className="border rounded-lg p-4">
+                <div key={hypothesis.id} className={`border rounded-lg p-4 ${
+                  isStrongest ? 'border-green-300 bg-green-50' : ''
+                }`}>
                   <div className="flex items-start gap-3 mb-3">
-                    <Badge variant="outline" className="mt-1">H{index + 1}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={isStrongest ? "default" : "outline"} className="mt-1">
+                        H{index + 1}
+                      </Badge>
+                      {isStrongest && <Trophy className="h-4 w-4 text-yellow-600" />}
+                    </div>
                     <div className="flex-1">
-                      <p className="text-sm leading-relaxed">{hypothesis.text}</p>
+                      <p className="text-sm leading-relaxed font-medium">{hypothesis.text}</p>
+                      <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
+                        <span className={`font-medium ${
+                          hypothesis.weightedScore > 0 ? 'text-green-600' : 
+                          hypothesis.weightedScore < 0 ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                          Score: {hypothesis.weightedScore}
+                        </span>
+                        {isStrongest && (
+                          <Badge variant="secondary" className="text-xs">
+                            Strongest Hypothesis
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
@@ -263,22 +397,22 @@ export default function ACHViewPage() {
                       <div className="grid grid-cols-4 gap-2 text-center text-xs">
                         <div className="flex flex-col items-center gap-1">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="font-medium">{scores.supports}</span>
+                          <span className="font-medium">{hypothesis.supports}</span>
                           <span className="text-gray-500">Supports</span>
                         </div>
                         <div className="flex flex-col items-center gap-1">
                           <AlertCircle className="h-4 w-4 text-yellow-600" />
-                          <span className="font-medium">{scores.neutral}</span>
+                          <span className="font-medium">{hypothesis.neutral}</span>
                           <span className="text-gray-500">Neutral</span>
                         </div>
                         <div className="flex flex-col items-center gap-1">
                           <XCircle className="h-4 w-4 text-red-600" />
-                          <span className="font-medium">{scores.contradicts}</span>
+                          <span className="font-medium">{hypothesis.contradicts}</span>
                           <span className="text-gray-500">Contradicts</span>
                         </div>
                         <div className="flex flex-col items-center gap-1">
                           <X className="h-4 w-4 text-gray-400" />
-                          <span className="font-medium">{scores.not_applicable}</span>
+                          <span className="font-medium">{hypothesis.not_applicable}</span>
                           <span className="text-gray-500">N/A</span>
                         </div>
                       </div>
