@@ -63,7 +63,7 @@ export default function LandingPage() {
                 <Zap className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold text-gray-900 dark:text-white">
-                OmniCore
+                ResearchTools
               </span>
             </div>
             <div className="flex items-center gap-4">
@@ -81,18 +81,23 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto text-center">
+          <div className="mb-6">
+            <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/20 px-4 py-2 text-sm font-medium text-blue-800 dark:text-blue-300">
+              🎉 Free for IrregularChat Community
+            </span>
+          </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-            Advanced Intelligence
-            <span className="text-blue-600 block">Analysis Platform</span>
+            <span className="text-blue-600">ResearchTools</span>
+            <span className="block text-gray-900 dark:text-white">Advanced Intelligence Analysis Platform</span>
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
             Streamline your intelligence analysis workflow with 10 specialized frameworks, 
-            AI-powered insights, and comprehensive research tools designed for analysts and researchers.
+            AI-powered insights, and comprehensive research tools. ResearchTools is a free service for the IrregularChat community.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
               <Button size="lg" className="text-lg px-8 py-3">
-                Start Free Trial
+                Get Started
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -116,7 +121,7 @@ export default function LandingPage() {
               Everything You Need for Intelligence Analysis
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              From strategic planning to threat assessment, OmniCore provides the tools 
+              From strategic planning to threat assessment, ResearchTools provides the tools 
               and frameworks professional analysts trust.
             </p>
           </div>
@@ -191,7 +196,7 @@ export default function LandingPage() {
                 Ready to Transform Your Analysis Workflow?
               </h2>
               <p className="text-blue-100 mb-6 text-lg">
-                Join intelligence professionals who trust OmniCore for their critical analysis work.
+                Join intelligence professionals who trust ResearchTools for their critical analysis work.
               </p>
               <Link href="/register">
                 <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
@@ -211,10 +216,10 @@ export default function LandingPage() {
             <div className="h-6 w-6 rounded bg-blue-600 flex items-center justify-center">
               <Zap className="h-4 w-4 text-white" />
             </div>
-            <span className="font-bold text-gray-900 dark:text-white">OmniCore</span>
+            <span className="font-bold text-gray-900 dark:text-white">ResearchTools</span>
           </div>
           <p className="text-gray-600 dark:text-gray-400">
-            Intelligence Analysis Platform • Built for Professionals
+            Intelligence Analysis Platform • Free for IrregularChat Community
           </p>
         </div>
       </footer>
