@@ -8,12 +8,15 @@ from app.api.v1.endpoints import (
     ach,
     auth,
     behavioral,
+    causeway,
     cog,
     deception,
+    dime,
     dotmlpf,
     frameworks,
     health,
     pmesii_pt,
+    starbursting,
     swot,
     users,
 )
@@ -34,3 +37,6 @@ api_router.include_router(ach.router, prefix="/frameworks/ach", tags=["ach-analy
 api_router.include_router(dotmlpf.router, prefix="/frameworks/dotmlpf", tags=["dotmlpf-analysis"])
 api_router.include_router(deception.router, prefix="/frameworks/deception", tags=["deception-detection"])
 api_router.include_router(behavioral.router, prefix="/frameworks/behavioral", tags=["behavioral-analysis"])
+api_router.include_router(starbursting.router, prefix="/frameworks/starbursting", tags=["starbursting-analysis"])
+api_router.include_router(causeway.router, prefix="/frameworks/causeway", tags=["causeway-analysis"])
+api_router.include_router(dime.router, prefix="/frameworks/dime", tags=["dime-analysis"])
