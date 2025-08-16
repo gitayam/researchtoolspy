@@ -11,7 +11,8 @@ import {
   Globe, 
   Users, 
   TrendingUp, 
-  Eye 
+  Eye,
+  Lightbulb
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -136,10 +137,22 @@ const frameworks = [
     complexity: 'Advanced',
     estimatedTime: '45-60 min',
     available: true
+  },
+  {
+    id: 'starbursting',
+    title: 'Starbursting',
+    description: 'Systematic questioning framework with 5W analysis and URL processing',
+    icon: Lightbulb,
+    color: 'bg-amber-500',
+    hoverColor: 'hover:bg-amber-600',
+    category: 'Question Analysis',
+    complexity: 'Intermediate',
+    estimatedTime: '30-45 min',
+    available: true
   }
 ]
 
-const categories = ['All', 'Strategic Planning', 'Military Strategy', 'Environmental Analysis', 'Hypothesis Testing', 'National Power', 'Competitive Analysis', 'Relationship Mapping', 'Forecasting', 'Research']
+const categories = ['All', 'Strategic Planning', 'Military Strategy', 'Environmental Analysis', 'Hypothesis Testing', 'National Power', 'Competitive Analysis', 'Relationship Mapping', 'Forecasting', 'Research', 'Question Analysis']
 
 export default function FrameworksPage() {
   return (
