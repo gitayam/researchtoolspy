@@ -83,7 +83,7 @@ export default function LoginPage() {
             Welcome to ResearchTools
           </CardTitle>
           <CardDescription className="text-center">
-            Intelligence Analysis Platform • Free for IrregularChat Community
+            Research Analysis Platform • Free for IrregularChat Community
           </CardDescription>
         </CardHeader>
         <CardContent>

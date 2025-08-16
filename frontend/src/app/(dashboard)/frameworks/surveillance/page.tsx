@@ -100,7 +100,7 @@ export default function SurveillanceAnalysisPage() {
           <p className="text-gray-600 mb-4">
             Surveillance Detection is a systematic approach to identifying potential surveillance activities 
             targeting individuals, organizations, or facilities. It involves recognizing indicators, 
-            patterns, and anomalies that may suggest hostile surveillance or intelligence gathering.
+            patterns, and anomalies that may suggest hostile surveillance or research gathering.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="flex items-start gap-3">

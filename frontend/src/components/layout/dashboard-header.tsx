@@ -46,7 +46,7 @@ export function DashboardHeader() {
         {/* Breadcrumbs / Page title */}
         <div className="flex items-center">
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Intelligence Analysis Platform
+            Research Analysis Platform
           </h1>
         </div>
 

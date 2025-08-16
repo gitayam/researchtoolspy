@@ -69,7 +69,7 @@ export default function DashboardPage() {
           Welcome back, {user?.full_name || user?.username}!
         </h1>
         <p className="text-blue-100">
-          Continue your intelligence analysis work or start a new framework.
+          Continue your research analysis work or start a new framework.
         </p>
       </div>
 
@@ -234,7 +234,7 @@ export default function DashboardPage() {
           <Plus className="h-12 w-12 text-gray-400 mb-4" />
           <h3 className="text-lg font-semibold mb-2">Start a New Analysis</h3>
           <p className="text-gray-500 text-center mb-4">
-            Choose from 10 intelligence analysis frameworks to begin your research
+            Choose from 10 research analysis frameworks to begin your research
           </p>
           <Link href="/frameworks">
             <Button>

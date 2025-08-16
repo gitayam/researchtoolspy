@@ -104,7 +104,7 @@ export default function RegisterPage() {
             Create Account
           </CardTitle>
           <CardDescription className="text-center">
-            Join the OmniCore Intelligence Platform
+            Join the ResearchTools Research Platform
           </CardDescription>
         </CardHeader>
         <CardContent>

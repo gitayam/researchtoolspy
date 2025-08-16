@@ -128,18 +128,18 @@ const frameworks = [
   {
     id: 'surveillance',
     title: 'Surveillance Analysis',
-    description: 'Systematic monitoring and analysis framework for intelligence gathering',
+    description: 'Systematic monitoring and analysis framework for research gathering',
     icon: Eye,
     color: 'bg-gray-500',
     hoverColor: 'hover:bg-gray-600',
-    category: 'Intelligence',
+    category: 'Research',
     complexity: 'Advanced',
     estimatedTime: '45-60 min',
     available: true
   }
 ]
 
-const categories = ['All', 'Strategic Planning', 'Military Strategy', 'Environmental Analysis', 'Hypothesis Testing', 'National Power', 'Competitive Analysis', 'Relationship Mapping', 'Forecasting', 'Intelligence']
+const categories = ['All', 'Strategic Planning', 'Military Strategy', 'Environmental Analysis', 'Hypothesis Testing', 'National Power', 'Competitive Analysis', 'Relationship Mapping', 'Forecasting', 'Research']
 
 export default function FrameworksPage() {
   return (
@@ -148,7 +148,7 @@ export default function FrameworksPage() {
       <div>
         <h1 className="text-2xl font-bold">Analysis Frameworks</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Choose from 10 intelligence analysis frameworks to structure your research and analysis
+          Choose from 10 research analysis frameworks to structure your research and analysis
         </p>
       </div>
 

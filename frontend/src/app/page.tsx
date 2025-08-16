@@ -23,7 +23,7 @@ export default function LandingPage() {
     {
       icon: Brain,
       title: "10 Analysis Frameworks",
-      description: "SWOT, COG, PMESII-PT, ACH, DOTMLPF, and more specialized intelligence frameworks"
+      description: "SWOT, COG, PMESII-PT, ACH, DOTMLPF, and more specialized research frameworks"
     },
     {
       icon: Zap,
@@ -88,10 +88,10 @@ export default function LandingPage() {
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
             <span className="text-blue-600">ResearchTools</span>
-            <span className="block text-gray-900 dark:text-white">Advanced Intelligence Analysis Platform</span>
+            <span className="block text-gray-900 dark:text-white">Advanced Research Analysis Platform</span>
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-            Streamline your intelligence analysis workflow with 10 specialized frameworks, 
+            Streamline your research analysis workflow with 10 specialized frameworks, 
             AI-powered insights, and comprehensive research tools. ResearchTools is a free service for the IrregularChat community.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -118,7 +118,7 @@ export default function LandingPage() {
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Everything You Need for Intelligence Analysis
+              Everything You Need for Research Analysis
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               From strategic planning to threat assessment, ResearchTools provides the tools 
@@ -154,7 +154,7 @@ export default function LandingPage() {
               Professional Analysis Frameworks
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300">
-              Industry-standard intelligence analysis methodologies at your fingertips
+              Industry-standard research analysis methodologies at your fingertips
             </p>
           </div>
 
@@ -196,7 +196,7 @@ export default function LandingPage() {
                 Ready to Transform Your Analysis Workflow?
               </h2>
               <p className="text-blue-100 mb-6 text-lg">
-                Join intelligence professionals who trust ResearchTools for their critical analysis work.
+                Join research professionals who trust ResearchTools for their critical analysis work.
               </p>
               <Link href="/register">
                 <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
@@ -219,7 +219,7 @@ export default function LandingPage() {
             <span className="font-bold text-gray-900 dark:text-white">ResearchTools</span>
           </div>
           <p className="text-gray-600 dark:text-gray-400">
-            Intelligence Analysis Platform • Free for IrregularChat Community
+            Research Analysis Platform • Free for IrregularChat Community
           </p>
         </div>
       </footer>

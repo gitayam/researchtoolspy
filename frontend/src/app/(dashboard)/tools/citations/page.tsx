@@ -69,7 +69,7 @@ export default function CitationManager() {
       mla: 'Clark, Robert M. Intelligence Analysis: A Target-Centric Approach. CQ Press, 2016.',
       chicago: 'Clark, Robert M. Intelligence Analysis: A Target-Centric Approach. CQ Press, 2016.',
       bibtex: '@book{clark2016intelligence,\n  title={Intelligence Analysis: A Target-Centric Approach},\n  author={Clark, Robert M.},\n  year={2016},\n  publisher={CQ Press}\n}',
-      tags: ['intelligence', 'analysis', 'methodology'],
+      tags: ['research', 'analysis', 'methodology'],
       reliabilityRating: 5,
       relevanceRating: 5,
       addedAt: new Date().toISOString(),
@@ -519,7 +519,7 @@ export default function CitationManager() {
                     ...prev, 
                     tags: e.target.value.split(',').map(t => t.trim()).filter(t => t) 
                   }))}
-                  placeholder="intelligence, analysis, research"
+                  placeholder="research, analysis, methodology"
                 />
               </div>
 

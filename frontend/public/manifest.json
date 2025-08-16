@@ -1,7 +1,7 @@
 {
-  "name": "ResearchTools - Intelligence Analysis Platform",
+  "name": "ResearchTools - Research Analysis Platform",
   "short_name": "ResearchTools",
-  "description": "Modern intelligence analysis platform with advanced frameworks and research tools",
+  "description": "Modern research analysis platform with advanced frameworks and research tools",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

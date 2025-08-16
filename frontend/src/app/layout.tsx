@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ResearchTools - Intelligence Analysis Platform",
-  description: "Advanced intelligence analysis platform with 10 analytical frameworks and comprehensive research tools",
+  title: "ResearchTools - Research Analysis Platform",
+  description: "Advanced research analysis platform with 10 analytical frameworks and comprehensive research tools",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
