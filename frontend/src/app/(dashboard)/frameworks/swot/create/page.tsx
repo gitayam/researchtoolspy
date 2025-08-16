@@ -77,25 +77,23 @@ export default function CreateSWOTPage() {
     try {
       const payload = {
         title: title.trim(),
-        description: description.trim(),
-        framework_type: 'swot',
-        data: {
-          strengths: swotData.strengths.filter(item => item.text.trim()),
-          weaknesses: swotData.weaknesses.filter(item => item.text.trim()),
-          opportunities: swotData.opportunities.filter(item => item.text.trim()),
-          threats: swotData.threats.filter(item => item.text.trim())
-        },
-        status: 'draft'
+        objective: title.trim(), // Use title as objective for now
+        context: description.trim(),
+        initial_strengths: swotData.strengths.filter(item => item.text.trim()).map(item => item.text),
+        initial_weaknesses: swotData.weaknesses.filter(item => item.text.trim()).map(item => item.text),
+        initial_opportunities: swotData.opportunities.filter(item => item.text.trim()).map(item => item.text),
+        initial_threats: swotData.threats.filter(item => item.text.trim()).map(item => item.text),
+        request_ai_suggestions: false
       }
 
-      const response = await apiClient.post<{ id: string }>('/frameworks/sessions/', payload)
+      const response = await apiClient.post<{ session_id: number }>('/frameworks/swot/', payload)
       
       toast({
         title: 'Success',
         description: 'SWOT analysis saved successfully'
       })
 
-      router.push(`/frameworks/swot/${response.id}`)
+      router.push(`/frameworks/swot/${response.session_id}`)
     } catch (error: any) {
       toast({
         title: 'Error',
