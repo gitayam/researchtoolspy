@@ -65,15 +65,18 @@ class Settings(BaseSettings):
     
     @computed_field  # type: ignore[misc]
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
-        return MultiHostUrl.build(
+    def SQLALCHEMY_DATABASE_URI(self) -> str:
+        # Use SQLite for local development if PostgreSQL is not available
+        if self.ENVIRONMENT == "development":
+            return "sqlite+aiosqlite:///./omnicore.db"
+        return str(MultiHostUrl.build(
             scheme="postgresql+asyncpg",
             username=self.POSTGRES_USER,
             password=self.POSTGRES_PASSWORD,
             host=self.POSTGRES_SERVER,
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
-        )
+        ))
     
     # Redis Configuration
     REDIS_HOST: str = "localhost"

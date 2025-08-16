@@ -99,11 +99,11 @@ Complete modernization of the OmniCore intelligence analysis platform from Strea
   - [x] POST /api/frameworks/swot/sessions/{id}/ai-suggestions - Get AI insights
   - [x] POST /api/frameworks/swot/sessions/{id}/export - Export to PDF/Word
 
-- [ ] **COG Analysis API**
-  - [ ] POST /api/frameworks/cog/sessions - Create COG analysis
-  - [ ] PUT /api/frameworks/cog/sessions/{id}/entities - Update entities
-  - [ ] POST /api/frameworks/cog/sessions/{id}/normalize - AI normalization
-  - [ ] GET /api/frameworks/cog/sessions/{id}/report - Generate report
+- [x] **COG Analysis API**
+  - [x] POST /api/frameworks/cog/sessions - Create COG analysis
+  - [x] PUT /api/frameworks/cog/sessions/{id}/entities - Update entities
+  - [x] POST /api/frameworks/cog/sessions/{id}/normalize - AI normalization
+  - [x] GET /api/frameworks/cog/sessions/{id}/report - Generate report
 
 - [ ] **PMESII-PT Framework API**
   - [ ] POST /api/frameworks/pmesii-pt/sessions - Create analysis

@@ -20,15 +20,23 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 # Create async engine
-engine = create_async_engine(
-    str(settings.SQLALCHEMY_DATABASE_URI),
-    echo=settings.ENVIRONMENT == "development",
-    future=True,
-    pool_size=settings.DB_POOL_SIZE,
-    max_overflow=settings.DB_MAX_OVERFLOW,
-    pool_timeout=settings.DB_POOL_TIMEOUT,
-    poolclass=NullPool if settings.ENVIRONMENT == "testing" else None,
-)
+if "sqlite" in str(settings.SQLALCHEMY_DATABASE_URI):
+    # SQLite doesn't support these pool settings
+    engine = create_async_engine(
+        str(settings.SQLALCHEMY_DATABASE_URI),
+        echo=settings.ENVIRONMENT == "development",
+        future=True,
+    )
+else:
+    engine = create_async_engine(
+        str(settings.SQLALCHEMY_DATABASE_URI),
+        echo=settings.ENVIRONMENT == "development",
+        future=True,
+        pool_size=settings.DB_POOL_SIZE,
+        max_overflow=settings.DB_MAX_OVERFLOW,
+        pool_timeout=settings.DB_POOL_TIMEOUT,
+        poolclass=NullPool if settings.ENVIRONMENT == "testing" else None,
+    )
 
 # Create async session factory
 AsyncSessionLocal = async_sessionmaker(
