@@ -75,7 +75,7 @@ const frameworks = [
     category: 'National Power',
     complexity: 'Intermediate',
     estimatedTime: '30-45 min',
-    available: false
+    available: true
   },
   {
     id: 'vrio',
@@ -87,7 +87,7 @@ const frameworks = [
     category: 'Competitive Analysis',
     complexity: 'Intermediate',
     estimatedTime: '20-30 min',
-    available: false
+    available: true
   },
   {
     id: 'pest',
@@ -99,7 +99,7 @@ const frameworks = [
     category: 'Environmental Analysis',
     complexity: 'Beginner',
     estimatedTime: '20-30 min',
-    available: false
+    available: true
   },
   {
     id: 'stakeholder',
