@@ -20,6 +20,13 @@ from app.api.v1.endpoints import (
     swot,
     users,
 )
+from app.api.v1.endpoints.tools import (
+    citations,
+    document_processing,
+    social_media,
+    url_processing,
+    web_scraping,
+)
 
 api_router = APIRouter()
 
@@ -40,3 +47,10 @@ api_router.include_router(behavioral.router, prefix="/frameworks/behavioral", ta
 api_router.include_router(starbursting.router, prefix="/frameworks/starbursting", tags=["starbursting-analysis"])
 api_router.include_router(causeway.router, prefix="/frameworks/causeway", tags=["causeway-analysis"])
 api_router.include_router(dime.router, prefix="/frameworks/dime", tags=["dime-analysis"])
+
+# Research Tools Endpoints
+api_router.include_router(url_processing.router, prefix="/tools/url", tags=["url-processing"])
+api_router.include_router(citations.router, prefix="/tools/citations", tags=["citation-management"])
+api_router.include_router(web_scraping.router, prefix="/tools/scraping", tags=["web-scraping"])
+api_router.include_router(social_media.router, prefix="/tools/social-media", tags=["social-media"])
+api_router.include_router(document_processing.router, prefix="/tools/documents", tags=["document-processing"])
