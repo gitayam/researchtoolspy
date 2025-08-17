@@ -34,114 +34,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatRelativeTime } from '@/lib/utils'
 
 // Mock data for teams and workspaces
-const mockTeams = [
-  {
-    id: '1',
-    name: 'Strategic Research Team',
-    description: 'Cross-functional team focused on strategic analysis and planning',
-    members: 8,
-    activeAnalyses: 12,
-    created_at: '2024-01-01T00:00:00Z',
-    role: 'admin',
-    avatar: 'ST'
-  },
-  {
-    id: '2', 
-    name: 'Cyber Research Unit',
-    description: 'Specialized team for cybersecurity research and incident analysis',
-    members: 5,
-    activeAnalyses: 7,
-    created_at: '2024-01-15T00:00:00Z',
-    role: 'member',
-    avatar: 'CR'
-  }
-]
+const mockTeams: any[] = []
 
-const mockCollaborators = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@research.org',
-    role: 'Senior Research Analyst',
-    team: 'Strategic Research Team',
-    status: 'online',
-    lastActive: '2024-01-16T10:30:00Z',
-    avatar: 'SJ',
-    contributions: 23
-  },
-  {
-    id: '2',
-    name: 'Mike Chen',
-    email: 'mike.chen@research.org', 
-    role: 'Research Analyst',
-    team: 'Cyber Research Unit',
-    status: 'offline',
-    lastActive: '2024-01-16T08:15:00Z',
-    avatar: 'MC',
-    contributions: 18
-  },
-  {
-    id: '3',
-    name: 'Alex Rivera',
-    email: 'alex.rivera@research.org',
-    role: 'Research Analyst',
-    team: 'Strategic Research Team',
-    status: 'away',
-    lastActive: '2024-01-16T09:45:00Z',
-    avatar: 'AR',
-    contributions: 31
-  }
-]
+const mockCollaborators: any[] = []
 
-const mockSharedAnalyses = [
-  {
-    id: '1',
-    title: 'Q1 Strategic Assessment',
-    framework: 'SWOT',
-    sharedBy: 'Sarah Johnson',
-    sharedWith: 'Strategic Research Team',
-    permissions: 'edit',
-    lastActivity: '2024-01-16T11:00:00Z',
-    comments: 5
-  },
-  {
-    id: '2',
-    title: 'Incident Attribution Analysis',
-    framework: 'ACH',
-    sharedBy: 'Mike Chen',
-    sharedWith: 'You',
-    permissions: 'view',
-    lastActivity: '2024-01-16T09:30:00Z',
-    comments: 2
-  }
-]
+const mockSharedAnalyses: any[] = []
 
-const mockActivity = [
-  {
-    id: '1',
-    type: 'comment',
-    user: 'Sarah Johnson',
-    action: 'commented on',
-    target: 'Q1 Strategic Assessment',
-    timestamp: '2024-01-16T11:15:00Z'
-  },
-  {
-    id: '2',
-    type: 'share',
-    user: 'Mike Chen',
-    action: 'shared',
-    target: 'Incident Attribution Analysis',
-    timestamp: '2024-01-16T10:45:00Z'
-  },
-  {
-    id: '3',
-    type: 'edit',
-    user: 'Alex Rivera',
-    action: 'edited',
-    target: 'Market Analysis Framework',
-    timestamp: '2024-01-16T10:30:00Z'
-  }
-]
+const mockActivity: any[] = []
 
 const statusColors = {
   'online': 'bg-green-500',

@@ -15,41 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // Mock data for demonstration
-const mockAnalyses = [
-  {
-    id: '1',
-    title: 'Market Entry Environmental Scan',
-    description: 'PEST analysis for new market entry strategy',
-    political: 7,
-    economic: 8,
-    social: 6,
-    technological: 9,
-    lastUpdated: '2024-01-15',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Annual Strategic Review',
-    description: 'Comprehensive PEST analysis for annual planning',
-    political: 6,
-    economic: 7,
-    social: 8,
-    technological: 8,
-    lastUpdated: '2024-01-12',
-    status: 'completed'
-  },
-  {
-    id: '3',
-    title: 'Industry Disruption Assessment',
-    description: 'Analyzing macro-environmental factors affecting the industry',
-    political: 5,
-    economic: 6,
-    social: 7,
-    technological: 10,
-    lastUpdated: '2024-01-10',
-    status: 'draft'
-  }
-]
+const mockAnalyses: any[] = []
 
 export default function PESTListPage() {
   const [searchTerm, setSearchTerm] = useState('')

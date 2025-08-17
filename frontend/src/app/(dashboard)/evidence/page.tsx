@@ -15,15 +15,7 @@ import { Evidence, EvidenceType, EvidenceStatus, CredibilityLevel, EvidenceFilte
 import { cn } from '@/lib/utils'
 
 // Mock data for development
-const mockEvidence: Evidence[] = [
-  {
-    id: '1',
-    title: 'Market Analysis Report Q4 2024',
-    description: 'Comprehensive market analysis showing competitor movements and industry trends',
-    content: 'Detailed analysis of market conditions...',
-    type: EvidenceType.REPORT,
-    status: EvidenceStatus.VERIFIED,
-    tags: ['market', 'competition', 'quarterly', 'strategic'],
+const mockEvidence: Evidence[] = [],
     source: {
       name: 'Internal Research Team',
       date: new Date('2024-01-15'),
@@ -116,19 +108,39 @@ const mockEvidence: Evidence[] = [
 ]
 
 const mockStats: EvidenceStatistics = {
-  total_count: 156,
+  total_count: 0,
   by_type: {
-    [EvidenceType.DOCUMENT]: 45,
-    [EvidenceType.URL]: 32,
-    [EvidenceType.REPORT]: 28,
-    [EvidenceType.SOCIAL_MEDIA]: 18,
-    [EvidenceType.IMAGE]: 12,
-    [EvidenceType.VIDEO]: 8,
-    [EvidenceType.EMAIL]: 7,
-    [EvidenceType.AUDIO]: 3,
-    [EvidenceType.TEXT]: 2,
-    [EvidenceType.OTHER]: 1
+    [EvidenceType.DOCUMENT]: 0,
+    [EvidenceType.URL]: 0,
+    [EvidenceType.REPORT]: 0,
+    [EvidenceType.SOCIAL_MEDIA]: 0,
+    [EvidenceType.IMAGE]: 0,
+    [EvidenceType.VIDEO]: 0,
+    [EvidenceType.EMAIL]: 0,
+    [EvidenceType.AUDIO]: 0,
+    [EvidenceType.TEXT]: 0,
+    [EvidenceType.OTHER]: 0
   },
+  by_status: {
+    [EvidenceStatus.VERIFIED]: 0,
+    [EvidenceStatus.DRAFT]: 0,
+    [EvidenceStatus.DISPUTED]: 0,
+    [EvidenceStatus.ARCHIVED]: 0
+  },
+  by_credibility: {
+    [CredibilityLevel.VERY_HIGH]: 0,
+    [CredibilityLevel.HIGH]: 0,
+    [CredibilityLevel.MODERATE]: 0,
+    [CredibilityLevel.LOW]: 0,
+    [CredibilityLevel.VERY_LOW]: 0,
+    [CredibilityLevel.UNKNOWN]: 0
+  },
+  recent_additions: 0,
+  pending_evaluation: 0,
+  expiring_soon: 0,
+  most_used_tags: [],
+  framework_usage: []
+},
   by_status: {
     [EvidenceStatus.VERIFIED]: 89,
     [EvidenceStatus.DRAFT]: 34,

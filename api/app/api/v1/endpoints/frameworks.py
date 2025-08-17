@@ -159,37 +159,7 @@ async def get_framework_session(
     # TODO: Implement actual database query
     logger.info(f"Getting framework session {session_id}")
     
-    if session_id == 1:
-        return FrameworkSessionResponse(
-            id=1,
-            title="Sample SWOT Analysis",
-            description="Analysis of competitive landscape",
-            framework_type=FrameworkType.SWOT,
-            status=FrameworkStatus.IN_PROGRESS,
-            data={
-                "strengths": [
-                    {"id": "1", "text": "Strong brand recognition and customer loyalty"},
-                    {"id": "2", "text": "Advanced technology stack and capabilities"}
-                ],
-                "weaknesses": [
-                    {"id": "3", "text": "High operational costs compared to competitors"},
-                    {"id": "4", "text": "Limited market reach in key demographics"}
-                ],
-                "opportunities": [
-                    {"id": "5", "text": "Expansion into emerging markets"},
-                    {"id": "6", "text": "Digital transformation initiatives"}
-                ],
-                "threats": [
-                    {"id": "7", "text": "Increased competition from new entrants"},
-                    {"id": "8", "text": "Economic downturn affecting consumer spending"}
-                ]
-            },
-            version=1,
-            created_at="2024-01-01T00:00:00Z",
-            updated_at="2024-01-01T00:00:00Z",
-            user_id=current_user.username,
-        )
-    
+    # No sample data - always return not found until real DB is implemented
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Framework session not found"
@@ -221,25 +191,11 @@ async def update_framework_session(
     # TODO: Implement actual database update
     logger.info(f"Updating framework session {session_id}")
     
-    # Get existing session (mock)
-    if session_id != 1:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Framework session not found"
-        )
-    
-    # Return updated mock session
-    return FrameworkSessionResponse(
-        id=1,
-        title=update_data.title or "Sample SWOT Analysis",
-        description=update_data.description or "Analysis of competitive landscape",
-        framework_type=FrameworkType.SWOT,
-        status=update_data.status or FrameworkStatus.IN_PROGRESS,
-        data=update_data.data or {"strengths": [], "weaknesses": [], "opportunities": [], "threats": []},
-        version=2,
-        created_at="2024-01-01T00:00:00Z",
-        updated_at="2024-01-03T00:00:00Z",
-        user_id=current_user.username,
+    # TODO: Implement actual database update
+    # No sample data - always return not found until real DB is implemented
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Framework session not found"
     )
 
 
@@ -266,10 +222,8 @@ async def delete_framework_session(
     # TODO: Implement actual database deletion
     logger.info(f"Deleting framework session {session_id}")
     
-    if session_id != 1:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Framework session not found"
-        )
-    
-    return {"message": "Framework session deleted successfully"}
+    # No sample data - always return not found until real DB is implemented
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Framework session not found"
+    )

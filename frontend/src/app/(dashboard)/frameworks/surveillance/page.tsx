@@ -15,41 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // Mock data for demonstration
-const mockAnalyses = [
-  {
-    id: '1',
-    title: 'Corporate Security Assessment',
-    description: 'Comprehensive surveillance detection for corporate facilities and operations',
-    indicators: 24,
-    criticalIndicators: 3,
-    counterMeasures: 12,
-    riskLevel: 'elevated',
-    lastUpdated: '2024-01-15',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Executive Protection Surveillance',
-    description: 'Personal security surveillance detection for executive team',
-    indicators: 18,
-    criticalIndicators: 2,
-    counterMeasures: 15,
-    riskLevel: 'normal',
-    lastUpdated: '2024-01-12',
-    status: 'completed'
-  },
-  {
-    id: '3',
-    title: 'Facility TSCM Assessment',
-    description: 'Technical surveillance countermeasures for sensitive facilities',
-    indicators: 32,
-    criticalIndicators: 5,
-    counterMeasures: 20,
-    riskLevel: 'critical',
-    lastUpdated: '2024-01-10',
-    status: 'draft'
-  }
-]
+const mockAnalyses: any[] = []
 
 export default function SurveillanceAnalysisPage() {
   const [searchTerm, setSearchTerm] = useState('')

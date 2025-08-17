@@ -15,41 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // Mock data for demonstration
-const mockAnalyses = [
-  {
-    id: '1',
-    title: 'Regional Power Projection Analysis',
-    description: 'DIME framework assessment of regional influence capabilities',
-    diplomatic: 8,
-    information: 7,
-    military: 6,
-    economic: 9,
-    lastUpdated: '2024-01-15',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Crisis Response Options',
-    description: 'Evaluating DIME instruments for emerging crisis scenario',
-    diplomatic: 6,
-    information: 8,
-    military: 5,
-    economic: 7,
-    lastUpdated: '2024-01-12',
-    status: 'completed'
-  },
-  {
-    id: '3',
-    title: 'Strategic Competition Assessment',
-    description: 'DIME analysis of great power competition dynamics',
-    diplomatic: 9,
-    information: 8,
-    military: 7,
-    economic: 8,
-    lastUpdated: '2024-01-10',
-    status: 'draft'
-  }
-]
+const mockAnalyses: any[] = []
 
 export default function DIMEListPage() {
   const [searchTerm, setSearchTerm] = useState('')

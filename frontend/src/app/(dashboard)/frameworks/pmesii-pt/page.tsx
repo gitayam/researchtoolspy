@@ -15,38 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // Mock data for demonstration
-const mockAnalyses = [
-  {
-    id: '1',
-    title: 'Southeast Asia Regional Assessment',
-    description: 'Comprehensive PMESII-PT analysis of regional dynamics and trends',
-    domains: 8,
-    criticalFactors: 24,
-    completeness: 85,
-    lastUpdated: '2024-01-15',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Urban Operations Environment',
-    description: 'PMESII-PT framework for metropolitan area operations',
-    domains: 8,
-    criticalFactors: 32,
-    completeness: 92,
-    lastUpdated: '2024-01-12',
-    status: 'completed'
-  },
-  {
-    id: '3',
-    title: 'Post-Conflict Stabilization Analysis',
-    description: 'Environmental assessment for stabilization operations',
-    domains: 8,
-    criticalFactors: 28,
-    completeness: 78,
-    lastUpdated: '2024-01-10',
-    status: 'draft'
-  }
-]
+const mockAnalyses: any[] = []
 
 export default function PMESIIPTListPage() {
   const [searchTerm, setSearchTerm] = useState('')

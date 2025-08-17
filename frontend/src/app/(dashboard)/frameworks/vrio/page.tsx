@@ -15,38 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // Mock data for demonstration
-const mockAnalyses = [
-  {
-    id: '1',
-    title: 'Core Competencies Assessment',
-    description: 'VRIO analysis of organizational core competencies and capabilities',
-    resources: 12,
-    sustainableAdvantages: 3,
-    temporaryAdvantages: 5,
-    lastUpdated: '2024-01-15',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Technology Stack Evaluation',
-    description: 'Analyzing competitive advantage of proprietary technology',
-    resources: 8,
-    sustainableAdvantages: 2,
-    temporaryAdvantages: 4,
-    lastUpdated: '2024-01-12',
-    status: 'completed'
-  },
-  {
-    id: '3',
-    title: 'Brand Portfolio Analysis',
-    description: 'VRIO assessment of brand value and market positioning',
-    resources: 15,
-    sustainableAdvantages: 5,
-    temporaryAdvantages: 6,
-    lastUpdated: '2024-01-10',
-    status: 'draft'
-  }
-]
+const mockAnalyses: any[] = []
 
 export default function VRIOListPage() {
   const [searchTerm, setSearchTerm] = useState('')

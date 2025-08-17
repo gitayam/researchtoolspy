@@ -15,41 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // Mock data for demonstration
-const mockAnalyses = [
-  {
-    id: '1',
-    title: 'Q1 2024 Strategic Review',
-    description: 'Quarterly SWOT analysis for strategic planning and decision making',
-    strengths: 5,
-    weaknesses: 4,
-    opportunities: 6,
-    threats: 3,
-    lastUpdated: '2024-01-15',
-    status: 'completed'
-  },
-  {
-    id: '2',
-    title: 'Product Launch Analysis',
-    description: 'SWOT analysis for new product line entering competitive market',
-    strengths: 7,
-    weaknesses: 3,
-    opportunities: 8,
-    threats: 5,
-    lastUpdated: '2024-01-12',
-    status: 'active'
-  },
-  {
-    id: '3',
-    title: 'Market Expansion Assessment',
-    description: 'Analysis of expansion into Southeast Asian markets',
-    strengths: 4,
-    weaknesses: 6,
-    opportunities: 9,
-    threats: 4,
-    lastUpdated: '2024-01-10',
-    status: 'draft'
-  }
-]
+const mockAnalyses: any[] = []
 
 export default function SWOTListPage() {
   const [searchTerm, setSearchTerm] = useState('')

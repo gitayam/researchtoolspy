@@ -15,38 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // Mock data for demonstration
-const mockAnalyses = [
-  {
-    id: '1',
-    title: 'Digital Transformation Stakeholder Map',
-    description: 'Comprehensive stakeholder analysis for company-wide digital transformation initiative',
-    stakeholderCount: 24,
-    highInfluence: 8,
-    champions: 5,
-    lastUpdated: '2024-01-15',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Q1 Product Launch Stakeholders',
-    description: 'Key stakeholders for new product line launch in North American markets',
-    stakeholderCount: 18,
-    highInfluence: 6,
-    champions: 3,
-    lastUpdated: '2024-01-10',
-    status: 'active'
-  },
-  {
-    id: '3',
-    title: 'Merger Integration Stakeholder Analysis',
-    description: 'Stakeholder mapping for post-merger integration activities',
-    stakeholderCount: 32,
-    highInfluence: 12,
-    champions: 7,
-    lastUpdated: '2024-01-08',
-    status: 'draft'
-  }
-]
+const mockAnalyses: any[] = []
 
 export default function StakeholderAnalysisPage() {
   const [searchTerm, setSearchTerm] = useState('')

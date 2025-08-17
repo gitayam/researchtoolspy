@@ -15,38 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // Mock data for demonstration
-const mockAnalyses = [
-  {
-    id: '1',
-    title: 'Competitor Strategic COG Analysis',
-    description: 'Identifying the center of gravity for main competitor operations',
-    cogElements: 12,
-    vulnerabilities: 5,
-    criticalFactors: 8,
-    lastUpdated: '2024-01-15',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Regional Stability Assessment',
-    description: 'COG analysis for regional power dynamics and stability factors',
-    cogElements: 15,
-    vulnerabilities: 7,
-    criticalFactors: 10,
-    lastUpdated: '2024-01-12',
-    status: 'completed'
-  },
-  {
-    id: '3',
-    title: 'Supply Chain COG Analysis',
-    description: 'Critical nodes and vulnerabilities in global supply chain',
-    cogElements: 18,
-    vulnerabilities: 9,
-    criticalFactors: 12,
-    lastUpdated: '2024-01-10',
-    status: 'draft'
-  }
-]
+const mockAnalyses: any[] = []
 
 export default function COGListPage() {
   const [searchTerm, setSearchTerm] = useState('')

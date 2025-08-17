@@ -15,41 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // Mock data for demonstration
-const mockAnalyses = [
-  {
-    id: '1',
-    title: 'Digital Transformation Trends 2024',
-    description: 'Analysis of technology adoption patterns and digital transformation trends',
-    trendCount: 8,
-    strongTrends: 3,
-    emergingTrends: 5,
-    timeframe: '2020-2025',
-    lastUpdated: '2024-01-15',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Consumer Behavior Shifts',
-    description: 'Tracking changes in consumer preferences and purchasing patterns',
-    trendCount: 12,
-    strongTrends: 5,
-    emergingTrends: 7,
-    timeframe: '2022-2024',
-    lastUpdated: '2024-01-12',
-    status: 'completed'
-  },
-  {
-    id: '3',
-    title: 'Geopolitical Risk Trends',
-    description: 'Monitoring geopolitical developments and their potential impacts',
-    trendCount: 15,
-    strongTrends: 6,
-    emergingTrends: 9,
-    timeframe: '2023-2025',
-    lastUpdated: '2024-01-10',
-    status: 'draft'
-  }
-]
+const mockAnalyses: any[] = []
 
 export default function TrendAnalysisPage() {
   const [searchTerm, setSearchTerm] = useState('')
