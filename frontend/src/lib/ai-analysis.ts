@@ -29,17 +29,19 @@ export async function generateExecutiveSummary(data: ACHExportData): Promise<AIA
     // Prepare analysis context
     const analysisContext = prepareAnalysisContext(data)
     
-    const prompt = `You are a senior intelligence analyst conducting an Analysis of Competing Hypotheses (ACH). Based on the following analysis data, provide a comprehensive executive summary and professional assessment.
+    const prompt = `You are a senior intelligence analyst conducting an Analysis of Competing Hypotheses (ACH). Based on the following analysis data, provide a professional assessment for a military commander's briefing.
 
 ANALYSIS CONTEXT:
 ${analysisContext}
 
 Please provide a structured response with:
 
-1. EXECUTIVE SUMMARY (2-3 paragraphs):
-   - Clear statement of the analytical question
-   - Key findings and the most likely hypothesis
-   - Confidence level and basis for assessment
+1. EXECUTIVE SUMMARY (single concise paragraph):
+   - Write as if briefing a commander (CDR) following ACH methodology principles
+   - Focus on hypotheses that can be dismissed/ruled out based on evidence
+   - Identify remaining viable hypotheses rather than selecting one "most likely"
+   - Emphasize what we can confidently eliminate vs. what remains plausible
+   - Keep it focused, direct, and tactical - no more than 4-5 sentences
 
 2. KEY FINDINGS (3-5 bullet points):
    - Most significant insights from the analysis
@@ -185,19 +187,19 @@ function generateFallbackAnalysis(data: ACHExportData): AIAnalysisResult {
   const hypothesisText = data.hypotheses.find(h => h.id === topHypothesis?.hypothesisId)?.text || 'Primary hypothesis'
 
   return {
-    executiveSummary: `This Analysis of Competing Hypotheses evaluated ${data.hypotheses.length} hypotheses against ${data.evidence.length} pieces of evidence using ${data.scaleType} scoring. The analysis identifies "${hypothesisText}" as the most likely explanation with a weighted score of ${topHypothesis?.weightedScore.toFixed(2) || 'N/A'} and ${topHypothesis?.confidenceLevel || 'unknown'} confidence. The assessment is based on systematic evaluation of evidence credibility and consistency across all hypotheses.`,
+    executiveSummary: `CDR, ACH analysis of ${data.hypotheses.length} competing hypotheses allows us to dismiss ${analysis.filter(h => h.rejectionThreshold).length} scenarios based on contradictory evidence. ${analysis.filter(h => !h.rejectionThreshold).length} hypotheses remain viable, with "${hypothesisText}" showing strongest support from available evidence. Key focus should be on continued collection to further eliminate remaining possibilities rather than committing to a single explanation.`,
     
     keyFindings: [
-      `Primary hypothesis "${hypothesisText}" received the highest weighted score`,
-      `${topHypothesis?.supportingEvidence || 0} pieces of evidence support the primary hypothesis`,
-      `Evidence evaluation includes SATS-based credibility assessment`,
-      `${analysis.filter(h => h.rejectionThreshold).length} hypotheses can be rejected based on available evidence`
+      `${analysis.filter(h => h.rejectionThreshold).length} hypotheses dismissed due to contradictory evidence`,
+      `${analysis.filter(h => !h.rejectionThreshold).length} hypotheses remain viable based on current evidence`,
+      `Evidence evaluation uses SATS-based credibility assessment for systematic analysis`,
+      `"${hypothesisText}" shows strongest evidence support among remaining viable options`
     ],
     
     recommendations: [
-      'Validate findings through additional evidence collection',
-      'Monitor for new information that could affect hypothesis rankings',
-      'Consider alternative explanations that remain viable'
+      'Focus collection efforts on evidence that could further eliminate remaining viable hypotheses',
+      'Avoid premature commitment to single explanation until alternatives are ruled out',
+      'Monitor indicators that could resurrect dismissed hypotheses or eliminate remaining ones'
     ],
     
     confidenceAssessment: `Overall confidence in the primary hypothesis is ${topHypothesis?.confidenceLevel || 'moderate'} based on the quantity and quality of available evidence. The assessment considers both the consistency of evidence with the hypothesis and the credibility of information sources as evaluated through SATS methodology.`,

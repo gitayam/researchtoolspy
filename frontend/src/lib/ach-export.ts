@@ -385,11 +385,6 @@ export async function exportToPDF(data: ACHExportData): Promise<ArrayBuffer> {
     doc.text(`Organization: ${data.organization}`, 105, 130, { align: 'center' })
   }
   
-  // Classification marking
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.text('FOR OFFICIAL USE ONLY', 105, 260, { align: 'center' })
-  
   // Executive Summary
   doc.addPage()
   currentY = 30
@@ -432,6 +427,36 @@ export async function exportToPDF(data: ACHExportData): Promise<ArrayBuffer> {
     currentY += 10
     doc.text(`Weighted Score: ${Math.round(topHypothesis.weightedScore * 100) / 100}`, 20, currentY)
   }
+  
+  // Methodology page (page 3)
+  doc.addPage()
+  currentY = 30
+  
+  doc.setFontSize(18)
+  doc.setFont('helvetica', 'bold')
+  doc.text('Methodology', 20, currentY)
+  currentY += 15
+  
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'normal')
+  
+  const methodologyText = `This Analysis of Competing Hypotheses (ACH) employed structured analytic techniques to evaluate ${data.hypotheses.length} competing hypotheses against ${data.evidence.length} pieces of evidence. The analysis used a ${data.scaleType} scoring scale to assess the consistency of each piece of evidence with each hypothesis.
+
+Evidence Evaluation: Each piece of evidence was evaluated using the Structured Analytic Techniques Standards (SATS) methodology, assessing factors including source classification, corroboration, bias potential, and access to information. Evidence credibility scores range from 1 (very low) to 13 (very high).
+
+Scoring Method: The ${data.scaleType} scale ${data.scaleType === 'logarithmic' ? 'uses Fibonacci sequence values (1, 3, 5, 8, 13) to better match human perception of differences in evidence strength' : 'uses linear values (1-5) for organizational consistency'}. Positive scores indicate evidence supports a hypothesis, negative scores indicate contradiction, and zero indicates neutrality.
+
+Weighting: Final hypothesis scores incorporate both consistency ratings and evidence credibility, ensuring that strong claims from weak sources receive appropriate weight adjustment.`
+  
+  const methodLines = doc.splitTextToSize(methodologyText, 170)
+  methodLines.forEach((line: string) => {
+    if (currentY > 270) {
+      doc.addPage()
+      currentY = 30
+    }
+    doc.text(line, 20, currentY)
+    currentY += 6
+  })
   
   // Key Findings
   if (aiAnalysis && aiAnalysis.keyFindings.length > 0) {
@@ -692,35 +717,7 @@ export async function exportToPDF(data: ACHExportData): Promise<ArrayBuffer> {
     }
   }
   
-  // Methodology Appendix
-  doc.addPage()
-  currentY = 30
-  
-  doc.setFontSize(18)
-  doc.setFont('helvetica', 'bold')
-  doc.text('Methodology', 20, currentY)
-  currentY += 15
-  
-  doc.setFontSize(12)
-  doc.setFont('helvetica', 'normal')
-  
-  const methodologyText = `This Analysis of Competing Hypotheses (ACH) employed structured analytic techniques to evaluate ${data.hypotheses.length} competing hypotheses against ${data.evidence.length} pieces of evidence. The analysis used a ${data.scaleType} scoring scale to assess the consistency of each piece of evidence with each hypothesis.
-
-Evidence Evaluation: Each piece of evidence was evaluated using the Structured Analytic Techniques Standards (SATS) methodology, assessing factors including source classification, corroboration, bias potential, and access to information. Evidence credibility scores range from 1 (very low) to 13 (very high).
-
-Scoring Method: The ${data.scaleType} scale ${data.scaleType === 'logarithmic' ? 'uses Fibonacci sequence values (1, 3, 5, 8, 13) to better match human perception of differences in evidence strength' : 'uses linear values (1-5) for organizational consistency'}. Positive scores indicate evidence supports a hypothesis, negative scores indicate contradiction, and zero indicates neutrality.
-
-Weighting: Final hypothesis scores incorporate both consistency ratings and evidence credibility, ensuring that strong claims from weak sources receive appropriate weight adjustment.`
-  
-  const methodLines = doc.splitTextToSize(methodologyText, 170)
-  methodLines.forEach((line: string) => {
-    if (currentY > 270) {
-      doc.addPage()
-      currentY = 30
-    }
-    doc.text(line, 20, currentY)
-    currentY += 6
-  })
+  // Additional Analysis Section (moved methodology to page 3)
   
   // Add page numbers
   const pageCount = doc.getNumberOfPages()
