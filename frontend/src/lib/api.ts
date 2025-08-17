@@ -161,64 +161,55 @@ export class APIClient {
 
   // Hash-based login (Mullvad-style)
   async loginWithHash(hashCredentials: HashLoginRequest): Promise<LoginResponse> {
-    // Mock implementation for development since backend doesn't support hash auth yet
-    const { TEST_ACCOUNT_HASH } = await import('@/lib/hash-auth')
-    
-    if (hashCredentials.account_hash === TEST_ACCOUNT_HASH) {
-      // Mock successful authentication
-      const mockTokens: AuthTokens = {
-        access_token: 'mock_access_token_' + Date.now(),
-        refresh_token: 'mock_refresh_token_' + Date.now(),
-        token_type: 'bearer',
-        expires_in: 3600
+    try {
+      // Use the new hash authentication endpoint
+      const response = await this.client.post<{
+        access_token: string
+        refresh_token: string
+        token_type: string
+        expires_in: number
+        account_hash: string
+        role: string
+      }>('/hash-auth/authenticate', hashCredentials)
+
+      const tokens: AuthTokens = {
+        access_token: response.data.access_token,
+        refresh_token: response.data.refresh_token,
+        token_type: response.data.token_type,
+        expires_in: response.data.expires_in
       }
-      
-      const mockUser: User = {
-        id: 1,
-        username: 'test_user',
-        email: 'test@researchtools.dev',
+
+      this.saveTokensToStorage(tokens)
+
+      // Create user from hash auth response
+      const user: User = {
+        id: 1, // Hash auth doesn't expose user IDs
+        username: `user_${hashCredentials.account_hash.substring(0, 8)}`,
+        email: 'anonymous@researchtools.dev',
         full_name: 'Research Analyst',
-        role: UserRole.ANALYST,
+        role: response.data.role as UserRole,
         is_active: true,
         is_verified: true,
-        account_hash: hashCredentials.account_hash,
+        account_hash: response.data.account_hash,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
-
-      this.saveTokensToStorage(mockTokens)
       
       return {
-        user: mockUser,
-        tokens: mockTokens
+        user,
+        tokens
       }
-    } else {
-      // Mock failed authentication
-      throw {
-        message: 'Invalid account hash',
-        status: 401,
-        details: { detail: 'Invalid account hash' }
+    } catch (error: any) {
+      // If hash auth fails, provide helpful error message
+      if (error.response?.status === 401) {
+        throw {
+          message: 'Invalid account hash. Please check your account number.',
+          status: 401,
+          details: error.response?.data
+        }
       }
+      throw error
     }
-
-    // TODO: Replace with real backend call when hash auth is implemented
-    /*
-    const response = await this.client.post<AuthTokens>('/auth/login-hash', hashCredentials, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-
-    this.saveTokensToStorage(response.data)
-
-    // Get user profile
-    const user = await this.getCurrentUser()
-    
-    return {
-      user,
-      tokens: response.data
-    }
-    */
   }
 
   async register(userData: RegisterRequest): Promise<User> {

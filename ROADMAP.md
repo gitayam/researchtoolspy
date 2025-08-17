@@ -169,11 +169,14 @@
   - Evidence credibility integration with quality adjustment algorithms
   - Real-time effective strength calculations and visual feedback
   - Professional intelligence analysis methodology implementation
+  - Government-standard exports: Excel matrices, PDF reports with AI summaries, Word docs, PowerPoint presentations
+  - ACH methodology aligned: Focus on hypothesis elimination rather than selection
+  - Commander-focused executive summaries using GPT-4o-mini
 - **All 5 Research Tools**: URL analysis, citations, web scraping, social media, and document processing
 - **10 Analysis Frameworks**: SWOT, COG, PMESII-PT, ACH, DIME, VRIO, PEST, Stakeholder, Trend, Surveillance
 - **Mobile-First Design**: Responsive layouts with collapsible sidebar and mobile optimization
 - **PWA Implementation**: Offline support, service worker, app installation, and native app experience
-- **Backend API**: FastAPI running successfully on localhost:8001 with CORS configuration
+- **Backend API**: FastAPI running successfully on localhost:8001 with CORS configuration for port 3380
 - **Comprehensive UI Library**: Radix UI components with consistent design system and dark mode support
 
 ## Remaining Issues 🚨
