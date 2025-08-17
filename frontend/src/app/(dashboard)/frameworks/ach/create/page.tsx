@@ -2,14 +2,43 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Save, Search, X, CheckCircle, XCircle, AlertCircle, Trash2, Calculator, BarChart3, Trophy } from 'lucide-react'
+import { 
+  Plus, 
+  Save, 
+  Search, 
+  X, 
+  Trash2, 
+  Calculator, 
+  BarChart3, 
+  Trophy,
+  Info,
+  ChevronRight,
+  AlertTriangle,
+  Scale
+} from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Slider } from '@/components/ui/slider'
+import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
+import { cn } from '@/lib/utils'
+import { TechniqueSnippet } from '@/components/frameworks/technique-snippets'
+import { ACHEnhancedScoring, ACHScaleSelection } from '@/components/frameworks/ach-enhanced-scoring'
+import { EvidenceEvaluationPanel } from '@/components/frameworks/evidence-evaluation-panel'
+import {
+  ScaleType,
+  ACHScore,
+  EvidenceWeight,
+  analyzeHypotheses,
+  convertLegacyScore,
+  getScoreOption,
+  LOGARITHMIC_SCORES,
+  LINEAR_SCORES
+} from '@/lib/ach-scoring'
 
 interface Hypothesis {
   id: string
@@ -19,12 +48,16 @@ interface Hypothesis {
 interface Evidence {
   id: string
   text: string
-  hypotheses_scores: { [hypothesisId: string]: 'supports' | 'contradicts' | 'neutral' | 'not_applicable' }
+  weight: EvidenceWeight
+  confidenceScore?: number
+  evaluationResponses?: Record<string, number>
 }
 
-interface ACHData {
+interface EnhancedACHData {
   hypotheses: Hypothesis[]
   evidence: Evidence[]
+  scores: Map<string, Map<string, ACHScore>> // evidenceId -> hypothesisId -> score
+  scaleType: ScaleType
 }
 
 export default function CreateACHPage() {
@@ -33,10 +66,14 @@ export default function CreateACHPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showSnippet, setShowSnippet] = useState(false)
+  const [selectedEvidenceForEval, setSelectedEvidenceForEval] = useState<string | null>(null)
   
-  const [achData, setACHData] = useState<ACHData>({
+  const [achData, setACHData] = useState<EnhancedACHData>({
     hypotheses: [],
-    evidence: []
+    evidence: [],
+    scores: new Map(),
+    scaleType: 'logarithmic'
   })
 
   const addHypothesis = () => {
@@ -58,30 +95,46 @@ export default function CreateACHPage() {
   }
 
   const removeHypothesis = (id: string) => {
-    setACHData(prev => ({
-      ...prev,
-      hypotheses: prev.hypotheses.filter(h => h.id !== id),
-      evidence: prev.evidence.map(e => ({
-        ...e,
-        hypotheses_scores: Object.fromEntries(
-          Object.entries(e.hypotheses_scores).filter(([hId]) => hId !== id)
-        )
-      }))
-    }))
+    setACHData(prev => {
+      const newScores = new Map(prev.scores)
+      newScores.forEach(evidenceMap => {
+        evidenceMap.delete(id)
+      })
+      return {
+        ...prev,
+        hypotheses: prev.hypotheses.filter(h => h.id !== id),
+        scores: newScores
+      }
+    })
   }
 
   const addEvidence = () => {
     const newEvidence: Evidence = {
       id: Date.now().toString(),
       text: '',
-      hypotheses_scores: Object.fromEntries(
-        achData.hypotheses.map(h => [h.id, 'neutral' as const])
-      )
+      weight: { credibility: 3, relevance: 3 }
     }
-    setACHData(prev => ({
-      ...prev,
-      evidence: [...prev.evidence, newEvidence]
-    }))
+    
+    // Initialize scores for this evidence
+    const evidenceScores = new Map<string, ACHScore>()
+    achData.hypotheses.forEach(h => {
+      evidenceScores.set(h.id, {
+        hypothesisId: h.id,
+        evidenceId: newEvidence.id,
+        score: 0,
+        weight: newEvidence.weight
+      })
+    })
+    
+    setACHData(prev => {
+      const newScores = new Map(prev.scores)
+      newScores.set(newEvidence.id, evidenceScores)
+      return {
+        ...prev,
+        evidence: [...prev.evidence, newEvidence],
+        scores: newScores
+      }
+    })
   }
 
   const updateEvidence = (id: string, text: string) => {
@@ -91,139 +144,110 @@ export default function CreateACHPage() {
     }))
   }
 
-  const updateEvidenceScore = (evidenceId: string, hypothesisId: string, score: 'supports' | 'contradicts' | 'neutral' | 'not_applicable') => {
-    setACHData(prev => ({
-      ...prev,
-      evidence: prev.evidence.map(e => 
+  const updateEvidenceEvaluation = (evidenceId: string, evaluation: {
+    confidence: number
+    level: string
+    responses: Record<string, number>
+  }) => {
+    setACHData(prev => {
+      // Update evidence with new credibility score
+      const updatedEvidence = prev.evidence.map(e => 
         e.id === evidenceId 
-          ? { 
-              ...e, 
-              hypotheses_scores: { ...e.hypotheses_scores, [hypothesisId]: score }
-            }
+          ? { ...e, confidenceScore: evaluation.confidence, evaluationResponses: evaluation.responses }
           : e
       )
-    }))
+      
+      // Update all scores for this evidence to include the new credibility rating
+      const newScores = new Map(prev.scores)
+      const evidenceScores = newScores.get(evidenceId)
+      if (evidenceScores) {
+        const updatedEvidenceScores = new Map()
+        evidenceScores.forEach((score, hypothesisId) => {
+          updatedEvidenceScores.set(hypothesisId, {
+            ...score,
+            evidenceCredibility: evaluation.confidence
+          })
+        })
+        newScores.set(evidenceId, updatedEvidenceScores)
+      }
+      
+      return {
+        ...prev,
+        evidence: updatedEvidence,
+        scores: newScores
+      }
+    })
   }
 
   const removeEvidence = (id: string) => {
-    setACHData(prev => ({
-      ...prev,
-      evidence: prev.evidence.filter(e => e.id !== id)
-    }))
-  }
-
-  const handleSave = async () => {
-    if (!title.trim()) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please provide a title for your ACH analysis',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    if (achData.hypotheses.length < 2) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please add at least 2 hypotheses for analysis',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    setSaving(true)
-    try {
-      const payload = {
-        title: title.trim(),
-        description: description.trim(),
-        framework_type: 'ach',
-        data: {
-          hypotheses: achData.hypotheses.filter(h => h.text.trim()),
-          evidence: achData.evidence.filter(e => e.text.trim())
-        },
-        status: 'draft'
-      }
-
-      const response = await apiClient.post<{ id: string }>('/frameworks/sessions/', payload)
-      
-      toast({
-        title: 'Success',
-        description: 'ACH analysis saved successfully'
-      })
-
-      router.push(`/frameworks/ach/${response.id}`)
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to save ACH analysis',
-        variant: 'destructive'
-      })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const getScoreIcon = (score: string) => {
-    switch (score) {
-      case 'supports':
-        return <CheckCircle className="h-4 w-4 text-green-600" />
-      case 'contradicts':
-        return <XCircle className="h-4 w-4 text-red-600" />
-      case 'neutral':
-        return <AlertCircle className="h-4 w-4 text-yellow-600" />
-      case 'not_applicable':
-        return <X className="h-4 w-4 text-gray-400" />
-      default:
-        return <AlertCircle className="h-4 w-4 text-gray-400" />
-    }
-  }
-
-  const getScoreColor = (score: string) => {
-    switch (score) {
-      case 'supports':
-        return 'bg-green-100 text-green-800 border-green-200'
-      case 'contradicts':
-        return 'bg-red-100 text-red-800 border-red-200'
-      case 'neutral':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'not_applicable':
-        return 'bg-gray-100 text-gray-600 border-gray-200'
-      default:
-        return 'bg-gray-100 text-gray-600 border-gray-200'
-    }
-  }
-
-  const calculateHypothesisScore = (hypothesisId: string) => {
-    const scores = achData.evidence.map(e => e.hypotheses_scores[hypothesisId]).filter(Boolean)
-    if (scores.length === 0) return { supports: 0, contradicts: 0, neutral: 0, not_applicable: 0, weightedScore: 0 }
-    
-    const counts = {
-      supports: scores.filter(s => s === 'supports').length,
-      contradicts: scores.filter(s => s === 'contradicts').length,
-      neutral: scores.filter(s => s === 'neutral').length,
-      not_applicable: scores.filter(s => s === 'not_applicable').length
-    }
-    
-    // Calculate weighted score based on legacy ACH implementation
-    // Supports = +1, Contradicts = -1, Neutral = 0, N/A = 0
-    const weightedScore = counts.supports * 1.0 + counts.contradicts * -1.0
-    
-    return { ...counts, weightedScore }
-  }
-  
-  const calculateAllHypothesesScores = () => {
-    const hypothesesWithScores = achData.hypotheses.map(hypothesis => {
-      const score = calculateHypothesisScore(hypothesis.id)
+    setACHData(prev => {
+      const newScores = new Map(prev.scores)
+      newScores.delete(id)
       return {
-        ...hypothesis,
-        ...score
+        ...prev,
+        evidence: prev.evidence.filter(e => e.id !== id),
+        scores: newScores
       }
     })
-    
-    // Sort by weighted score (highest first)
-    return hypothesesWithScores.sort((a, b) => b.weightedScore - a.weightedScore)
   }
-  
+
+  const updateScore = (score: ACHScore) => {
+    setACHData(prev => {
+      const newScores = new Map(prev.scores)
+      let evidenceScores = newScores.get(score.evidenceId)
+      if (!evidenceScores) {
+        evidenceScores = new Map()
+        newScores.set(score.evidenceId, evidenceScores)
+      }
+      
+      // Include evidence credibility from SATS evaluation if available
+      const evidence = prev.evidence.find(e => e.id === score.evidenceId)
+      const enhancedScore: ACHScore = {
+        ...score,
+        evidenceCredibility: evidence?.confidenceScore
+      }
+      
+      evidenceScores.set(score.hypothesisId, enhancedScore)
+      return {
+        ...prev,
+        scores: newScores
+      }
+    })
+  }
+
+  const updateScaleType = (scaleType: ScaleType) => {
+    // Convert existing scores to new scale
+    setACHData(prev => {
+      const newScores = new Map<string, Map<string, ACHScore>>()
+      
+      prev.scores.forEach((evidenceMap, evidenceId) => {
+        const newEvidenceMap = new Map<string, ACHScore>()
+        evidenceMap.forEach((score, hypothesisId) => {
+          // Maintain relative proportions when converting scales
+          const oldMax = prev.scaleType === 'logarithmic' ? 13 : 5
+          const newMax = scaleType === 'logarithmic' ? 13 : 5
+          const convertedScore = Math.round((score.score / oldMax) * newMax)
+          
+          newEvidenceMap.set(hypothesisId, {
+            ...score,
+            score: convertedScore
+          })
+        })
+        newScores.set(evidenceId, newEvidenceMap)
+      })
+      
+      return {
+        ...prev,
+        scores: newScores,
+        scaleType
+      }
+    })
+  }
+
+  const getHypothesisAnalysis = () => {
+    return analyzeHypotheses(achData.hypotheses, achData.scores, achData.scaleType)
+  }
+
   const performAnalysis = () => {
     if (achData.hypotheses.length === 0) {
       toast({
@@ -243,28 +267,74 @@ export default function CreateACHPage() {
       return
     }
     
-    toast({
-      title: 'Analysis Complete',
-      description: 'Hypotheses ranked by consistency scores'
-    })
-  }
-  
-  const showBestHypothesis = () => {
-    const scores = calculateAllHypothesesScores()
-    if (scores.length === 0) {
+    const analysis = getHypothesisAnalysis()
+    const best = analysis[0]
+    
+    if (best) {
       toast({
-        title: 'No Hypotheses',
-        description: 'Add hypotheses to analyze',
+        title: 'Analysis Complete',
+        description: `Top hypothesis has score of ${best.weightedScore.toFixed(2)} with ${best.confidenceLevel} confidence`
+      })
+    }
+  }
+
+  const handleSave = async () => {
+    if (!title) {
+      toast({
+        title: 'Missing Title',
+        description: 'Please provide a title for your analysis',
         variant: 'destructive'
       })
       return
     }
-    
-    const best = scores[0]
-    toast({
-      title: 'Strongest Hypothesis',
-      description: `"${best.text}" has the highest score (${best.weightedScore})`
-    })
+
+    setSaving(true)
+    try {
+      // Convert enhanced data to legacy format for saving
+      const legacyData = {
+        hypotheses: achData.hypotheses,
+        evidence: achData.evidence.map(e => {
+          const hypothesesScores: any = {}
+          achData.hypotheses.forEach(h => {
+            const score = achData.scores.get(e.id)?.get(h.id)
+            if (score) {
+              // Convert to legacy categories
+              if (score.score > 3) hypothesesScores[h.id] = 'supports'
+              else if (score.score < -3) hypothesesScores[h.id] = 'contradicts'
+              else if (score.score === 0) hypothesesScores[h.id] = 'neutral'
+              else hypothesesScores[h.id] = 'neutral'
+            }
+          })
+          return {
+            id: e.id,
+            text: e.text,
+            hypotheses_scores: hypothesesScores
+          }
+        })
+      }
+
+      const response = await apiClient.post('/frameworks/sessions', {
+        title,
+        description,
+        framework_type: 'ach',
+        data: legacyData
+      })
+
+      toast({
+        title: 'Success',
+        description: 'ACH analysis saved successfully'
+      })
+      
+      router.push(`/frameworks/ach/${response.id}`)
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save analysis',
+        variant: 'destructive'
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -277,21 +347,45 @@ export default function CreateACHPage() {
             Analysis of Competing Hypotheses for structured analytical thinking
           </p>
         </div>
-        <Button 
-          onClick={handleSave} 
-          disabled={saving}
-          className="bg-orange-600 hover:bg-orange-700"
-        >
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? 'Saving...' : 'Save Analysis'}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setShowSnippet(!showSnippet)}
+          >
+            <Info className="h-4 w-4 mr-2" />
+            {showSnippet ? 'Hide' : 'Show'} Guide
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={saving}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {saving ? 'Saving...' : 'Save Analysis'}
+          </Button>
+        </div>
       </div>
 
+      {/* Technique Snippet */}
+      {showSnippet && (
+        <div className="relative">
+          <TechniqueSnippet technique="ach" expanded={true} />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSnippet(false)}
+            className="absolute top-2 right-2"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Basic Information */}
-      <Card>
+      <Card className="dark:bg-slate-900 dark:border-slate-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
+            <Info className="h-5 w-5" />
             Analysis Information
           </CardTitle>
         </CardHeader>
@@ -302,7 +396,7 @@ export default function CreateACHPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Attribution Analysis: Who was responsible?"
-              className="mt-1"
+              className="mt-1 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600"
             />
           </div>
           <div>
@@ -311,15 +405,21 @@ export default function CreateACHPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of the analytical question and scope..."
-              className="mt-1"
+              className="mt-1 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600"
               rows={3}
             />
           </div>
         </CardContent>
       </Card>
 
+      {/* Scale Selection */}
+      <ACHScaleSelection 
+        currentScale={achData.scaleType}
+        onScaleChange={updateScaleType}
+      />
+
       {/* Hypotheses */}
-      <Card>
+      <Card className="dark:bg-slate-900 dark:border-slate-700">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -331,28 +431,28 @@ export default function CreateACHPage() {
               Add Hypothesis
             </Button>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="dark:text-slate-400">
             Define alternative explanations or scenarios to be analyzed
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {achData.hypotheses.map((hypothesis, index) => (
             <div key={hypothesis.id} className="flex gap-3 items-start">
-              <Badge variant="outline" className="mt-2 min-w-[50px]">
+              <Badge variant="outline" className="mt-2 min-w-[50px] dark:text-slate-200">
                 H{index + 1}
               </Badge>
               <Textarea
                 value={hypothesis.text}
                 onChange={(e) => updateHypothesis(hypothesis.id, e.target.value)}
                 placeholder={`Hypothesis ${index + 1}: e.g., State actor conducted the attack...`}
-                className="flex-1"
+                className="flex-1 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600"
                 rows={2}
               />
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => removeHypothesis(hypothesis.id)}
-                className="text-gray-500 hover:text-red-600 mt-2"
+                className="text-gray-500 hover:text-red-600 mt-2 dark:text-gray-400"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -360,21 +460,21 @@ export default function CreateACHPage() {
           ))}
           
           {achData.hypotheses.length === 0 && (
-            <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg">
+            <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
               <Search className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500">No hypotheses added yet</p>
+              <p className="text-gray-500 dark:text-gray-400">No hypotheses added yet</p>
               <p className="text-sm text-gray-400">Add at least 2 competing hypotheses to begin analysis</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Evidence */}
-      <Card>
+      {/* Evidence & Scoring */}
+      <Card className="dark:bg-slate-900 dark:border-slate-700">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Search className="h-5 w-5" />
+              <Scale className="h-5 w-5" />
               Evidence & Evaluation
             </div>
             <Button 
@@ -386,70 +486,108 @@ export default function CreateACHPage() {
               Add Evidence
             </Button>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="dark:text-slate-400">
             Add evidence and evaluate how it relates to each hypothesis
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {achData.evidence.map((evidence, evidenceIndex) => (
-            <div key={evidence.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex gap-3 items-start mb-4">
-                <Badge variant="outline" className="mt-2 min-w-[50px]">
-                  E{evidenceIndex + 1}
-                </Badge>
-                <Textarea
-                  value={evidence.text}
-                  onChange={(e) => updateEvidence(evidence.id, e.target.value)}
-                  placeholder={`Evidence ${evidenceIndex + 1}: e.g., Technical analysis shows...`}
-                  className="flex-1"
-                  rows={2}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeEvidence(evidence.id)}
-                  className="text-gray-500 hover:text-red-600 mt-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {achData.hypotheses.length > 0 && (
-                <div className="ml-14">
-                  <h4 className="text-sm font-medium mb-3">Evaluation against hypotheses:</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {achData.hypotheses.map((hypothesis, hIndex) => (
-                      <div key={hypothesis.id} className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">H{hIndex + 1}</Badge>
-                        <div className="flex gap-1">
-                          {['supports', 'neutral', 'contradicts', 'not_applicable'].map((score) => (
-                            <Button
-                              key={score}
-                              variant="outline"
-                              size="sm"
-                              onClick={() => updateEvidenceScore(evidence.id, hypothesis.id, score as any)}
-                              className={`p-1 h-8 w-8 ${
-                                evidence.hypotheses_scores[hypothesis.id] === score 
-                                  ? getScoreColor(score)
-                                  : 'hover:bg-gray-50'
-                              }`}
-                            >
-                              {getScoreIcon(score)}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            <div key={evidence.id} className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
+              <div className="space-y-4">
+                {/* Evidence Text */}
+                <div className="flex gap-3 items-start">
+                  <Badge variant="outline" className="mt-2 min-w-[50px] dark:text-slate-200">
+                    E{evidenceIndex + 1}
+                  </Badge>
+                  <Textarea
+                    value={evidence.text}
+                    onChange={(e) => updateEvidence(evidence.id, e.target.value)}
+                    placeholder={`Evidence ${evidenceIndex + 1}: e.g., Technical analysis shows...`}
+                    className="flex-1 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600"
+                    rows={2}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeEvidence(evidence.id)}
+                    className="text-gray-500 hover:text-red-600 mt-2 dark:text-gray-400"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
+
+                {/* Evidence Evaluation Button */}
+                <div className="ml-14">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedEvidenceForEval(
+                      selectedEvidenceForEval === evidence.id ? null : evidence.id
+                    )}
+                    className="mb-3"
+                  >
+                    <Scale className="h-4 w-4 mr-2" />
+                    {selectedEvidenceForEval === evidence.id ? 'Hide' : 'Evaluate'} Evidence Quality
+                    {evidence.confidenceScore && (
+                      <Badge className="ml-2" variant="secondary">
+                        {evidence.confidenceScore}/13
+                      </Badge>
+                    )}
+                  </Button>
+
+                  {/* Evidence Evaluation Panel */}
+                  {selectedEvidenceForEval === evidence.id && (
+                    <div className="mb-4">
+                      <EvidenceEvaluationPanel
+                        evidenceId={evidence.id}
+                        evidenceText={evidence.text}
+                        onEvaluationComplete={(evaluation) => updateEvidenceEvaluation(evidence.id, evaluation)}
+                        initialResponses={evidence.evaluationResponses}
+                      />
+                    </div>
+                  )}
+
+                  {/* Hypothesis Scoring */}
+                  {achData.hypotheses.length > 0 && (
+                    <>
+                      <h4 className="text-sm font-medium mb-3">Evaluation against hypotheses:</h4>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {achData.hypotheses.map((hypothesis, hIndex) => {
+                          const currentScore = achData.scores.get(evidence.id)?.get(hypothesis.id)
+                          return (
+                            <div key={hypothesis.id} className="p-3 border rounded-lg bg-gray-50 dark:bg-slate-800 dark:border-slate-700">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="outline" className="text-xs dark:text-slate-200">H{hIndex + 1}</Badge>
+                                <span className="text-sm text-gray-600 dark:text-gray-300 truncate flex-1">
+                                  {hypothesis.text || `Hypothesis ${hIndex + 1}`}
+                                </span>
+                              </div>
+                              <ACHEnhancedScoring
+                                hypothesisId={hypothesis.id}
+                                hypothesisText={hypothesis.text}
+                                evidenceId={evidence.id}
+                                evidenceText={evidence.text}
+                                currentScore={currentScore?.score}
+                                currentWeight={evidence.weight}
+                                evidenceCredibility={evidence.confidenceScore}
+                                scaleType={achData.scaleType}
+                                onScoreChange={updateScore}
+                              />
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
           
           {achData.evidence.length === 0 && (
-            <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg">
-              <Search className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500">No evidence added yet</p>
+            <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+              <Scale className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-500 dark:text-gray-400">No evidence added yet</p>
               <p className="text-sm text-gray-400">
                 {achData.hypotheses.length === 0 
                   ? 'Add hypotheses first, then add evidence to evaluate'
@@ -461,16 +599,16 @@ export default function CreateACHPage() {
         </CardContent>
       </Card>
 
-      {/* Analysis Section */}
+      {/* Analysis Results */}
       {achData.hypotheses.length > 0 && achData.evidence.length > 0 && (
-        <Card className="border-2 border-dashed border-orange-300 bg-orange-50">
+        <Card className="border-2 border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
               Hypothesis Analysis & Ranking
             </CardTitle>
-            <CardDescription>
-              Analyze and rank hypotheses based on evidence consistency scores
+            <CardDescription className="dark:text-slate-400">
+              Weighted analysis with confidence levels and diagnostic values
             </CardDescription>
             <div className="flex gap-2 mt-4">
               <Button 
@@ -484,7 +622,16 @@ export default function CreateACHPage() {
               <Button 
                 variant="outline"
                 className="flex items-center gap-2"
-                onClick={showBestHypothesis}
+                onClick={() => {
+                  const scores = getHypothesisAnalysis()
+                  if (scores.length > 0) {
+                    const hypothesis = achData.hypotheses.find(h => h.id === scores[0].hypothesisId)
+                    toast({
+                      title: 'Strongest Hypothesis',
+                      description: `"${hypothesis?.text || 'Hypothesis'}" has the highest score (${scores[0].weightedScore.toFixed(2)})`
+                    })
+                  }
+                }}
               >
                 <Trophy className="h-4 w-4" />
                 Show Best Hypothesis
@@ -492,47 +639,85 @@ export default function CreateACHPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {calculateAllHypothesesScores().map((hypothesis, index) => {
+            <div className="space-y-4">
+              {getHypothesisAnalysis().map((analysis, index) => {
+                const hypothesis = achData.hypotheses.find(h => h.id === analysis.hypothesisId)
                 const rank = index + 1
-                const isTop = index < 3
                 
                 return (
-                  <div key={hypothesis.id} className={`flex items-center gap-3 p-3 rounded-lg border ${
-                    rank === 1 ? 'border-green-300 bg-green-50' :
-                    rank === 2 ? 'border-blue-300 bg-blue-50' :
-                    rank === 3 ? 'border-yellow-300 bg-yellow-50' :
-                    'border-gray-200 bg-white'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <Badge 
-                        variant={isTop ? "default" : "outline"}
-                        className={
-                          rank === 1 ? 'bg-green-600' :
-                          rank === 2 ? 'bg-blue-600' :
-                          rank === 3 ? 'bg-yellow-600' : ''
-                        }
-                      >
-                        #{rank}
-                      </Badge>
-                      {rank === 1 && <Trophy className="h-4 w-4 text-yellow-600" />}
-                    </div>
-                    
-                    <div className="flex-1">
-                      <p className="text-sm font-medium leading-relaxed">
-                        {hypothesis.text || `Hypothesis ${rank}`}
-                      </p>
-                    </div>
-                    
-                    <div className="text-right">
-                      <div className={`text-lg font-bold ${
-                        hypothesis.weightedScore > 0 ? 'text-green-600' : 
-                        hypothesis.weightedScore < 0 ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {hypothesis.weightedScore > 0 ? '+' : ''}{hypothesis.weightedScore}
+                  <div key={analysis.hypothesisId} className={cn(
+                    "p-4 rounded-lg border-2 transition-all",
+                    rank === 1 && "border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-700",
+                    rank === 2 && "border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700",
+                    rank === 3 && "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700",
+                    rank > 3 && "border-gray-200 bg-white dark:bg-slate-800 dark:border-slate-600",
+                    analysis.rejectionThreshold && "opacity-60 border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700"
+                  )}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Badge className={cn(
+                            "font-bold",
+                            rank === 1 && "bg-green-600",
+                            rank === 2 && "bg-blue-600",
+                            rank === 3 && "bg-yellow-600",
+                            rank > 3 && "bg-gray-600"
+                          )}>
+                            #{rank}
+                          </Badge>
+                          {rank === 1 && <Trophy className="h-5 w-5 text-yellow-500" />}
+                          {analysis.rejectionThreshold && (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Below Threshold
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className={cn(
+                            analysis.confidenceLevel === 'High' && "border-green-500 text-green-700 dark:text-green-400",
+                            analysis.confidenceLevel === 'Medium' && "border-yellow-500 text-yellow-700 dark:text-yellow-400",
+                            analysis.confidenceLevel === 'Low' && "border-red-500 text-red-700 dark:text-red-400"
+                          )}>
+                            {analysis.confidenceLevel} Confidence
+                          </Badge>
+                        </div>
+                        <p className="font-medium mb-2 dark:text-slate-200">
+                          {hypothesis?.text || `Hypothesis ${rank}`}
+                        </p>
                       </div>
-                      <div className="text-xs text-gray-500">
-                        {hypothesis.supports}S / {hypothesis.contradicts}C
+                      
+                      <div className="text-right">
+                        <div className={cn(
+                          "text-2xl font-bold",
+                          analysis.weightedScore > 0 && "text-green-600 dark:text-green-400",
+                          analysis.weightedScore < 0 && "text-red-600 dark:text-red-400",
+                          analysis.weightedScore === 0 && "text-gray-600 dark:text-gray-400"
+                        )}>
+                          {analysis.weightedScore > 0 && '+'}{analysis.weightedScore.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Weighted Score
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Separator className="my-3" />
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Supporting</span>
+                        <div className="font-medium text-green-600 dark:text-green-400">{analysis.supportingEvidence}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Contradicting</span>
+                        <div className="font-medium text-red-600 dark:text-red-400">{analysis.contradictingEvidence}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Neutral</span>
+                        <div className="font-medium text-gray-600 dark:text-gray-400">{analysis.neutralEvidence}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Diagnostic Value</span>
+                        <div className="font-medium text-blue-600 dark:text-blue-400">{analysis.diagnosticValue.toFixed(2)}</div>
                       </div>
                     </div>
                   </div>
@@ -543,31 +728,38 @@ export default function CreateACHPage() {
         </Card>
       )}
 
-      {/* Legend */}
-      <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600">
+      {/* Scale Reference */}
+      <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600 dark:bg-slate-900">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Evaluation Legend
+          <CardTitle className="flex items-center gap-2 dark:text-slate-200">
+            <Info className="h-5 w-5" />
+            Current Scale Reference
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm">Supports</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
-              <span className="text-sm">Neutral</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-red-600" />
-              <span className="text-sm">Contradicts</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <X className="h-4 w-4 text-gray-400" />
-              <span className="text-sm">Not Applicable</span>
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              Using {achData.scaleType === 'logarithmic' ? 'Logarithmic (Fibonacci)' : 'Linear'} scale
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {(achData.scaleType === 'logarithmic' ? LOGARITHMIC_SCORES : LINEAR_SCORES).map(score => (
+                <div key={score.value} className={cn(
+                  "p-2 rounded text-xs text-center border",
+                  // Color based on score value for better dark mode support
+                  score.value > 8 && "bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-800 dark:text-green-200",
+                  score.value > 3 && score.value <= 8 && "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-600 text-green-700 dark:text-green-300",
+                  score.value > 0 && score.value <= 3 && "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-500 text-green-600 dark:text-green-400",
+                  score.value === 0 && "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300",
+                  score.value < 0 && score.value >= -3 && "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-500 text-red-600 dark:text-red-400",
+                  score.value < -3 && score.value >= -8 && "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-600 text-red-700 dark:text-red-300",
+                  score.value < -8 && "bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-800 dark:text-red-200"
+                )}>
+                  <div className="font-medium truncate">{score.label}</div>
+                  <div className="text-lg font-bold">
+                    {score.value > 0 && '+'}{score.value}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </CardContent>
