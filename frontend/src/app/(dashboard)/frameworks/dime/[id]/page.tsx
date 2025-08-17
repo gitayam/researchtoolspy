@@ -16,14 +16,26 @@ import {
   BarChart3,
   Target,
   Lightbulb,
-  Calculator
+  Calculator,
+  FileText,
+  FileDown,
+  FileCode
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/utils'
+import { exportFrameworkAnalysis, ExportFormat } from '@/lib/export-utils'
 
 interface DIMESession {
   id: string
@@ -78,11 +90,25 @@ export default function DIMEViewPage() {
     router.push(`/frameworks/dime/${params.id}/edit`)
   }
 
-  const handleExport = () => {
-    toast({
-      title: 'Export',
-      description: 'Export functionality coming soon'
-    })
+  const handleExport = async (format: ExportFormat) => {
+    try {
+      await exportFrameworkAnalysis({
+        title: session.title,
+        content: session,
+        format
+      })
+      
+      toast({
+        title: 'Export Successful',
+        description: `DIME analysis exported as ${format.toUpperCase()}`
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Export Failed',
+        description: error.message || 'Failed to export analysis',
+        variant: 'destructive'
+      })
+    }
   }
 
   const handleShare = () => {
@@ -244,10 +270,35 @@ export default function DIMEViewPage() {
             <Share2 className="h-4 w-4 mr-2" />
             Share
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('word')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as Word
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('markdown')}>
+                <FileCode className="h-4 w-4 mr-2" />
+                Export as Markdown
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Export as JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={handleEdit} className="bg-red-600 hover:bg-red-700">
             <Edit className="h-4 w-4 mr-2" />
             Edit

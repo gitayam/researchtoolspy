@@ -17,14 +17,27 @@ import {
   BarChart3,
   Calculator,
   Trophy,
-  Brain
+  Brain,
+  Lightbulb,
+  FileText,
+  FileDown,
+  FileCode
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/utils'
+import { exportFrameworkAnalysis, ExportFormat } from '@/lib/export-utils'
 
 interface ACHSession {
   id: string
@@ -51,6 +64,9 @@ export default function ACHViewPage() {
   const { toast } = useToast()
   const [session, setSession] = useState<ACHSession | null>(null)
   const [loading, setLoading] = useState(true)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analysisInsights, setAnalysisInsights] = useState<any>(null)
+  const [showInsights, setShowInsights] = useState(false)
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -78,11 +94,25 @@ export default function ACHViewPage() {
     router.push(`/frameworks/ach/${params.id}/edit`)
   }
 
-  const handleExport = () => {
-    toast({
-      title: 'Export',
-      description: 'Export functionality coming soon'
-    })
+  const handleExport = async (format: ExportFormat) => {
+    try {
+      await exportFrameworkAnalysis({
+        title: session.title,
+        content: session,
+        format
+      })
+      
+      toast({
+        title: 'Export Successful',
+        description: `ACH analysis exported as ${format.toUpperCase()}`
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Export Failed',
+        description: error.message || 'Failed to export analysis',
+        variant: 'destructive'
+      })
+    }
   }
 
   const handleShare = () => {
@@ -168,11 +198,101 @@ export default function ACHViewPage() {
     return hypothesesWithScores.sort((a, b) => b.weightedScore - a.weightedScore)
   }
   
-  const performAnalysis = () => {
-    toast({
-      title: 'Analysis Complete',
-      description: 'Hypotheses ranked by consistency scores'
-    })
+  const performAnalysis = async () => {
+    setAnalyzing(true)
+    
+    try {
+      // Simulate API call for analysis
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Generate analysis insights
+      const rankedHypotheses = calculateAllHypothesesScores()
+      const insights = {
+        strongest_hypothesis: rankedHypotheses[0],
+        weakest_hypothesis: rankedHypotheses[rankedHypotheses.length - 1],
+        most_diagnostic_evidence: identifyDiagnosticEvidence(),
+        competing_hypotheses: identifyCompetingHypotheses(rankedHypotheses),
+        confidence_assessment: generateConfidenceAssessment(rankedHypotheses),
+        recommendations: generateRecommendations(rankedHypotheses)
+      }
+      
+      setAnalysisInsights(insights)
+      setShowInsights(true)
+      
+      toast({
+        title: 'Analysis Complete',
+        description: 'Generated insights and recommendations'
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Analysis Failed',
+        description: error.message || 'Failed to generate analysis',
+        variant: 'destructive'
+      })
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const identifyDiagnosticEvidence = () => {
+    // Find evidence that most differentiates between hypotheses
+    const diagnosticEvidence = session.data.evidence.map(evidence => {
+      const scores = Object.values(evidence.hypotheses_scores)
+      const uniqueScores = new Set(scores).size
+      return {
+        ...evidence,
+        diagnosticity: uniqueScores // Higher is more diagnostic
+      }
+    }).sort((a, b) => b.diagnosticity - a.diagnosticity)
+    
+    return diagnosticEvidence.slice(0, 3)
+  }
+
+  const identifyCompetingHypotheses = (rankedHypotheses: any[]) => {
+    // Find hypotheses with similar scores (competing for top position)
+    if (rankedHypotheses.length < 2) return []
+    
+    const topScore = rankedHypotheses[0].weightedScore
+    const competing = rankedHypotheses.filter(h => 
+      Math.abs(h.weightedScore - topScore) <= 2 && h.id !== rankedHypotheses[0].id
+    )
+    
+    return competing
+  }
+
+  const generateConfidenceAssessment = (rankedHypotheses: any[]) => {
+    if (rankedHypotheses.length === 0) return 'Low'
+    
+    const topScore = rankedHypotheses[0].weightedScore
+    const secondScore = rankedHypotheses[1]?.weightedScore || 0
+    const scoreDiff = topScore - secondScore
+    
+    if (scoreDiff > 5) return 'High'
+    if (scoreDiff > 2) return 'Medium'
+    return 'Low'
+  }
+
+  const generateRecommendations = (rankedHypotheses: any[]) => {
+    const recommendations = []
+    const confidence = generateConfidenceAssessment(rankedHypotheses)
+    
+    if (confidence === 'Low') {
+      recommendations.push('Gather additional discriminating evidence')
+      recommendations.push('Consider additional hypotheses not yet explored')
+    }
+    
+    if (session.data.evidence.length < 5) {
+      recommendations.push('Add more evidence to strengthen analysis')
+    }
+    
+    if (rankedHypotheses.length > 0 && rankedHypotheses[0].contradicts > 0) {
+      recommendations.push('Investigate contradicting evidence for top hypothesis')
+    }
+    
+    recommendations.push('Review evidence quality and reliability')
+    recommendations.push('Consider alternative interpretations of key evidence')
+    
+    return recommendations
   }
 
   const statusColors = {
@@ -208,20 +328,145 @@ export default function ACHViewPage() {
         </div>
         
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={performAnalysis}
+            disabled={analyzing}
+          >
+            {analyzing ? (
+              <>
+                <Calculator className="h-4 w-4 mr-2 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Deep Analysis
+              </>
+            )}
+          </Button>
+          
           <Button variant="outline" onClick={handleShare}>
             <Share2 className="h-4 w-4 mr-2" />
             Share
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('word')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as Word
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('markdown')}>
+                <FileCode className="h-4 w-4 mr-2" />
+                Export as Markdown
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Export as JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={handleEdit} className="bg-orange-600 hover:bg-orange-700">
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
         </div>
       </div>
+
+      {/* Analysis Insights */}
+      {showInsights && analysisInsights && (
+        <Card className="border-2 border-purple-200 bg-purple-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-purple-600" />
+              Analysis Insights
+            </CardTitle>
+            <CardDescription>
+              Deep analysis results and recommendations
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Strongest Hypothesis */}
+            <div>
+              <h4 className="font-medium mb-2">Strongest Hypothesis</h4>
+              <div className="p-3 bg-green-100 rounded-lg border border-green-200">
+                <p className="font-medium">{analysisInsights.strongest_hypothesis.text}</p>
+                <div className="mt-2 text-sm text-green-700">
+                  Score: {analysisInsights.strongest_hypothesis.weightedScore} 
+                  ({analysisInsights.strongest_hypothesis.supports} supports, 
+                  {analysisInsights.strongest_hypothesis.contradicts} contradicts)
+                </div>
+              </div>
+            </div>
+
+            {/* Confidence Level */}
+            <div>
+              <h4 className="font-medium mb-2">Confidence Assessment</h4>
+              <Badge className={`
+                ${analysisInsights.confidence_assessment === 'High' ? 'bg-green-100 text-green-800' : ''}
+                ${analysisInsights.confidence_assessment === 'Medium' ? 'bg-yellow-100 text-yellow-800' : ''}
+                ${analysisInsights.confidence_assessment === 'Low' ? 'bg-red-100 text-red-800' : ''}
+              `}>
+                {analysisInsights.confidence_assessment} Confidence
+              </Badge>
+            </div>
+
+            {/* Competing Hypotheses */}
+            {analysisInsights.competing_hypotheses.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Competing Hypotheses</h4>
+                <div className="space-y-2">
+                  {analysisInsights.competing_hypotheses.map((hyp: any, index: number) => (
+                    <div key={index} className="p-2 bg-yellow-50 rounded border border-yellow-200">
+                      <p className="text-sm">{hyp.text}</p>
+                      <p className="text-xs text-yellow-700 mt-1">Score: {hyp.weightedScore}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Most Diagnostic Evidence */}
+            <div>
+              <h4 className="font-medium mb-2">Most Diagnostic Evidence</h4>
+              <div className="space-y-2">
+                {analysisInsights.most_diagnostic_evidence.map((evidence: any, index: number) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <Badge variant="outline" className="text-xs mt-0.5">E{index + 1}</Badge>
+                    <p className="text-sm">{evidence.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recommendations */}
+            <div>
+              <h4 className="font-medium mb-2">Recommendations</h4>
+              <ul className="space-y-2">
+                {analysisInsights.recommendations.map((rec: string, index: number) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <span className="text-purple-500 mt-1">•</span>
+                    <span className="text-sm">{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Analysis Summary */}
       <Card>

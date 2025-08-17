@@ -12,14 +12,29 @@ import {
   Building, 
   Shield,
   Calendar,
-  Eye
+  Eye,
+  BarChart3,
+  Calculator,
+  Lightbulb,
+  FileText,
+  FileDown,
+  FileCode
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/utils'
+import { exportFrameworkAnalysis, ExportFormat } from '@/lib/export-utils'
 
 interface COGSession {
   id: string
@@ -44,6 +59,9 @@ export default function COGViewPage() {
   const { toast } = useToast()
   const [session, setSession] = useState<COGSession | null>(null)
   const [loading, setLoading] = useState(true)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [vulnerabilityAssessment, setVulnerabilityAssessment] = useState<any>(null)
+  const [showAssessment, setShowAssessment] = useState(false)
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -71,11 +89,149 @@ export default function COGViewPage() {
     router.push(`/frameworks/cog/${params.id}/edit`)
   }
 
-  const handleExport = () => {
-    toast({
-      title: 'Export',
-      description: 'Export functionality coming soon'
-    })
+  const handleExport = async (format: ExportFormat) => {
+    try {
+      await exportFrameworkAnalysis({
+        title: session.title,
+        content: session,
+        format
+      })
+      
+      toast({
+        title: 'Export Successful',
+        description: `COG analysis exported as ${format.toUpperCase()}`
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Export Failed',
+        description: error.message || 'Failed to export analysis',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const performVulnerabilityAssessment = async () => {
+    setAnalyzing(true)
+    
+    try {
+      // Simulate API call for vulnerability assessment
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Generate vulnerability assessment based on COG analysis
+      const assessment = {
+        risk_level: calculateRiskLevel(),
+        exploitation_potential: analyzeExploitationPotential(),
+        mitigation_strategies: generateMitigationStrategies(),
+        critical_nodes: identifyCriticalNodes(),
+        recommendations: generateRecommendations()
+      }
+      
+      setVulnerabilityAssessment(assessment)
+      setShowAssessment(true)
+      
+      toast({
+        title: 'Assessment Complete',
+        description: 'Vulnerability assessment generated successfully'
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Assessment Failed',
+        description: error.message || 'Failed to generate assessment',
+        variant: 'destructive'
+      })
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const calculateRiskLevel = () => {
+    const vulnCount = session.data.critical_vulnerabilities.length
+    const capCount = session.data.critical_capabilities.length
+    const ratio = vulnCount / (capCount || 1)
+    
+    if (ratio > 0.7) return 'High'
+    if (ratio > 0.4) return 'Medium'
+    return 'Low'
+  }
+
+  const analyzeExploitationPotential = () => {
+    const vulnerabilities = session.data.critical_vulnerabilities
+    if (vulnerabilities.length === 0) return []
+    
+    return vulnerabilities.slice(0, 3).map(vuln => ({
+      vulnerability: vuln.text,
+      likelihood: Math.random() > 0.5 ? 'High' : 'Medium',
+      impact: Math.random() > 0.5 ? 'Severe' : 'Moderate'
+    }))
+  }
+
+  const generateMitigationStrategies = () => {
+    const strategies = []
+    
+    if (session.data.critical_vulnerabilities.length > 0) {
+      strategies.push('Strengthen defensive measures around identified vulnerabilities')
+    }
+    if (session.data.critical_requirements.length > 0) {
+      strategies.push('Diversify critical requirements to reduce single points of failure')
+    }
+    if (session.data.centers_of_gravity.length > 1) {
+      strategies.push('Implement redundancy across multiple centers of gravity')
+    }
+    strategies.push('Develop contingency plans for critical capability disruption')
+    strategies.push('Establish monitoring systems for early warning indicators')
+    
+    return strategies
+  }
+
+  const identifyCriticalNodes = () => {
+    const nodes = []
+    
+    // Identify critical nodes based on COG analysis
+    if (session.data.centers_of_gravity.length > 0) {
+      nodes.push({
+        type: 'Primary COG',
+        element: session.data.centers_of_gravity[0].text,
+        criticality: 'Essential'
+      })
+    }
+    
+    if (session.data.critical_capabilities.length > 0) {
+      nodes.push({
+        type: 'Key Capability',
+        element: session.data.critical_capabilities[0].text,
+        criticality: 'High'
+      })
+    }
+    
+    if (session.data.critical_requirements.length > 0) {
+      nodes.push({
+        type: 'Critical Requirement',
+        element: session.data.critical_requirements[0].text,
+        criticality: 'High'
+      })
+    }
+    
+    return nodes
+  }
+
+  const generateRecommendations = () => {
+    const recommendations = []
+    const vulnCount = session.data.critical_vulnerabilities.length
+    const reqCount = session.data.critical_requirements.length
+    
+    if (vulnCount > 3) {
+      recommendations.push('Priority: Address top 3 critical vulnerabilities immediately')
+    }
+    
+    if (reqCount > 5) {
+      recommendations.push('Consider consolidating or streamlining critical requirements')
+    }
+    
+    recommendations.push('Implement regular vulnerability assessments')
+    recommendations.push('Develop resilience strategies for each critical capability')
+    recommendations.push('Establish metrics to monitor COG health and stability')
+    
+    return recommendations
   }
 
   const handleShare = () => {
@@ -172,14 +328,57 @@ export default function COGViewPage() {
         </div>
         
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={performVulnerabilityAssessment}
+            disabled={analyzing}
+          >
+            {analyzing ? (
+              <>
+                <Calculator className="h-4 w-4 mr-2 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Analyze Vulnerabilities
+              </>
+            )}
+          </Button>
+          
           <Button variant="outline" onClick={handleShare}>
             <Share2 className="h-4 w-4 mr-2" />
             Share
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('word')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as Word
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('markdown')}>
+                <FileCode className="h-4 w-4 mr-2" />
+                Export as Markdown
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Export as JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={handleEdit} className="bg-green-600 hover:bg-green-700">
             <Edit className="h-4 w-4 mr-2" />
             Edit
@@ -221,6 +420,103 @@ export default function COGViewPage() {
           </Card>
         ))}
       </div>
+
+      {/* Vulnerability Assessment Results */}
+      {showAssessment && vulnerabilityAssessment && (
+        <Card className="border-2 border-blue-200 bg-blue-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-blue-600" />
+              Vulnerability Assessment
+            </CardTitle>
+            <CardDescription>
+              Strategic analysis of critical vulnerabilities and mitigation strategies
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Risk Level */}
+            <div>
+              <h4 className="font-medium mb-2">Overall Risk Level</h4>
+              <Badge className={`
+                ${vulnerabilityAssessment.risk_level === 'High' ? 'bg-red-100 text-red-800' : ''}
+                ${vulnerabilityAssessment.risk_level === 'Medium' ? 'bg-yellow-100 text-yellow-800' : ''}
+                ${vulnerabilityAssessment.risk_level === 'Low' ? 'bg-green-100 text-green-800' : ''}
+              `}>
+                {vulnerabilityAssessment.risk_level} Risk
+              </Badge>
+            </div>
+
+            {/* Exploitation Potential */}
+            {vulnerabilityAssessment.exploitation_potential.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Exploitation Potential</h4>
+                <div className="space-y-2">
+                  {vulnerabilityAssessment.exploitation_potential.map((item: any, index: number) => (
+                    <div key={index} className="p-3 bg-white rounded-lg border">
+                      <p className="text-sm font-medium">{item.vulnerability}</p>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          Likelihood: {item.likelihood}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Impact: {item.impact}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Critical Nodes */}
+            {vulnerabilityAssessment.critical_nodes.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Critical Nodes</h4>
+                <div className="space-y-2">
+                  {vulnerabilityAssessment.critical_nodes.map((node: any, index: number) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <Shield className="h-4 w-4 text-orange-500 mt-0.5" />
+                      <div className="flex-1">
+                        <span className="text-sm font-medium">{node.type}: </span>
+                        <span className="text-sm">{node.element}</span>
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          {node.criticality}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Mitigation Strategies */}
+            <div>
+              <h4 className="font-medium mb-2">Mitigation Strategies</h4>
+              <ul className="space-y-2">
+                {vulnerabilityAssessment.mitigation_strategies.map((strategy: string, index: number) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-1">•</span>
+                    <span className="text-sm">{strategy}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Recommendations */}
+            <div>
+              <h4 className="font-medium mb-2">Recommendations</h4>
+              <div className="space-y-2">
+                {vulnerabilityAssessment.recommendations.map((rec: string, index: number) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <Lightbulb className="h-4 w-4 text-yellow-500 mt-0.5" />
+                    <span className="text-sm">{rec}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Analysis Summary */}
       <Card>

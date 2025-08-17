@@ -13,16 +13,30 @@ import {
   Calendar,
   Eye,
   BarChart3,
-  Brain
+  Brain,
+  Calculator,
+  FileText,
+  FileDown,
+  FileCode,
+  Sparkles
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/utils'
 import { ErrorState } from '@/components/ui/error-state'
 import { Skeleton } from '@/components/ui/skeleton'
+import { exportFrameworkAnalysis, ExportFormat } from '@/lib/export-utils'
 
 interface StarburstingSession {
   id: string
@@ -55,6 +69,9 @@ export default function StarburstingViewPage() {
   const [session, setSession] = useState<StarburstingSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [ideaAnalysis, setIdeaAnalysis] = useState<any>(null)
+  const [showAnalysis, setShowAnalysis] = useState(false)
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -101,11 +118,25 @@ export default function StarburstingViewPage() {
     router.push(`/frameworks/starbursting/${params.id}/edit`)
   }
 
-  const handleExport = () => {
-    toast({
-      title: 'Export',
-      description: 'Export functionality coming soon'
-    })
+  const handleExport = async (format: ExportFormat) => {
+    try {
+      await exportFrameworkAnalysis({
+        title: session.title,
+        content: session,
+        format
+      })
+      
+      toast({
+        title: 'Export Successful',
+        description: `Starbursting analysis exported as ${format.toUpperCase()}`
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Export Failed',
+        description: error.message || 'Failed to export analysis',
+        variant: 'destructive'
+      })
+    }
   }
 
   const handleShare = () => {
@@ -115,11 +146,123 @@ export default function StarburstingViewPage() {
     })
   }
 
-  const generateSummary = () => {
-    toast({
-      title: 'AI Summary',
-      description: 'AI summary generation coming soon'
-    })
+  const generateSummary = async () => {
+    setAnalyzing(true)
+    
+    try {
+      // Simulate API call for analysis
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Generate comprehensive analysis
+      const analysis = {
+        idea_clarity: assessIdeaClarity(),
+        coverage_analysis: analyzeCoverage(),
+        key_insights: extractKeyInsights(),
+        gaps_identified: identifyGaps(),
+        next_steps: generateNextSteps(),
+        critical_questions: identifyCriticalQuestions()
+      }
+      
+      setIdeaAnalysis(analysis)
+      setShowAnalysis(true)
+      
+      toast({
+        title: 'Analysis Complete',
+        description: 'Generated comprehensive idea analysis'
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Analysis Failed',
+        description: error.message || 'Failed to generate analysis',
+        variant: 'destructive'
+      })
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const assessIdeaClarity = () => {
+    const hasAllW = Object.values(session.data.five_w_analysis).every(v => v && v.trim())
+    const questionCount = session.data.questions.length
+    const answeredCount = session.data.questions.filter(q => q.response.trim()).length
+    
+    if (hasAllW && answeredCount > 10) return 'Excellent'
+    if (hasAllW && answeredCount > 5) return 'Good'
+    if (answeredCount > 3) return 'Moderate'
+    return 'Needs Development'
+  }
+
+  const analyzeCoverage = () => {
+    const fiveW = session.data.five_w_analysis
+    const coverage = []
+    
+    if (fiveW.who) coverage.push('Stakeholders identified')
+    if (fiveW.what) coverage.push('Core concept defined')
+    if (fiveW.where) coverage.push('Context established')
+    if (fiveW.when) coverage.push('Timeline specified')
+    if (fiveW.why) coverage.push('Purpose clarified')
+    
+    return coverage
+  }
+
+  const extractKeyInsights = () => {
+    const insights = []
+    const answeredQuestions = session.data.questions.filter(q => q.response.trim())
+    
+    if (answeredQuestions.length > 0) {
+      insights.push(`${answeredQuestions.length} critical questions addressed`)
+    }
+    
+    if (session.data.processed_content) {
+      insights.push('External content successfully integrated')
+    }
+    
+    if (session.data.five_w_analysis.why) {
+      insights.push('Clear rationale established for the idea')
+    }
+    
+    return insights
+  }
+
+  const identifyGaps = () => {
+    const gaps = []
+    const fiveW = session.data.five_w_analysis
+    
+    if (!fiveW.who || !fiveW.who.trim()) gaps.push('Stakeholders need identification')
+    if (!fiveW.what || !fiveW.what.trim()) gaps.push('Core concept requires clarification')
+    if (!fiveW.where || !fiveW.where.trim()) gaps.push('Context needs specification')
+    if (!fiveW.when || !fiveW.when.trim()) gaps.push('Timeline should be defined')
+    if (!fiveW.why || !fiveW.why.trim()) gaps.push('Purpose needs articulation')
+    
+    const unanswered = session.data.questions.filter(q => !q.response.trim()).length
+    if (unanswered > 0) {
+      gaps.push(`${unanswered} questions remain unanswered`)
+    }
+    
+    return gaps
+  }
+
+  const generateNextSteps = () => {
+    const steps = []
+    const gaps = identifyGaps()
+    
+    if (gaps.length > 0) {
+      steps.push('Address identified gaps in analysis')
+    }
+    
+    steps.push('Validate assumptions with stakeholders')
+    steps.push('Develop implementation roadmap')
+    steps.push('Create risk mitigation strategies')
+    steps.push('Establish success metrics')
+    
+    return steps
+  }
+
+  const identifyCriticalQuestions = () => {
+    return session.data.questions
+      .filter(q => q.response.trim())
+      .slice(0, 3)
+      .map(q => q.text)
   }
 
   if (loading) {
@@ -225,14 +368,57 @@ export default function StarburstingViewPage() {
         </div>
         
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={generateSummary}
+            disabled={analyzing}
+          >
+            {analyzing ? (
+              <>
+                <Calculator className="h-4 w-4 mr-2 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Generate Analysis
+              </>
+            )}
+          </Button>
+          
           <Button variant="outline" onClick={handleShare}>
             <Share2 className="h-4 w-4 mr-2" />
             Share
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('word')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as Word
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('markdown')}>
+                <FileCode className="h-4 w-4 mr-2" />
+                Export as Markdown
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Export as JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={handleEdit} className="bg-blue-600 hover:bg-blue-700">
             <Edit className="h-4 w-4 mr-2" />
             Edit

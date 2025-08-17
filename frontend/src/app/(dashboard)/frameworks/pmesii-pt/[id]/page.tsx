@@ -15,14 +15,30 @@ import {
   Globe, 
   Clock,
   Calendar,
-  Eye
+  Eye,
+  Brain,
+  Calculator,
+  Lightbulb,
+  FileText,
+  FileDown,
+  FileCode,
+  Target
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/utils'
+import { exportFrameworkAnalysis, ExportFormat } from '@/lib/export-utils'
 
 interface PMESIISession {
   id: string
@@ -51,6 +67,9 @@ export default function PMESIIPTViewPage() {
   const { toast } = useToast()
   const [session, setSession] = useState<PMESIISession | null>(null)
   const [loading, setLoading] = useState(true)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [systemAnalysis, setSystemAnalysis] = useState<any>(null)
+  const [showAnalysis, setShowAnalysis] = useState(false)
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -78,11 +97,141 @@ export default function PMESIIPTViewPage() {
     router.push(`/frameworks/pmesii-pt/${params.id}/edit`)
   }
 
-  const handleExport = () => {
-    toast({
-      title: 'Export',
-      description: 'Export functionality coming soon'
-    })
+  const handleExport = async (format: ExportFormat) => {
+    try {
+      await exportFrameworkAnalysis({
+        title: session.title,
+        content: session,
+        format
+      })
+      
+      toast({
+        title: 'Export Successful',
+        description: `PMESII-PT analysis exported as ${format.toUpperCase()}`
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Export Failed',
+        description: error.message || 'Failed to export analysis',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const performSystemAnalysis = async () => {
+    setAnalyzing(true)
+    
+    try {
+      // Simulate API call for system analysis
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Generate system analysis based on PMESII-PT factors
+      const analysis = {
+        system_complexity: calculateSystemComplexity(),
+        critical_factors: identifyCriticalFactors(),
+        interdependencies: analyzeInterdependencies(),
+        stability_assessment: assessSystemStability(),
+        risk_areas: identifyRiskAreas(),
+        opportunities: identifyOpportunities()
+      }
+      
+      setSystemAnalysis(analysis)
+      setShowAnalysis(true)
+      
+      toast({
+        title: 'Analysis Complete',
+        description: 'System analysis generated successfully'
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Analysis Failed',
+        description: error.message || 'Failed to generate analysis',
+        variant: 'destructive'
+      })
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const calculateSystemComplexity = () => {
+    const totalFactors = factors.reduce((sum, f) => sum + f.items.length, 0)
+    const activeDomains = factors.filter(f => f.items.length > 0).length
+    
+    if (totalFactors > 20 && activeDomains >= 6) return 'High'
+    if (totalFactors > 10 && activeDomains >= 4) return 'Medium'
+    return 'Low'
+  }
+
+  const identifyCriticalFactors = () => {
+    return factors
+      .filter(f => f.items.length > 2)
+      .map(f => ({
+        domain: f.title,
+        count: f.items.length,
+        significance: f.items.length > 4 ? 'Critical' : 'Important'
+      }))
+      .slice(0, 3)
+  }
+
+  const analyzeInterdependencies = () => {
+    const interdependencies = []
+    
+    if (session.data.political.length > 0 && session.data.military.length > 0) {
+      interdependencies.push('Political-Military coordination')
+    }
+    if (session.data.economic.length > 0 && session.data.infrastructure.length > 0) {
+      interdependencies.push('Economic-Infrastructure linkage')
+    }
+    if (session.data.social.length > 0 && session.data.information.length > 0) {
+      interdependencies.push('Social-Information dynamics')
+    }
+    if (session.data.physical_environment.length > 0 && session.data.infrastructure.length > 0) {
+      interdependencies.push('Environment-Infrastructure constraints')
+    }
+    
+    return interdependencies
+  }
+
+  const assessSystemStability = () => {
+    const activeDomains = factors.filter(f => f.items.length > 0).length
+    const balanceScore = activeDomains / 8
+    
+    if (balanceScore > 0.75) return 'Stable'
+    if (balanceScore > 0.5) return 'Moderate'
+    return 'Unstable'
+  }
+
+  const identifyRiskAreas = () => {
+    const risks = []
+    const emptyDomains = factors.filter(f => f.items.length === 0)
+    
+    if (emptyDomains.length > 0) {
+      risks.push(`Gap in ${emptyDomains.map(d => d.title).join(', ')} analysis`)
+    }
+    if (session.data.time.length === 0) {
+      risks.push('Temporal factors not considered')
+    }
+    if (session.data.physical_environment.length === 0) {
+      risks.push('Environmental constraints overlooked')
+    }
+    
+    return risks
+  }
+
+  const identifyOpportunities = () => {
+    const opportunities = []
+    
+    if (session.data.economic.length > 2) {
+      opportunities.push('Strong economic analysis provides strategic leverage')
+    }
+    if (session.data.social.length > 2) {
+      opportunities.push('Deep social understanding enables targeted engagement')
+    }
+    if (session.data.information.length > 2) {
+      opportunities.push('Information domain mastery offers influence potential')
+    }
+    
+    return opportunities
   }
 
   const handleShare = () => {
@@ -217,20 +366,170 @@ export default function PMESIIPTViewPage() {
         </div>
         
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={performSystemAnalysis}
+            disabled={analyzing}
+          >
+            {analyzing ? (
+              <>
+                <Calculator className="h-4 w-4 mr-2 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Brain className="h-4 w-4 mr-2" />
+                System Analysis
+              </>
+            )}
+          </Button>
+          
           <Button variant="outline" onClick={handleShare}>
             <Share2 className="h-4 w-4 mr-2" />
             Share
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('word')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as Word
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('markdown')}>
+                <FileCode className="h-4 w-4 mr-2" />
+                Export as Markdown
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Export as JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={handleEdit} className="bg-purple-600 hover:bg-purple-700">
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
         </div>
       </div>
+
+      {/* System Analysis Results */}
+      {showAnalysis && systemAnalysis && (
+        <Card className="border-2 border-indigo-200 bg-indigo-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-indigo-600" />
+              System Analysis
+            </CardTitle>
+            <CardDescription>
+              Comprehensive PMESII-PT operational environment assessment
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* System Complexity */}
+            <div>
+              <h4 className="font-medium mb-2">System Complexity</h4>
+              <Badge className={`
+                ${systemAnalysis.system_complexity === 'High' ? 'bg-red-100 text-red-800' : ''}
+                ${systemAnalysis.system_complexity === 'Medium' ? 'bg-yellow-100 text-yellow-800' : ''}
+                ${systemAnalysis.system_complexity === 'Low' ? 'bg-green-100 text-green-800' : ''}
+              `}>
+                {systemAnalysis.system_complexity} Complexity
+              </Badge>
+            </div>
+
+            {/* Stability Assessment */}
+            <div>
+              <h4 className="font-medium mb-2">System Stability</h4>
+              <Badge className={`
+                ${systemAnalysis.stability_assessment === 'Stable' ? 'bg-green-100 text-green-800' : ''}
+                ${systemAnalysis.stability_assessment === 'Moderate' ? 'bg-yellow-100 text-yellow-800' : ''}
+                ${systemAnalysis.stability_assessment === 'Unstable' ? 'bg-red-100 text-red-800' : ''}
+              `}>
+                {systemAnalysis.stability_assessment}
+              </Badge>
+            </div>
+
+            {/* Critical Factors */}
+            {systemAnalysis.critical_factors.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Critical Factors</h4>
+                <div className="space-y-2">
+                  {systemAnalysis.critical_factors.map((factor: any, index: number) => (
+                    <div key={index} className="p-3 bg-white rounded-lg border">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{factor.domain}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {factor.significance}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {factor.count} factors identified
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Interdependencies */}
+            {systemAnalysis.interdependencies.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Key Interdependencies</h4>
+                <ul className="space-y-2">
+                  {systemAnalysis.interdependencies.map((dep: string, index: number) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <Target className="h-4 w-4 text-indigo-500 mt-0.5" />
+                      <span className="text-sm">{dep}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Risk Areas */}
+            {systemAnalysis.risk_areas.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Risk Areas</h4>
+                <ul className="space-y-2">
+                  {systemAnalysis.risk_areas.map((risk: string, index: number) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-red-500 mt-1">⚠</span>
+                      <span className="text-sm">{risk}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Opportunities */}
+            {systemAnalysis.opportunities.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Strategic Opportunities</h4>
+                <ul className="space-y-2">
+                  {systemAnalysis.opportunities.map((opp: string, index: number) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-green-500 mt-1">✓</span>
+                      <span className="text-sm">{opp}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Analysis Summary */}
       <Card>

@@ -12,6 +12,7 @@ This document captures key lessons learned during the development and debugging 
 7. [SSL/TLS and Network Issues](#ssltls-and-network-issues)
 8. [Standard Operating Procedures](#standard-operating-procedures)
 9. [Docker Build Issues](#docker-build-issues)
+10. [JavaScript/TypeScript Strict Mode Issues](#javascripttypescript-strict-mode-issues)
 
 ---
 
@@ -493,3 +494,68 @@ COPY . .
 5. **Monitor build context size** - Use .dockerignore effectively
 6. **Test locally first** - Ensure dependencies resolve before Docker build
 7. **Document build issues** - Keep track of problematic packages and solutions 
+
+---
+
+## JavaScript/TypeScript Strict Mode Issues
+
+### ❌ What Didn't Work
+
+**Problem**: `'eval' and 'arguments' cannot be used as a binding identifier in strict mode`
+
+**Root Cause**: Using `eval` as a parameter name or variable name in JavaScript/TypeScript strict mode. These are reserved words that cannot be used as identifiers.
+
+```typescript
+// ❌ This fails in strict mode
+const evidenceEvaluations = [...]
+evidenceEvaluations.map(eval => eval[question.id])
+
+// ❌ This also fails
+onEvaluationComplete={(eval) => updateEvidenceEvaluation(evidence.id, eval)}
+```
+
+**Error Messages**:
+- `Parsing ecmascript source code failed`
+- `'eval' and 'arguments' cannot be used as a binding identifier in strict mode`
+
+### ✅ What Worked
+
+**Solution**: Rename the parameter/variable to avoid reserved words like `eval`, `arguments`, etc.
+
+```typescript
+// ✅ Use descriptive names instead
+const evidenceEvaluations = [...]
+evidenceEvaluations.map(evaluation => evaluation[question.id])
+
+// ✅ Use clear parameter names
+onEvaluationComplete={(evaluation) => updateEvidenceEvaluation(evidence.id, evaluation)}
+```
+
+### Best Practices
+
+1. **Avoid Reserved Words**: Never use `eval`, `arguments`, `with`, etc. as variable names
+2. **Use Descriptive Names**: `evaluation` is clearer than `eval` anyway
+3. **Check Strict Mode**: Most modern frameworks enable strict mode by default
+4. **Search Codebase**: Use regex `\beval\b(?!uate)` to find problematic usage
+5. **IDE/Linting**: Configure tools to catch these issues early
+
+### How to Fix Systematically
+
+1. **Search for problematic patterns**:
+   ```bash
+   grep -r "\beval\s*[=>]" src/
+   grep -r "\barguments\s*[=>]" src/
+   ```
+
+2. **Replace with descriptive names**:
+   - `eval` → `evaluation`, `item`, `element`
+   - `arguments` → `args`, `params`, `options`
+
+3. **Test the build** to ensure all issues are resolved
+
+### Prevention
+
+- Configure ESLint rules to catch reserved word usage
+- Use TypeScript strict mode settings
+- Regular code reviews to catch naming issues
+- Document naming conventions in team guidelines
