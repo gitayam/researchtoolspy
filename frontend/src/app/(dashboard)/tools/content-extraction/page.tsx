@@ -11,7 +11,16 @@ import {
   Loader2,
   ExternalLink,
   Clock,
-  Eye
+  Eye,
+  Hash,
+  Globe2,
+  User,
+  Calendar,
+  Link,
+  Image,
+  Zap,
+  Server,
+  Languages
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,9 +38,29 @@ interface ExtractionResult {
     word_count: number
     reading_time: number
     extracted_at: string
+    domain?: string
+    content_type?: string
+    language?: string
+    author?: string
+    published_date?: string
+    links_count?: number
+    images_count?: number
+    content_hash?: string
+    status_code?: number
+    response_time?: number
   }
   summary?: string
   key_points?: string[]
+  links?: Array<{
+    url: string
+    text: string
+    type: 'internal' | 'external'
+  }>
+  images?: Array<{
+    src: string
+    alt?: string
+    title?: string
+  }>
 }
 
 export default function ContentExtractionPage() {
@@ -56,33 +85,63 @@ export default function ContentExtractionPage() {
     setError(null)
     setResult(null)
     
+    const startTime = Date.now()
+    
     try {
       const response = await apiClient.post('/tools/web-scraping/scrape', {
         url: url.trim(),
-        extract_images: false,
+        extract_images: true,
         extract_links: true,
         follow_redirects: true,
         max_depth: 1,
         delay_seconds: 1.0
       })
 
+      const endTime = Date.now()
+      const responseTime = endTime - startTime
+
       if (response.content) {
+        const urlObj = new URL(url.trim())
+        const domain = urlObj.hostname
+        const wordCount = response.content.split(/\s+/).filter(word => word.length > 0).length
+        
+        // Extract metadata from response and enhance with additional analysis
         const extractionResult: ExtractionResult = {
           url: url.trim(),
           title: response.title || 'Extracted Content',
           content: response.content,
           metadata: {
-            word_count: response.content.split(/\s+/).length,
-            reading_time: Math.ceil(response.content.split(/\s+/).length / 200), // 200 words per minute
-            extracted_at: new Date().toISOString()
-          }
+            word_count: wordCount,
+            reading_time: Math.ceil(wordCount / 200), // 200 words per minute
+            extracted_at: new Date().toISOString(),
+            domain: domain,
+            content_type: response.content_type || 'text/html',
+            language: detectLanguage(response.content),
+            author: extractAuthor(response.content),
+            published_date: extractPublishedDate(response.content),
+            links_count: response.links?.length || 0,
+            images_count: response.images?.length || 0,
+            content_hash: generateContentHash(response.content),
+            status_code: response.status_code || 200,
+            response_time: responseTime
+          },
+          links: response.links?.map((link: any) => ({
+            url: link.url || link,
+            text: link.text || link,
+            type: isInternalLink(link.url || link, domain) ? 'internal' : 'external'
+          })) || [],
+          images: response.images?.map((img: any) => ({
+            src: img.src || img,
+            alt: img.alt || '',
+            title: img.title || ''
+          })) || []
         }
         
         setResult(extractionResult)
         
         toast({
           title: 'Content Extracted',
-          description: `Successfully extracted ${extractionResult.metadata.word_count} words`
+          description: `Successfully extracted ${wordCount} words with ${extractionResult.metadata.links_count} links`
         })
       } else {
         throw new Error('No content could be extracted from the URL')
@@ -98,6 +157,65 @@ export default function ContentExtractionPage() {
     } finally {
       setExtracting(false)
     }
+  }
+
+  // Helper functions for metadata extraction
+  const detectLanguage = (content: string): string => {
+    // Simple language detection based on common words
+    const englishWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by']
+    const words = content.toLowerCase().split(/\s+/).slice(0, 100)
+    const englishCount = words.filter(word => englishWords.includes(word)).length
+    return englishCount > 5 ? 'en' : 'unknown'
+  }
+
+  const extractAuthor = (content: string): string | undefined => {
+    // Look for author patterns in content
+    const authorPatterns = [
+      /by\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
+      /author[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
+      /written\s+by\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/i
+    ]
+    
+    for (const pattern of authorPatterns) {
+      const match = content.match(pattern)
+      if (match) return match[1]
+    }
+    return undefined
+  }
+
+  const extractPublishedDate = (content: string): string | undefined => {
+    // Look for date patterns in content
+    const datePatterns = [
+      /published[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})/i,
+      /(\d{4}-\d{2}-\d{2})/,
+      /(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}/i
+    ]
+    
+    for (const pattern of datePatterns) {
+      const match = content.match(pattern)
+      if (match) return match[1] || match[0]
+    }
+    return undefined
+  }
+
+  const isInternalLink = (linkUrl: string, domain: string): boolean => {
+    try {
+      const link = new URL(linkUrl, `https://${domain}`)
+      return link.hostname === domain
+    } catch {
+      return linkUrl.startsWith('/') || linkUrl.startsWith('#')
+    }
+  }
+
+  const generateContentHash = (content: string): string => {
+    // Simple hash function for content fingerprinting
+    let hash = 0
+    for (let i = 0; i < content.length; i++) {
+      const char = content.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(16)
   }
 
   const generateSummary = async () => {
@@ -281,7 +399,8 @@ export default function ContentExtractionPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              {/* Primary Metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">
                     {result.metadata.word_count.toLocaleString()}
@@ -296,30 +415,113 @@ export default function ContentExtractionPage() {
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600">
-                    {result.summary ? '1' : '0'}
+                    {result.metadata.links_count || 0}
                   </div>
-                  <div className="text-sm text-gray-500">Summary</div>
+                  <div className="text-sm text-gray-500">Links</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-orange-600">
-                    {result.key_points?.length || 0}
+                    {result.metadata.images_count || 0}
                   </div>
-                  <div className="text-sm text-gray-500">Key Points</div>
+                  <div className="text-sm text-gray-500">Images</div>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <ExternalLink className="h-4 w-4" />
-                <a href={result.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                  {result.url}
-                </a>
-              </div>
-              
-              {result.title && (
-                <div className="mt-2">
-                  <h3 className="font-semibold text-lg">{result.title}</h3>
+
+              {/* URL and Title */}
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <ExternalLink className="h-4 w-4" />
+                  <a href={result.url} target="_blank" rel="noopener noreferrer" className="hover:underline break-all">
+                    {result.url}
+                  </a>
                 </div>
-              )}
+                
+                {result.title && (
+                  <div>
+                    <h3 className="font-semibold text-lg text-gray-900">{result.title}</h3>
+                  </div>
+                )}
+              </div>
+
+              {/* Enhanced Metadata */}
+              <div className="border-t pt-4">
+                <h4 className="font-medium text-gray-800 mb-3">Detailed Metadata</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {result.metadata.domain && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Globe2 className="h-4 w-4 text-blue-500" />
+                      <span className="text-gray-500">Domain:</span>
+                      <span className="font-medium">{result.metadata.domain}</span>
+                    </div>
+                  )}
+                  
+                  {result.metadata.language && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Languages className="h-4 w-4 text-green-500" />
+                      <span className="text-gray-500">Language:</span>
+                      <span className="font-medium">{result.metadata.language.toUpperCase()}</span>
+                    </div>
+                  )}
+                  
+                  {result.metadata.author && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="h-4 w-4 text-purple-500" />
+                      <span className="text-gray-500">Author:</span>
+                      <span className="font-medium">{result.metadata.author}</span>
+                    </div>
+                  )}
+                  
+                  {result.metadata.published_date && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-orange-500" />
+                      <span className="text-gray-500">Published:</span>
+                      <span className="font-medium">{result.metadata.published_date}</span>
+                    </div>
+                  )}
+                  
+                  {result.metadata.content_type && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <FileText className="h-4 w-4 text-indigo-500" />
+                      <span className="text-gray-500">Type:</span>
+                      <span className="font-medium">{result.metadata.content_type}</span>
+                    </div>
+                  )}
+                  
+                  {result.metadata.response_time && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Zap className="h-4 w-4 text-yellow-500" />
+                      <span className="text-gray-500">Response:</span>
+                      <span className="font-medium">{result.metadata.response_time}ms</span>
+                    </div>
+                  )}
+                  
+                  {result.metadata.status_code && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Server className="h-4 w-4 text-red-500" />
+                      <span className="text-gray-500">Status:</span>
+                      <span className={`font-medium ${result.metadata.status_code === 200 ? 'text-green-600' : 'text-red-600'}`}>
+                        {result.metadata.status_code}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {result.metadata.content_hash && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Hash className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-500">Hash:</span>
+                      <span className="font-mono text-xs font-medium">{result.metadata.content_hash}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-500">Extracted:</span>
+                    <span className="font-medium text-xs">
+                      {new Date(result.metadata.extracted_at).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -369,6 +571,92 @@ export default function ContentExtractionPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Links and Images */}
+          {(result.links && result.links.length > 0) || (result.images && result.images.length > 0) ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Extracted Links */}
+              {result.links && result.links.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Link className="h-5 w-5" />
+                      Extracted Links ({result.links.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                      {result.links.slice(0, 20).map((link, index) => (
+                        <div key={index} className="flex items-start gap-2 p-2 border rounded-lg hover:bg-gray-50">
+                          <Badge variant={link.type === 'internal' ? 'default' : 'secondary'} className="mt-1 text-xs">
+                            {link.type}
+                          </Badge>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{link.text || 'Link'}</p>
+                            <a 
+                              href={link.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline truncate block"
+                            >
+                              {link.url}
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                      {result.links.length > 20 && (
+                        <p className="text-sm text-gray-500 text-center">
+                          ... and {result.links.length - 20} more links
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Extracted Images */}
+              {result.images && result.images.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Image className="h-5 w-5" />
+                      Extracted Images ({result.images.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                      {result.images.slice(0, 10).map((img, index) => (
+                        <div key={index} className="flex items-start gap-2 p-2 border rounded-lg hover:bg-gray-50">
+                          <Image className="h-4 w-4 text-gray-400 mt-1 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            {img.alt && (
+                              <p className="text-sm font-medium">{img.alt}</p>
+                            )}
+                            {img.title && img.title !== img.alt && (
+                              <p className="text-xs text-gray-600">{img.title}</p>
+                            )}
+                            <a 
+                              href={img.src} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline truncate block"
+                            >
+                              {img.src}
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                      {result.images.length > 10 && (
+                        <p className="text-sm text-gray-500 text-center">
+                          ... and {result.images.length - 10} more images
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          ) : null}
 
           {/* Extracted Content */}
           <Card>

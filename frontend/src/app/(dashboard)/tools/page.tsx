@@ -24,6 +24,14 @@ const tools = [
     href: '/tools/content-extraction'
   },
   {
+    id: 'batch-processing',
+    title: 'Batch Processing',
+    description: 'Process multiple URLs simultaneously for bulk analysis',
+    icon: Database,
+    status: 'available',
+    href: '/tools/batch-processing'
+  },
+  {
     id: 'citations',
     title: 'Citation Manager',
     description: 'Manage and format research citations',
