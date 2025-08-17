@@ -73,37 +73,13 @@ async def list_framework_sessions(
         list[FrameworkSessionResponse]: List of framework sessions
     """
     # TODO: Implement actual database query
-    # For now, return mock data
+    # Return empty list instead of mock data to avoid clutter
     logger.info(f"Listing framework sessions for user {current_user.username}")
     
-    mock_sessions = [
-        FrameworkSessionResponse(
-            id=1,
-            title="Sample SWOT Analysis",
-            description="Analysis of competitive landscape",
-            framework_type=FrameworkType.SWOT,
-            status=FrameworkStatus.IN_PROGRESS,
-            data={"strengths": [], "weaknesses": [], "opportunities": [], "threats": []},
-            version=1,
-            created_at="2024-01-01T00:00:00Z",
-            updated_at="2024-01-01T00:00:00Z",
-            user_id=current_user.username,
-        ),
-        FrameworkSessionResponse(
-            id=2,
-            title="COG Analysis - Target Assessment",
-            description="Center of gravity analysis for strategic planning",
-            framework_type=FrameworkType.COG,
-            status=FrameworkStatus.DRAFT,
-            data={"entities": [], "relationships": []},
-            version=1,
-            created_at="2024-01-02T00:00:00Z",
-            updated_at="2024-01-02T00:00:00Z",
-            user_id=current_user.username,
-        ),
-    ]
+    # No mock sessions - clean dashboard
+    mock_sessions = []
     
-    # Apply filters
+    # Apply filters (for when we have real data)
     if framework_type:
         mock_sessions = [s for s in mock_sessions if s.framework_type == framework_type]
     if status:

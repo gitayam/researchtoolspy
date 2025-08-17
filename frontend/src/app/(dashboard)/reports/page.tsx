@@ -35,61 +35,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { formatRelativeTime } from '@/lib/utils'
 
-// Mock data for reports
-const mockReports = [
-  {
-    id: '1',
-    title: 'Q1 2024 Strategic Review',
-    framework: 'SWOT',
-    status: 'completed',
-    created_at: '2024-01-15T00:00:00Z',
-    updated_at: '2024-01-20T00:00:00Z',
-    author: 'Research Analyst',
-    description: 'Quarterly SWOT analysis for strategic planning and decision making',
-    tags: ['quarterly', 'strategic', 'planning'],
-    export_count: 5,
-    view_count: 23
-  },
-  {
-    id: '2',
-    title: 'Cyber Incident Attribution Analysis',
-    framework: 'ACH',
-    status: 'in_progress',
-    created_at: '2024-01-12T00:00:00Z',
-    updated_at: '2024-01-16T00:00:00Z',
-    author: 'Research Analyst',
-    description: 'Analysis of Competing Hypotheses for cyber incident attribution',
-    tags: ['cyber', 'attribution', 'incident'],
-    export_count: 2,
-    view_count: 12
-  },
-  {
-    id: '3',
-    title: 'Regional Power Assessment',
-    framework: 'DIME',
-    status: 'draft',
-    created_at: '2024-01-10T00:00:00Z',
-    updated_at: '2024-01-14T00:00:00Z',
-    author: 'Research Analyst',
-    description: 'DIME analysis of regional power dynamics',
-    tags: ['regional', 'power', 'assessment'],
-    export_count: 0,
-    view_count: 8
-  },
-  {
-    id: '4',
-    title: 'Market Expansion Analysis',
-    framework: 'SWOT',
-    status: 'completed',
-    created_at: '2024-01-08T00:00:00Z',
-    updated_at: '2024-01-12T00:00:00Z',
-    author: 'Research Analyst',
-    description: 'Analysis of expansion into Southeast Asian markets',
-    tags: ['market', 'expansion', 'asia'],
-    export_count: 8,
-    view_count: 34
-  }
-]
+// Empty reports list - no mock data
+const mockReports: any[] = []
 
 const frameworkIcons = {
   'SWOT': Target,
