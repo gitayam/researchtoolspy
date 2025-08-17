@@ -15,7 +15,8 @@ import {
   Users,
   Zap,
   Menu,
-  X
+  X,
+  Archive
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -52,6 +53,7 @@ const navigation = [
       { name: 'Documents', href: '/tools/documents' },
     ]
   },
+  { name: 'Evidence Collector', href: '/evidence', icon: Archive },
   { name: 'Reports', href: '/reports', icon: FileText },
   { name: 'Collaboration', href: '/collaboration', icon: Users },
   { name: 'Settings', href: '/settings', icon: Settings },
