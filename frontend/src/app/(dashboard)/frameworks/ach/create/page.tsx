@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils'
 import { TechniqueSnippet } from '@/components/frameworks/technique-snippets'
 import { ACHEnhancedScoring, ACHScaleSelection } from '@/components/frameworks/ach-enhanced-scoring'
 import { EvidenceEvaluationPanel } from '@/components/frameworks/evidence-evaluation-panel'
+import { ACHExport } from '@/components/frameworks/ach-export'
 import {
   ScaleType,
   ACHScore,
@@ -39,6 +40,7 @@ import {
   LOGARITHMIC_SCORES,
   LINEAR_SCORES
 } from '@/lib/ach-scoring'
+import type { ACHExportData } from '@/lib/ach-export'
 
 interface Hypothesis {
   id: string
@@ -246,6 +248,22 @@ export default function CreateACHPage() {
 
   const getHypothesisAnalysis = () => {
     return analyzeHypotheses(achData.hypotheses, achData.scores, achData.scaleType)
+  }
+
+  // Prepare export data
+  const prepareExportData = (): ACHExportData => {
+    return {
+      title: title || 'ACH Analysis',
+      description: description || undefined,
+      hypotheses: achData.hypotheses,
+      evidence: achData.evidence,
+      scores: achData.scores,
+      scaleType: achData.scaleType,
+      analysis: getHypothesisAnalysis(),
+      createdAt: new Date(),
+      analyst: 'Research Tools Platform User', // Could be made configurable
+      organization: undefined // Could be made configurable
+    }
   }
 
   const performAnalysis = () => {
@@ -764,6 +782,14 @@ export default function CreateACHPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Export Section */}
+      {(achData.hypotheses.length > 0 && achData.evidence.length > 0) && (
+        <ACHExport 
+          data={prepareExportData()}
+          className="mt-8"
+        />
+      )}
     </div>
   )
 }
