@@ -15,6 +15,10 @@ from app.models.user import User
 logger = get_logger(__name__)
 router = APIRouter()
 
+# Temporary in-memory storage for created sessions (until real DB is implemented)
+# Note: Type annotation deferred to avoid forward reference
+_temp_sessions: dict[int, any] = {}
+
 
 class FrameworkSessionCreate(BaseModel):
     """Framework session creation request."""
@@ -73,20 +77,22 @@ async def list_framework_sessions(
         list[FrameworkSessionResponse]: List of framework sessions
     """
     # TODO: Implement actual database query
-    # Return empty list instead of mock data to avoid clutter
     logger.info(f"Listing framework sessions for user {current_user.username}")
     
-    # No mock sessions - clean dashboard
-    mock_sessions = []
+    # Get sessions from temporary storage
+    user_sessions = [s for s in _temp_sessions.values() if s.user_id == current_user.username]
     
-    # Apply filters (for when we have real data)
+    # Apply filters
     if framework_type:
-        mock_sessions = [s for s in mock_sessions if s.framework_type == framework_type]
+        user_sessions = [s for s in user_sessions if s.framework_type == framework_type]
     if status:
-        mock_sessions = [s for s in mock_sessions if s.status == status]
+        user_sessions = [s for s in user_sessions if s.status == status]
+    
+    # Sort by updated_at (newest first)
+    user_sessions.sort(key=lambda x: x.updated_at, reverse=True)
     
     # Apply pagination
-    return mock_sessions[offset:offset + limit]
+    return user_sessions[offset:offset + limit]
 
 
 @router.post("/", response_model=FrameworkSessionResponse)
@@ -120,7 +126,10 @@ async def create_framework_session(
     import random
     session_id = random.randint(100, 999)
     
-    mock_session = FrameworkSessionResponse(
+    from datetime import datetime
+    now = datetime.utcnow().isoformat() + "Z"
+    
+    created_session = FrameworkSessionResponse(
         id=session_id,
         title=session_data.title,
         description=session_data.description,
@@ -128,12 +137,16 @@ async def create_framework_session(
         status=FrameworkStatus.DRAFT,
         data=session_data.data or {},
         version=1,
-        created_at="2024-01-03T00:00:00Z",
-        updated_at="2024-01-03T00:00:00Z",
+        created_at=now,
+        updated_at=now,
         user_id=current_user.username,
     )
     
-    return mock_session
+    # Store in temporary memory for retrieval
+    _temp_sessions[session_id] = created_session
+    logger.info(f"Stored session {session_id} in temporary storage")
+    
+    return created_session
 
 
 @router.get("/{session_id}", response_model=FrameworkSessionResponse)
@@ -159,7 +172,12 @@ async def get_framework_session(
     # TODO: Implement actual database query
     logger.info(f"Getting framework session {session_id}")
     
-    # No sample data - always return not found until real DB is implemented
+    # Check temporary storage first
+    if session_id in _temp_sessions:
+        logger.info(f"Found session {session_id} in temporary storage")
+        return _temp_sessions[session_id]
+    
+    # Not found in temporary storage
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Framework session not found"
@@ -191,12 +209,35 @@ async def update_framework_session(
     # TODO: Implement actual database update
     logger.info(f"Updating framework session {session_id}")
     
-    # TODO: Implement actual database update
-    # No sample data - always return not found until real DB is implemented
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Framework session not found"
+    # Check if session exists in temporary storage
+    if session_id not in _temp_sessions:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Framework session not found"
+        )
+    
+    # Update the session in temporary storage
+    existing_session = _temp_sessions[session_id]
+    from datetime import datetime
+    now = datetime.utcnow().isoformat() + "Z"
+    
+    updated_session = FrameworkSessionResponse(
+        id=session_id,
+        title=update_data.title or existing_session.title,
+        description=update_data.description or existing_session.description,
+        framework_type=existing_session.framework_type,
+        status=update_data.status or existing_session.status,
+        data=update_data.data or existing_session.data,
+        version=existing_session.version + 1,
+        created_at=existing_session.created_at,
+        updated_at=now,
+        user_id=existing_session.user_id,
     )
+    
+    _temp_sessions[session_id] = updated_session
+    logger.info(f"Updated session {session_id} in temporary storage")
+    
+    return updated_session
 
 
 @router.delete("/{session_id}")

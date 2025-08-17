@@ -71,7 +71,7 @@ export default function ACHViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<ACHSession>(`/frameworks/sessions/${params.id}`)
+        const data = await apiClient.get<ACHSession>(`/frameworks/${params.id}`)
         setSession(data)
       } catch (error: any) {
         toast({
