@@ -331,7 +331,7 @@ export default function CreateACHPage() {
         })
       }
 
-      const response = await apiClient.post('/frameworks/sessions', {
+      const response = await apiClient.post('/frameworks/', {
         title,
         description,
         framework_type: 'ach',

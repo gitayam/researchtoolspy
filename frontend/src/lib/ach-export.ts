@@ -967,7 +967,8 @@ export async function exportToPowerPoint(data: ACHExportData): Promise<ArrayBuff
     colW: [0.5, 5, 1, 1.5],
   })
   
-  return await pptx.writeFile()
+  // Use write() method which returns a promise of ArrayBuffer for browser usage
+  return await pptx.write({ outputType: 'arraybuffer' }) as ArrayBuffer
 }
 
 /**

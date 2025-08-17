@@ -226,7 +226,7 @@ Content: ${content.substring(0, 2000)}...`
         }
       }
 
-      const response = await apiClient.post<{ id: string }>('/frameworks/sessions', payload)
+      const response = await apiClient.post<{ id: string }>('/frameworks/', payload)
       
       toast({
         title: 'Success',
