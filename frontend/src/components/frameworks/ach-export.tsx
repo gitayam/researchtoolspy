@@ -56,7 +56,7 @@ const exportOptions: ExportOption[] = [
   {
     id: 'pdf',
     name: 'PDF Report',
-    description: 'Professional report with executive summary, hypothesis ranking, and detailed analysis',
+    description: 'Comprehensive intelligence report with AI-generated executive summary, evidence analysis, SATS ratings, and methodology',
     icon: FileText,
     mimeType: 'application/pdf',
     extension: 'pdf',
