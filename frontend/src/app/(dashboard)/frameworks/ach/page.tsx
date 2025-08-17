@@ -14,39 +14,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-// Mock data for demonstration
-const mockAnalyses = [
-  {
-    id: '1',
-    title: 'Market Entry Strategy Analysis',
-    description: 'Evaluating competing hypotheses for optimal market entry approach',
-    hypotheses: 5,
-    evidence: 24,
-    diagnosticity: 'High',
-    lastUpdated: '2024-01-15',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Security Incident Attribution',
-    description: 'Analyzing competing hypotheses for recent security breach',
-    hypotheses: 4,
-    evidence: 18,
-    diagnosticity: 'Medium',
-    lastUpdated: '2024-01-12',
-    status: 'completed'
-  },
-  {
-    id: '3',
-    title: 'Competitor Strategy Assessment',
-    description: 'Understanding competitor\'s next strategic moves',
-    hypotheses: 6,
-    evidence: 32,
-    diagnosticity: 'High',
-    lastUpdated: '2024-01-10',
-    status: 'draft'
-  }
-]
+// Empty list - no mock data
+const mockAnalyses: any[] = []
 
 export default function ACHListPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -103,7 +72,24 @@ export default function ACHListPage() {
       </div>
 
       <div className="grid gap-4">
-        {filteredAnalyses.map((analysis) => (
+        {filteredAnalyses.length === 0 ? (
+          <Card className="p-12 text-center">
+            <div className="max-w-md mx-auto">
+              <Grid className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No ACH analyses yet</h3>
+              <p className="text-gray-600 mb-4">
+                Get started by creating your first Analysis of Competing Hypotheses
+              </p>
+              <Link href="/frameworks/ach/create">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Analysis
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        ) : (
+          filteredAnalyses.map((analysis) => (
           <Card key={analysis.id} className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
@@ -162,28 +148,8 @@ export default function ACHListPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
+        )))}
       </div>
-
-      {filteredAnalyses.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Grid className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No analyses found</h3>
-            <p className="text-gray-600 mb-4">
-              {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first ACH analysis'}
-            </p>
-            {!searchTerm && (
-              <Link href="/frameworks/ach/create">
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Analysis
-                </Button>
-              </Link>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }
