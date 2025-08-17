@@ -525,27 +525,29 @@ export default function ACHViewPage() {
           <div className="space-y-3">
             {calculateAllHypothesesScores().map((hypothesis, index) => {
               const rank = index + 1
-              const isTop = index < 3
+              const hasEvidence = session.data.evidence.length > 0
+              const isTop = hasEvidence && hypothesis.weightedScore > 0 && index === 0
+              const hasDistinctScore = hasEvidence && hypothesis.weightedScore !== 0
               
               return (
                 <div key={hypothesis.id} className={`flex items-center gap-3 p-3 rounded-lg border ${
-                  rank === 1 ? 'border-green-300 bg-green-50' :
-                  rank === 2 ? 'border-blue-300 bg-blue-50' :
-                  rank === 3 ? 'border-yellow-300 bg-yellow-50' :
+                  hasDistinctScore && rank === 1 ? 'border-green-300 bg-green-50' :
+                  hasDistinctScore && rank === 2 ? 'border-blue-300 bg-blue-50' :
+                  hasDistinctScore && rank === 3 ? 'border-yellow-300 bg-yellow-50' :
                   'border-gray-200 bg-white'
                 }`}>
                   <div className="flex items-center gap-2">
                     <Badge 
-                      variant={isTop ? "default" : "outline"}
+                      variant={hasDistinctScore && isTop ? "default" : "outline"}
                       className={
-                        rank === 1 ? 'bg-green-600' :
-                        rank === 2 ? 'bg-blue-600' :
-                        rank === 3 ? 'bg-yellow-600' : ''
+                        hasDistinctScore && rank === 1 ? 'bg-green-600' :
+                        hasDistinctScore && rank === 2 ? 'bg-blue-600' :
+                        hasDistinctScore && rank === 3 ? 'bg-yellow-600' : ''
                       }
                     >
                       #{rank}
                     </Badge>
-                    {rank === 1 && <Trophy className="h-4 w-4 text-yellow-600" />}
+                    {isTop && <Trophy className="h-4 w-4 text-yellow-600" />}
                   </div>
                   
                   <div className="flex-1">
@@ -606,7 +608,9 @@ export default function ACHViewPage() {
           <div className="space-y-4">
             {calculateAllHypothesesScores().map((hypothesis, index) => {
               const total = hypothesis.supports + hypothesis.contradicts + hypothesis.neutral + hypothesis.not_applicable
-              const isStrongest = index === 0
+              const hasEvidence = session.data.evidence.length > 0
+              const allScoresEqual = calculateAllHypothesesScores().every(h => h.weightedScore === hypothesis.weightedScore)
+              const isStrongest = hasEvidence && !allScoresEqual && index === 0 && hypothesis.weightedScore > 0
               
               return (
                 <div key={hypothesis.id} className={`border rounded-lg p-4 ${
