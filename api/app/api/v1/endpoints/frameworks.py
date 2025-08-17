@@ -21,6 +21,7 @@ class FrameworkSessionCreate(BaseModel):
     title: str
     description: str | None = None
     framework_type: FrameworkType
+    data: dict | None = None
 
 
 class FrameworkSessionResponse(BaseModel):
@@ -98,6 +99,7 @@ async def list_framework_sessions(
             version=1,
             created_at="2024-01-02T00:00:00Z",
             updated_at="2024-01-02T00:00:00Z",
+            user_id=current_user.username,
         ),
     ]
     
@@ -138,17 +140,21 @@ async def create_framework_session(
             detail="Insufficient permissions to create framework sessions"
         )
     
-    # Create mock response
+    # Create mock response with actual data
+    import random
+    session_id = random.randint(100, 999)
+    
     mock_session = FrameworkSessionResponse(
-        id=3,
+        id=session_id,
         title=session_data.title,
         description=session_data.description,
         framework_type=session_data.framework_type,
         status=FrameworkStatus.DRAFT,
-        data={},
+        data=session_data.data or {},
         version=1,
         created_at="2024-01-03T00:00:00Z",
         updated_at="2024-01-03T00:00:00Z",
+        user_id=current_user.username,
     )
     
     return mock_session
@@ -257,6 +263,7 @@ async def update_framework_session(
         version=2,
         created_at="2024-01-01T00:00:00Z",
         updated_at="2024-01-03T00:00:00Z",
+        user_id=current_user.username,
     )
 
 

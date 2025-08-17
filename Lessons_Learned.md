@@ -13,6 +13,8 @@ This document captures key lessons learned during the development and debugging 
 8. [Standard Operating Procedures](#standard-operating-procedures)
 9. [Docker Build Issues](#docker-build-issues)
 10. [JavaScript/TypeScript Strict Mode Issues](#javascripttypescript-strict-mode-issues)
+11. [Hash-Based Authentication Implementation](#hash-based-authentication-implementation)
+12. [Export Functionality and Browser Compatibility](#export-functionality-and-browser-compatibility)
 
 ---
 
@@ -559,3 +561,210 @@ onEvaluationComplete={(evaluation) => updateEvidenceEvaluation(evidence.id, eval
 - Use TypeScript strict mode settings
 - Regular code reviews to catch naming issues
 - Document naming conventions in team guidelines
+
+---
+
+## Hash-Based Authentication Implementation
+
+### ❌ What Didn't Work
+
+**Problem**: Mock authentication tokens were not valid JWTs
+```python
+# ❌ This created invalid tokens that backend couldn't verify
+const mockTokens: AuthTokens = {
+  access_token: 'mock_access_token_' + Date.now(),
+  refresh_token: 'mock_refresh_token_' + Date.now(),
+  token_type: 'bearer',
+  expires_in: 3600
+}
+```
+
+**Root Cause**: Mock tokens weren't actual JWTs, so when sent to backend endpoints that require authentication, JWT verification failed with "Not enough segments" error.
+
+**Problem**: Using wrong function signatures for token creation
+```python
+# ❌ These functions don't exist with these parameters
+access_token = create_access_token(
+    user_id=hash(request.account_hash),
+    username=f"user_{request.account_hash[:8]}",
+    scopes=["admin"]
+)
+```
+
+### ✅ What Worked
+
+**Solution 1**: Implement proper Mullvad-style hash authentication
+```python
+# ✅ Backend: Create real JWT tokens from hash authentication
+from app.core.security import create_token_pair
+
+tokens = create_token_pair(
+    user_id=abs(hash(request.account_hash)) % 1000000,
+    username=f"user_{request.account_hash[:8]}",
+    scopes=["admin"] if account_info["role"] == UserRole.ADMIN else ["user"]
+)
+```
+
+**Solution 2**: Use 16-digit decimal account hashes like Mullvad
+```typescript
+// ✅ Frontend: Generate proper 16-digit account hashes
+export function generateAccountHash(): string {
+  const min = 1000000000000000
+  const max = 9999999999999999
+  const accountNumber = randomInt(min, max + 1)
+  return accountNumber.toString()
+}
+```
+
+**Solution 3**: Frontend calls real backend auth endpoint
+```typescript
+// ✅ Use actual backend hash auth endpoint
+const response = await this.client.post('/hash-auth/authenticate', {
+  account_hash: hashCredentials.account_hash
+})
+```
+
+### Key Learnings
+
+1. **Privacy-First Design**: No usernames, emails, or passwords stored
+2. **Cryptographic Security**: 16-digit numbers = ~9 quadrillion combinations
+3. **Stateless Authentication**: Account hash is both username AND password
+4. **Minimal Claims in JWT**: Only include necessary information for privacy
+5. **Anti-Timing Attacks**: Add delays to prevent timing-based attacks
+
+### Best Practices for Hash Authentication
+
+1. **Generate cryptographically secure hashes**: Use `secrets` module in Python
+2. **Format for readability**: Display as `1234 5678 9012 3456`
+3. **Store minimal data**: Only hash, role, and timestamps
+4. **Implement rate limiting**: Prevent brute force attempts
+5. **Add timing attack protection**: Consistent response times
+
+---
+
+## Export Functionality and Browser Compatibility
+
+### ❌ What Didn't Work
+
+**Problem**: PowerPoint export failing with `pptx.writeFile()` 
+```typescript
+// ❌ writeFile() doesn't work in browsers
+return await pptx.writeFile()
+```
+
+**Root Cause**: `writeFile()` is for Node.js environments, not browsers. Browser-based exports need to return data as ArrayBuffer or Blob.
+
+**Problem**: API endpoint path inconsistencies
+```typescript
+// ❌ Different frameworks using different paths
+'/frameworks/sessions'  // Some frameworks
+'/frameworks/'          // Correct path
+```
+
+### ✅ What Worked
+
+**Solution 1**: Use correct export methods for browser
+```typescript
+// ✅ PowerPoint: Use write() with arraybuffer output
+return await pptx.write({ outputType: 'arraybuffer' }) as ArrayBuffer
+
+// ✅ Excel: toBuffer() returns ArrayBuffer
+const buffer = await workbook.xlsx.writeBuffer()
+return buffer
+
+// ✅ Word: Packer.toBuffer() for browser
+return await Packer.toBuffer(doc)
+
+// ✅ PDF: Already returns ArrayBuffer
+const buffer = doc.output('arraybuffer')
+return buffer
+```
+
+**Solution 2**: Consistent file download function
+```typescript
+export function downloadFile(buffer: ArrayBuffer, filename: string, mimeType: string) {
+  const blob = new Blob([buffer], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)  // Clean up memory
+}
+```
+
+**Solution 3**: Correct MIME types for each format
+```typescript
+const mimeTypes = {
+  excel: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  word: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  powerpoint: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  pdf: 'application/pdf',
+  json: 'application/json',
+  csv: 'text/csv'
+}
+```
+
+### Key Learnings
+
+1. **Browser vs Node.js APIs**: Different methods for same libraries
+2. **ArrayBuffer for binary data**: Standard format for browser file generation
+3. **Blob and Object URLs**: Required for triggering downloads
+4. **Memory cleanup**: Always revoke object URLs after use
+5. **MIME type accuracy**: Important for proper file handling
+
+### Export Best Practices
+
+1. **Test in actual browser**: Not just Node.js tests
+2. **Handle large files**: Consider streaming for big exports
+3. **Progress indicators**: Show export progress for large datasets
+4. **Error recovery**: Graceful handling of export failures
+5. **Format validation**: Ensure exported files open correctly
+
+### Common Export Library Patterns
+
+```typescript
+// Excel (exceljs)
+const buffer = await workbook.xlsx.writeBuffer()
+
+// Word (docx)
+const buffer = await Packer.toBuffer(doc)
+
+// PowerPoint (pptxgenjs)
+const buffer = await pptx.write({ outputType: 'arraybuffer' })
+
+// PDF (jspdf)
+const buffer = doc.output('arraybuffer')
+
+// All return ArrayBuffer for browser downloads
+```
+
+### Debugging Export Issues
+
+1. **Check console errors**: Library-specific error messages
+2. **Verify data structure**: Ensure data matches library expectations
+3. **Test with minimal data**: Isolate formatting from data issues
+4. **Check library docs**: Browser-specific sections often separate
+5. **Memory limits**: Browser tabs have memory constraints
+
+---
+
+## Summary of New Learnings
+
+### Hash Authentication
+- Implement privacy-first authentication without personal data
+- Use cryptographically secure random numbers for account hashes
+- Create real JWT tokens, not mock strings
+- Add anti-timing attack protections
+- Format hashes for human readability (space-separated groups)
+
+### Export Functionality
+- Use browser-compatible methods (ArrayBuffer, not file system)
+- Different libraries have different browser methods
+- Always clean up object URLs to prevent memory leaks
+- Use correct MIME types for each file format
+- Test exports in actual browser environment, not just tests
+
+These lessons have been crucial for building a professional, privacy-focused research platform with government-standard export capabilities.
