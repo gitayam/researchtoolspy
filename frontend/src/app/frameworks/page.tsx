@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { FrameworkRecommendationPanel } from '@/components/frameworks/framework-recommendation-panel'
 // import { useIsAuthenticated } from '@/stores/auth' // Temporarily disabled
 
 const frameworks = [
@@ -114,6 +115,11 @@ export default function PublicFrameworksPage() {
               </p>
             </div>
           )}
+        </div>
+        
+        {/* AI Framework Recommendations */}
+        <div className="mb-8 max-w-4xl mx-auto">
+          <FrameworkRecommendationPanel className="mb-8" />
         </div>
         
         {/* Search */}
