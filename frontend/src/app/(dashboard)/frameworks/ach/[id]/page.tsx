@@ -52,6 +52,7 @@ interface ACHSession {
       text: string
       hypotheses_scores: { [hypothesisId: string]: 'supports' | 'contradicts' | 'neutral' | 'not_applicable' }
     }>
+    scaleType?: 'logarithmic' | 'linear'
   }
   created_at: string
   updated_at: string
@@ -91,7 +92,8 @@ export default function ACHViewPage() {
   }, [params.id, router, toast])
 
   const handleEdit = () => {
-    router.push(`/frameworks/ach/${params.id}/edit`)
+    // Navigate to create page with session ID for editing
+    router.push(`/frameworks/ach/create?edit=${params.id}`)
   }
 
   const handleExport = async (format: ExportFormat) => {
@@ -155,15 +157,15 @@ export default function ACHViewPage() {
   const getScoreColor = (score: string) => {
     switch (score) {
       case 'supports':
-        return 'bg-green-50 border-green-200'
+        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
       case 'contradicts':
-        return 'bg-red-50 border-red-200'
+        return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
       case 'neutral':
-        return 'bg-yellow-50 border-yellow-200'
+        return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
       case 'not_applicable':
-        return 'bg-gray-50 border-gray-200'
+        return 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700'
       default:
-        return 'bg-gray-50 border-gray-200'
+        return 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700'
     }
   }
 
@@ -296,9 +298,9 @@ export default function ACHViewPage() {
   }
 
   const statusColors = {
-    draft: 'bg-gray-100 text-gray-800',
-    in_progress: 'bg-blue-100 text-blue-800',
-    completed: 'bg-green-100 text-green-800'
+    draft: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200',
+    in_progress: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200',
+    completed: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
   }
 
   return (
@@ -388,7 +390,7 @@ export default function ACHViewPage() {
 
       {/* Analysis Insights */}
       {showInsights && analysisInsights && (
-        <Card className="border-2 border-purple-200 bg-purple-50/50">
+        <Card className="border-2 border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Lightbulb className="h-5 w-5 text-purple-600" />
@@ -402,7 +404,7 @@ export default function ACHViewPage() {
             {/* Strongest Hypothesis */}
             <div>
               <h4 className="font-medium mb-2">Strongest Hypothesis</h4>
-              <div className="p-3 bg-green-100 rounded-lg border border-green-200">
+              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
                 <p className="font-medium">{analysisInsights.strongest_hypothesis.text}</p>
                 <div className="mt-2 text-sm text-green-700">
                   Score: {analysisInsights.strongest_hypothesis.weightedScore} 
@@ -416,9 +418,9 @@ export default function ACHViewPage() {
             <div>
               <h4 className="font-medium mb-2">Confidence Assessment</h4>
               <Badge className={`
-                ${analysisInsights.confidence_assessment === 'High' ? 'bg-green-100 text-green-800' : ''}
-                ${analysisInsights.confidence_assessment === 'Medium' ? 'bg-yellow-100 text-yellow-800' : ''}
-                ${analysisInsights.confidence_assessment === 'Low' ? 'bg-red-100 text-red-800' : ''}
+                ${analysisInsights.confidence_assessment === 'High' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' : ''}
+                ${analysisInsights.confidence_assessment === 'Medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' : ''}
+                ${analysisInsights.confidence_assessment === 'Low' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' : ''}
               `}>
                 {analysisInsights.confidence_assessment} Confidence
               </Badge>
@@ -430,7 +432,7 @@ export default function ACHViewPage() {
                 <h4 className="font-medium mb-2">Competing Hypotheses</h4>
                 <div className="space-y-2">
                   {analysisInsights.competing_hypotheses.map((hyp: any, index: number) => (
-                    <div key={index} className="p-2 bg-yellow-50 rounded border border-yellow-200">
+                    <div key={index} className="p-2 bg-yellow-50 dark:bg-yellow-900/30 rounded border border-yellow-200 dark:border-yellow-800">
                       <p className="text-sm">{hyp.text}</p>
                       <p className="text-xs text-yellow-700 mt-1">Score: {hyp.weightedScore}</p>
                     </div>
@@ -477,18 +479,18 @@ export default function ACHViewPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
             <div>
               <div className="text-2xl font-bold text-orange-600">
                 {session.data.hypotheses.length}
               </div>
-              <div className="text-sm text-gray-500">Hypotheses</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Hypotheses</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-blue-600">
                 {session.data.evidence.length}
               </div>
-              <div className="text-sm text-gray-500">Evidence Items</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Evidence Items</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-green-600">
@@ -496,7 +498,7 @@ export default function ACHViewPage() {
                   sum + Object.values(e.hypotheses_scores).filter(s => s === 'supports').length, 0
                 )}
               </div>
-              <div className="text-sm text-gray-500">Supporting Links</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Supporting Links</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-red-600">
@@ -504,14 +506,20 @@ export default function ACHViewPage() {
                   sum + Object.values(e.hypotheses_scores).filter(s => s === 'contradicts').length, 0
                 )}
               </div>
-              <div className="text-sm text-gray-500">Contradicting Links</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Contradicting Links</div>
+            </div>
+            <div>
+              <div className="text-lg font-bold text-purple-600">
+                {session.data.scaleType === 'logarithmic' ? 'Logarithmic' : session.data.scaleType === 'linear' ? 'Linear' : 'Unknown'}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Scoring Scale</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Hypothesis Ranking */}
-      <Card className="border-2 border-dashed border-orange-300 bg-orange-50">
+      <Card className="border-2 border-dashed border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
@@ -531,10 +539,10 @@ export default function ACHViewPage() {
               
               return (
                 <div key={hypothesis.id} className={`flex items-center gap-3 p-3 rounded-lg border ${
-                  hasDistinctScore && rank === 1 ? 'border-green-300 bg-green-50' :
-                  hasDistinctScore && rank === 2 ? 'border-blue-300 bg-blue-50' :
-                  hasDistinctScore && rank === 3 ? 'border-yellow-300 bg-yellow-50' :
-                  'border-gray-200 bg-white'
+                  hasDistinctScore && rank === 1 ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20' :
+                  hasDistinctScore && rank === 2 ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20' :
+                  hasDistinctScore && rank === 3 ? 'border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20' :
+                  'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
                 }`}>
                   <div className="flex items-center gap-2">
                     <Badge 
@@ -561,7 +569,7 @@ export default function ACHViewPage() {
                     }`}>
                       {hypothesis.weightedScore > 0 ? '+' : ''}{hypothesis.weightedScore}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                       {hypothesis.supports}S / {hypothesis.contradicts}C
                     </div>
                   </div>
@@ -614,7 +622,7 @@ export default function ACHViewPage() {
               
               return (
                 <div key={hypothesis.id} className={`border rounded-lg p-4 ${
-                  isStrongest ? 'border-green-300 bg-green-50' : ''
+                  isStrongest ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700'
                 }`}>
                   <div className="flex items-start gap-3 mb-3">
                     <div className="flex items-center gap-2">
@@ -625,7 +633,7 @@ export default function ACHViewPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm leading-relaxed font-medium">{hypothesis.text}</p>
-                      <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
+                      <div className="mt-2 flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
                         <span className={`font-medium ${
                           hypothesis.weightedScore > 0 ? 'text-green-600' : 
                           hypothesis.weightedScore < 0 ? 'text-red-600' : 'text-gray-600'
@@ -647,22 +655,22 @@ export default function ACHViewPage() {
                         <div className="flex flex-col items-center gap-1">
                           <CheckCircle className="h-4 w-4 text-green-600" />
                           <span className="font-medium">{hypothesis.supports}</span>
-                          <span className="text-gray-500">Supports</span>
+                          <span className="text-gray-500 dark:text-gray-400">Supports</span>
                         </div>
                         <div className="flex flex-col items-center gap-1">
                           <AlertCircle className="h-4 w-4 text-yellow-600" />
                           <span className="font-medium">{hypothesis.neutral}</span>
-                          <span className="text-gray-500">Neutral</span>
+                          <span className="text-gray-500 dark:text-gray-400">Neutral</span>
                         </div>
                         <div className="flex flex-col items-center gap-1">
                           <XCircle className="h-4 w-4 text-red-600" />
                           <span className="font-medium">{hypothesis.contradicts}</span>
-                          <span className="text-gray-500">Contradicts</span>
+                          <span className="text-gray-500 dark:text-gray-400">Contradicts</span>
                         </div>
                         <div className="flex flex-col items-center gap-1">
                           <X className="h-4 w-4 text-gray-400" />
                           <span className="font-medium">{hypothesis.not_applicable}</span>
-                          <span className="text-gray-500">N/A</span>
+                          <span className="text-gray-500 dark:text-gray-400">N/A</span>
                         </div>
                       </div>
                     </div>
