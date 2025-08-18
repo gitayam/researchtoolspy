@@ -579,7 +579,7 @@ export default function ContentExtractionPage() {
               <CardContent className="space-y-4">
                 <div>
                   <h4 className="font-medium text-blue-800 mb-2">Summary</h4>
-                  <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
                     <p className="text-sm leading-relaxed">{result.summary}</p>
                     <Button
                       variant="ghost"
@@ -598,7 +598,7 @@ export default function ContentExtractionPage() {
                     <h4 className="font-medium text-blue-800 mb-2">Key Points</h4>
                     <div className="space-y-2">
                       {result.key_points.map((point, index) => (
-                        <div key={index} className="bg-white rounded-lg p-3 border border-blue-200">
+                        <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
                           <div className="flex items-start gap-2">
                             <Badge variant="outline" className="mt-1 min-w-[24px] text-center">
                               {index + 1}

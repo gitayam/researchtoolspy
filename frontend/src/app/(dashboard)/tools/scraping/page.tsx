@@ -509,7 +509,7 @@ export default function WebScrapingTool() {
                             {result.content && (
                               <div className="text-xs">
                                 <div className="text-gray-600 mb-1">Content preview:</div>
-                                <div className="bg-white p-2 rounded border text-gray-700 max-h-20 overflow-y-auto">
+                                <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 max-h-20 overflow-y-auto">
                                   {result.content.substring(0, 200)}
                                   {result.content.length > 200 && '...'}
                                 </div>

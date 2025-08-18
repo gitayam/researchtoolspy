@@ -804,16 +804,31 @@ cloudflared tunnel --url http://localhost:3380
 </div>
 ```
 
+**Root Cause**: Only defining light mode styles without dark mode variants causes text to inherit inappropriate colors when the dark mode theme is applied system-wide.
+
 **Problem**: Using pure black/white causing eye strain
 ```tsx
 // ❌ Harsh contrast
 <div className="bg-black text-white">Too harsh!</div>
 ```
 
+**Root Cause**: Pure black backgrounds with white text create excessive contrast that causes eye fatigue, especially in low-light environments.
+
 **Problem**: Low contrast failing WCAG accessibility standards
 ```tsx
 // ❌ Poor contrast
 <div className="dark:bg-gray-900 dark:text-gray-700">Hard to read</div>
+```
+
+**Root Cause**: Using gray-700 text on gray-900 background provides insufficient contrast ratio (fails WCAG AA standards).
+
+**Problem**: Framework components missing dark mode support
+```tsx
+// ❌ SWOT quadrants invisible in dark mode
+<div className="bg-white p-4 border">
+  <h3 className="text-gray-900">Strengths</h3>
+  <p className="text-gray-600">Content invisible in dark mode</p>
+</div>
 ```
 
 ### ✅ What Worked
@@ -826,9 +841,9 @@ cloudflared tunnel --url http://localhost:3380
 </div>
 ```
 
-**Solution 2**: Use Tailwind's color palette for proper contrast
+**Solution 2**: Use Tailwind's semantic color palette for proper contrast
 ```tsx
-// ✅ Good contrast ratios
+// ✅ Good contrast ratios that meet WCAG standards
 <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
   <CardHeader className="text-gray-900 dark:text-gray-100">
     <CardTitle>Readable Title</CardTitle>
@@ -836,63 +851,115 @@ cloudflared tunnel --url http://localhost:3380
 </Card>
 ```
 
-**Solution 3**: Test with accessibility tools
+**Solution 3**: Test with accessibility tools and browser DevTools
 ```bash
 # Use browser dev tools
 # 1. Open DevTools > Rendering
 # 2. Enable "Emulate CSS media feature prefers-color-scheme: dark"
 # 3. Check contrast with Lighthouse or axe DevTools
+# 4. Verify text visibility across all components
+```
+
+**Solution 4**: Systematic audit using grep to find missing dark mode classes
+```bash
+# Find text elements missing dark mode variants
+grep -r "text-gray-[0-9]" src/ | grep -v "dark:"
+grep -r "bg-white" src/ | grep -v "dark:"
+grep -r "border-gray" src/ | grep -v "dark:"
 ```
 
 ### 🔧 Standard Operating Procedure
 
-1. **For every text element**, add dark mode variant:
-   - Light: text-gray-900, Dark: dark:text-gray-100
-   - Light: text-gray-600, Dark: dark:text-gray-400
+1. **For every text element**, add appropriate dark mode variant:
+   - Primary text: `text-gray-900 dark:text-gray-100` 
+   - Secondary text: `text-gray-800 dark:text-gray-200`
+   - Body text: `text-gray-600 dark:text-gray-400`
+   - Muted text: `text-gray-500 dark:text-gray-500`
 
 2. **For backgrounds**, use proper color pairs:
-   - Light: bg-white, Dark: dark:bg-gray-900
-   - Light: bg-gray-50, Dark: dark:bg-gray-800
+   - Main background: `bg-white dark:bg-gray-900`
+   - Card backgrounds: `bg-white dark:bg-gray-800`
+   - Subtle backgrounds: `bg-gray-50 dark:bg-gray-800`
 
-3. **For borders**, ensure visibility:
-   - Light: border-gray-200, Dark: dark:border-gray-700
+3. **For borders**, ensure visibility in both modes:
+   - Standard borders: `border-gray-200 dark:border-gray-700`
+   - Subtle borders: `border-gray-100 dark:border-gray-800`
 
-4. **Test systematically**:
-   - Toggle dark mode in browser
-   - Check all text is visible
-   - Verify contrast ratios
-   - Test on different screens
+4. **For interactive elements**, maintain usability:
+   - Buttons: `bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600`
+   - Inputs: `bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600`
+
+5. **Test systematically**:
+   - Toggle dark mode in browser DevTools
+   - Check all framework pages (SWOT, ACH, COG, PEST, etc.)
+   - Verify modal dialogs and dropdowns
+   - Test export functionality dialogs
+   - Validate loading states and error messages
 
 ### Key Learnings
 
-1. **Never assume inheritance** - Always explicitly set dark mode classes
-2. **Avoid pure colors** - Use gray-900 instead of black, gray-50 instead of white
-3. **Test early and often** - Dark mode issues compound quickly
-4. **Use CSS variables** for complex theming scenarios
-5. **Consider user preference** - Respect system settings but allow manual override
+1. **Never assume inheritance** - Always explicitly set dark mode classes, even if parent seems to handle it
+2. **Avoid pure colors** - Use gray-900 instead of black, gray-50 instead of white for better readability
+3. **Test early and often** - Dark mode issues compound quickly across components
+4. **Framework-specific considerations** - Analysis frameworks need special attention for data visibility
+5. **Component inheritance** - Child components don't automatically inherit proper dark mode styling
+6. **Accessibility compliance** - Dark mode must maintain WCAG contrast standards
+7. **User experience** - Dark mode reduces eye strain and improves usability in low-light conditions
 
-### Common Patterns
+### Common Patterns for Research Frameworks
 
 ```tsx
 // Standard text hierarchy
-<h1 className="text-gray-900 dark:text-gray-100">Heading</h1>
-<h2 className="text-gray-800 dark:text-gray-200">Subheading</h2>
-<p className="text-gray-600 dark:text-gray-400">Body text</p>
-<span className="text-gray-500 dark:text-gray-500">Muted text</span>
+<h1 className="text-gray-900 dark:text-gray-100">Framework Title</h1>
+<h2 className="text-gray-800 dark:text-gray-200">Section Heading</h2>
+<p className="text-gray-600 dark:text-gray-400">Analysis content</p>
+<span className="text-gray-500 dark:text-gray-500">Metadata/timestamps</span>
 
-// Cards and containers
-<div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-  <div className="text-gray-900 dark:text-gray-100">Content</div>
+// Framework cards and containers
+<Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+  <CardHeader className="text-gray-900 dark:text-gray-100">
+    <CardTitle>Analysis Section</CardTitle>
+  </CardHeader>
+  <CardContent className="text-gray-600 dark:text-gray-400">
+    Framework-specific content
+  </CardContent>
+</Card>
+
+// SWOT quadrants
+<div className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 p-4">
+  <h3 className="text-green-800 dark:text-green-100">Strengths</h3>
+  <p className="text-green-700 dark:text-green-200">Content visible in both modes</p>
 </div>
 
 // Interactive elements
-<button className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600">
-  Button
-</button>
+<Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white">
+  Analyze
+</Button>
 
-// Input fields
-<input className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600" />
+// Form inputs
+<Input className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600" />
+<Textarea className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600" />
+
+// Status badges
+<Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-100">
+  Completed
+</Badge>
 ```
+
+### Framework-Specific Dark Mode Considerations
+
+1. **SWOT Analysis**: Quadrant colors need dark mode variants to maintain visual distinction
+2. **ACH Framework**: Evidence scoring cards must remain readable with proper contrast
+3. **COG Analysis**: Critical capability sections need color-coded backgrounds with dark variants
+4. **All Frameworks**: Export dialogs, modal overlays, and dropdown menus require explicit dark mode styling
+
+### Prevention and Maintenance
+
+1. **Use linting rules** to catch missing dark mode classes
+2. **Include dark mode testing** in QA workflow
+3. **Document color patterns** for consistency across team
+4. **Regular audits** using automated tools to find missing variants
+5. **Test on actual devices** in different lighting conditions
 
 ---
 

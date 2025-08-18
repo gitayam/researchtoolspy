@@ -579,26 +579,26 @@ export default function StarburstingViewPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="bg-white rounded-lg p-3">
-                <h4 className="font-medium text-blue-800 mb-2">Completion Status</h4>
-                <p className="text-sm text-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">Completion Status</h4>
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   {answeredQuestions} of {session.data.questions.length} questions have been answered 
                   ({Math.round((answeredQuestions / session.data.questions.length) * 100)}% complete)
                 </p>
               </div>
               
-              <div className="bg-white rounded-lg p-3">
-                <h4 className="font-medium text-blue-800 mb-2">5W Coverage</h4>
-                <p className="text-sm text-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">5W Coverage</h4>
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   {Object.values(session.data.five_w_analysis).filter(v => v.trim()).length} of 5 
                   core elements (Who, What, Where, When, Why) have been analyzed
                 </p>
               </div>
 
               {session.data.url_source && (
-                <div className="bg-white rounded-lg p-3">
-                  <h4 className="font-medium text-blue-800 mb-2">Content Source</h4>
-                  <p className="text-sm text-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">Content Source</h4>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
                     Analysis based on content extracted from URL source with automated 5W analysis
                   </p>
                 </div>

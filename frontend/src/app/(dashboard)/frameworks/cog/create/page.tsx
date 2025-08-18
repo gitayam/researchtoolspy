@@ -217,7 +217,7 @@ export default function CreateCOGPage() {
                     value={item.text}
                     onChange={(e) => updateItem(section.key, item.id, e.target.value)}
                     placeholder={section.placeholder}
-                    className="flex-1 bg-white border-gray-300"
+                    className="flex-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                     rows={2}
                   />
                   <Button
@@ -234,7 +234,7 @@ export default function CreateCOGPage() {
               <Button
                 variant="outline"
                 onClick={() => addItem(section.key)}
-                className="w-full border-dashed border-2 hover:bg-white/50"
+                className="w-full border-dashed border-2 hover:bg-white/50 dark:hover:bg-gray-700/30"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add {section.title.replace('Critical ', '').slice(0, -1)}

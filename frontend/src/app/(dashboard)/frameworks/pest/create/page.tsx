@@ -234,7 +234,7 @@ export default function CreatePESTPage() {
               <Button
                 variant="outline"
                 onClick={() => addItem(factor.key)}
-                className="w-full border-dashed border-2 hover:bg-white/50"
+                className="w-full border-dashed border-2 hover:bg-white/50 dark:hover:bg-gray-700/30"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add {factor.title} Factor

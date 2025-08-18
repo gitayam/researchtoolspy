@@ -37,6 +37,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/utils'
+import { analyzeHypotheses, ACHScore } from '@/lib/ach-scoring'
 import { exportFrameworkAnalysis, ExportFormat } from '@/lib/export-utils'
 
 interface ACHSession {
@@ -94,6 +95,35 @@ export default function ACHViewPage() {
   const handleEdit = () => {
     // Navigate to create page with session ID for editing
     router.push(`/frameworks/ach/create?edit=${params.id}`)
+  }
+
+  const handleSave = async () => {
+    try {
+      // Auto-save functionality - update the session with current analysis state
+      const payload = {
+        title: session.title,
+        description: session.description,
+        data: {
+          ...session.data,
+          scaleType: session.data.scaleType || 'logarithmic', // Preserve scale type
+          lastAnalyzed: new Date().toISOString()
+        },
+        status: 'completed'
+      }
+
+      await apiClient.put(`/frameworks/${params.id}`, payload)
+      
+      toast({
+        title: 'Analysis Saved',
+        description: 'Your ACH analysis has been saved successfully'
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Save Failed',
+        description: error.message || 'Failed to save analysis',
+        variant: 'destructive'
+      })
+    }
   }
 
   const handleExport = async (format: ExportFormat) => {
@@ -185,6 +215,44 @@ export default function ACHViewPage() {
     const weightedScore = counts.supports * 1.0 + counts.contradicts * -1.0
     
     return { ...counts, weightedScore }
+  }
+
+  // Convert session data to proper format for enhanced analysis
+  const convertSessionToACHFormat = () => {
+    if (!session?.data) return { hypotheses: [], evidenceScores: new Map() }
+    
+    const hypotheses = session.data.hypotheses || []
+    const evidenceScores = new Map<string, Map<string, ACHScore>>()
+    
+    // Convert evidence data to proper ACH format
+    session.data.evidence?.forEach((evidence: any) => {
+      if (evidence.hypotheses_scores) {
+        const evidenceMap = new Map<string, ACHScore>()
+        Object.entries(evidence.hypotheses_scores).forEach(([hypId, score]: [string, any]) => {
+          const achScore: ACHScore = {
+            hypothesisId: hypId,
+            evidenceId: evidence.id,
+            score: typeof score === 'number' ? score : (score.score || 0),
+            weight: score?.weight || {
+              credibility: evidence.weight?.credibility || 3,
+              relevance: evidence.weight?.relevance || 3
+            },
+            evidenceCredibility: score?.evidenceCredibility || evidence.confidenceScore
+          }
+          evidenceMap.set(hypId, achScore)
+        })
+        evidenceScores.set(evidence.id, evidenceMap)
+      }
+    })
+    
+    return { hypotheses, evidenceScores }
+  }
+
+  // Use enhanced ACH analysis with proper scale type
+  const getEnhancedAnalysis = () => {
+    const { hypotheses, evidenceScores } = convertSessionToACHFormat()
+    const scaleType = session?.data?.scaleType || 'logarithmic'
+    return analyzeHypotheses(hypotheses, evidenceScores, scaleType)
   }
   
   const calculateAllHypothesesScores = () => {
@@ -510,7 +578,7 @@ export default function ACHViewPage() {
             </div>
             <div>
               <div className="text-lg font-bold text-purple-600">
-                {session.data.scaleType === 'logarithmic' ? 'Logarithmic' : session.data.scaleType === 'linear' ? 'Linear' : 'Unknown'}
+                {session.data.scaleType === 'logarithmic' ? 'Logarithmic (Fibonacci)' : session.data.scaleType === 'linear' ? 'Linear' : 'Logarithmic (Fibonacci)'}
               </div>
               <div className="text-sm text-gray-500 dark:text-gray-400">Scoring Scale</div>
             </div>
@@ -571,6 +639,84 @@ export default function ACHViewPage() {
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {hypothesis.supports}S / {hypothesis.contradicts}C
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Enhanced Hypothesis Analysis & Ranking */}
+      <Card className="border-orange-200 dark:border-orange-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
+            <BarChart3 className="h-5 w-5" />
+            Hypothesis Analysis & Ranking
+          </CardTitle>
+          <CardDescription>
+            Weighted analysis with confidence levels and diagnostic values
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {getEnhancedAnalysis().map((analysis, index) => {
+              const hypothesis = session.data.hypotheses.find(h => h.id === analysis.hypothesisId)
+              const rank = index + 1
+              const isTop = index === 0
+              const hasData = analysis.supportingEvidence + analysis.contradictingEvidence > 0
+              
+              return (
+                <div key={analysis.hypothesisId} className={`border rounded-lg p-4 ${
+                  isTop && hasData ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20' : 
+                  rank === 2 && hasData ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20' :
+                  rank === 3 && hasData ? 'border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20' :
+                  'border-gray-200 dark:border-gray-700'
+                }`}>
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={isTop && hasData ? "default" : "outline"} className="mt-1">
+                        #{rank}
+                      </Badge>
+                      {isTop && hasData && <Trophy className="h-4 w-4 text-yellow-600" />}
+                      {analysis.averageConfidence < 0.5 && (
+                        <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                          Low Confidence
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm leading-relaxed font-medium">{hypothesis?.text}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-lg font-bold ${
+                        analysis.weightedScore > 0 ? 'text-green-600 dark:text-green-400' : 
+                        analysis.weightedScore < 0 ? 'text-red-600 dark:text-red-400' : 
+                        'text-gray-600 dark:text-gray-400'
+                      }`}>
+                        {analysis.weightedScore > 0 ? '+' : ''}{analysis.weightedScore.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Weighted Score</div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <div className="font-medium text-green-700 dark:text-green-400">Supporting</div>
+                      <div className="text-green-600 dark:text-green-400">{analysis.supportingEvidence}</div>
+                    </div>
+                    <div>
+                      <div className="font-medium text-red-700 dark:text-red-400">Contradicting</div>
+                      <div className="text-red-600 dark:text-red-400">{analysis.contradictingEvidence}</div>
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-700 dark:text-gray-400">Neutral</div>
+                      <div className="text-gray-600 dark:text-gray-400">{analysis.neutralEvidence}</div>
+                    </div>
+                    <div>
+                      <div className="font-medium text-blue-700 dark:text-blue-400">Diagnostic Value</div>
+                      <div className="text-blue-600 dark:text-blue-400">{analysis.diagnosticValue.toFixed(2)}</div>
                     </div>
                   </div>
                 </div>

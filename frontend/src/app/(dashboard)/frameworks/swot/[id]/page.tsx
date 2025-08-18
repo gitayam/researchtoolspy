@@ -197,9 +197,9 @@ export default function SWOTViewPage() {
   ]
 
   const statusColors: Record<string, string> = {
-    draft: 'bg-gray-100 text-gray-800',
-    in_progress: 'bg-blue-100 text-blue-800',
-    completed: 'bg-green-100 text-green-800'
+    draft: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
+    in_progress: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200',
+    completed: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
   }
 
   return (
@@ -285,10 +285,10 @@ export default function SWOTViewPage() {
       </div>
 
       {/* Analysis Summary */}
-      <Card>
+      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <BarChart3 className="h-5 w-5" />
               Analysis Summary
             </CardTitle>
@@ -342,7 +342,7 @@ export default function SWOTViewPage() {
           </div>
 
           {/* Balance Analysis */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="text-center">
               <div className="text-lg font-semibold text-purple-600 dark:text-purple-400">
                 {calculateBalance().internal}
@@ -373,25 +373,25 @@ export default function SWOTViewPage() {
 
       {/* Generated Insights */}
       {showInsights && insights.length > 0 && (
-        <Card className="border-2 border-dashed border-blue-300 bg-blue-50">
+        <Card className="border-2 border-dashed border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <Calculator className="h-5 w-5" />
               Strategic Insights & Recommendations
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-gray-600 dark:text-gray-400">
               AI-generated insights based on your SWOT analysis
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {insights.map((insight, index) => (
-                <div key={index} className="bg-white rounded-lg p-4 border border-blue-200">
+                <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
                   <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">{insight}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t border-blue-200">
+            <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
               <p className="text-xs text-blue-600 dark:text-blue-400">
                 💡 These insights are generated based on the quantitative analysis of your SWOT factors. 
                 Consider them as starting points for deeper strategic planning.
