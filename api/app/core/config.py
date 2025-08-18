@@ -45,7 +45,15 @@ class Settings(BaseSettings):
     
     # CORS
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
-    ALLOWED_HOSTS: list[str] = ["localhost", "127.0.0.1"]
+    ALLOWED_HOSTS: list[str] = [
+        "localhost", 
+        "127.0.0.1",
+        # Cloudflare tunnel domains for public demo
+        "mtv-accessibility-loving-mm.trycloudflare.com",
+        "heading-cutting-decades-ghz.trycloudflare.com", 
+        "neck-blank-territories-delivers.trycloudflare.com",
+        "manufacturer-www-cars-slight.trycloudflare.com"
+    ]
     
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod

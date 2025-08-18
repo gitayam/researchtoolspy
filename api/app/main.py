@@ -61,7 +61,13 @@ def create_application() -> FastAPI:
             "http://127.0.0.1:3000",
             "http://127.0.0.1:3001",
             "http://127.0.0.1:3003",
-            "http://127.0.0.1:3380"
+            "http://127.0.0.1:3380",
+            # Cloudflare tunnel domains for public demo
+            "https://mtv-accessibility-loving-mm.trycloudflare.com",
+            "https://heading-cutting-decades-ghz.trycloudflare.com",
+            "https://neck-blank-territories-delivers.trycloudflare.com",
+            "https://manufacturer-www-cars-slight.trycloudflare.com",
+            "https://vermont-mod-instead-strings.trycloudflare.com"
         ]
         
         # Override with environment variable if set
@@ -85,12 +91,12 @@ def create_application() -> FastAPI:
             allow_headers=["*"],
         )
 
-    # Trusted host middleware
-    if settings.ALLOWED_HOSTS:
-        app.add_middleware(
-            TrustedHostMiddleware,
-            allowed_hosts=settings.ALLOWED_HOSTS,
-        )
+    # Trusted host middleware (temporarily disabled for tunnel testing)
+    # if settings.ALLOWED_HOSTS:
+    #     app.add_middleware(
+    #         TrustedHostMiddleware,
+    #         allowed_hosts=settings.ALLOWED_HOSTS,
+    #     )
 
     # Include API router
     app.include_router(api_router, prefix=settings.API_V1_STR)
