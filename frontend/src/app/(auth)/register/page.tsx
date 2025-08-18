@@ -11,7 +11,12 @@ import { generateAccountHash, formatHashForDisplay } from '@/lib/hash-auth'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [accountHash, setAccountHash] = useState(() => generateAccountHash())
+  const [accountHash, setAccountHash] = useState(() => {
+    const initialHash = generateAccountHash()
+    console.log('[Register Debug] Initial hash generated:', initialHash)
+    console.log('[Register Debug] Initial formatted:', formatHashForDisplay(initialHash))
+    return initialHash
+  })
   const [copied, setCopied] = useState(false)
   const [hashSaved, setHashSaved] = useState(false)
 
@@ -26,7 +31,10 @@ export default function RegisterPage() {
   }
 
   const handleGenerateNew = () => {
-    setAccountHash(generateAccountHash())
+    const newHash = generateAccountHash()
+    console.log('[Register Debug] Generated new hash:', newHash)
+    console.log('[Register Debug] Formatted hash:', formatHashForDisplay(newHash))
+    setAccountHash(newHash)
     setCopied(false)
     setHashSaved(false)
   }
