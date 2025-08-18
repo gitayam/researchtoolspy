@@ -217,7 +217,7 @@ export default function CreatePESTPage() {
                     value={item.text}
                     onChange={(e) => updateItem(factor.key, item.id, e.target.value)}
                     placeholder={factor.placeholder}
-                    className="flex-1 bg-white border-gray-300"
+                    className="flex-1 bg-white dark:bg-gray-900 border-gray-300"
                     rows={2}
                   />
                   <Button

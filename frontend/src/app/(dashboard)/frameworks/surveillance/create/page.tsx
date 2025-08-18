@@ -144,7 +144,7 @@ export default function CreateSurveillanceAnalysisPage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold">Create Surveillance Detection Analysis</h1>
-            <p className="text-gray-600 mt-1">Identify and counter surveillance activities</p>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Identify and counter surveillance activities</p>
           </div>
         </div>
       </div>
@@ -437,7 +437,7 @@ export default function CreateSurveillanceAnalysisPage() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <p className="font-medium">{measure.technique}</p>
-                        <p className="text-sm text-gray-600 mt-1">{measure.implementation}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{measure.implementation}</p>
                         <div className="flex gap-4 mt-2 text-sm">
                           <span>
                             Effectiveness: 

@@ -318,7 +318,7 @@ export default function CreateTrendAnalysisPage() {
                   </Button>
                 </div>
                 {currentTrend.dataPoints.map((dp) => (
-                  <div key={dp.id} className="flex items-center gap-2 bg-gray-50 p-2 rounded">
+                  <div key={dp.id} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 p-2 rounded">
                     <span className="text-sm">{dp.date}</span>
                     <span className="text-sm font-medium">{dp.value}</span>
                     {dp.notes && <span className="text-sm text-gray-600">- {dp.notes}</span>}
@@ -448,22 +448,22 @@ export default function CreateTrendAnalysisPage() {
                     
                     <div className="grid grid-cols-3 gap-3 mb-3">
                       <div className="text-sm">
-                        <span className="text-gray-500">Direction:</span>
+                        <span className="text-gray-500 dark:text-gray-400">Direction:</span>
                         <span className="ml-2 font-medium capitalize">{trend.direction}</span>
                       </div>
                       <div className="text-sm">
-                        <span className="text-gray-500">Strength:</span>
+                        <span className="text-gray-500 dark:text-gray-400">Strength:</span>
                         <span className="ml-2 font-medium capitalize">{trend.strength}</span>
                       </div>
                       <div className="text-sm">
-                        <span className="text-gray-500">Data Points:</span>
+                        <span className="text-gray-500 dark:text-gray-400">Data Points:</span>
                         <span className="ml-2 font-medium">{trend.dataPoints.length}</span>
                       </div>
                     </div>
 
                     {trend.drivers.length > 0 && (
                       <div className="mb-2">
-                        <p className="text-sm font-medium text-gray-700 mb-1">Drivers:</p>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Drivers:</p>
                         <div className="flex flex-wrap gap-1">
                           {trend.drivers.map((driver, i) => (
                             <span key={i} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">

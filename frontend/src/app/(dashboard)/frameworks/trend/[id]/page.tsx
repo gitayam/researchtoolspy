@@ -110,7 +110,7 @@ export default function TrendViewPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading trend analysis...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading trend analysis...</p>
         </div>
       </div>
     )
@@ -160,9 +160,9 @@ export default function TrendViewPage() {
       case 'negative':
         return 'bg-red-100 text-red-800 border-red-300'
       case 'neutral':
-        return 'bg-gray-100 text-gray-800 border-gray-300'
+        return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-300'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300'
+        return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-300'
     }
   }
 
@@ -291,12 +291,12 @@ export default function TrendViewPage() {
                 {trendStats.decreasing}
               </div>
             </div>
-            <div className="p-3 rounded-lg border bg-gray-50 dark:bg-gray-900/20 border-gray-300">
+            <div className="p-3 rounded-lg border bg-gray-50 dark:bg-gray-800 dark:bg-gray-900/20 border-gray-300">
               <div className="flex items-center gap-2 mb-1">
                 <Activity className="h-4 w-4 text-gray-600" />
                 <span className="text-sm text-gray-700 dark:text-gray-400">Stable</span>
               </div>
-              <div className="text-2xl font-bold text-gray-800 dark:text-gray-300">
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200 dark:text-gray-300">
                 {trendStats.stable}
               </div>
             </div>
@@ -408,7 +408,7 @@ export default function TrendViewPage() {
                   )}
 
                   {trend.notes && (
-                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 dark:bg-gray-900 rounded">
                       <div className="text-sm text-gray-600 dark:text-gray-400">{trend.notes}</div>
                     </div>
                   )}

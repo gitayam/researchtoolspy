@@ -134,23 +134,23 @@ export default function TrendAnalysisPage() {
                   <div className="flex items-center gap-6 text-sm">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-600">
+                      <span className="text-gray-600 dark:text-gray-400">
                         <span className="font-medium">{analysis.trendCount}</span> trends
                       </span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Strong:</span>
+                      <span className="text-gray-500 dark:text-gray-400">Strong:</span>
                       <span className="ml-2 font-medium text-green-600">{analysis.strongTrends}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Emerging:</span>
+                      <span className="text-gray-500 dark:text-gray-400">Emerging:</span>
                       <span className="ml-2 font-medium text-blue-600">{analysis.emergingTrends}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Timeframe:</span>
+                      <span className="text-gray-500 dark:text-gray-400">Timeframe:</span>
                       <span className="ml-2 font-medium">{analysis.timeframe}</span>
                     </div>
-                    <div className="text-gray-500">
+                    <div className="text-gray-500 dark:text-gray-400">
                       Updated {new Date(analysis.lastUpdated).toLocaleDateString()}
                     </div>
                   </div>

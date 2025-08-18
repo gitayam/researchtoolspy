@@ -106,7 +106,7 @@ export default function PESTViewPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-teal-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading PEST analysis...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading PEST analysis...</p>
         </div>
       </div>
     )
@@ -142,7 +142,7 @@ export default function PESTViewPage() {
       case 'technological':
         return 'bg-orange-100 text-orange-800 border-orange-300'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300'
+        return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-300'
     }
   }
 
@@ -357,17 +357,17 @@ export default function PESTViewPage() {
                     
                     <div className="flex items-center gap-4 text-sm">
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-500">Impact:</span>
+                        <span className="text-gray-500 dark:text-gray-400">Impact:</span>
                         <span className="font-medium capitalize">{factor.impact}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-500">Timeframe:</span>
+                        <span className="text-gray-500 dark:text-gray-400">Timeframe:</span>
                         <span className="font-medium capitalize">{factor.timeframe} term</span>
                       </div>
                     </div>
                     
                     {factor.notes && (
-                      <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                      <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 dark:bg-gray-900 rounded">
                         <div className="text-sm text-gray-600 dark:text-gray-400">{factor.notes}</div>
                       </div>
                     )}

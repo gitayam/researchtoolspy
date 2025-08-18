@@ -45,7 +45,7 @@ export default function DIMEListPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">DIME Framework Analysis</h1>
-          <p className="text-gray-600 mt-2">Diplomatic, Information, Military, and Economic instruments</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Diplomatic, Information, Military, and Economic instruments</p>
         </div>
         <Link href="/frameworks/dime/create">
           <Button>
@@ -84,7 +84,7 @@ export default function DIMEListPage() {
                       {analysis.status}
                     </span>
                   </div>
-                  <p className="text-gray-600 mb-4">{analysis.description}</p>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">{analysis.description}</p>
                   
                   <div className="grid grid-cols-4 gap-4 mb-4">
                     <div className="text-center p-2 bg-blue-50 rounded">
@@ -147,7 +147,7 @@ export default function DIMEListPage() {
           <CardContent className="text-center py-12">
             <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No analyses found</h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first DIME analysis'}
             </p>
             {!searchTerm && (

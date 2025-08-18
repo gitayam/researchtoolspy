@@ -138,23 +138,23 @@ export default function SurveillanceAnalysisPage() {
                   <div className="flex items-center gap-6 text-sm">
                     <div className="flex items-center gap-2">
                       <Eye className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-600">
+                      <span className="text-gray-600 dark:text-gray-400">
                         <span className="font-medium">{analysis.indicators}</span> indicators
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-red-500" />
-                      <span className="text-gray-600">
+                      <span className="text-gray-600 dark:text-gray-400">
                         <span className="font-medium text-red-600">{analysis.criticalIndicators}</span> critical
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4 text-green-500" />
-                      <span className="text-gray-600">
+                      <span className="text-gray-600 dark:text-gray-400">
                         <span className="font-medium">{analysis.counterMeasures}</span> countermeasures
                       </span>
                     </div>
-                    <div className="text-gray-500">
+                    <div className="text-gray-500 dark:text-gray-400">
                       Updated {new Date(analysis.lastUpdated).toLocaleDateString()}
                     </div>
                   </div>

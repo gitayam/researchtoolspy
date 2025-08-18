@@ -295,15 +295,15 @@ export default function CreateStakeholderAnalysisPage() {
                     
                     <div className="grid grid-cols-4 gap-3 mb-3">
                       <div className="text-sm">
-                        <span className="text-gray-500">Influence:</span>
+                        <span className="text-gray-500 dark:text-gray-400">Influence:</span>
                         <span className="ml-2 font-medium capitalize">{stakeholder.influence}</span>
                       </div>
                       <div className="text-sm">
-                        <span className="text-gray-500">Interest:</span>
+                        <span className="text-gray-500 dark:text-gray-400">Interest:</span>
                         <span className="ml-2 font-medium capitalize">{stakeholder.interest}</span>
                       </div>
                       <div className="text-sm">
-                        <span className="text-gray-500">Quadrant:</span>
+                        <span className="text-gray-500 dark:text-gray-400">Quadrant:</span>
                         <span className="ml-2 font-medium">
                           {getStakeholderQuadrant(stakeholder.influence, stakeholder.interest)}
                         </span>

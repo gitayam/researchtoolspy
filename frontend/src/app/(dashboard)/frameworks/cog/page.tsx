@@ -82,18 +82,18 @@ export default function COGListPage() {
                   
                   <div className="flex items-center gap-6 text-sm">
                     <div>
-                      <span className="text-gray-500">COG Elements:</span>
+                      <span className="text-gray-500 dark:text-gray-400">COG Elements:</span>
                       <span className="ml-2 font-medium">{analysis.cogElements}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Vulnerabilities:</span>
+                      <span className="text-gray-500 dark:text-gray-400">Vulnerabilities:</span>
                       <span className="ml-2 font-medium text-orange-600">{analysis.vulnerabilities}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Critical Factors:</span>
+                      <span className="text-gray-500 dark:text-gray-400">Critical Factors:</span>
                       <span className="ml-2 font-medium text-blue-600">{analysis.criticalFactors}</span>
                     </div>
-                    <div className="text-gray-500">
+                    <div className="text-gray-500 dark:text-gray-400">
                       Updated {new Date(analysis.lastUpdated).toLocaleDateString()}
                     </div>
                   </div>

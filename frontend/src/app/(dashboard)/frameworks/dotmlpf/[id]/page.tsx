@@ -118,7 +118,7 @@ export default function DOTMLPFViewPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading DOTMLPF-P analysis...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading DOTMLPF-P analysis...</p>
         </div>
       </div>
     )
@@ -156,7 +156,7 @@ export default function DOTMLPFViewPage() {
       case 'high': return 'bg-orange-100 text-orange-800 border-orange-300'
       case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-300'
       case 'low': return 'bg-green-100 text-green-800 border-green-300'
-      default: return 'bg-gray-100 text-gray-800 border-gray-300'
+      default: return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-300'
     }
   }
 
@@ -487,7 +487,7 @@ export default function DOTMLPFViewPage() {
                               </div>
                             )}
                             {capability.notes && (
-                              <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                              <div className="p-3 bg-gray-50 dark:bg-gray-800 dark:bg-gray-900 rounded">
                                 <div className="text-sm text-gray-600 dark:text-gray-400">{capability.notes}</div>
                               </div>
                             )}

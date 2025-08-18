@@ -114,7 +114,7 @@ export default function SurveillanceViewPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-gray-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading surveillance analysis...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading surveillance analysis...</p>
         </div>
       </div>
     )
@@ -154,7 +154,7 @@ export default function SurveillanceViewPage() {
       case 'social':
         return 'bg-green-100 text-green-800 border-green-300'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300'
+        return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-300'
     }
   }
 
@@ -467,7 +467,7 @@ export default function SurveillanceViewPage() {
                   </div>
 
                   {target.notes && (
-                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 dark:bg-gray-900 rounded">
                       <div className="text-sm text-gray-600 dark:text-gray-400">{target.notes}</div>
                     </div>
                   )}
@@ -512,8 +512,8 @@ export default function SurveillanceViewPage() {
                 </div>
               </div>
             )}
-            <div className="p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
-              <div className="font-medium text-gray-800 dark:text-gray-300 mb-1">Coverage Analysis</div>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800 dark:bg-gray-900/20 rounded-lg">
+              <div className="font-medium text-gray-800 dark:text-gray-200 dark:text-gray-300 mb-1">Coverage Analysis</div>
               <div className="text-sm text-gray-700 dark:text-gray-400">
                 Monitoring {session.data.targets.length} targets across {Object.keys(groupedTargets).length} categories
               </div>

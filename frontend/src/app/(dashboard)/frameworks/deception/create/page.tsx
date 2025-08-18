@@ -182,7 +182,7 @@ export default function CreateDeceptionDetectionPage() {
       case 'high': return 'bg-red-100 text-red-800 border-red-200'
       case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'low': return 'bg-green-100 text-green-800 border-green-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      default: return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-200'
     }
   }
 
@@ -369,7 +369,7 @@ export default function CreateDeceptionDetectionPage() {
           {indicators.map((indicator) => {
             const IconComponent = getCategoryIcon(indicator.category)
             return (
-              <div key={indicator.id} className="border border-gray-200 rounded-lg p-4 space-y-4">
+              <div key={indicator.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <IconComponent className="h-4 w-4 text-orange-600" />
@@ -452,7 +452,7 @@ export default function CreateDeceptionDetectionPage() {
           {indicators.length === 0 && (
             <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg">
               <AlertTriangle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500">No deception indicators added yet</p>
+              <p className="text-gray-500 dark:text-gray-400">No deception indicators added yet</p>
               <p className="text-sm text-gray-400">
                 Add indicators to document potential credibility issues
               </p>

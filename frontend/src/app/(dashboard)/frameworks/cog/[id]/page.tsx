@@ -246,7 +246,7 @@ export default function COGViewPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading COG analysis...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading COG analysis...</p>
         </div>
       </div>
     )
@@ -452,7 +452,7 @@ export default function COGViewPage() {
                 <h4 className="font-medium mb-2">Exploitation Potential</h4>
                 <div className="space-y-2">
                   {vulnerabilityAssessment.exploitation_potential.map((item: any, index: number) => (
-                    <div key={index} className="p-3 bg-white rounded-lg border">
+                    <div key={index} className="p-3 bg-white dark:bg-gray-900 rounded-lg border">
                       <p className="text-sm font-medium">{item.vulnerability}</p>
                       <div className="flex gap-2 mt-1">
                         <Badge variant="outline" className="text-xs">

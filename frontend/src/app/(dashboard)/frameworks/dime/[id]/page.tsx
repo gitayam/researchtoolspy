@@ -182,7 +182,7 @@ export default function DIMEViewPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-red-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading DIME analysis...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading DIME analysis...</p>
         </div>
       </div>
     )
@@ -433,7 +433,7 @@ export default function DIMEViewPage() {
               <h4 className="font-medium text-red-800 mb-3">Power Distribution</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {powerAssessment.distribution.map((item: any) => (
-                  <div key={item.instrument} className="bg-white rounded-lg p-3 border border-red-200">
+                  <div key={item.instrument} className="bg-white dark:bg-gray-900 rounded-lg p-3 border border-red-200">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium">{item.instrument}</span>
                       <span className={`text-xs px-2 py-1 rounded ${
@@ -456,7 +456,7 @@ export default function DIMEViewPage() {
             <div className="space-y-4">
               <h4 className="font-medium text-red-800">Strategic Insights</h4>
               {powerAssessment.insights.map((insight: string, index: number) => (
-                <div key={index} className="bg-white rounded-lg p-4 border border-red-200">
+                <div key={index} className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-red-200">
                   <p className="text-sm leading-relaxed">{insight}</p>
                 </div>
               ))}

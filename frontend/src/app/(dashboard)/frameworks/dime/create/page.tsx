@@ -360,7 +360,7 @@ export default function CreateDIMEPage() {
               <Label>URLs to Scrape ({urls.length})</Label>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {urls.map((url, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                  <div key={index} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-2 rounded">
                     <span className="text-sm truncate flex-1 mr-2">{url}</span>
                     <Button
                       type="button"
@@ -407,7 +407,7 @@ export default function CreateDIMEPage() {
                     value={item.text}
                     onChange={(e) => updateItem(instrument.key, item.id, e.target.value)}
                     placeholder={instrument.placeholder}
-                    className="flex-1 bg-white border-gray-300"
+                    className="flex-1 bg-white dark:bg-gray-900 border-gray-300"
                     rows={2}
                   />
                   <Button

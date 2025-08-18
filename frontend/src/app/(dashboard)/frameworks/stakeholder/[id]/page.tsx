@@ -105,7 +105,7 @@ export default function StakeholderViewPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-pink-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading stakeholder analysis...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading stakeholder analysis...</p>
         </div>
       </div>
     )
@@ -136,9 +136,9 @@ export default function StakeholderViewPage() {
       case 'Regular Updates':
         return 'bg-yellow-100 text-yellow-800 border-yellow-300'
       case 'Monitor':
-        return 'bg-gray-100 text-gray-800 border-gray-300'
+        return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-300'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300'
+        return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-300'
     }
   }
 
@@ -368,7 +368,7 @@ export default function StakeholderViewPage() {
             
             {/* Medium Influence */}
             <div className="text-sm font-medium text-right pr-2">Medium Influence</div>
-            <div className="border rounded p-2 min-h-24 bg-gray-50 dark:bg-gray-900/20">
+            <div className="border rounded p-2 min-h-24 bg-gray-50 dark:bg-gray-800 dark:bg-gray-900/20">
               <div className="text-xs font-medium mb-1">Monitor</div>
               {powerInterestMatrix['medium-low'].map(s => (
                 <Badge key={s.id} variant="outline" className="text-xs mr-1 mb-1">
@@ -395,7 +395,7 @@ export default function StakeholderViewPage() {
             
             {/* Low Influence */}
             <div className="text-sm font-medium text-right pr-2">Low Influence</div>
-            <div className="border rounded p-2 min-h-24 bg-gray-50 dark:bg-gray-900/20">
+            <div className="border rounded p-2 min-h-24 bg-gray-50 dark:bg-gray-800 dark:bg-gray-900/20">
               <div className="text-xs font-medium mb-1">Monitor</div>
               {powerInterestMatrix['low-low'].map(s => (
                 <Badge key={s.id} variant="outline" className="text-xs mr-1 mb-1">
@@ -403,7 +403,7 @@ export default function StakeholderViewPage() {
                 </Badge>
               ))}
             </div>
-            <div className="border rounded p-2 min-h-24 bg-gray-50 dark:bg-gray-900/20">
+            <div className="border rounded p-2 min-h-24 bg-gray-50 dark:bg-gray-800 dark:bg-gray-900/20">
               <div className="text-xs font-medium mb-1">Monitor</div>
               {powerInterestMatrix['low-medium'].map(s => (
                 <Badge key={s.id} variant="outline" className="text-xs mr-1 mb-1">
@@ -503,7 +503,7 @@ export default function StakeholderViewPage() {
                   )}
 
                   {stakeholder.notes && (
-                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 dark:bg-gray-900 rounded">
                       <div className="text-sm font-medium mb-1">Notes:</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">{stakeholder.notes}</div>
                     </div>

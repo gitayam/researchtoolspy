@@ -126,23 +126,23 @@ export default function StakeholderAnalysisPage() {
                   <div className="flex items-center gap-6 text-sm">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-600">
+                      <span className="text-gray-600 dark:text-gray-400">
                         <span className="font-medium">{analysis.stakeholderCount}</span> stakeholders
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Target className="h-4 w-4 text-orange-500" />
-                      <span className="text-gray-600">
+                      <span className="text-gray-600 dark:text-gray-400">
                         <span className="font-medium">{analysis.highInfluence}</span> high influence
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-green-500" />
-                      <span className="text-gray-600">
+                      <span className="text-gray-600 dark:text-gray-400">
                         <span className="font-medium">{analysis.champions}</span> champions
                       </span>
                     </div>
-                    <div className="text-gray-500">
+                    <div className="text-gray-500 dark:text-gray-400">
                       Updated {new Date(analysis.lastUpdated).toLocaleDateString()}
                     </div>
                   </div>

@@ -71,7 +71,7 @@ export default function DeceptionDetectionViewPage() {
       case 'high': return 'bg-red-100 text-red-800 border-red-200'
       case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'low': return 'bg-green-100 text-green-800 border-green-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      default: return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-200'
     }
   }
 
@@ -90,7 +90,7 @@ export default function DeceptionDetectionViewPage() {
       case 'credible': return 'bg-green-100 text-green-800 border-green-200'
       case 'questionable': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'likely_deceptive': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      default: return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-200'
     }
   }
 
@@ -235,7 +235,7 @@ export default function DeceptionDetectionViewPage() {
             </div>
 
             {session.data.analysis.recommendations && session.data.analysis.recommendations.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+              <div className="bg-white dark:bg-gray-900 dark:bg-gray-800 p-4 rounded-lg">
                 <h4 className="font-medium mb-3 text-orange-800 dark:text-orange-200">
                   Recommendations:
                 </h4>
@@ -275,7 +275,7 @@ export default function DeceptionDetectionViewPage() {
               {allIndicators.map((indicator) => {
                 const IconComponent = getCategoryIcon(indicator.category)
                 return (
-                  <div key={indicator.id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={indicator.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <IconComponent className="h-4 w-4 text-orange-600" />

@@ -56,7 +56,7 @@ export default function DeceptionDetectionPage() {
       case 'credible': return 'bg-green-100 text-green-800 border-green-200'
       case 'questionable': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'likely_deceptive': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      default: return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-200'
     }
   }
 
@@ -150,7 +150,7 @@ export default function DeceptionDetectionPage() {
         <Card className="border-2 border-dashed border-gray-300">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <AlertTriangle className="h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No analyses yet</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No analyses yet</h3>
             <p className="text-gray-500 text-center mb-6 max-w-sm">
               Create your first deception detection analysis to identify potential credibility issues in content.
             </p>

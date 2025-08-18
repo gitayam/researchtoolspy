@@ -170,7 +170,7 @@ export default function BehaviorListPage() {
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-500">Loading analyses...</p>
+            <p className="text-gray-500 dark:text-gray-400">Loading analyses...</p>
           </div>
         ) : filteredAnalyses.length === 0 ? (
           <Card className="text-center py-12">
@@ -227,7 +227,7 @@ export default function BehaviorListPage() {
                       
                       <div className="flex items-center gap-6 text-sm">
                         <div>
-                          <span className="text-gray-500">Behavior Score:</span>
+                          <span className="text-gray-500 dark:text-gray-400">Behavior Score:</span>
                           <span className={`ml-2 font-medium ${
                             behaviorScore >= 80 ? 'text-green-600' : 
                             behaviorScore >= 60 ? 'text-yellow-600' : 'text-red-600'
@@ -236,16 +236,16 @@ export default function BehaviorListPage() {
                           </span>
                         </div>
                         <div>
-                          <span className="text-gray-500">Factors:</span>
+                          <span className="text-gray-500 dark:text-gray-400">Factors:</span>
                           <span className="ml-2 font-medium">{analysis.data.factors?.length || 0}</span>
                         </div>
                         {highImpactCount > 0 && (
                           <div>
-                            <span className="text-gray-500">High Impact:</span>
+                            <span className="text-gray-500 dark:text-gray-400">High Impact:</span>
                             <span className="ml-2 font-medium text-red-600">{highImpactCount}</span>
                           </div>
                         )}
-                        <div className="text-gray-500">
+                        <div className="text-gray-500 dark:text-gray-400">
                           Updated {formatRelativeTime(analysis.updated_at)}
                         </div>
                       </div>
