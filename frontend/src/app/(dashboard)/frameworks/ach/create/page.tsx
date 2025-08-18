@@ -105,16 +105,17 @@ export default function CreateACHPage() {
           // Convert session data to ACH format
           if (sessionData.data) {
             const scaleType = sessionData.data.scaleType || 'logarithmic'
-            const scores = new Map()
+            const scores = new Map<string, Map<string, ACHScore>>()
             
-            // Convert evidence scores to Map format
+            // Convert evidence scores to nested Map format
             if (sessionData.data.evidence) {
               sessionData.data.evidence.forEach((evidence: any) => {
                 if (evidence.hypotheses_scores) {
+                  const evidenceScores = new Map<string, ACHScore>()
                   Object.entries(evidence.hypotheses_scores).forEach(([hypId, score]) => {
-                    const key = `${evidence.id}-${hypId}`
-                    scores.set(key, score as ACHScore)
+                    evidenceScores.set(hypId, score as ACHScore)
                   })
+                  scores.set(evidence.id, evidenceScores)
                 }
               })
             }
@@ -740,7 +741,7 @@ export default function CreateACHPage() {
               </p>
             </div>
           )}
-          </CardContent>
+        </CardContent>
         )}
         
         {/* Bottom Collapse/Expand Button */}
