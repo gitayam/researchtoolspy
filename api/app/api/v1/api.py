@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
     ach,
+    ai,
     auth,
     behavioral,
     causeway,
@@ -37,6 +38,7 @@ api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 api_router.include_router(hash_auth.router, prefix="/hash-auth", tags=["hash-authentication"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(frameworks.router, prefix="/frameworks", tags=["frameworks"])
+api_router.include_router(ai.router, prefix="/ai", tags=["ai-analysis"])
 
 # Analysis Framework Endpoints
 api_router.include_router(swot.router, prefix="/frameworks/swot", tags=["swot-analysis"])

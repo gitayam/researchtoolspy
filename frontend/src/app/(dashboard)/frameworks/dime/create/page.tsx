@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Save, Shield, Wifi, Briefcase, DollarSign, Trash2, Globe, Target, Map } from 'lucide-react'
+import { Plus, Save, Shield, Wifi, Briefcase, DollarSign, Trash2, Globe, Target, Map, Brain } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -96,7 +96,7 @@ export default function CreateDIMEPage() {
         ? { url: urls[0], extract_images: false, extract_links: true, follow_redirects: true, max_depth: 1, delay_seconds: 1.0 }
         : { urls: urls, extract_images: false, extract_links: true, follow_redirects: true, delay_seconds: 1.0 }
 
-      const endpoint = urls.length === 1 ? '/tools/web-scraping/scrape' : '/tools/web-scraping/scrape/batch'
+      const endpoint = urls.length === 1 ? '/tools/scraping/scrape' : '/tools/scraping/scrape/batch'
       const response = await apiClient.post(endpoint, scrapingRequest)
 
       toast({
@@ -108,6 +108,46 @@ export default function CreateDIMEPage() {
       toast({
         title: 'Scraping Error',
         description: error.message || 'Failed to start web scraping',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const generateDimeSuggestions = async () => {
+    try {
+      const response = await apiClient.post('/ai/dime/suggestions', {
+        scenario: scenario.trim(),
+        objective: strategicObjective.trim()
+      })
+
+      if (response) {
+        // Add AI suggestions to each DIME category
+        const categories = ['diplomatic', 'information', 'military', 'economic'] as const
+        
+        categories.forEach(category => {
+          if (response[category] && response[category].length > 0) {
+            response[category].forEach((suggestion: string) => {
+              const newItem = {
+                id: Date.now().toString() + Math.random(),
+                text: suggestion
+              }
+              setDIMEData(prev => ({
+                ...prev,
+                [category]: [...prev[category], newItem]
+              }))
+            })
+          }
+        })
+
+        toast({
+          title: 'AI Suggestions Generated',
+          description: 'GPT-5-mini has provided DIME framework recommendations',
+        })
+      }
+    } catch (error: any) {
+      toast({
+        title: 'AI Service Unavailable',
+        description: 'Configure OpenAI API key to use AI suggestions',
         variant: 'destructive'
       })
     }
@@ -393,6 +433,35 @@ export default function CreateDIMEPage() {
           </Card>
         ))}
       </div>
+
+      {/* AI Assistance */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-blue-600" />
+            AI-Powered DIME Suggestions
+          </CardTitle>
+          <CardDescription>
+            Generate intelligent recommendations for each DIME element using GPT-5-mini
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button 
+            onClick={generateDimeSuggestions}
+            variant="outline" 
+            className="w-full border-blue-300 text-blue-700 hover:bg-blue-100"
+            disabled={!scenario.trim() || !strategicObjective.trim()}
+          >
+            <Brain className="h-4 w-4 mr-2" />
+            Generate AI Suggestions
+          </Button>
+          {(!scenario.trim() || !strategicObjective.trim()) && (
+            <p className="text-sm text-gray-500 mt-2 text-center">
+              Fill in scenario and strategic objective to enable AI suggestions
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* DIME Framework Guide */}
       <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600">

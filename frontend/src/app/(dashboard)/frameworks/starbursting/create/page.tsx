@@ -80,8 +80,8 @@ export default function CreateStarburstingPage() {
     setUrlError(null)
     
     try {
-      // Use the web scraping API to process the URL
-      const response = await apiClient.post('/tools/web-scraping/scrape', {
+      // Start the web scraping job
+      const jobResponse = await apiClient.post('/tools/scraping/scrape', {
         url: urlInput.trim(),
         extract_images: false,
         extract_links: true,
@@ -90,20 +90,63 @@ export default function CreateStarburstingPage() {
         delay_seconds: 1.0
       })
 
-      if (response.content) {
-        setProcessedContent(response.content)
-        setCentralIdea(response.content)
-        
-        // Automatically extract 5W information using AI
-        await extract5WAnalysis(response.content)
-        
-        toast({
-          title: 'URL Processed',
-          description: 'Content extracted and 5W analysis performed'
-        })
-      } else {
-        throw new Error('No content could be extracted from the URL')
+      const jobId = jobResponse.job_id
+      if (!jobId) {
+        throw new Error('Failed to start scraping job')
       }
+
+      // Poll for job completion
+      let attempts = 0
+      const maxAttempts = 30 // 30 seconds timeout
+      
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
+        attempts++
+        
+        try {
+          // Check job status
+          const statusResponse = await apiClient.get(`/tools/scraping/jobs/${jobId}/status`)
+          
+          if (statusResponse.status === 'completed') {
+            // Get the results
+            const resultsResponse = await apiClient.get(`/tools/scraping/jobs/${jobId}/results`)
+            
+            if (resultsResponse.results && resultsResponse.results.length > 0) {
+              const scrapedData = resultsResponse.results[0]
+              const content = scrapedData.content
+              
+              if (content) {
+                setProcessedContent(content)
+                setCentralIdea(content)
+                
+                // Automatically extract 5W information using AI
+                await extract5WAnalysis(content)
+                
+                toast({
+                  title: 'URL Processed',
+                  description: 'Content extracted and 5W analysis performed'
+                })
+                return
+              } else {
+                throw new Error('No content could be extracted from the URL')
+              }
+            } else {
+              throw new Error('No results returned from scraping job')
+            }
+          } else if (statusResponse.status === 'failed') {
+            throw new Error('Scraping job failed')
+          }
+          // Continue polling if status is still pending or in_progress
+        } catch (statusError: any) {
+          if (attempts >= maxAttempts) {
+            throw new Error('Timeout waiting for scraping to complete')
+          }
+          // Continue polling on status check errors
+        }
+      }
+      
+      throw new Error('Timeout waiting for scraping to complete')
+      
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to process URL'
       setUrlError(errorMessage)
@@ -113,9 +156,9 @@ export default function CreateStarburstingPage() {
         variant: 'destructive'
       })
       
-      // Log error for debugging in development
+      // Log error for debugging in development (safely)
       if (process.env.NODE_ENV === 'development') {
-        console.error('URL processing error:', error)
+        console.warn('URL processing error:', errorMessage, error?.status)
       }
     } finally {
       setProcessing(false)
@@ -124,30 +167,42 @@ export default function CreateStarburstingPage() {
 
   const extract5WAnalysis = async (content: string) => {
     try {
-      // Simulate AI analysis for 5W extraction
-      // In a real implementation, this would call an AI service
-      const prompt = `Analyze the following content and extract the 5W information:
-Who: Key people, organizations, or entities involved
-What: Main events, actions, or topics
-Where: Locations or contexts mentioned
-When: Time periods, dates, or temporal context
-Why: Reasons, motivations, or purposes
+      // Call AI service for 5W extraction using GPT-5-mini
+      const response = await apiClient.post('/ai/5w-analysis', {
+        content: content.substring(0, 3000)  // Limit content for token management
+      })
 
-Content: ${content.substring(0, 2000)}...`
-
-      // For now, we'll use a simplified extraction
-      // In the real implementation, this would call the AI service
-      const analysis: FiveWAnalysis = {
-        who: 'Key stakeholders and entities mentioned in the content',
-        what: 'Main events, topics, and actions described',
-        where: 'Relevant locations and contexts',
-        when: 'Timeframes and dates referenced',
-        why: 'Underlying reasons and motivations discussed'
+      if (response) {
+        setFiveWAnalysis({
+          who: response.who || 'Not identified',
+          what: response.what || 'Not identified',
+          where: response.where || 'Not identified',
+          when: response.when || 'Not identified',
+          why: response.why || 'Not identified'
+        })
+        
+        toast({
+          title: 'AI Analysis Complete',
+          description: '5W analysis extracted successfully using GPT-5-mini'
+        })
       }
-
-      setFiveWAnalysis(analysis)
     } catch (error) {
       console.error('Error extracting 5W analysis:', error)
+      // Fallback to placeholder values if AI is unavailable
+      const analysis: FiveWAnalysis = {
+        who: 'AI service unavailable - please configure OpenAI API key',
+        what: 'AI service unavailable',
+        where: 'AI service unavailable',
+        when: 'AI service unavailable',
+        why: 'AI service unavailable'
+      }
+      setFiveWAnalysis(analysis)
+      
+      toast({
+        title: 'AI Service Unavailable',
+        description: 'Using placeholder values. Configure OpenAI API key for AI features.',
+        variant: 'destructive'
+      })
     }
   }
 
@@ -163,7 +218,28 @@ Content: ${content.substring(0, 2000)}...`
 
     setLoadingQuestions(true)
     try {
-      // Simulate AI question generation
+      // Call AI service for question generation using GPT-5-mini
+      const response = await apiClient.post('/ai/starbursting/questions', {
+        central_idea: centralIdea.trim(),
+        context: processedContent || undefined
+      })
+
+      if (response && response.questions) {
+        const generatedQuestions = response.questions.map((question: string, index: number) => ({
+          id: `generated_${Date.now()}_${index}`,
+          text: question,
+          response: ''
+        }))
+
+        setQuestions(prev => [...prev, ...generatedQuestions])
+        
+        toast({
+          title: 'AI Questions Generated',
+          description: `Added ${generatedQuestions.length} expansion questions using GPT-5-mini`
+        })
+      }
+    } catch (error: any) {
+      // Fallback to default questions if AI is unavailable
       const questionStarters = ['Who', 'What', 'Where', 'When', 'Why', 'How']
       const generatedQuestions = questionStarters.map((starter, index) => ({
         id: `generated_${Date.now()}_${index}`,
@@ -179,13 +255,8 @@ Content: ${content.substring(0, 2000)}...`
       setQuestions(prev => [...prev, ...generatedQuestions])
       
       toast({
-        title: 'Questions Generated',
-        description: `Added ${generatedQuestions.length} expansion questions`
-      })
-    } catch (error: any) {
-      toast({
-        title: 'Generation Error',
-        description: error.message || 'Failed to generate questions',
+        title: 'Using Default Questions',
+        description: 'AI unavailable - using standard Starbursting questions',
         variant: 'destructive'
       })
     } finally {
@@ -266,6 +337,12 @@ Content: ${content.substring(0, 2000)}...`
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Explore ideas through systematic questioning and 5W analysis
           </p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              <Brain className="h-3 w-3 mr-1" />
+              GPT-5-mini Enhanced
+            </span>
+          </div>
         </div>
         <Button 
           onClick={handleSave} 

@@ -7,7 +7,7 @@ import * as ExcelJS from 'exceljs'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { Document, Packer, Paragraph, Table, TableCell, TableRow, WidthType, HeadingLevel, TextRun, AlignmentType } from 'docx'
-import pptxgen from 'pptxgenjs'
+// PowerPoint export is in a separate file to avoid Node.js dependencies
 import { ACHScore, HypothesisAnalysis, ScaleType, getScoreOption, analyzeHypotheses } from './ach-scoring'
 import { generateExecutiveSummary, checkAIAvailability, type AIAnalysisResult } from './ai-analysis'
 
@@ -861,115 +861,8 @@ export async function exportToWord(data: ACHExportData): Promise<ArrayBuffer> {
   return await Packer.toBuffer(doc)
 }
 
-/**
- * Export ACH analysis to PowerPoint presentation
- */
-export async function exportToPowerPoint(data: ACHExportData): Promise<ArrayBuffer> {
-  const pptx = new pptxgen()
-  const analysis = data.analysis || analyzeHypotheses(data.hypotheses, data.scores, data.scaleType)
-  
-  // Title slide
-  const titleSlide = pptx.addSlide()
-  titleSlide.addText(data.title, {
-    x: 0.5,
-    y: 1.5,
-    w: 9,
-    h: 1,
-    fontSize: 24,
-    bold: true,
-    align: 'center',
-  })
-  
-  titleSlide.addText('Analysis of Competing Hypotheses', {
-    x: 0.5,
-    y: 2.5,
-    w: 9,
-    h: 0.5,
-    fontSize: 18,
-    align: 'center',
-  })
-  
-  titleSlide.addText(`Generated: ${data.createdAt.toLocaleDateString()}`, {
-    x: 0.5,
-    y: 3.5,
-    w: 9,
-    h: 0.5,
-    fontSize: 14,
-    align: 'center',
-  })
-  
-  // Executive Summary slide
-  const summarySlide = pptx.addSlide()
-  summarySlide.addText('Executive Summary', {
-    x: 0.5,
-    y: 0.5,
-    w: 9,
-    h: 0.5,
-    fontSize: 20,
-    bold: true,
-  })
-  
-  const topHypothesis = analysis[0]
-  const hypothesis = data.hypotheses.find(h => h.id === topHypothesis.hypothesisId)
-  
-  summarySlide.addText([
-    { text: 'Primary Hypothesis: ', options: { bold: true } },
-    { text: hypothesis?.text || 'Unknown' },
-  ], {
-    x: 0.5,
-    y: 1.5,
-    w: 9,
-    h: 0.5,
-    fontSize: 14,
-  })
-  
-  summarySlide.addText([
-    { text: 'Weighted Score: ', options: { bold: true } },
-    { text: `${Math.round(topHypothesis.weightedScore * 100) / 100}` },
-  ], {
-    x: 0.5,
-    y: 2,
-    w: 9,
-    h: 0.5,
-    fontSize: 14,
-  })
-  
-  // Hypothesis ranking slide
-  const rankingSlide = pptx.addSlide()
-  rankingSlide.addText('Hypothesis Ranking', {
-    x: 0.5,
-    y: 0.5,
-    w: 9,
-    h: 0.5,
-    fontSize: 20,
-    bold: true,
-  })
-  
-  const tableData = analysis.map((h, index) => {
-    const hypothesis = data.hypotheses.find(hyp => hyp.id === h.hypothesisId)
-    return [
-      (index + 1).toString(),
-      hypothesis?.text || `Hypothesis ${index + 1}`,
-      Math.round(h.weightedScore * 100) / 100,
-      h.rejectionThreshold ? 'REJECTED' : 'VIABLE'
-    ]
-  })
-  
-  rankingSlide.addTable([
-    ['Rank', 'Hypothesis', 'Score', 'Status'],
-    ...tableData
-  ], {
-    x: 0.5,
-    y: 1.5,
-    w: 9,
-    h: 4,
-    fontSize: 10,
-    colW: [0.5, 5, 1, 1.5],
-  })
-  
-  // Use write() method which returns a promise of ArrayBuffer for browser usage
-  return await pptx.write({ outputType: 'arraybuffer' }) as ArrayBuffer
-}
+// PowerPoint export is handled separately to avoid Node.js dependencies
+// See ach-export-pptx.ts for the implementation
 
 /**
  * Download file with proper MIME type and filename

@@ -13,8 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.logging import get_logger
-from app.core.security import create_token_pair, Token
-from app.models.user import UserRole
+from app.core.security import create_token_pair, Token, get_password_hash
+from app.models.user import UserRole, User
+from sqlalchemy import select
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -130,10 +131,35 @@ async def authenticate_with_hash(
     # Update last login time
     account_info["last_login"] = datetime.utcnow()
     
-    # Create tokens with minimal claims (privacy-focused)
-    # We only include the account hash and role, no personal information
-    user_id = abs(hash(request.account_hash)) % 1000000  # Create a stable user ID from hash
+    # Create or get user record in database
     username = f"user_{request.account_hash[:8]}"  # Anonymous username
+    email = f"{username}@researchtools.dev"
+    
+    # Check if user already exists
+    result = await db.execute(
+        select(User).where(User.username == username)
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        # Create new user record
+        user = User(
+            username=username,
+            email=email,
+            full_name=f"Research Analyst {request.account_hash[:4]}",
+            hashed_password=get_password_hash(request.account_hash),  # Hash the account hash as password
+            role=account_info["role"],
+            is_active=True,
+            is_verified=True,
+            organization="Research Tools Platform",
+            department="Analysis"
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        logger.info(f"Created new user record for hash auth: {username}")
+    
+    user_id = user.id
     scopes = ["admin"] if account_info["role"] == UserRole.ADMIN else ["user"]
     
     # Use create_token_pair which handles both tokens correctly

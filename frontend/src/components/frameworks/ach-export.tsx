@@ -19,7 +19,6 @@ import {
   exportToExcel, 
   exportToPDF, 
   exportToWord, 
-  exportToPowerPoint, 
   downloadFile,
   type ACHExportData 
 } from '@/lib/ach-export'
@@ -29,7 +28,7 @@ interface ACHExportProps {
   className?: string
 }
 
-type ExportFormat = 'excel' | 'pdf' | 'word' | 'powerpoint'
+type ExportFormat = 'excel' | 'pdf' | 'word' // | 'powerpoint' - temporarily disabled
 
 interface ExportOption {
   id: ExportFormat
@@ -70,14 +69,15 @@ const exportOptions: ExportOption[] = [
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     extension: 'docx'
   },
-  {
-    id: 'powerpoint',
-    name: 'PowerPoint Presentation',
-    description: 'Briefing slides with key findings, hypothesis rankings, and executive summary',
-    icon: Presentation,
-    mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    extension: 'pptx'
-  }
+  // PowerPoint export temporarily disabled due to Node.js dependency issues with pptxgenjs
+  // {
+  //   id: 'powerpoint',
+  //   name: 'PowerPoint Presentation',
+  //   description: 'Briefing slides with key findings, hypothesis rankings, and executive summary',
+  //   icon: Presentation,
+  //   mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  //   extension: 'pptx'
+  // }
 ]
 
 export function ACHExport({ data, className }: ACHExportProps) {
@@ -108,9 +108,9 @@ export function ACHExport({ data, className }: ACHExportProps) {
         case 'word':
           buffer = await exportToWord(data)
           break
-        case 'powerpoint':
-          buffer = await exportToPowerPoint(data)
-          break
+        // case 'powerpoint':
+        //   // PowerPoint export disabled due to Node.js dependencies
+        //   throw new Error('PowerPoint export temporarily disabled')
         default:
           throw new Error(`Unsupported export format: ${format}`)
       }

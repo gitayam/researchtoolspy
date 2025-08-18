@@ -43,6 +43,35 @@ To get started with this repository, follow these steps:
 - **Wayback Tool:** Access archived web pages for historical research.
 - **Image Search & Hashing:** Find and analyze images across various platforms.
 
+## 📚 Public Hosting & Demo Deployment
+
+For quick feedback and testing, you can easily make your local development instance publicly accessible using Cloudflare Tunnel:
+
+### 🔧 Setup & Usage:
+
+1. **Install Cloudflare Tunnel:**
+   ```bash
+   brew install cloudflared
+   ```
+
+2. **Create Public Tunnel:**
+   ```bash
+   # For the frontend (Next.js)
+   cloudflared tunnel --url http://localhost:3380
+   
+   # For the backend API (FastAPI) 
+   cloudflared tunnel --url http://localhost:8001
+   ```
+
+3. **Benefits:**
+   - ✅ Instant HTTPS-enabled public URLs
+   - ✅ No configuration or account setup required
+   - ✅ Perfect for temporary demos and feedback collection
+   - ✅ Automatically handles SSL/TLS certificates
+   - ✅ Works through firewalls and NATs
+
+The tunnel will provide you with public URLs like `https://random-name.trycloudflare.com` that you can share for immediate feedback on your research tools platform.
+
 ## Social Media Downloader Setup
 
 To use the social media downloader, you need to set up authentication for each platform. Follow the instructions below to obtain the necessary tokens and cookies.

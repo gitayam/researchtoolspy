@@ -5,7 +5,7 @@ User model and related database models.
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Enum as SQLEnum, String, Text
+from sqlalchemy import Boolean, Enum as SQLEnum, String, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
@@ -103,6 +103,12 @@ class User(BaseModel):
         cascade="all, delete-orphan",
     )
     
+    api_keys: Mapped[list["APIKey"]] = relationship(
+        "APIKey",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    
     def __repr__(self) -> str:
         """String representation of user."""
         return f"<User(id={self.id}, username='{self.username}', role='{self.role}')>"
@@ -150,11 +156,12 @@ class APIKey(BaseModel):
     
     # Relationships
     user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
         nullable=False,
         index=True,
     )
     
-    user: Mapped[User] = relationship("User")
+    user: Mapped[User] = relationship("User", back_populates="api_keys")
     
     # Status
     is_active: Mapped[bool] = mapped_column(

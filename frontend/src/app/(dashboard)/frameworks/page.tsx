@@ -151,10 +151,46 @@ const frameworks = [
     complexity: 'Intermediate',
     estimatedTime: '30-45 min',
     available: true
+  },
+  {
+    id: 'dotmlpf',
+    title: 'DOTMLPF-P',
+    description: 'Military capability assessment across Doctrine, Organization, Training, Materiel, Leadership, Personnel, Facilities, and Policy',
+    icon: Shield,
+    color: 'bg-amber-600',
+    hoverColor: 'hover:bg-amber-700',
+    category: 'Military Strategy',
+    complexity: 'Advanced',
+    estimatedTime: '60-90 min',
+    available: true
+  },
+  {
+    id: 'behavior',
+    title: 'Behavior Analysis',
+    description: 'COM-B model for understanding and changing behavior through Capability, Opportunity, and Motivation assessment',
+    icon: Brain,
+    color: 'bg-emerald-600',
+    hoverColor: 'hover:bg-emerald-700',
+    category: 'Behavioral Science',
+    complexity: 'Intermediate',
+    estimatedTime: '30-45 min',
+    available: true
+  },
+  {
+    id: 'deception',
+    title: 'Deception Detection',
+    description: 'Systematic analysis to identify potential deception, misinformation, and credibility issues in content',
+    icon: AlertTriangle,
+    color: 'bg-orange-600',
+    hoverColor: 'hover:bg-orange-700',
+    category: 'Information Analysis',
+    complexity: 'Advanced',
+    estimatedTime: '45-60 min',
+    available: true
   }
 ]
 
-const categories = ['All', 'Strategic Planning', 'Military Strategy', 'Environmental Analysis', 'Hypothesis Testing', 'National Power', 'Competitive Analysis', 'Relationship Mapping', 'Forecasting', 'Research', 'Question Analysis']
+const categories = ['All', 'Strategic Planning', 'Military Strategy', 'Environmental Analysis', 'Hypothesis Testing', 'National Power', 'Competitive Analysis', 'Relationship Mapping', 'Forecasting', 'Research', 'Question Analysis', 'Behavioral Science', 'Information Analysis']
 
 export default function FrameworksPage() {
   const [loading, setLoading] = useState(true)
@@ -174,7 +210,7 @@ export default function FrameworksPage() {
         <div>
           <h1 className="text-2xl font-bold">Analysis Frameworks</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Choose from 10 research analysis frameworks to structure your research and analysis
+            Choose from 14 research analysis frameworks to structure your research and analysis
           </p>
         </div>
 
@@ -193,7 +229,7 @@ export default function FrameworksPage() {
       <div>
         <h1 className="text-2xl font-bold">Analysis Frameworks</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Choose from 10 research analysis frameworks to structure your research and analysis
+          Choose from 12 research analysis frameworks to structure your research and analysis
         </p>
       </div>
 

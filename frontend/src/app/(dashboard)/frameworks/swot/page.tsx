@@ -38,8 +38,8 @@ export default function SWOTListPage() {
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">SWOT Analysis</h1>
-          <p className="text-gray-600 mt-2">Strengths, Weaknesses, Opportunities, and Threats</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">SWOT Analysis</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Strengths, Weaknesses, Opportunities, and Threats</p>
         </div>
         <Link href="/frameworks/swot/create">
           <Button>
@@ -78,28 +78,28 @@ export default function SWOTListPage() {
                       {analysis.status}
                     </span>
                   </div>
-                  <p className="text-gray-600 mb-4">{analysis.description}</p>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">{analysis.description}</p>
                   
                   <div className="grid grid-cols-4 gap-4 mb-4">
-                    <div className="text-center p-2 bg-green-50 rounded">
-                      <p className="text-sm text-gray-600">Strengths</p>
-                      <p className="text-xl font-semibold text-green-600">{analysis.strengths}</p>
+                    <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Strengths</p>
+                      <p className="text-xl font-semibold text-green-600 dark:text-green-400">{analysis.strengths}</p>
                     </div>
-                    <div className="text-center p-2 bg-red-50 rounded">
-                      <p className="text-sm text-gray-600">Weaknesses</p>
-                      <p className="text-xl font-semibold text-red-600">{analysis.weaknesses}</p>
+                    <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Weaknesses</p>
+                      <p className="text-xl font-semibold text-red-600 dark:text-red-400">{analysis.weaknesses}</p>
                     </div>
-                    <div className="text-center p-2 bg-blue-50 rounded">
-                      <p className="text-sm text-gray-600">Opportunities</p>
-                      <p className="text-xl font-semibold text-blue-600">{analysis.opportunities}</p>
+                    <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Opportunities</p>
+                      <p className="text-xl font-semibold text-blue-600 dark:text-blue-400">{analysis.opportunities}</p>
                     </div>
-                    <div className="text-center p-2 bg-orange-50 rounded">
-                      <p className="text-sm text-gray-600">Threats</p>
-                      <p className="text-xl font-semibold text-orange-600">{analysis.threats}</p>
+                    <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Threats</p>
+                      <p className="text-xl font-semibold text-orange-600 dark:text-orange-400">{analysis.threats}</p>
                     </div>
                   </div>
                   
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 dark:text-gray-500">
                     Updated {new Date(analysis.lastUpdated).toLocaleDateString()}
                   </div>
                 </div>
@@ -132,8 +132,8 @@ export default function SWOTListPage() {
         <Card>
           <CardContent className="text-center py-12">
             <Grid3x3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No analyses found</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No analyses found</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first SWOT analysis'}
             </p>
             {!searchTerm && (

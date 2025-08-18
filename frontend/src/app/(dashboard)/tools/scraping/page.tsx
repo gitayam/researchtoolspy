@@ -88,7 +88,7 @@ export default function WebScrapingTool() {
     if (pollingJobId) {
       const interval = setInterval(async () => {
         try {
-          const response = await apiClient.get<ScrapingJob>(`/tools/web-scraping/jobs/${pollingJobId}/status`)
+          const response = await apiClient.get<ScrapingJob>(`/tools/scraping/jobs/${pollingJobId}/status`)
           const updatedJob = response
           
           setJobs(prev => prev.map(job => 
@@ -114,7 +114,7 @@ export default function WebScrapingTool() {
 
   const loadJobs = async () => {
     try {
-      const response = await apiClient.get<ScrapingJob[]>('/tools/web-scraping/jobs')
+      const response = await apiClient.get<ScrapingJob[]>('/tools/scraping/jobs')
       setJobs(response)
     } catch (error) {
       console.error('Error loading jobs:', error)
@@ -128,7 +128,7 @@ export default function WebScrapingTool() {
 
   const loadJobResults = async (jobId: number) => {
     try {
-      const response = await apiClient.get(`/tools/web-scraping/jobs/${jobId}/results`)
+      const response = await apiClient.get(`/tools/scraping/jobs/${jobId}/results`)
       setJobs(prev => prev.map(job => 
         job.job_id === jobId ? { ...job, results: response.results } : job
       ))
@@ -174,7 +174,7 @@ export default function WebScrapingTool() {
           user_agent: userAgent || undefined
         }
         
-        response = await apiClient.post<ScrapingJob>('/tools/web-scraping/scrape', request)
+        response = await apiClient.post<ScrapingJob>('/tools/scraping/scrape', request)
       } else {
         // Batch URL scraping
         const request: BatchScrapingRequest = {
@@ -185,7 +185,7 @@ export default function WebScrapingTool() {
           delay_seconds: delaySeconds
         }
         
-        response = await apiClient.post<ScrapingJob>('/tools/web-scraping/scrape/batch', request)
+        response = await apiClient.post<ScrapingJob>('/tools/scraping/scrape/batch', request)
       }
 
       // Add job name and urls for display

@@ -88,7 +88,8 @@ export default function ContentExtractionPage() {
     const startTime = Date.now()
     
     try {
-      const response = await apiClient.post('/tools/web-scraping/scrape', {
+      // Start the scraping job
+      const jobResponse = await apiClient.post('/tools/scraping/scrape', {
         url: url.trim(),
         extract_images: true,
         extract_links: true,
@@ -97,10 +98,51 @@ export default function ContentExtractionPage() {
         delay_seconds: 1.0
       })
 
+      const jobId = jobResponse.job_id
+      if (!jobId) {
+        throw new Error('Failed to start scraping job')
+      }
+
+      // Poll for job completion
+      let attempts = 0
+      const maxAttempts = 30 // 30 seconds timeout
+      let scrapedData: any = null
+      
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
+        attempts++
+        
+        try {
+          // Check job status
+          const statusResponse = await apiClient.get(`/tools/scraping/jobs/${jobId}/status`)
+          
+          if (statusResponse.status === 'completed') {
+            // Get the results
+            const resultsResponse = await apiClient.get(`/tools/scraping/jobs/${jobId}/results`)
+            
+            if (resultsResponse.results && resultsResponse.results.length > 0) {
+              scrapedData = resultsResponse.results[0]
+              break
+            }
+          } else if (statusResponse.status === 'failed') {
+            throw new Error('Scraping job failed')
+          }
+        } catch (statusError: any) {
+          if (attempts >= maxAttempts) {
+            throw new Error('Timeout waiting for scraping to complete')
+          }
+        }
+      }
+      
       const endTime = Date.now()
       const responseTime = endTime - startTime
+      
+      if (!scrapedData) {
+        throw new Error('No data received from scraping job')
+      }
 
-      if (response.content) {
+      if (scrapedData.content) {
+        const response = scrapedData
         const urlObj = new URL(url.trim())
         const domain = urlObj.hostname
         const wordCount = response.content.split(/\s+/).filter(word => word.length > 0).length

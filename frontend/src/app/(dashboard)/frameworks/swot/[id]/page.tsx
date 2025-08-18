@@ -147,7 +147,7 @@ export default function SWOTViewPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading SWOT analysis...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading SWOT analysis...</p>
         </div>
       </div>
     )
@@ -163,7 +163,7 @@ export default function SWOTViewPage() {
       title: 'Strengths',
       description: 'Internal positive factors',
       icon: Target,
-      color: 'bg-green-50 border-green-200',
+      color: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',
       headerColor: 'bg-green-500',
       items: session.strengths
     },
@@ -172,7 +172,7 @@ export default function SWOTViewPage() {
       title: 'Weaknesses',
       description: 'Internal negative factors',
       icon: AlertTriangle,
-      color: 'bg-red-50 border-red-200',
+      color: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700',
       headerColor: 'bg-red-500',
       items: session.weaknesses
     },
@@ -181,7 +181,7 @@ export default function SWOTViewPage() {
       title: 'Opportunities',
       description: 'External positive factors',
       icon: TrendingUp,
-      color: 'bg-blue-50 border-blue-200',
+      color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700',
       headerColor: 'bg-blue-500',
       items: session.opportunities
     },
@@ -190,7 +190,7 @@ export default function SWOTViewPage() {
       title: 'Threats',
       description: 'External negative factors',
       icon: AlertTriangle,
-      color: 'bg-orange-50 border-orange-200',
+      color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700',
       headerColor: 'bg-orange-500',
       items: session.threats
     }
@@ -208,7 +208,7 @@ export default function SWOTViewPage() {
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{session.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{session.title}</h1>
             <Badge className={statusColors[session.status] || 'bg-gray-100 text-gray-800'}>
               {session.status.replace('_', ' ')}
             </Badge>
@@ -221,7 +221,7 @@ export default function SWOTViewPage() {
               <strong>Context:</strong> {session.context}
             </p>
           )}
-          <div className="flex items-center gap-4 text-sm text-gray-500">
+          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
             <div className="flex items-center gap-1">
               <User className="h-4 w-4" />
               Session ID: {session.session_id}
@@ -267,15 +267,15 @@ export default function SWOTViewPage() {
                 <ul className="space-y-2">
                   {quadrant.items.map((item, index) => (
                     <li key={index} className="flex items-start gap-2">
-                      <span className="text-sm font-medium text-gray-500 mt-1">
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">
                         {index + 1}.
                       </span>
-                      <span className="text-sm">{item}</span>
+                      <span className="text-sm text-gray-900 dark:text-gray-100">{item}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-gray-500 text-sm italic">
+                <p className="text-gray-500 dark:text-gray-400 text-sm italic">
                   No {quadrant.title.toLowerCase()} identified
                 </p>
               )}
@@ -316,56 +316,56 @@ export default function SWOTViewPage() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center mb-6">
             <div>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {session.strengths.length}
               </div>
-              <div className="text-sm text-gray-500">Strengths</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Strengths</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                 {session.weaknesses.length}
               </div>
-              <div className="text-sm text-gray-500">Weaknesses</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Weaknesses</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {session.opportunities.length}
               </div>
-              <div className="text-sm text-gray-500">Opportunities</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Opportunities</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-orange-600">
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                 {session.threats.length}
               </div>
-              <div className="text-sm text-gray-500">Threats</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Threats</div>
             </div>
           </div>
 
           {/* Balance Analysis */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
             <div className="text-center">
-              <div className="text-lg font-semibold text-purple-600">
+              <div className="text-lg font-semibold text-purple-600 dark:text-purple-400">
                 {calculateBalance().internal}
               </div>
-              <div className="text-xs text-gray-500">Internal Factors</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Internal Factors</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-semibold text-indigo-600">
+              <div className="text-lg font-semibold text-indigo-600 dark:text-indigo-400">
                 {calculateBalance().external}
               </div>
-              <div className="text-xs text-gray-500">External Factors</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">External Factors</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-semibold text-emerald-600">
+              <div className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
                 {calculateBalance().positive}
               </div>
-              <div className="text-xs text-gray-500">Positive Factors</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Positive Factors</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-semibold text-rose-600">
+              <div className="text-lg font-semibold text-rose-600 dark:text-rose-400">
                 {calculateBalance().negative}
               </div>
-              <div className="text-xs text-gray-500">Negative Factors</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Negative Factors</div>
             </div>
           </div>
         </CardContent>
@@ -387,12 +387,12 @@ export default function SWOTViewPage() {
             <div className="space-y-4">
               {insights.map((insight, index) => (
                 <div key={index} className="bg-white rounded-lg p-4 border border-blue-200">
-                  <p className="text-sm leading-relaxed">{insight}</p>
+                  <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">{insight}</p>
                 </div>
               ))}
             </div>
             <div className="mt-4 pt-4 border-t border-blue-200">
-              <p className="text-xs text-blue-600">
+              <p className="text-xs text-blue-600 dark:text-blue-400">
                 💡 These insights are generated based on the quantitative analysis of your SWOT factors. 
                 Consider them as starting points for deeper strategic planning.
               </p>

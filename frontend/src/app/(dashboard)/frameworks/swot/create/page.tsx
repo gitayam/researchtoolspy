@@ -111,7 +111,7 @@ export default function CreateSWOTPage() {
       title: 'Strengths',
       description: 'Internal positive factors and advantages',
       icon: Target,
-      color: 'bg-green-50 border-green-200',
+      color: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',
       headerColor: 'bg-green-500',
       placeholder: 'e.g., Strong brand recognition, skilled workforce...'
     },
@@ -120,7 +120,7 @@ export default function CreateSWOTPage() {
       title: 'Weaknesses',
       description: 'Internal negative factors and disadvantages',
       icon: AlertTriangle,
-      color: 'bg-red-50 border-red-200',
+      color: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700',
       headerColor: 'bg-red-500',
       placeholder: 'e.g., Limited resources, outdated technology...'
     },
@@ -129,7 +129,7 @@ export default function CreateSWOTPage() {
       title: 'Opportunities',
       description: 'External positive factors and potential advantages',
       icon: TrendingUp,
-      color: 'bg-blue-50 border-blue-200',
+      color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700',
       headerColor: 'bg-blue-500',
       placeholder: 'e.g., Market expansion, new partnerships...'
     },
@@ -138,7 +138,7 @@ export default function CreateSWOTPage() {
       title: 'Threats',
       description: 'External negative factors and potential risks',
       icon: AlertTriangle,
-      color: 'bg-orange-50 border-orange-200',
+      color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700',
       headerColor: 'bg-orange-500',
       placeholder: 'e.g., Economic downturn, increased competition...'
     }
@@ -149,7 +149,7 @@ export default function CreateSWOTPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">SWOT Analysis</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">SWOT Analysis</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Analyze Strengths, Weaknesses, Opportunities, and Threats
           </p>
@@ -174,7 +174,7 @@ export default function CreateSWOTPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Title</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -183,7 +183,7 @@ export default function CreateSWOTPage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Description (optional)</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description (optional)</label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -215,7 +215,7 @@ export default function CreateSWOTPage() {
                     value={item.text}
                     onChange={(e) => updateItem(quadrant.key, item.id, e.target.value)}
                     placeholder={quadrant.placeholder}
-                    className="flex-1 bg-white border-gray-300"
+                    className="flex-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                     rows={2}
                   />
                   <Button
@@ -232,7 +232,7 @@ export default function CreateSWOTPage() {
               <Button
                 variant="outline"
                 onClick={() => addItem(quadrant.key)}
-                className="w-full border-dashed border-2 hover:bg-white/50"
+                className="w-full border-dashed border-2 hover:bg-white/50 dark:hover:bg-gray-700/30"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add {quadrant.title.slice(0, -1)}
@@ -246,8 +246,8 @@ export default function CreateSWOTPage() {
       <Card className="border-dashed border-2 border-gray-300 dark:border-gray-600">
         <CardContent className="flex flex-col items-center justify-center py-8">
           <Lightbulb className="h-12 w-12 text-yellow-500 mb-4" />
-          <h3 className="text-lg font-semibold mb-2">AI Suggestions</h3>
-          <p className="text-gray-500 text-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">AI Suggestions</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
             Get AI-powered suggestions to help complete your SWOT analysis
           </p>
           <Button variant="outline" disabled>

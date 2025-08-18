@@ -11,7 +11,9 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.ext.declarative import declarative_base
+# Import models to ensure they're registered with metadata
+from app.models.base import Base
+from app.models import user, framework, research_tool  # Import all model modules
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
@@ -47,8 +49,7 @@ AsyncSessionLocal = async_sessionmaker(
     autocommit=False,
 )
 
-# Create declarative base for models
-Base = declarative_base()
+# Base is imported from models.base
 
 
 @event.listens_for(engine.sync_engine, "connect")

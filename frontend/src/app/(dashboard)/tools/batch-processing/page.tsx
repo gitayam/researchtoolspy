@@ -165,7 +165,7 @@ export default function BatchProcessingPage() {
         ))
 
         try {
-          const response = await apiClient.post('/tools/web-scraping/scrape', {
+          const response = await apiClient.post('/tools/scraping/scrape', {
             url: url.url,
             extract_images: false,
             extract_links: true,

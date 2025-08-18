@@ -751,6 +751,151 @@ const buffer = doc.output('arraybuffer')
 
 ---
 
+---
+
+## Public Hosting & Demo Deployment
+
+### ❌ What Didn't Work
+
+**Problem**: Automatically creating public URLs without explicit user request
+- Creates unnecessary public exposure
+- Wastes resources when not needed
+- May confuse users about deployment intent
+
+### ✅ What Worked
+
+**Solution**: Only create public tunnels when explicitly requested
+
+```bash
+# ✅ Only run when user specifically asks for public URL
+cloudflared tunnel --url http://localhost:3380
+```
+
+**Best Practice**: Document the capability in README but don't auto-execute
+
+### Key Learnings
+
+1. **On-Demand Only**: Public hosting should be user-initiated, not automatic
+2. **Clear Documentation**: Provide instructions for when users want to share
+3. **Temporary Nature**: Emphasize these are temporary demo URLs
+4. **Security Awareness**: Public URLs expose the application to the internet
+5. **Resource Management**: Don't run tunnels unless actively needed
+
+### When to Use Public Tunnels
+
+- ✅ User explicitly requests feedback sharing
+- ✅ Demo presentations to stakeholders  
+- ✅ Cross-device testing
+- ✅ Remote collaboration sessions
+- ❌ NOT as default deployment strategy
+- ❌ NOT without user understanding the implications
+
+---
+
+## Dark Mode Implementation Best Practices
+
+### ❌ What Didn't Work
+
+**Problem**: Text becoming invisible or unreadable in dark mode
+```tsx
+// ❌ Text disappears in dark mode
+<div className="bg-white text-gray-900">
+  <p className="text-gray-600">This text is invisible in dark mode!</p>
+</div>
+```
+
+**Problem**: Using pure black/white causing eye strain
+```tsx
+// ❌ Harsh contrast
+<div className="bg-black text-white">Too harsh!</div>
+```
+
+**Problem**: Low contrast failing WCAG accessibility standards
+```tsx
+// ❌ Poor contrast
+<div className="dark:bg-gray-900 dark:text-gray-700">Hard to read</div>
+```
+
+### ✅ What Worked
+
+**Solution 1**: Always include dark mode variants for text and backgrounds
+```tsx
+// ✅ Proper dark mode support
+<div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <p className="text-gray-600 dark:text-gray-400">Visible in both modes!</p>
+</div>
+```
+
+**Solution 2**: Use Tailwind's color palette for proper contrast
+```tsx
+// ✅ Good contrast ratios
+<Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+  <CardHeader className="text-gray-900 dark:text-gray-100">
+    <CardTitle>Readable Title</CardTitle>
+  </CardHeader>
+</Card>
+```
+
+**Solution 3**: Test with accessibility tools
+```bash
+# Use browser dev tools
+# 1. Open DevTools > Rendering
+# 2. Enable "Emulate CSS media feature prefers-color-scheme: dark"
+# 3. Check contrast with Lighthouse or axe DevTools
+```
+
+### 🔧 Standard Operating Procedure
+
+1. **For every text element**, add dark mode variant:
+   - Light: text-gray-900, Dark: dark:text-gray-100
+   - Light: text-gray-600, Dark: dark:text-gray-400
+
+2. **For backgrounds**, use proper color pairs:
+   - Light: bg-white, Dark: dark:bg-gray-900
+   - Light: bg-gray-50, Dark: dark:bg-gray-800
+
+3. **For borders**, ensure visibility:
+   - Light: border-gray-200, Dark: dark:border-gray-700
+
+4. **Test systematically**:
+   - Toggle dark mode in browser
+   - Check all text is visible
+   - Verify contrast ratios
+   - Test on different screens
+
+### Key Learnings
+
+1. **Never assume inheritance** - Always explicitly set dark mode classes
+2. **Avoid pure colors** - Use gray-900 instead of black, gray-50 instead of white
+3. **Test early and often** - Dark mode issues compound quickly
+4. **Use CSS variables** for complex theming scenarios
+5. **Consider user preference** - Respect system settings but allow manual override
+
+### Common Patterns
+
+```tsx
+// Standard text hierarchy
+<h1 className="text-gray-900 dark:text-gray-100">Heading</h1>
+<h2 className="text-gray-800 dark:text-gray-200">Subheading</h2>
+<p className="text-gray-600 dark:text-gray-400">Body text</p>
+<span className="text-gray-500 dark:text-gray-500">Muted text</span>
+
+// Cards and containers
+<div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+  <div className="text-gray-900 dark:text-gray-100">Content</div>
+</div>
+
+// Interactive elements
+<button className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600">
+  Button
+</button>
+
+// Input fields
+<input className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600" />
+```
+
+---
+
 ## Summary of New Learnings
 
 ### Hash Authentication
@@ -766,5 +911,11 @@ const buffer = doc.output('arraybuffer')
 - Always clean up object URLs to prevent memory leaks
 - Use correct MIME types for each file format
 - Test exports in actual browser environment, not just tests
+
+### Public Hosting
+- Only create public URLs when explicitly requested by user
+- Document capabilities but don't auto-execute
+- Emphasize temporary nature and security implications
+- Use for demos, feedback, and collaboration - not default deployment
 
 These lessons have been crucial for building a professional, privacy-focused research platform with government-standard export capabilities.

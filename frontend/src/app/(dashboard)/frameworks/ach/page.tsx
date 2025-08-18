@@ -132,6 +132,98 @@ export default function ACHListPage() {
     )
   }
 
+  const renderAnalysisList = () => {
+    if (filteredAnalyses.length === 0) {
+      return (
+        <Card className="text-center py-12">
+          <div className="mx-auto max-w-md">
+            <h3 className="text-xl font-semibold mb-2">
+              {searchTerm ? 'No analyses found' : 'No ACH Analyses Yet'}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {searchTerm 
+                ? 'Try adjusting your search terms'
+                : 'Get started by creating your first Analysis of Competing Hypotheses'
+              }
+            </p>
+            {!searchTerm && (
+              <Link href="/frameworks/ach/create">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Analysis
+                </Button>
+              </Link>
+            )}
+          </div>
+        </Card>
+      )
+    }
+
+    return filteredAnalyses.map((analysis) => (
+      <Card key={analysis.id} className="hover:shadow-lg transition-shadow">
+        <CardContent className="p-6">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <Link href={`/frameworks/ach/${analysis.id}`}>
+                  <h3 className="text-xl font-semibold hover:text-blue-600 transition-colors">
+                    {analysis.title}
+                  </h3>
+                </Link>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(analysis.status)}`}>
+                  {analysis.status.replace('_', ' ')}
+                </span>
+              </div>
+              <p className="text-gray-600 mb-4">{analysis.description || 'No description'}</p>
+              
+              <div className="flex items-center gap-6 text-sm">
+                <div>
+                  <span className="text-gray-500">Hypotheses:</span>
+                  <span className="ml-2 font-medium">{analysis.data.hypotheses?.length || 0}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Evidence:</span>
+                  <span className="ml-2 font-medium">{analysis.data.evidence?.length || 0}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Diagnosticity:</span>
+                  <span className={`ml-2 font-medium ${getDiagnosticityColor(getDiagnosticityLevel(analysis))}`}>
+                    {getDiagnosticityLevel(analysis)}
+                  </span>
+                </div>
+                <div className="text-gray-500">
+                  Updated {formatDate(analysis.updated_at)}
+                </div>
+              </div>
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href={`/frameworks/ach/${analysis.id}`}>View</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/frameworks/ach/${analysis.id}/edit`}>Edit</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="text-red-600"
+                  onClick={() => handleDelete(analysis.id)}
+                >
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </CardContent>
+      </Card>
+    ))
+  }
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
@@ -164,92 +256,7 @@ export default function ACHListPage() {
       </div>
 
       <div className="space-y-4">
-        {filteredAnalyses.length === 0 ? (
-          <Card className="text-center py-12">
-            <div className="mx-auto max-w-md">
-              <h3 className="text-xl font-semibold mb-2">
-                {searchTerm ? 'No analyses found' : 'No ACH Analyses Yet'}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {searchTerm 
-                  ? 'Try adjusting your search terms'
-                  : 'Get started by creating your first Analysis of Competing Hypotheses'
-                }
-              </p>
-              {!searchTerm && (
-                <Link href="/frameworks/ach/create">
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Analysis
-                  </Button>
-                </Link>
-              )}
-            </div>
-          </Card>
-        ) : (
-          filteredAnalyses.map((analysis) => (
-            <Card key={analysis.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Link href={`/frameworks/ach/${analysis.id}`}>
-                      <h3 className="text-xl font-semibold hover:text-blue-600 transition-colors">
-                        {analysis.title}
-                      </h3>
-                    </Link>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(analysis.status)}`}>
-                      {analysis.status.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 mb-4">{analysis.description || 'No description'}</p>
-                  
-                  <div className="flex items-center gap-6 text-sm">
-                    <div>
-                      <span className="text-gray-500">Hypotheses:</span>
-                      <span className="ml-2 font-medium">{analysis.data.hypotheses?.length || 0}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Evidence:</span>
-                      <span className="ml-2 font-medium">{analysis.data.evidence?.length || 0}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Diagnosticity:</span>
-                      <span className={`ml-2 font-medium ${getDiagnosticityColor(getDiagnosticityLevel(analysis))}`}>
-                        {getDiagnosticityLevel(analysis)}
-                      </span>
-                    </div>
-                    <div className="text-gray-500">
-                      Updated {formatDate(analysis.updated_at)}
-                    </div>
-                  </div>
-                </div>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/frameworks/ach/${analysis.id}`}>View</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href={`/frameworks/ach/${analysis.id}/edit`}>Edit</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      className="text-red-600"
-                      onClick={() => handleDelete(analysis.id)}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {renderAnalysisList()}
       </div>
     </div>
   )
