@@ -149,7 +149,6 @@ export default function CreateTrendAnalysisPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // TODO: Save to API
-    console.log({ title, description, trends })
     router.push('/frameworks/trend')
   }
 

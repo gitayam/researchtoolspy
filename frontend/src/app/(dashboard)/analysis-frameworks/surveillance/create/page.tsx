@@ -129,7 +129,6 @@ export default function CreateSurveillanceAnalysisPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // TODO: Save to API
-    console.log({ title, description, scope, objectives, indicators, counterMeasures })
     router.push('/frameworks/surveillance')
   }
 

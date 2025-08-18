@@ -85,7 +85,6 @@ export default function CreateStakeholderAnalysisPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // TODO: Save to API
-    console.log({ title, description, stakeholders })
     router.push('/frameworks/stakeholder')
   }
 

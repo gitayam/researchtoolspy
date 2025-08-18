@@ -68,10 +68,10 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center gap-4">
               <Link href="/login">
-                <Button variant="ghost">Sign In</Button>
+                <Button variant="ghost">Access Work</Button>
               </Link>
               <Link href="/register">
-                <Button>Get Started</Button>
+                <Button>Create Bookmark</Button>
               </Link>
             </div>
           </div>
@@ -97,19 +97,16 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
               <Button size="lg" className="text-lg px-8 py-3">
-                Get Started
+                Start Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link href="/login">
               <Button size="lg" variant="outline" className="text-lg px-8 py-3">
-                Sign In
+                Access Saved Work
               </Button>
             </Link>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-            Test credentials: username="test", password="test"
-          </p>
         </div>
       </section>
 

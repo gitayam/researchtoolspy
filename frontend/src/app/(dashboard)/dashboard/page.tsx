@@ -24,10 +24,10 @@ export default function DashboardPage() {
   const recentSessions = useRecentSessions()
 
   const frameworkStats = [
-    { name: 'SWOT Analysis', count: 12, trend: '+2 this week', icon: Target, color: 'bg-blue-500' },
-    { name: 'COG Analysis', count: 8, trend: '+1 this week', icon: Brain, color: 'bg-green-500' },
-    { name: 'PMESII-PT', count: 6, trend: 'No change', icon: BarChart3, color: 'bg-purple-500' },
-    { name: 'ACH Analysis', count: 4, trend: '+1 this week', icon: Search, color: 'bg-orange-500' },
+    { name: 'SWOT Analysis', count: 0, trend: 'No analyses yet', icon: Target, color: 'bg-blue-500' },
+    { name: 'COG Analysis', count: 0, trend: 'No analyses yet', icon: Brain, color: 'bg-green-500' },
+    { name: 'PMESII-PT', count: 0, trend: 'No analyses yet', icon: BarChart3, color: 'bg-purple-500' },
+    { name: 'ACH Analysis', count: 0, trend: 'No analyses yet', icon: Search, color: 'bg-orange-500' },
   ]
 
   const quickActions = [
@@ -66,7 +66,7 @@ export default function DashboardPage() {
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg p-6 text-white">
         <h1 className="text-2xl font-bold mb-2">
-          Welcome back, {user?.full_name || user?.username}!
+          Welcome to Research Analysis Tools
         </h1>
         <p className="text-blue-100">
           Continue your research analysis work or start a new framework.
@@ -81,10 +81,9 @@ export default function DashboardPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">30</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              <TrendingUp className="inline h-3 w-3 mr-1" />
-              +4 from last month
+              Start creating analyses
             </p>
           </CardContent>
         </Card>
@@ -95,9 +94,9 @@ export default function DashboardPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              3 in progress, 5 draft
+              No active sessions
             </p>
           </CardContent>
         </Card>
@@ -108,9 +107,9 @@ export default function DashboardPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">22</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              92% completion rate
+              No completed analyses
             </p>
           </CardContent>
         </Card>
@@ -121,9 +120,9 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">15</div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              With 8 team members
+              No shared analyses
             </p>
           </CardContent>
         </Card>

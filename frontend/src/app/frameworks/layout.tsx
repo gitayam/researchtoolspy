@@ -103,19 +103,19 @@ export default function PublicFrameworksLayout({
                         router.push('/frameworks')
                       }}
                     >
-                      Sign Out
+                      Clear Access
                     </Button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <Link href="/login">
                       <Button variant="ghost" size="sm">
-                        Enter Hash
+                        Access Work
                       </Button>
                     </Link>
                     <Link href="/register">
                       <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                        Generate Hash
+                        Get Bookmark
                       </Button>
                     </Link>
                   </div>
@@ -195,7 +195,7 @@ export default function PublicFrameworksLayout({
               
               <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                 <span>
-                  {isAuthenticated ? 'Signed in' : 'Working locally'} • Auto-save enabled
+                  {isAuthenticated ? 'Work saved' : 'Working locally'} • Auto-save enabled
                 </span>
               </div>
             </div>

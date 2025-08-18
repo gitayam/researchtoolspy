@@ -36,7 +36,6 @@ export default function EvidenceCollectorPage() {
   // TODO: Replace with actual API calls
   const loadEvidence = async () => {
     // Placeholder for API integration
-    console.log('Loading evidence from API...')
   }
 
   useEffect(() => {

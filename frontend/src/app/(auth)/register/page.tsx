@@ -7,16 +7,11 @@ import { Copy, Check, Bookmark, Share2, Shield, AlertCircle, RefreshCw } from 'l
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { generateAccountHash, formatHashForDisplay } from '@/lib/hash-auth'
+import { generateBookmarkHash, formatHashForDisplay } from '@/lib/hash-auth'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [accountHash, setAccountHash] = useState(() => {
-    const initialHash = generateAccountHash()
-    console.log('[Register Debug] Initial hash generated:', initialHash)
-    console.log('[Register Debug] Initial formatted:', formatHashForDisplay(initialHash))
-    return initialHash
-  })
+  const [accountHash, setAccountHash] = useState(() => generateBookmarkHash())
   const [copied, setCopied] = useState(false)
   const [hashSaved, setHashSaved] = useState(false)
 
@@ -26,15 +21,12 @@ export default function RegisterPage() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error('Failed to copy hash:', err)
+      // Failed to copy - continue silently
     }
   }
 
   const handleGenerateNew = () => {
-    const newHash = generateAccountHash()
-    console.log('[Register Debug] Generated new hash:', newHash)
-    console.log('[Register Debug] Formatted hash:', formatHashForDisplay(newHash))
-    setAccountHash(newHash)
+    setAccountHash(generateBookmarkHash())
     setCopied(false)
     setHashSaved(false)
   }
@@ -58,8 +50,7 @@ export default function RegisterPage() {
         router.push(`/login?hash=${accountHash}`)
       }, 1500)
     } catch (error) {
-      console.error('Failed to save hash:', error)
-      // Fallback: just redirect to login
+      // Failed to save - fallback to redirect to login
       setHashSaved(true)
       setTimeout(() => {
         router.push('/login')
@@ -77,10 +68,10 @@ export default function RegisterPage() {
             <Bookmark className="h-6 w-6 text-white" />
           </div>
           <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            Generate Analysis Hash
+            Generate Bookmark Code
           </CardTitle>
           <CardDescription className="text-gray-600 dark:text-gray-400">
-            Your private collaboration and bookmark identifier
+            Save your work and collaborate with this unique code
           </CardDescription>
         </CardHeader>
 
@@ -91,7 +82,7 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Your Analysis Hash
+                    Your Bookmark Code
                   </label>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Click the copy button →
@@ -167,7 +158,7 @@ export default function RegisterPage() {
               {/* Final Warning */}
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-3">
                 <p className="text-sm text-red-700 dark:text-red-300 font-medium text-center">
-                  🚫 NO ACCOUNT RECOVERY • NO PASSWORD RESET • NO SUPPORT CAN HELP
+                  🚫 NO RECOVERY • LOST CODE = LOST WORK • SAVE THIS CODE
                 </p>
               </div>
 
@@ -202,17 +193,17 @@ export default function RegisterPage() {
                   Hash Saved!
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Redirecting you to sign in...
+                  Redirecting to access page...
                 </p>
               </div>
             </div>
           )}
 
-          {/* Sign In Link */}
+          {/* Access Link */}
           <div className="text-center text-sm text-gray-600 dark:text-gray-400">
             Already have a hash?{' '}
             <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">
-              Sign in
+              Access Work
             </Link>
           </div>
         </CardContent>
