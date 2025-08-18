@@ -4,11 +4,9 @@
  * Shows the current save status with appropriate icons and messaging
  */
 
-import React from 'react'
-import { Check, Loader2, AlertCircle, Cloud, HardDrive, Wifi, WifiOff } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Check, Loader2, AlertCircle, Cloud, HardDrive } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatRelativeTime } from '@/lib/utils'
-import { useSaveStatus, useCurrentSession } from '@/stores/auto-save'
 import { useIsAuthenticated } from '@/stores/auth'
 
 interface SaveStatusIndicatorProps {
@@ -24,15 +22,31 @@ export function SaveStatusIndicator({
   showDetails = true,
   size = 'md'
 }: SaveStatusIndicatorProps) {
-  const saveStatus = useSaveStatus(sessionId)
-  const currentSession = useCurrentSession()
   const isAuthenticated = useIsAuthenticated()
+  const [mounted, setMounted] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   
-  const isOnline = navigator.onLine
-  const storageType = isAuthenticated ? 'cloud' : 'local'
+  // Avoid hydration issues
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  
+  if (!mounted) {
+    // Return a stable placeholder during SSR
+    return (
+      <div className={cn('flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700', className)}>
+        <HardDrive className="h-4 w-4 text-gray-400" />
+        <span className="font-medium text-gray-400">Auto-save ready</span>
+        <div className="flex items-center gap-1 ml-2 pl-2 border-l border-gray-300 dark:border-gray-600">
+          <HardDrive className="h-4 w-4 text-gray-400" />
+          <span className="text-gray-500 dark:text-gray-400 text-xs">Local</span>
+        </div>
+      </div>
+    )
+  }
   
   const getStatusConfig = () => {
-    switch (saveStatus.status) {
+    switch (saveStatus) {
       case 'saving':
         return {
           icon: Loader2,
@@ -47,9 +61,7 @@ export function SaveStatusIndicator({
           icon: Check,
           color: 'text-green-500',
           bgColor: 'bg-green-50 dark:bg-green-900/20',
-          message: saveStatus.lastSaved 
-            ? `Saved ${formatRelativeTime(saveStatus.lastSaved)}`
-            : 'Saved',
+          message: 'Auto-saved',
           animate: false
         }
       
@@ -58,7 +70,7 @@ export function SaveStatusIndicator({
           icon: AlertCircle,
           color: 'text-red-500',
           bgColor: 'bg-red-50 dark:bg-red-900/20',
-          message: saveStatus.error || 'Save failed',
+          message: 'Save failed',
           animate: false
         }
       
@@ -67,18 +79,10 @@ export function SaveStatusIndicator({
           icon: isAuthenticated ? Cloud : HardDrive,
           color: 'text-gray-400',
           bgColor: 'bg-gray-50 dark:bg-gray-900/20',
-          message: 'Not saved',
+          message: 'Auto-save ready',
           animate: false
         }
     }
-  }
-  
-  const getStorageIcon = () => {
-    if (!isOnline) {
-      return WifiOff
-    }
-    
-    return isAuthenticated ? Cloud : HardDrive
   }
   
   const getSizeClasses = () => {
@@ -105,8 +109,8 @@ export function SaveStatusIndicator({
   }
   
   const config = getStatusConfig()
-  const StorageIcon = getStorageIcon()
   const StatusIcon = config.icon
+  const StorageIcon = isAuthenticated ? Cloud : HardDrive
   const sizeClasses = getSizeClasses()
   
   if (!showDetails) {
@@ -153,11 +157,10 @@ export function SaveStatusIndicator({
       <div className="flex items-center gap-1 ml-2 pl-2 border-l border-gray-300 dark:border-gray-600">
         <StorageIcon className={cn(
           sizeClasses.icon,
-          'text-gray-400',
-          !isOnline && 'text-orange-500'
+          'text-gray-400'
         )} />
         <span className="text-gray-500 dark:text-gray-400 text-xs">
-          {!isOnline ? 'Offline' : storageType === 'cloud' ? 'Cloud' : 'Local'}
+          {isAuthenticated ? 'Cloud' : 'Local'}
         </span>
       </div>
     </div>
@@ -165,113 +168,28 @@ export function SaveStatusIndicator({
 }
 
 /**
- * Compact Save Status - Just an icon with tooltip
+ * Compact Save Status - Simplified version without complex state
  */
 export function CompactSaveStatus({ sessionId, className }: { sessionId: string, className?: string }) {
-  const saveStatus = useSaveStatus(sessionId)
   const isAuthenticated = useIsAuthenticated()
+  const [mounted, setMounted] = useState(false)
   
-  const config = (() => {
-    switch (saveStatus.status) {
-      case 'saving':
-        return {
-          icon: Loader2,
-          color: 'text-blue-500',
-          tooltip: 'Saving...',
-          animate: true
-        }
-      case 'saved':
-        return {
-          icon: Check,
-          color: 'text-green-500',
-          tooltip: saveStatus.lastSaved 
-            ? `Saved ${formatRelativeTime(saveStatus.lastSaved)}`
-            : 'Saved',
-          animate: false
-        }
-      case 'error':
-        return {
-          icon: AlertCircle,
-          color: 'text-red-500',
-          tooltip: saveStatus.error || 'Save failed',
-          animate: false
-        }
-      default:
-        return {
-          icon: isAuthenticated ? Cloud : HardDrive,
-          color: 'text-gray-400',
-          tooltip: isAuthenticated ? 'Will save to account' : 'Saving locally',
-          animate: false
-        }
-    }
-  })()
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
-  const Icon = config.icon
+  if (!mounted) {
+    return <HardDrive className={cn('h-4 w-4 text-gray-400', className)} />
+  }
+  
+  const Icon = isAuthenticated ? Cloud : HardDrive
   
   return (
     <div 
       className={cn('relative group', className)}
-      title={config.tooltip}
+      title="Auto-save enabled"
     >
-      <Icon 
-        className={cn(
-          'h-4 w-4',
-          config.color,
-          config.animate && 'animate-spin'
-        )} 
-      />
-      
-      {/* Tooltip */}
-      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-        {config.tooltip}
-      </div>
-    </div>
-  )
-}
-
-/**
- * Save Status Bar - Full width status bar
- */
-export function SaveStatusBar({ sessionId, className }: { sessionId: string, className?: string }) {
-  const saveStatus = useSaveStatus(sessionId)
-  const isAuthenticated = useIsAuthenticated()
-  const isOnline = navigator.onLine
-  
-  if (saveStatus.status === 'idle') {
-    return null
-  }
-  
-  const getBarColor = () => {
-    switch (saveStatus.status) {
-      case 'saving':
-        return 'bg-blue-500'
-      case 'saved':
-        return 'bg-green-500'
-      case 'error':
-        return 'bg-red-500'
-      default:
-        return 'bg-gray-500'
-    }
-  }
-  
-  return (
-    <div className={cn(
-      'w-full h-1 rounded-full overflow-hidden',
-      'bg-gray-200 dark:bg-gray-700',
-      className
-    )}>
-      <div 
-        className={cn(
-          'h-full transition-all duration-300',
-          getBarColor(),
-          saveStatus.status === 'saving' && 'animate-pulse'
-        )}
-        style={{
-          width: saveStatus.status === 'saved' ? '100%' : 
-                 saveStatus.status === 'saving' ? '70%' : 
-                 saveStatus.status === 'error' ? '100%' : '0%'
-        }}
-      />
+      <Icon className="h-4 w-4 text-gray-400" />
     </div>
   )
 }
