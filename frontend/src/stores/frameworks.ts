@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { FrameworkSession, FrameworkType, FrameworkStatus } from '@/types/frameworks'
+import { apiClient } from '@/lib/api'
 
 interface FrameworkState {
   // State
@@ -22,6 +23,11 @@ interface FrameworkState {
   setError: (error: string | null) => void
   clearError: () => void
 
+  // API Actions
+  fetchSessions: () => Promise<void>
+  fetchRecentSessions: () => Promise<void>
+  refreshData: () => Promise<void>
+
   // Selectors
   getSessionsByType: (type: FrameworkType) => FrameworkSession[]
   getSessionsByStatus: (status: FrameworkStatus) => FrameworkSession[]
@@ -34,38 +40,7 @@ export const useFrameworkStore = create<FrameworkState>()(
       // Initial state
       currentSession: null,
       sessions: [],
-      recentSessions: [
-        {
-          id: 1,
-          title: "Q4 2024 Strategic Assessment",
-          framework_type: "swot",
-          status: "completed",
-          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          data: {},
-          user_id: 1
-        },
-        {
-          id: 2,
-          title: "COG Analysis - Market Entry",
-          framework_type: "cog",
-          status: "in_progress",
-          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          data: {},
-          user_id: 1
-        },
-        {
-          id: 3,
-          title: "PMESII-PT Threat Assessment",
-          framework_type: "pmesii-pt",
-          status: "draft",
-          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          data: {},
-          user_id: 1
-        }
-      ],
+      recentSessions: [],
       isLoading: false,
       error: null,
 
@@ -142,6 +117,41 @@ export const useFrameworkStore = create<FrameworkState>()(
         set({ error: null })
       },
 
+      // API Actions
+      fetchSessions: async () => {
+        try {
+          set({ isLoading: true, error: null })
+          const sessions = await apiClient.get<FrameworkSession[]>('/frameworks/')
+          set({ sessions, isLoading: false })
+        } catch (error: any) {
+          console.warn('Failed to fetch sessions, using empty data:', error.message)
+          set({ sessions: [], isLoading: false, error: null }) // Don't show errors for API unavailability in development
+        }
+      },
+
+      fetchRecentSessions: async () => {
+        try {
+          set({ isLoading: true, error: null })
+          const allSessions = await apiClient.get<FrameworkSession[]>('/frameworks/')
+          // Sort by updated_at desc and take first 5
+          const recentSessions = allSessions
+            .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+            .slice(0, 5)
+          set({ recentSessions, isLoading: false })
+        } catch (error: any) {
+          console.warn('Failed to fetch recent sessions, using empty data:', error.message)
+          set({ recentSessions: [], isLoading: false, error: null }) // Don't show errors for API unavailability in development
+        }
+      },
+
+      refreshData: async () => {
+        const { fetchSessions, fetchRecentSessions } = get()
+        await Promise.all([
+          fetchSessions(),
+          fetchRecentSessions()
+        ])
+      },
+
       // Selectors
       getSessionsByType: (type) => {
         return get().sessions.filter(session => session.framework_type === type)
@@ -167,3 +177,12 @@ export const useFrameworkSessions = () => useFrameworkStore((state) => state.ses
 export const useRecentSessions = () => useFrameworkStore((state) => state.recentSessions)
 export const useFrameworkLoading = () => useFrameworkStore((state) => state.isLoading)
 export const useFrameworkError = () => useFrameworkStore((state) => state.error)
+
+// API hooks
+export const useFrameworkActions = () => useFrameworkStore((state) => ({
+  fetchSessions: state.fetchSessions,
+  fetchRecentSessions: state.fetchRecentSessions,
+  refreshData: state.refreshData,
+  setLoading: state.setLoading,
+  setError: state.setError
+}))

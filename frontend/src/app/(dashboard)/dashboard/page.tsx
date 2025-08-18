@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { 
   BarChart3, 
@@ -16,19 +17,65 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useUser } from '@/stores/auth'
-import { useRecentSessions } from '@/stores/frameworks'
+import { useRecentSessions, useFrameworkSessions, useFrameworkLoading, useFrameworkActions } from '@/stores/frameworks'
 import { formatRelativeTime } from '@/lib/utils'
 
 export default function DashboardPage() {
   const user = useUser()
   const recentSessions = useRecentSessions()
+  const allSessions = useFrameworkSessions()
+  const isLoading = useFrameworkLoading()
+  const { fetchSessions, fetchRecentSessions } = useFrameworkActions()
 
-  const frameworkStats = [
-    { name: 'SWOT Analysis', count: 0, trend: 'No analyses yet', icon: Target, color: 'bg-blue-500' },
-    { name: 'COG Analysis', count: 0, trend: 'No analyses yet', icon: Brain, color: 'bg-green-500' },
-    { name: 'PMESII-PT', count: 0, trend: 'No analyses yet', icon: BarChart3, color: 'bg-purple-500' },
-    { name: 'ACH Analysis', count: 0, trend: 'No analyses yet', icon: Search, color: 'bg-orange-500' },
-  ]
+  // Fetch data when component mounts
+  useEffect(() => {
+    fetchSessions()
+    fetchRecentSessions()
+  }, [fetchSessions, fetchRecentSessions])
+
+  // Calculate framework stats from real data
+  const frameworkStats = useMemo(() => {
+    const swotCount = allSessions.filter(s => s.framework_type === 'swot').length
+    const cogCount = allSessions.filter(s => s.framework_type === 'cog').length
+    const pmesiiCount = allSessions.filter(s => s.framework_type === 'pmesii-pt').length
+    const achCount = allSessions.filter(s => s.framework_type === 'ach').length
+
+    return [
+      { 
+        name: 'SWOT Analysis', 
+        count: swotCount, 
+        trend: swotCount > 0 ? `${swotCount} analyses` : 'No analyses yet', 
+        icon: Target, 
+        color: 'bg-blue-500' 
+      },
+      { 
+        name: 'COG Analysis', 
+        count: cogCount, 
+        trend: cogCount > 0 ? `${cogCount} analyses` : 'No analyses yet', 
+        icon: Brain, 
+        color: 'bg-green-500' 
+      },
+      { 
+        name: 'PMESII-PT', 
+        count: pmesiiCount, 
+        trend: pmesiiCount > 0 ? `${pmesiiCount} analyses` : 'No analyses yet', 
+        icon: BarChart3, 
+        color: 'bg-purple-500' 
+      },
+      { 
+        name: 'ACH Analysis', 
+        count: achCount, 
+        trend: achCount > 0 ? `${achCount} analyses` : 'No analyses yet', 
+        icon: Search, 
+        color: 'bg-orange-500' 
+      },
+    ]
+  }, [allSessions])
+
+  // Calculate overall stats
+  const totalAnalyses = allSessions.length
+  const activeSessions = allSessions.filter(s => s.status === 'in_progress').length
+  const completedAnalyses = allSessions.filter(s => s.status === 'completed').length
 
   const quickActions = [
     {
@@ -81,9 +128,11 @@ export default function DashboardPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? '...' : totalAnalyses}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Start creating analyses
+              {totalAnalyses === 0 ? 'Start creating analyses' : 'Total analyses created'}
             </p>
           </CardContent>
         </Card>
@@ -94,9 +143,11 @@ export default function DashboardPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? '...' : activeSessions}
+            </div>
             <p className="text-xs text-muted-foreground">
-              No active sessions
+              {activeSessions === 0 ? 'No active sessions' : 'In progress analyses'}
             </p>
           </CardContent>
         </Card>
@@ -107,9 +158,11 @@ export default function DashboardPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? '...' : completedAnalyses}
+            </div>
             <p className="text-xs text-muted-foreground">
-              No completed analyses
+              {completedAnalyses === 0 ? 'No completed analyses' : 'Completed analyses'}
             </p>
           </CardContent>
         </Card>
@@ -122,7 +175,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              No shared analyses
+              Coming soon
             </p>
           </CardContent>
         </Card>
