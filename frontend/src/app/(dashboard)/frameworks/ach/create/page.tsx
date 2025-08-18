@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   Plus, 
   Save, 
@@ -13,6 +13,8 @@ import {
   Trophy,
   Info,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   AlertTriangle,
   Scale
 } from 'lucide-react'
@@ -64,12 +66,17 @@ interface EnhancedACHData {
 
 export default function CreateACHPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [showSnippet, setShowSnippet] = useState(false)
   const [selectedEvidenceForEval, setSelectedEvidenceForEval] = useState<string | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [editSessionId, setEditSessionId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [evidenceExpanded, setEvidenceExpanded] = useState(true)
   
   const [achData, setACHData] = useState<EnhancedACHData>({
     hypotheses: [],
@@ -77,6 +84,63 @@ export default function CreateACHPage() {
     scores: new Map(),
     scaleType: 'logarithmic'
   })
+
+  // Handle edit mode - load existing session data
+  useEffect(() => {
+    const editId = searchParams.get('edit')
+    if (editId) {
+      setIsEditMode(true)
+      setEditSessionId(editId)
+      setLoading(true)
+      
+      // Load existing session data
+      const loadExistingSession = async () => {
+        try {
+          const sessionData = await apiClient.get(`/frameworks/${editId}`)
+          
+          // Set basic fields
+          setTitle(sessionData.title || '')
+          setDescription(sessionData.description || '')
+          
+          // Convert session data to ACH format
+          if (sessionData.data) {
+            const scaleType = sessionData.data.scaleType || 'logarithmic'
+            const scores = new Map()
+            
+            // Convert evidence scores to Map format
+            if (sessionData.data.evidence) {
+              sessionData.data.evidence.forEach((evidence: any) => {
+                if (evidence.hypotheses_scores) {
+                  Object.entries(evidence.hypotheses_scores).forEach(([hypId, score]) => {
+                    const key = `${evidence.id}-${hypId}`
+                    scores.set(key, score as ACHScore)
+                  })
+                }
+              })
+            }
+            
+            setACHData({
+              hypotheses: sessionData.data.hypotheses || [],
+              evidence: sessionData.data.evidence || [],
+              scores,
+              scaleType
+            })
+          }
+        } catch (error: any) {
+          toast({
+            title: 'Error',
+            description: error.message || 'Failed to load session for editing',
+            variant: 'destructive'
+          })
+          router.push('/frameworks/ach')
+        } finally {
+          setLoading(false)
+        }
+      }
+      
+      loadExistingSession()
+    }
+  }, [searchParams, toast, router])
 
   const addHypothesis = () => {
     const newHypothesis: Hypothesis = {
@@ -331,19 +395,44 @@ export default function CreateACHPage() {
         })
       }
 
-      const response = await apiClient.post('/frameworks/', {
-        title,
-        description,
-        framework_type: 'ach',
-        data: legacyData
-      })
+      let response
+      if (isEditMode && editSessionId) {
+        // Update existing session
+        response = await apiClient.put(`/frameworks/${editSessionId}`, {
+          title,
+          description,
+          framework_type: 'ach',
+          data: {
+            ...legacyData,
+            scaleType: achData.scaleType // Preserve scale type in updated data
+          }
+        })
+        
+        toast({
+          title: 'Success',
+          description: 'ACH analysis updated successfully'
+        })
+        
+        router.push(`/frameworks/ach/${editSessionId}`)
+      } else {
+        // Create new session
+        response = await apiClient.post('/frameworks/', {
+          title,
+          description,
+          framework_type: 'ach',
+          data: {
+            ...legacyData,
+            scaleType: achData.scaleType // Include scale type in new data
+          }
+        })
 
-      toast({
-        title: 'Success',
-        description: 'ACH analysis saved successfully'
-      })
-      
-      router.push(`/frameworks/ach/${response.id}`)
+        toast({
+          title: 'Success',
+          description: 'ACH analysis saved successfully'
+        })
+        
+        router.push(`/frameworks/ach/${response.id}`)
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -355,12 +444,25 @@ export default function CreateACHPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading ACH analysis...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">ACH Analysis</h1>
+          <h1 className="text-2xl font-bold">
+            {isEditMode ? 'Edit ACH Analysis' : 'Create ACH Analysis'}
+          </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Analysis of Competing Hypotheses for structured analytical thinking
           </p>
@@ -379,7 +481,10 @@ export default function CreateACHPage() {
             className="bg-orange-600 hover:bg-orange-700"
           >
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Analysis'}
+            {saving 
+              ? (isEditMode ? 'Updating...' : 'Saving...') 
+              : (isEditMode ? 'Update Analysis' : 'Save Analysis')
+            }
           </Button>
         </div>
       </div>
@@ -494,6 +599,26 @@ export default function CreateACHPage() {
             <div className="flex items-center gap-2">
               <Scale className="h-5 w-5" />
               Evidence & Evaluation
+              {achData.evidence.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEvidenceExpanded(!evidenceExpanded)}
+                  className="ml-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  {evidenceExpanded ? (
+                    <>
+                      <ChevronUp className="h-4 w-4 mr-1" />
+                      Collapse
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-1" />
+                      Expand
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
             <Button 
               onClick={addEvidence} 
@@ -508,7 +633,8 @@ export default function CreateACHPage() {
             Add evidence and evaluate how it relates to each hypothesis
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        {evidenceExpanded && (
+          <CardContent className="space-y-6">
           {achData.evidence.map((evidence, evidenceIndex) => (
             <div key={evidence.id} className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
               <div className="space-y-4">
@@ -614,7 +740,32 @@ export default function CreateACHPage() {
               </p>
             </div>
           )}
-        </CardContent>
+          </CardContent>
+        )}
+        
+        {/* Bottom Collapse/Expand Button */}
+        {achData.evidence.length > 0 && (
+          <div className="border-t border-gray-200 dark:border-slate-700 px-6 py-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setEvidenceExpanded(!evidenceExpanded)}
+              className="w-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              {evidenceExpanded ? (
+                <>
+                  <ChevronUp className="h-4 w-4 mr-1" />
+                  Collapse Evidence Section
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                  Expand Evidence Section ({achData.evidence.length} items)
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* Analysis Results */}
