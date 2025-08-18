@@ -11,7 +11,7 @@ import { Loader2, AlertCircle, Key, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-// import { useAuthStore } from '@/stores/auth' // Temporarily disabled
+import { useAuthStore, useAuthLoading, useAuthError } from '@/stores/auth'
 // import { useAutoSaveActions } from '@/stores/auto-save' // Temporarily disabled
 // import { MigrationPrompt } from '@/components/auto-save/migration-prompt' // Temporarily disabled
 import type { HashLoginRequest } from '@/types/auth'
@@ -32,39 +32,11 @@ const hashLoginSchema = z.object({
 export default function AccessPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  // Hash-based authentication with localStorage
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setAuthError] = useState<string | null>(null)
-  const clearError = () => setAuthError(null)
-  const loginWithHash = async (credentials: HashLoginRequest) => {
-    setIsLoading(true)
-    setAuthError(null)
-    
-    try {
-      const cleanedHash = cleanHashInput(credentials.account_hash)
-      
-      // Check if hash is valid by looking in localStorage
-      const validHashes = JSON.parse(localStorage.getItem('omnicore_valid_hashes') || '[]')
-      
-      if (validHashes.includes(cleanedHash)) {
-        // Valid hash - store as current user and redirect
-        localStorage.setItem('omnicore_user_hash', cleanedHash)
-        localStorage.setItem('omnicore_authenticated', 'true')
-        
-        setTimeout(() => {
-          setIsLoading(false)
-          router.push('/dashboard')
-        }, 1000)
-      } else {
-        // Invalid hash
-        setIsLoading(false)
-        setAuthError('Invalid hash. Please check your hash and try again.')
-      }
-    } catch (err) {
-      setIsLoading(false)
-      setAuthError('Login failed. Please check your hash format.')
-    }
-  }
+  
+  // Use proper auth store
+  const { loginWithHash, clearError } = useAuthStore()
+  const isLoading = useAuthLoading()
+  const error = useAuthError()
   // const { preserveWorkForAuthentication } = useAutoSaveActions() // Temporarily disabled
   const [copied, setCopied] = useState(false)
   
@@ -96,24 +68,7 @@ export default function AccessPage() {
       clearError()
       const cleanedHash = cleanHashInput(data.account_hash)
       
-      // Check valid hashes in localStorage  
-      const validHashes = JSON.parse(localStorage.getItem('omnicore_valid_hashes') || '[]')
-      
-      // Accept the hash if it's in valid hashes
-      if (!validHashes.includes(cleanedHash)) {
-        // For migration: accept both 16-digit and 32-hex formats
-        if (isValidHash(data.account_hash) || /^[0-9a-f]{32}$/.test(cleanedHash)) {
-          validHashes.push(cleanedHash)
-          localStorage.setItem('omnicore_valid_hashes', JSON.stringify(validHashes))
-        } else {
-          setError('account_hash', { 
-            type: 'manual', 
-            message: 'Invalid hash format. Expected 16 digits or 32 hex characters.' 
-          })
-          return
-        }
-      }
-      
+      // Use the auth store's loginWithHash method
       await loginWithHash({ account_hash: cleanedHash })
       
       // Redirect to original page or dashboard
