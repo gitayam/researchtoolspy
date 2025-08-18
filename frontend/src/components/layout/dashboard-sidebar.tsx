@@ -33,7 +33,7 @@ const navigation = [
       { name: 'ACH Analysis', href: '/analysis-frameworks/ach-dashboard' },
       { name: 'DOTMLPF', href: '/analysis-frameworks/dotmlpf' },
       { name: 'Deception Detection', href: '/analysis-frameworks/deception' },
-      { name: 'Behavioral Analysis', href: '/analysis-frameworks/behavioral' },
+      { name: 'Behavioral Analysis', href: '/analysis-frameworks/behavior' },
       { name: 'Starbursting', href: '/analysis-frameworks/starbursting' },
       { name: 'Causeway', href: '/analysis-frameworks/causeway' },
       { name: 'DIME Framework', href: '/analysis-frameworks/dime' },
