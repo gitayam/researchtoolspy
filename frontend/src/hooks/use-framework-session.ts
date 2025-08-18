@@ -4,7 +4,7 @@
  * Provides auto-save functionality and session management for any framework
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAutoSave } from '@/services/auto-save'
 import { useAutoSaveActions } from '@/stores/auto-save'
@@ -29,13 +29,16 @@ export function useFrameworkSession<T>(
   const [isLoading, setIsLoading] = useState(false)
   const [title, setTitle] = useState(options.title || 'Untitled')
   
+  // Memoize the auto-save data to prevent infinite loops
+  const autoSaveData = useMemo(() => ({
+    ...data,
+    title,
+    framework_type: frameworkType
+  }), [data, title, frameworkType])
+  
   // Auto-save integration
   const { saveStatus, generateSessionId } = useAutoSave(
-    {
-      ...data,
-      title,
-      framework_type: frameworkType
-    },
+    autoSaveData,
     frameworkType,
     sessionId,
     {

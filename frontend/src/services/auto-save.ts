@@ -518,8 +518,16 @@ export function useAutoSave<T>(
 ) {
   const { enabled = true, title = 'Untitled' } = options
   
+  // Use a ref to track the last stringified data to avoid unnecessary re-renders
+  const lastDataRef = React.useRef<string>('')
+  
   React.useEffect(() => {
     if (!enabled || !data) return
+    
+    // Only trigger auto-save if data actually changed
+    const currentDataString = JSON.stringify(data)
+    if (currentDataString === lastDataRef.current) return
+    lastDataRef.current = currentDataString
     
     const session: FrameworkSession = {
       id: sessionId,
