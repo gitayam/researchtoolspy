@@ -3,13 +3,11 @@ const nextConfig = {
   // Docker production build configuration
   output: 'standalone',
   
-  // Allow Cloudflare tunnel origins for public hosting
-  allowedDevOrigins: [
-    'mtv-accessibility-loving-mm.trycloudflare.com',
-    'heading-cutting-decades-ghz.trycloudflare.com',
-    // Add pattern for any trycloudflare.com subdomain
-    /.*\.trycloudflare\.com$/,
-  ],
+  // Allow Cloudflare tunnel origins for public hosting (strings only, no regex)
+  // allowedDevOrigins: [
+  //   'mtv-accessibility-loving-mm.trycloudflare.com',
+  //   'heading-cutting-decades-ghz.trycloudflare.com',
+  // ],
   webpack: (config, { isServer }) => {
     // Ignore pptxgenjs Node.js dependencies in browser builds
     if (!isServer) {

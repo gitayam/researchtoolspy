@@ -11,10 +11,11 @@ services:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost:8000
       - NEXT_TELEMETRY_DISABLED=1
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+    # Temporarily disable volumes to test
+    # volumes:
+    #   - ./frontend:/app
+    #   - /app/node_modules
+    #   - /app/.next
     command: npm run dev
     depends_on:
       - api
