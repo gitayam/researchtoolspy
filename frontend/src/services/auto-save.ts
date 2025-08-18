@@ -4,8 +4,6 @@
  * Handles automatic saving of framework data to localStorage (anonymous users)
  * and backend APIs (authenticated users) with seamless migration between states.
  */
-
-import { debounce } from 'lodash'
 import { useAuthStore } from '@/stores/auth'
 import { apiClient } from '@/lib/api'
 
@@ -59,9 +57,23 @@ class AutoSaveService {
   }
 
   /**
+   * Simple debounce implementation
+   */
+  private debounce<T extends (...args: any[]) => any>(
+    func: T,
+    delay: number
+  ): (...args: Parameters<T>) => void {
+    let timeoutId: NodeJS.Timeout
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => func.apply(this, args), delay)
+    }
+  }
+
+  /**
    * Schedule auto-save for framework data
    */
-  public scheduleAutoSave = debounce(
+  public scheduleAutoSave = this.debounce(
     async (sessionId: string, data: FrameworkSession) => {
       try {
         this.updateSaveStatus(sessionId, { status: 'saving' })
@@ -531,5 +543,4 @@ export function useAutoSave<T>(
   }
 }
 
-// Import React for the hook
 import React from 'react'
