@@ -3,9 +3,11 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth'
+import { useAutoSaveActions } from '@/stores/auto-save'
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { ToastProvider } from '@/components/ui/use-toast'
+import { MigrationBanner } from '@/components/auto-save/migration-prompt'
 
 export default function DashboardLayout({
   children,
@@ -14,6 +16,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const { isAuthenticated, refreshUser } = useAuthStore()
+  const { checkForPendingMigration } = useAutoSaveActions()
 
   useEffect(() => {
     // Check authentication status on mount
@@ -24,7 +27,10 @@ export default function DashboardLayout({
 
     // Refresh user data to ensure it's current
     refreshUser()
-  }, [isAuthenticated, router, refreshUser])
+    
+    // Check for pending migration when user enters dashboard
+    checkForPendingMigration()
+  }, [isAuthenticated, router, refreshUser, checkForPendingMigration])
 
   if (!isAuthenticated) {
     return null // Will redirect to login
@@ -33,6 +39,9 @@ export default function DashboardLayout({
   return (
     <ToastProvider>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Migration banner for users with pending work */}
+        <MigrationBanner />
+        
         <DashboardSidebar />
         <div className="lg:pl-64">
           <DashboardHeader />

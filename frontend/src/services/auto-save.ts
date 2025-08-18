@@ -45,6 +45,7 @@ class AutoSaveService {
   private saveQueue = new Map<string, FrameworkSession>()
   private saveStatus = new Map<string, SaveStatus>()
   private options: Required<AutoSaveOptions>
+  public scheduleAutoSave: (sessionId: string, data: FrameworkSession) => void
   
   constructor(options: AutoSaveOptions = {}) {
     this.options = {
@@ -54,6 +55,9 @@ class AutoSaveService {
       enableBackend: true,
       ...options
     }
+    
+    // Initialize debounced auto-save after options are set
+    this.scheduleAutoSave = this.debounce(this.performAutoSave.bind(this), this.options.debounceMs)
   }
 
   /**
@@ -71,49 +75,46 @@ class AutoSaveService {
   }
 
   /**
-   * Schedule auto-save for framework data
+   * Perform auto-save for framework data (called by debounced scheduleAutoSave)
    */
-  public scheduleAutoSave = this.debounce(
-    async (sessionId: string, data: FrameworkSession) => {
-      try {
-        this.updateSaveStatus(sessionId, { status: 'saving' })
-        
-        const { isAuthenticated } = useAuthStore.getState()
-        
-        if (isAuthenticated && this.options.enableBackend) {
-          await this.saveToBackend(sessionId, data)
-        } else if (this.options.enableLocalStorage) {
+  private async performAutoSave(sessionId: string, data: FrameworkSession): Promise<void> {
+    try {
+      this.updateSaveStatus(sessionId, { status: 'saving' })
+      
+      const { isAuthenticated } = useAuthStore.getState()
+      
+      if (isAuthenticated && this.options.enableBackend) {
+        await this.saveToBackend(sessionId, data)
+      } else if (this.options.enableLocalStorage) {
+        await this.saveToLocalStorage(sessionId, data)
+      }
+      
+      this.updateSaveStatus(sessionId, { 
+        status: 'saved', 
+        lastSaved: new Date() 
+      })
+      
+    } catch (error) {
+      console.error('Auto-save failed:', error)
+      this.updateSaveStatus(sessionId, { 
+        status: 'error', 
+        error: error instanceof Error ? error.message : 'Save failed' 
+      })
+      
+      // Fallback to localStorage if backend fails
+      if (this.options.enableLocalStorage) {
+        try {
           await this.saveToLocalStorage(sessionId, data)
-        }
-        
-        this.updateSaveStatus(sessionId, { 
-          status: 'saved', 
-          lastSaved: new Date() 
-        })
-        
-      } catch (error) {
-        console.error('Auto-save failed:', error)
-        this.updateSaveStatus(sessionId, { 
-          status: 'error', 
-          error: error instanceof Error ? error.message : 'Save failed' 
-        })
-        
-        // Fallback to localStorage if backend fails
-        if (this.options.enableLocalStorage) {
-          try {
-            await this.saveToLocalStorage(sessionId, data)
-            this.updateSaveStatus(sessionId, { 
-              status: 'saved', 
-              lastSaved: new Date() 
-            })
-          } catch (localError) {
-            console.error('Fallback to localStorage also failed:', localError)
-          }
+          this.updateSaveStatus(sessionId, { 
+            status: 'saved', 
+            lastSaved: new Date() 
+          })
+        } catch (localError) {
+          console.error('Fallback to localStorage also failed:', localError)
         }
       }
-    },
-    this.options.debounceMs
-  )
+    }
+  }
 
   /**
    * Save to backend API

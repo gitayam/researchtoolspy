@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuthStore } from '@/stores/auth'
+import { useAutoSaveActions } from '@/stores/auto-save'
+import { MigrationPrompt } from '@/components/auto-save/migration-prompt'
 import type { HashLoginRequest } from '@/types/auth'
 import { isValidHash, cleanHashInput, formatHashForDisplay, TEST_ACCOUNT_HASH_FORMATTED } from '@/lib/hash-auth'
 
@@ -25,8 +27,15 @@ const hashLoginSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { loginWithHash, isLoading, error, clearError } = useAuthStore()
+  const { preserveWorkForAuthentication } = useAutoSaveActions()
   const [copied, setCopied] = useState(false)
+  
+  useEffect(() => {
+    // Preserve any current work before login
+    preserveWorkForAuthentication()
+  }, [])
 
   const {
     register,
@@ -46,7 +55,14 @@ export default function LoginPage() {
       clearError()
       const cleanedHash = cleanHashInput(data.account_hash)
       await loginWithHash({ account_hash: cleanedHash })
-      router.push('/dashboard')
+      
+      // Redirect to original page or dashboard
+      const redirect = searchParams.get('redirect')
+      if (redirect) {
+        router.push(redirect)
+      } else {
+        router.push('/dashboard')
+      }
     } catch (error: any) {
       // Error is already handled by the store
       if (error?.status === 401) {

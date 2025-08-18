@@ -124,7 +124,7 @@ export default function PublicSWOTCreatePage() {
         description: 'SWOT analysis published successfully'
       })
       
-      router.push(`/dashboard/frameworks/swot/${response.session_id}`)
+      router.push(`/dashboard/analysis-frameworks/swot-dashboard/${response.session_id}`)
     } catch (error: any) {
       toast({
         title: 'Error',
