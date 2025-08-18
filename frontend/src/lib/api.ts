@@ -10,7 +10,27 @@ import type {
 } from '@/types/auth'
 import { UserRole } from '@/types/auth'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1'
+// Determine API URL based on environment
+const getApiBaseUrl = () => {
+  // If we have an explicit API URL set, use it
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+  
+  // If we're in browser and on a tunnel domain, use the backend tunnel
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname
+    if (hostname.includes('trycloudflare.com')) {
+      // Use the backend tunnel URL for public access
+      return 'https://manufacturer-www-cars-slight.trycloudflare.com/api/v1'
+    }
+  }
+  
+  // Default to localhost for development
+  return 'http://localhost:8001/api/v1'
+}
+
+const API_BASE_URL = getApiBaseUrl()
 
 // Error types for better error handling
 export interface APIError {
@@ -256,8 +276,8 @@ export class APIClient {
   }
 
   // Generic HTTP methods
-  async get<T>(endpoint: string): Promise<T> {
-    const response = await this.client.get<T>(endpoint)
+  async get<T>(endpoint: string, config?: any): Promise<T> {
+    const response = await this.client.get<T>(endpoint, config)
     return response.data
   }
 
