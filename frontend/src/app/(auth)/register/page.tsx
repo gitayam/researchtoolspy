@@ -3,264 +3,220 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Loader2, AlertCircle, CheckCircle } from 'lucide-react'
+import { Copy, Check, Bookmark, Share2, Shield, AlertCircle, RefreshCw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAuthStore } from '@/stores/auth'
-import type { RegisterRequest } from '@/types/auth'
+import { formatHashForDisplay } from '@/lib/hash-auth'
 
-const registerSchema = z.object({
-  username: z.string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(20, 'Username must be less than 20 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
-  email: z.string().email('Please enter a valid email address'),
-  full_name: z.string().min(1, 'Full name is required'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one uppercase letter, one lowercase letter, and one number'),
-  confirmPassword: z.string(),
-  organization: z.string().optional(),
-  department: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-})
-
-type RegisterFormData = z.infer<typeof registerSchema>
+// Generate a random 32-character hexadecimal hash like Mullvad
+const generateAccountHash = () => {
+  const chars = '0123456789abcdef'
+  let hash = ''
+  for (let i = 0; i < 32; i++) {
+    hash += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return hash
+}
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { register: registerUser, isLoading, error, clearError } = useAuthStore()
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [registrationSuccess, setRegistrationSuccess] = useState(false)
+  const [accountHash, setAccountHash] = useState(() => generateAccountHash())
+  const [copied, setCopied] = useState(false)
+  const [hashSaved, setHashSaved] = useState(false)
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setError
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema)
-  })
-
-  const onSubmit = async (data: RegisterFormData) => {
+  const handleCopyHash = async () => {
     try {
-      clearError()
-      const { confirmPassword, ...registerData } = data
-      await registerUser(registerData)
-      setRegistrationSuccess(true)
-      
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        router.push('/login')
-      }, 2000)
-    } catch (error: any) {
-      // Error is already handled by the store
-      if (error?.details?.username) {
-        setError('username', { 
-          type: 'manual', 
-          message: 'Username already exists' 
-        })
-      }
-      if (error?.details?.email) {
-        setError('email', { 
-          type: 'manual', 
-          message: 'Email already registered' 
-        })
-      }
+      await navigator.clipboard.writeText(accountHash)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy hash:', err)
     }
   }
 
-  if (registrationSuccess) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-              <h2 className="text-xl font-semibold">Registration Successful!</h2>
-              <p className="text-gray-600">
-                Your account has been created. Redirecting to login...
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  const handleGenerateNew = () => {
+    setAccountHash(generateAccountHash())
+    setCopied(false)
+    setHashSaved(false)
   }
 
+  const handleSaveAndContinue = () => {
+    // Store the generated hash in localStorage as a valid hash
+    try {
+      const validHashes = JSON.parse(localStorage.getItem('omnicore_valid_hashes') || '[]')
+      if (!validHashes.includes(accountHash)) {
+        validHashes.push(accountHash)
+        localStorage.setItem('omnicore_valid_hashes', JSON.stringify(validHashes))
+      }
+      
+      // Also store as the current user's hash for auto-login
+      localStorage.setItem('omnicore_user_hash', accountHash)
+      
+      setHashSaved(true)
+      
+      // Redirect to login with the hash pre-filled
+      setTimeout(() => {
+        router.push(`/login?hash=${accountHash}`)
+      }, 1500)
+    } catch (error) {
+      console.error('Failed to save hash:', error)
+      // Fallback: just redirect to login
+      setHashSaved(true)
+      setTimeout(() => {
+        router.push('/login')
+      }, 1500)
+    }
+  }
+
+  const formattedHash = formatHashForDisplay(accountHash)
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            Create Account
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <CardHeader className="text-center space-y-2">
+          <div className="mx-auto w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+            <Bookmark className="h-6 w-6 text-white" />
+          </div>
+          <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            Generate Analysis Hash
           </CardTitle>
-          <CardDescription className="text-center">
-            Join the ResearchTools Research Platform
+          <CardDescription className="text-gray-600 dark:text-gray-400">
+            Your private collaboration and bookmark identifier
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {error && (
-              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
-                <AlertCircle className="h-4 w-4" />
-                {error}
-              </div>
-            )}
 
-            <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium">
-                Username *
-              </label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Choose a username"
-                {...register('username')}
-                className={errors.username ? 'border-red-500' : ''}
-              />
-              {errors.username && (
-                <p className="text-sm text-red-600">{errors.username.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email Address *
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                {...register('email')}
-                className={errors.email ? 'border-red-500' : ''}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-600">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="full_name" className="text-sm font-medium">
-                Full Name *
-              </label>
-              <Input
-                id="full_name"
-                type="text"
-                placeholder="Enter your full name"
-                {...register('full_name')}
-                className={errors.full_name ? 'border-red-500' : ''}
-              />
-              {errors.full_name && (
-                <p className="text-sm text-red-600">{errors.full_name.message}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+        <CardContent className="space-y-6">
+          {!hashSaved ? (
+            <>
+              {/* Hash Display */}
               <div className="space-y-2">
-                <label htmlFor="organization" className="text-sm font-medium">
-                  Organization
-                </label>
-                <Input
-                  id="organization"
-                  type="text"
-                  placeholder="Optional"
-                  {...register('organization')}
-                />
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Your Analysis Hash
+                  </label>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Click the copy button →
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-3 font-mono text-sm break-all">
+                    {formattedHash}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyHash}
+                    className="absolute right-2 top-2 h-6 w-6 p-0"
+                    title={copied ? "Copied!" : "Copy hash to clipboard"}
+                  >
+                    {copied ? (
+                      <Check className="h-3 w-3 text-green-500" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
+                {copied && (
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+                    ✓ Hash copied! Now save it in your password manager.
+                  </p>
+                )}
               </div>
-              <div className="space-y-2">
-                <label htmlFor="department" className="text-sm font-medium">
-                  Department
-                </label>
-                <Input
-                  id="department"
-                  type="text"
-                  placeholder="Optional"
-                  {...register('department')}
-                />
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password *
-              </label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Create a password"
-                  {...register('password')}
-                  className={errors.password ? 'border-red-500' : ''}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700"
+              {/* Important Notice */}
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-md p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-amber-800 dark:text-amber-200">
+                      ⚠️ Critical: Save This Hash Now
+                    </h3>
+                    <div className="space-y-1">
+                      <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+                        This is your ONLY way to access saved analyses.
+                      </p>
+                      <p className="text-sm text-amber-700 dark:text-amber-300">
+                        <strong>No recovery possible</strong> if lost. Save in a password manager immediately.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* What This Is */}
+              <div className="space-y-3">
+                <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                  What is this hash?
+                </h3>
+                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex items-start gap-2">
+                    <Bookmark className="h-4 w-4 mt-0.5 text-blue-500" />
+                    <span>A <strong>bookmark</strong> to return to your saved analyses</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Share2 className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>A <strong>collaboration key</strong> to share reports with others</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Shield className="h-4 w-4 mt-0.5 text-purple-500" />
+                    <span><strong>No personal data</strong> required or stored</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Final Warning */}
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-3">
+                <p className="text-sm text-red-700 dark:text-red-300 font-medium text-center">
+                  🚫 NO ACCOUNT RECOVERY • NO PASSWORD RESET • NO SUPPORT CAN HELP
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <Button
+                  onClick={handleGenerateNew}
+                  variant="outline"
+                  className="w-full"
                 >
-                  {showPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-sm text-red-600">{errors.password.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium">
-                Confirm Password *
-              </label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Confirm your password"
-                  {...register('confirmPassword')}
-                  className={errors.confirmPassword ? 'border-red-500' : ''}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700"
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Generate New Hash
+                </Button>
+                
+                <Button
+                  onClick={handleSaveAndContinue}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  disabled={!copied}
                 >
-                  {showConfirmPassword ? 'Hide' : 'Show'}
-                </button>
+                  {copied ? "✓ I've Saved My Hash - Continue" : "Copy Hash First"}
+                </Button>
               </div>
-              {errors.confirmPassword && (
-                <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
-              )}
+            </>
+          ) : (
+            /* Success State */
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                  Hash Saved!
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Redirecting you to sign in...
+                </p>
+              </div>
             </div>
+          )}
 
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </Button>
-
-            <div className="text-center text-sm">
-              <span className="text-gray-600">Already have an account? </span>
-              <Link href="/login" className="text-blue-600 hover:underline">
-                Sign in
-              </Link>
-            </div>
-          </form>
+          {/* Sign In Link */}
+          <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+            Already have a hash?{' '}
+            <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Sign in
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -1,56 +1,56 @@
 services:
-  # Next.js Frontend
+  # Frontend in development mode
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: researchtools_frontend
+      dockerfile: Dockerfile.dev
+    container_name: researchtools_frontend_dev
     ports:
       - "${FRONTEND_PORT:-6780}:3000"
     environment:
+      - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NODE_ENV=production
-      - PORT=3000
+      - NEXT_TELEMETRY_DISABLED=1
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
     depends_on:
       - api
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # FastAPI Backend
+    
+  # API with hot reload
   api:
     build:
       context: ./api
       dockerfile: Dockerfile
-    container_name: researchtools_api
+    container_name: researchtools_api_dev
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - SECRET_KEY=${SECRET_KEY}
-      - DEBUG=${DEBUG:-False}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:6780}
+      - DEBUG=True
+      - ENVIRONMENT=development
+      - POSTGRES_SERVER=db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     volumes:
+      - ./api:/app
       - ./uploads:/app/uploads
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
 
   # PostgreSQL Database
   db:
     image: postgres:15-alpine
-    container_name: researchtools_postgres
+    container_name: researchtools_postgres_dev
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -58,7 +58,7 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -70,11 +70,11 @@ services:
   # Redis (optional - for caching and sessions)
   redis:
     image: redis:7-alpine
-    container_name: researchtools_redis
+    container_name: researchtools_redis_dev
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - redis_data_dev:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -84,11 +84,11 @@ services:
     command: redis-server --appendonly yes
 
 volumes:
-  postgres_data:
+  postgres_data_dev:
     driver: local
-  redis_data:
+  redis_data_dev:
     driver: local
 
 networks:
   default:
-    name: researchtools_network
+    name: researchtools_dev_network

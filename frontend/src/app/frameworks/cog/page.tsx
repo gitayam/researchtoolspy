@@ -14,14 +14,14 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { autoSaveService } from '@/services/auto-save'
-import { useIsAuthenticated } from '@/stores/auth'
+// import { useIsAuthenticated } from '@/stores/auth' // Temporarily disabled
 import { formatRelativeTime } from '@/lib/utils'
 import type { FrameworkSession } from '@/services/auto-save'
 
 export default function PublicCOGPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [localSessions, setLocalSessions] = useState<FrameworkSession[]>([])
-  const isAuthenticated = useIsAuthenticated()
+  const isAuthenticated = false // Temporarily disabled to prevent infinite loop
   
   useEffect(() => {
     // Load local sessions for anonymous users

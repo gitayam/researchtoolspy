@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Docker production build configuration
+  output: 'standalone',
+  
   // Allow Cloudflare tunnel origins for public hosting
   allowedDevOrigins: [
     'mtv-accessibility-loving-mm.trycloudflare.com',

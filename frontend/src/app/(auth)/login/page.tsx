@@ -11,32 +11,59 @@ import { Loader2, AlertCircle, Key, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAuthStore } from '@/stores/auth'
-import { useAutoSaveActions } from '@/stores/auto-save'
-import { MigrationPrompt } from '@/components/auto-save/migration-prompt'
+// import { useAuthStore } from '@/stores/auth' // Temporarily disabled
+// import { useAutoSaveActions } from '@/stores/auto-save' // Temporarily disabled
+// import { MigrationPrompt } from '@/components/auto-save/migration-prompt' // Temporarily disabled
 import type { HashLoginRequest } from '@/types/auth'
-import { isValidHash, cleanHashInput, formatHashForDisplay, TEST_ACCOUNT_HASH_FORMATTED } from '@/lib/hash-auth'
+import { isValidHash, cleanHashInput, formatHashForDisplay, TEST_ACCOUNT_HASH_FORMATTED, TEST_ACCOUNT_HASH } from '@/lib/hash-auth'
 
 const hashLoginSchema = z.object({
   account_hash: z.string()
     .min(1, 'Account hash is required')
     .refine((value) => isValidHash(value), {
-      message: 'Invalid account hash format. Please enter a 32-character hexadecimal hash.',
+      message: 'Invalid account hash format. Please enter a 16-digit account number.',
     }),
 })
 
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { loginWithHash, isLoading, error, clearError } = useAuthStore()
-  const { preserveWorkForAuthentication } = useAutoSaveActions()
+  // Hash-based authentication with localStorage
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setAuthError] = useState<string | null>(null)
+  const clearError = () => setAuthError(null)
+  const loginWithHash = async (credentials: HashLoginRequest) => {
+    setIsLoading(true)
+    setAuthError(null)
+    
+    try {
+      const cleanedHash = cleanHashInput(credentials.account_hash)
+      
+      // Check if hash is valid by looking in localStorage
+      const validHashes = JSON.parse(localStorage.getItem('omnicore_valid_hashes') || '[]')
+      
+      if (validHashes.includes(cleanedHash)) {
+        // Valid hash - store as current user and redirect
+        localStorage.setItem('omnicore_user_hash', cleanedHash)
+        localStorage.setItem('omnicore_authenticated', 'true')
+        
+        setTimeout(() => {
+          setIsLoading(false)
+          router.push('/dashboard')
+        }, 1000)
+      } else {
+        // Invalid hash
+        setIsLoading(false)
+        setAuthError('Invalid hash. Please check your hash and try again.')
+      }
+    } catch (err) {
+      setIsLoading(false)
+      setAuthError('Login failed. Please check your hash format.')
+    }
+  }
+  // const { preserveWorkForAuthentication } = useAutoSaveActions() // Temporarily disabled
   const [copied, setCopied] = useState(false)
   
-  useEffect(() => {
-    // Preserve any current work before login
-    preserveWorkForAuthentication()
-  }, [])
-
   const {
     register,
     handleSubmit,
@@ -47,6 +74,22 @@ export default function LoginPage() {
   } = useForm<HashLoginRequest>({
     resolver: zodResolver(hashLoginSchema)
   })
+
+  // Pre-fill hash if redirected from registration
+  useEffect(() => {
+    const hashFromUrl = searchParams.get('hash')
+    if (hashFromUrl) {
+      const formatted = formatHashForDisplay(hashFromUrl)
+      setValue('account_hash', formatted)
+    }
+    
+    // Ensure test hash is always available in localStorage
+    const validHashes = JSON.parse(localStorage.getItem('omnicore_valid_hashes') || '[]')
+    if (!validHashes.includes(TEST_ACCOUNT_HASH)) {
+      validHashes.push(TEST_ACCOUNT_HASH)
+      localStorage.setItem('omnicore_valid_hashes', JSON.stringify(validHashes))
+    }
+  }, [searchParams, setValue])
 
   const watchedHash = watch('account_hash', '')
 
@@ -96,10 +139,10 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            Welcome to ResearchTools
+            Access Your Analyses
           </CardTitle>
           <CardDescription className="text-center">
-            Research Analysis Platform • Free for IrregularChat Community
+            Enter your analysis hash to access saved reports and collaborate
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -140,7 +183,7 @@ export default function LoginPage() {
               <Input
                 id="account_hash"
                 type="text"
-                placeholder="1234 5678 9012 3456 abcd efgh ijkl mnop"
+                placeholder="1234 5678 9012 3456"
                 {...register('account_hash')}
                 className={`font-mono ${errors.account_hash ? 'border-red-500' : ''}`}
                 onChange={(e) => {
@@ -153,7 +196,7 @@ export default function LoginPage() {
                 <p className="text-sm text-red-600">{errors.account_hash.message}</p>
               )}
               <p className="text-xs text-gray-500">
-                Enter your 32-character account hash (spaces will be ignored)
+                Enter your 16-digit account number (spaces will be ignored)
               </p>
             </div>
 
@@ -173,9 +216,9 @@ export default function LoginPage() {
             </Button>
 
             <div className="text-center text-sm">
-              <span className="text-gray-600">Don't have an account? </span>
+              <span className="text-gray-600">Don't have a hash? </span>
               <Link href="/register" className="text-blue-600 hover:underline">
-                Sign up
+                Generate one
               </Link>
             </div>
 

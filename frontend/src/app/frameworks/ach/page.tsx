@@ -13,23 +13,23 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { autoSaveService } from '@/services/auto-save'
-import { useIsAuthenticated } from '@/stores/auth'
+// import { autoSaveService } from '@/services/auto-save' // Temporarily disabled
+// import { useIsAuthenticated } from '@/stores/auth' // Temporarily disabled
 import { formatRelativeTime } from '@/lib/utils'
 import type { FrameworkSession } from '@/services/auto-save'
 
 export default function PublicACHPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [localSessions, setLocalSessions] = useState<FrameworkSession[]>([])
-  const isAuthenticated = useIsAuthenticated()
+  const isAuthenticated = false // Temporarily disabled to prevent infinite loop
   
-  useEffect(() => {
-    // Load local sessions for anonymous users
-    if (!isAuthenticated) {
-      const sessions = autoSaveService.getAnonymousSessions('ach')
-      setLocalSessions(sessions)
-    }
-  }, [isAuthenticated])
+  // useEffect(() => {
+  //   // Load local sessions for anonymous users
+  //   if (!isAuthenticated) {
+  //     const sessions = autoSaveService.getAnonymousSessions('ach')
+  //     setLocalSessions(sessions)
+  //   }
+  // }, [isAuthenticated])
   
   const filteredSessions = localSessions.filter(session =>
     session.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -40,9 +40,9 @@ export default function PublicACHPage() {
       const key = `omnicore_framework_ach_${sessionId}`
       localStorage.removeItem(key)
       
-      // Refresh sessions
-      const sessions = autoSaveService.getAnonymousSessions('ach')
-      setLocalSessions(sessions)
+      // Refresh sessions - temporarily disabled
+      // const sessions = autoSaveService.getAnonymousSessions('ach')
+      // setLocalSessions(sessions)
     } catch (error) {
       console.error('Failed to delete session:', error)
     }

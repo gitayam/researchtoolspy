@@ -23,10 +23,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
-import { useFrameworkSession } from '@/hooks/use-framework-session'
+// import { useFrameworkSession } from '@/hooks/use-framework-session' // Temporarily disabled
 import { SaveStatusIndicator } from '@/components/auto-save/save-status-indicator'
-import { MigrationPrompt } from '@/components/auto-save/migration-prompt'
-import { useIsAuthenticated } from '@/stores/auth'
+// import { MigrationPrompt } from '@/components/auto-save/migration-prompt' // Temporarily disabled
+// import { useIsAuthenticated } from '@/stores/auth' // Temporarily disabled
 import { apiClient } from '@/lib/api'
 
 interface COGItem {
@@ -75,28 +75,27 @@ const COG_CATEGORIES = [
 export default function PublicCOGCreatePage() {
   const router = useRouter()
   const { toast } = useToast()
-  const isAuthenticated = useIsAuthenticated()
+  const isAuthenticated = false // Temporarily disabled to prevent infinite loop
   
-  // Use the universal framework session hook
-  const {
-    sessionId,
-    data,
-    title,
-    isLoading,
-    saveStatus,
-    updateData,
-    setTitle,
-    hasData
-  } = useFrameworkSession<COGData>('cog', {
+  // Simplified state without stores to prevent infinite loop
+  const [sessionId] = useState(() => `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
+  const [data, setData] = useState<COGData>({
     centers_of_gravity: [],
     critical_capabilities: [],
     critical_requirements: [],
     critical_vulnerabilities: []
-  }, {
-    title: 'COG Analysis',
-    loadFromUrl: true,
-    autoSaveEnabled: true
   })
+  const [title, setTitle] = useState('COG Analysis')
+  const [isLoading] = useState(false)
+  const saveStatus = { status: 'saved' as const }
+  const updateData = (updater: (prev: COGData) => COGData | COGData) => {
+    if (typeof updater === 'function') {
+      setData(prev => updater(prev))
+    } else {
+      setData(updater)
+    }
+  }
+  const hasData = Object.values(data).some(arr => arr.length > 0 && arr.some(item => item.text.trim()))
   
   const [saving, setSaving] = useState(false)
   
@@ -142,10 +141,10 @@ export default function PublicCOGCreatePage() {
       return
     }
     
-    if (!isAuthenticated) {
-      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)
-      return
-    }
+    // if (!isAuthenticated) {
+    //   router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+    //   return
+    // }
     
     setSaving(true)
     try {
@@ -168,7 +167,8 @@ export default function PublicCOGCreatePage() {
         description: 'COG analysis published successfully'
       })
       
-      router.push(`/dashboard/analysis-frameworks/cog/${response.id}`)
+      // router.push(`/dashboard/analysis-frameworks/cog/${response.id}`) // Dashboard disabled
+      router.push('/frameworks/cog') // Stay on public route
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -194,8 +194,7 @@ export default function PublicCOGCreatePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto py-8 px-4 max-w-7xl">
-        {/* Migration prompt for authenticated users */}
-        <MigrationPrompt compact />
+        {/* Migration prompt temporarily disabled */}
         
         <div className="space-y-6">
           {/* Header */}

@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useIsAuthenticated } from '@/stores/auth'
+// import { useIsAuthenticated } from '@/stores/auth' // Temporarily disabled
 
 const frameworks = [
   {
@@ -83,7 +83,7 @@ const frameworks = [
 
 export default function PublicFrameworksPage() {
   const [searchTerm, setSearchTerm] = useState('')
-  const isAuthenticated = useIsAuthenticated()
+  const isAuthenticated = false // Temporarily disabled to prevent infinite loop
   
   const filteredFrameworks = frameworks.filter(framework =>
     framework.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

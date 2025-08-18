@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine as builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -7,41 +7,44 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci --legacy-peer-deps --omit=dev
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the Next.js application
 RUN npm run build
 
-# Production stage with nginx
-FROM nginx:alpine as production
+# Production stage
+FROM node:20-alpine AS production
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
 
 # Copy built application from builder stage
-COPY --from=builder /app/build /usr/share/nginx/html
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
-# Create non-root user and set permissions
-RUN addgroup -g 1001 -S appuser && \
-    adduser -S -D -H -u 1001 -h /var/cache/nginx -s /sbin/nologin -G appuser -g appuser appuser
+# Set correct permissions
+RUN chown -R nextjs:nodejs /app
+USER nextjs
 
-# Fix nginx permissions for non-root user
-RUN chown -R appuser:appuser /usr/share/nginx/html && \
-    chown -R appuser:appuser /var/cache/nginx && \
-    chown -R appuser:appuser /var/log/nginx && \
-    chown -R appuser:appuser /etc/nginx/conf.d && \
-    touch /var/run/nginx.pid && \
-    chown -R appuser:appuser /var/run/nginx.pid
+# Expose port
+EXPOSE 3000
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOSTNAME="0.0.0.0"
+ENV PORT=3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
-USER appuser
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+# Start the application
+CMD ["node", "server.js"]

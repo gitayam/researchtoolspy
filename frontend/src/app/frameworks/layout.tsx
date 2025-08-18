@@ -12,9 +12,9 @@ import { useRouter } from 'next/navigation'
 import { Brain, User, Settings, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ToastProvider } from '@/components/ui/use-toast'
-import { useAuthStore } from '@/stores/auth'
-import { useAutoSaveActions } from '@/stores/auto-save'
-import { MigrationBanner } from '@/components/auto-save/migration-prompt'
+// import { useAuthStore } from '@/stores/auth' // Temporarily disabled
+// import { useAutoSaveActions } from '@/stores/auto-save' // Temporarily disabled
+// import { MigrationBanner } from '@/components/auto-save/migration-prompt' // Temporarily disabled
 import { useState } from 'react'
 
 export default function PublicFrameworksLayout({
@@ -23,22 +23,23 @@ export default function PublicFrameworksLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { isAuthenticated, user } = useAuthStore()
-  const { checkForPendingMigration } = useAutoSaveActions()
+  // Temporarily disable store dependencies to fix infinite loop
+  const isAuthenticated = false
+  const user = null
+  // const { checkForPendingMigration } = useAutoSaveActions()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
-  useEffect(() => {
-    // Check for pending migration when layout mounts
-    if (isAuthenticated) {
-      checkForPendingMigration()
-    }
-  }, [isAuthenticated, checkForPendingMigration])
+  // useEffect(() => {
+  //   // Check for pending migration when layout mounts
+  //   if (isAuthenticated) {
+  //     checkForPendingMigration()
+  //   }
+  // }, [isAuthenticated, checkForPendingMigration])
   
   return (
     <ToastProvider>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        {/* Migration banner for authenticated users */}
-        <MigrationBanner />
+        {/* Migration banner temporarily disabled */}
         
         {/* Header */}
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
@@ -98,7 +99,7 @@ export default function PublicFrameworksLayout({
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        useAuthStore.getState().logout()
+                        // useAuthStore.getState().logout() // Temporarily disabled
                         router.push('/frameworks')
                       }}
                     >
@@ -109,12 +110,12 @@ export default function PublicFrameworksLayout({
                   <div className="flex items-center gap-2">
                     <Link href="/login">
                       <Button variant="ghost" size="sm">
-                        Sign In
+                        Enter Hash
                       </Button>
                     </Link>
                     <Link href="/register">
                       <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                        Create Account
+                        Generate Hash
                       </Button>
                     </Link>
                   </div>

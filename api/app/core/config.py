@@ -24,7 +24,6 @@ class Settings(BaseSettings):
     """
     
     model_config = SettingsConfigDict(
-        env_file=".env",
         env_ignore_empty=True,
         extra="ignore",
     )
@@ -45,15 +44,7 @@ class Settings(BaseSettings):
     
     # CORS
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
-    ALLOWED_HOSTS: list[str] = [
-        "localhost", 
-        "127.0.0.1",
-        # Cloudflare tunnel domains for public demo
-        "mtv-accessibility-loving-mm.trycloudflare.com",
-        "heading-cutting-decades-ghz.trycloudflare.com", 
-        "neck-blank-territories-delivers.trycloudflare.com",
-        "manufacturer-www-cars-slight.trycloudflare.com"
-    ]
+    ALLOWED_HOSTS: str = "localhost,127.0.0.1"
     
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
@@ -64,16 +55,23 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
     
+    
+    
     # Database Configuration
+    DATABASE_URL: str | None = None
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str = "omnicore"
-    POSTGRES_PASSWORD: str = "omnicore_dev"
-    POSTGRES_DB: str = "omnicore"
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "password"
+    POSTGRES_DB: str = "researchtools"
     
     @computed_field  # type: ignore[misc]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
+        # Use provided DATABASE_URL if available
+        if self.DATABASE_URL:
+            return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+        
         # Use SQLite for local development if PostgreSQL is not available
         if self.ENVIRONMENT == "development":
             return "sqlite+aiosqlite:///./omnicore.db"

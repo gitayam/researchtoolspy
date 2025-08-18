@@ -30,10 +30,10 @@ import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
-import { useFrameworkSession } from '@/hooks/use-framework-session'
+// import { useFrameworkSession } from '@/hooks/use-framework-session' // Temporarily disabled
 import { SaveStatusIndicator } from '@/components/auto-save/save-status-indicator'
-import { MigrationPrompt } from '@/components/auto-save/migration-prompt'
-import { useIsAuthenticated } from '@/stores/auth'
+// import { MigrationPrompt } from '@/components/auto-save/migration-prompt' // Temporarily disabled
+// import { useIsAuthenticated } from '@/stores/auth' // Temporarily disabled
 import { apiClient } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
@@ -77,28 +77,27 @@ const SCORING_SCALE = [
 export default function PublicACHCreatePage() {
   const router = useRouter()
   const { toast } = useToast()
-  const isAuthenticated = useIsAuthenticated()
+  const isAuthenticated = false // Temporarily disabled to prevent infinite loop
   
-  // Use the universal framework session hook
-  const {
-    sessionId,
-    data,
-    title,
-    isLoading,
-    saveStatus,
-    updateData,
-    setTitle,
-    hasData
-  } = useFrameworkSession<ACHData>('ach', {
+  // Simplified state without stores to prevent infinite loop
+  const [sessionId] = useState(() => `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
+  const [data, setData] = useState<ACHData>({
     hypotheses: [],
     evidence: [],
     scores: [],
     scaleType: 'linear'
-  }, {
-    title: 'ACH Analysis',
-    loadFromUrl: true,
-    autoSaveEnabled: true
   })
+  const [title, setTitle] = useState('ACH Analysis')
+  const [isLoading] = useState(false)
+  const saveStatus = { status: 'saved' as const }
+  const updateData = (updater: (prev: ACHData) => ACHData | ACHData) => {
+    if (typeof updater === 'function') {
+      setData(prev => updater(prev))
+    } else {
+      setData(updater)
+    }
+  }
+  const hasData = data.hypotheses.length > 0 || data.evidence.length > 0
   
   const [saving, setSaving] = useState(false)
   const [evidenceExpanded, setEvidenceExpanded] = useState(true)
@@ -227,10 +226,10 @@ export default function PublicACHCreatePage() {
       return
     }
     
-    if (!isAuthenticated) {
-      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)
-      return
-    }
+    // if (!isAuthenticated) {
+    //   router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+    //   return
+    // }
     
     setSaving(true)
     try {
@@ -253,7 +252,8 @@ export default function PublicACHCreatePage() {
         description: 'ACH analysis published successfully'
       })
       
-      router.push(`/dashboard/analysis-frameworks/ach-dashboard/${response.id}`)
+      // router.push(`/dashboard/analysis-frameworks/ach-dashboard/${response.id}`) // Dashboard disabled
+      router.push('/frameworks/ach') // Stay on public route
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -286,8 +286,7 @@ export default function PublicACHCreatePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto py-8 px-4 max-w-7xl">
-        {/* Migration prompt for authenticated users */}
-        <MigrationPrompt compact />
+        {/* Migration prompt temporarily disabled */}
         
         <div className="space-y-6">
           {/* Header */}

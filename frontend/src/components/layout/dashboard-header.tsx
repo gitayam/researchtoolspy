@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Menu, Transition } from '@headlessui/react'
 import { 
@@ -12,16 +12,29 @@ import {
   Moon,
   Sun
 } from 'lucide-react'
-import { useAuthStore, useUser } from '@/stores/auth'
+// import { useAuthStore, useUser } from '@/stores/auth' // Temporarily disabled
 import { cn } from '@/lib/utils'
 
 export function DashboardHeader() {
   const router = useRouter()
-  const user = useUser()
-  const { logout } = useAuthStore()
+  // Hash-based user info
+  const [userHash, setUserHash] = useState<string | null>(null)
+  
+  useEffect(() => {
+    const hash = localStorage.getItem('omnicore_user_hash')
+    setUserHash(hash)
+  }, [])
+  
+  const user = { 
+    username: userHash ? `Hash: ${userHash.slice(0, 8)}...` : 'User', 
+    role: 'user' 
+  }
+  // const { logout } = useAuthStore()
 
   const handleLogout = () => {
-    logout()
+    // Clear hash-based authentication
+    localStorage.removeItem('omnicore_user_hash')
+    localStorage.removeItem('omnicore_authenticated')
     router.push('/login')
   }
 

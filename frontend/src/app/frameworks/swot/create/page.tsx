@@ -14,10 +14,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
-import { useFrameworkSession } from '@/hooks/use-framework-session'
+// import { useFrameworkSession } from '@/hooks/use-framework-session' // Temporarily disabled
 import { SaveStatusIndicator } from '@/components/auto-save/save-status-indicator'
-import { MigrationPrompt } from '@/components/auto-save/migration-prompt'
-import { useIsAuthenticated } from '@/stores/auth'
+// import { MigrationPrompt } from '@/components/auto-save/migration-prompt' // Temporarily disabled
+// import { useIsAuthenticated } from '@/stores/auth' // Temporarily disabled to prevent infinite loop
 import { apiClient } from '@/lib/api'
 
 interface SWOTItem {
@@ -35,28 +35,27 @@ interface SWOTData {
 export default function PublicSWOTCreatePage() {
   const router = useRouter()
   const { toast } = useToast()
-  const isAuthenticated = useIsAuthenticated()
+  const isAuthenticated = false // Temporarily disabled to prevent infinite loop
   
-  // Use the universal framework session hook
-  const {
-    sessionId,
-    data,
-    title,
-    isLoading,
-    saveStatus,
-    updateData,
-    setTitle,
-    hasData
-  } = useFrameworkSession<SWOTData>('swot', {
+  // Simplified state without stores to prevent infinite loop
+  const [sessionId] = useState(() => `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
+  const [data, setData] = useState<SWOTData>({
     strengths: [],
     weaknesses: [],
     opportunities: [],
     threats: []
-  }, {
-    title: 'SWOT Analysis',
-    loadFromUrl: true,
-    autoSaveEnabled: true
   })
+  const [title, setTitle] = useState('SWOT Analysis')
+  const [isLoading] = useState(false)
+  const saveStatus = { status: 'saved' as const }
+  const updateData = (updater: (prev: SWOTData) => SWOTData | SWOTData) => {
+    if (typeof updater === 'function') {
+      setData(prev => updater(prev))
+    } else {
+      setData(updater)
+    }
+  }
+  const hasData = Object.values(data).some(arr => arr.length > 0 && arr.some(item => item.text.trim()))
   
   const [saving, setSaving] = useState(false)
   
@@ -98,11 +97,11 @@ export default function PublicSWOTCreatePage() {
       return
     }
     
-    if (!isAuthenticated) {
-      // Redirect to login with current work preserved
-      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)
-      return
-    }
+    // if (!isAuthenticated) {
+    //   // Redirect to login with current work preserved
+    //   router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+    //   return
+    // }
     
     setSaving(true)
     try {
@@ -124,7 +123,8 @@ export default function PublicSWOTCreatePage() {
         description: 'SWOT analysis published successfully'
       })
       
-      router.push(`/dashboard/analysis-frameworks/swot-dashboard/${response.session_id}`)
+      // router.push(`/dashboard/analysis-frameworks/swot-dashboard/${response.session_id}`) // Dashboard disabled
+      router.push('/frameworks/swot') // Stay on public route
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -189,8 +189,7 @@ export default function PublicSWOTCreatePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto py-8 px-4 max-w-7xl">
-        {/* Migration prompt for authenticated users */}
-        <MigrationPrompt compact />
+        {/* Migration prompt temporarily disabled */}
         
         <div className="space-y-6">
           {/* Header */}
