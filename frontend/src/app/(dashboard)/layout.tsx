@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-// import { useAuthStore } from '@/stores/auth' // Temporarily disabled
+import { useIsAuthenticated, useAuthLoading, useAuthStore } from '@/stores/auth'
 // import { useAutoSaveActions } from '@/stores/auto-save' // Temporarily disabled
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
@@ -15,37 +15,32 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  // Hash-based authentication check
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const isAuthenticated = useIsAuthenticated()
+  const isLoading = useAuthLoading()
+  const { refreshUser } = useAuthStore()
   
   useEffect(() => {
-    // Check if user has a valid hash
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    const authStatus = localStorage.getItem('omnicore_authenticated')
-    
-    if (userHash && authStatus === 'true') {
-      setIsAuthenticated(true)
-    } else {
-      // Redirect to login if not authenticated
+    // Handle legacy localStorage auth migration
+    if (!isAuthenticated) {
+      const userHash = localStorage.getItem('omnicore_user_hash')
+      const authStatus = localStorage.getItem('omnicore_authenticated')
+      
+      // If user has legacy auth, clear it and redirect to login
+      if (userHash || authStatus) {
+        localStorage.removeItem('omnicore_user_hash')
+        localStorage.removeItem('omnicore_authenticated')
+      }
+      
       router.push('/login')
+      return
     }
-    setIsLoading(false)
-  }, [router])
 
-  // useEffect(() => {
-  //   // Check authentication status on mount
-  //   if (!isAuthenticated) {
-  //     router.push('/login')
-  //     return
-  //   }
-
-  //   // Refresh user data to ensure it's current
-  //   refreshUser()
+    // Refresh user data to ensure it's current
+    refreshUser()
     
-  //   // Check for pending migration when user enters dashboard
-  //   checkForPendingMigration()
-  // }, [isAuthenticated, router, refreshUser, checkForPendingMigration])
+    // Check for pending migration when user enters dashboard
+    // checkForPendingMigration() // Temporarily disabled
+  }, [isAuthenticated, router, refreshUser])
 
   if (isLoading) {
     return (
