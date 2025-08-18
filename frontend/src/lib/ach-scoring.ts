@@ -76,9 +76,11 @@ export function calculateWeightedScore(
 ): number {
   return scores.reduce((total, score) => {
     // Use SATS credibility if available, otherwise fall back to basic weight
+    const cred = score.weight?.credibility || 3
+    const rel = score.weight?.relevance || 3
     const evidenceQuality = score.evidenceCredibility 
       ? score.evidenceCredibility / 13 // Normalize SATS score (1-13) to 0-1
-      : (score.weight.credibility * score.weight.relevance) / 25 // Fallback to basic weight
+      : (cred * rel) / 25 // Fallback to basic weight
     
     // Apply diminishing returns for low-quality evidence supporting strong positions
     const qualityAdjustment = score.evidenceCredibility 
@@ -198,7 +200,11 @@ export function analyzeHypotheses(
     const neutralEvidence = scores.filter(s => s.score === 0).length
     
     const averageWeight = scores.length > 0
-      ? scores.reduce((sum, s) => sum + (s.weight.credibility + s.weight.relevance) / 2, 0) / scores.length
+      ? scores.reduce((sum, s) => {
+          const cred = s.weight?.credibility || 3
+          const rel = s.weight?.relevance || 3
+          return sum + (cred + rel) / 2
+        }, 0) / scores.length
       : 0
     
     const diagnosticScores = new Map<string, number>()

@@ -112,8 +112,19 @@ export default function CreateACHPage() {
               sessionData.data.evidence.forEach((evidence: any) => {
                 if (evidence.hypotheses_scores) {
                   const evidenceScores = new Map<string, ACHScore>()
-                  Object.entries(evidence.hypotheses_scores).forEach(([hypId, score]) => {
-                    evidenceScores.set(hypId, score as ACHScore)
+                  Object.entries(evidence.hypotheses_scores).forEach(([hypId, scoreData]: [string, any]) => {
+                    // Handle both simple number scores and complex ACHScore objects
+                    const achScore: ACHScore = {
+                      hypothesisId: hypId,
+                      evidenceId: evidence.id,
+                      score: typeof scoreData === 'number' ? scoreData : (scoreData.score || 0),
+                      weight: scoreData?.weight || {
+                        credibility: evidence.weight?.credibility || 3,
+                        relevance: evidence.weight?.relevance || 3
+                      },
+                      evidenceCredibility: scoreData?.evidenceCredibility || evidence.confidenceScore
+                    }
+                    evidenceScores.set(hypId, achScore)
                   })
                   scores.set(evidence.id, evidenceScores)
                 }
