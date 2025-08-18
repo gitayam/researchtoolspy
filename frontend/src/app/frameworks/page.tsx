@@ -8,7 +8,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Grid3x3, Target, TrendingUp, Brain, Search, Users, Building, DollarSign, Zap, Shield, AlertTriangle } from 'lucide-react'
+import { Grid3x3, Target, TrendingUp, Brain, Search, Users, Building, DollarSign, Zap, Shield, AlertTriangle, BarChart3 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -42,6 +42,15 @@ const frameworks = [
     color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700',
     href: '/frameworks/cog/create',
     category: 'Strategic Analysis'
+  },
+  {
+    id: 'pmesii-pt',
+    title: 'PMESII-PT Analysis',
+    description: 'Political, Military, Economic, Social, Information, Infrastructure, Physical Environment, Time',
+    icon: BarChart3,
+    color: 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-700',
+    href: '/frameworks/pmesii-pt/create',
+    category: 'Environmental Analysis'
   },
   {
     id: 'pest',
