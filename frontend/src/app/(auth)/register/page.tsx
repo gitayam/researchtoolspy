@@ -7,17 +7,7 @@ import { Copy, Check, Bookmark, Share2, Shield, AlertCircle, RefreshCw } from 'l
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatHashForDisplay } from '@/lib/hash-auth'
-
-// Generate a random 32-character hexadecimal hash like Mullvad
-const generateAccountHash = () => {
-  const chars = '0123456789abcdef'
-  let hash = ''
-  for (let i = 0; i < 32; i++) {
-    hash += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return hash
-}
+import { generateAccountHash, formatHashForDisplay } from '@/lib/hash-auth'
 
 export default function RegisterPage() {
   const router = useRouter()

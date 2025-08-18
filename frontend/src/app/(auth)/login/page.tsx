@@ -20,8 +20,12 @@ import { isValidHash, cleanHashInput, formatHashForDisplay, TEST_ACCOUNT_HASH_FO
 const hashLoginSchema = z.object({
   account_hash: z.string()
     .min(1, 'Account hash is required')
-    .refine((value) => isValidHash(value), {
-      message: 'Invalid account hash format. Please enter a 16-digit account number.',
+    .refine((value) => {
+      const cleaned = cleanHashInput(value)
+      // Accept both 16-digit numbers and 32-character hex (for migration)
+      return isValidHash(value) || /^[0-9a-f]{32}$/.test(cleaned)
+    }, {
+      message: 'Invalid hash format. Please enter a 16-digit number or 32-character hex hash.',
     }),
 })
 
@@ -97,6 +101,37 @@ export default function LoginPage() {
     try {
       clearError()
       const cleanedHash = cleanHashInput(data.account_hash)
+      
+      // Debug logging
+      console.log('[Login Debug] Raw input:', data.account_hash)
+      console.log('[Login Debug] Cleaned hash:', cleanedHash)
+      console.log('[Login Debug] Is valid 16-digit format?', isValidHash(data.account_hash))
+      console.log('[Login Debug] Is valid 32-hex format?', /^[0-9a-f]{32}$/.test(cleanedHash))
+      
+      // Check valid hashes in localStorage
+      const validHashes = JSON.parse(localStorage.getItem('omnicore_valid_hashes') || '[]')
+      console.log('[Login Debug] Valid hashes in storage:', validHashes)
+      console.log('[Login Debug] Test hash:', TEST_ACCOUNT_HASH)
+      
+      // Accept the hash if it's in valid hashes or is the test hash
+      if (!validHashes.includes(cleanedHash) && cleanedHash !== TEST_ACCOUNT_HASH) {
+        console.log('[Login Debug] Hash not found in valid hashes')
+        
+        // For migration: accept both 16-digit and 32-hex formats
+        if (isValidHash(data.account_hash) || /^[0-9a-f]{32}$/.test(cleanedHash)) {
+          console.log('[Login Debug] Adding hash to valid hashes for migration')
+          validHashes.push(cleanedHash)
+          localStorage.setItem('omnicore_valid_hashes', JSON.stringify(validHashes))
+        } else {
+          console.log('[Login Debug] Hash format invalid')
+          setError('account_hash', { 
+            type: 'manual', 
+            message: 'Invalid hash format. Expected 16 digits or 32 hex characters.' 
+          })
+          return
+        }
+      }
+      
       await loginWithHash({ account_hash: cleanedHash })
       
       // Redirect to original page or dashboard
@@ -108,6 +143,7 @@ export default function LoginPage() {
       }
     } catch (error: any) {
       // Error is already handled by the store
+      console.log('[Login Debug] Login error:', error)
       if (error?.status === 401) {
         setError('account_hash', { 
           type: 'manual', 
