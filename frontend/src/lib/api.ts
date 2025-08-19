@@ -22,7 +22,7 @@ const getApiBaseUrl = () => {
     const hostname = window.location.hostname
     if (hostname.includes('trycloudflare.com')) {
       // Use the backend tunnel URL for public access
-      return 'https://manufacturer-www-cars-slight.trycloudflare.com/api/v1'
+      return 'https://increased-website-figures-stays.trycloudflare.com/api/v1'
     }
   }
   
