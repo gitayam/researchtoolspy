@@ -26,28 +26,28 @@ const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetError 
   const isDevelopment = process.env.NODE_ENV === 'development'
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+      <Card className="w-full max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
-          <CardTitle className="text-xl font-semibold text-gray-900">
+          <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             Something went wrong
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
             We encountered an unexpected error. Please try refreshing the page or contact support if the problem persists.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {isDevelopment && error && (
-            <details className="rounded-lg bg-gray-100 p-3">
-              <summary className="cursor-pointer text-sm font-medium text-gray-700">
+            <details className="rounded-lg bg-gray-100 dark:bg-gray-700 p-3">
+              <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300">
                 Error Details (Development)
               </summary>
-              <div className="mt-2 text-xs text-gray-600">
-                <p className="font-medium">{error.name}</p>
-                <p className="mt-1">{error.message}</p>
+              <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                <p className="font-medium text-gray-900 dark:text-gray-100">{error.name}</p>
+                <p className="mt-1 text-gray-900 dark:text-gray-100">{error.message}</p>
                 {error.stack && (
                   <pre className="mt-2 whitespace-pre-wrap text-xs">
                     {error.stack}
@@ -75,7 +75,7 @@ const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetError 
           <div className="text-center">
             <Button 
               variant="link" 
-              className="text-sm text-gray-500"
+              className="text-sm text-gray-500 dark:text-gray-400"
               onClick={() => {
                 const body = `Error: ${error?.message || 'Unknown error'}\nUser Agent: ${navigator.userAgent}\nURL: ${window.location.href}`
                 window.open(`mailto:support@example.com?subject=ResearchTools Error Report&body=${encodeURIComponent(body)}`)

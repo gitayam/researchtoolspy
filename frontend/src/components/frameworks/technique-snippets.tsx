@@ -313,7 +313,7 @@ export function TechniqueQuickInfo({ technique }: { technique: TechniqueSnippetP
   if (!info) return null
 
   return (
-    <div className="inline-flex items-center gap-1 text-sm text-gray-500">
+    <div className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
       <Info className="h-3 w-3" />
       <span>{info.description}</span>
     </div>
