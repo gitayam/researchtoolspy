@@ -126,13 +126,17 @@ export default function AccessPage() {
                 id="account_hash"
                 type="text"
                 placeholder="1234 5678 9012 3456"
-                {...register('account_hash')}
+                {...register('account_hash', {
+                  onChange: (e) => {
+                    const formatted = formatHashInput(e.target.value)
+                    e.target.value = formatted
+                  }
+                })}
                 className={`font-mono bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 ${errors.account_hash ? 'border-red-500 dark:border-red-400' : ''}`}
-                onChange={(e) => {
-                  const formatted = formatHashInput(e.target.value)
-                  e.target.value = formatted
-                  register('account_hash').onChange(e)
-                }}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
               />
               {errors.account_hash && (
                 <p className="text-sm text-red-600 dark:text-red-400">{errors.account_hash.message}</p>
