@@ -182,6 +182,9 @@ export class APIClient {
   // Hash-based login (Mullvad-style)
   async loginWithHash(hashCredentials: HashLoginRequest): Promise<LoginResponse> {
     try {
+      console.log('API Client: Making hash auth request to:', `${API_BASE_URL}/hash-auth/authenticate`)
+      console.log('API Client: Hash credentials:', hashCredentials)
+      
       // Use the new hash authentication endpoint
       const response = await this.client.post<{
         access_token: string
@@ -191,6 +194,13 @@ export class APIClient {
         account_hash: string
         role: string
       }>('/hash-auth/authenticate', hashCredentials)
+      
+      console.log('API Client: Hash auth response received:', {
+        status: response.status,
+        hasAccessToken: !!response.data.access_token,
+        tokenType: response.data.token_type,
+        role: response.data.role
+      })
 
       const tokens: AuthTokens = {
         access_token: response.data.access_token,
@@ -251,22 +261,7 @@ export class APIClient {
   }
 
   async getCurrentUser(): Promise<User> {
-    // For development with mock auth, return mock user if authenticated
-    if (this.isAuthenticated() && this.tokens?.access_token?.startsWith('mock_access_token')) {
-      return {
-        id: 1,
-        username: 'test_user',
-        email: 'test@researchtools.dev',
-        full_name: 'Research Analyst',
-        role: UserRole.ANALYST,
-        organization: 'Research Tools Corp',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    }
-
-    // Real API call for production
+    // Always make real API call - hash auth provides real JWT tokens
     const response = await this.client.get<User>('/auth/me')
     return response.data
   }

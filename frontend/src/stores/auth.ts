@@ -56,7 +56,9 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: true, error: null })
           
           try {
+            console.log('Auth store: Starting hash login with hash:', hashCredentials.account_hash)
             const response = await apiClient.loginWithHash(hashCredentials)
+            console.log('Auth store: Hash login successful, user:', response.user)
             set({
               user: response.user,
               isAuthenticated: true,
@@ -65,6 +67,7 @@ export const useAuthStore = create<AuthState>()(
             })
           } catch (error) {
             const apiError = error as APIError
+            console.error('Auth store: Hash login failed:', apiError)
             set({
               isLoading: false,
               error: apiError.message || 'Hash login failed'

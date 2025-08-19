@@ -220,6 +220,10 @@ Following CLAUDE.md guidelines:
 ### Issues Identified:
 1. **API Client URL Logic**: The frontend API client checks for trycloudflare.com hostnames and uses a hardcoded backend tunnel URL. When running locally, this should use localhost:8000.
 
+2. **Potential Redirect Loop**: Dashboard layout calls `refreshUser()` after login, which makes an API call to `/auth/me`. If this fails or if the `getCurrentUser()` method has issues with real JWT tokens (vs mock tokens), it could cause authentication to fail.
+
+3. **Mock Token Check**: The `getCurrentUser()` method in API client checks if the access token starts with 'mock_access_token' and returns mock data. For real JWT tokens from hash auth, this check might be causing issues.
+
 ### Testing Results:
 - Backend auth endpoint: ✅ Working (returns valid JWT with role admin)
 - CORS: ✅ Working (accepts requests from frontend origin)
