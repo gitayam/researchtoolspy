@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Brain, Shield, Zap, Users, BarChart3, Target } from 'lucide-react'
+import { ArrowRight, Brain, Shield, Zap, Users, BarChart3, Target, Unlock, KeyRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useIsAuthenticated } from '@/stores/auth'
@@ -68,10 +68,19 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center gap-4">
               <Link href="/login">
-                <Button variant="ghost" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">Access Work</Button>
+                <Button 
+                  size="lg" 
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 shadow-md"
+                >
+                  <Unlock className="mr-2 h-5 w-5" />
+                  Login / Access Work
+                </Button>
               </Link>
               <Link href="/register">
-                <Button>Create Bookmark</Button>
+                <Button variant="outline" className="font-medium">
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Create Bookmark
+                </Button>
               </Link>
             </div>
           </div>
@@ -95,15 +104,23 @@ export default function LandingPage() {
             AI-powered insights, and comprehensive research tools. ResearchTools is a free service for the IrregularChat community.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
-              <Button size="lg" className="text-lg px-8 py-3">
-                Start Free
-                <ArrowRight className="ml-2 h-5 w-5" />
+            <Link href="/login">
+              <Button 
+                size="lg" 
+                className="text-lg px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+              >
+                <Unlock className="mr-2 h-6 w-6" />
+                Login to Access Work
               </Button>
             </Link>
-            <Link href="/login">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-3 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">
-                Access Saved Work
+            <Link href="/register">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-lg px-8 py-4 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-semibold"
+              >
+                <KeyRound className="mr-2 h-5 w-5" />
+                Create New Bookmark
               </Button>
             </Link>
           </div>
@@ -195,9 +212,13 @@ export default function LandingPage() {
               <p className="text-blue-100 dark:text-blue-200 mb-6 text-lg">
                 Join research professionals who trust ResearchTools for their critical analysis work.
               </p>
-              <Link href="/register">
-                <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
-                  Get Started Today
+              <Link href="/login">
+                <Button 
+                  size="lg" 
+                  className="text-lg px-8 py-3 bg-white hover:bg-gray-100 text-blue-700 font-bold shadow-md"
+                >
+                  <Unlock className="mr-2 h-5 w-5" />
+                  Login Now
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>

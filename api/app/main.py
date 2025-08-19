@@ -53,16 +53,16 @@ def create_application() -> FastAPI:
     # Security middleware
     # CORS configuration for development
     if settings.ENVIRONMENT == "development":
-        # TEMPORARY: Allow all origins for demo
+        # TEMPORARY: Using regex to allow all trycloudflare.com domains for demo
         # TODO: Re-enable specific origins after demo
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],  # WARNING: Temporary for demo only
-            allow_credentials=False,  # Must be False when using wildcard
+            allow_origin_regex=r"https://.*\.trycloudflare\.com",  # Allow all cloudflare tunnels
+            allow_credentials=True,  # Allow credentials
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        print("WARNING: CORS configured to allow ALL origins (demo mode)")
+        print("WARNING: CORS configured to allow ALL trycloudflare.com origins (demo mode)")
     elif settings.BACKEND_CORS_ORIGINS:
         app.add_middleware(
             CORSMiddleware,
