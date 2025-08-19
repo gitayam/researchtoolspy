@@ -246,7 +246,7 @@ export default function PMESIIPTViewPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading PMESII-PT analysis...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading PMESII-PT analysis...</p>
         </div>
       </div>
     )
@@ -345,7 +345,7 @@ export default function PMESIIPTViewPage() {
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{session.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{session.title}</h1>
             <Badge className={statusColors[session.status]}>
               {session.status.replace('_', ' ')}
             </Badge>
@@ -353,7 +353,7 @@ export default function PMESIIPTViewPage() {
           {session.description && (
             <p className="text-gray-600 dark:text-gray-400">{session.description}</p>
           )}
-          <div className="flex items-center gap-4 text-sm text-gray-500">
+          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
             <div className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
               Created {formatRelativeTime(session.created_at)}
@@ -467,7 +467,7 @@ export default function PMESIIPTViewPage() {
                 <h4 className="font-medium mb-2">Critical Factors</h4>
                 <div className="space-y-2">
                   {systemAnalysis.critical_factors.map((factor: any, index: number) => (
-                    <div key={index} className="p-3 bg-white rounded-lg border">
+                    <div key={index} className="p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{factor.domain}</span>
                         <Badge variant="outline" className="text-xs">
@@ -534,7 +534,7 @@ export default function PMESIIPTViewPage() {
       {/* Analysis Summary */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
             <BarChart3 className="h-5 w-5" />
             Analysis Overview
           </CardTitle>

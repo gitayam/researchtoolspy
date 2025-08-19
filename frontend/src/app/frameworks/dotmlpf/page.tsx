@@ -106,7 +106,7 @@ export default function DOTMLPFListPage() {
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
             <Shield className="h-8 w-8 animate-pulse text-purple-500 mx-auto mb-4" />
-            <p className="text-gray-500">Loading DOTMLpf analyses...</p>
+            <p className="text-gray-500 dark:text-gray-400">Loading DOTMLpf analyses...</p>
           </div>
         </div>
       </div>
@@ -119,8 +119,8 @@ export default function DOTMLPFListPage() {
         <div className="flex items-center gap-3">
           <Shield className="h-8 w-8 text-purple-600" />
           <div>
-            <h1 className="text-3xl font-bold">DOTMLpf Analysis</h1>
-            <p className="text-gray-600">Capability-based assessment framework</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">DOTMLpf Analysis</h1>
+            <p className="text-gray-600 dark:text-gray-400">Capability-based assessment framework</p>
           </div>
         </div>
         <Link href="/frameworks/dotmlpf/create">
@@ -163,10 +163,10 @@ export default function DOTMLPFListPage() {
         <Card className="text-center py-12">
           <CardContent>
             <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
+            <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">
               {searchTerm ? 'No analyses found' : 'No DOTMLpf Analyses Yet'}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               {searchTerm 
                 ? 'Try adjusting your search terms'
                 : 'Get started by creating your first capability assessment'
@@ -192,14 +192,14 @@ export default function DOTMLPFListPage() {
               <Card key={session.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg line-clamp-1">
+                    <CardTitle className="text-lg line-clamp-1 text-gray-900 dark:text-gray-100">
                       {session.title}
                     </CardTitle>
                     <Badge variant={session.status === 'completed' ? 'default' : 'secondary'}>
                       {session.status}
                     </Badge>
                   </div>
-                  <CardDescription className="line-clamp-2">
+                  <CardDescription className="line-clamp-2 text-gray-600 dark:text-gray-400">
                     {session.description || 'No description'}
                   </CardDescription>
                 </CardHeader>
@@ -289,7 +289,7 @@ export default function DOTMLPFListPage() {
                           {session.status}
                         </Badge>
                       </div>
-                      <p className="text-gray-600 mb-4">{session.description || 'No description'}</p>
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">{session.description || 'No description'}</p>
                       
                       {session.mission && (
                         <div className="mb-3">
@@ -345,8 +345,8 @@ export default function DOTMLPFListPage() {
       {/* Info Card */}
       <Card className="mt-8 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-purple-600" />
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+            <AlertCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             About DOTMLpf Analysis
           </CardTitle>
         </CardHeader>
@@ -355,14 +355,14 @@ export default function DOTMLPFListPage() {
             DOTMLpf is a capability-based assessment framework used to identify gaps and solutions across eight domains:
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-            <div className="font-medium">• Doctrine</div>
-            <div className="font-medium">• Organization</div>
-            <div className="font-medium">• Training</div>
-            <div className="font-medium">• Materiel</div>
-            <div className="font-medium">• Leadership</div>
-            <div className="font-medium">• Personnel</div>
-            <div className="font-medium">• Facilities</div>
-            <div className="font-medium">• Policy</div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">• Doctrine</div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">• Organization</div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">• Training</div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">• Materiel</div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">• Leadership</div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">• Personnel</div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">• Facilities</div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">• Policy</div>
           </div>
         </CardContent>
       </Card>
