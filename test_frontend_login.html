@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login</title>
+</head>
+<body>
+    <h1>Manual Login Test</h1>
+    <input type="text" id="hashInput" placeholder="1234567890123456" value="1234567890123456">
+    <button onclick="testLogin()">Test Login</button>
+    <div id="result"></div>
+
+    <script>
+        async function testLogin() {
+            const hash = document.getElementById('hashInput').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                console.log('Attempting login with hash:', hash);
+                
+                const response = await fetch('http://localhost:8000/api/v1/hash-auth/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': window.location.origin
+                    },
+                    body: JSON.stringify({ account_hash: hash })
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Login successful:', data);
+                    
+                    // Test storing in localStorage like the real app
+                    const tokens = {
+                        access_token: data.access_token,
+                        refresh_token: data.refresh_token,
+                        token_type: data.token_type,
+                        expires_in: data.expires_in
+                    };
+                    localStorage.setItem('omnicore_tokens', JSON.stringify(tokens));
+                    
+                    resultDiv.innerHTML = `
+                        <h3>✅ Login Successful!</h3>
+                        <p>Token type: ${data.token_type}</p>
+                        <p>Role: ${data.role}</p>
+                        <p>Account hash: ${data.account_hash}</p>
+                        <p>Token stored in localStorage: ${!!localStorage.getItem('omnicore_tokens')}</p>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    console.error('Login failed:', response.status, errorText);
+                    resultDiv.innerHTML = `
+                        <h3>❌ Login Failed</h3>
+                        <p>Status: ${response.status}</p>
+                        <p>Error: ${errorText}</p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Network error:', error);
+                resultDiv.innerHTML = `
+                    <h3>❌ Network Error</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
