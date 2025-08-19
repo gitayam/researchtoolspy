@@ -158,7 +158,7 @@ export function DashboardSidebar() {
       <div className="lg:hidden">
         <button
           type="button"
-          className="fixed top-4 left-4 z-50 rounded-md bg-white p-2 text-gray-400 shadow-sm lg:hidden"
+          className="fixed top-4 left-4 z-50 rounded-md bg-white dark:bg-gray-800 p-2 text-gray-400 dark:text-gray-300 shadow-sm lg:hidden"
           onClick={() => setMobileMenuOpen(true)}
         >
           <Menu className="h-6 w-6" />
