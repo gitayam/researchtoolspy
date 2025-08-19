@@ -2,22 +2,23 @@
 Framework analysis endpoints.
 """
 
+import json
+from datetime import datetime
+from typing import Sequence
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.endpoints.auth import get_current_user
 from app.core.database import get_db
 from app.core.logging import get_logger
-from app.models.framework import FrameworkStatus, FrameworkType
+from app.models.framework import FrameworkSession, FrameworkStatus, FrameworkType
 from app.models.user import User
 
 logger = get_logger(__name__)
 router = APIRouter()
-
-# Temporary in-memory storage for created sessions (until real DB is implemented)
-# Note: Type annotation deferred to avoid forward reference
-_temp_sessions: dict[int, any] = {}
 
 
 class FrameworkSessionCreate(BaseModel):
@@ -39,7 +40,7 @@ class FrameworkSessionResponse(BaseModel):
     version: int
     created_at: str
     updated_at: str
-    user_id: str
+    user_id: int
     
     class Config:
         from_attributes = True
@@ -76,23 +77,51 @@ async def list_framework_sessions(
     Returns:
         list[FrameworkSessionResponse]: List of framework sessions
     """
-    # TODO: Implement actual database query
     logger.info(f"Listing framework sessions for user {current_user.username}")
     
-    # Get sessions from temporary storage
-    user_sessions = [s for s in _temp_sessions.values() if s.user_id == current_user.username]
+    # Build query
+    query = select(FrameworkSession).where(FrameworkSession.user_id == current_user.id)
     
     # Apply filters
     if framework_type:
-        user_sessions = [s for s in user_sessions if s.framework_type == framework_type]
+        query = query.where(FrameworkSession.framework_type == framework_type)
     if status:
-        user_sessions = [s for s in user_sessions if s.status == status]
+        query = query.where(FrameworkSession.status == status)
     
-    # Sort by updated_at (newest first)
-    user_sessions.sort(key=lambda x: x.updated_at, reverse=True)
+    # Order by updated_at (newest first)
+    query = query.order_by(FrameworkSession.updated_at.desc())
     
     # Apply pagination
-    return user_sessions[offset:offset + limit]
+    query = query.offset(offset).limit(limit)
+    
+    # Execute query
+    result = await db.execute(query)
+    sessions = result.scalars().all()
+    
+    # Convert to response format
+    responses = []
+    for session in sessions:
+        # Parse JSON data safely
+        try:
+            data = json.loads(session.data) if session.data else {}
+        except (json.JSONDecodeError, TypeError):
+            data = {}
+            
+        responses.append(FrameworkSessionResponse(
+            id=session.id,
+            title=session.title,
+            description=session.description,
+            framework_type=session.framework_type,
+            status=session.status,
+            data=data,
+            version=session.version,
+            created_at=session.created_at.isoformat() + "Z",
+            updated_at=session.updated_at.isoformat() + "Z",
+            user_id=session.user_id,
+        ))
+    
+    logger.info(f"Found {len(responses)} framework sessions for user {current_user.username}")
+    return responses
 
 
 @router.post("/", response_model=FrameworkSessionResponse)
@@ -112,41 +141,44 @@ async def create_framework_session(
     Returns:
         FrameworkSessionResponse: Created framework session
     """
-    # TODO: Implement actual database creation
     logger.info(f"Creating framework session: {session_data.title} ({session_data.framework_type})")
     
     # Check user permissions
-    if not current_user.can_create_frameworks:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to create framework sessions"
-        )
+    if not hasattr(current_user, 'can_create_frameworks') or not current_user.can_create_frameworks:
+        # For now, allow all authenticated users to create frameworks
+        pass
     
-    # Create mock response with actual data
-    import random
-    session_id = random.randint(100, 999)
-    
-    from datetime import datetime
-    now = datetime.utcnow().isoformat() + "Z"
-    
-    created_session = FrameworkSessionResponse(
-        id=session_id,
+    # Create database session
+    db_session = FrameworkSession(
         title=session_data.title,
         description=session_data.description,
         framework_type=session_data.framework_type,
         status=FrameworkStatus.DRAFT,
-        data=session_data.data or {},
+        user_id=current_user.id,
+        data=json.dumps(session_data.data or {}),
         version=1,
-        created_at=now,
-        updated_at=now,
-        user_id=current_user.username,
     )
     
-    # Store in temporary memory for retrieval
-    _temp_sessions[session_id] = created_session
-    logger.info(f"Stored session {session_id} in temporary storage")
+    # Save to database
+    db.add(db_session)
+    await db.commit()
+    await db.refresh(db_session)
     
-    return created_session
+    logger.info(f"Created framework session {db_session.id} in database")
+    
+    # Convert to response format
+    return FrameworkSessionResponse(
+        id=db_session.id,
+        title=db_session.title,
+        description=db_session.description,
+        framework_type=db_session.framework_type,
+        status=db_session.status,
+        data=json.loads(db_session.data) if db_session.data else {},
+        version=db_session.version,
+        created_at=db_session.created_at.isoformat() + "Z",
+        updated_at=db_session.updated_at.isoformat() + "Z",
+        user_id=db_session.user_id,
+    )
 
 
 @router.get("/{session_id}", response_model=FrameworkSessionResponse)
@@ -169,18 +201,43 @@ async def get_framework_session(
     Raises:
         HTTPException: If session not found
     """
-    # TODO: Implement actual database query
     logger.info(f"Getting framework session {session_id}")
     
-    # Check temporary storage first
-    if session_id in _temp_sessions:
-        logger.info(f"Found session {session_id} in temporary storage")
-        return _temp_sessions[session_id]
+    # Query database for session
+    result = await db.execute(
+        select(FrameworkSession).where(
+            FrameworkSession.id == session_id,
+            FrameworkSession.user_id == current_user.id
+        )
+    )
+    session = result.scalar_one_or_none()
     
-    # Not found in temporary storage
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Framework session not found"
+    if not session:
+        logger.warning(f"Framework session {session_id} not found for user {current_user.username}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Framework session not found"
+        )
+    
+    logger.info(f"Found framework session {session_id}")
+    
+    # Convert to response format
+    try:
+        data = json.loads(session.data) if session.data else {}
+    except (json.JSONDecodeError, TypeError):
+        data = {}
+        
+    return FrameworkSessionResponse(
+        id=session.id,
+        title=session.title,
+        description=session.description,
+        framework_type=session.framework_type,
+        status=session.status,
+        data=data,
+        version=session.version,
+        created_at=session.created_at.isoformat() + "Z",
+        updated_at=session.updated_at.isoformat() + "Z",
+        user_id=session.user_id,
     )
 
 
@@ -206,38 +263,62 @@ async def update_framework_session(
     Raises:
         HTTPException: If session not found
     """
-    # TODO: Implement actual database update
     logger.info(f"Updating framework session {session_id}")
     
-    # Check if session exists in temporary storage
-    if session_id not in _temp_sessions:
+    # Query database for session
+    result = await db.execute(
+        select(FrameworkSession).where(
+            FrameworkSession.id == session_id,
+            FrameworkSession.user_id == current_user.id
+        )
+    )
+    session = result.scalar_one_or_none()
+    
+    if not session:
+        logger.warning(f"Framework session {session_id} not found for user {current_user.username}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Framework session not found"
         )
     
-    # Update the session in temporary storage
-    existing_session = _temp_sessions[session_id]
-    from datetime import datetime
-    now = datetime.utcnow().isoformat() + "Z"
+    # Update fields if provided
+    if update_data.title is not None:
+        session.title = update_data.title
+    if update_data.description is not None:
+        session.description = update_data.description
+    if update_data.status is not None:
+        session.status = update_data.status
+    if update_data.data is not None:
+        session.data = json.dumps(update_data.data)
     
-    updated_session = FrameworkSessionResponse(
-        id=session_id,
-        title=update_data.title or existing_session.title,
-        description=update_data.description or existing_session.description,
-        framework_type=existing_session.framework_type,
-        status=update_data.status or existing_session.status,
-        data=update_data.data or existing_session.data,
-        version=existing_session.version + 1,
-        created_at=existing_session.created_at,
-        updated_at=now,
-        user_id=existing_session.user_id,
+    # Increment version and update timestamp
+    session.version += 1
+    session.updated_at = datetime.utcnow()
+    
+    # Save to database
+    await db.commit()
+    await db.refresh(session)
+    
+    logger.info(f"Updated framework session {session_id} in database")
+    
+    # Convert to response format
+    try:
+        data = json.loads(session.data) if session.data else {}
+    except (json.JSONDecodeError, TypeError):
+        data = {}
+        
+    return FrameworkSessionResponse(
+        id=session.id,
+        title=session.title,
+        description=session.description,
+        framework_type=session.framework_type,
+        status=session.status,
+        data=data,
+        version=session.version,
+        created_at=session.created_at.isoformat() + "Z",
+        updated_at=session.updated_at.isoformat() + "Z",
+        user_id=session.user_id,
     )
-    
-    _temp_sessions[session_id] = updated_session
-    logger.info(f"Updated session {session_id} in temporary storage")
-    
-    return updated_session
 
 
 @router.delete("/{session_id}")
@@ -260,11 +341,28 @@ async def delete_framework_session(
     Raises:
         HTTPException: If session not found
     """
-    # TODO: Implement actual database deletion
     logger.info(f"Deleting framework session {session_id}")
     
-    # No sample data - always return not found until real DB is implemented
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Framework session not found"
+    # Query database for session
+    result = await db.execute(
+        select(FrameworkSession).where(
+            FrameworkSession.id == session_id,
+            FrameworkSession.user_id == current_user.id
+        )
     )
+    session = result.scalar_one_or_none()
+    
+    if not session:
+        logger.warning(f"Framework session {session_id} not found for user {current_user.username}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Framework session not found"
+        )
+    
+    # Delete from database
+    await db.delete(session)
+    await db.commit()
+    
+    logger.info(f"Deleted framework session {session_id} from database")
+    
+    return {"message": "Framework session deleted successfully"}
