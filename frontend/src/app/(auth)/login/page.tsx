@@ -97,19 +97,19 @@ export default function AccessPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-2xl font-bold text-center text-gray-900 dark:text-gray-100">
             Return to Your Work
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-gray-600 dark:text-gray-400">
             Enter your bookmark hash to return to saved work or collaborate
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
-              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
+              <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-md">
                 <AlertCircle className="h-4 w-4" />
                 {error}
               </div>
@@ -117,8 +117,8 @@ export default function AccessPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label htmlFor="account_hash" className="text-sm font-medium flex items-center gap-2">
-                  <Key className="h-4 w-4" />
+                <label htmlFor="account_hash" className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <Key className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                   Bookmark Hash
                 </label>
               </div>
@@ -127,7 +127,7 @@ export default function AccessPage() {
                 type="text"
                 placeholder="1234 5678 9012 3456"
                 {...register('account_hash')}
-                className={`font-mono ${errors.account_hash ? 'border-red-500' : ''}`}
+                className={`font-mono bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 ${errors.account_hash ? 'border-red-500 dark:border-red-400' : ''}`}
                 onChange={(e) => {
                   const formatted = formatHashInput(e.target.value)
                   e.target.value = formatted
@@ -135,9 +135,9 @@ export default function AccessPage() {
                 }}
               />
               {errors.account_hash && (
-                <p className="text-sm text-red-600">{errors.account_hash.message}</p>
+                <p className="text-sm text-red-600 dark:text-red-400">{errors.account_hash.message}</p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Enter your 16-digit bookmark code (spaces will be ignored)
               </p>
             </div>
@@ -158,8 +158,8 @@ export default function AccessPage() {
             </Button>
 
             <div className="text-center text-sm">
-              <span className="text-gray-600">Don't have a hash? </span>
-              <Link href="/register" className="text-blue-600 hover:underline">
+              <span className="text-gray-600 dark:text-gray-400">Don't have a hash? </span>
+              <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
                 Generate one
               </Link>
             </div>

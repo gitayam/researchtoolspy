@@ -89,7 +89,7 @@ export default function RegisterPage() {
                   </span>
                 </div>
                 <div className="relative">
-                  <div className="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-3 font-mono text-sm break-all">
+                  <div className="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-3 font-mono text-sm break-all text-gray-900 dark:text-gray-100">
                     {formattedHash}
                   </div>
                   <Button
@@ -97,7 +97,7 @@ export default function RegisterPage() {
                     variant="ghost"
                     size="sm"
                     onClick={handleCopyHash}
-                    className="absolute right-2 top-2 h-6 w-6 p-0"
+                    className="absolute right-2 top-2 h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                     title={copied ? "Copied!" : "Copy hash to clipboard"}
                   >
                     {copied ? (
@@ -167,7 +167,7 @@ export default function RegisterPage() {
                 <Button
                   onClick={handleGenerateNew}
                   variant="outline"
-                  className="w-full"
+                  className="w-full border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Generate New Hash
@@ -175,7 +175,7 @@ export default function RegisterPage() {
                 
                 <Button
                   onClick={handleSaveAndContinue}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!copied}
                 >
                   {copied ? "✓ I've Saved My Hash - Continue" : "Copy Hash First"}
