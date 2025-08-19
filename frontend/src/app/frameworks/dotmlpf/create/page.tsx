@@ -228,7 +228,7 @@ export default function DOTMLPFCreatePage() {
             <Shield className="h-8 w-8 text-purple-600" />
             <div>
               <h1 className="text-3xl font-bold">DOTMLpf Analysis</h1>
-              <p className="text-gray-600">Capability-based assessment framework</p>
+              <p className="text-gray-600 dark:text-gray-400">Capability-based assessment framework</p>
             </div>
           </div>
           <AutoSaveIndicator status={saveStatus} lastSaved={lastSaved} />
@@ -311,7 +311,7 @@ export default function DOTMLPFCreatePage() {
                         <domain.icon className="h-5 w-5" />
                         {domain.name}
                       </h3>
-                      <p className="text-sm text-gray-600">{domain.description}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{domain.description}</p>
                     </div>
                     <Button onClick={() => addCapability(domain.id)} size="sm">
                       <Plus className="h-4 w-4 mr-1" />
@@ -320,7 +320,7 @@ export default function DOTMLPFCreatePage() {
                   </div>
 
                   {getCapabilitiesByDomain(domain.id).length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                       No capabilities defined for {domain.name}
                     </div>
                   ) : (

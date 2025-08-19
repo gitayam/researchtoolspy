@@ -87,7 +87,7 @@ export default function PublicCOGPage() {
               </h2>
               
               <div className="relative max-w-xs">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4" />
                 <Input
                   type="text"
                   placeholder="Search sessions..."
@@ -179,7 +179,7 @@ export default function PublicCOGPage() {
               
               {filteredSessions.length === 0 && searchTerm && (
                 <div className="text-center py-8">
-                  <Search className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+                  <Search className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
                   <p className="text-gray-500 dark:text-gray-400">
                     No sessions found matching "{searchTerm}"
                   </p>
