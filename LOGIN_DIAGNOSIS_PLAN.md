@@ -229,8 +229,25 @@ Following CLAUDE.md guidelines:
 - CORS: ✅ Working (accepts requests from frontend origin)
 - Frontend server: ✅ Running on localhost:6780
 
-### Next Steps:
-1. Test login form submission in browser manually
-2. Check browser console for any JavaScript errors
-3. Verify localStorage token storage
-4. Check if auth store state is properly updating
+### Fixes Applied:
+1. **Fixed API URL Resolution**: Removed confusing tunnel URL logic, now always uses localhost:8000 for local development
+2. **Fixed getCurrentUser Method**: Removed mock token detection, always uses real API call to /auth/me
+3. **Added Debug Logging**: Added comprehensive console logging to track the login flow
+4. **Verified Backend Functionality**: Confirmed hash-auth endpoint and /auth/me endpoint work correctly
+
+### Expected Working Flow:
+1. User enters hash (e.g., "1234567890123456") 
+2. Frontend calls POST /hash-auth/authenticate with cleaned hash
+3. Backend returns valid JWT tokens
+4. Frontend stores tokens in localStorage and updates auth store
+5. User redirected to dashboard
+6. Dashboard calls /auth/me to get user data
+7. Auth state persists across page refreshes
+
+### Testing Status:
+- ✅ Backend hash-auth endpoint works
+- ✅ Backend /auth/me endpoint works with JWT tokens
+- ✅ CORS configured correctly
+- ✅ Frontend compiles without errors  
+- ✅ API URL resolution fixed
+- 🔄 Ready for end-to-end testing
