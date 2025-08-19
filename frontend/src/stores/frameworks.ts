@@ -145,10 +145,11 @@ export const useFrameworkStore = create<FrameworkState>()(
       },
 
       refreshData: async () => {
-        const { fetchSessions, fetchRecentSessions } = get()
+        // Call the functions directly to avoid circular references
+        const store = get()
         await Promise.all([
-          fetchSessions(),
-          fetchRecentSessions()
+          store.fetchSessions(),
+          store.fetchRecentSessions()
         ])
       },
 

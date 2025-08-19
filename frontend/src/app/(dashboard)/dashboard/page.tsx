@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useUser } from '@/stores/auth'
-import { useRecentSessions, useFrameworkSessions, useFrameworkLoading, useFrameworkActions } from '@/stores/frameworks'
+import { useRecentSessions, useFrameworkSessions, useFrameworkLoading, useFrameworkStore } from '@/stores/frameworks'
 import { formatRelativeTime } from '@/lib/utils'
 
 export default function DashboardPage() {
@@ -25,7 +25,10 @@ export default function DashboardPage() {
   const recentSessions = useRecentSessions()
   const allSessions = useFrameworkSessions()
   const isLoading = useFrameworkLoading()
-  const { fetchSessions, fetchRecentSessions } = useFrameworkActions()
+  
+  // Use the store directly to get stable function references
+  const fetchSessions = useFrameworkStore((state) => state.fetchSessions)
+  const fetchRecentSessions = useFrameworkStore((state) => state.fetchRecentSessions)
 
   // Fetch data when component mounts
   useEffect(() => {
