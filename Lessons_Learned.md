@@ -963,6 +963,134 @@ grep -r "border-gray" src/ | grep -v "dark:"
 
 ---
 
+## CORS Configuration for Temporary Public URLs
+
+### ❌ What Didn't Work
+
+**Problem**: CORS preflight errors when accessing backend API from Cloudflare tunnel URLs
+```
+Error: Preflight response is not successful. Status code: 400
+XMLHttpRequest cannot load https://backend.trycloudflare.com/api/v1/endpoint due to access control checks
+```
+
+**Root Cause**: Backend CORS configuration only included specific hardcoded tunnel URLs, but Cloudflare generates new random subdomains for each tunnel session.
+
+**Problem**: Forgetting to update CORS when creating temporary public demos
+- Public URL works for frontend but API calls fail
+- Users see "Network error - please check your connection"
+- Debugging is confusing because local development works fine
+
+### ✅ What Worked
+
+**Solution 1**: Use regex pattern to allow all trycloudflare.com subdomains
+```python
+# ✅ In backend main.py - Allow all Cloudflare tunnel domains
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"https://.*\.trycloudflare\.com",
+    allow_origins=cors_origins,  # Still include localhost for local dev
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+**Solution 2**: Update both frontend and backend tunnel URLs together
+```typescript
+// ✅ Frontend api.ts - Dynamic backend URL detection
+if (typeof window !== 'undefined') {
+  const hostname = window.location.hostname
+  if (hostname.includes('trycloudflare.com')) {
+    // Use the backend tunnel URL for public access
+    return 'https://your-backend-tunnel.trycloudflare.com/api/v1'
+  }
+}
+```
+
+**Solution 3**: Create both tunnels and update configuration
+```bash
+# 1. Create backend tunnel
+cloudflared tunnel --url http://localhost:8000
+# Output: https://backend-tunnel-name.trycloudflare.com
+
+# 2. Create frontend tunnel  
+cloudflared tunnel --url http://localhost:6780
+# Output: https://frontend-tunnel-name.trycloudflare.com
+
+# 3. Update frontend api.ts with backend tunnel URL
+# 4. Restart services to apply changes
+```
+
+### 🔧 Standard Operating Procedure for Public Demos
+
+1. **Start backend tunnel first**
+   ```bash
+   cloudflared tunnel --url http://localhost:8000
+   ```
+   Note the generated URL
+
+2. **Update frontend configuration**
+   - Edit `frontend/src/lib/api.ts`
+   - Update backend tunnel URL in the trycloudflare.com check
+
+3. **Start frontend tunnel**
+   ```bash
+   cloudflared tunnel --url http://localhost:6780
+   ```
+
+4. **Restart services**
+   - Backend: `docker compose restart api`
+   - Frontend: Restart dev server
+
+5. **Test the public URL**
+   - Access the frontend tunnel URL
+   - Try logging in to verify API connectivity
+   - Check browser console for CORS errors
+
+### Key Learnings
+
+1. **Dynamic URLs require flexible CORS**: Hardcoding tunnel URLs doesn't work for temporary demos
+2. **Regex patterns enable flexibility**: Allow entire domain patterns for development environments
+3. **Both services need tunnels**: Frontend AND backend need public URLs for full functionality
+4. **Configuration must be synchronized**: Frontend needs to know backend's tunnel URL
+5. **Security considerations**: Only use permissive CORS in development, not production
+
+### Best Practices
+
+1. **Development vs Production CORS**
+   ```python
+   if settings.ENVIRONMENT == "development":
+       # Permissive for development and demos
+       allow_origin_regex=r"https://.*\.trycloudflare\.com"
+   else:
+       # Strict for production
+       allow_origins=["https://production-domain.com"]
+   ```
+
+2. **Document tunnel setup** in README for team members
+3. **Automate if frequent** - Script the tunnel creation and config update
+4. **Monitor CORS errors** in browser console during testing
+5. **Clean up after demos** - Don't leave permissive CORS in production builds
+
+### Common CORS Error Messages and Solutions
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Preflight response is not successful" | CORS not configured for origin | Add origin to CORS config |
+| "Status code: 400" | Request rejected before CORS check | Check API endpoint exists |
+| "No 'Access-Control-Allow-Origin' header" | CORS middleware not active | Ensure middleware is added |
+| "Credentials flag is true but Access-Control-Allow-Credentials is not" | Missing credentials setting | Add `allow_credentials=True` |
+
+### Prevention
+
+1. **Include CORS check in deployment checklist**
+2. **Test with actual public URLs before demos**
+3. **Use environment variables for allowed origins**
+4. **Document CORS requirements in API docs**
+5. **Set up monitoring for CORS failures in production**
+
+---
+
 ## Summary of New Learnings
 
 ### Hash Authentication

@@ -64,17 +64,16 @@ def create_application() -> FastAPI:
             "http://127.0.0.1:3003",
             "http://127.0.0.1:3380",
             "http://127.0.0.1:6780",
+            # Add the specific Cloudflare tunnel URL
+            "https://estimation-officially-qatar-brandon.trycloudflare.com",
         ]
         
         # Override with environment variable if set
         if settings.BACKEND_CORS_ORIGINS:
             cors_origins.extend([str(origin) for origin in settings.BACKEND_CORS_ORIGINS])
         
-        # For development, allow all trycloudflare.com domains
-        # This supports dynamic Cloudflare tunnel URLs
         app.add_middleware(
             CORSMiddleware,
-            allow_origin_regex=r"https://.*\.trycloudflare\.com",
             allow_origins=cors_origins,
             allow_credentials=True,
             allow_methods=["*"],
