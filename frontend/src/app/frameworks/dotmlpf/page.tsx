@@ -133,7 +133,7 @@ export default function DOTMLPFListPage() {
 
       <div className="flex items-center gap-4 mb-6">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4" />
           <Input 
             placeholder="Search analyses..." 
             className="pl-10"
@@ -162,7 +162,7 @@ export default function DOTMLPFListPage() {
       {filteredSessions.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
-            <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <Shield className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">
               {searchTerm ? 'No analyses found' : 'No DOTMLpf Analyses Yet'}
             </h3>
@@ -207,13 +207,13 @@ export default function DOTMLPFListPage() {
                   <div className="space-y-3">
                     {session.mission && (
                       <div>
-                        <p className="text-xs font-medium text-gray-500 mb-1">Mission</p>
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Mission</p>
                         <p className="text-sm line-clamp-2">{session.mission}</p>
                       </div>
                     )}
                     
                     <div>
-                      <p className="text-xs font-medium text-gray-500 mb-1">Capabilities</p>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Capabilities</p>
                       <div className="flex flex-wrap gap-1">
                         {Object.entries(capCount).map(([domain, count]) => (
                           <Badge key={domain} variant="outline" className="text-xs">
@@ -221,14 +221,14 @@ export default function DOTMLPFListPage() {
                           </Badge>
                         ))}
                         {session.capabilities.length === 0 && (
-                          <span className="text-xs text-gray-400">No capabilities defined</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">No capabilities defined</span>
                         )}
                       </div>
                     </div>
 
                     {session.capabilities.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-gray-500 mb-1">Priority Distribution</p>
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Priority Distribution</p>
                         <div className="flex gap-2 text-xs">
                           {priorities.critical > 0 && (
                             <span className="text-red-600">Critical: {priorities.critical}</span>
@@ -247,7 +247,7 @@ export default function DOTMLPFListPage() {
                     )}
 
                     <div className="flex items-center justify-between pt-2">
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                         <Clock className="h-3 w-3" />
                         {formatRelativeTime(session.lastSaved)}
                       </div>
@@ -294,28 +294,28 @@ export default function DOTMLPFListPage() {
                       {session.mission && (
                         <div className="mb-3">
                           <span className="font-medium text-sm">Mission: </span>
-                          <span className="text-sm text-gray-600">{session.mission}</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{session.mission}</span>
                         </div>
                       )}
                       
                       <div className="flex items-center gap-6 text-sm">
                         <div>
-                          <span className="text-gray-500">Total Capabilities:</span>
+                          <span className="text-gray-500 dark:text-gray-400">Total Capabilities:</span>
                           <span className="ml-2 font-medium">{session.capabilities.length}</span>
                         </div>
                         {priorities.critical > 0 && (
                           <div>
-                            <span className="text-gray-500">Critical:</span>
+                            <span className="text-gray-500 dark:text-gray-400">Critical:</span>
                             <span className="ml-2 font-medium text-red-600">{priorities.critical}</span>
                           </div>
                         )}
                         {priorities.high > 0 && (
                           <div>
-                            <span className="text-gray-500">High:</span>
+                            <span className="text-gray-500 dark:text-gray-400">High:</span>
                             <span className="ml-2 font-medium text-orange-600">{priorities.high}</span>
                           </div>
                         )}
-                        <div className="text-gray-500">
+                        <div className="text-gray-500 dark:text-gray-400">
                           <Clock className="inline h-3 w-3 mr-1" />
                           {formatRelativeTime(session.lastSaved)}
                         </div>
