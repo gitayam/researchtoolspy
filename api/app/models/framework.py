@@ -26,6 +26,12 @@ class FrameworkType(str, Enum):
     STARBURSTING = "starbursting"
     CAUSEWAY = "causeway"
     DIME = "dime"
+    PEST = "pest"
+    VRIO = "vrio"
+    STAKEHOLDER = "stakeholder"
+    TREND = "trend"
+    SURVEILLANCE = "surveillance"
+    FUNDAMENTAL_FLOW = "fundamental_flow"
 
 
 class FrameworkStatus(str, Enum):

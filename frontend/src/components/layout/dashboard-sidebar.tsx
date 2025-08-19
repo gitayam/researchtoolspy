@@ -37,6 +37,12 @@ const navigation = [
       { name: 'Starbursting', href: '/analysis-frameworks/starbursting' },
       { name: 'Causeway', href: '/analysis-frameworks/causeway' },
       { name: 'DIME Framework', href: '/analysis-frameworks/dime' },
+      { name: 'PEST Analysis', href: '/analysis-frameworks/pest' },
+      { name: 'VRIO Framework', href: '/analysis-frameworks/vrio' },
+      { name: 'Stakeholder Analysis', href: '/analysis-frameworks/stakeholder' },
+      { name: 'Trend Analysis', href: '/analysis-frameworks/trend' },
+      { name: 'Surveillance Framework', href: '/analysis-frameworks/surveillance' },
+      { name: 'Fundamental Flow', href: '/analysis-frameworks/fundamental-flow' },
     ]
   },
   { 
