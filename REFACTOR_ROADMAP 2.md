@@ -1,7 +1,7 @@
-# OmniCore Modern Stack Refactor Roadmap
+# ResearchTools by OmniCore - Modern Stack Refactor Roadmap
 
 ## Executive Summary
-Complete modernization of the OmniCore intelligence analysis platform from Streamlit-based monolith to a scalable, microservices-based architecture optimized for intel analysts and researchers.
+Complete modernization of the ResearchTools intelligence analysis platform from Streamlit-based monolith to a scalable, microservices-based architecture optimized for intel analysts and researchers. ResearchTools is a free service for the IrregularChat community, providing advanced intelligence analysis capabilities without cost barriers.
 
 ## Modern Technology Stack Recommendation
 
@@ -58,6 +58,12 @@ Complete modernization of the OmniCore intelligence analysis platform from Strea
 - [x] API rate limiting and security headers
 - [x] Input validation with Pydantic models
 - [x] Secure API key management for external services
+- [ ] **Hash-based Authentication System** (Phase 4.1 Enhancement)
+  - [ ] Implement Mullvad VPN-style hash-based login system
+  - [ ] Generate unique authentication hashes for users
+  - [ ] Remove traditional username/password authentication
+  - [ ] Hash-based session management and security
+  - [ ] Account hash regeneration capabilities
 
 ### Core API Foundation
 - [x] User management endpoints
@@ -249,13 +255,31 @@ Complete modernization of the OmniCore intelligence analysis platform from Strea
 **Duration**: 4-5 weeks | **Goal**: Build responsive, accessible React frontend
 
 ### Frontend Foundation
-- [ ] Next.js 14 project setup with TypeScript
-- [ ] Tailwind CSS configuration with design system
-- [ ] Component library setup (Headless UI)
-- [ ] Authentication integration with JWT
-- [ ] API client setup with React Query
-- [ ] State management with Zustand
-- [ ] Route protection and role-based access
+- [x] Next.js 14 project setup with TypeScript
+- [x] Tailwind CSS configuration with design system
+- [x] Component library setup (Headless UI)
+- [x] Authentication integration with JWT
+- [x] API client setup with React Query
+- [x] State management with Zustand
+- [x] Route protection and role-based access
+
+### Phase 4.1: Foundation Setup ✅
+- [x] Complete Next.js 14 application structure
+- [x] Authentication system with toast notifications
+- [x] Responsive dashboard layout with sidebar navigation
+- [x] Landing page with ResearchTools branding
+- [x] Login/registration forms (ready for hash-based auth migration)
+- [x] User profile management and session handling
+
+### Phase 4.2: Core Framework Implementation ✅
+- [x] Framework selection page with 10 frameworks (4 implemented, 6 coming soon)
+- [x] **SWOT Analysis** - Complete create/view interface with 4-quadrant system
+- [x] **COG Analysis** - Center of Gravity analysis with 4-component structure
+- [x] **PMESII-PT Analysis** - 8-domain environmental analysis framework
+- [x] **ACH Analysis** - Analysis of Competing Hypotheses with evidence matrix
+- [x] Session management, status tracking, and data persistence
+- [x] Professional UI with framework-specific branding and colors
+- [x] Responsive design and accessibility features
 
 ### Core UI Components
 - [ ] **Layout Components**
@@ -265,10 +289,14 @@ Complete modernization of the OmniCore intelligence analysis platform from Strea
   - [ ] Dark/light theme toggle
 
 - [ ] **Authentication UI**
-  - [ ] Login/registration forms
-  - [ ] Password reset flow
-  - [ ] User profile management
-  - [ ] Role-based feature access
+  - [x] Login/registration forms (current implementation)
+  - [ ] **Hash-based Authentication Migration**
+    - [ ] Replace username/password with hash-based login
+    - [ ] Hash generation and regeneration interface
+    - [ ] Secure hash storage and validation
+    - [ ] Migration tool for existing accounts
+  - [ ] User profile management enhancements
+  - [ ] Role-based feature access refinement
 
 - [ ] **Data Visualization Components**
   - [ ] Interactive charts for framework outputs

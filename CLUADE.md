@@ -66,6 +66,55 @@ Your code must be 100% clean. No exceptions.
 - After fixing all issues and verifying the fix, continue where you left off
 - Use the todo list to track both the fix and your original task
 
+## 🎨 Dark Mode CSS Best Practices
+
+### Color Selection Guidelines
+- **NEVER use pure black (#000000)** - Use soft blacks like #121212 or bg-gray-900
+- **NEVER use pure white (#FFFFFF)** - Use off-whites like #FAFAFA or bg-gray-50
+- **Text colors**: Use text-gray-900 in light mode, dark:text-gray-100 in dark mode
+- **Backgrounds**: Use bg-white in light mode, dark:bg-gray-900 in dark mode
+
+### Contrast Requirements (WCAG 3.0)
+- **Minimum contrast ratios**: 4.5:1 for normal text, 3:1 for large text
+- **Test all color combinations** with WebAIM contrast checker
+- **Avoid low-opacity grays** on dark backgrounds - they fail accessibility
+- **Use Tailwind's built-in colors** - they're designed for proper contrast
+
+### Implementation Patterns
+```tsx
+// ✅ CORRECT: Explicit dark mode classes
+<div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <h1 className="text-gray-800 dark:text-gray-200">Title</h1>
+  <p className="text-gray-600 dark:text-gray-400">Description</p>
+</div>
+
+// ❌ WRONG: Missing dark mode variants
+<div className="bg-white text-gray-900">
+  <h1 className="text-gray-800">Title</h1>
+  <p className="text-gray-600">Description</p>
+</div>
+
+// ✅ CORRECT: Card with proper dark mode
+<Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+  <CardContent className="text-gray-900 dark:text-gray-100">
+    Content here
+  </CardContent>
+</Card>
+```
+
+### Testing Checklist
+- [ ] Test on multiple devices and browsers
+- [ ] Verify contrast ratios with accessibility tools
+- [ ] Check both system preference and manual toggle
+- [ ] Ensure no text disappears in dark mode
+- [ ] Test with browser dev tools dark mode emulation
+
+### Common Issues & Fixes
+1. **Text invisible in dark mode**: Add dark:text-gray-100 or similar
+2. **Low contrast borders**: Use dark:border-gray-700 instead of dark:border-gray-800
+3. **Harsh backgrounds**: Replace bg-black with bg-gray-900
+4. **Input fields unreadable**: Ensure inputs have dark:bg-gray-800 dark:text-gray-100
+
 ## 🔧 Environment & Configuration Management
 
 ### Conda Environments (MANDATORY)

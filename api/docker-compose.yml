@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-omnicore}"]
       interval: 5s
@@ -29,7 +29,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -53,6 +53,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-omnicore}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - BACKEND_CORS_ORIGINS=http://localhost:3003,http://127.0.0.1:3003,http://localhost:3000,http://127.0.0.1:3000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-5-mini}
     volumes:

@@ -87,14 +87,16 @@ async def get_current_user(
         raise credentials_exception
     
     # TODO: Implement user lookup from database
-    # For now, create a mock user
-    user = User(
-        id=token_data.user_id or 1,
+    # For now, create a mock user that works with hash auth
+    from app.api.v1.endpoints.auth_fix import MockUser
+    
+    # Determine role from scopes
+    role = UserRole.ADMIN if "admin" in (token_data.scopes or []) else UserRole.RESEARCHER
+    
+    user = MockUser(
+        user_id=token_data.user_id or 1,
         username=token_data.username or "test",
-        email="test@example.com",
-        full_name="Test User",
-        hashed_password="",
-        role=UserRole.RESEARCHER,
+        role=role
     )
     
     return user

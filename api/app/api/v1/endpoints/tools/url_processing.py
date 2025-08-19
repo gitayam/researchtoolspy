@@ -8,8 +8,8 @@ from pydantic import BaseModel, HttpUrl, validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
-from app.core.database import get_async_db
-from app.core.auth import get_current_user
+from app.core.database import get_db
+from app.api.v1.endpoints.auth import get_current_user
 from app.core.logging import get_logger
 from app.models.user import User
 from app.models.research_tool import ProcessedUrl
@@ -93,7 +93,7 @@ class UrlStatsResponse(BaseModel):
 @router.post("/process", response_model=ProcessedUrlResponse, status_code=status.HTTP_201_CREATED)
 async def process_url(
     request: UrlProcessRequest,
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> ProcessedUrlResponse:
     """
@@ -135,7 +135,7 @@ async def process_url(
 @router.post("/process/batch", response_model=List[ProcessedUrlResponse])
 async def process_urls_batch(
     request: BatchUrlProcessRequest,
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> List[ProcessedUrlResponse]:
     """
@@ -180,7 +180,7 @@ async def process_urls_batch(
 
 @router.get("/processed", response_model=List[ProcessedUrlResponse])
 async def get_processed_urls(
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of records to return"),
@@ -223,7 +223,7 @@ async def get_processed_urls(
 @router.get("/processed/{url_id}", response_model=ProcessedUrlResponse)
 async def get_processed_url(
     url_id: int,
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> ProcessedUrlResponse:
     """
@@ -261,7 +261,7 @@ async def get_processed_url(
 @router.delete("/processed/{url_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_processed_url(
     url_id: int,
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -302,7 +302,7 @@ async def delete_processed_url(
 @router.post("/archive/{url_id}")
 async def archive_url_wayback(
     url_id: int,
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> dict:
     """
@@ -356,7 +356,7 @@ async def archive_url_wayback(
 
 @router.get("/stats", response_model=UrlStatsResponse)
 async def get_url_processing_stats(
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> UrlStatsResponse:
     """
@@ -445,7 +445,7 @@ async def get_url_processing_stats(
 
 @router.get("/domains", response_model=List[dict])
 async def get_processed_domains(
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     limit: int = Query(50, ge=1, le=100, description="Number of domains to return")
 ) -> List[dict]:

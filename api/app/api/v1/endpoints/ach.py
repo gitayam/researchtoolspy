@@ -82,6 +82,16 @@ class ACHAnalysisResponse(BaseModel):
     version: int
 
 
+@router.post("/", response_model=ACHAnalysisResponse)
+async def create_ach_analysis_simple(
+    request: ACHCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> ACHAnalysisResponse:
+    """Create ACH analysis (standard endpoint)."""
+    return await create_ach_analysis(request, current_user, db)
+
+
 @router.post("/create", response_model=ACHAnalysisResponse)
 async def create_ach_analysis(
     request: ACHCreateRequest,
@@ -278,6 +288,58 @@ async def get_ach_analysis(
         matrix=matrix,
         status="in_progress",
         version=1
+    )
+
+
+@router.put("/{session_id}", response_model=ACHAnalysisResponse)
+async def update_ach_analysis(
+    session_id: int,
+    request: ACHUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> ACHAnalysisResponse:
+    """
+    Update an existing ACH analysis session.
+    
+    Args:
+        session_id: Session ID
+        request: ACH update request
+        current_user: Current authenticated user
+        db: Database session
+        
+    Returns:
+        ACHAnalysisResponse: Updated ACH analysis
+    """
+    logger.info(f"Updating ACH analysis {session_id}")
+    
+    # TODO: Implement actual database update
+    # For now, return mock updated data
+    
+    # Get current session (mock)
+    current_analysis = await get_ach_analysis(session_id, current_user, db)
+    
+    # Update fields
+    updated_title = request.title or current_analysis.title
+    updated_scenario = request.scenario or current_analysis.scenario
+    updated_key_question = request.key_question or current_analysis.key_question
+    updated_hypotheses = request.hypotheses or current_analysis.hypotheses
+    updated_evidence = request.evidence or current_analysis.evidence
+    updated_assessments = request.assessments or current_analysis.assessments
+    
+    # Generate updated matrix
+    matrix = _generate_ach_matrix(updated_hypotheses, updated_evidence, updated_assessments)
+    
+    return ACHAnalysisResponse(
+        session_id=session_id,
+        title=updated_title,
+        scenario=updated_scenario,
+        key_question=updated_key_question,
+        hypotheses=updated_hypotheses,
+        evidence=updated_evidence,
+        assessments=updated_assessments,
+        matrix=matrix,
+        status="in_progress",
+        version=current_analysis.version + 1
     )
 
 

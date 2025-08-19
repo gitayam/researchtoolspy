@@ -69,6 +69,16 @@ class SWOTAISuggestionRequest(BaseModel):
     additional_context: Optional[str] = None
 
 
+@router.post("/", response_model=SWOTAnalysisResponse)
+async def create_swot_analysis_simple(
+    request: SWOTCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> SWOTAnalysisResponse:
+    """Create SWOT analysis (standard endpoint)."""
+    return await create_swot_analysis(request, current_user, db)
+
+
 @router.post("/create", response_model=SWOTAnalysisResponse)
 async def create_swot_analysis(
     request: SWOTCreateRequest,
