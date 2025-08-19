@@ -17,20 +17,17 @@ const getApiBaseUrl = () => {
     return process.env.NEXT_PUBLIC_API_URL
   }
   
-  // If we're in browser and on a tunnel domain, use the backend tunnel
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname
-    if (hostname.includes('trycloudflare.com')) {
-      // Use the backend tunnel URL for public access
-      return 'https://increased-website-figures-stays.trycloudflare.com/api/v1'
-    }
-  }
-  
-  // Default to localhost for development
+  // For local development, always use localhost
+  // (Tunnel URL logic removed to prevent confusion)
   return 'http://localhost:8000/api/v1'
 }
 
 const API_BASE_URL = getApiBaseUrl()
+
+// Debug logging for API URL
+if (typeof window !== 'undefined') {
+  console.log('API Client initialized with base URL:', API_BASE_URL)
+}
 
 // Error types for better error handling
 export interface APIError {
