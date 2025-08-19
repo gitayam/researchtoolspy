@@ -53,33 +53,16 @@ def create_application() -> FastAPI:
     # Security middleware
     # CORS configuration for development
     if settings.ENVIRONMENT == "development":
-        cors_origins = [
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://localhost:3003",
-            "http://localhost:3380",
-            "http://localhost:6780",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:3001",
-            "http://127.0.0.1:3003",
-            "http://127.0.0.1:3380",
-            "http://127.0.0.1:6780",
-            # Add the specific Cloudflare tunnel URL
-            "https://estimation-officially-qatar-brandon.trycloudflare.com",
-        ]
-        
-        # Override with environment variable if set
-        if settings.BACKEND_CORS_ORIGINS:
-            cors_origins.extend([str(origin) for origin in settings.BACKEND_CORS_ORIGINS])
-        
+        # TEMPORARY: Allow all origins for demo
+        # TODO: Re-enable specific origins after demo
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=cors_origins,
-            allow_credentials=True,
+            allow_origins=["*"],  # WARNING: Temporary for demo only
+            allow_credentials=False,  # Must be False when using wildcard
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        print(f"CORS configured for development with origins: {cors_origins}")
+        print("WARNING: CORS configured to allow ALL origins (demo mode)")
     elif settings.BACKEND_CORS_ORIGINS:
         app.add_middleware(
             CORSMiddleware,
