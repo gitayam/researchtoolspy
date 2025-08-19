@@ -199,7 +199,7 @@ export default function CreatePMESIIPTPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">PMESII-PT Analysis</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">PMESII-PT Analysis</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Comprehensive environmental analysis framework across 8 key domains
           </p>
@@ -217,14 +217,14 @@ export default function CreatePMESIIPTPage() {
       {/* Basic Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
             <BarChart3 className="h-5 w-5" />
             Analysis Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Title</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -233,7 +233,7 @@ export default function CreatePMESIIPTPage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Description (optional)</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description (optional)</label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -265,7 +265,7 @@ export default function CreatePMESIIPTPage() {
                     value={item.text}
                     onChange={(e) => updateItem(factor.key, item.id, e.target.value)}
                     placeholder={factor.placeholder}
-                    className="flex-1 bg-white border-gray-300"
+                    className="flex-1 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                     rows={2}
                   />
                   <Button
@@ -293,9 +293,9 @@ export default function CreatePMESIIPTPage() {
       </div>
 
       {/* Analysis Guidelines */}
-      <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600">
+      <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
             <BarChart3 className="h-5 w-5" />
             PMESII-PT Analysis Guidelines
           </CardTitle>
@@ -303,8 +303,8 @@ export default function CreatePMESIIPTPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-3">
-              <h4 className="font-medium">Key Considerations:</h4>
-              <ul className="text-sm space-y-1 text-gray-600">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100">Key Considerations:</h4>
+              <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
                 <li>• Analyze interconnections between factors</li>
                 <li>• Consider both current state and trends</li>
                 <li>• Identify primary and secondary effects</li>
@@ -312,8 +312,8 @@ export default function CreatePMESIIPTPage() {
               </ul>
             </div>
             <div className="space-y-3">
-              <h4 className="font-medium">Best Practices:</h4>
-              <ul className="text-sm space-y-1 text-gray-600">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100">Best Practices:</h4>
+              <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
                 <li>• Use multiple sources of information</li>
                 <li>• Regularly update your assessment</li>
                 <li>• Consider adversary perspectives</li>

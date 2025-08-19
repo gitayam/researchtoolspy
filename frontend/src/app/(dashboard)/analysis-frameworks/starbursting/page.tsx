@@ -63,7 +63,7 @@ export default function StarburstingPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Starbursting Framework</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Starbursting Framework</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
               Explore ideas through systematic questioning and 5W analysis
             </p>
@@ -75,30 +75,30 @@ export default function StarburstingPage() {
         </div>
 
         {/* Framework Description */}
-        <Card className="border-2 border-dashed border-blue-300 bg-blue-50">
+        <Card className="border-2 border-dashed border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
               <Lightbulb className="h-5 w-5" />
               About Starbursting Analysis
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-700 mb-4">
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
               Starbursting is a brainstorming technique that focuses on generating questions rather than answers. 
               It helps systematically explore topics by asking Who, What, Where, When, Why, and How questions.
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-white p-3 rounded-lg">
-                <h4 className="font-medium text-blue-800">Central Idea</h4>
-                <p className="text-sm text-gray-600">Start with a topic or URL</p>
+              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h4 className="font-medium text-blue-800 dark:text-blue-400">Central Idea</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Start with a topic or URL</p>
               </div>
-              <div className="bg-white p-3 rounded-lg">
-                <h4 className="font-medium text-blue-800">5W Questions</h4>
-                <p className="text-sm text-gray-600">Who, What, Where, When, Why</p>
+              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h4 className="font-medium text-blue-800 dark:text-blue-400">5W Questions</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Who, What, Where, When, Why</p>
               </div>
-              <div className="bg-white p-3 rounded-lg">
-                <h4 className="font-medium text-blue-800">URL Processing</h4>
-                <p className="text-sm text-gray-600">Extract key insights from links</p>
+              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h4 className="font-medium text-blue-800 dark:text-blue-400">URL Processing</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Extract key insights from links</p>
               </div>
             </div>
           </CardContent>
@@ -163,7 +163,7 @@ export default function StarburstingPage() {
             <Card key={session.id} className="hover:shadow-md transition-shadow cursor-pointer">
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg leading-tight">{session.title}</CardTitle>
+                  <CardTitle className="text-lg leading-tight text-gray-900 dark:text-gray-100">{session.title}</CardTitle>
                   <Badge className={statusColors[session.status]}>
                     {session.status.replace('_', ' ')}
                   </Badge>
@@ -175,7 +175,7 @@ export default function StarburstingPage() {
                 )}
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     {formatRelativeTime(session.created_at)}
@@ -211,8 +211,8 @@ export default function StarburstingPage() {
         <Card className="text-center py-12">
           <CardContent>
             <Lightbulb className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Starbursting Analyses</h3>
-            <p className="text-gray-500 mb-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Starbursting Analyses</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">
               Create your first Starbursting analysis to start exploring ideas through systematic questioning.
             </p>
             <Button onClick={handleCreateNew}>
