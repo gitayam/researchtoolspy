@@ -338,7 +338,7 @@ export default function ContentExtractionPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Content Extraction & Summarization</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Content Extraction & Summarization</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
           Extract and analyze content from web pages with AI-powered summarization
         </p>
@@ -357,7 +357,7 @@ export default function ContentExtractionPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium">URL</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">URL</label>
             <div className="flex gap-2 mt-1">
               <Input
                 value={url}
@@ -387,12 +387,12 @@ export default function ContentExtractionPage() {
               </Button>
             </div>
             {error && (
-              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
-                <div className="flex items-center gap-2 text-red-700">
+              <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
                   <AlertCircle className="h-4 w-4" />
                   <span className="text-sm font-medium">Extraction Error</span>
                 </div>
-                <p className="text-sm text-red-600 mt-1">{error}</p>
+                <p className="text-sm text-red-600 dark:text-red-400 mt-1">{error}</p>
               </div>
             )}
           </div>
@@ -447,31 +447,31 @@ export default function ContentExtractionPage() {
                   <div className="text-2xl font-bold text-blue-600">
                     {result.metadata.word_count.toLocaleString()}
                   </div>
-                  <div className="text-sm text-gray-500">Words</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Words</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">
                     {result.metadata.reading_time}
                   </div>
-                  <div className="text-sm text-gray-500">Min Read</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Min Read</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600">
                     {result.metadata.links_count || 0}
                   </div>
-                  <div className="text-sm text-gray-500">Links</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Links</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-orange-600">
                     {result.metadata.images_count || 0}
                   </div>
-                  <div className="text-sm text-gray-500">Images</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Images</div>
                 </div>
               </div>
 
               {/* URL and Title */}
               <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                   <ExternalLink className="h-4 w-4" />
                   <a href={result.url} target="_blank" rel="noopener noreferrer" className="hover:underline break-all">
                     {result.url}
@@ -480,19 +480,19 @@ export default function ContentExtractionPage() {
                 
                 {result.title && (
                   <div>
-                    <h3 className="font-semibold text-lg text-gray-900">{result.title}</h3>
+                    <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{result.title}</h3>
                   </div>
                 )}
               </div>
 
               {/* Enhanced Metadata */}
               <div className="border-t pt-4">
-                <h4 className="font-medium text-gray-800 mb-3">Detailed Metadata</h4>
+                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-3">Detailed Metadata</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {result.metadata.domain && (
                     <div className="flex items-center gap-2 text-sm">
                       <Globe2 className="h-4 w-4 text-blue-500" />
-                      <span className="text-gray-500">Domain:</span>
+                      <span className="text-gray-500 dark:text-gray-400">Domain:</span>
                       <span className="font-medium">{result.metadata.domain}</span>
                     </div>
                   )}
@@ -500,7 +500,7 @@ export default function ContentExtractionPage() {
                   {result.metadata.language && (
                     <div className="flex items-center gap-2 text-sm">
                       <Languages className="h-4 w-4 text-green-500" />
-                      <span className="text-gray-500">Language:</span>
+                      <span className="text-gray-500 dark:text-gray-400">Language:</span>
                       <span className="font-medium">{result.metadata.language.toUpperCase()}</span>
                     </div>
                   )}
@@ -731,26 +731,26 @@ export default function ContentExtractionPage() {
       )}
 
       {/* Help Section */}
-      <Card className="bg-gray-50">
+      <Card className="bg-gray-50 dark:bg-gray-800">
         <CardHeader>
-          <CardTitle className="text-lg">How to Use</CardTitle>
+          <CardTitle className="text-lg text-gray-900 dark:text-gray-100">How to Use</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 text-sm text-gray-600">
+          <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
             <div className="flex items-start gap-2">
-              <span className="text-blue-500 mt-1">1.</span>
+              <span className="text-blue-500 dark:text-blue-400 mt-1">1.</span>
               <span>Enter the URL of the webpage you want to analyze</span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-blue-500 mt-1">2.</span>
+              <span className="text-blue-500 dark:text-blue-400 mt-1">2.</span>
               <span>Click "Extract" to retrieve and process the content</span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-blue-500 mt-1">3.</span>
+              <span className="text-blue-500 dark:text-blue-400 mt-1">3.</span>
               <span>Use "Generate Summary" to create AI-powered insights and key points</span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-blue-500 mt-1">4.</span>
+              <span className="text-blue-500 dark:text-blue-400 mt-1">4.</span>
               <span>Export the results or copy content for use in your analysis frameworks</span>
             </div>
           </div>
