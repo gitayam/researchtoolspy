@@ -31,7 +31,7 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchSessions()
     fetchRecentSessions()
-  }, [fetchSessions, fetchRecentSessions])
+  }, []) // Empty dependency array - only run once on mount
 
   // Calculate framework stats from real data
   const frameworkStats = useMemo(() => {
