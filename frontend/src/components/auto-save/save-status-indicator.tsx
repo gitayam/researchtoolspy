@@ -27,7 +27,7 @@ export function SaveStatusIndicator({
       <HardDrive className="h-4 w-4 text-green-500" />
       <span className="font-medium text-green-500">Auto-save active</span>
       <div className="flex items-center gap-1 ml-2 pl-2 border-l border-gray-300 dark:border-gray-600">
-        <HardDrive className="h-4 w-4 text-gray-400" />
+        <HardDrive className="h-4 w-4 text-gray-400 dark:text-gray-500" />
         <span className="text-gray-500 dark:text-gray-400 text-xs">Local</span>
       </div>
     </div>
