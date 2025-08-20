@@ -7,7 +7,7 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +15,7 @@ from app.core.database import get_db
 from app.core.logging import get_logger
 from app.core.security import create_token_pair, Token, get_password_hash
 from app.models.user import UserRole, User
+from app.models.auth_log import AuthLog
 from sqlalchemy import select
 
 logger = get_logger(__name__)
@@ -90,6 +91,7 @@ for hash_key in VALID_ACCOUNT_HASHES:
 @router.post("/authenticate", response_model=HashAuthResponse)
 async def authenticate_with_hash(
     request: HashAuthRequest,
+    http_request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> HashAuthResponse:
     """
@@ -165,7 +167,20 @@ async def authenticate_with_hash(
         scopes=scopes
     )
     
-    logger.info(f"Successful hash authentication for: {request.account_hash[:4]}...")
+    # Log successful login attempt
+    auth_log = AuthLog(
+        user_id=user.id,
+        account_hash=request.account_hash,
+        success=True,
+        ip_address=http_request.client.host if http_request.client else None,
+        user_agent=http_request.headers.get("user-agent"),
+        session_token=tokens.access_token[:20] + "...",  # Log partial token for identification
+        login_at=datetime.utcnow()
+    )
+    db.add(auth_log)
+    await db.commit()
+    
+    logger.info(f"Successful hash authentication for: {request.account_hash[:4]}... from IP: {auth_log.ip_address}")
     
     return HashAuthResponse(
         access_token=tokens.access_token,
@@ -183,10 +198,10 @@ async def register_new_account(
 ) -> dict:
     """
     Register a new account by generating a unique account hash.
-    No personal information required.
+    Creates user record in database with timestamp.
     
     Args:
-        db: Database session (for future use)
+        db: Database session
         
     Returns:
         dict: New account hash and instructions
@@ -195,21 +210,52 @@ async def register_new_account(
     max_attempts = 100
     for _ in range(max_attempts):
         new_hash = generate_account_hash()
-        if new_hash not in VALID_ACCOUNT_HASHES:
-            # Add to valid hashes
-            VALID_ACCOUNT_HASHES[new_hash] = {
-                "role": UserRole.ANALYST,  # Default role
-                "created_at": datetime.utcnow(),
-                "last_login": None,
-                "is_active": True
-            }
+        
+        # Check if hash already exists in database
+        result = await db.execute(
+            select(User).where(User.account_hash == new_hash)
+        )
+        existing_user = result.scalar_one_or_none()
+        
+        if not existing_user:
+            # Create new user in database
+            username = f"user_{new_hash[:8]}"
+            email = f"{username}@researchtools.dev"
             
-            logger.info(f"New account registered: {new_hash[:4]}...")
+            # Check if username already exists (edge case)
+            existing_result = await db.execute(
+                select(User).where(User.username == username)
+            )
+            if existing_result.scalar_one_or_none():
+                # Add a random suffix if username collision
+                import random
+                username = f"user_{new_hash[:8]}_{random.randint(100, 999)}"
+                email = f"{username}@researchtools.dev"
+            
+            # Create new user record with timestamp
+            user = User(
+                username=username,
+                email=email,
+                full_name=f"Research Analyst {new_hash[:4]}",
+                hashed_password=get_password_hash(new_hash),
+                account_hash=new_hash,
+                role=UserRole.ANALYST,  # Default role for new accounts
+                is_active=True,
+                is_verified=True,
+                organization="Research Tools Platform",
+                department="Analysis"
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+            
+            logger.info(f"New account registered in database: {new_hash[:4]}... at {user.created_at}")
             
             return {
                 "account_hash": new_hash,
                 "message": "Account created successfully. Save this account hash - it cannot be recovered if lost.",
-                "warning": "This is your only authentication credential. Store it securely."
+                "warning": "This is your only authentication credential. Store it securely.",
+                "created_at": user.created_at.isoformat()
             }
     
     # Extremely unlikely to reach here given the keyspace

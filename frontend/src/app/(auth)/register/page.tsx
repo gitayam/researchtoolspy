@@ -7,17 +7,36 @@ import { Copy, Check, Bookmark, Share2, Shield, AlertCircle, RefreshCw } from 'l
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { generateBookmarkHash, formatHashForDisplay } from '@/lib/hash-auth'
+import { formatHashForDisplay } from '@/lib/hash-auth'
+import { apiClient } from '@/lib/api'
 
 export default function RegisterPage() {
   const router = useRouter()
   const [accountHash, setAccountHash] = useState('')
   const [copied, setCopied] = useState(false)
   const [hashSaved, setHashSaved] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
   
-  // Generate hash only on client side to avoid hydration mismatch
+  // Generate hash using backend API on client side
   useEffect(() => {
-    setAccountHash(generateBookmarkHash())
+    const registerHash = async () => {
+      try {
+        setLoading(true)
+        setError('')
+        console.log('Frontend: Requesting hash from backend...')
+        const result = await apiClient.registerWithHash()
+        setAccountHash(result.account_hash)
+        console.log('Frontend: Hash registered successfully:', result.account_hash.substring(0, 4) + '...')
+      } catch (err) {
+        console.error('Frontend: Hash registration failed:', err)
+        setError('Failed to generate bookmark hash. Please refresh the page to try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    registerHash()
   }, [])
 
   const handleCopyHash = async () => {
@@ -30,10 +49,22 @@ export default function RegisterPage() {
     }
   }
 
-  const handleGenerateNew = () => {
-    setAccountHash(generateBookmarkHash())
-    setCopied(false)
-    setHashSaved(false)
+  const handleGenerateNew = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      setCopied(false)
+      setHashSaved(false)
+      console.log('Frontend: Requesting new hash from backend...')
+      const result = await apiClient.registerWithHash()
+      setAccountHash(result.account_hash)
+      console.log('Frontend: New hash registered successfully:', result.account_hash.substring(0, 4) + '...')
+    } catch (err) {
+      console.error('Frontend: New hash registration failed:', err)
+      setError('Failed to generate new bookmark hash. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSaveAndContinue = () => {
@@ -83,6 +114,14 @@ export default function RegisterPage() {
         <CardContent className="space-y-6">
           {!hashSaved ? (
             <>
+              {/* Error Display */}
+              {error && (
+                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-md">
+                  <AlertCircle className="h-4 w-4" />
+                  {error}
+                </div>
+              )}
+
               {/* Hash Display */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -90,12 +129,12 @@ export default function RegisterPage() {
                     Your Bookmark Code
                   </label>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {accountHash ? 'Click the copy button →' : 'Generating...'}
+                    {loading ? 'Generating...' : accountHash ? 'Click the copy button →' : 'Ready to generate'}
                   </span>
                 </div>
                 <div className="relative">
                   <div className="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-3 font-mono text-sm break-all text-gray-900 dark:text-gray-100 min-h-[48px] flex items-center">
-                    {accountHash ? formattedHash : 'Generating secure hash...'}
+                    {loading ? 'Generating secure hash from server...' : accountHash ? formattedHash : 'Failed to generate hash'}
                   </div>
                   {accountHash && (
                     <Button
@@ -174,18 +213,19 @@ export default function RegisterPage() {
                 <Button
                   onClick={handleGenerateNew}
                   variant="outline"
-                  className="w-full border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  disabled={loading}
+                  className="w-full border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                 >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Generate New Hash
+                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Generating...' : 'Generate New Hash'}
                 </Button>
                 
                 <Button
                   onClick={handleSaveAndContinue}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!copied}
+                  disabled={!copied || loading || !accountHash}
                 >
-                  {copied ? "I've Saved My Hash - Continue" : "Copy Hash First"}
+                  {copied && accountHash ? "I've Saved My Hash - Continue" : loading ? "Generating Hash..." : "Copy Hash First"}
                 </Button>
               </div>
             </>

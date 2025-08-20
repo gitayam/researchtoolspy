@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import (
 )
 # Import models to ensure they're registered with metadata
 from app.models.base import Base
-from app.models import user, framework, research_tool  # Import all model modules
+from app.models import user, framework, research_tool, auth_log  # Import all model modules
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings

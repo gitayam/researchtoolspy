@@ -12,6 +12,7 @@ from app.models.base import BaseModel
 
 if TYPE_CHECKING:
     from app.models.framework import FrameworkSession
+    from app.models.auth_log import AuthLog
 
 
 class UserRole(str, Enum):
@@ -113,6 +114,12 @@ class User(BaseModel):
     
     api_keys: Mapped[list["APIKey"]] = relationship(
         "APIKey",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    
+    auth_logs: Mapped[list["AuthLog"]] = relationship(
+        "AuthLog",
         back_populates="user",
         cascade="all, delete-orphan",
     )

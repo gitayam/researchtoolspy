@@ -191,6 +191,25 @@ export class APIClient {
     }
   }
 
+  // Hash-based registration
+  async registerWithHash(): Promise<{ account_hash: string; message: string; warning: string; created_at: string }> {
+    console.log('API Client: Requesting new hash registration from backend')
+    
+    const response = await this.client.post<{
+      account_hash: string
+      message: string
+      warning: string
+      created_at: string
+    }>('/hash-auth/register')
+    
+    console.log('API Client: Hash registration successful:', {
+      hash: response.data.account_hash.substring(0, 4) + '...',
+      created_at: response.data.created_at
+    })
+    
+    return response.data
+  }
+
   // Hash-based login (Mullvad-style)
   async loginWithHash(hashCredentials: HashLoginRequest): Promise<LoginResponse> {
     try {
