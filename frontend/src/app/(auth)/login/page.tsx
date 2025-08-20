@@ -111,7 +111,7 @@ export default function AccessPage() {
             {error && (
               <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-md">
                 <AlertCircle className="h-4 w-4" />
-                {error}
+                {typeof error === 'string' ? error : 'An error occurred during login'}
               </div>
             )}
 

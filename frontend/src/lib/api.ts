@@ -101,7 +101,22 @@ export class APIClient {
   private handleError(error: AxiosError): APIError {
     if (error.response) {
       const data = error.response.data as any
-      const message = data?.detail || data?.message || 'An error occurred'
+      let message = 'An error occurred'
+      
+      // Handle different error formats from the backend
+      if (data?.detail) {
+        if (typeof data.detail === 'string') {
+          message = data.detail
+        } else if (Array.isArray(data.detail)) {
+          // FastAPI validation error format
+          message = data.detail[0]?.msg || 'Invalid input'
+        } else if (typeof data.detail === 'object') {
+          message = data.detail.message || JSON.stringify(data.detail)
+        }
+      } else if (data?.message) {
+        message = data.message
+      }
+      
       return {
         message,
         status: error.response.status,

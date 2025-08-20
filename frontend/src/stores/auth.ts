@@ -68,6 +68,8 @@ export const useAuthStore = create<AuthState>()(
           } catch (error) {
             const apiError = error as APIError
             console.error('Auth store: Hash login failed:', apiError)
+            
+            // The API client now properly extracts the error message
             set({
               isLoading: false,
               error: apiError.message || 'Hash login failed'

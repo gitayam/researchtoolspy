@@ -113,6 +113,7 @@ async def authenticate_with_hash(
         select(User).where(User.account_hash == request.account_hash)
     )
     user = result.scalar_one_or_none()
+    logger.info(f"Database lookup for hash {request.account_hash[:4]}...: {'Found' if user else 'Not found'}")
     
     if not user:
         # Create new user automatically for any valid 16-digit hash
