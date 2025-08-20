@@ -55,6 +55,14 @@ class User(BaseModel):
         nullable=False,
     )
     
+    # Hash-based authentication (Mullvad-style)
+    account_hash: Mapped[str | None] = mapped_column(
+        String(16),
+        unique=True,
+        index=True,
+        nullable=True,
+    )
+    
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         default=True,

@@ -98,7 +98,7 @@ async def authenticate_with_hash(
     
     Args:
         request: Hash authentication request
-        db: Database session (for future use)
+        db: Database session
         
     Returns:
         HashAuthResponse: Authentication tokens and account info
@@ -108,47 +108,36 @@ async def authenticate_with_hash(
     """
     logger.info(f"Hash authentication attempt: {request.account_hash[:4]}...")
     
-    # Check if account hash exists and is valid
-    account_info = VALID_ACCOUNT_HASHES.get(request.account_hash)
-    
-    if not account_info:
-        # Don't reveal whether the hash exists or not
-        # Just return a generic error after a small delay to prevent timing attacks
-        import asyncio
-        await asyncio.sleep(0.1)  # Small delay to prevent timing attacks
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    if not account_info.get("is_active", True):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is inactive"
-        )
-    
-    # Update last login time
-    account_info["last_login"] = datetime.utcnow()
-    
-    # Create or get user record in database
-    username = f"user_{request.account_hash[:8]}"  # Anonymous username
-    email = f"{username}@researchtools.dev"
-    
-    # Check if user already exists
+    # Check if user with this account hash exists in database
     result = await db.execute(
-        select(User).where(User.username == username)
+        select(User).where(User.account_hash == request.account_hash)
     )
     user = result.scalar_one_or_none()
     
     if not user:
+        # Create new user automatically for any valid 16-digit hash
+        # This allows the frontend-generated hashes to work immediately
+        username = f"user_{request.account_hash[:8]}"
+        email = f"{username}@researchtools.dev"
+        
+        # Check if username already exists (edge case)
+        existing_result = await db.execute(
+            select(User).where(User.username == username)
+        )
+        if existing_result.scalar_one_or_none():
+            # Add a random suffix if username collision
+            import random
+            username = f"user_{request.account_hash[:8]}_{random.randint(100, 999)}"
+            email = f"{username}@researchtools.dev"
+        
         # Create new user record
         user = User(
             username=username,
             email=email,
             full_name=f"Research Analyst {request.account_hash[:4]}",
-            hashed_password=get_password_hash(request.account_hash),  # Hash the account hash as password
-            role=account_info["role"],
+            hashed_password=get_password_hash(request.account_hash),
+            account_hash=request.account_hash,
+            role=UserRole.ANALYST,  # Default role for new users
             is_active=True,
             is_verified=True,
             organization="Research Tools Platform",
@@ -157,15 +146,21 @@ async def authenticate_with_hash(
         db.add(user)
         await db.commit()
         await db.refresh(user)
-        logger.info(f"Created new user record for hash auth: {username}")
+        logger.info(f"Auto-created new user for hash: {request.account_hash[:4]}...")
     
-    user_id = user.id
-    scopes = ["admin"] if account_info["role"] == UserRole.ADMIN else ["user"]
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is inactive"
+        )
+    
+    # Determine scopes based on role
+    scopes = ["admin"] if user.role == UserRole.ADMIN else ["user"]
     
     # Use create_token_pair which handles both tokens correctly
     tokens = create_token_pair(
-        user_id=user_id,
-        username=username,
+        user_id=user.id,
+        username=user.username,
         scopes=scopes
     )
     
@@ -177,7 +172,7 @@ async def authenticate_with_hash(
         token_type=tokens.token_type,
         expires_in=tokens.expires_in,
         account_hash=request.account_hash,
-        role=account_info["role"]
+        role=user.role
     )
 
 
