@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Copy, Check, Bookmark, Share2, Shield, AlertCircle, RefreshCw } from 'lucide-react'
@@ -11,9 +11,14 @@ import { generateBookmarkHash, formatHashForDisplay } from '@/lib/hash-auth'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [accountHash, setAccountHash] = useState(() => generateBookmarkHash())
+  const [accountHash, setAccountHash] = useState('')
   const [copied, setCopied] = useState(false)
   const [hashSaved, setHashSaved] = useState(false)
+  
+  // Generate hash only on client side to avoid hydration mismatch
+  useEffect(() => {
+    setAccountHash(generateBookmarkHash())
+  }, [])
 
   const handleCopyHash = async () => {
     try {
@@ -85,31 +90,33 @@ export default function RegisterPage() {
                     Your Bookmark Code
                   </label>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Click the copy button →
+                    {accountHash ? 'Click the copy button →' : 'Generating...'}
                   </span>
                 </div>
                 <div className="relative">
-                  <div className="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-3 font-mono text-sm break-all text-gray-900 dark:text-gray-100">
-                    {formattedHash}
+                  <div className="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-3 font-mono text-sm break-all text-gray-900 dark:text-gray-100 min-h-[48px] flex items-center">
+                    {accountHash ? formattedHash : 'Generating secure hash...'}
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCopyHash}
-                    className="absolute right-2 top-2 h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                    title={copied ? "Copied!" : "Copy hash to clipboard"}
-                  >
-                    {copied ? (
-                      <Check className="h-3 w-3 text-green-500" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                  </Button>
+                  {accountHash && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyHash}
+                      className="absolute right-2 top-2 h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                      title={copied ? "Copied!" : "Copy hash to clipboard"}
+                    >
+                      {copied ? (
+                        <Check className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  )}
                 </div>
                 {copied && (
                   <p className="text-xs text-green-600 dark:text-green-400 font-medium">
-                    ✓ Hash copied! Now save it in your password manager.
+                    {'✓'} Hash copied! Now save it in your password manager.
                   </p>
                 )}
               </div>
@@ -120,7 +127,7 @@ export default function RegisterPage() {
                   <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                   <div className="space-y-2">
                     <h3 className="font-medium text-amber-800 dark:text-amber-200">
-                      ⚠️ Critical: Save This Hash Now
+                      {'⚠️'} Critical: Save This Hash Now
                     </h3>
                     <div className="space-y-1">
                       <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
@@ -158,7 +165,7 @@ export default function RegisterPage() {
               {/* Final Warning */}
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-3">
                 <p className="text-sm text-red-700 dark:text-red-300 font-medium text-center">
-                  🚫 NO RECOVERY • LOST CODE = LOST WORK • SAVE THIS CODE
+                  {'🚫'} NO RECOVERY • LOST CODE = LOST WORK • SAVE THIS CODE
                 </p>
               </div>
 
@@ -178,7 +185,7 @@ export default function RegisterPage() {
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!copied}
                 >
-                  {copied ? "✓ I've Saved My Hash - Continue" : "Copy Hash First"}
+                  {copied ? "I've Saved My Hash - Continue" : "Copy Hash First"}
                 </Button>
               </div>
             </>
