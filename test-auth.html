@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Authentication Test</h1>
+    <button onclick="checkStorage()">Check Storage</button>
+    <button onclick="clearStorage()">Clear Storage</button>
+    <pre id="output"></pre>
+    
+    <script>
+        function checkStorage() {
+            const output = document.getElementById('output');
+            const tokens = localStorage.getItem('omnicore_tokens');
+            const auth = localStorage.getItem('omnicore_auth');
+            const userHash = localStorage.getItem('omnicore_user_hash');
+            
+            output.textContent = JSON.stringify({
+                tokens: tokens ? JSON.parse(tokens) : null,
+                auth: auth ? JSON.parse(auth) : null,
+                userHash: userHash,
+                allKeys: Object.keys(localStorage)
+            }, null, 2);
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            alert('Storage cleared');
+            checkStorage();
+        }
+        
+        // Check on load
+        checkStorage();
+    </script>
+</body>
+</html>
