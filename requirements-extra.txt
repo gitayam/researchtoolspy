@@ -1,0 +1,11 @@
+# Additional dependencies
+streamlit-extras>=0.7.1
+playwright>=1.52.0
+chromedriver-binary>=138.0.7201.0.0
+wikipedia>=1.4.0
+yt-dlp>=2024.3.10
+instaloader>=4.14.1
+praw>=7.8.1
+tweepy>=4.15.0
+manubot>=0.6.1
+titlecase>=2.4.1 

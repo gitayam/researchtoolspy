@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Next.js Auth Flow</title>
+</head>
+<body>
+    <h1>Next.js Authentication Flow Test</h1>
+    <p>This page helps test the actual Next.js frontend authentication</p>
+    
+    <div style="margin: 20px; padding: 20px; border: 1px solid #ccc;">
+        <h2>Test Instructions:</h2>
+        <ol>
+            <li><a href="http://localhost:6780/register" target="_blank">Open Register Page</a> - Generate a new hash</li>
+            <li>Copy the generated hash (click the copy button)</li>
+            <li>Click "I've Saved My Hash - Continue" button</li>
+            <li>You should be redirected to login with your hash pre-filled</li>
+            <li>Click "Access Work" to log in</li>
+            <li>You should be redirected to the dashboard</li>
+        </ol>
+    </div>
+
+    <div style="margin: 20px; padding: 20px; border: 1px solid #ccc;">
+        <h2>Direct Login Test:</h2>
+        <p><a href="http://localhost:6780/login" target="_blank">Open Login Page</a></p>
+        <p>Use test hash: <code>1234567890123456</code></p>
+    </div>
+
+    <div style="margin: 20px; padding: 20px; border: 1px solid #ccc;">
+        <h2>API Test (from this page):</h2>
+        <button onclick="testAPIDirectly()">Test API from Browser</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function testAPIDirectly() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/hash-auth/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': 'http://localhost:6780'
+                    },
+                    body: JSON.stringify({ account_hash: '1234567890123456' })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3>✅ API Test Successful!</h3>
+                    <p>Access Token: ${data.access_token.substring(0, 50)}...</p>
+                    <p>Role: ${data.role}</p>
+                    <p>Expires in: ${data.expires_in} seconds</p>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>❌ API Test Failed</h3>
+                    <p>Error: ${error.message}</p>
+                    <p>Note: This is expected to fail from file:// origin</p>
+                    <p>The actual Next.js pages at http://localhost:6780 will work!</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

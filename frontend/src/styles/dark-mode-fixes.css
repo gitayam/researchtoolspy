@@ -1,0 +1,248 @@
+/* Dark Mode Contrast Fixes for Research Tools Platform */
+
+/* Input and Textarea Dark Mode Fixes */
+.dark input,
+.dark textarea {
+  background-color: rgb(30, 41, 59); /* slate-800 */
+  color: rgb(226, 232, 240); /* slate-200 */
+  border-color: rgb(71, 85, 105); /* slate-600 */
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgb(148, 163, 184); /* slate-400 */
+}
+
+.dark input:focus,
+.dark textarea:focus {
+  border-color: rgb(100, 116, 139); /* slate-500 */
+  background-color: rgb(30, 41, 59); /* slate-800 */
+}
+
+/* Card Dark Mode Fixes */
+.dark .border-gray-200 {
+  border-color: rgb(71, 85, 105); /* slate-600 */
+}
+
+.dark .bg-gray-50 {
+  background-color: rgb(30, 41, 59); /* slate-800 */
+}
+
+.dark .bg-white {
+  background-color: rgb(15, 23, 42); /* slate-900 */
+  color: rgb(226, 232, 240); /* slate-200 */
+}
+
+/* Text Visibility Fixes */
+.dark .text-gray-500 {
+  color: rgb(148, 163, 184); /* slate-400 */
+}
+
+.dark .text-gray-600 {
+  color: rgb(148, 163, 184); /* slate-400 */
+}
+
+.dark .text-gray-700 {
+  color: rgb(203, 213, 225); /* slate-300 */
+}
+
+.dark .text-gray-800 {
+  color: rgb(226, 232, 240); /* slate-200 */
+}
+
+.dark .text-gray-900 {
+  color: rgb(241, 245, 249); /* slate-100 */
+}
+
+/* Badge Dark Mode Fixes */
+.dark .bg-gray-100 {
+  background-color: rgb(51, 65, 85); /* slate-700 */
+  color: rgb(226, 232, 240); /* slate-200 */
+}
+
+/* Button Dark Mode Fixes */
+.dark button[variant="outline"] {
+  background-color: transparent;
+  border-color: rgb(71, 85, 105); /* slate-600 */
+  color: rgb(226, 232, 240); /* slate-200 */
+}
+
+.dark button[variant="outline"]:hover {
+  background-color: rgb(51, 65, 85); /* slate-700 */
+  border-color: rgb(100, 116, 139); /* slate-500 */
+}
+
+/* Analysis Results Cards - Maintain Color Contrast */
+.dark .bg-green-50 {
+  background-color: rgb(5, 46, 22); /* dark green */
+  color: rgb(134, 239, 172); /* green-300 */
+}
+
+.dark .bg-blue-50 {
+  background-color: rgb(23, 37, 84); /* dark blue */
+  color: rgb(147, 197, 253); /* blue-300 */
+}
+
+.dark .bg-yellow-50 {
+  background-color: rgb(66, 32, 6); /* dark yellow */
+  color: rgb(252, 211, 77); /* yellow-300 */
+}
+
+.dark .bg-orange-50 {
+  background-color: rgb(67, 20, 7); /* dark orange */
+  color: rgb(253, 186, 116); /* orange-300 */
+}
+
+.dark .bg-red-50 {
+  background-color: rgb(69, 10, 10); /* dark red */
+  color: rgb(252, 165, 165); /* red-300 */
+}
+
+/* Border Colors in Dark Mode */
+.dark .border-green-300 {
+  border-color: rgb(34, 197, 94); /* green-500 */
+}
+
+.dark .border-blue-300 {
+  border-color: rgb(59, 130, 246); /* blue-500 */
+}
+
+.dark .border-yellow-300 {
+  border-color: rgb(234, 179, 8); /* yellow-500 */
+}
+
+.dark .border-orange-300 {
+  border-color: rgb(249, 115, 22); /* orange-500 */
+}
+
+.dark .border-red-300 {
+  border-color: rgb(239, 68, 68); /* red-500 */
+}
+
+/* Dashed Borders in Dark Mode */
+.dark .border-dashed {
+  border-color: rgb(71, 85, 105); /* slate-600 */
+}
+
+/* Gradient Backgrounds in Dark Mode */
+.dark .bg-gradient-to-br {
+  opacity: 0.9;
+}
+
+/* Score Display Text Colors - Ensure Visibility */
+.dark .text-green-600 {
+  color: rgb(74, 222, 128); /* green-400 */
+}
+
+.dark .text-red-600 {
+  color: rgb(248, 113, 113); /* red-400 */
+}
+
+.dark .text-blue-600 {
+  color: rgb(96, 165, 250); /* blue-400 */
+}
+
+.dark .text-yellow-600 {
+  color: rgb(251, 191, 36); /* yellow-400 */
+}
+
+.dark .text-orange-600 {
+  color: rgb(251, 146, 60); /* orange-400 */
+}
+
+.dark .text-purple-600 {
+  color: rgb(196, 181, 253); /* purple-400 */
+}
+
+/* Score Labels Background - Better Contrast */
+.dark .bg-green-100 {
+  background-color: rgb(22, 101, 52); /* green-800 */
+  color: rgb(187, 247, 208); /* green-200 */
+}
+
+.dark .bg-blue-100 {
+  background-color: rgb(30, 64, 175); /* blue-800 */
+  color: rgb(191, 219, 254); /* blue-200 */
+}
+
+.dark .bg-yellow-100 {
+  background-color: rgb(133, 77, 14); /* yellow-800 */
+  color: rgb(254, 240, 138); /* yellow-200 */
+}
+
+.dark .bg-red-100 {
+  background-color: rgb(127, 29, 29); /* red-800 */
+  color: rgb(254, 202, 202); /* red-200 */
+}
+
+/* Dropdown and Popover Dark Mode */
+.dark [role="menu"],
+.dark [role="listbox"],
+.dark [data-radix-popper-content-wrapper] {
+  background-color: rgb(30, 41, 59); /* slate-800 */
+  border-color: rgb(71, 85, 105); /* slate-600 */
+  color: rgb(226, 232, 240); /* slate-200 */
+}
+
+/* Hover States in Dark Mode */
+.dark .hover\:bg-gray-50:hover {
+  background-color: rgb(51, 65, 85); /* slate-700 */
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: rgb(71, 85, 105); /* slate-600 */
+}
+
+/* Focus States in Dark Mode */
+.dark .focus\:ring-2 {
+  --tw-ring-color: rgb(100, 116, 139); /* slate-500 */
+}
+
+/* Separator Lines */
+.dark hr,
+.dark .divide-y > *:not([hidden]) ~ *:not([hidden]) {
+  border-color: rgb(71, 85, 105); /* slate-600 */
+}
+
+/* Skeleton Loading in Dark Mode */
+.dark .animate-pulse {
+  background-color: rgb(51, 65, 85); /* slate-700 */
+}
+
+/* Table Headers and Cells */
+.dark th {
+  background-color: rgb(30, 41, 59); /* slate-800 */
+  color: rgb(226, 232, 240); /* slate-200 */
+}
+
+.dark td {
+  border-color: rgb(71, 85, 105); /* slate-600 */
+  color: rgb(203, 213, 225); /* slate-300 */
+}
+
+/* Alert and Info Boxes */
+.dark .bg-blue-50 {
+  background-color: rgb(23, 37, 84); /* dark blue */
+  color: rgb(191, 219, 254); /* blue-200 */
+}
+
+.dark .text-blue-800 {
+  color: rgb(147, 197, 253); /* blue-300 */
+}
+
+.dark .text-blue-600 {
+  color: rgb(96, 165, 250); /* blue-400 */
+}
+
+/* Scrollbar Styling for Dark Mode */
+.dark ::-webkit-scrollbar {
+  background-color: rgb(30, 41, 59); /* slate-800 */
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: rgb(71, 85, 105); /* slate-600 */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(100, 116, 139); /* slate-500 */
+}

@@ -1,0 +1,141 @@
+/* Visualization and UI styles shared between CauseWay and COG apps */
+
+/* Base styles */
+:root {
+    --primary-color: #4299e1;
+    --success-color: #48bb78;
+    --warning-color: #ed8936;
+    --bg-light: #f8f9fa;
+    --bg-dark: #1a202c;
+    --text-light: #2d3748;
+    --text-dark: #e2e8f0;
+    --border-light: #e2e8f0;
+    --border-dark: #4a5568;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] {
+    --bg-color: var(--bg-dark);
+    --text-color: var(--text-dark);
+    --border-color: var(--border-dark);
+}
+[data-theme="light"] {
+    --bg-color: var(--bg-light);
+    --text-color: var(--text-light);
+    --border-color: var(--border-light);
+}
+
+/* Dark mode specific overrides */
+.stApp[data-theme="dark"] {
+    background-color: var(--bg-dark);
+    color: var(--text-dark);
+}
+
+.stApp[data-theme="dark"] .main-header,
+.stApp[data-theme="dark"] .section-header,
+.stApp[data-theme="dark"] .info-box,
+.stApp[data-theme="dark"] .success-box,
+.stApp[data-theme="dark"] .warning-box,
+.stApp[data-theme="dark"] .suggestion-card {
+    color: var(--text-dark);
+}
+
+.stApp[data-theme="dark"] .suggestion-card {
+    background-color: rgba(45, 55, 72, 0.5);
+    border-color: var(--border-dark);
+}
+
+.stApp[data-theme="dark"] .info-box {
+    background-color: rgba(45, 55, 72, 0.5);
+}
+
+.stApp[data-theme="dark"] .success-box {
+    background-color: rgba(72, 187, 120, 0.2);
+}
+
+.stApp[data-theme="dark"] .warning-box {
+    background-color: rgba(237, 137, 54, 0.2);
+}
+
+/* General styles */
+.main-header {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    color: var(--text-color);
+}
+.section-header {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 1.5rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--text-color);
+}
+.info-box, .success-box, .warning-box {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+    color: var(--text-color);
+}
+.info-box { background-color: var(--bg-color); border-left: 4px solid var(--primary-color); }
+.success-box { background-color: rgba(72, 187, 120, 0.1); border-left: 4px solid var(--success-color); }
+.warning-box { background-color: rgba(237, 137, 54, 0.1); border-left: 4px solid var(--warning-color); }
+
+.suggestion-card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    background-color: var(--bg-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    color: var(--text-color);
+}
+.suggestion-card:hover {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+/* Importance indicators */
+.importance-high { color: #48bb78; font-weight: bold; }
+.importance-medium { color: #ecc94b; font-weight: bold; }
+.importance-low { color: #f56565; font-weight: bold; }
+
+/* Dark mode text overrides */
+.stApp[data-theme="dark"] .stMarkdown,
+.stApp[data-theme="dark"] .stText,
+.stApp[data-theme="dark"] .stTextInput > div > div > input,
+.stApp[data-theme="dark"] .stTextArea > div > div > textarea {
+    color: var(--text-dark) !important;
+}
+/* Dark mode background overrides */
+.stApp[data-theme="dark"] .stTextInput > div > div > input,
+.stApp[data-theme="dark"] .stTextArea > div > div > textarea {
+    background-color: rgba(45, 55, 72, 0.5) !important;
+}
+
+/* Buttons */
+.custom-icon-button, div.stButton > button {
+    background-color: #12141C;
+    border: 1px solid #353842;
+    color: white;
+    font-size: 16px;
+    border-radius: 8px;
+    height: 40px;
+    transition: background-color 0.3s ease;
+}
+.custom-icon-button { width: 40px; padding:0; display:flex; align-items:center; justify-content:center; }
+.custom-icon-button img { height: 20px; margin:0; }
+.custom-icon-button:hover, div.stButton > button:hover { background-color: #1a1d29; }
+
+/* Markdown truncation */
+div.st-markdown-custom {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    height: 42px;
+    font-size: 16px;
+    line-height: 1.2;
+}

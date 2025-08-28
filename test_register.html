@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Hash Generation</title>
+</head>
+<body>
+    <h1>Test Hash Generation Function</h1>
+    <button onclick="testHashGeneration()">Generate Test Hash</button>
+    <div id="result"></div>
+
+    <script>
+        // Copy of the hash generation function from the frontend
+        function generateBookmarkHash() {
+            if (typeof window !== 'undefined' && window.crypto) {
+                // Browser environment
+                const min = 1000000000000000
+                const max = 9999999999999999
+                const range = max - min
+                
+                // Generate random number in range
+                const array = new Uint32Array(2)
+                window.crypto.getRandomValues(array)
+                const randomValue = (array[0] * 0x100000000 + array[1]) % range
+                const bookmarkNumber = min + Math.abs(randomValue)
+                
+                return bookmarkNumber.toString().padStart(16, '0')
+            } else {
+                // Fallback
+                const min = 1000000000000000
+                const max = 9999999999999999
+                const bookmarkNumber = Math.floor(Math.random() * (max - min + 1)) + min
+                return bookmarkNumber.toString().padStart(16, '0')
+            }
+        }
+
+        function formatHashForDisplay(hash) {
+            if (hash.length !== 16) return hash
+            return hash.match(/.{1,4}/g)?.join(' ') || hash
+        }
+
+        function testHashGeneration() {
+            const resultDiv = document.getElementById('result')
+            
+            try {
+                const hash = generateBookmarkHash()
+                const formatted = formatHashForDisplay(hash)
+                
+                resultDiv.innerHTML = `
+                    <h3>✅ Hash Generation Successful!</h3>
+                    <p>Raw hash: ${hash}</p>
+                    <p>Formatted: ${formatted}</p>
+                    <p>Length: ${hash.length} digits</p>
+                    <p>Valid format: ${/^\d{16}$/.test(hash) ? 'Yes' : 'No'}</p>
+                `
+                
+                console.log('Generated hash:', hash)
+                console.log('Formatted display:', formatted)
+                
+            } catch (error) {
+                console.error('Hash generation failed:', error)
+                resultDiv.innerHTML = `
+                    <h3>❌ Hash Generation Failed</h3>
+                    <p>Error: ${error.message}</p>
+                `
+            }
+        }
+        
+        // Test on page load
+        testHashGeneration()
+    </script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Actual Frontend API Flow</title>
+</head>
+<body>
+    <h1>Test Actual Frontend API Flow</h1>
+    <p>This simulates the exact API calls the frontend should make</p>
+    
+    <form id="testForm">
+        <input type="text" id="hashInput" placeholder="1234567890123456" value="1234567890123456">
+        <button type="submit">Test Login</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        // Simulate the exact API client logic
+        class TestAPIClient {
+            constructor() {
+                this.baseURL = 'http://localhost:8000/api/v1'
+                this.tokens = null
+            }
+
+            async loginWithHash(hashCredentials) {
+                console.log('API Client: Making hash auth request to:', `${this.baseURL}/hash-auth/authenticate`)
+                console.log('API Client: Hash credentials:', hashCredentials)
+                
+                const response = await fetch(`${this.baseURL}/hash-auth/authenticate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(hashCredentials)
+                })
+                
+                console.log('API Client: Hash auth response received:', {
+                    status: response.status,
+                    headers: [...response.headers.entries()]
+                })
+                
+                if (!response.ok) {
+                    const error = await response.text()
+                    throw new Error(`HTTP ${response.status}: ${error}`)
+                }
+                
+                const data = await response.json()
+                console.log('API Client: Response data:', data)
+                
+                const tokens = {
+                    access_token: data.access_token,
+                    refresh_token: data.refresh_token,
+                    token_type: data.token_type,
+                    expires_in: data.expires_in
+                }
+
+                this.saveTokensToStorage(tokens)
+
+                // Create user object like the real frontend
+                const user = {
+                    id: 1,
+                    username: `user_${hashCredentials.account_hash.substring(0, 8)}`,
+                    email: 'anonymous@researchtools.dev',
+                    full_name: 'Research Analyst',
+                    role: data.role,
+                    is_active: true,
+                    is_verified: true,
+                    account_hash: data.account_hash,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                }
+                
+                return { user, tokens }
+            }
+            
+            saveTokensToStorage(tokens) {
+                localStorage.setItem('omnicore_tokens', JSON.stringify(tokens))
+                this.tokens = tokens
+            }
+        }
+
+        const apiClient = new TestAPIClient()
+
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault()
+            
+            const hash = document.getElementById('hashInput').value
+            const resultDiv = document.getElementById('result')
+            
+            resultDiv.innerHTML = '<p>Testing...</p>'
+            
+            try {
+                console.log('=== Starting Login Test ===')
+                
+                // Step 1: Clean the hash input
+                const cleanedHash = hash.replace(/[\s-]/g, '')
+                console.log('Cleaned hash:', cleanedHash)
+                
+                // Step 2: Login
+                const response = await apiClient.loginWithHash({ account_hash: cleanedHash })
+                console.log('Login response:', response)
+                
+                // Step 3: Simulate auth store update
+                console.log('Auth store would be updated with:', {
+                    user: response.user,
+                    isAuthenticated: true
+                })
+                
+                resultDiv.innerHTML = `
+                    <h3>✅ Complete Flow Successful!</h3>
+                    <p>User: ${response.user.username}</p>
+                    <p>Role: ${response.user.role}</p>
+                    <p>Tokens stored: ${!!localStorage.getItem('omnicore_tokens')}</p>
+                    <p>Next step would be: router.push('/dashboard')</p>
+                `
+                
+            } catch (error) {
+                console.error('Login test failed:', error)
+                resultDiv.innerHTML = `
+                    <h3>❌ Login Test Failed</h3>
+                    <p>Error: ${error.message}</p>
+                    <p>Check console for details</p>
+                `
+            }
+        })
+    </script>
+</body>
+</html>
