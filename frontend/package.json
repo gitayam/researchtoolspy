@@ -46,7 +46,7 @@
     "react-hook-form": "^7.62.0",
     "tailwind-merge": "^3.3.1",
     "tempy": "^3.1.0",
-    "zod": "^4.0.17",
+    "zod": "^3.23.8",
     "zustand": "^5.0.7"
   },
   "devDependencies": {
