@@ -81,12 +81,12 @@ export function DashboardSidebar() {
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
       {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center px-6">
+      <div className="flex h-16 shrink-0 items-center px-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded bg-blue-600 flex items-center justify-center">
+          <div className="h-8 w-8 rounded bg-blue-600 dark:bg-blue-500 flex items-center justify-center">
             <Zap className="h-5 w-5 text-white" />
           </div>
-          <span className="text-xl font-bold text-gray-900 dark:text-white">
+          <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
             OmniCore
           </span>
         </div>
@@ -169,7 +169,7 @@ export function DashboardSidebar() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-gray-900/80" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 shadow-xl">
+          <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-xl">
             <button
               type="button"
               className="absolute top-4 right-4 rounded-md p-2 text-gray-400 hover:text-gray-500"
@@ -184,7 +184,7 @@ export function DashboardSidebar() {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <SidebarContent />
         </div>
       </div>
