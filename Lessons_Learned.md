@@ -1091,6 +1091,123 @@ cloudflared tunnel --url http://localhost:6780
 
 ---
 
+## Dark Mode UI Implementation Best Practices
+
+### ❌ What Didn't Work
+
+**Problem**: Sidebar and content areas becoming unreadable in dark mode
+```tsx
+// ❌ Sidebar with dark text on dark background
+<div className="bg-white dark:bg-gray-900">
+  <span className="text-gray-700">Invisible in dark mode!</span>
+</div>
+```
+
+**Root Cause**: Using `dark:bg-gray-900` (too dark) for sidebar backgrounds and not pairing text colors properly with dark mode variants.
+
+**Problem**: Card components lacking proper borders in dark mode
+```tsx
+// ❌ Cards blend into background without visible borders
+<Card className="border">  // No dark mode border color
+```
+
+**Problem**: CSS variables not optimized for dark mode
+```css
+/* ❌ Same dark values for background and cards */
+.dark {
+  --background: 222.2 84% 4.9%;
+  --card: 222.2 84% 4.9%;  /* Same as background - no distinction */
+}
+```
+
+### ✅ What Worked
+
+**Solution 1**: Use lighter grays for better contrast hierarchy
+```tsx
+// ✅ Sidebar with proper contrast
+<div className="bg-white dark:bg-gray-800">  // gray-800 not gray-900
+  <span className="text-gray-700 dark:text-gray-300">Readable!</span>
+</div>
+```
+
+**Solution 2**: Update CSS variables for proper dark mode
+```css
+/* ✅ Distinct values for visual hierarchy */
+.dark {
+  --background: 220 26% 7%;      /* Darker for main background */
+  --card: 220 23% 11%;           /* Lighter for cards */
+  --border: 217.2 32.6% 20%;     /* Visible borders */
+}
+```
+
+**Solution 3**: Explicit dark mode classes on all components
+```tsx
+// ✅ Card with full dark mode support
+<Card className={cn(
+  "rounded-lg border shadow-sm",
+  "border-gray-200 dark:border-gray-700",
+  "bg-white dark:bg-gray-800",
+  "text-gray-900 dark:text-gray-100"
+)}>
+```
+
+**Solution 4**: Systematic fixes for all UI elements
+```tsx
+// ✅ Status badges with dark mode variants
+<div className={`px-2 py-1 rounded-full text-xs ${
+  status === 'completed' 
+    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+}`}>
+```
+
+### 🔧 Standard Operating Procedure for Dark Mode
+
+1. **Audit existing components**
+   ```bash
+   # Find missing dark mode classes
+   grep -r "text-gray-[0-9]" src/ | grep -v "dark:"
+   grep -r "bg-white" src/ | grep -v "dark:"
+   ```
+
+2. **Apply consistent color patterns**
+   - Backgrounds: `bg-white dark:bg-gray-800`
+   - Text primary: `text-gray-900 dark:text-gray-100`
+   - Text secondary: `text-gray-600 dark:text-gray-400`
+   - Borders: `border-gray-200 dark:border-gray-700`
+
+3. **Test in browser DevTools**
+   - Toggle: Rendering > "Emulate CSS media feature prefers-color-scheme: dark"
+   - Check all pages and components
+   - Verify WCAG contrast ratios
+
+4. **Update CSS variables for proper hierarchy**
+   - Background should be darkest
+   - Cards slightly lighter than background
+   - Borders visible but subtle
+
+### Key Learnings
+
+1. **Visual hierarchy matters** - Cards need to be distinct from background
+2. **Gray-800 vs Gray-900** - Gray-900 is often too dark for sidebars
+3. **Always pair classes** - Never assume dark mode inheritance
+4. **Test systematically** - Every component needs verification
+5. **CSS variables cascade** - Update root variables affects all components
+
+### Dark Mode Color Reference
+
+| Element | Light Mode | Dark Mode | Notes |
+|---------|------------|-----------|--------|
+| Main Background | `bg-gray-50` | `dark:bg-gray-900` | Darkest layer |
+| Sidebar | `bg-white` | `dark:bg-gray-800` | Slightly lighter |
+| Cards | `bg-white` | `dark:bg-gray-800` | With border for definition |
+| Primary Text | `text-gray-900` | `dark:text-gray-100` | High contrast |
+| Secondary Text | `text-gray-600` | `dark:text-gray-400` | Readable but muted |
+| Borders | `border-gray-200` | `dark:border-gray-700` | Subtle but visible |
+| Hover States | `hover:bg-gray-50` | `dark:hover:bg-gray-700` | Clear interaction feedback |
+
+---
+
 ## Summary of New Learnings
 
 ### Hash Authentication
