@@ -4,10 +4,23 @@ Structured analytical technique for intelligence analysis.
 """
 
 from typing import Dict, List, Optional
+import io
+import json
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+try:
+    import xlsxwriter
+    import docx
+    from pptx import Presentation as PPTXPresentation
+    from pptx.util import Inches
+    EXPORT_AVAILABLE = True
+except ImportError as e:
+    # Logger not available yet during import
+    EXPORT_AVAILABLE = False
 
 from app.api.v1.endpoints.auth import get_current_user
 from app.core.database import get_db
@@ -685,3 +698,256 @@ async def list_ach_templates(
     ]
     
     return templates
+
+
+class ACHExportRequest(BaseModel):
+    """ACH export request model."""
+    title: str
+    scenario: str
+    key_question: str
+    hypotheses: List[dict]
+    evidence: List[dict]  
+    scores: List[dict]
+    analysis_date: Optional[str] = None
+    analyst_name: Optional[str] = "Anonymous User"
+    ranked_hypotheses: Optional[List[dict]] = None
+
+
+# Temporarily disabled until dependencies are properly installed
+# @router.post("/export/excel")
+async def export_ach_excel(request: ACHExportRequest) -> StreamingResponse:
+    """Export ACH analysis as Excel matrix."""
+    if not EXPORT_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Export functionality not available - missing dependencies")
+    
+    try:
+        # Create Excel file in memory
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+        worksheet = workbook.add_worksheet('ACH Matrix')
+
+        # Define formats
+        header_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#D7E4BD',
+            'border': 1
+        })
+        cell_format = workbook.add_format({'border': 1})
+        
+        # Write title and metadata
+        worksheet.write(0, 0, 'ACH Analysis: ' + request.title)
+        worksheet.write(1, 0, 'Scenario: ' + request.scenario)
+        worksheet.write(2, 0, 'Key Question: ' + request.key_question)
+        worksheet.write(3, 0, 'Analysis Date: ' + (request.analysis_date or datetime.now().strftime('%Y-%m-%d')))
+        worksheet.write(4, 0, 'Analyst: ' + request.analyst_name)
+
+        # Create matrix headers
+        start_row = 6
+        worksheet.write(start_row, 0, 'Evidence', header_format)
+        
+        # Write hypothesis headers
+        for i, hypothesis in enumerate(request.hypotheses):
+            worksheet.write(start_row, i + 1, f"H{i+1}: {hypothesis.get('text', '')[:30]}", header_format)
+
+        # Write evidence rows
+        for i, evidence in enumerate(request.evidence):
+            row = start_row + 1 + i
+            worksheet.write(row, 0, f"E{i+1}: {evidence.get('text', '')[:50]}", cell_format)
+            
+            # Fill matrix with scores
+            for j, hypothesis in enumerate(request.hypotheses):
+                # Find score for this evidence/hypothesis pair
+                score_obj = next((s for s in request.scores 
+                                if s.get('evidenceId') == evidence.get('id') and 
+                                   s.get('hypothesisId') == hypothesis.get('id')), None)
+                
+                score_val = score_obj.get('score', 0) if score_obj else 0
+                # Convert to traditional ACH symbols
+                if score_val >= 3:
+                    symbol = "+" if score_val == 3 else "++"
+                elif score_val <= -3:
+                    symbol = "-" if score_val == -3 else "--"
+                else:
+                    symbol = "0"
+                    
+                worksheet.write(row, j + 1, symbol, cell_format)
+
+        # Add SATS evaluation if present
+        sats_row = start_row + len(request.evidence) + 3
+        worksheet.write(sats_row, 0, 'SATS Evaluation Summary', header_format)
+        
+        for i, evidence in enumerate(request.evidence):
+            sats = evidence.get('sats_evaluation')
+            if sats:
+                row = sats_row + 1 + i
+                worksheet.write(row, 0, f"E{i+1} Overall Score:", cell_format)
+                worksheet.write(row, 1, f"{sats.get('overall_score', 0)}/5", cell_format)
+
+        workbook.close()
+        output.seek(0)
+
+        return StreamingResponse(
+            io.BytesIO(output.read()),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f'attachment; filename="ach_matrix_{datetime.now().strftime("%Y%m%d")}.xlsx"'}
+        )
+
+    except Exception as e:
+        logger.error(f"Excel export error: {e}")
+        raise HTTPException(status_code=500, detail="Export failed")
+
+
+@router.post("/export/word")  
+async def export_ach_word(request: ACHExportRequest) -> StreamingResponse:
+    """Export ACH analysis as Word document."""
+    if not EXPORT_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Export functionality not available - missing dependencies")
+    
+    try:
+        doc = docx.Document()
+        
+        # Title and metadata
+        title = doc.add_heading(f'Analysis of Competing Hypotheses: {request.title}', 0)
+        
+        doc.add_paragraph(f'Analysis Date: {request.analysis_date or datetime.now().strftime("%Y-%m-%d")}')
+        doc.add_paragraph(f'Analyst: {request.analyst_name}')
+        doc.add_paragraph(f'Classification: UNCLASSIFIED')
+        
+        # Executive Summary
+        doc.add_heading('Executive Summary', level=1)
+        doc.add_paragraph('This ACH analysis evaluates competing hypotheses to provide structured analytical reasoning.')
+        
+        # Scenario
+        doc.add_heading('Scenario', level=1) 
+        doc.add_paragraph(request.scenario)
+        
+        # Key Question
+        doc.add_heading('Key Intelligence Question', level=1)
+        doc.add_paragraph(request.key_question)
+        
+        # Hypotheses
+        doc.add_heading('Hypotheses Under Consideration', level=1)
+        for i, hypothesis in enumerate(request.hypotheses):
+            doc.add_paragraph(f"H{i+1}: {hypothesis.get('text', '')}", style='List Number')
+            
+        # Evidence  
+        doc.add_heading('Evidence Evaluation', level=1)
+        for i, evidence in enumerate(request.evidence):
+            doc.add_paragraph(f"E{i+1}: {evidence.get('text', '')}", style='List Number')
+            
+            # Add SATS evaluation if available
+            sats = evidence.get('sats_evaluation')
+            if sats:
+                p = doc.add_paragraph()
+                p.add_run('SATS Evaluation: ').bold = True
+                p.add_run(f"Overall Score {sats.get('overall_score', 0)}/5 ")
+                p.add_run(f"(Reliability: {sats.get('reliability', 0)}/5, ")
+                p.add_run(f"Accuracy: {sats.get('accuracy', 0)}/5, ")
+                p.add_run(f"Timeliness: {sats.get('timeliness', 0)}/5, ")
+                p.add_run(f"Significance: {sats.get('significance', 0)}/5)")
+
+        # Analysis Results
+        if request.ranked_hypotheses:
+            doc.add_heading('Analysis Results', level=1)
+            doc.add_paragraph('Hypotheses ranked by evidence support:')
+            for i, hyp in enumerate(request.ranked_hypotheses):
+                doc.add_paragraph(f"{i+1}. {hyp.get('text', '')} (Score: {hyp.get('score', 0)})", style='List Number')
+
+        # Methodology
+        doc.add_heading('Methodology', level=1)
+        doc.add_paragraph('This analysis uses the ACH methodology developed by Heuer to systematically evaluate competing hypotheses against available evidence. Evidence is scored using SATS criteria (Source reliability, Accuracy, Timeliness, Significance) when applicable.')
+
+        # Save to memory
+        output = io.BytesIO()
+        doc.save(output)
+        output.seek(0)
+
+        return StreamingResponse(
+            io.BytesIO(output.read()),
+            media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            headers={'Content-Disposition': f'attachment; filename="ach_report_{datetime.now().strftime("%Y%m%d")}.docx"'}
+        )
+
+    except Exception as e:
+        logger.error(f"Word export error: {e}")
+        raise HTTPException(status_code=500, detail="Export failed")
+
+
+@router.post("/export/powerpoint")
+async def export_ach_powerpoint(request: ACHExportRequest) -> StreamingResponse:
+    """Export ACH analysis as PowerPoint presentation."""
+    if not EXPORT_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Export functionality not available - missing dependencies")
+    
+    try:
+        prs = PPTXPresentation()
+        
+        # Title slide
+        slide_layout = prs.slide_layouts[0]
+        slide = prs.slides.add_slide(slide_layout)
+        title = slide.shapes.title
+        subtitle = slide.placeholders[1]
+        
+        title.text = f"ACH Analysis: {request.title}"
+        subtitle.text = f"Analysis Date: {request.analysis_date or datetime.now().strftime('%Y-%m-%d')}\nAnalyst: {request.analyst_name}\nClassification: UNCLASSIFIED"
+        
+        # Scenario slide
+        slide_layout = prs.slide_layouts[1]
+        slide = prs.slides.add_slide(slide_layout)
+        title = slide.shapes.title
+        content = slide.placeholders[1]
+        
+        title.text = "Analysis Scenario"
+        content.text = request.scenario
+        
+        # Key question slide
+        slide = prs.slides.add_slide(slide_layout)
+        title = slide.shapes.title
+        content = slide.placeholders[1]
+        
+        title.text = "Key Intelligence Question"
+        content.text = request.key_question
+        
+        # Hypotheses slide
+        slide = prs.slides.add_slide(slide_layout)
+        title = slide.shapes.title
+        content = slide.placeholders[1]
+        
+        title.text = "Hypotheses Under Consideration"
+        hyp_text = "\n".join([f"H{i+1}: {h.get('text', '')}" for i, h in enumerate(request.hypotheses)])
+        content.text = hyp_text
+        
+        # Results slide
+        if request.ranked_hypotheses:
+            slide = prs.slides.add_slide(slide_layout)
+            title = slide.shapes.title
+            content = slide.placeholders[1]
+            
+            title.text = "Analysis Results"
+            results_text = "Hypotheses ranked by evidence support:\n\n"
+            for i, hyp in enumerate(request.ranked_hypotheses[:3]):  # Top 3
+                results_text += f"{i+1}. {hyp.get('text', '')}\n   Score: {hyp.get('score', 0)}\n\n"
+            content.text = results_text
+
+        # Methodology slide
+        slide = prs.slides.add_slide(slide_layout)
+        title = slide.shapes.title  
+        content = slide.placeholders[1]
+        
+        title.text = "Methodology"
+        content.text = "Analysis of Competing Hypotheses (ACH)\n\n• Structured analytical technique\n• Systematic evaluation of evidence\n• SATS criteria applied where applicable\n• Reduces cognitive bias in analysis"
+
+        # Save to memory
+        output = io.BytesIO()
+        prs.save(output)
+        output.seek(0)
+
+        return StreamingResponse(
+            io.BytesIO(output.read()),
+            media_type='application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            headers={'Content-Disposition': f'attachment; filename="ach_briefing_{datetime.now().strftime("%Y%m%d")}.pptx"'}
+        )
+
+    except Exception as e:
+        logger.error(f"PowerPoint export error: {e}")
+        raise HTTPException(status_code=500, detail="Export failed")

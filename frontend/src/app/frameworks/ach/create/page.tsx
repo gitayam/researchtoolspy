@@ -23,7 +23,11 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
-  Scale
+  Scale,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  Presentation
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -766,6 +770,184 @@ export default function PublicACHCreatePage() {
                   </div>
                 </CardContent>
               )}
+            </Card>
+          )}
+
+          {/* Professional Export Templates */}
+          {(data.hypotheses.length > 0 || data.evidence.length > 0) && (
+            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                  <Download className="h-5 w-5" />
+                  Professional Export Templates
+                </CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Generate professional reports for briefings and documentation
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Excel Matrix Export */}
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+                        <FileSpreadsheet className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">ACH Matrix (Excel)</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Hypothesis vs Evidence scoring</div>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/v1/ach/export/excel', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              title: title || 'ACH Analysis',
+                              scenario: scenario || 'Analysis Scenario',
+                              key_question: keyQuestion || 'Key Question',
+                              hypotheses: data.hypotheses,
+                              evidence: data.evidence,
+                              scores: data.scores
+                            })
+                          })
+                          if (response.ok) {
+                            const blob = await response.blob()
+                            const url = window.URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = `ach-matrix-${new Date().toISOString().split('T')[0]}.xlsx`
+                            a.click()
+                          }
+                        } catch (error) {
+                          console.error('Export failed:', error)
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+
+                  {/* Word Report Export */}
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">Analysis Report (Word)</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Comprehensive written analysis</div>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/v1/ach/export/word', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              title: title || 'ACH Analysis',
+                              scenario: scenario || 'Analysis Scenario',
+                              key_question: keyQuestion || 'Key Question',
+                              hypotheses: data.hypotheses,
+                              evidence: data.evidence,
+                              scores: data.scores,
+                              analysis_date: new Date().toISOString(),
+                              analyst_name: 'Anonymous User'
+                            })
+                          })
+                          if (response.ok) {
+                            const blob = await response.blob()
+                            const url = window.URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = `ach-report-${new Date().toISOString().split('T')[0]}.docx`
+                            a.click()
+                          }
+                        } catch (error) {
+                          console.error('Export failed:', error)
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+
+                  {/* PowerPoint Briefing Export */}
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
+                        <Presentation className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">Briefing Slides (PPT)</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Executive presentation format</div>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/v1/ach/export/powerpoint', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              title: title || 'ACH Analysis',
+                              scenario: scenario || 'Analysis Scenario',  
+                              key_question: keyQuestion || 'Key Question',
+                              hypotheses: data.hypotheses,
+                              evidence: data.evidence,
+                              scores: data.scores,
+                              ranked_hypotheses: rankedHypotheses
+                            })
+                          })
+                          if (response.ok) {
+                            const blob = await response.blob()
+                            const url = window.URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = `ach-briefing-${new Date().toISOString().split('T')[0]}.pptx`
+                            a.click()
+                          }
+                        } catch (error) {
+                          console.error('Export failed:', error)
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Export Options */}
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Export Options:</div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="ghost" size="sm" className="text-xs">
+                      Include SATS Evaluation
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-xs">
+                      Classification: UNCLASSIFIED
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-xs">
+                      Government Format
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           )}
           
