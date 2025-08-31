@@ -3,7 +3,7 @@ Security utilities for authentication and authorization.
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional, List, Union
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -23,9 +23,9 @@ ALGORITHM = "HS256"
 
 class TokenData(BaseModel):
     """Token data model for JWT tokens."""
-    username: str | None = None
-    user_id: int | None = None
-    scopes: list[str] = []
+    username: Optional[str] = None
+    user_id: Optional[int] = None
+    scopes: List[str] = []
 
 
 class Token(BaseModel):
@@ -65,7 +65,7 @@ def get_password_hash(password: str) -> str:
 
 def create_access_token(
     data: dict[str, Any], 
-    expires_delta: timedelta | None = None
+    expires_delta: Optional[timedelta] = None
 ) -> str:
     """
     Create a JWT access token.
@@ -94,7 +94,7 @@ def create_access_token(
 
 def create_refresh_token(
     data: dict[str, Any], 
-    expires_delta: timedelta | None = None
+    expires_delta: Optional[timedelta] = None
 ) -> str:
     """
     Create a JWT refresh token.
@@ -121,7 +121,7 @@ def create_refresh_token(
     return encoded_jwt
 
 
-def verify_token(token: str, token_type: str = "access") -> TokenData | None:
+def verify_token(token: str, token_type: str = "access") -> Optional[TokenData]:
     """
     Verify and decode a JWT token.
     
@@ -130,7 +130,7 @@ def verify_token(token: str, token_type: str = "access") -> TokenData | None:
         token_type: Expected token type ("access" or "refresh")
         
     Returns:
-        TokenData | None: Decoded token data or None if invalid
+        Optional[TokenData]: Decoded token data or None if invalid
     """
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
