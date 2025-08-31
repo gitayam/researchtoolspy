@@ -28,6 +28,7 @@ from app.core.logging import get_logger
 from app.models.framework import FrameworkType
 from app.models.user import User
 from app.services.framework_service import FrameworkData, framework_service
+from app.services.ai_service import ai_service
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -698,6 +699,100 @@ async def list_ach_templates(
     ]
     
     return templates
+
+
+@router.post("/ai/generate-hypotheses")
+async def generate_ach_hypotheses_endpoint(
+    request: dict
+) -> dict:
+    """Generate alternative hypotheses using AI for ACH analysis."""
+    try:
+        scenario = request.get("scenario", "")
+        key_question = request.get("key_question", "")
+        context = request.get("context", "")
+        
+        hypotheses = await ai_service.generate_ach_hypotheses(scenario, key_question, context)
+        
+        return {
+            "hypotheses": hypotheses,
+            "count": len(hypotheses),
+            "generated_at": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Hypothesis generation failed: {e}")
+        raise HTTPException(status_code=500, detail="AI hypothesis generation failed")
+
+
+@router.post("/ai/refine-hypothesis")
+async def refine_hypothesis_endpoint(
+    request: dict
+) -> dict:
+    """Refine a specific hypothesis based on evidence and feedback."""
+    try:
+        hypothesis = request.get("hypothesis", "")
+        evidence = request.get("evidence", [])
+        feedback = request.get("feedback", "")
+        
+        refined = await ai_service.refine_hypothesis(hypothesis, evidence, feedback)
+        
+        return {
+            "original_hypothesis": hypothesis,
+            "refined_hypothesis": refined,
+            "refined_at": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Hypothesis refinement failed: {e}")
+        raise HTTPException(status_code=500, detail="AI hypothesis refinement failed")
+
+
+@router.post("/ai/evidence-gaps")
+async def suggest_evidence_gaps_endpoint(
+    request: dict
+) -> dict:
+    """Identify evidence gaps that would improve hypothesis discrimination."""
+    try:
+        hypotheses = [h.get("text", "") for h in request.get("hypotheses", [])]
+        evidence = request.get("evidence", [])
+        
+        gaps = await ai_service.suggest_evidence_gaps(hypotheses, evidence)
+        
+        return {
+            "evidence_gaps": gaps,
+            "gap_count": len(gaps),
+            "analysis_date": datetime.now().isoformat(),
+            "recommendations": [
+                "Focus on discriminating evidence that distinguishes between hypotheses",
+                "Seek diverse source types and perspectives",
+                "Fill timeline gaps with additional data points"
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Evidence gap analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="AI evidence gap analysis failed")
+
+
+@router.post("/ai/bias-detection")
+async def detect_analysis_bias_endpoint(
+    request: dict
+) -> dict:
+    """Detect potential cognitive biases in ACH analysis."""
+    try:
+        hypotheses = [h.get("text", "") for h in request.get("hypotheses", [])]
+        evidence = request.get("evidence", [])
+        scores = request.get("scores", [])
+        
+        bias_analysis = await ai_service.detect_analysis_bias(hypotheses, evidence, scores)
+        
+        return {
+            "bias_analysis": bias_analysis,
+            "analysis_date": datetime.now().isoformat(),
+            "total_hypotheses": len(hypotheses),
+            "total_evidence": len(evidence),
+            "total_scores": len(scores)
+        }
+    except Exception as e:
+        logger.error(f"Bias detection failed: {e}")
+        raise HTTPException(status_code=500, detail="AI bias detection failed")
 
 
 class ACHExportRequest(BaseModel):
