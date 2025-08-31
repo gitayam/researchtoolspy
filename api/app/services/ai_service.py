@@ -500,6 +500,196 @@ ECONOMIC: [recommendations]"""
         except Exception as e:
             logger.error(f"DIME analysis error: {e}")
             return {"diplomatic": [], "information": [], "military": [], "economic": []}
+    
+    async def generate_ach_hypotheses(self, scenario: str, key_question: str, context: str = "") -> List[str]:
+        """Generate alternative hypotheses for ACH analysis."""
+        if not self.async_client:
+            return [
+                "Hypothesis 1: Primary explanation based on available information",
+                "Hypothesis 2: Alternative explanation considering different actors",
+                "Hypothesis 3: Deception or misdirection scenario",
+                "Hypothesis 4: Null hypothesis - no significant activity"
+            ]
+        
+        prompt = f"""As an intelligence analyst, generate 4-6 competing hypotheses for ACH analysis.
+
+Scenario: {scenario}
+Key Question: {key_question}
+{f'Additional Context: {context[:1000]}' if context else ''}
+
+Generate mutually exclusive hypotheses that:
+1. Cover different possible explanations
+2. Include at least one deception/misdirection hypothesis
+3. Consider different actors or motivations
+4. Include a null or minimal activity hypothesis
+
+Format as a JSON array of hypothesis strings."""
+
+        try:
+            response = await self.async_client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "You are an expert intelligence analyst specializing in hypothesis generation."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=600,
+                temperature=0.8  # Higher temperature for creativity
+            )
+            
+            content = response.choices[0].message.content.strip()
+            # Try to parse as JSON
+            if content.startswith('[') and content.endswith(']'):
+                hypotheses = json.loads(content)
+            else:
+                # Extract from text format
+                hypotheses = [line.strip() for line in content.split('\n') if line.strip() and not line.strip().startswith('#')]
+            
+            return hypotheses[:6]  # Limit to 6 hypotheses
+            
+        except Exception as e:
+            logger.error(f"ACH hypothesis generation error: {e}")
+            return ["Failed to generate hypotheses"]
+    
+    async def refine_hypothesis(self, hypothesis: str, evidence: List[dict], feedback: str = "") -> str:
+        """Refine a hypothesis based on evidence and feedback."""
+        if not self.async_client:
+            return f"Refined: {hypothesis}"
+        
+        evidence_summary = "\n".join([f"- {e.get('text', '')[:100]}" for e in evidence[:5]])
+        
+        prompt = f"""Refine this hypothesis based on available evidence:
+
+Original Hypothesis: {hypothesis}
+
+Evidence Summary:
+{evidence_summary}
+
+{f'Analyst Feedback: {feedback}' if feedback else ''}
+
+Provide a refined, more specific hypothesis that:
+1. Addresses the evidence patterns
+2. Reduces ambiguity 
+3. Maintains testability
+4. Incorporates the feedback if provided
+
+Return only the refined hypothesis text."""
+
+        try:
+            response = await self.async_client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "You are an expert at refining intelligence hypotheses."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=200,
+                temperature=0.5
+            )
+            
+            return response.choices[0].message.content.strip()
+            
+        except Exception as e:
+            logger.error(f"Hypothesis refinement error: {e}")
+            return hypothesis
+    
+    async def suggest_evidence_gaps(self, hypotheses: List[str], evidence: List[dict]) -> List[str]:
+        """Identify evidence gaps for better hypothesis testing."""
+        if not self.async_client:
+            return ["Additional technical indicators needed", "More source diversity required", "Timeline gaps need filling"]
+        
+        hyp_text = "\n".join([f"{i+1}. {h}" for i, h in enumerate(hypotheses)])
+        evidence_types = list(set([e.get('source', 'Unknown') for e in evidence]))
+        
+        prompt = f"""Identify critical evidence gaps for ACH analysis:
+
+Hypotheses:
+{hyp_text}
+
+Current Evidence Types: {', '.join(evidence_types)}
+Total Evidence Pieces: {len(evidence)}
+
+What additional evidence would help distinguish between these hypotheses?
+Focus on:
+1. Discriminating evidence that supports one hypothesis over others
+2. Missing source types or perspectives
+3. Timeline gaps
+4. Technical indicators
+5. Behavioral patterns
+
+Return as a JSON array of specific evidence gap suggestions."""
+
+        try:
+            response = await self.async_client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "You are an expert at identifying intelligence gaps."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=400,
+                temperature=0.6
+            )
+            
+            content = response.choices[0].message.content.strip()
+            if content.startswith('[') and content.endswith(']'):
+                gaps = json.loads(content)
+            else:
+                gaps = [line.strip('- ').strip() for line in content.split('\n') if line.strip() and not line.strip().startswith('#')]
+            
+            return gaps[:8]  # Limit to 8 suggestions
+            
+        except Exception as e:
+            logger.error(f"Evidence gap analysis error: {e}")
+            return ["Unable to generate gap analysis"]
+    
+    async def detect_analysis_bias(self, hypotheses: List[str], evidence: List[dict], scores: List[dict]) -> Dict[str, Any]:
+        """Detect potential cognitive biases in ACH analysis."""
+        if not self.async_client:
+            return {
+                "biases_detected": ["Anchoring bias detected"],
+                "recommendations": ["Consider alternative viewpoints"],
+                "confidence_level": "medium"
+            }
+        
+        # Calculate score distribution
+        score_stats = {}
+        for score in scores:
+            val = score.get('score', 0)
+            score_stats[val] = score_stats.get(val, 0) + 1
+        
+        prompt = f"""Analyze this ACH matrix for potential cognitive biases:
+
+Hypotheses: {len(hypotheses)} total
+Evidence: {len(evidence)} pieces
+Score Distribution: {score_stats}
+
+Look for signs of:
+1. Anchoring bias (over-reliance on first hypothesis)
+2. Confirmation bias (evidence favoring preferred hypothesis)
+3. Availability bias (overweighting recent/memorable evidence)
+4. Groupthink (insufficient alternative viewpoints)
+5. Mirror imaging (assuming others think like us)
+
+Return analysis as JSON with:
+- "biases_detected": [list of potential biases]
+- "recommendations": [specific improvement suggestions]  
+- "confidence_level": "low"/"medium"/"high\""""
+
+        try:
+            response = await self.async_client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "You are an expert in cognitive bias detection in intelligence analysis."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=300,
+                temperature=0.4  # Lower temperature for analytical tasks
+            )
+            
+            content = response.choices[0].message.content.strip()
+            return json.loads(content)
+            
+        except Exception as e:
+            logger.error(f"Bias detection error: {e}")
+            return {"biases_detected": [], "recommendations": ["Analysis failed"], "confidence_level": "low"}
 
 
 # Global service instance

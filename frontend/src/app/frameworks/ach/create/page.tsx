@@ -27,7 +27,11 @@ import {
   Download,
   FileText,
   FileSpreadsheet,
-  Presentation
+  Presentation,
+  Brain,
+  Lightbulb,
+  AlertTriangle,
+  Search
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -123,6 +127,14 @@ export default function PublicACHCreatePage() {
   const [saving, setSaving] = useState(false)
   const [evidenceExpanded, setEvidenceExpanded] = useState(true)
   const [analysisExpanded, setAnalysisExpanded] = useState(false)
+  
+  // AI Enhancement state
+  const [aiExpanded, setAiExpanded] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [biasAnalysis, setBiasAnalysis] = useState<any>(null)
+  const [evidenceGaps, setEvidenceGaps] = useState<string[]>([])
+  const [scenario, setScenario] = useState('')
+  const [keyQuestion, setKeyQuestion] = useState('')
   
   // Add hypothesis
   const addHypothesis = () => {
@@ -225,6 +237,105 @@ export default function PublicACHCreatePage() {
     return data.scores
       .filter(s => s.hypothesisId === hypothesisId)
       .reduce((total, s) => total + s.score, 0)
+  }
+
+  // AI Enhancement functions
+  const generateAIHypotheses = async () => {
+    setAiLoading(true)
+    try {
+      const response = await fetch('/api/v1/ach/ai/generate-hypotheses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scenario,
+          key_question: keyQuestion,
+          context: `Current hypotheses: ${data.hypotheses.length}`
+        })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        // Add generated hypotheses
+        result.hypotheses.forEach((hyp: string, index: number) => {
+          const newHypothesis: Hypothesis = {
+            id: `ai_${Date.now()}_${index}`,
+            text: hyp
+          }
+          updateData(prev => ({
+            ...prev,
+            hypotheses: [...prev.hypotheses, newHypothesis]
+          }))
+        })
+        toast({
+          title: 'AI Hypotheses Generated',
+          description: `Added ${result.count} new hypotheses`
+        })
+      }
+    } catch (error) {
+      console.error('AI hypothesis generation failed:', error)
+      toast({
+        title: 'AI Generation Failed',
+        description: 'Could not generate hypotheses',
+        variant: 'destructive'
+      })
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const analyzeEvidenceGaps = async () => {
+    setAiLoading(true)
+    try {
+      const response = await fetch('/api/v1/ach/ai/evidence-gaps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hypotheses: data.hypotheses,
+          evidence: data.evidence
+        })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        setEvidenceGaps(result.evidence_gaps)
+        toast({
+          title: 'Evidence Gaps Identified',
+          description: `Found ${result.gap_count} potential improvements`
+        })
+      }
+    } catch (error) {
+      console.error('Evidence gap analysis failed:', error)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const detectCognitiveBias = async () => {
+    setAiLoading(true)
+    try {
+      const response = await fetch('/api/v1/ach/ai/bias-detection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hypotheses: data.hypotheses,
+          evidence: data.evidence,
+          scores: data.scores
+        })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        setBiasAnalysis(result.bias_analysis)
+        toast({
+          title: 'Bias Analysis Complete',
+          description: `Analysis confidence: ${result.bias_analysis.confidence_level}`
+        })
+      }
+    } catch (error) {
+      console.error('Bias detection failed:', error)
+    } finally {
+      setAiLoading(false)
+    }
   }
   
   // Publish analysis
@@ -772,6 +883,174 @@ export default function PublicACHCreatePage() {
               )}
             </Card>
           )}
+
+          {/* AI Analysis Assistant */}
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between text-gray-900 dark:text-gray-100">
+                <div className="flex items-center gap-2">
+                  <Brain className="h-5 w-5" />
+                  AI Analysis Assistant
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAiExpanded(!aiExpanded)}
+                  >
+                    {aiExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
+                Enhance your analysis with AI-powered insights and bias detection
+              </CardDescription>
+            </CardHeader>
+            {aiExpanded && (
+              <CardContent className="space-y-6">
+                {/* Scenario and Key Question */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Analysis Scenario
+                    </label>
+                    <Textarea
+                      value={scenario}
+                      onChange={(e) => setScenario(e.target.value)}
+                      placeholder="Describe the situation you're analyzing..."
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Key Question
+                    </label>
+                    <Textarea
+                      value={keyQuestion}
+                      onChange={(e) => setKeyQuestion(e.target.value)}
+                      placeholder="What is the key intelligence question?"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+
+                {/* AI Actions */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                        <Lightbulb className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">Generate Hypotheses</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">AI-powered alternatives</div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={generateAIHypotheses}
+                      disabled={aiLoading || !scenario || !keyQuestion}
+                    >
+                      {aiLoading ? 'Generating...' : 'Generate'}
+                    </Button>
+                  </div>
+
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
+                        <Search className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">Evidence Gaps</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Identify missing evidence</div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={analyzeEvidenceGaps}
+                      disabled={aiLoading || data.hypotheses.length === 0}
+                    >
+                      {aiLoading ? 'Analyzing...' : 'Analyze'}
+                    </Button>
+                  </div>
+
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center">
+                        <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">Bias Detection</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Check for cognitive bias</div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={detectCognitiveBias}
+                      disabled={aiLoading || data.scores.length === 0}
+                    >
+                      {aiLoading ? 'Detecting...' : 'Detect'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Evidence Gaps Results */}
+                {evidenceGaps.length > 0 && (
+                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
+                    <h4 className="font-medium text-orange-900 dark:text-orange-200 mb-3">
+                      Suggested Evidence to Collect:
+                    </h4>
+                    <ul className="space-y-2">
+                      {evidenceGaps.map((gap, index) => (
+                        <li key={index} className="text-sm text-orange-800 dark:text-orange-300 flex items-start gap-2">
+                          <span className="text-orange-500">•</span>
+                          {gap}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Bias Analysis Results */}
+                {biasAnalysis && (
+                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+                    <h4 className="font-medium text-red-900 dark:text-red-200 mb-3">
+                      Potential Cognitive Biases ({biasAnalysis.confidence_level} confidence):
+                    </h4>
+                    {biasAnalysis.biases_detected.length > 0 && (
+                      <ul className="space-y-2 mb-3">
+                        {biasAnalysis.biases_detected.map((bias: string, index: number) => (
+                          <li key={index} className="text-sm text-red-800 dark:text-red-300 flex items-start gap-2">
+                            <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
+                            {bias}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {biasAnalysis.recommendations.length > 0 && (
+                      <div>
+                        <h5 className="font-medium text-red-900 dark:text-red-200 mb-2">Recommendations:</h5>
+                        <ul className="space-y-1">
+                          {biasAnalysis.recommendations.map((rec: string, index: number) => (
+                            <li key={index} className="text-sm text-red-700 dark:text-red-400 flex items-start gap-2">
+                              <span className="text-red-500">→</span>
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            )}
+          </Card>
 
           {/* Professional Export Templates */}
           {(data.hypotheses.length > 0 || data.evidence.length > 0) && (
