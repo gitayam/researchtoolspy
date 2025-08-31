@@ -23,7 +23,8 @@ export default function LandingPage() {
     {
       icon: Brain,
       title: "10 Analysis Frameworks",
-      description: "SWOT, COG, PMESII-PT, ACH, DOTMLPF, and more specialized research frameworks"
+      description: "SWOT, COG, PMESII-PT, ACH, DOTMLPF, and more specialized research frameworks",
+      link: "#frameworks"
     },
     {
       icon: Zap,
@@ -33,7 +34,8 @@ export default function LandingPage() {
     {
       icon: BarChart3,
       title: "Research Tools",
-      description: "URL processing, web scraping, social media analysis, and citation management"
+      description: "URL processing, web scraping, social media analysis, and citation management",
+      link: "/tools"
     },
     {
       icon: Users,
@@ -42,8 +44,9 @@ export default function LandingPage() {
     },
     {
       icon: Shield,
-      title: "Secure & Compliant",
-      description: "Role-based access control, secure authentication, and enterprise-grade security"
+      title: "Secure & Compliant", 
+      description: "Role-based access control, secure authentication, and enterprise-grade security",
+      link: "/security-assessment"
     },
     {
       icon: Target,
@@ -141,27 +144,34 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mb-4">
-                    <feature.icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <CardTitle className="text-xl text-gray-900 dark:text-gray-100">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base text-gray-600 dark:text-gray-400">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ))}
+            {features.map((feature, index) => {
+              const CardWrapper = feature.link ? Link : 'div'
+              const cardProps = feature.link ? { href: feature.link } : {}
+              
+              return (
+                <CardWrapper key={index} {...cardProps}>
+                  <Card className={`border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-200 ${feature.link ? 'cursor-pointer hover:scale-105' : ''}`}>
+                    <CardHeader>
+                      <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mb-4">
+                        <feature.icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <CardTitle className="text-xl text-gray-900 dark:text-gray-100">{feature.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-base text-gray-600 dark:text-gray-400">
+                        {feature.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                </CardWrapper>
+              )
+            })}
           </div>
         </div>
       </section>
 
       {/* Frameworks Showcase */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800/50">
+      <section id="frameworks" className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800/50">
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
@@ -174,28 +184,27 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {[
-              "SWOT Analysis",
-              "COG Analysis", 
-              "PMESII-PT",
-              "ACH Analysis",
-              "DOTMLPF",
-              "Deception Detection",
-              "Behavioral Analysis",
-              "Starbursting",
-              "Causeway",
-              "DIME Framework"
+              { name: "SWOT Analysis", path: "/frameworks/swot" },
+              { name: "COG Analysis", path: "/frameworks/cog" },
+              { name: "PMESII-PT", path: "/frameworks/pmesii-pt" },
+              { name: "ACH Analysis", path: "/frameworks/ach" },
+              { name: "DOTMLPF", path: "/frameworks/dotmlpf" },
+              { name: "Deception Detection", path: "/frameworks/deception-detection" },
+              { name: "Behavioral Analysis", path: "/frameworks/behavioral-analysis" },
+              { name: "Starbursting", path: "/frameworks/starbursting" },
+              { name: "Causeway", path: "/frameworks/causeway" },
+              { name: "Security Assessment", path: "/security-assessment" }
             ].map((framework, index) => (
-              <div 
-                key={index}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="w-8 h-8 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-white text-sm font-bold">{index + 1}</span>
+              <Link key={index} href={framework.path}>
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center shadow-sm hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group">
+                  <div className="w-8 h-8 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-blue-700 transition-colors">
+                    <span className="text-white text-sm font-bold">{index + 1}</span>
+                  </div>
+                  <h3 className="font-medium text-sm text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {framework.name}
+                  </h3>
                 </div>
-                <h3 className="font-medium text-sm text-gray-900 dark:text-gray-100">
-                  {framework}
-                </h3>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
