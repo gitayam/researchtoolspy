@@ -7,6 +7,7 @@ import { ArrowRight, Brain, Shield, Zap, Users, BarChart3, Target, Unlock, KeyRo
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useIsAuthenticated } from '@/stores/auth'
+import { DashboardSidebar } from '@/components/layout/dashboard-sidebar'
 
 export default function LandingPage() {
   const router = useRouter()
@@ -57,8 +58,13 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Header */}
-      <header className="border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+      {/* Sidebar */}
+      <DashboardSidebar />
+      
+      {/* Main content with sidebar offset */}
+      <div className="lg:pl-64">
+        {/* Header */}
+        <header className="border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
@@ -236,20 +242,21 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-gray-700 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="h-6 w-6 rounded bg-blue-600 flex items-center justify-center">
-              <Zap className="h-4 w-4 text-white" />
+        {/* Footer */}
+        <footer className="border-t border-gray-200 dark:border-gray-700 py-8 px-4 sm:px-6 lg:px-8">
+          <div className="container mx-auto text-center">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="h-6 w-6 rounded bg-blue-600 flex items-center justify-center">
+                <Zap className="h-4 w-4 text-white" />
+              </div>
+              <span className="font-bold text-gray-900 dark:text-white">ResearchTools</span>
             </div>
-            <span className="font-bold text-gray-900 dark:text-white">ResearchTools</span>
+            <p className="text-gray-600 dark:text-gray-400">
+              Research Analysis Platform • Free for IrregularChat Community
+            </p>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Research Analysis Platform • Free for IrregularChat Community
-          </p>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   )
 }
