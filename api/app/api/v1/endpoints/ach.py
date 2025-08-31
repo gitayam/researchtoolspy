@@ -28,14 +28,31 @@ class Hypothesis(BaseModel):
     notes: Optional[str] = None
 
 
+class SATSEvaluation(BaseModel):
+    """SATS (Source, Accuracy, Timeliness, Significance) evaluation model."""
+    reliability: int = 3  # 1-5 scale
+    credibility: int = 3  # 1-5 scale
+    validity: int = 3  # 1-5 scale
+    relevance: int = 3  # 1-5 scale
+    significance: int = 3  # 1-5 scale
+    timeliness: int = 3  # 1-5 scale
+    accuracy: int = 3  # 1-5 scale
+    completeness: int = 3  # 1-5 scale
+    overall_score: float = 0.0  # Calculated average
+    evaluation_date: str
+    evaluator: Optional[str] = None
+    notes: Optional[str] = None
+
+
 class Evidence(BaseModel):
     """Evidence model for ACH analysis."""
     id: str
     description: str
-    credibility: Optional[float] = 0.5  # 0-1 scale
-    relevance: Optional[float] = 0.5  # 0-1 scale
+    credibility: Optional[float] = 0.5  # 0-1 scale (legacy)
+    relevance: Optional[float] = 0.5  # 0-1 scale (legacy)
     source: Optional[str] = None
     date: Optional[str] = None
+    sats_evaluation: Optional[SATSEvaluation] = None
 
 
 class EvidenceAssessment(BaseModel):

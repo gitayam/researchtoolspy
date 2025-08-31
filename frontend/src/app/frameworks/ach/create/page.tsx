@@ -51,6 +51,20 @@ interface Evidence {
   source: string
   reliability: number
   relevance: number
+  sats_evaluation?: {
+    reliability: number // 1-5
+    credibility: number // 1-5
+    validity: number // 1-5
+    relevance: number // 1-5
+    significance: number // 1-5
+    timeliness: number // 1-5
+    accuracy: number // 1-5
+    completeness: number // 1-5
+    overall_score: number // Calculated
+    evaluation_date: Date
+    evaluator?: string
+    notes?: string
+  }
 }
 
 interface ACHScore {
@@ -478,7 +492,8 @@ export default function PublicACHCreatePage() {
                           placeholder="Source (optional)"
                           className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                         />
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* Basic Scoring */}
+                        <div className="grid grid-cols-2 gap-4 mb-3">
                           <div>
                             <label className="text-xs text-gray-500 dark:text-gray-400">
                               Reliability: {evidence.reliability}/5
@@ -506,6 +521,95 @@ export default function PublicACHCreatePage() {
                             />
                           </div>
                         </div>
+
+                        {/* SATS Evaluation Toggle */}
+                        <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (!evidence.sats_evaluation) {
+                                updateEvidence(evidence.id, {
+                                  sats_evaluation: {
+                                    reliability: evidence.reliability,
+                                    credibility: 3,
+                                    validity: 3,
+                                    relevance: evidence.relevance,
+                                    significance: 3,
+                                    timeliness: 3,
+                                    accuracy: 3,
+                                    completeness: 3,
+                                    overall_score: 0,
+                                    evaluation_date: new Date(),
+                                    notes: ''
+                                  }
+                                })
+                              }
+                            }}
+                            className="text-xs"
+                          >
+                            <Target className="h-3 w-3 mr-1" />
+                            {evidence.sats_evaluation ? 'SATS Evaluated' : 'Add SATS Evaluation'}
+                          </Button>
+                        </div>
+
+                        {/* SATS Detailed Evaluation */}
+                        {evidence.sats_evaluation && (
+                          <div className="bg-gray-50 dark:bg-gray-900 rounded p-3 mt-2 space-y-3">
+                            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                              SATS Evaluation (Source, Accuracy, Timeliness, Significance)
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 text-xs">
+                              {[
+                                ['reliability', 'Source Reliability'],
+                                ['credibility', 'Source Credibility'],
+                                ['validity', 'Information Validity'],
+                                ['relevance', 'Relevance'],
+                                ['significance', 'Significance'],
+                                ['timeliness', 'Timeliness'],
+                                ['accuracy', 'Accuracy'],
+                                ['completeness', 'Completeness']
+                              ].map(([key, label]) => (
+                                <div key={key}>
+                                  <label className="text-gray-500 dark:text-gray-400">
+                                    {label}: {evidence.sats_evaluation?.[key as keyof typeof evidence.sats_evaluation] || 0}/5
+                                  </label>
+                                  <Slider
+                                    value={[evidence.sats_evaluation?.[key as keyof typeof evidence.sats_evaluation] as number || 0]}
+                                    onValueChange={(value) => {
+                                      const sats = evidence.sats_evaluation!
+                                      const newSats = { ...sats, [key]: value[0] }
+                                      // Calculate overall score (average)
+                                      newSats.overall_score = Math.round(
+                                        (newSats.reliability + newSats.credibility + newSats.validity + 
+                                         newSats.relevance + newSats.significance + newSats.timeliness + 
+                                         newSats.accuracy + newSats.completeness) / 8 * 10
+                                      ) / 10
+                                      updateEvidence(evidence.id, { sats_evaluation: newSats })
+                                    }}
+                                    max={5}
+                                    min={1}
+                                    step={1}
+                                    className="mt-1"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
+                              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                Overall SATS Score: {evidence.sats_evaluation.overall_score}/5
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => updateEvidence(evidence.id, { sats_evaluation: undefined })}
+                                className="text-xs text-red-600 hover:text-red-800"
+                              >
+                                Remove SATS
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <Button
                         variant="ghost"
