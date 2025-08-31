@@ -3,7 +3,7 @@ Authentication logging model for tracking login attempts and sessions.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -40,24 +40,24 @@ class AuthLog(BaseModel):
         nullable=False,
     )
     
-    ip_address: Mapped[str | None] = mapped_column(
+    ip_address: Mapped[Optional[str]] = mapped_column(
         String(45),  # IPv6 max length
         nullable=True,
     )
     
-    user_agent: Mapped[str | None] = mapped_column(
+    user_agent: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
     )
     
     # Session info
-    session_token: Mapped[str | None] = mapped_column(
+    session_token: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True,
     )
     
     # Error details (for failed attempts)
-    error_message: Mapped[str | None] = mapped_column(
+    error_message: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
     )
