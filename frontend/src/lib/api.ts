@@ -19,7 +19,7 @@ const getApiBaseUrl = () => {
   
   // For local development, always use localhost
   // (Tunnel URL logic removed to prevent confusion)
-  return 'http://localhost:9876/api/v1'
+  return 'http://localhost:8090/api/v1'
 }
 
 const API_BASE_URL = getApiBaseUrl()
