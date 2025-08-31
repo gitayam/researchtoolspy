@@ -3,7 +3,7 @@ Framework analysis models.
 """
 
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -56,7 +56,7 @@ class FrameworkSession(BaseModel):
         nullable=False,
     )
     
-    description: Mapped[str | None] = mapped_column(
+    description: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
     )
@@ -92,13 +92,13 @@ class FrameworkSession(BaseModel):
     )
     
     # Configuration
-    config: Mapped[str | None] = mapped_column(
+    config: Mapped[Optional[str]] = mapped_column(
         Text,  # JSON string containing framework configuration
         nullable=True,
     )
     
     # Metadata
-    tags: Mapped[str | None] = mapped_column(
+    tags: Mapped[Optional[str]] = mapped_column(
         Text,  # JSON array of tags
         nullable=True,
     )
@@ -109,7 +109,7 @@ class FrameworkSession(BaseModel):
     )
     
     # AI Integration
-    ai_suggestions: Mapped[str | None] = mapped_column(
+    ai_suggestions: Mapped[Optional[str]] = mapped_column(
         Text,  # JSON string containing AI suggestions
         nullable=True,
     )
@@ -144,7 +144,7 @@ class FrameworkTemplate(BaseModel):
         nullable=False,
     )
     
-    description: Mapped[str | None] = mapped_column(
+    description: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
     )

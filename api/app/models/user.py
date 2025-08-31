@@ -3,7 +3,7 @@ User model and related database models.
 """
 
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, Enum as SQLEnum, String, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -57,7 +57,7 @@ class User(BaseModel):
     )
     
     # Hash-based authentication (Mullvad-style)
-    account_hash: Mapped[str | None] = mapped_column(
+    account_hash: Mapped[Optional[str]] = mapped_column(
         String(16),
         unique=True,
         index=True,
@@ -84,23 +84,23 @@ class User(BaseModel):
     )
     
     # Profile Information
-    organization: Mapped[str | None] = mapped_column(
+    organization: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True,
     )
     
-    department: Mapped[str | None] = mapped_column(
+    department: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True,
     )
     
-    bio: Mapped[str | None] = mapped_column(
+    bio: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
     )
     
     # Preferences
-    preferences: Mapped[str | None] = mapped_column(
+    preferences: Mapped[Optional[str]] = mapped_column(
         Text,  # JSON string
         nullable=True,
     )
@@ -193,7 +193,7 @@ class APIKey(BaseModel):
     )
     
     # Usage tracking
-    last_used_at: Mapped[str | None] = mapped_column(
+    last_used_at: Mapped[Optional[str]] = mapped_column(
         String(50),  # ISO datetime string
         nullable=True,
     )

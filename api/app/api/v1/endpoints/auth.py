@@ -2,6 +2,7 @@
 Authentication endpoints.
 """
 
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
@@ -33,8 +34,8 @@ class UserCreate(BaseModel):
     full_name: str
     password: str
     role: UserRole = UserRole.RESEARCHER
-    organization: str | None = None
-    department: str | None = None
+    organization: Optional[str] = None
+    department: Optional[str] = None
 
 
 class UserResponse(BaseModel):
@@ -46,8 +47,8 @@ class UserResponse(BaseModel):
     role: UserRole
     is_active: bool
     is_verified: bool
-    organization: str | None = None
-    department: str | None = None
+    organization: Optional[str] = None
+    department: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -86,18 +87,14 @@ async def get_current_user(
     if token_data is None:
         raise credentials_exception
     
-    # TODO: Implement user lookup from database
-    # For now, create a mock user that works with hash auth
-    from app.api.v1.endpoints.auth_fix import MockUser
+    # Get user from database
+    from sqlalchemy import select
     
-    # Determine role from scopes
-    role = UserRole.ADMIN if "admin" in (token_data.scopes or []) else UserRole.RESEARCHER
+    result = await db.execute(select(User).where(User.id == token_data.user_id))
+    user = result.scalar_one_or_none()
     
-    user = MockUser(
-        user_id=token_data.user_id or 1,
-        username=token_data.username or "test",
-        role=role
-    )
+    if user is None or not user.is_active:
+        raise credentials_exception
     
     return user
 
@@ -161,31 +158,62 @@ async def login(
     Raises:
         HTTPException: If credentials are invalid
     """
-    # TODO: Implement actual user authentication with database
-    # For now, accept any credentials
+    from sqlalchemy import select
+    from app.core.config import settings
+    
     logger.info(f"Login attempt: {form_data.username}")
     
-    # Mock authentication - accept "admin/admin" or "test/test"
-    if not (
-        (form_data.username == "admin" and form_data.password == "admin") or
-        (form_data.username == "test" and form_data.password == "test")
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+    # Check if mock auth is enabled (development only)
+    if settings.ENABLE_MOCK_AUTH and settings.ENVIRONMENT == "development":
+        # Mock authentication - accept "admin/admin" or "test/test" 
+        if (form_data.username == "admin" and form_data.password == "admin") or \
+           (form_data.username == "test" and form_data.password == "test"):
+            user = UserResponse(
+                id=1 if form_data.username == "admin" else 2,
+                username=form_data.username,
+                email=f"{form_data.username}@example.com",
+                full_name=f"{form_data.username.title()} User",
+                role=UserRole.ADMIN if form_data.username == "admin" else UserRole.RESEARCHER,
+                is_active=True,
+                is_verified=True,
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    else:
+        # Actual database authentication
+        result = await db.execute(
+            select(User).where(User.username == form_data.username)
         )
-    
-    # Create mock user
-    user = UserResponse(
-        id=1 if form_data.username == "admin" else 2,
-        username=form_data.username,
-        email=f"{form_data.username}@example.com",
-        full_name=f"{form_data.username.title()} User",
-        role=UserRole.ADMIN if form_data.username == "admin" else UserRole.RESEARCHER,
-        is_active=True,
-        is_verified=True,
-    )
+        db_user = result.scalar_one_or_none()
+        
+        if db_user is None or not verify_password(form_data.password, db_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        if not db_user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Account is deactivated"
+            )
+        
+        user = UserResponse(
+            id=db_user.id,
+            username=db_user.username,
+            email=db_user.email,
+            full_name=db_user.full_name,
+            role=db_user.role,
+            is_active=db_user.is_active,
+            is_verified=db_user.is_verified,
+            organization=db_user.organization,
+            department=db_user.department,
+        )
     
     # Create tokens
     tokens = create_token_pair(

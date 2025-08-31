@@ -4,12 +4,15 @@ Web scraping API endpoints for content extraction and analysis.
 
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, HttpUrl
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 import asyncio
 import json
+import ipaddress
+import socket
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 
 from app.core.database import get_db
 from app.api.v1.endpoints.auth import get_current_user
@@ -20,6 +23,70 @@ from app.models.research_tool import ResearchJob, ResearchJobStatus, ResearchJob
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+# Security: Allowed domains for web scraping (prevent SSRF attacks)
+ALLOWED_DOMAINS = {
+    # Public sites commonly used for research
+    "wikipedia.org", "www.wikipedia.org",
+    "archive.org", "web.archive.org",
+    "github.com", "www.github.com",
+    "stackexchange.com", "stackoverflow.com",
+    "reddit.com", "www.reddit.com",
+    "news.ycombinator.com",
+    "arxiv.org",
+    "jstor.org", "www.jstor.org",
+    "scholar.google.com",
+    "pubmed.ncbi.nlm.nih.gov",
+    # News sources
+    "reuters.com", "www.reuters.com",
+    "bbc.com", "www.bbc.com",
+    "cnn.com", "www.cnn.com",
+    "nytimes.com", "www.nytimes.com",
+    "washingtonpost.com", "www.washingtonpost.com",
+}
+
+# Internal/Private IP ranges to block (prevent SSRF)
+BLOCKED_IP_RANGES = [
+    "10.0.0.0/8",
+    "172.16.0.0/12", 
+    "192.168.0.0/16",
+    "127.0.0.0/8",
+    "169.254.0.0/16",  # AWS metadata
+    "fc00::/7",  # IPv6 private
+    "::1/128",   # IPv6 localhost
+]
+
+def is_safe_url(url: str) -> bool:
+    """
+    Validate URL for security - prevent SSRF attacks.
+    """
+    try:
+        parsed = urlparse(url)
+        
+        # Only allow HTTPS (and HTTP for development)
+        if parsed.scheme not in ["http", "https"]:
+            return False
+        
+        # Check if domain is in allowlist
+        domain = parsed.netloc.lower()
+        if not any(domain.endswith(allowed) for allowed in ALLOWED_DOMAINS):
+            return False
+        
+        # Try to resolve hostname to IP and check for private ranges
+        try:
+            hostname = parsed.hostname
+            if hostname:
+                ip = socket.gethostbyname(hostname)
+                for blocked_range in BLOCKED_IP_RANGES:
+                    if ipaddress.ip_address(ip) in ipaddress.ip_network(blocked_range):
+                        return False
+        except (socket.gaierror, ValueError):
+            # If we can't resolve, err on the side of caution
+            return False
+            
+        return True
+    except Exception:
+        return False
 
 # Request/Response Models
 class ScrapingRequest(BaseModel):
@@ -33,6 +100,22 @@ class ScrapingRequest(BaseModel):
     delay_seconds: float = 1.0
     user_agent: Optional[str] = None
     
+    @validator('url')
+    def validate_url(cls, v):
+        """Validate URL for security."""
+        if not v or not isinstance(v, str):
+            raise ValueError("URL is required")
+            
+        # Basic URL format validation
+        if not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("URL must start with http:// or https://")
+        
+        # Security validation
+        if not is_safe_url(v):
+            raise ValueError("URL is not allowed or poses a security risk")
+            
+        return v
+    
     @validator('max_depth')
     def validate_max_depth(cls, v):
         """Validate max depth."""
@@ -45,6 +128,13 @@ class ScrapingRequest(BaseModel):
         """Validate delay."""
         if v < 0.5 or v > 10.0:
             raise ValueError("Delay must be between 0.5 and 10.0 seconds")
+        return v
+    
+    @validator('user_agent')
+    def validate_user_agent(cls, v):
+        """Validate user agent string."""
+        if v and len(v) > 200:
+            raise ValueError("User agent string too long")
         return v
 
 
