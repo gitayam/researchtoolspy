@@ -2,6 +2,7 @@
 Health check endpoints for monitoring.
 """
 
+from typing import Dict, Union
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +27,7 @@ async def health_check() -> dict[str, str]:
 @router.get("/detailed")
 async def detailed_health_check(
     db: AsyncSession = Depends(get_db)
-) -> dict[str, str | bool]:
+) -> Dict[str, Union[str, bool]]:
     """
     Detailed health check including database connectivity.
     

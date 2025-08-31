@@ -4,7 +4,7 @@ Framework analysis endpoints.
 
 import json
 from datetime import datetime
-from typing import Sequence
+from typing import Sequence, Optional, Dict, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -24,16 +24,16 @@ router = APIRouter()
 class FrameworkSessionCreate(BaseModel):
     """Framework session creation request."""
     title: str
-    description: str | None = None
+    description: Optional[str] = None
     framework_type: FrameworkType
-    data: dict | None = None
+    data: Optional[dict] = None
 
 
 class FrameworkSessionResponse(BaseModel):
     """Framework session response."""
     id: int
     title: str
-    description: str | None
+    description: Optional[str]
     framework_type: FrameworkType
     status: FrameworkStatus
     data: dict
@@ -48,16 +48,16 @@ class FrameworkSessionResponse(BaseModel):
 
 class FrameworkSessionUpdate(BaseModel):
     """Framework session update request."""
-    title: str | None = None
-    description: str | None = None
-    status: FrameworkStatus | None = None
-    data: dict | None = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[FrameworkStatus] = None
+    data: Optional[dict] = None
 
 
 @router.get("/", response_model=list[FrameworkSessionResponse])
 async def list_framework_sessions(
-    framework_type: FrameworkType | None = None,
-    status: FrameworkStatus | None = None,
+    framework_type: Optional[FrameworkType] = None,
+    status: Optional[FrameworkStatus] = None,
     limit: int = 50,
     offset: int = 0,
     current_user: User = Depends(get_current_user),
