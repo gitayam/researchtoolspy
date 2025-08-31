@@ -18,6 +18,7 @@ from app.api.v1.endpoints import (
     hash_auth,
     health,
     pmesii_pt,
+    security,
     starbursting,
     swot,
     users,
@@ -38,6 +39,7 @@ api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 api_router.include_router(hash_auth.router, prefix="/hash-auth", tags=["hash-authentication"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(frameworks.router, prefix="/frameworks", tags=["frameworks"])
+api_router.include_router(security.router, prefix="/security", tags=["security-assessment"])
 api_router.include_router(ai.router, prefix="/ai", tags=["ai-analysis"])
 
 # Analysis Framework Endpoints
