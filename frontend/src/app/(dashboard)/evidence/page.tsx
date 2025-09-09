@@ -1,37 +1,24 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Search, Filter, Upload, Download, Tag, Clock, Shield, Globe, FileText, Link, Image, Video, Music, MessageSquare, Mail, FileBarChart, MoreHorizontal, Trash2, Edit, Copy, Archive, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { Plus, Search, Upload, Tag, Clock, Shield, Globe, FileText, Link, Image, Video, Music, MessageSquare, Mail, FileBarChart, MoreHorizontal, Trash2, Edit, Copy, Archive, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Evidence, EvidenceType, EvidenceStatus, CredibilityLevel, EvidenceFilter, EvidenceStatistics } from '@/types/evidence'
 import { cn } from '@/lib/utils'
 
 // Empty evidence array - will be populated from API
 const mockEvidence: Evidence[] = []
 
-const credibilityColors = {
-  [CredibilityLevel.VERY_HIGH]: 'bg-green-500',
-  [CredibilityLevel.HIGH]: 'bg-blue-500',
-  [CredibilityLevel.MEDIUM]: 'bg-yellow-500',
-  [CredibilityLevel.LOW]: 'bg-orange-500',
-  [CredibilityLevel.VERY_LOW]: 'bg-red-500',
-  [CredibilityLevel.UNKNOWN]: 'bg-gray-400'
-}
 
 export default function EvidenceCollectorPage() {
-  const [evidence, setEvidence] = useState<Evidence[]>(mockEvidence)
-  const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null)
+  const [evidence] = useState<Evidence[]>(mockEvidence)
   const [filter, setFilter] = useState<EvidenceFilter>({})
   const [searchTerm, setSearchTerm] = useState('')
-  const [activeTab, setActiveTab] = useState('list')
 
   // TODO: Replace with actual API calls
   const loadEvidence = async () => {
