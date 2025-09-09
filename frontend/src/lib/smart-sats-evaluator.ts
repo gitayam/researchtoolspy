@@ -328,7 +328,7 @@ export function suggestEvidenceImprovements(
     const currentScore = currentScores[question.id] || 0
     if (currentScore <= 5) {
       const actionItems = []
-      let targetScore = 8
+      const targetScore = 8
       let impact: 'high' | 'medium' | 'low' = 'medium'
 
       switch (question.id) {

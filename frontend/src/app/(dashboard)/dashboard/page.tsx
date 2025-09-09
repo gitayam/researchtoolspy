@@ -12,19 +12,16 @@ import {
   Plus, 
   Search, 
   Target,
-  TrendingUp,
   Users,
   Activity,
   Clock
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useUser } from '@/stores/auth'
 import { useRecentSessions, useFrameworkSessions, useFrameworkLoading, useFrameworkStore } from '@/stores/frameworks'
 import { formatRelativeTime } from '@/lib/utils'
 
 export default function DashboardPage() {
-  const user = useUser()
   const recentSessions = useRecentSessions()
   const allSessions = useFrameworkSessions()
   const isLoading = useFrameworkLoading()

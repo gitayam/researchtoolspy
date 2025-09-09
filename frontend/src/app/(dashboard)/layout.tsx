@@ -1,14 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useIsAuthenticated, useAuthLoading, useAuthStore } from '@/stores/auth'
 import { AuthGuard } from '@/components/auth/auth-guard'
-// import { useAutoSaveActions } from '@/stores/auto-save' // Temporarily disabled
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { ToastProvider } from '@/components/ui/use-toast'
-// import { MigrationBanner } from '@/components/auto-save/migration-prompt' // Temporarily disabled
 
 export default function DashboardLayout({
   children,

@@ -7,8 +7,6 @@ import {
   Plus, 
   Trash2, 
   Save,
-  User,
-  Settings,
   Target,
   Lightbulb,
   Zap,
@@ -21,7 +19,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -111,22 +108,7 @@ export default function BehaviorCreatePage() {
     return factors.filter(factor => factor.component === component)
   }
 
-  const getImpactColor = (impact: string) => {
-    switch (impact) {
-      case 'high': return 'bg-red-100 text-red-800'
-      case 'medium': return 'bg-yellow-100 text-yellow-800'
-      case 'low': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
 
-  const getChangeabilityIcon = (changeability: string) => {
-    switch (changeability) {
-      case 'easy': return <CheckCircle className="h-4 w-4 text-green-600" />
-      case 'moderate': return <AlertTriangle className="h-4 w-4 text-yellow-600" />
-      case 'difficult': return <XCircle className="h-4 w-4 text-red-600" />
-    }
-  }
 
   const handleSave = async (status: 'draft' | 'completed' = 'draft') => {
     if (!title.trim()) {

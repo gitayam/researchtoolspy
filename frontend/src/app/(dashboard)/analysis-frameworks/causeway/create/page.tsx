@@ -19,7 +19,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Slider } from '@/components/ui/slider'
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
@@ -42,14 +41,6 @@ interface Effect {
   description?: string
 }
 
-interface MitigationAction {
-  id: string
-  action: string
-  priority: 'high' | 'medium' | 'low'
-  timeline: string
-  responsible?: string
-  resources?: string
-}
 
 export default function CausewayCreatePage() {
   const router = useRouter()
@@ -60,7 +51,6 @@ export default function CausewayCreatePage() {
   const [problemStatement, setProblemStatement] = useState('')
   const [rootCauses, setRootCauses] = useState<RootCause[]>([])
   const [effects, setEffects] = useState<Effect[]>([])
-  const [mitigationActions, setMitigationActions] = useState<MitigationAction[]>([])
 
   const categories = [
     { 
@@ -130,27 +120,8 @@ export default function CausewayCreatePage() {
     setEffects(effects.filter(effect => effect.id !== id))
   }
 
-  const addMitigationAction = () => {
-    const newAction: MitigationAction = {
-      id: `action-${Date.now()}`,
-      action: '',
-      priority: 'medium',
-      timeline: '',
-      responsible: '',
-      resources: ''
-    }
-    setMitigationActions([...mitigationActions, newAction])
-  }
 
-  const updateMitigationAction = (id: string, field: keyof MitigationAction, value: any) => {
-    setMitigationActions(mitigationActions.map(action => 
-      action.id === id ? { ...action, [field]: value } : action
-    ))
-  }
 
-  const removeMitigationAction = (id: string) => {
-    setMitigationActions(mitigationActions.filter(action => action.id !== id))
-  }
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -181,8 +152,7 @@ export default function CausewayCreatePage() {
         data: {
           problemStatement: problemStatement.trim(),
           rootCauses: rootCauses.filter(cause => cause.cause.trim()),
-          effects: effects.filter(effect => effect.effect.trim()),
-          mitigationActions: mitigationActions.filter(action => action.action.trim())
+          effects: effects.filter(effect => effect.effect.trim())
         }
       }
 

@@ -25,7 +25,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -101,28 +100,7 @@ export default function DOTMLPFCreatePage() {
     return capabilities.filter(cap => cap.domain === domain)
   }
 
-  const getStateIcon = (state: string) => {
-    switch (state) {
-      case 'adequate':
-        return <CheckCircle className="h-4 w-4 text-green-600" />
-      case 'marginal':
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />
-      case 'inadequate':
-        return <XCircle className="h-4 w-4 text-red-600" />
-      default:
-        return null
-    }
-  }
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'critical': return 'bg-red-100 text-red-800'
-      case 'high': return 'bg-orange-100 text-orange-800'
-      case 'medium': return 'bg-yellow-100 text-yellow-800'
-      case 'low': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   const handleSave = async (status: 'draft' | 'completed' = 'draft') => {
     if (!title.trim()) {
