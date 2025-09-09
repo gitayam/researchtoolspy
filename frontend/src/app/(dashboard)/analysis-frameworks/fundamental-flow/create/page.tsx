@@ -213,7 +213,7 @@ export default function CreateFundamentalFlowPage() {
               id="problem"
               value={problem}
               onChange={(e) => setProblem(e.target.value)}
-              placeholder="Clearly define the problem or issue you're analyzing..."
+              placeholder="Clearly define the problem or issue you&apos;re analyzing..."
               className="mt-1"
               rows={3}
             />
