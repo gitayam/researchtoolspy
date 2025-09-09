@@ -129,7 +129,7 @@ export default function DeceptionDetectionViewPage() {
             <AlertTriangle className="h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Analysis not found</h3>
             <p className="text-gray-500 text-center">
-              The deception detection analysis you're looking for doesn't exist.
+              The deception detection analysis you&apos;re looking for doesn&apos;t exist.
             </p>
           </CardContent>
         </Card>

@@ -363,7 +363,10 @@ export default function BatchProcessingPage() {
                 <Textarea
                   value={bulkUrls}
                   onChange={(e) => setBulkUrls(e.target.value)}
-                  placeholder="Enter URLs separated by new lines&#10;https://example1.com&#10;https://example2.com&#10;https://example3.com"
+                  placeholder="Enter URLs separated by new lines
+https://example1.com
+https://example2.com
+https://example3.com"
                   rows={6}
                 />
                 <div className="flex gap-2">
