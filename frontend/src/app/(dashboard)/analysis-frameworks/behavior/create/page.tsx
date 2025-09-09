@@ -82,7 +82,7 @@ export default function BehaviorCreatePage() {
   const addFactor = (component: string) => {
     const newFactor: BehaviorFactor = {
       id: `factor-${Date.now()}`,
-      component: component as any,
+      component: component as 'capability' | 'opportunity' | 'motivation',
       factor: '',
       description: '',
       currentLevel: 5,
@@ -97,7 +97,7 @@ export default function BehaviorCreatePage() {
     setFactors([...factors, newFactor])
   }
 
-  const updateFactor = (id: string, field: keyof BehaviorFactor, value: any) => {
+  const updateFactor = (id: string, field: keyof BehaviorFactor, value: string | number | string[]) => {
     setFactors(factors.map(factor => 
       factor.id === id ? { ...factor, [field]: value } : factor
     ))
@@ -177,11 +177,12 @@ export default function BehaviorCreatePage() {
         description: 'Behavior analysis saved successfully'
       })
       
-      router.push(`/frameworks/behavior/${response.id}`)
-    } catch (error: any) {
+      router.push(`/frameworks/behavior/${(response as { id: string }).id}`)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
       toast({
         title: 'Error',
-        description: error.message || 'Failed to save behavior analysis',
+        description: errorMessage || 'Failed to save behavior analysis',
         variant: 'destructive'
       })
     } finally {

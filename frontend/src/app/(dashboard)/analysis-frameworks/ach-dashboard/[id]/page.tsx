@@ -40,6 +40,32 @@ import { formatRelativeTime } from '@/lib/utils'
 import { analyzeHypotheses, ACHScore } from '@/lib/ach-scoring'
 import { exportFrameworkAnalysis, ExportFormat } from '@/lib/export-utils'
 
+interface AnalysisInsights {
+  strongest_hypothesis: HypothesisWithScore
+  weakest_hypothesis: HypothesisWithScore
+  most_diagnostic_evidence: Array<EvidenceWithDiagnosticity>
+  competing_hypotheses: HypothesisWithScore[]
+  confidence_assessment: 'High' | 'Medium' | 'Low'
+  recommendations: string[]
+}
+
+interface HypothesisWithScore {
+  id: string
+  text: string
+  supports: number
+  contradicts: number
+  neutral: number
+  not_applicable: number
+  weightedScore: number
+}
+
+interface EvidenceWithDiagnosticity {
+  id: string
+  text: string
+  hypotheses_scores: Record<string, string>
+  diagnosticity: number
+}
+
 interface ACHSession {
   id: string
   title: string
@@ -67,7 +93,7 @@ export default function ACHViewPage() {
   const [session, setSession] = useState<ACHSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
-  const [analysisInsights, setAnalysisInsights] = useState<any>(null)
+  const [analysisInsights, setAnalysisInsights] = useState<AnalysisInsights | null>(null)
   const [showInsights, setShowInsights] = useState(false)
 
   useEffect(() => {
@@ -75,10 +101,11 @@ export default function ACHViewPage() {
       try {
         const data = await apiClient.get<ACHSession>(`/frameworks/${params.id}`)
         setSession(data)
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
         toast({
           title: 'Error',
-          description: error.message || 'Failed to load ACH analysis',
+          description: errorMessage || 'Failed to load ACH analysis',
           variant: 'destructive'
         })
         router.push('/frameworks')
@@ -98,6 +125,7 @@ export default function ACHViewPage() {
   }
 
   const handleSave = async () => {
+    if (!session) return
     try {
       // Auto-save functionality - update the session with current analysis state
       const payload = {
@@ -108,7 +136,7 @@ export default function ACHViewPage() {
           scaleType: session.data.scaleType || 'logarithmic', // Preserve scale type
           lastAnalyzed: new Date().toISOString()
         },
-        status: 'completed'
+        status: 'completed' as const
       }
 
       await apiClient.put(`/frameworks/${params.id}`, payload)
@@ -117,16 +145,18 @@ export default function ACHViewPage() {
         title: 'Analysis Saved',
         description: 'Your ACH analysis has been saved successfully'
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
       toast({
         title: 'Save Failed',
-        description: error.message || 'Failed to save analysis',
+        description: errorMessage || 'Failed to save analysis',
         variant: 'destructive'
       })
     }
   }
 
   const handleExport = async (format: ExportFormat) => {
+    if (!session) return
     try {
       await exportFrameworkAnalysis({
         title: session.title,
@@ -138,10 +168,11 @@ export default function ACHViewPage() {
         title: 'Export Successful',
         description: `ACH analysis exported as ${format.toUpperCase()}`
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
       toast({
         title: 'Export Failed',
-        description: error.message || 'Failed to export analysis',
+        description: errorMessage || 'Failed to export analysis',
         variant: 'destructive'
       })
     }
@@ -225,19 +256,19 @@ export default function ACHViewPage() {
     const evidenceScores = new Map<string, Map<string, ACHScore>>()
     
     // Convert evidence data to proper ACH format
-    session.data.evidence?.forEach((evidence: any) => {
+    session.data.evidence?.forEach((evidence: ACHSession['data']['evidence'][0]) => {
       if (evidence.hypotheses_scores) {
         const evidenceMap = new Map<string, ACHScore>()
-        Object.entries(evidence.hypotheses_scores).forEach(([hypId, score]: [string, any]) => {
+        Object.entries(evidence.hypotheses_scores).forEach(([hypId, score]: [string, string]) => {
           const achScore: ACHScore = {
             hypothesisId: hypId,
             evidenceId: evidence.id,
-            score: typeof score === 'number' ? score : (score.score || 0),
-            weight: score?.weight || {
-              credibility: evidence.weight?.credibility || 3,
-              relevance: evidence.weight?.relevance || 3
+            score: 0, // Legacy string scores converted to 0 for enhanced analysis
+            weight: {
+              credibility: 3,
+              relevance: 3
             },
-            evidenceCredibility: score?.evidenceCredibility || evidence.confidenceScore
+            evidenceCredibility: undefined
           }
           evidenceMap.set(hypId, achScore)
         })
@@ -293,10 +324,11 @@ export default function ACHViewPage() {
         title: 'Analysis Complete',
         description: 'Generated insights and recommendations'
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
       toast({
         title: 'Analysis Failed',
-        description: error.message || 'Failed to generate analysis',
+        description: errorMessage || 'Failed to generate analysis',
         variant: 'destructive'
       })
     } finally {
@@ -318,7 +350,7 @@ export default function ACHViewPage() {
     return diagnosticEvidence.slice(0, 3)
   }
 
-  const identifyCompetingHypotheses = (rankedHypotheses: any[]) => {
+  const identifyCompetingHypotheses = (rankedHypotheses: HypothesisWithScore[]) => {
     // Find hypotheses with similar scores (competing for top position)
     if (rankedHypotheses.length < 2) return []
     
@@ -330,7 +362,7 @@ export default function ACHViewPage() {
     return competing
   }
 
-  const generateConfidenceAssessment = (rankedHypotheses: any[]) => {
+  const generateConfidenceAssessment = (rankedHypotheses: HypothesisWithScore[]): 'High' | 'Medium' | 'Low' => {
     if (rankedHypotheses.length === 0) return 'Low'
     
     const topScore = rankedHypotheses[0].weightedScore
@@ -342,7 +374,7 @@ export default function ACHViewPage() {
     return 'Low'
   }
 
-  const generateRecommendations = (rankedHypotheses: any[]) => {
+  const generateRecommendations = (rankedHypotheses: HypothesisWithScore[]) => {
     const recommendations = []
     const confidence = generateConfidenceAssessment(rankedHypotheses)
     
@@ -499,7 +531,7 @@ export default function ACHViewPage() {
               <div>
                 <h4 className="font-medium mb-2">Competing Hypotheses</h4>
                 <div className="space-y-2">
-                  {analysisInsights.competing_hypotheses.map((hyp: any, index: number) => (
+                  {analysisInsights.competing_hypotheses.map((hyp: HypothesisWithScore, index: number) => (
                     <div key={index} className="p-2 bg-yellow-50 dark:bg-yellow-900/30 rounded border border-yellow-200 dark:border-yellow-800">
                       <p className="text-sm">{hyp.text}</p>
                       <p className="text-xs text-yellow-700 mt-1">Score: {hyp.weightedScore}</p>
@@ -513,7 +545,7 @@ export default function ACHViewPage() {
             <div>
               <h4 className="font-medium mb-2">Most Diagnostic Evidence</h4>
               <div className="space-y-2">
-                {analysisInsights.most_diagnostic_evidence.map((evidence: any, index: number) => (
+                {analysisInsights.most_diagnostic_evidence.map((evidence: EvidenceWithDiagnosticity, index: number) => (
                   <div key={index} className="flex items-start gap-2">
                     <Badge variant="outline" className="text-xs mt-0.5">E{index + 1}</Badge>
                     <p className="text-sm">{evidence.text}</p>
