@@ -36,7 +36,7 @@ export default function RegisterPage() {
         const result = await apiClient.registerWithHash()
         setAccountHash(result.account_hash)
         console.log('Frontend: Hash registered successfully:', result.account_hash.substring(0, 4) + '...')
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Frontend: Hash registration failed:', err)
         setError('Failed to generate bookmark hash. Please refresh the page to try again.')
       } finally {
@@ -52,7 +52,7 @@ export default function RegisterPage() {
       await navigator.clipboard.writeText(accountHash)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
+    } catch {
       // Failed to copy - continue silently
     }
   }
@@ -67,7 +67,7 @@ export default function RegisterPage() {
       const result = await apiClient.registerWithHash()
       setAccountHash(result.account_hash)
       console.log('Frontend: New hash registered successfully:', result.account_hash.substring(0, 4) + '...')
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Frontend: New hash registration failed:', err)
       setError('Failed to generate new bookmark hash. Please try again.')
     } finally {
@@ -93,7 +93,7 @@ export default function RegisterPage() {
       setTimeout(() => {
         router.push(`/login?hash=${accountHash}`)
       }, 1500)
-    } catch (error) {
+    } catch {
       // Failed to save - fallback to redirect to login
       setHashSaved(true)
       setTimeout(() => {

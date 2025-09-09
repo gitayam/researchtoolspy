@@ -18,7 +18,7 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, AlertCircle, Key, Copy, Check } from 'lucide-react'
+import { Loader2, AlertCircle, Key } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -60,7 +60,6 @@ export default function AccessPage() {
     }
   }, [isAuthenticated, router])
   // const { preserveWorkForAuthentication } = useAutoSaveActions() // Temporarily disabled
-  const [copied, setCopied] = useState(false)
   
   const {
     register,
@@ -85,8 +84,6 @@ export default function AccessPage() {
     
   }, [searchParams, setValue])
 
-  const watchedHash = watch('account_hash', '')
-
   const onSubmit = async (data: HashLoginRequest) => {
     try {
       clearError()
@@ -102,7 +99,8 @@ export default function AccessPage() {
       } else {
         router.push('/dashboard')
       }
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { status?: number; message?: string }
       // Error is already handled by the store
       if (error?.status === 401) {
         setError('account_hash', { 
@@ -187,7 +185,7 @@ export default function AccessPage() {
             </Button>
 
             <div className="text-center text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Don't have a hash? </span>
+              <span className="text-gray-600 dark:text-gray-400">Don&apos;t have a hash? </span>
               <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
                 Generate one
               </Link>
