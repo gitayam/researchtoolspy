@@ -69,6 +69,34 @@ interface Evidence {
   evaluationResponses?: Record<string, number>
 }
 
+interface SessionData {
+  hypotheses: Hypothesis[]
+  evidence: Array<{
+    id: string
+    text: string
+    hypotheses_scores: Record<string, string | ScoreData>
+    weight?: EvidenceWeight
+    confidenceScore?: number
+  }>
+  scaleType?: ScaleType
+}
+
+interface ScoreData {
+  score: number
+  weight?: EvidenceWeight
+  evidenceCredibility?: number
+}
+
+interface ApiSessionResponse {
+  id: string
+  title: string
+  description?: string
+  data?: SessionData
+  created_at: string
+  updated_at: string
+  user_id: string
+}
+
 interface EnhancedACHData {
   hypotheses: Hypothesis[]
   evidence: Evidence[]
@@ -108,7 +136,7 @@ export default function CreateACHPage() {
       // Load existing session data
       const loadExistingSession = async () => {
         try {
-          const sessionData = await apiClient.get(`/frameworks/${editId}`)
+          const sessionData = await apiClient.get<ApiSessionResponse>(`/frameworks/${editId}`)
           
           // Set basic fields
           setTitle(sessionData.title || '')
@@ -121,20 +149,20 @@ export default function CreateACHPage() {
             
             // Convert evidence scores to nested Map format
             if (sessionData.data.evidence) {
-              sessionData.data.evidence.forEach((evidence: any) => {
+              sessionData.data.evidence.forEach((evidence: SessionData['evidence'][0]) => {
                 if (evidence.hypotheses_scores) {
                   const evidenceScores = new Map<string, ACHScore>()
-                  Object.entries(evidence.hypotheses_scores).forEach(([hypId, scoreData]: [string, any]) => {
-                    // Handle both simple number scores and complex ACHScore objects
+                  Object.entries(evidence.hypotheses_scores).forEach(([hypId, scoreData]: [string, string | ScoreData]) => {
+                    // Handle both simple string scores and complex ACHScore objects
                     const achScore: ACHScore = {
                       hypothesisId: hypId,
                       evidenceId: evidence.id,
-                      score: typeof scoreData === 'number' ? scoreData : (scoreData.score || 0),
-                      weight: scoreData?.weight || {
+                      score: typeof scoreData === 'string' ? 0 : (scoreData.score || 0),
+                      weight: (typeof scoreData === 'object' ? scoreData.weight : undefined) || {
                         credibility: evidence.weight?.credibility || 3,
                         relevance: evidence.weight?.relevance || 3
                       },
-                      evidenceCredibility: scoreData?.evidenceCredibility || evidence.confidenceScore
+                      evidenceCredibility: (typeof scoreData === 'object' ? scoreData.evidenceCredibility : undefined) || evidence.confidenceScore
                     }
                     evidenceScores.set(hypId, achScore)
                   })
@@ -150,10 +178,11 @@ export default function CreateACHPage() {
               scaleType
             })
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
           toast({
             title: 'Error',
-            description: error.message || 'Failed to load session for editing',
+            description: errorMessage || 'Failed to load session for editing',
             variant: 'destructive'
           })
           router.push('/frameworks/ach')
@@ -400,7 +429,7 @@ export default function CreateACHPage() {
       const legacyData = {
         hypotheses: achData.hypotheses,
         evidence: achData.evidence.map(e => {
-          const hypothesesScores: any = {}
+          const hypothesesScores: Record<string, string> = {}
           achData.hypotheses.forEach(h => {
             const score = achData.scores.get(e.id)?.get(h.id)
             if (score) {
@@ -455,12 +484,13 @@ export default function CreateACHPage() {
           description: 'ACH analysis saved successfully'
         })
         
-        router.push(`/frameworks/ach/${response.id}`)
+        router.push(`/frameworks/ach/${(response as { id: string }).id}`)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
       toast({
         title: 'Error',
-        description: error.message || 'Failed to save analysis',
+        description: errorMessage || 'Failed to save analysis',
         variant: 'destructive'
       })
     } finally {
