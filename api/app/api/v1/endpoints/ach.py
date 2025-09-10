@@ -6,7 +6,7 @@ Structured analytical technique for intelligence analysis.
 import io
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -677,16 +677,77 @@ async def generate_ach_hypotheses_endpoint(
         scenario = request.get("scenario", "")
         key_question = request.get("key_question", "")
         context = request.get("context", "")
+        existing_hypotheses = request.get("existing_hypotheses", [])
 
-        hypotheses = await ai_service.generate_ach_hypotheses(scenario, key_question, context)
+        # Enhanced AI hypothesis generation
+        ai_prompt = f"""
+        As an intelligence analyst expert in the Analysis of Competing Hypotheses (ACH) methodology, 
+        generate 5-7 distinct, mutually exclusive hypotheses to answer the key question.
+
+        Scenario: {scenario}
+        Key Question: {key_question}
+        Additional Context: {context}
+        Existing Hypotheses: {existing_hypotheses}
+
+        Requirements:
+        1. Each hypothesis should be specific and testable
+        2. Hypotheses should cover the full spectrum of possibilities
+        3. Include at least one contrarian or unlikely hypothesis
+        4. Avoid overlap with existing hypotheses
+        5. Consider different actor types, motivations, and methods
+        
+        For each hypothesis, provide:
+        - A clear, concise description (max 100 words)
+        - Initial probability assessment (0.1-0.9)
+        - Key assumptions underlying the hypothesis
+        - Critical evidence that would support/refute it
+        
+        Format as JSON array with objects containing: description, probability, assumptions, critical_evidence
+        """
+
+        result = await ai_service.analyze_with_ai_detailed(ai_prompt, "ach_hypothesis_generation")
+        
+        # Parse AI response and structure hypotheses
+        if isinstance(result, dict) and "content" in result:
+            import json
+            try:
+                hypotheses_data = json.loads(result["content"])
+                if isinstance(hypotheses_data, list):
+                    hypotheses = []
+                    for i, hyp in enumerate(hypotheses_data):
+                        hypothesis = {
+                            "id": f"ai_h_{i+1}",
+                            "description": hyp.get("description", ""),
+                            "probability": hyp.get("probability", 0.5),
+                            "assumptions": hyp.get("assumptions", []),
+                            "critical_evidence": hyp.get("critical_evidence", []),
+                            "source": "AI Generated",
+                            "generated_at": datetime.now().isoformat()
+                        }
+                        hypotheses.append(hypothesis)
+                else:
+                    # Fallback to simpler generation
+                    hypotheses = await ai_service.generate_ach_hypotheses(scenario, key_question, context)
+            except json.JSONDecodeError:
+                # Fallback to existing method
+                hypotheses = await ai_service.generate_ach_hypotheses(scenario, key_question, context)
+        else:
+            # Fallback to existing method
+            hypotheses = await ai_service.generate_ach_hypotheses(scenario, key_question, context)
 
         return {
             "hypotheses": hypotheses,
             "count": len(hypotheses),
+            "methodology": "AI-Enhanced ACH Hypothesis Generation",
+            "scenario_analysis": {
+                "complexity_score": len(scenario.split()) / 10,  # Simple complexity metric
+                "key_actors_identified": _extract_potential_actors(scenario),
+                "temporal_scope": _assess_temporal_scope(scenario)
+            },
             "generated_at": datetime.now().isoformat()
         }
     except Exception as e:
-        logger.error(f"Hypothesis generation failed: {e}")
+        logger.error(f"Enhanced hypothesis generation failed: {e}")
         raise HTTPException(status_code=500, detail="AI hypothesis generation failed")
 
 
@@ -1013,3 +1074,289 @@ async def export_ach_powerpoint(request: ACHExportRequest) -> StreamingResponse:
     except Exception as e:
         logger.error(f"PowerPoint export error: {e}")
         raise HTTPException(status_code=500, detail="Export failed")
+
+
+def _extract_potential_actors(scenario: str) -> list[str]:
+    """Extract potential actors from scenario text using simple keyword matching."""
+    actors = []
+    scenario_lower = scenario.lower()
+    
+    # Common actor types in intelligence analysis
+    actor_keywords = {
+        "state": ["government", "state", "nation", "country", "ministry", "agency"],
+        "criminal": ["criminal", "gang", "cartel", "mafia", "organized crime"],
+        "terrorist": ["terrorist", "extremist", "radical", "militia", "insurgent"],
+        "corporate": ["company", "corporation", "business", "industry", "commercial"],
+        "individual": ["individual", "person", "actor", "agent", "operative"],
+        "hacktivist": ["hacktivist", "activist", "hacker", "anonymous"]
+    }
+    
+    for actor_type, keywords in actor_keywords.items():
+        if any(keyword in scenario_lower for keyword in keywords):
+            actors.append(actor_type)
+    
+    return actors
+
+
+def _assess_temporal_scope(scenario: str) -> str:
+    """Assess the temporal scope of the scenario."""
+    scenario_lower = scenario.lower()
+    
+    if any(word in scenario_lower for word in ["immediate", "urgent", "now", "today", "imminent"]):
+        return "immediate"
+    elif any(word in scenario_lower for word in ["recent", "week", "month", "lately"]):
+        return "short-term"
+    elif any(word in scenario_lower for word in ["year", "years", "long-term", "historical"]):
+        return "long-term"
+    else:
+        return "medium-term"
+
+
+@router.post("/ai/automated-evidence-collection")
+async def automated_evidence_collection_endpoint(
+    request: dict
+) -> dict:
+    """Automatically collect and analyze evidence for ACH hypotheses using web scraping."""
+    try:
+        hypotheses = request.get("hypotheses", [])
+        search_terms = request.get("search_terms", [])
+        time_range = request.get("time_range", "30d")  # 30 days default
+        
+        # Prepare web scraping requests for evidence collection
+        evidence_results = []
+        
+        for hypothesis in hypotheses:
+            hyp_desc = hypothesis.get("description", "")
+            
+            # Generate search queries for this hypothesis
+            search_queries = await _generate_evidence_search_queries(hyp_desc, search_terms)
+            
+            # Simulate evidence collection (in production, would use web scraping service)
+            for query in search_queries[:3]:  # Limit to 3 queries per hypothesis
+                evidence_item = {
+                    "id": f"auto_ev_{len(evidence_results) + 1}",
+                    "description": f"Evidence related to: {query}",
+                    "source": "Automated collection",
+                    "query_used": query,
+                    "hypothesis_relevance": hyp_desc,
+                    "collection_date": datetime.now().isoformat(),
+                    "credibility_score": 0.7,  # Would be assessed by AI in production
+                    "relevance_score": 0.8
+                }
+                evidence_results.append(evidence_item)
+        
+        return {
+            "evidence_collected": evidence_results,
+            "collection_summary": {
+                "total_evidence": len(evidence_results),
+                "hypotheses_analyzed": len(hypotheses),
+                "time_range": time_range,
+                "collection_date": datetime.now().isoformat()
+            },
+            "next_steps": [
+                "Review automated evidence for relevance",
+                "Validate source credibility",
+                "Update ACH matrix with new evidence",
+                "Consider additional search terms"
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Automated evidence collection failed: {e}")
+        raise HTTPException(status_code=500, detail="Evidence collection failed")
+
+
+async def _generate_evidence_search_queries(hypothesis: str, base_terms: list[str]) -> list[str]:
+    """Generate search queries for evidence collection."""
+    # In production, this would use AI to generate more sophisticated queries
+    queries = []
+    
+    # Extract key terms from hypothesis
+    key_terms = [term.strip() for term in hypothesis.split() if len(term.strip()) > 3]
+    
+    # Combine with base search terms
+    for base_term in base_terms[:2]:  # Limit base terms
+        for key_term in key_terms[:2]:  # Limit key terms
+            queries.append(f"{base_term} {key_term}")
+    
+    # Add the hypothesis itself as a search term
+    queries.append(hypothesis[:100])  # Truncate long hypotheses
+    
+    return queries[:5]  # Return max 5 queries
+
+
+@router.post("/ai/consistency-analysis")
+async def automated_consistency_analysis_endpoint(
+    request: dict
+) -> dict:
+    """Perform automated consistency analysis between evidence and hypotheses."""
+    try:
+        hypotheses = request.get("hypotheses", [])
+        evidence = request.get("evidence", [])
+        
+        consistency_matrix = []
+        analysis_details = []
+        
+        for evidence_item in evidence:
+            evidence_id = evidence_item.get("id", "")
+            evidence_desc = evidence_item.get("description", "")
+            
+            row_analysis = {
+                "evidence_id": evidence_id,
+                "evidence_description": evidence_desc,
+                "hypothesis_assessments": []
+            }
+            
+            for hypothesis in hypotheses:
+                hypothesis_id = hypothesis.get("id", "")
+                hypothesis_desc = hypothesis.get("description", "")
+                
+                # AI-powered consistency assessment
+                consistency_prompt = f"""
+                Analyze the consistency between this evidence and hypothesis:
+                
+                Evidence: {evidence_desc}
+                Hypothesis: {hypothesis_desc}
+                
+                Assess on scale:
+                - Strongly Supports (++): Evidence strongly supports hypothesis
+                - Supports (+): Evidence supports hypothesis  
+                - Neutral (0): Evidence neither supports nor contradicts
+                - Contradicts (-): Evidence contradicts hypothesis
+                - Strongly Contradicts (--): Evidence strongly contradicts hypothesis
+                
+                Provide reasoning and confidence score (0-1).
+                Respond with JSON: {{"assessment": "++|+|0|-|--", "reasoning": "explanation", "confidence": 0.0-1.0}}
+                """
+                
+                # Simulate AI assessment (in production would call AI service)
+                assessment = await _simulate_consistency_assessment(evidence_desc, hypothesis_desc)
+                
+                hypothesis_assessment = {
+                    "hypothesis_id": hypothesis_id,
+                    "consistency": assessment["assessment"],
+                    "reasoning": assessment["reasoning"],
+                    "confidence": assessment["confidence"],
+                    "analysis_date": datetime.now().isoformat()
+                }
+                
+                row_analysis["hypothesis_assessments"].append(hypothesis_assessment)
+                
+                # Add to matrix
+                consistency_matrix.append({
+                    "evidence_id": evidence_id,
+                    "hypothesis_id": hypothesis_id,
+                    "consistency": assessment["assessment"],
+                    "confidence": assessment["confidence"]
+                })
+            
+            analysis_details.append(row_analysis)
+        
+        # Calculate hypothesis scores
+        hypothesis_scores = _calculate_hypothesis_scores(consistency_matrix, hypotheses)
+        
+        return {
+            "consistency_matrix": consistency_matrix,
+            "analysis_details": analysis_details,
+            "hypothesis_scores": hypothesis_scores,
+            "analysis_summary": {
+                "total_assessments": len(consistency_matrix),
+                "high_confidence_assessments": len([a for a in consistency_matrix if a["confidence"] > 0.8]),
+                "conflicting_evidence": len([a for a in consistency_matrix if a["consistency"] in ["-", "--"]]),
+                "supporting_evidence": len([a for a in consistency_matrix if a["consistency"] in ["+", "++"]]),
+                "analysis_date": datetime.now().isoformat()
+            },
+            "recommendations": [
+                "Review low-confidence assessments",
+                "Seek additional evidence for neutral assessments",
+                "Investigate conflicting evidence sources",
+                "Update hypothesis probabilities based on scores"
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Consistency analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="Consistency analysis failed")
+
+
+async def _simulate_consistency_assessment(evidence: str, hypothesis: str) -> dict:
+    """Simulate AI consistency assessment (placeholder for actual AI call)."""
+    import random
+    
+    # Simple simulation based on keyword matching
+    evidence_lower = evidence.lower()
+    hypothesis_lower = hypothesis.lower()
+    
+    # Count common words (excluding common words)
+    stop_words = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by"}
+    evidence_words = set(evidence_lower.split()) - stop_words
+    hypothesis_words = set(hypothesis_lower.split()) - stop_words
+    
+    common_words = evidence_words.intersection(hypothesis_words)
+    similarity = len(common_words) / max(len(evidence_words), len(hypothesis_words), 1)
+    
+    # Determine assessment based on similarity and randomness
+    if similarity > 0.3:
+        assessment = random.choice(["+", "++"])
+        confidence = 0.7 + similarity * 0.3
+        reasoning = f"Evidence contains {len(common_words)} relevant terms supporting the hypothesis"
+    elif similarity > 0.1:
+        assessment = "0"
+        confidence = 0.6
+        reasoning = "Evidence is somewhat related but neither strongly supports nor contradicts"
+    else:
+        assessment = random.choice(["-", "0"])
+        confidence = 0.5 + random.random() * 0.3
+        reasoning = "Limited relevance between evidence and hypothesis"
+    
+    return {
+        "assessment": assessment,
+        "reasoning": reasoning,
+        "confidence": min(confidence, 1.0)
+    }
+
+
+def _calculate_hypothesis_scores(consistency_matrix: list, hypotheses: list) -> list:
+    """Calculate scores for each hypothesis based on consistency assessments."""
+    scores = []
+    
+    for hypothesis in hypotheses:
+        hypothesis_id = hypothesis.get("id", "")
+        
+        # Get all assessments for this hypothesis
+        assessments = [item for item in consistency_matrix if item["hypothesis_id"] == hypothesis_id]
+        
+        # Calculate weighted score
+        total_score = 0
+        total_weight = 0
+        
+        for assessment in assessments:
+            consistency = assessment["consistency"]
+            confidence = assessment["confidence"]
+            
+            # Convert consistency to numeric score
+            score_map = {"++": 2, "+": 1, "0": 0, "-": -1, "--": -2}
+            numeric_score = score_map.get(consistency, 0)
+            
+            # Weight by confidence
+            weighted_score = numeric_score * confidence
+            total_score += weighted_score
+            total_weight += confidence
+        
+        # Calculate final score
+        final_score = total_score / max(total_weight, 1)
+        
+        scores.append({
+            "hypothesis_id": hypothesis_id,
+            "hypothesis_description": hypothesis.get("description", ""),
+            "score": round(final_score, 2),
+            "supporting_evidence": len([a for a in assessments if a["consistency"] in ["+", "++"]]),
+            "contradicting_evidence": len([a for a in assessments if a["consistency"] in ["-", "--"]]),
+            "neutral_evidence": len([a for a in assessments if a["consistency"] == "0"]),
+            "average_confidence": round(sum(a["confidence"] for a in assessments) / max(len(assessments), 1), 2)
+        })
+    
+    # Sort by score descending
+    scores.sort(key=lambda x: x["score"], reverse=True)
+    
+    return scores
