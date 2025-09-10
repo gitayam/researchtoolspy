@@ -44,7 +44,7 @@ class IntelligenceAnalysisService:
         """Initialize AI service with OpenAI client."""
         self.client = None
         self.async_client = None
-        self.model = "gpt-5-mini"  # Fast, cost-effective model
+        self.model = "gpt-4o-mini"  # Fast, cost-effective model
 
         # Check for API key in settings or environment
         api_key = getattr(settings, 'OPENAI_API_KEY', None) or os.environ.get('OPENAI_API_KEY')
@@ -689,6 +689,103 @@ Return analysis as JSON with:
         except Exception as e:
             logger.error(f"Bias detection error: {e}")
             return {"biases_detected": [], "recommendations": ["Analysis failed"], "confidence_level": "low"}
+
+    async def analyze_with_ai_detailed(
+        self,
+        prompt: str,
+        analysis_type: str = "general",
+        temperature: float = 0.7,
+        max_tokens: int = 1500
+    ) -> dict[str, Any]:
+        """
+        Perform detailed AI analysis with enhanced prompting and structured response.
+        
+        Args:
+            prompt: The analysis prompt
+            analysis_type: Type of analysis for specialized system prompts
+            temperature: Response creativity (0.0-1.0)
+            max_tokens: Maximum response length
+            
+        Returns:
+            Dict containing analysis results and metadata
+        """
+        if not self.async_client:
+            return {
+                "content": "AI service unavailable - configure OpenAI API key",
+                "tokens_used": 0,
+                "model": "unavailable",
+                "analysis_type": analysis_type
+            }
+        
+        try:
+            # Enhanced system prompts for different analysis types
+            system_prompts = {
+                "ach_hypothesis_generation": (
+                    "You are an expert intelligence analyst specializing in the Analysis of Competing "
+                    "Hypotheses (ACH) methodology. You excel at generating comprehensive, testable "
+                    "hypotheses that cover the full spectrum of possibilities while avoiding cognitive "
+                    "biases. Your responses are structured, evidence-based, and designed to support "
+                    "rigorous analytical reasoning."
+                ),
+                "evidence_analysis": (
+                    "You are a senior intelligence analyst expert in evidence evaluation and source "
+                    "assessment. You systematically analyze information for credibility, relevance, "
+                    "and reliability using SATS criteria (Source, Accuracy, Timeliness, Significance). "
+                    "You identify patterns, contradictions, and gaps in evidence."
+                ),
+                "bias_detection": (
+                    "You are a cognitive scientist and intelligence analyst expert in identifying "
+                    "and mitigating analytical biases. You systematically evaluate reasoning processes "
+                    "for signs of confirmation bias, anchoring, availability heuristic, and other "
+                    "cognitive pitfalls that affect analytical judgment."
+                ),
+                "predictive_analysis": (
+                    "You are a strategic analyst expert in forecasting and predictive modeling. "
+                    "You use historical patterns, trend analysis, and scenario modeling to assess "
+                    "future possibilities. You clearly communicate uncertainty and confidence levels "
+                    "in your predictions."
+                )
+            }
+            
+            system_prompt = system_prompts.get(analysis_type, self._get_intel_system_prompt())
+            
+            # Make the API call
+            response = await self.async_client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+            
+            content = response.choices[0].message.content
+            tokens_used = response.usage.total_tokens if response.usage else 0
+            
+            logger.info(
+                f"Detailed AI analysis completed - Type: {analysis_type}, "
+                f"Model: {self.model}, Tokens: {tokens_used}"
+            )
+            
+            return {
+                "content": content,
+                "tokens_used": tokens_used,
+                "model": self.model,
+                "analysis_type": analysis_type,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            }
+            
+        except Exception as e:
+            logger.error(f"Detailed AI analysis failed: {e}")
+            return {
+                "content": f"Analysis failed: {str(e)}",
+                "tokens_used": 0,
+                "model": self.model,
+                "analysis_type": analysis_type,
+                "error": str(e)
+            }
 
 
 # Global service instance
