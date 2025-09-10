@@ -4,19 +4,18 @@ No usernames or passwords - just cryptographically secure account hashes.
 """
 
 import secrets
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.logging import get_logger
-from app.core.security import create_token_pair, Token, get_password_hash
-from app.models.user import UserRole, User
+from app.core.security import create_token_pair, get_password_hash
 from app.models.auth_log import AuthLog
-from sqlalchemy import select
+from app.models.user import User, UserRole
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -25,7 +24,7 @@ router = APIRouter()
 class HashAuthRequest(BaseModel):
     """Hash authentication request."""
     account_hash: str = Field(
-        ..., 
+        ...,
         description="16-digit account hash for authentication",
         min_length=16,
         max_length=16,
@@ -109,20 +108,20 @@ async def authenticate_with_hash(
         HTTPException: If account hash is invalid
     """
     logger.info(f"Hash authentication attempt: {request.account_hash[:4]}...")
-    
+
     # Check if user with this account hash exists in database
     result = await db.execute(
         select(User).where(User.account_hash == request.account_hash)
     )
     user = result.scalar_one_or_none()
     logger.info(f"Database lookup for hash {request.account_hash[:4]}...: {'Found' if user else 'Not found'}")
-    
+
     if not user:
         # Create new user automatically for any valid 16-digit hash
         # This allows the frontend-generated hashes to work immediately
         username = f"user_{request.account_hash[:8]}"
         email = f"{username}@researchtools.dev"
-        
+
         # Check if username already exists (edge case)
         existing_result = await db.execute(
             select(User).where(User.username == username)
@@ -132,7 +131,7 @@ async def authenticate_with_hash(
             import random
             username = f"user_{request.account_hash[:8]}_{random.randint(100, 999)}"
             email = f"{username}@researchtools.dev"
-        
+
         # Create new user record
         user = User(
             username=username,
@@ -150,23 +149,23 @@ async def authenticate_with_hash(
         await db.commit()
         await db.refresh(user)
         logger.info(f"Auto-created new user for hash: {request.account_hash[:4]}...")
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is inactive"
         )
-    
+
     # Determine scopes based on role
     scopes = ["admin"] if user.role == UserRole.ADMIN else ["user"]
-    
+
     # Use create_token_pair which handles both tokens correctly
     tokens = create_token_pair(
         user_id=user.id,
         username=user.username,
         scopes=scopes
     )
-    
+
     # Log successful login attempt
     auth_log = AuthLog(
         user_id=user.id,
@@ -179,9 +178,9 @@ async def authenticate_with_hash(
     )
     db.add(auth_log)
     await db.commit()
-    
+
     logger.info(f"Successful hash authentication for: {request.account_hash[:4]}... from IP: {auth_log.ip_address}")
-    
+
     return HashAuthResponse(
         access_token=tokens.access_token,
         refresh_token=tokens.refresh_token,
@@ -210,18 +209,18 @@ async def register_new_account(
     max_attempts = 100
     for _ in range(max_attempts):
         new_hash = generate_account_hash()
-        
+
         # Check if hash already exists in database
         result = await db.execute(
             select(User).where(User.account_hash == new_hash)
         )
         existing_user = result.scalar_one_or_none()
-        
+
         if not existing_user:
             # Create new user in database
             username = f"user_{new_hash[:8]}"
             email = f"{username}@researchtools.dev"
-            
+
             # Check if username already exists (edge case)
             existing_result = await db.execute(
                 select(User).where(User.username == username)
@@ -231,7 +230,7 @@ async def register_new_account(
                 import random
                 username = f"user_{new_hash[:8]}_{random.randint(100, 999)}"
                 email = f"{username}@researchtools.dev"
-            
+
             # Create new user record with timestamp
             user = User(
                 username=username,
@@ -248,16 +247,16 @@ async def register_new_account(
             db.add(user)
             await db.commit()
             await db.refresh(user)
-            
+
             logger.info(f"New account registered in database: {new_hash[:4]}... at {user.created_at}")
-            
+
             return {
                 "account_hash": new_hash,
                 "message": "Account created successfully. Save this account hash - it cannot be recovered if lost.",
                 "warning": "This is your only authentication credential. Store it securely.",
                 "created_at": user.created_at.isoformat()
             }
-    
+
     # Extremely unlikely to reach here given the keyspace
     raise HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -284,10 +283,10 @@ async def validate_account_hash(
     # Add delay to prevent timing attacks
     import asyncio
     await asyncio.sleep(0.05)
-    
+
     if account_hash in VALID_ACCOUNT_HASHES:
         account_info = VALID_ACCOUNT_HASHES[account_hash]
         if account_info.get("is_active", True):
             return {"valid": True}
-    
+
     return {"valid": False}

@@ -2,17 +2,17 @@
 URL processing API endpoints for web content analysis and archival.
 """
 
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from pydantic import BaseModel, HttpUrl, validator
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, validator
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.endpoints.auth import get_current_user
+from app.core.database import get_db
 from app.core.logging import get_logger
-from app.models.user import User
 from app.models.research_tool import ProcessedUrl
+from app.models.user import User
 from app.services.url_service import url_service
 
 logger = get_logger(__name__)
@@ -25,7 +25,7 @@ class UrlProcessRequest(BaseModel):
     url: str
     force_refresh: bool = False
     archive_with_wayback: bool = False
-    
+
     @validator('url')
     def validate_url(cls, v):
         """Validate URL format."""
@@ -37,10 +37,10 @@ class UrlProcessRequest(BaseModel):
 
 class BatchUrlProcessRequest(BaseModel):
     """Request model for batch URL processing."""
-    urls: List[str]
+    urls: list[str]
     force_refresh: bool = False
     archive_with_wayback: bool = False
-    
+
     @validator('urls')
     def validate_urls(cls, v):
         """Validate URLs list."""
@@ -56,24 +56,24 @@ class ProcessedUrlResponse(BaseModel):
     id: int
     url: str
     url_hash: str
-    title: Optional[str]
-    description: Optional[str]
-    author: Optional[str]
+    title: str | None
+    description: str | None
+    author: str | None
     domain: str
-    content_type: Optional[str]
-    language: Optional[str]
-    word_count: Optional[int]
-    status_code: Optional[int]
-    response_time: Optional[float]
-    archived_url: Optional[str]
-    wayback_url: Optional[str]
-    reliability_score: Optional[float]
-    domain_reputation: Optional[str]
+    content_type: str | None
+    language: str | None
+    word_count: int | None
+    status_code: int | None
+    response_time: float | None
+    archived_url: str | None
+    wayback_url: str | None
+    reliability_score: float | None
+    domain_reputation: str | None
     processing_status: str
-    error_message: Optional[str]
+    error_message: str | None
     created_at: str
     updated_at: str
-    
+
     class Config:
         from_attributes = True
 
@@ -84,9 +84,9 @@ class UrlStatsResponse(BaseModel):
     successful: int
     failed: int
     domains_count: int
-    average_reliability: Optional[float]
-    most_reliable_domain: Optional[str]
-    least_reliable_domain: Optional[str]
+    average_reliability: float | None
+    most_reliable_domain: str | None
+    least_reliable_domain: str | None
 
 
 # API Endpoints
@@ -104,7 +104,7 @@ async def process_url(
     - **archive_with_wayback**: Archive URL with Wayback Machine
     """
     logger.info(f"Processing URL: {request.url} for user {current_user.username}")
-    
+
     try:
         # Process the URL
         processed_url = await url_service.process_url(
@@ -113,7 +113,7 @@ async def process_url(
             user=current_user,
             force_refresh=request.force_refresh
         )
-        
+
         # Archive with Wayback Machine if requested
         if request.archive_with_wayback and processed_url.processing_status == "completed":
             wayback_url = await url_service.archive_with_wayback(request.url)
@@ -121,9 +121,9 @@ async def process_url(
                 processed_url.wayback_url = wayback_url
                 await db.commit()
                 await db.refresh(processed_url)
-        
+
         return ProcessedUrlResponse.from_orm(processed_url)
-        
+
     except Exception as e:
         logger.error(f"Failed to process URL {request.url}: {e}")
         raise HTTPException(
@@ -132,12 +132,12 @@ async def process_url(
         )
 
 
-@router.post("/process/batch", response_model=List[ProcessedUrlResponse])
+@router.post("/process/batch", response_model=list[ProcessedUrlResponse])
 async def process_urls_batch(
     request: BatchUrlProcessRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
-) -> List[ProcessedUrlResponse]:
+) -> list[ProcessedUrlResponse]:
     """
     Process multiple URLs in batch.
     
@@ -146,7 +146,7 @@ async def process_urls_batch(
     - **archive_with_wayback**: Archive all URLs with Wayback Machine
     """
     logger.info(f"Batch processing {len(request.urls)} URLs for user {current_user.username}")
-    
+
     try:
         # Process URLs in batch
         processed_urls = await url_service.batch_process_urls(
@@ -155,7 +155,7 @@ async def process_urls_batch(
             user=current_user,
             force_refresh=request.force_refresh
         )
-        
+
         # Archive with Wayback Machine if requested
         if request.archive_with_wayback:
             for processed_url in processed_urls:
@@ -163,13 +163,13 @@ async def process_urls_batch(
                     wayback_url = await url_service.archive_with_wayback(processed_url.url)
                     if wayback_url:
                         processed_url.wayback_url = wayback_url
-            
+
             await db.commit()
             for processed_url in processed_urls:
                 await db.refresh(processed_url)
-        
+
         return [ProcessedUrlResponse.from_orm(url) for url in processed_urls]
-        
+
     except Exception as e:
         logger.error(f"Failed to batch process URLs: {e}")
         raise HTTPException(
@@ -178,15 +178,15 @@ async def process_urls_batch(
         )
 
 
-@router.get("/processed", response_model=List[ProcessedUrlResponse])
+@router.get("/processed", response_model=list[ProcessedUrlResponse])
 async def get_processed_urls(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of records to return"),
-    domain: Optional[str] = Query(None, description="Filter by domain"),
-    status: Optional[str] = Query(None, description="Filter by processing status")
-) -> List[ProcessedUrlResponse]:
+    domain: str | None = Query(None, description="Filter by domain"),
+    status: str | None = Query(None, description="Filter by processing status")
+) -> list[ProcessedUrlResponse]:
     """
     Get user's processed URLs with optional filtering.
     
@@ -197,21 +197,21 @@ async def get_processed_urls(
     """
     try:
         query = select(ProcessedUrl).where(ProcessedUrl.user_id == current_user.id)
-        
+
         # Apply filters
         if domain:
             query = query.where(ProcessedUrl.domain.ilike(f"%{domain}%"))
         if status:
             query = query.where(ProcessedUrl.processing_status == status)
-        
+
         # Apply pagination and ordering
         query = query.order_by(ProcessedUrl.created_at.desc()).offset(skip).limit(limit)
-        
+
         result = await db.execute(query)
         processed_urls = result.scalars().all()
-        
+
         return [ProcessedUrlResponse.from_orm(url) for url in processed_urls]
-        
+
     except Exception as e:
         logger.error(f"Failed to get processed URLs: {e}")
         raise HTTPException(
@@ -239,15 +239,15 @@ async def get_processed_url(
             )
         )
         processed_url = result.scalar_one_or_none()
-        
+
         if not processed_url:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Processed URL not found"
             )
-        
+
         return ProcessedUrlResponse.from_orm(processed_url)
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -277,18 +277,18 @@ async def delete_processed_url(
             )
         )
         processed_url = result.scalar_one_or_none()
-        
+
         if not processed_url:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Processed URL not found"
             )
-        
+
         await db.delete(processed_url)
         await db.commit()
-        
+
         logger.info(f"Deleted processed URL {url_id} for user {current_user.username}")
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -318,20 +318,20 @@ async def archive_url_wayback(
             )
         )
         processed_url = result.scalar_one_or_none()
-        
+
         if not processed_url:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Processed URL not found"
             )
-        
+
         wayback_url = await url_service.archive_with_wayback(processed_url.url)
-        
+
         if wayback_url:
             processed_url.wayback_url = wayback_url
             await db.commit()
             await db.refresh(processed_url)
-            
+
             return {
                 "success": True,
                 "wayback_url": wayback_url,
@@ -343,7 +343,7 @@ async def archive_url_wayback(
                 "wayback_url": None,
                 "message": "Failed to archive URL with Wayback Machine"
             }
-            
+
     except HTTPException:
         raise
     except Exception as e:
@@ -368,7 +368,7 @@ async def get_url_processing_stats(
             select(func.count(ProcessedUrl.id)).where(ProcessedUrl.user_id == current_user.id)
         )
         total_processed = total_result.scalar() or 0
-        
+
         # Get successful count
         success_result = await db.execute(
             select(func.count(ProcessedUrl.id)).where(
@@ -377,8 +377,8 @@ async def get_url_processing_stats(
             )
         )
         successful = success_result.scalar() or 0
-        
-        # Get failed count  
+
+        # Get failed count
         failed_result = await db.execute(
             select(func.count(ProcessedUrl.id)).where(
                 ProcessedUrl.user_id == current_user.id,
@@ -386,7 +386,7 @@ async def get_url_processing_stats(
             )
         )
         failed = failed_result.scalar() or 0
-        
+
         # Get unique domains count
         domains_result = await db.execute(
             select(func.count(func.distinct(ProcessedUrl.domain))).where(
@@ -394,7 +394,7 @@ async def get_url_processing_stats(
             )
         )
         domains_count = domains_result.scalar() or 0
-        
+
         # Get average reliability
         avg_reliability_result = await db.execute(
             select(func.avg(ProcessedUrl.reliability_score)).where(
@@ -403,11 +403,11 @@ async def get_url_processing_stats(
             )
         )
         average_reliability = avg_reliability_result.scalar()
-        
+
         # Get most/least reliable domains (simplified)
         most_reliable_domain = None
         least_reliable_domain = None
-        
+
         if total_processed > 0:
             # This is a simplified approach - in production you'd want more sophisticated domain reliability analysis
             domain_reliability = await db.execute(
@@ -419,12 +419,12 @@ async def get_url_processing_stats(
                     ProcessedUrl.reliability_score.is_not(None)
                 ).group_by(ProcessedUrl.domain).order_by(func.avg(ProcessedUrl.reliability_score).desc())
             )
-            
+
             domain_results = domain_reliability.all()
             if domain_results:
                 most_reliable_domain = domain_results[0][0]
                 least_reliable_domain = domain_results[-1][0]
-        
+
         return UrlStatsResponse(
             total_processed=total_processed,
             successful=successful,
@@ -434,7 +434,7 @@ async def get_url_processing_stats(
             most_reliable_domain=most_reliable_domain,
             least_reliable_domain=least_reliable_domain
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to get URL processing stats: {e}")
         raise HTTPException(
@@ -443,12 +443,12 @@ async def get_url_processing_stats(
         )
 
 
-@router.get("/domains", response_model=List[dict])
+@router.get("/domains", response_model=list[dict])
 async def get_processed_domains(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     limit: int = Query(50, ge=1, le=100, description="Number of domains to return")
-) -> List[dict]:
+) -> list[dict]:
     """
     Get list of processed domains with statistics.
     
@@ -469,7 +469,7 @@ async def get_processed_domains(
                 func.count(ProcessedUrl.id).desc()
             ).limit(limit)
         )
-        
+
         domains = []
         for row in result:
             domains.append({
@@ -478,9 +478,9 @@ async def get_processed_domains(
                 "average_reliability": round(row[2], 3) if row[2] else None,
                 "last_processed": row[3].isoformat() if row[3] else None
             })
-        
+
         return domains
-        
+
     except Exception as e:
         logger.error(f"Failed to get processed domains: {e}")
         raise HTTPException(

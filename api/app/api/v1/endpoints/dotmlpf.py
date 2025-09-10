@@ -3,7 +3,6 @@ DOTMLPF Framework API endpoints.
 Capability gap analysis for defense and military planning.
 """
 
-from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -28,8 +27,8 @@ class CapabilityGap(BaseModel):
     current_capability: str
     required_capability: str
     gap_analysis: str
-    affected_areas: List[str]  # Which DOTMLPF areas are affected
-    mitigation_options: Optional[List[str]] = []
+    affected_areas: list[str]  # Which DOTMLPF areas are affected
+    mitigation_options: list[str] | None = []
 
 
 class DOTMLPFComponent(BaseModel):
@@ -37,11 +36,11 @@ class DOTMLPFComponent(BaseModel):
     name: str  # doctrine, organization, training, materiel, leadership, personnel, facilities
     current_state: str
     desired_state: str
-    gaps: List[str]
-    recommendations: List[str]
+    gaps: list[str]
+    recommendations: list[str]
     priority: str  # "critical", "high", "medium", "low"
-    timeline: Optional[str] = None
-    resources_required: Optional[str] = None
+    timeline: str | None = None
+    resources_required: str | None = None
 
 
 class DOTMLPFCreateRequest(BaseModel):
@@ -49,31 +48,31 @@ class DOTMLPFCreateRequest(BaseModel):
     title: str
     mission: str
     scenario: str
-    timeframe: Optional[str] = None
-    doctrine: Optional[DOTMLPFComponent] = None
-    organization: Optional[DOTMLPFComponent] = None
-    training: Optional[DOTMLPFComponent] = None
-    materiel: Optional[DOTMLPFComponent] = None
-    leadership: Optional[DOTMLPFComponent] = None
-    personnel: Optional[DOTMLPFComponent] = None
-    facilities: Optional[DOTMLPFComponent] = None
-    capability_gaps: Optional[List[CapabilityGap]] = []
+    timeframe: str | None = None
+    doctrine: DOTMLPFComponent | None = None
+    organization: DOTMLPFComponent | None = None
+    training: DOTMLPFComponent | None = None
+    materiel: DOTMLPFComponent | None = None
+    leadership: DOTMLPFComponent | None = None
+    personnel: DOTMLPFComponent | None = None
+    facilities: DOTMLPFComponent | None = None
+    capability_gaps: list[CapabilityGap] | None = []
     request_ai_analysis: bool = True
 
 
 class DOTMLPFUpdateRequest(BaseModel):
     """DOTMLPF analysis update request."""
-    title: Optional[str] = None
-    mission: Optional[str] = None
-    scenario: Optional[str] = None
-    doctrine: Optional[DOTMLPFComponent] = None
-    organization: Optional[DOTMLPFComponent] = None
-    training: Optional[DOTMLPFComponent] = None
-    materiel: Optional[DOTMLPFComponent] = None
-    leadership: Optional[DOTMLPFComponent] = None
-    personnel: Optional[DOTMLPFComponent] = None
-    facilities: Optional[DOTMLPFComponent] = None
-    capability_gaps: Optional[List[CapabilityGap]] = None
+    title: str | None = None
+    mission: str | None = None
+    scenario: str | None = None
+    doctrine: DOTMLPFComponent | None = None
+    organization: DOTMLPFComponent | None = None
+    training: DOTMLPFComponent | None = None
+    materiel: DOTMLPFComponent | None = None
+    leadership: DOTMLPFComponent | None = None
+    personnel: DOTMLPFComponent | None = None
+    facilities: DOTMLPFComponent | None = None
+    capability_gaps: list[CapabilityGap] | None = None
 
 
 class DOTMLPFAnalysisResponse(BaseModel):
@@ -82,7 +81,7 @@ class DOTMLPFAnalysisResponse(BaseModel):
     title: str
     mission: str
     scenario: str
-    timeframe: Optional[str]
+    timeframe: str | None
     doctrine: DOTMLPFComponent
     organization: DOTMLPFComponent
     training: DOTMLPFComponent
@@ -90,8 +89,8 @@ class DOTMLPFAnalysisResponse(BaseModel):
     leadership: DOTMLPFComponent
     personnel: DOTMLPFComponent
     facilities: DOTMLPFComponent
-    capability_gaps: List[CapabilityGap]
-    ai_analysis: Optional[Dict] = None
+    capability_gaps: list[CapabilityGap]
+    ai_analysis: dict | None = None
     status: str
     version: int
 
@@ -128,7 +127,7 @@ async def create_dotmlpf_analysis(
         DOTMLPFAnalysisResponse: Created DOTMLPF analysis
     """
     logger.info(f"Creating DOTMLPF analysis: {request.title} for user {current_user.username}")
-    
+
     # Prepare DOTMLPF data
     dotmlpf_data = {
         "mission": request.mission,
@@ -143,7 +142,7 @@ async def create_dotmlpf_analysis(
         "facilities": request.facilities.dict() if request.facilities else _get_default_component("facilities"),
         "capability_gaps": [gap.dict() for gap in request.capability_gaps] if request.capability_gaps else []
     }
-    
+
     # Get AI analysis if requested
     ai_analysis = None
     if request.request_ai_analysis and request.mission:
@@ -154,7 +153,7 @@ async def create_dotmlpf_analysis(
                 "suggest"
             )
             ai_analysis = ai_result.get("suggestions")
-            
+
             # Merge AI suggestions
             if ai_analysis:
                 # Add AI-suggested capability gaps
@@ -163,9 +162,9 @@ async def create_dotmlpf_analysis(
                         if isinstance(gap, dict):
                             gap["id"] = f"gap_ai_{idx}"
                             dotmlpf_data["capability_gaps"].append(gap)
-                
+
                 # Update component recommendations
-                for component in ["doctrine", "organization", "training", "materiel", 
+                for component in ["doctrine", "organization", "training", "materiel",
                                 "leadership", "personnel", "facilities"]:
                     if component in ai_analysis and isinstance(ai_analysis[component], dict):
                         if "gaps" in ai_analysis[component]:
@@ -174,10 +173,10 @@ async def create_dotmlpf_analysis(
                         if "recommendations" in ai_analysis[component]:
                             dotmlpf_data[component]["recommendations"].extend(ai_analysis[component]["recommendations"])
                             dotmlpf_data[component]["recommendations"] = list(set(dotmlpf_data[component]["recommendations"]))
-                        
+
         except Exception as e:
             logger.warning(f"Failed to get AI analysis: {e}")
-    
+
     # Create framework session
     framework_data = FrameworkData(
         framework_type=FrameworkType.DOTMLPF,
@@ -186,9 +185,9 @@ async def create_dotmlpf_analysis(
         data=dotmlpf_data,
         tags=["dotmlpf", "capability-gaps", "defense-planning"]
     )
-    
+
     session = await framework_service.create_session(db, current_user, framework_data)
-    
+
     return DOTMLPFAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -227,125 +226,68 @@ async def get_dotmlpf_analysis(
         DOTMLPFAnalysisResponse: DOTMLPF analysis data
     """
     logger.info(f"Getting DOTMLPF analysis {session_id}")
+
+    # Get real data from database
+    session = await framework_service.get_session(db, current_user, session_id, FrameworkType.DOTMLPF)
     
-    # Mock data for demonstration
-    capability_gaps = [
-        CapabilityGap(
-            id="gap1",
-            description="Lack of counter-drone capabilities",
-            priority="critical",
-            current_capability="Limited detection and mitigation systems",
-            required_capability="Comprehensive counter-UAS system",
-            gap_analysis="Current systems cannot detect or neutralize small commercial drones",
-            affected_areas=["materiel", "training", "doctrine"],
-            mitigation_options=[
-                "Acquire counter-drone systems",
-                "Develop doctrine for drone threats",
-                "Train operators on counter-UAS tactics"
-            ]
-        ),
-        CapabilityGap(
-            id="gap2",
-            description="Insufficient cyber defense personnel",
-            priority="high",
-            current_capability="50% staffing of cyber positions",
-            required_capability="Full staffing with certified personnel",
-            gap_analysis="Critical shortage of qualified cyber defenders",
-            affected_areas=["personnel", "training", "organization"],
-            mitigation_options=[
-                "Recruit cyber specialists",
-                "Implement retention bonuses",
-                "Expand training programs"
-            ]
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DOTMLPF analysis session not found"
         )
-    ]
+
+    # Extract data from session
+    session_data = session.data or {}
     
+    # Parse capability gaps
+    gaps_data = session_data.get("capability_gaps", [])
+    capability_gaps = [CapabilityGap(**gap) for gap in gaps_data if isinstance(gap, dict)]
+    
+    # Parse DOTMLPF components
+    def parse_component(component_name: str) -> DOTMLPFComponent:
+        comp_data = session_data.get(component_name, {})
+        if comp_data and isinstance(comp_data, dict):
+            return DOTMLPFComponent(**comp_data)
+        else:
+            return DOTMLPFComponent(
+                name=component_name,
+                current_state=f"Current {component_name} state",
+                desired_state=f"Desired {component_name} state",
+                gaps=[],
+                recommendations=[],
+                priority="pending",
+                timeline="TBD",
+                resources_required="TBD"
+            )
+    
+    # Get basic information
+    mission = session_data.get("mission", "Mission statement")
+    scenario = session_data.get("scenario", "Analysis scenario")
+    timeframe = session_data.get("timeframe", "Analysis timeframe")
+
     return DOTMLPFAnalysisResponse(
-        session_id=session_id,
-        title="Force Modernization Assessment",
-        mission="Enhance multi-domain operations capability",
-        scenario="Near-peer competition in contested environment",
-        timeframe="2025-2030",
-        doctrine=DOTMLPFComponent(
-            name="doctrine",
-            current_state="Traditional domain-focused doctrine",
-            desired_state="Integrated multi-domain operations doctrine",
-            gaps=["Lack of MDO doctrine", "Insufficient joint integration guidance"],
-            recommendations=["Develop MDO doctrine", "Update joint publications"],
-            priority="high",
-            timeline="12-18 months",
-            resources_required="Doctrine development team"
-        ),
-        organization=DOTMLPFComponent(
-            name="organization",
-            current_state="Service-centric organization",
-            desired_state="Joint task force structure",
-            gaps=["Limited joint integration", "Stovepiped command structure"],
-            recommendations=["Create joint task forces", "Establish MDO coordination cells"],
-            priority="high",
-            timeline="24 months",
-            resources_required="Organizational restructuring"
-        ),
-        training=DOTMLPFComponent(
-            name="training",
-            current_state="Service-specific training",
-            desired_state="Joint multi-domain training",
-            gaps=["Limited joint exercises", "No MDO simulation capability"],
-            recommendations=["Develop joint training programs", "Acquire MDO simulators"],
-            priority="critical",
-            timeline="18 months",
-            resources_required="Training infrastructure and personnel"
-        ),
-        materiel=DOTMLPFComponent(
-            name="materiel",
-            current_state="Legacy systems with limited integration",
-            desired_state="Networked multi-domain systems",
-            gaps=["Incompatible communication systems", "Limited sensor integration"],
-            recommendations=["Acquire integrated C2 systems", "Upgrade sensor networks"],
-            priority="critical",
-            timeline="36 months",
-            resources_required="Major acquisition program"
-        ),
-        leadership=DOTMLPFComponent(
-            name="leadership",
-            current_state="Traditional leadership development",
-            desired_state="Multi-domain aware leaders",
-            gaps=["Limited MDO experience", "Insufficient joint assignments"],
-            recommendations=["MDO education for leaders", "Increase joint assignments"],
-            priority="high",
-            timeline="24 months",
-            resources_required="Leadership development programs"
-        ),
-        personnel=DOTMLPFComponent(
-            name="personnel",
-            current_state="Current manning levels",
-            desired_state="Full manning with specialists",
-            gaps=["Cyber specialist shortage", "Intelligence analyst gaps"],
-            recommendations=["Targeted recruitment", "Retention incentives"],
-            priority="high",
-            timeline="12-24 months",
-            resources_required="Personnel funding"
-        ),
-        facilities=DOTMLPFComponent(
-            name="facilities",
-            current_state="Aging infrastructure",
-            desired_state="Modern training and operations facilities",
-            gaps=["Outdated training facilities", "Limited secure spaces"],
-            recommendations=["Modernize training centers", "Build secure facilities"],
-            priority="medium",
-            timeline="48 months",
-            resources_required="MILCON funding"
-        ),
+        session_id=session.id,
+        title=session.title,
+        mission=mission,
+        scenario=scenario,
+        timeframe=timeframe,
+        doctrine=parse_component("doctrine"),
+        organization=parse_component("organization"),
+        training=parse_component("training"),
+        materiel=parse_component("materiel"),
+        leadership=parse_component("leadership"),
+        personnel=parse_component("personnel"),
+        facilities=parse_component("facilities"),
         capability_gaps=capability_gaps,
-        status="in_progress",
-        version=1
+        status=session.status.value,
+        version=session.version
     )
 
 
 @router.put("/{session_id}/gaps")
 async def update_capability_gaps(
     session_id: int,
-    gaps: List[CapabilityGap],
+    gaps: list[CapabilityGap],
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> dict:
@@ -362,7 +304,7 @@ async def update_capability_gaps(
         dict: Success message
     """
     logger.info(f"Updating capability gaps for DOTMLPF {session_id}")
-    
+
     return {
         "message": "Capability gaps updated successfully",
         "session_id": session_id,
@@ -374,7 +316,7 @@ async def update_capability_gaps(
 @router.get("/{session_id}/recommendations")
 async def get_recommendations(
     session_id: int,
-    priority_filter: Optional[str] = None,
+    priority_filter: str | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> dict:
@@ -391,7 +333,7 @@ async def get_recommendations(
         dict: Prioritized recommendations
     """
     logger.info(f"Getting recommendations for DOTMLPF {session_id}")
-    
+
     recommendations = {
         "critical": [
             {
@@ -430,10 +372,10 @@ async def get_recommendations(
             }
         ]
     }
-    
+
     if priority_filter:
         recommendations = {priority_filter: recommendations.get(priority_filter, [])}
-    
+
     return {
         "session_id": session_id,
         "recommendations": recommendations,
@@ -461,7 +403,7 @@ async def prioritize_gaps(
         dict: Prioritized gaps
     """
     logger.info(f"Prioritizing gaps for DOTMLPF {session_id} using {method} method")
-    
+
     prioritized_gaps = [
         {
             "rank": 1,
@@ -482,7 +424,7 @@ async def prioritize_gaps(
             "rationale": "Essential for multi-domain operations"
         }
     ]
-    
+
     return {
         "session_id": session_id,
         "method": method,
@@ -511,13 +453,13 @@ async def export_dotmlpf_analysis(
         dict: Export information
     """
     logger.info(f"Exporting DOTMLPF analysis {session_id} as {format}")
-    
+
     if format not in ["pdf", "docx", "json", "pptx"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid export format. Supported: pdf, docx, json, pptx"
         )
-    
+
     return {
         "session_id": session_id,
         "format": format,
@@ -576,5 +518,5 @@ async def list_dotmlpf_templates(
             ]
         }
     ]
-    
+
     return templates

@@ -3,7 +3,6 @@ SWOT Analysis API endpoints.
 Comprehensive SWOT analysis capabilities for intelligence analysts.
 """
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -16,7 +15,6 @@ from app.models.framework import FrameworkType
 from app.models.user import User
 from app.services.framework_service import (
     FrameworkData,
-    SWOTAnalysisData,
     framework_service,
 )
 
@@ -28,23 +26,23 @@ class SWOTCreateRequest(BaseModel):
     """SWOT analysis creation request."""
     title: str
     objective: str
-    context: Optional[str] = None
-    initial_strengths: Optional[list[str]] = []
-    initial_weaknesses: Optional[list[str]] = []
-    initial_opportunities: Optional[list[str]] = []
-    initial_threats: Optional[list[str]] = []
+    context: str | None = None
+    initial_strengths: list[str] | None = []
+    initial_weaknesses: list[str] | None = []
+    initial_opportunities: list[str] | None = []
+    initial_threats: list[str] | None = []
     request_ai_suggestions: bool = True
 
 
 class SWOTUpdateRequest(BaseModel):
     """SWOT analysis update request."""
-    title: Optional[str] = None
-    objective: Optional[str] = None
-    context: Optional[str] = None
-    strengths: Optional[list[str]] = None
-    weaknesses: Optional[list[str]] = None
-    opportunities: Optional[list[str]] = None
-    threats: Optional[list[str]] = None
+    title: str | None = None
+    objective: str | None = None
+    context: str | None = None
+    strengths: list[str] | None = None
+    weaknesses: list[str] | None = None
+    opportunities: list[str] | None = None
+    threats: list[str] | None = None
 
 
 class SWOTAnalysisResponse(BaseModel):
@@ -52,12 +50,12 @@ class SWOTAnalysisResponse(BaseModel):
     session_id: int
     title: str
     objective: str
-    context: Optional[str]
+    context: str | None
     strengths: list[str]
     weaknesses: list[str]
     opportunities: list[str]
     threats: list[str]
-    ai_suggestions: Optional[dict] = None
+    ai_suggestions: dict | None = None
     status: str
     version: int
 
@@ -65,8 +63,8 @@ class SWOTAnalysisResponse(BaseModel):
 class SWOTAISuggestionRequest(BaseModel):
     """Request for AI suggestions on SWOT analysis."""
     session_id: int
-    focus_area: Optional[str] = None  # strengths, weaknesses, opportunities, threats, or all
-    additional_context: Optional[str] = None
+    focus_area: str | None = None  # strengths, weaknesses, opportunities, threats, or all
+    additional_context: str | None = None
 
 
 @router.post("/", response_model=SWOTAnalysisResponse)
@@ -97,7 +95,7 @@ async def create_swot_analysis(
         SWOTAnalysisResponse: Created SWOT analysis
     """
     logger.info(f"Creating SWOT analysis: {request.title} for user {current_user.username}")
-    
+
     # Prepare SWOT data
     swot_data = {
         "objective": request.objective,
@@ -107,7 +105,7 @@ async def create_swot_analysis(
         "opportunities": request.initial_opportunities or [],
         "threats": request.initial_threats or [],
     }
-    
+
     # Get AI suggestions if requested
     ai_suggestions = None
     if request.request_ai_suggestions:
@@ -118,7 +116,7 @@ async def create_swot_analysis(
                 "suggest"
             )
             ai_suggestions = ai_result.get("suggestions")
-            
+
             # Merge AI suggestions with initial data
             if ai_suggestions:
                 for category in ["strengths", "weaknesses", "opportunities", "threats"]:
@@ -126,10 +124,10 @@ async def create_swot_analysis(
                         swot_data[category].extend(ai_suggestions[category])
                         # Remove duplicates while preserving order
                         swot_data[category] = list(dict.fromkeys(swot_data[category]))
-                        
+
         except Exception as e:
             logger.warning(f"Failed to get AI suggestions: {e}")
-    
+
     # Create framework session
     framework_data = FrameworkData(
         framework_type=FrameworkType.SWOT,
@@ -138,9 +136,9 @@ async def create_swot_analysis(
         data=swot_data,
         tags=["swot", "strategic-analysis"]
     )
-    
+
     session = await framework_service.create_session(db, current_user, framework_data)
-    
+
     return SWOTAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -176,7 +174,7 @@ async def get_swot_analysis(
     # TODO: Implement database retrieval
     # For now, return mock data
     logger.info(f"Getting SWOT analysis {session_id}")
-    
+
     return SWOTAnalysisResponse(
         session_id=session_id,
         title="Strategic Market Analysis",
@@ -230,37 +228,37 @@ async def update_swot_analysis(
         SWOTAnalysisResponse: Updated SWOT analysis
     """
     logger.info(f"Updating SWOT analysis {session_id}")
-    
+
     # Build update data
     updates = {}
     swot_data = {}
-    
+
     if request.title:
         updates["title"] = request.title
-    
+
     if request.objective is not None:
         swot_data["objective"] = request.objective
-    
+
     if request.context is not None:
         swot_data["context"] = request.context
-    
+
     for field in ["strengths", "weaknesses", "opportunities", "threats"]:
         value = getattr(request, field)
         if value is not None:
             swot_data[field] = value
-    
+
     if swot_data:
         updates["data"] = swot_data
-    
+
     # Update session
     session = await framework_service.update_session(
         db, session_id, current_user, updates
     )
-    
+
     # Parse data
     import json
     data = json.loads(session.data)
-    
+
     return SWOTAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -295,7 +293,7 @@ async def get_ai_suggestions(
         dict: AI suggestions
     """
     logger.info(f"Getting AI suggestions for SWOT analysis {session_id}")
-    
+
     # TODO: Get actual session data from database
     # For now, use mock data
     swot_data = {
@@ -306,14 +304,14 @@ async def get_ai_suggestions(
         "opportunities": ["New markets"],
         "threats": ["Competition"]
     }
-    
+
     # Get AI suggestions
     ai_result = await framework_service.analyze_with_ai(
         FrameworkType.SWOT,
         swot_data,
         "suggest"
     )
-    
+
     # Filter by focus area if specified
     if request.focus_area and request.focus_area != "all":
         suggestions = ai_result.get("suggestions", {})
@@ -321,7 +319,7 @@ async def get_ai_suggestions(
             ai_result["suggestions"] = {
                 request.focus_area: suggestions[request.focus_area]
             }
-    
+
     return ai_result
 
 
@@ -343,7 +341,7 @@ async def validate_swot_analysis(
         dict: Validation results
     """
     logger.info(f"Validating SWOT analysis {session_id}")
-    
+
     # TODO: Get actual session data from database
     swot_data = {
         "objective": "Analyze competitive position",
@@ -352,14 +350,14 @@ async def validate_swot_analysis(
         "opportunities": ["New markets"],
         "threats": ["Competition"]
     }
-    
+
     # Validate with AI
     validation_result = await framework_service.analyze_with_ai(
         FrameworkType.SWOT,
         swot_data,
         "validate"
     )
-    
+
     return validation_result
 
 
@@ -383,13 +381,13 @@ async def export_swot_analysis(
         dict: Export information
     """
     logger.info(f"Exporting SWOT analysis {session_id} as {format}")
-    
+
     if format not in ["pdf", "docx", "json"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid export format. Supported: pdf, docx, json"
         )
-    
+
     # TODO: Implement actual export functionality
     # For now, return mock response
     return {
@@ -451,5 +449,5 @@ async def list_swot_templates(
             }
         }
     ]
-    
+
     return templates

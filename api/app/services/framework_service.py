@@ -4,8 +4,8 @@ Handles business logic for all intelligence analysis frameworks.
 """
 
 import json
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -15,7 +15,6 @@ from app.core.logging import get_logger
 from app.models.framework import (
     FrameworkSession,
     FrameworkStatus,
-    FrameworkTemplate,
     FrameworkType,
 )
 from app.models.user import User
@@ -28,45 +27,45 @@ class FrameworkData(BaseModel):
     """Generic framework data model."""
     framework_type: FrameworkType
     title: str
-    description: Optional[str] = None
-    data: Dict[str, Any]
-    config: Optional[Dict[str, Any]] = None
-    tags: Optional[List[str]] = None
+    description: str | None = None
+    data: dict[str, Any]
+    config: dict[str, Any] | None = None
+    tags: list[str] | None = None
 
 
 class SWOTAnalysisData(BaseModel):
     """SWOT Analysis specific data model."""
     objective: str
-    context: Optional[str] = None
-    strengths: List[str]
-    weaknesses: List[str]
-    opportunities: List[str]
-    threats: List[str]
-    ai_suggestions: Optional[Dict[str, List[str]]] = None
+    context: str | None = None
+    strengths: list[str]
+    weaknesses: list[str]
+    opportunities: list[str]
+    threats: list[str]
+    ai_suggestions: dict[str, list[str]] | None = None
 
 
 class COGAnalysisData(BaseModel):
     """Center of Gravity analysis data model."""
     user_details: str
     desired_end_state: str
-    entities: List[Dict[str, Any]]
-    relationships: List[Dict[str, Any]]
-    critical_capabilities: Optional[List[str]] = None
-    critical_requirements: Optional[List[str]] = None
-    critical_vulnerabilities: Optional[List[str]] = None
+    entities: list[dict[str, Any]]
+    relationships: list[dict[str, Any]]
+    critical_capabilities: list[str] | None = None
+    critical_requirements: list[str] | None = None
+    critical_vulnerabilities: list[str] | None = None
 
 
 class PMESIIPTData(BaseModel):
     """PMESII-PT analysis data model."""
     scenario: str
-    political: Dict[str, Any]
-    military: Dict[str, Any]
-    economic: Dict[str, Any]
-    social: Dict[str, Any]
-    infrastructure: Dict[str, Any]
-    information: Dict[str, Any]
-    physical_environment: Dict[str, Any]
-    time: Dict[str, Any]
+    political: dict[str, Any]
+    military: dict[str, Any]
+    economic: dict[str, Any]
+    social: dict[str, Any]
+    infrastructure: dict[str, Any]
+    information: dict[str, Any]
+    physical_environment: dict[str, Any]
+    time: dict[str, Any]
 
 
 class FrameworkAnalysisService:
@@ -74,7 +73,7 @@ class FrameworkAnalysisService:
     Service for managing framework analysis sessions.
     Provides methods for creating, updating, and analyzing framework data.
     """
-    
+
     def __init__(self):
         """Initialize framework service."""
         self.framework_handlers = {
@@ -89,7 +88,7 @@ class FrameworkAnalysisService:
             FrameworkType.CAUSEWAY: self._handle_causeway,
             FrameworkType.DIME: self._handle_dime_analysis,
         }
-    
+
     async def create_session(
         self,
         db: AsyncSession,
@@ -117,24 +116,24 @@ class FrameworkAnalysisService:
             config=json.dumps(framework_data.config) if framework_data.config else None,
             tags=json.dumps(framework_data.tags) if framework_data.tags else None,
         )
-        
+
         db.add(session)
         await db.commit()
         await db.refresh(session)
-        
+
         logger.info(
             f"Created framework session {session.id} "
             f"({framework_data.framework_type}) for user {user.username}"
         )
-        
+
         return session
-    
+
     async def update_session(
         self,
         db: AsyncSession,
         session_id: int,
         user: User,
-        updates: Dict[str, Any]
+        updates: dict[str, Any]
     ) -> FrameworkSession:
         """
         Update an existing framework session.
@@ -156,10 +155,10 @@ class FrameworkAnalysisService:
             )
         )
         session = result.scalar_one_or_none()
-        
+
         if not session:
             raise ValueError(f"Framework session {session_id} not found")
-        
+
         # Apply updates
         for key, value in updates.items():
             if key == "data":
@@ -170,24 +169,24 @@ class FrameworkAnalysisService:
                 session.tags = json.dumps(value)
             elif hasattr(session, key):
                 setattr(session, key, value)
-        
+
         # Update version and timestamp
         session.version += 1
-        session.updated_at = datetime.now(timezone.utc)
-        
+        session.updated_at = datetime.now(UTC)
+
         await db.commit()
         await db.refresh(session)
-        
+
         logger.info(f"Updated framework session {session_id} to version {session.version}")
-        
+
         return session
-    
+
     async def analyze_with_ai(
         self,
         framework_type: FrameworkType,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         action: str = "suggest"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Perform AI analysis on framework data.
         
@@ -202,14 +201,14 @@ class FrameworkAnalysisService:
         handler = self.framework_handlers.get(framework_type)
         if not handler:
             raise ValueError(f"Unsupported framework type: {framework_type}")
-        
+
         return await handler(data, action)
-    
+
     async def _handle_swot_analysis(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         action: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Handle SWOT analysis with AI.
         
@@ -235,29 +234,29 @@ class FrameworkAnalysisService:
                 "Each should be an array of 3-5 specific, actionable points "
                 "that complement the existing analysis."
             )
-            
+
             suggestions = await ai_service.generate_framework_suggestions(
                 "swot", data
             )
-            
+
             return {
                 "suggestions": suggestions,
                 "analysis_type": "swot",
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
-        
+
         elif action == "validate":
             return await ai_service.validate_analysis(
                 json.dumps(data), "swot"
             )
-        
+
         return {}
-    
+
     async def _handle_cog_analysis(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         action: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Handle Center of Gravity analysis with AI.
         
@@ -282,24 +281,24 @@ class FrameworkAnalysisService:
                 "Return as JSON with keys: centers_of_gravity, "
                 "critical_capabilities, critical_requirements, critical_vulnerabilities"
             )
-            
+
             suggestions = await ai_service.generate_framework_suggestions(
                 "cog", data
             )
-            
+
             return {
                 "suggestions": suggestions,
                 "analysis_type": "cog",
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
-        
+
         return {}
-    
+
     async def _handle_pmesii_pt_analysis(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         action: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Handle PMESII-PT analysis with AI.
         
@@ -315,38 +314,38 @@ class FrameworkAnalysisService:
                 "political", "military", "economic", "social",
                 "infrastructure", "information", "physical_environment", "time"
             ]
-            
+
             prompt = (
                 f"Analyze this scenario using PMESII-PT framework:\n"
                 f"Scenario: {data.get('scenario', 'Not specified')}\n\n"
             )
-            
+
             for component in components:
                 prompt += f"{component.title()}: {data.get(component, {})}\n"
-            
+
             prompt += (
                 "\nProvide comprehensive analysis for each PMESII-PT component. "
                 "Return as JSON with keys for each component containing "
                 "detailed insights and recommendations."
             )
-            
+
             suggestions = await ai_service.generate_framework_suggestions(
                 "pmesii_pt", data
             )
-            
+
             return {
                 "suggestions": suggestions,
                 "analysis_type": "pmesii_pt",
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
-        
+
         return {}
-    
+
     async def _handle_dotmlpf_analysis(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         action: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle DOTMLPF analysis with AI."""
         if action == "suggest":
             prompt = (
@@ -362,20 +361,20 @@ class FrameworkAnalysisService:
                 "- Facilities\n\n"
                 "Return as JSON with analysis for each component."
             )
-            
+
             suggestions = await ai_service.generate_framework_suggestions(
                 "dotmlpf", data
             )
-            
+
             return {"suggestions": suggestions, "analysis_type": "dotmlpf"}
-        
+
         return {}
-    
+
     async def _handle_ach_analysis(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         action: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle Analysis of Competing Hypotheses with AI."""
         if action == "suggest":
             prompt = (
@@ -386,20 +385,20 @@ class FrameworkAnalysisService:
                 "Evaluate each hypothesis against evidence. "
                 "Return as JSON with hypothesis evaluations and recommendations."
             )
-            
+
             suggestions = await ai_service.generate_framework_suggestions(
                 "ach", data
             )
-            
+
             return {"suggestions": suggestions, "analysis_type": "ach"}
-        
+
         return {}
-    
+
     async def _handle_deception_detection(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         action: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle deception detection analysis with AI."""
         if action == "analyze":
             prompt = (
@@ -412,20 +411,20 @@ class FrameworkAnalysisService:
                 "3. Reliability assessment\n"
                 "Return as JSON with detailed analysis."
             )
-            
+
             suggestions = await ai_service.generate_framework_suggestions(
                 "deception", data
             )
-            
+
             return {"analysis": suggestions, "analysis_type": "deception_detection"}
-        
+
         return {}
-    
+
     async def _handle_behavioral_analysis(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         action: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle behavioral analysis with AI."""
         if action == "analyze":
             prompt = (
@@ -436,20 +435,20 @@ class FrameworkAnalysisService:
                 "Analyze patterns, motivations, and predictions. "
                 "Return as JSON with behavioral insights."
             )
-            
+
             suggestions = await ai_service.generate_framework_suggestions(
                 "behavioral", data
             )
-            
+
             return {"analysis": suggestions, "analysis_type": "behavioral_analysis"}
-        
+
         return {}
-    
+
     async def _handle_starbursting(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         action: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle starbursting analysis with AI."""
         if action == "generate":
             prompt = (
@@ -460,20 +459,20 @@ class FrameworkAnalysisService:
                 "- Who\n- What\n- When\n- Where\n- Why\n- How\n"
                 "Return as JSON with categorized questions."
             )
-            
+
             suggestions = await ai_service.generate_framework_suggestions(
                 "starbursting", data
             )
-            
+
             return {"questions": suggestions, "analysis_type": "starbursting"}
-        
+
         return {}
-    
+
     async def _handle_causeway(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         action: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle CauseWay analysis with AI."""
         if action == "analyze":
             prompt = (
@@ -483,20 +482,20 @@ class FrameworkAnalysisService:
                 "Identify root causes, effects, and relationships. "
                 "Return as JSON with causal analysis."
             )
-            
+
             suggestions = await ai_service.generate_framework_suggestions(
                 "causeway", data
             )
-            
+
             return {"analysis": suggestions, "analysis_type": "causeway"}
-        
+
         return {}
-    
+
     async def _handle_dime_analysis(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         action: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle DIME analysis with AI."""
         if action == "suggest":
             prompt = (
@@ -509,13 +508,13 @@ class FrameworkAnalysisService:
                 "Provide comprehensive DIME analysis. "
                 "Return as JSON with insights for each component."
             )
-            
+
             suggestions = await ai_service.generate_framework_suggestions(
                 "dime", data
             )
-            
+
             return {"suggestions": suggestions, "analysis_type": "dime"}
-        
+
         return {}
 
 

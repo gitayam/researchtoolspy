@@ -3,7 +3,6 @@ CauseWay API endpoints.
 Issue-focused causal analysis framework for understanding root causes and effects.
 """
 
-from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -25,13 +24,13 @@ class CauseNode(BaseModel):
     id: str
     description: str
     type: str  # root_cause, contributing_cause, immediate_cause, effect, consequence
-    evidence: Optional[List[str]] = []
-    confidence: Optional[float] = 0.5  # 0-1 scale
-    impact_level: Optional[str] = "medium"  # low, medium, high, critical
-    likelihood: Optional[float] = 0.5  # 0-1 scale
-    timeframe: Optional[str] = None
+    evidence: list[str] | None = []
+    confidence: float | None = 0.5  # 0-1 scale
+    impact_level: str | None = "medium"  # low, medium, high, critical
+    likelihood: float | None = 0.5  # 0-1 scale
+    timeframe: str | None = None
     status: str = "identified"  # identified, validated, disproven, uncertain
-    mitigation_actions: Optional[List[str]] = []
+    mitigation_actions: list[str] | None = []
 
 
 class CausalRelationship(BaseModel):
@@ -40,10 +39,10 @@ class CausalRelationship(BaseModel):
     source_id: str  # Causing node
     target_id: str  # Effect node
     relationship_type: str  # direct_cause, contributing_factor, catalyst, necessary_condition
-    strength: Optional[float] = 0.5  # 0-1 scale
-    evidence: Optional[List[str]] = []
-    confidence: Optional[float] = 0.5  # 0-1 scale
-    description: Optional[str] = None
+    strength: float | None = 0.5  # 0-1 scale
+    evidence: list[str] | None = []
+    confidence: float | None = 0.5  # 0-1 scale
+    description: str | None = None
 
 
 class CausewayCreateRequest(BaseModel):
@@ -51,20 +50,20 @@ class CausewayCreateRequest(BaseModel):
     title: str
     central_issue: str
     problem_statement: str
-    context: Optional[str] = None
-    initial_causes: Optional[List[CauseNode]] = []
-    initial_relationships: Optional[List[CausalRelationship]] = []
+    context: str | None = None
+    initial_causes: list[CauseNode] | None = []
+    initial_relationships: list[CausalRelationship] | None = []
     request_ai_analysis: bool = True
 
 
 class CausewayUpdateRequest(BaseModel):
     """CauseWay analysis update request."""
-    title: Optional[str] = None
-    central_issue: Optional[str] = None
-    problem_statement: Optional[str] = None
-    context: Optional[str] = None
-    causes: Optional[List[CauseNode]] = None
-    relationships: Optional[List[CausalRelationship]] = None
+    title: str | None = None
+    central_issue: str | None = None
+    problem_statement: str | None = None
+    context: str | None = None
+    causes: list[CauseNode] | None = None
+    relationships: list[CausalRelationship] | None = None
 
 
 class CausewayAnalysisResponse(BaseModel):
@@ -73,19 +72,19 @@ class CausewayAnalysisResponse(BaseModel):
     title: str
     central_issue: str
     problem_statement: str
-    context: Optional[str]
-    causes: List[CauseNode]
-    relationships: List[CausalRelationship]
-    causal_chains: Optional[List[List[str]]] = []
-    risk_assessment: Optional[Dict] = None
-    ai_analysis: Optional[Dict] = None
+    context: str | None
+    causes: list[CauseNode]
+    relationships: list[CausalRelationship]
+    causal_chains: list[list[str]] | None = []
+    risk_assessment: dict | None = None
+    ai_analysis: dict | None = None
     status: str
     version: int
 
 
 class RootCauseAnalysisRequest(BaseModel):
     """Request for root cause analysis."""
-    focus_area: Optional[str] = None
+    focus_area: str | None = None
     analysis_depth: int = 3  # Number of "why" levels to explore
     include_external_factors: bool = True
 
@@ -108,7 +107,7 @@ async def create_causeway_analysis(
         CausewayAnalysisResponse: Created CauseWay analysis
     """
     logger.info(f"Creating CauseWay analysis: {request.title} for user {current_user.username}")
-    
+
     # Prepare CauseWay data
     causeway_data = {
         "central_issue": request.central_issue,
@@ -117,7 +116,7 @@ async def create_causeway_analysis(
         "causes": [c.dict() for c in request.initial_causes] if request.initial_causes else [],
         "relationships": [r.dict() for r in request.initial_relationships] if request.initial_relationships else [],
     }
-    
+
     # Get AI analysis if requested
     ai_analysis = None
     if request.request_ai_analysis:
@@ -128,7 +127,7 @@ async def create_causeway_analysis(
                 "suggest"
             )
             ai_analysis = ai_result.get("suggestions")
-            
+
             # Add AI-suggested causes and relationships
             if ai_analysis:
                 if "causes" in ai_analysis and isinstance(ai_analysis["causes"], list):
@@ -146,7 +145,7 @@ async def create_causeway_analysis(
                                 "status": "identified",
                                 "mitigation_actions": cause_data.get("mitigation_actions", [])
                             })
-                
+
                 if "relationships" in ai_analysis and isinstance(ai_analysis["relationships"], list):
                     for idx, rel_data in enumerate(ai_analysis["relationships"]):
                         if isinstance(rel_data, dict):
@@ -161,10 +160,10 @@ async def create_causeway_analysis(
                                 "confidence": rel_data.get("confidence", 0.5),
                                 "description": rel_data.get("description", "")
                             })
-                        
+
         except Exception as e:
             logger.warning(f"Failed to get AI analysis: {e}")
-    
+
     # Create framework session
     framework_data = FrameworkData(
         framework_type=FrameworkType.CAUSEWAY,
@@ -173,15 +172,15 @@ async def create_causeway_analysis(
         data=causeway_data,
         tags=["causeway", "root-cause-analysis", "causal-modeling"]
     )
-    
+
     session = await framework_service.create_session(db, current_user, framework_data)
-    
+
     # Generate causal chains and risk assessment
     causes = [CauseNode(**c) for c in causeway_data["causes"]]
     relationships = [CausalRelationship(**r) for r in causeway_data["relationships"]]
     causal_chains = _generate_causal_chains(causes, relationships)
     risk_assessment = _generate_risk_assessment(causes, relationships)
-    
+
     return CausewayAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -216,7 +215,7 @@ async def get_causeway_analysis(
         CausewayAnalysisResponse: CauseWay analysis data
     """
     logger.info(f"Getting CauseWay analysis {session_id}")
-    
+
     # TODO: Implement database retrieval
     # For now, return mock data
     causes = [
@@ -274,7 +273,7 @@ async def get_causeway_analysis(
             status="validated"
         )
     ]
-    
+
     relationships = [
         CausalRelationship(
             id="rel_1",
@@ -317,10 +316,10 @@ async def get_causeway_analysis(
             description="Malware infection led to data compromise and downtime"
         )
     ]
-    
+
     causal_chains = _generate_causal_chains(causes, relationships)
     risk_assessment = _generate_risk_assessment(causes, relationships)
-    
+
     return CausewayAnalysisResponse(
         session_id=session_id,
         title="Cybersecurity Incident Root Cause Analysis",
@@ -356,46 +355,46 @@ async def update_causeway_analysis(
         CausewayAnalysisResponse: Updated CauseWay analysis
     """
     logger.info(f"Updating CauseWay analysis {session_id}")
-    
+
     # Build update data
     updates = {}
     causeway_data = {}
-    
+
     if request.title:
         updates["title"] = request.title
-    
+
     if request.central_issue is not None:
         causeway_data["central_issue"] = request.central_issue
-    
+
     if request.problem_statement is not None:
         causeway_data["problem_statement"] = request.problem_statement
-    
+
     if request.context is not None:
         causeway_data["context"] = request.context
-    
+
     if request.causes is not None:
         causeway_data["causes"] = [c.dict() for c in request.causes]
-    
+
     if request.relationships is not None:
         causeway_data["relationships"] = [r.dict() for r in request.relationships]
-    
+
     if causeway_data:
         updates["data"] = causeway_data
-    
+
     # Update session
     session = await framework_service.update_session(
         db, session_id, current_user, updates
     )
-    
+
     # Parse data
     import json
     data = json.loads(session.data)
-    
+
     causes = [CauseNode(**c) for c in data.get("causes", [])]
     relationships = [CausalRelationship(**r) for r in data.get("relationships", [])]
     causal_chains = _generate_causal_chains(causes, relationships)
     risk_assessment = _generate_risk_assessment(causes, relationships)
-    
+
     return CausewayAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -431,7 +430,7 @@ async def add_cause_node(
         dict: Success message
     """
     logger.info(f"Adding cause node to CauseWay {session_id}: {cause.description}")
-    
+
     return {
         "message": "Cause node added successfully",
         "session_id": session_id,
@@ -459,7 +458,7 @@ async def add_causal_relationship(
         dict: Success message
     """
     logger.info(f"Adding causal relationship to CauseWay {session_id}")
-    
+
     return {
         "message": "Causal relationship added successfully",
         "session_id": session_id,
@@ -487,7 +486,7 @@ async def perform_root_cause_analysis(
         dict: Root cause analysis results
     """
     logger.info(f"Performing root cause analysis for CauseWay {session_id}")
-    
+
     # TODO: Get actual session data from database
     # For now, use mock data
     causeway_data = {
@@ -496,14 +495,14 @@ async def perform_root_cause_analysis(
         "causes": [],
         "relationships": []
     }
-    
+
     # Perform AI root cause analysis
     ai_result = await framework_service.analyze_with_ai(
         FrameworkType.CAUSEWAY,
         {**causeway_data, "analysis_request": request.dict()},
         "analyze"
     )
-    
+
     # Mock comprehensive root cause analysis results
     analysis_results = {
         "primary_root_causes": [
@@ -563,7 +562,7 @@ async def perform_root_cause_analysis(
             }
         ]
     }
-    
+
     return {
         "session_id": session_id,
         "analysis_parameters": request.dict(),
@@ -591,7 +590,7 @@ async def get_causal_map(
         dict: Causal map visualization data
     """
     logger.info(f"Getting causal map for CauseWay {session_id}")
-    
+
     # TODO: Get actual data from database
     # For now, return mock causal map data
     causal_map = {
@@ -673,7 +672,7 @@ async def get_causal_map(
             "levels": 4
         }
     }
-    
+
     return {
         "session_id": session_id,
         "causal_map": causal_map
@@ -700,13 +699,13 @@ async def export_causeway_analysis(
         dict: Export information
     """
     logger.info(f"Exporting CauseWay analysis {session_id} as {format}")
-    
+
     if format not in ["pdf", "docx", "json", "png"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid export format. Supported: pdf, docx, json, png"
         )
-    
+
     # TODO: Implement actual export functionality
     return {
         "session_id": session_id,
@@ -781,11 +780,11 @@ async def list_causeway_templates(
             ]
         }
     ]
-    
+
     return templates
 
 
-def _generate_causal_chains(causes: List[CauseNode], relationships: List[CausalRelationship]) -> List[List[str]]:
+def _generate_causal_chains(causes: list[CauseNode], relationships: list[CausalRelationship]) -> list[list[str]]:
     """
     Generate causal chains from causes and relationships.
     
@@ -802,25 +801,25 @@ def _generate_causal_chains(causes: List[CauseNode], relationships: List[CausalR
         if rel.source_id not in adj_map:
             adj_map[rel.source_id] = []
         adj_map[rel.source_id].append(rel.target_id)
-    
+
     # Find root causes (nodes with no incoming edges)
     incoming = set()
     for rel in relationships:
         incoming.add(rel.target_id)
-    
+
     root_causes = [c.id for c in causes if c.id not in incoming and c.type == "root_cause"]
-    
+
     # Generate chains from each root cause
     chains = []
     for root in root_causes:
         chain = _build_chain(root, adj_map, [])
         if chain:
             chains.append(chain)
-    
+
     return chains
 
 
-def _build_chain(node_id: str, adj_map: dict, visited: List[str]) -> List[str]:
+def _build_chain(node_id: str, adj_map: dict, visited: list[str]) -> list[str]:
     """
     Build a causal chain from a starting node.
     
@@ -834,10 +833,10 @@ def _build_chain(node_id: str, adj_map: dict, visited: List[str]) -> List[str]:
     """
     if node_id in visited:
         return []
-    
+
     chain = [node_id]
     visited = visited + [node_id]
-    
+
     if node_id in adj_map:
         # Follow the strongest relationship
         next_nodes = adj_map[node_id]
@@ -845,11 +844,11 @@ def _build_chain(node_id: str, adj_map: dict, visited: List[str]) -> List[str]:
             next_node = next_nodes[0]  # Simplified - take first relationship
             rest_of_chain = _build_chain(next_node, adj_map, visited)
             chain.extend(rest_of_chain)
-    
+
     return chain
 
 
-def _generate_risk_assessment(causes: List[CauseNode], relationships: List[CausalRelationship]) -> Dict:
+def _generate_risk_assessment(causes: list[CauseNode], relationships: list[CausalRelationship]) -> dict:
     """
     Generate risk assessment from causes and relationships.
     
@@ -864,7 +863,7 @@ def _generate_risk_assessment(causes: List[CauseNode], relationships: List[Causa
     total_causes = len(causes)
     high_impact_causes = len([c for c in causes if c.impact_level in ["high", "critical"]])
     validated_causes = len([c for c in causes if c.status == "validated"])
-    
+
     # Risk levels
     risk_levels = {
         "critical": len([c for c in causes if c.impact_level == "critical"]),
@@ -872,7 +871,7 @@ def _generate_risk_assessment(causes: List[CauseNode], relationships: List[Causa
         "medium": len([c for c in causes if c.impact_level == "medium"]),
         "low": len([c for c in causes if c.impact_level == "low"])
     }
-    
+
     # Overall risk score (simplified calculation)
     risk_score = 0
     for cause in causes:
@@ -880,9 +879,9 @@ def _generate_risk_assessment(causes: List[CauseNode], relationships: List[Causa
         likelihood = cause.likelihood or 0.5
         confidence = cause.confidence or 0.5
         risk_score += impact_weight * likelihood * confidence
-    
+
     normalized_risk_score = min(risk_score / (total_causes * 4), 1.0) if total_causes > 0 else 0
-    
+
     return {
         "overall_risk_level": "high" if normalized_risk_score > 0.7 else "medium" if normalized_risk_score > 0.4 else "low",
         "risk_score": round(normalized_risk_score, 2),
@@ -898,8 +897,8 @@ def _generate_risk_assessment(causes: List[CauseNode], relationships: List[Causa
                 "likelihood": cause.likelihood,
                 "confidence": cause.confidence
             }
-            for cause in sorted(causes, 
-                              key=lambda x: (x.likelihood or 0.5) * ({"low": 1, "medium": 2, "high": 3, "critical": 4}.get(x.impact_level, 2)), 
+            for cause in sorted(causes,
+                              key=lambda x: (x.likelihood or 0.5) * ({"low": 1, "medium": 2, "high": 3, "critical": 4}.get(x.impact_level, 2)),
                               reverse=True)[:3]
         ]
     }

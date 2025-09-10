@@ -5,9 +5,8 @@ Provides intelligent analysis capabilities for intel analysts and researchers.
 
 import json
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-import httpx
 from openai import AsyncOpenAI, OpenAI
 from pydantic import BaseModel
 
@@ -20,11 +19,11 @@ logger = get_logger(__name__)
 class AIAnalysisRequest(BaseModel):
     """AI analysis request model."""
     prompt: str
-    context: Optional[str] = None
-    max_tokens: Optional[int] = None
-    temperature: Optional[float] = None
-    framework_type: Optional[str] = None
-    system_prompt: Optional[str] = None
+    context: str | None = None
+    max_tokens: int | None = None
+    temperature: float | None = None
+    framework_type: str | None = None
+    system_prompt: str | None = None
 
 
 class AIAnalysisResponse(BaseModel):
@@ -32,7 +31,7 @@ class AIAnalysisResponse(BaseModel):
     content: str
     tokens_used: int
     model: str
-    framework_type: Optional[str] = None
+    framework_type: str | None = None
 
 
 class IntelligenceAnalysisService:
@@ -40,23 +39,23 @@ class IntelligenceAnalysisService:
     Service for AI-powered intelligence analysis using GPT-4o-mini.
     Optimized for intel analysts and researchers with fast, cost-effective AI.
     """
-    
+
     def __init__(self):
         """Initialize AI service with OpenAI client."""
         self.client = None
         self.async_client = None
         self.model = "gpt-5-mini"  # Fast, cost-effective model
-        
+
         # Check for API key in settings or environment
         api_key = getattr(settings, 'OPENAI_API_KEY', None) or os.environ.get('OPENAI_API_KEY')
-        
+
         if api_key and api_key not in ("", "YOUR_OPENAI_API_KEY_HERE"):
             self.client = OpenAI(api_key=api_key)
             self.async_client = AsyncOpenAI(api_key=api_key)
             logger.info(f"AI Service initialized with model: {self.model}")
         else:
             logger.warning("OpenAI API key not configured - AI features will be limited")
-    
+
     async def analyze(
         self,
         request: AIAnalysisRequest
@@ -72,26 +71,26 @@ class IntelligenceAnalysisService:
         """
         if not self.async_client:
             raise ValueError("OpenAI API key not configured")
-        
+
         try:
             # Prepare system prompt for intelligence analysis
             system_prompt = request.system_prompt or self._get_intel_system_prompt(
                 request.framework_type
             )
-            
+
             # Prepare messages
             messages = [
                 {"role": "system", "content": system_prompt}
             ]
-            
+
             if request.context:
                 messages.append({
                     "role": "user",
                     "content": f"Context: {request.context}"
                 })
-            
+
             messages.append({"role": "user", "content": request.prompt})
-            
+
             # Call GPT-4o-mini API
             response = await self.async_client.chat.completions.create(
                 model=self.model,  # Use GPT-4o-mini
@@ -99,28 +98,28 @@ class IntelligenceAnalysisService:
                 max_tokens=request.max_tokens or getattr(settings, 'OPENAI_MAX_TOKENS', 1500),
                 temperature=request.temperature or getattr(settings, 'OPENAI_TEMPERATURE', 0.7),
             )
-            
+
             # Extract response
             content = response.choices[0].message.content
             tokens_used = response.usage.total_tokens if response.usage else 0
-            
+
             logger.info(
                 f"AI analysis completed - Model: {self.model}, "
                 f"Tokens: {tokens_used}, Framework: {request.framework_type}"
             )
-            
+
             return AIAnalysisResponse(
                 content=content,
                 tokens_used=tokens_used,
                 model=self.model,
                 framework_type=request.framework_type
             )
-            
+
         except Exception as e:
             logger.error(f"AI analysis failed: {e}")
             raise
-    
-    def _get_intel_system_prompt(self, framework_type: Optional[str] = None) -> str:
+
+    def _get_intel_system_prompt(self, framework_type: str | None = None) -> str:
         """
         Get specialized system prompt for intelligence analysis.
         
@@ -140,7 +139,7 @@ class IntelligenceAnalysisService:
             "- Focused on actionable insights\n"
             "- Aware of potential biases and alternative hypotheses\n"
         )
-        
+
         framework_prompts = {
             "swot": (
                 "Focus on strategic analysis using the SWOT framework. "
@@ -168,17 +167,17 @@ class IntelligenceAnalysisService:
                 "and assess the reliability of information sources."
             ),
         }
-        
+
         if framework_type and framework_type.lower() in framework_prompts:
             return f"{base_prompt}\n\n{framework_prompts[framework_type.lower()]}"
-        
+
         return base_prompt
-    
+
     async def generate_framework_suggestions(
         self,
         framework_type: str,
-        current_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        current_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Generate AI suggestions for framework analysis.
         
@@ -190,29 +189,29 @@ class IntelligenceAnalysisService:
             Dict containing AI-generated suggestions
         """
         prompt = self._build_framework_prompt(framework_type, current_data)
-        
+
         request = AIAnalysisRequest(
             prompt=prompt,
             framework_type=framework_type,
             temperature=0.7,
             max_tokens=1500
         )
-        
+
         response = await self.analyze(request)
-        
+
         try:
             # Try to parse as JSON if the response is structured
             suggestions = json.loads(response.content)
         except json.JSONDecodeError:
             # If not JSON, return as text suggestions
             suggestions = {"suggestions": response.content}
-        
+
         return suggestions
-    
+
     def _build_framework_prompt(
         self,
         framework_type: str,
-        current_data: Dict[str, Any]
+        current_data: dict[str, Any]
     ) -> str:
         """
         Build prompt for framework-specific suggestions.
@@ -243,17 +242,17 @@ class IntelligenceAnalysisService:
                 "Return as JSON with keys for each PMESII-PT component."
             ),
         }
-        
+
         return prompts.get(
             framework_type,
             f"Analyze this data and provide insights:\n{json.dumps(current_data, indent=2)}"
         )
-    
+
     async def validate_analysis(
         self,
         content: str,
         framework_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Validate and enhance analysis content using AI.
         
@@ -274,16 +273,16 @@ class IntelligenceAnalysisService:
             "Provide feedback as JSON with keys: "
             "completeness_score (0-100), issues (array), suggestions (array)"
         )
-        
+
         request = AIAnalysisRequest(
             prompt=prompt,
             framework_type=framework_type,
             temperature=0.3,  # Lower temperature for validation
             max_tokens=1000
         )
-        
+
         response = await self.analyze(request)
-        
+
         try:
             return json.loads(response.content)
         except json.JSONDecodeError:
@@ -292,11 +291,11 @@ class IntelligenceAnalysisService:
                 "issues": ["Could not parse validation response"],
                 "suggestions": [response.content]
             }
-    
+
     async def extract_entities(
         self,
         text: str
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         """
         Extract entities from text for intelligence analysis.
         
@@ -313,22 +312,22 @@ class IntelligenceAnalysisService:
             "Return as JSON array with objects containing: "
             "name, type, relevance, context"
         )
-        
+
         request = AIAnalysisRequest(
             prompt=prompt,
             temperature=0.3,
             max_tokens=1000
         )
-        
+
         response = await self.analyze(request)
-        
+
         try:
             return json.loads(response.content)
         except json.JSONDecodeError:
             logger.warning("Failed to parse entity extraction response")
             return []
-    
-    async def generate_5w_analysis(self, content: str) -> Dict[str, str]:
+
+    async def generate_5w_analysis(self, content: str) -> dict[str, str]:
         """
         Extract 5W (Who, What, Where, When, Why) information from content.
         Specifically for Starbursting framework.
@@ -336,12 +335,12 @@ class IntelligenceAnalysisService:
         if not self.async_client:
             return {
                 "who": "AI unavailable - configure OpenAI API key",
-                "what": "AI unavailable", 
+                "what": "AI unavailable",
                 "where": "AI unavailable",
                 "when": "AI unavailable",
                 "why": "AI unavailable"
             }
-        
+
         prompt = f"""Analyze this content and extract the 5W information:
         
 Content: {content[:3000]}
@@ -370,28 +369,28 @@ WHY: [analysis]"""
                 max_tokens=500,
                 temperature=0.5
             )
-            
+
             result = response.choices[0].message.content
             analysis = {}
-            
+
             for line in result.split('\n'):
                 if ':' in line:
                     key, value = line.split(':', 1)
                     key = key.strip().lower()
                     if key in ['who', 'what', 'where', 'when', 'why']:
                         analysis[key] = value.strip()
-            
+
             for key in ['who', 'what', 'where', 'when', 'why']:
                 if key not in analysis:
                     analysis[key] = "Not identified"
-            
+
             return analysis
-            
+
         except Exception as e:
             logger.error(f"5W analysis error: {e}")
-            return {k: "Analysis failed" for k in ['who', 'what', 'where', 'when', 'why']}
-    
-    async def generate_starbursting_questions(self, central_idea: str, context: str = "") -> List[str]:
+            return dict.fromkeys(['who', 'what', 'where', 'when', 'why'], "Analysis failed")
+
+    async def generate_starbursting_questions(self, central_idea: str, context: str = "") -> list[str]:
         """
         Generate expansion questions for Starbursting framework.
         """
@@ -404,7 +403,7 @@ WHY: [analysis]"""
                 f"Why is {central_idea} important?",
                 f"How can {central_idea} be implemented?"
             ]
-        
+
         prompt = f"""Generate 6-8 expansion questions for Starbursting analysis.
 
 Central Idea: {central_idea}
@@ -423,20 +422,20 @@ One question per line."""
                 max_tokens=300,
                 temperature=0.7
             )
-            
+
             questions = response.choices[0].message.content.strip().split('\n')
             return [q.strip() for q in questions if q.strip()]
-            
+
         except Exception as e:
             logger.error(f"Question generation error: {e}")
-            return [f"Who is involved?", f"What is happening?", f"Where?", f"When?", f"Why?", f"How?"]
-    
+            return ["Who is involved?", "What is happening?", "Where?", "When?", "Why?", "How?"]
+
     async def summarize_content(self, content: str, max_length: int = 200) -> str:
         """Generate a concise summary."""
         if not self.async_client:
             sentences = content.split('. ')[:3]
             return '. '.join(sentences) + '.'
-        
+
         try:
             response = await self.async_client.chat.completions.create(
                 model=self.model,
@@ -451,8 +450,8 @@ One question per line."""
         except Exception as e:
             logger.error(f"Summarization error: {e}")
             return content[:500]
-    
-    async def generate_dime_suggestions(self, scenario: str, objective: str) -> Dict[str, List[str]]:
+
+    async def generate_dime_suggestions(self, scenario: str, objective: str) -> dict[str, list[str]]:
         """Generate DIME framework suggestions."""
         if not self.async_client:
             return {
@@ -461,7 +460,7 @@ One question per line."""
                 "military": ["Assess military readiness"],
                 "economic": ["Analyze economic impacts"]
             }
-        
+
         prompt = f"""Analyze using DIME framework:
 Scenario: {scenario}
 Objective: {objective}
@@ -482,11 +481,11 @@ ECONOMIC: [recommendations]"""
                 max_tokens=600,
                 temperature=0.6
             )
-            
+
             result = response.choices[0].message.content
             dime = {"diplomatic": [], "information": [], "military": [], "economic": []}
             current = None
-            
+
             for line in result.split('\n'):
                 if 'DIPLOMATIC' in line.upper(): current = 'diplomatic'
                 elif 'INFORMATION' in line.upper(): current = 'information'
@@ -494,14 +493,14 @@ ECONOMIC: [recommendations]"""
                 elif 'ECONOMIC' in line.upper(): current = 'economic'
                 elif line.strip().startswith('-') and current:
                     dime[current].append(line[1:].strip())
-            
+
             return dime
-            
+
         except Exception as e:
             logger.error(f"DIME analysis error: {e}")
             return {"diplomatic": [], "information": [], "military": [], "economic": []}
-    
-    async def generate_ach_hypotheses(self, scenario: str, key_question: str, context: str = "") -> List[str]:
+
+    async def generate_ach_hypotheses(self, scenario: str, key_question: str, context: str = "") -> list[str]:
         """Generate alternative hypotheses for ACH analysis."""
         if not self.async_client:
             return [
@@ -510,7 +509,7 @@ ECONOMIC: [recommendations]"""
                 "Hypothesis 3: Deception or misdirection scenario",
                 "Hypothesis 4: Null hypothesis - no significant activity"
             ]
-        
+
         prompt = f"""As an intelligence analyst, generate 4-6 competing hypotheses for ACH analysis.
 
 Scenario: {scenario}
@@ -535,7 +534,7 @@ Format as a JSON array of hypothesis strings."""
                 max_tokens=600,
                 temperature=0.8  # Higher temperature for creativity
             )
-            
+
             content = response.choices[0].message.content.strip()
             # Try to parse as JSON
             if content.startswith('[') and content.endswith(']'):
@@ -543,20 +542,20 @@ Format as a JSON array of hypothesis strings."""
             else:
                 # Extract from text format
                 hypotheses = [line.strip() for line in content.split('\n') if line.strip() and not line.strip().startswith('#')]
-            
+
             return hypotheses[:6]  # Limit to 6 hypotheses
-            
+
         except Exception as e:
             logger.error(f"ACH hypothesis generation error: {e}")
             return ["Failed to generate hypotheses"]
-    
-    async def refine_hypothesis(self, hypothesis: str, evidence: List[dict], feedback: str = "") -> str:
+
+    async def refine_hypothesis(self, hypothesis: str, evidence: list[dict], feedback: str = "") -> str:
         """Refine a hypothesis based on evidence and feedback."""
         if not self.async_client:
             return f"Refined: {hypothesis}"
-        
+
         evidence_summary = "\n".join([f"- {e.get('text', '')[:100]}" for e in evidence[:5]])
-        
+
         prompt = f"""Refine this hypothesis based on available evidence:
 
 Original Hypothesis: {hypothesis}
@@ -584,21 +583,21 @@ Return only the refined hypothesis text."""
                 max_tokens=200,
                 temperature=0.5
             )
-            
+
             return response.choices[0].message.content.strip()
-            
+
         except Exception as e:
             logger.error(f"Hypothesis refinement error: {e}")
             return hypothesis
-    
-    async def suggest_evidence_gaps(self, hypotheses: List[str], evidence: List[dict]) -> List[str]:
+
+    async def suggest_evidence_gaps(self, hypotheses: list[str], evidence: list[dict]) -> list[str]:
         """Identify evidence gaps for better hypothesis testing."""
         if not self.async_client:
             return ["Additional technical indicators needed", "More source diversity required", "Timeline gaps need filling"]
-        
+
         hyp_text = "\n".join([f"{i+1}. {h}" for i, h in enumerate(hypotheses)])
         evidence_types = list(set([e.get('source', 'Unknown') for e in evidence]))
-        
+
         prompt = f"""Identify critical evidence gaps for ACH analysis:
 
 Hypotheses:
@@ -627,20 +626,20 @@ Return as a JSON array of specific evidence gap suggestions."""
                 max_tokens=400,
                 temperature=0.6
             )
-            
+
             content = response.choices[0].message.content.strip()
             if content.startswith('[') and content.endswith(']'):
                 gaps = json.loads(content)
             else:
                 gaps = [line.strip('- ').strip() for line in content.split('\n') if line.strip() and not line.strip().startswith('#')]
-            
+
             return gaps[:8]  # Limit to 8 suggestions
-            
+
         except Exception as e:
             logger.error(f"Evidence gap analysis error: {e}")
             return ["Unable to generate gap analysis"]
-    
-    async def detect_analysis_bias(self, hypotheses: List[str], evidence: List[dict], scores: List[dict]) -> Dict[str, Any]:
+
+    async def detect_analysis_bias(self, hypotheses: list[str], evidence: list[dict], scores: list[dict]) -> dict[str, Any]:
         """Detect potential cognitive biases in ACH analysis."""
         if not self.async_client:
             return {
@@ -648,13 +647,13 @@ Return as a JSON array of specific evidence gap suggestions."""
                 "recommendations": ["Consider alternative viewpoints"],
                 "confidence_level": "medium"
             }
-        
+
         # Calculate score distribution
         score_stats = {}
         for score in scores:
             val = score.get('score', 0)
             score_stats[val] = score_stats.get(val, 0) + 1
-        
+
         prompt = f"""Analyze this ACH matrix for potential cognitive biases:
 
 Hypotheses: {len(hypotheses)} total
@@ -683,10 +682,10 @@ Return analysis as JSON with:
                 max_tokens=300,
                 temperature=0.4  # Lower temperature for analytical tasks
             )
-            
+
             content = response.choices[0].message.content.strip()
             return json.loads(content)
-            
+
         except Exception as e:
             logger.error(f"Bias detection error: {e}")
             return {"biases_detected": [], "recommendations": ["Analysis failed"], "confidence_level": "low"}

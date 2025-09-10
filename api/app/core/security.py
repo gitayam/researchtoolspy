@@ -2,8 +2,8 @@
 Security utilities for authentication and authorization.
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, List, Union
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -23,9 +23,9 @@ ALGORITHM = "HS256"
 
 class TokenData(BaseModel):
     """Token data model for JWT tokens."""
-    username: Optional[str] = None
-    user_id: Optional[int] = None
-    scopes: List[str] = []
+    username: str | None = None
+    user_id: int | None = None
+    scopes: list[str] = []
 
 
 class Token(BaseModel):
@@ -64,8 +64,8 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(
-    data: dict[str, Any], 
-    expires_delta: Optional[timedelta] = None
+    data: dict[str, Any],
+    expires_delta: timedelta | None = None
 ) -> str:
     """
     Create a JWT access token.
@@ -78,23 +78,23 @@ def create_access_token(
         str: JWT token
     """
     to_encode = data.copy()
-    
+
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
-    
+
     to_encode.update({"exp": expire, "type": "access"})
-    
+
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
 def create_refresh_token(
-    data: dict[str, Any], 
-    expires_delta: Optional[timedelta] = None
+    data: dict[str, Any],
+    expires_delta: timedelta | None = None
 ) -> str:
     """
     Create a JWT refresh token.
@@ -107,21 +107,21 @@ def create_refresh_token(
         str: JWT refresh token
     """
     to_encode = data.copy()
-    
+
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             days=settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
-    
+
     to_encode.update({"exp": expire, "type": "refresh"})
-    
+
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def verify_token(token: str, token_type: str = "access") -> Optional[TokenData]:
+def verify_token(token: str, token_type: str = "access") -> TokenData | None:
     """
     Verify and decode a JWT token.
     
@@ -134,23 +134,23 @@ def verify_token(token: str, token_type: str = "access") -> Optional[TokenData]:
     """
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        
+
         # Check token type
         if payload.get("type") != token_type:
             logger.warning(f"Invalid token type: expected {token_type}, got {payload.get('type')}")
             return None
-        
+
         # Extract data
         username: str = payload.get("sub")
         user_id: int = payload.get("user_id")
         scopes: list[str] = payload.get("scopes", [])
-        
+
         if username is None:
             logger.warning("Token missing username")
             return None
-            
+
         return TokenData(username=username, user_id=user_id, scopes=scopes)
-        
+
     except JWTError as e:
         logger.warning(f"JWT verification failed: {e}")
         return None
@@ -170,16 +170,16 @@ def create_token_pair(user_id: int, username: str, scopes: list[str] = None) -> 
     """
     if scopes is None:
         scopes = []
-    
+
     token_data = {
         "sub": username,
         "user_id": user_id,
         "scopes": scopes,
     }
-    
+
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
-    
+
     return Token(
         access_token=access_token,
         refresh_token=refresh_token,

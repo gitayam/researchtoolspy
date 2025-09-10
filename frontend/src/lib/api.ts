@@ -17,9 +17,9 @@ const getApiBaseUrl = () => {
     return process.env.NEXT_PUBLIC_API_URL
   }
   
-  // For local development, always use localhost
-  // (Tunnel URL logic removed to prevent confusion)
-  return 'http://localhost:8090/api/v1'
+  // Use relative URL to leverage Next.js API proxy route
+  // This works in both development and production
+  return '/api/v1'
 }
 
 const API_BASE_URL = getApiBaseUrl()

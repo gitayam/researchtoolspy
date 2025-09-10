@@ -3,7 +3,6 @@ Behavioral Analysis Framework API endpoints.
 Pattern recognition and motivation analysis for intelligence assessment.
 """
 
-from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -25,10 +24,10 @@ class BehaviorPattern(BaseModel):
     id: str
     pattern_type: str  # routine, anomaly, trend, cyclical
     description: str
-    frequency: Optional[str] = None  # daily, weekly, sporadic, etc.
+    frequency: str | None = None  # daily, weekly, sporadic, etc.
     confidence: float  # 0-1 scale
-    evidence: List[str]
-    timeframe: Optional[str] = None
+    evidence: list[str]
+    timeframe: str | None = None
     significance: str  # high, medium, low
 
 
@@ -38,7 +37,7 @@ class MotivationFactor(BaseModel):
     factor_type: str  # intrinsic, extrinsic, ideological, personal, financial
     description: str
     strength: float  # 0-1 scale
-    evidence: List[str]
+    evidence: list[str]
     reliability: float  # 0-1 scale
 
 
@@ -46,8 +45,8 @@ class BehaviorProfile(BaseModel):
     """Complete behavioral profile."""
     subject_id: str
     subject_type: str  # individual, group, organization, nation-state
-    patterns: List[BehaviorPattern]
-    motivations: List[MotivationFactor]
+    patterns: list[BehaviorPattern]
+    motivations: list[MotivationFactor]
     risk_level: str  # high, medium, low
     predictability: float  # 0-1 scale
     assessment: str
@@ -59,18 +58,18 @@ class BehavioralCreateRequest(BaseModel):
     subject: str  # Who/what is being analyzed
     subject_type: str  # individual, group, organization, nation-state
     context: str
-    observation_period: Optional[str] = None
-    data_sources: Optional[List[str]] = []
-    known_behaviors: Optional[List[str]] = []
+    observation_period: str | None = None
+    data_sources: list[str] | None = []
+    known_behaviors: list[str] | None = []
     request_ai_analysis: bool = True
 
 
 class BehavioralUpdateRequest(BaseModel):
     """Behavioral analysis update request."""
-    title: Optional[str] = None
-    patterns: Optional[List[BehaviorPattern]] = None
-    motivations: Optional[List[MotivationFactor]] = None
-    new_observations: Optional[List[str]] = None
+    title: str | None = None
+    patterns: list[BehaviorPattern] | None = None
+    motivations: list[MotivationFactor] | None = None
+    new_observations: list[str] | None = None
 
 
 class BehavioralAnalysisResponse(BaseModel):
@@ -81,10 +80,10 @@ class BehavioralAnalysisResponse(BaseModel):
     subject_type: str
     context: str
     profile: BehaviorProfile
-    patterns: List[BehaviorPattern]
-    motivations: List[MotivationFactor]
-    predictions: List[Dict]
-    ai_analysis: Optional[Dict] = None
+    patterns: list[BehaviorPattern]
+    motivations: list[MotivationFactor]
+    predictions: list[dict]
+    ai_analysis: dict | None = None
     status: str
     version: int
 
@@ -107,7 +106,7 @@ async def create_behavioral_analysis(
         BehavioralAnalysisResponse: Created behavioral analysis
     """
     logger.info(f"Creating behavioral analysis: {request.title} for user {current_user.username}")
-    
+
     # Prepare behavioral data
     behavioral_data = {
         "subject": request.subject,
@@ -120,13 +119,13 @@ async def create_behavioral_analysis(
         "motivations": [],
         "predictions": []
     }
-    
+
     # Get AI analysis if requested
     ai_analysis = None
     patterns = []
     motivations = []
     predictions = []
-    
+
     if request.request_ai_analysis:
         try:
             ai_result = await framework_service.analyze_with_ai(
@@ -135,28 +134,28 @@ async def create_behavioral_analysis(
                 "analyze"
             )
             ai_analysis = ai_result.get("analysis")
-            
+
             # Extract patterns from AI analysis
             if ai_analysis and "patterns" in ai_analysis:
                 for idx, pattern in enumerate(ai_analysis["patterns"]):
                     if isinstance(pattern, dict):
                         pattern["id"] = f"pat_ai_{idx}"
                         patterns.append(pattern)
-                        
+
             # Extract motivations
             if ai_analysis and "motivations" in ai_analysis:
                 for idx, motivation in enumerate(ai_analysis["motivations"]):
                     if isinstance(motivation, dict):
                         motivation["id"] = f"mot_ai_{idx}"
                         motivations.append(motivation)
-                        
+
             # Extract predictions
             if ai_analysis and "predictions" in ai_analysis:
                 predictions = ai_analysis["predictions"]
-                
+
         except Exception as e:
             logger.warning(f"Failed to get AI analysis: {e}")
-    
+
     # Default patterns if none from AI
     if not patterns:
         patterns = [
@@ -170,7 +169,7 @@ async def create_behavioral_analysis(
                 "significance": "medium"
             }
         ]
-    
+
     # Default motivations if none from AI
     if not motivations:
         motivations = [
@@ -183,11 +182,11 @@ async def create_behavioral_analysis(
                 "reliability": 0.3
             }
         ]
-    
+
     behavioral_data["patterns"] = patterns
     behavioral_data["motivations"] = motivations
     behavioral_data["predictions"] = predictions
-    
+
     # Create behavior profile
     profile = BehaviorProfile(
         subject_id=request.subject,
@@ -198,7 +197,7 @@ async def create_behavioral_analysis(
         predictability=0.5,  # Default, would be calculated
         assessment="Initial behavioral profile created. Further observation recommended."
     )
-    
+
     # Create framework session
     framework_data = FrameworkData(
         framework_type=FrameworkType.BEHAVIORAL_ANALYSIS,
@@ -207,9 +206,9 @@ async def create_behavioral_analysis(
         data=behavioral_data,
         tags=["behavioral-analysis", "pattern-recognition", "motivation-assessment"]
     )
-    
+
     session = await framework_service.create_session(db, current_user, framework_data)
-    
+
     return BehavioralAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -244,142 +243,66 @@ async def get_behavioral_analysis(
         BehavioralAnalysisResponse: Behavioral analysis data
     """
     logger.info(f"Getting behavioral analysis {session_id}")
+
+    # Get real data from database
+    session = await framework_service.get_session(db, current_user, session_id, FrameworkType.BEHAVIORAL)
     
-    # Mock data for demonstration
-    patterns = [
-        BehaviorPattern(
-            id="pat1",
-            pattern_type="routine",
-            description="Regular communication patterns with known associates",
-            frequency="daily",
-            confidence=0.85,
-            evidence=[
-                "Phone records show consistent call times",
-                "Email patterns follow predictable schedule",
-                "Meeting locations remain constant"
-            ],
-            timeframe="Last 30 days",
-            significance="high"
-        ),
-        BehaviorPattern(
-            id="pat2",
-            pattern_type="anomaly",
-            description="Recent deviation from established patterns",
-            frequency="sporadic",
-            confidence=0.7,
-            evidence=[
-                "Unusual travel to new location",
-                "Change in communication methods",
-                "New associates identified"
-            ],
-            timeframe="Last 7 days",
-            significance="high"
-        ),
-        BehaviorPattern(
-            id="pat3",
-            pattern_type="trend",
-            description="Increasing operational security measures",
-            frequency="progressive",
-            confidence=0.75,
-            evidence=[
-                "Encrypted communications increasing",
-                "Counter-surveillance behavior observed",
-                "Use of cutouts and intermediaries"
-            ],
-            timeframe="Last 14 days",
-            significance="medium"
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Behavioral analysis session not found"
         )
-    ]
+
+    # Extract data from session
+    session_data = session.data or {}
     
-    motivations = [
-        MotivationFactor(
-            id="mot1",
-            factor_type="ideological",
-            description="Strong ideological commitment to cause",
-            strength=0.9,
-            evidence=[
-                "Public statements align with ideology",
-                "Long history of involvement",
-                "Personal sacrifices made for cause"
-            ],
-            reliability=0.8
-        ),
-        MotivationFactor(
-            id="mot2",
-            factor_type="financial",
-            description="Secondary financial motivations identified",
-            strength=0.6,
-            evidence=[
-                "Recent financial difficulties",
-                "Payments from affiliated organizations",
-                "Lifestyle exceeds known income"
-            ],
-            reliability=0.7
-        ),
-        MotivationFactor(
-            id="mot3",
-            factor_type="personal",
-            description="Personal grievances driving behavior",
-            strength=0.7,
-            evidence=[
-                "Family member affected by past events",
-                "Documented statements of revenge",
-                "Pattern of retaliatory actions"
-            ],
-            reliability=0.75
-        )
-    ]
+    # Parse patterns
+    patterns_data = session_data.get("patterns", [])
+    patterns = [BehaviorPattern(**pat) for pat in patterns_data if isinstance(pat, dict)]
     
-    profile = BehaviorProfile(
-        subject_id="SUBJECT-001",
-        subject_type="individual",
+    # Parse motivations
+    motivations_data = session_data.get("motivations", [])
+    motivations = [MotivationFactor(**mot) for mot in motivations_data if isinstance(mot, dict)]
+    
+    # Parse profile data
+    profile_data = session_data.get("profile", {})
+    profile = BehaviorProfile(**profile_data) if profile_data else BehaviorProfile(
+        subject_id=session_data.get("subject", "Unknown"),
+        subject_type=session_data.get("subject_type", "individual"),
         patterns=patterns,
         motivations=motivations,
-        risk_level="high",
-        predictability=0.65,
-        assessment="Subject exhibits consistent patterns with recent anomalies suggesting operational changes. High ideological motivation with complex personal factors."
+        risk_level="pending",
+        predictability=0.5,
+        assessment="Analysis in progress"
     )
     
-    predictions = [
-        {
-            "prediction": "Likely to maintain current operational patterns",
-            "probability": 0.7,
-            "timeframe": "Next 30 days",
-            "confidence": "moderate"
-        },
-        {
-            "prediction": "May attempt to recruit new associates",
-            "probability": 0.6,
-            "timeframe": "Next 60 days",
-            "confidence": "moderate"
-        },
-        {
-            "prediction": "Possible escalation in activities",
-            "probability": 0.4,
-            "timeframe": "Next 90 days",
-            "confidence": "low"
-        }
-    ]
+    # Get predictions
+    predictions = session_data.get("predictions", [])
     
+    # Get basic info
+    subject = session_data.get("subject", "Subject")
+    subject_type = session_data.get("subject_type", "individual")
+    context = session_data.get("context", "Behavioral analysis")
+
     return BehavioralAnalysisResponse(
-        session_id=session_id,
-        title="Subject Behavioral Analysis",
-        subject="SUBJECT-001",
-        subject_type="individual",
-        context="Ongoing intelligence assessment",
+        session_id=session.id,
+        title=session.title,
+        subject=subject,
+        subject_type=subject_type,
+        context=context,
         profile=profile,
         patterns=patterns,
         motivations=motivations,
         predictions=predictions,
-        status="in_progress",
-        version=1
+        status=session.status.value,
+        version=session.version
     )
 
 
 @router.post("/{session_id}/patterns")
 async def analyze_patterns(
     session_id: int,
-    observations: List[str],
+    observations: list[str],
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> dict:
@@ -396,19 +319,19 @@ async def analyze_patterns(
         dict: Pattern analysis results
     """
     logger.info(f"Analyzing patterns for session {session_id}")
-    
+
     # Analyze patterns using AI
     analysis_data = {
         "observations": observations,
         "analysis_type": "pattern_recognition"
     }
-    
+
     ai_result = await framework_service.analyze_with_ai(
         FrameworkType.BEHAVIORAL_ANALYSIS,
         analysis_data,
         "analyze"
     )
-    
+
     return {
         "session_id": session_id,
         "observations_analyzed": len(observations),
@@ -421,8 +344,8 @@ async def analyze_patterns(
 @router.post("/{session_id}/motivations")
 async def assess_motivations(
     session_id: int,
-    evidence: List[str],
-    context: Optional[str] = None,
+    evidence: list[str],
+    context: str | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> dict:
@@ -440,20 +363,20 @@ async def assess_motivations(
         dict: Motivation assessment
     """
     logger.info(f"Assessing motivations for session {session_id}")
-    
+
     # Assess motivations using AI
     analysis_data = {
         "evidence": evidence,
         "context": context or "",
         "analysis_type": "motivation_assessment"
     }
-    
+
     ai_result = await framework_service.analyze_with_ai(
         FrameworkType.BEHAVIORAL_ANALYSIS,
         analysis_data,
         "analyze"
     )
-    
+
     return {
         "session_id": session_id,
         "evidence_analyzed": len(evidence),
@@ -467,7 +390,7 @@ async def assess_motivations(
 async def predict_behavior(
     session_id: int,
     timeframe: str = "30_days",
-    scenario: Optional[str] = None,
+    scenario: str | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> dict:
@@ -485,7 +408,7 @@ async def predict_behavior(
         dict: Behavioral predictions
     """
     logger.info(f"Generating predictions for session {session_id}")
-    
+
     # Mock predictions (would use actual analysis data)
     predictions = [
         {
@@ -507,7 +430,7 @@ async def predict_behavior(
             "confidence": "low"
         }
     ]
-    
+
     return {
         "session_id": session_id,
         "timeframe": timeframe,
@@ -536,7 +459,7 @@ async def get_behavior_profiles(
         dict: Behavioral profiles
     """
     logger.info(f"Getting behavioral profiles for session {session_id}")
-    
+
     profiles = {
         "current_profile": {
             "type": "adaptive_operator",
@@ -568,7 +491,7 @@ async def get_behavior_profiles(
             "timeline": "18 months progression"
         }
     }
-    
+
     return {
         "session_id": session_id,
         "profiles": profiles,
@@ -597,13 +520,13 @@ async def export_behavioral_analysis(
         dict: Export information
     """
     logger.info(f"Exporting behavioral analysis {session_id} as {format}")
-    
+
     if format not in ["pdf", "docx", "json"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid export format. Supported: pdf, docx, json"
         )
-    
+
     return {
         "session_id": session_id,
         "format": format,
@@ -650,5 +573,5 @@ async def list_behavioral_templates(
             "typical_patterns": ["Diplomatic", "Military", "Economic", "Information operations"]
         }
     ]
-    
+
     return templates

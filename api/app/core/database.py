@@ -3,7 +3,7 @@ Database configuration and session management.
 Uses SQLAlchemy 2.0 with async support.
 """
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import (
@@ -11,13 +11,13 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-# Import models to ensure they're registered with metadata
-from app.models.base import Base
-from app.models import user, framework, research_tool, auth_log  # Import all model modules
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.core.logging import get_logger
+
+# Import models to ensure they're registered with metadata
+from app.models.base import Base
 
 logger = get_logger(__name__)
 
@@ -91,12 +91,12 @@ async def init_db() -> None:
             # Test connection
             await conn.execute(text("SELECT 1"))
             logger.info("Database connection established successfully")
-            
+
             # Create tables if they don't exist (for development)
             if settings.ENVIRONMENT == "development":
                 await conn.run_sync(Base.metadata.create_all)
                 logger.info("Database tables created/verified")
-                
+
     except Exception as e:
         logger.error(f"Failed to connect to database: {e}")
         raise
@@ -115,11 +115,11 @@ class DatabaseManager:
     """
     Database manager for handling database operations.
     """
-    
+
     def __init__(self) -> None:
         self.engine = engine
         self.session_factory = AsyncSessionLocal
-    
+
     async def health_check(self) -> bool:
         """
         Check database health.
@@ -134,7 +134,7 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
             return False
-    
+
     async def get_session(self) -> AsyncSession:
         """
         Get a new database session.

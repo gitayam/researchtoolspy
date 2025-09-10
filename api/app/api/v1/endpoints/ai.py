@@ -2,14 +2,14 @@
 AI endpoints for GPT-5-mini integration.
 """
 
-from typing import Dict, List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.endpoints.auth import get_current_user
 from app.core.database import get_db
 from app.core.logging import get_logger
-from app.api.v1.endpoints.auth import get_current_user
 from app.models.user import User
 from app.services.ai_service import ai_service
 
@@ -20,7 +20,7 @@ router = APIRouter()
 class FiveWAnalysisRequest(BaseModel):
     """Request for 5W analysis."""
     content: str
-    
+
 class FiveWAnalysisResponse(BaseModel):
     """5W analysis result."""
     who: str
@@ -33,18 +33,18 @@ class FiveWAnalysisResponse(BaseModel):
 class StarburstingQuestionsRequest(BaseModel):
     """Request for Starbursting questions."""
     central_idea: str
-    context: Optional[str] = None
-    
+    context: str | None = None
+
 class StarburstingQuestionsResponse(BaseModel):
     """Starbursting questions result."""
-    questions: List[str]
+    questions: list[str]
 
 
 class SummarizeRequest(BaseModel):
     """Request for content summarization."""
     content: str
-    max_length: Optional[int] = 200
-    
+    max_length: int | None = 200
+
 class SummarizeResponse(BaseModel):
     """Summarization result."""
     summary: str
@@ -54,13 +54,13 @@ class DIMEAnalysisRequest(BaseModel):
     """Request for DIME analysis."""
     scenario: str
     objective: str
-    
+
 class DIMEAnalysisResponse(BaseModel):
     """DIME analysis result."""
-    diplomatic: List[str]
-    information: List[str]
-    military: List[str]
-    economic: List[str]
+    diplomatic: list[str]
+    information: list[str]
+    military: list[str]
+    economic: list[str]
 
 
 @router.post("/5w-analysis", response_model=FiveWAnalysisResponse)
@@ -73,7 +73,7 @@ async def analyze_5w(
     Extract 5W information from content using AI.
     """
     logger.info(f"5W analysis requested by user {current_user.username}")
-    
+
     try:
         analysis = await ai_service.generate_5w_analysis(request.content)
         return FiveWAnalysisResponse(**analysis)
@@ -95,7 +95,7 @@ async def generate_starbursting_questions(
     Generate expansion questions for Starbursting framework.
     """
     logger.info(f"Starbursting questions requested by user {current_user.username}")
-    
+
     try:
         questions = await ai_service.generate_starbursting_questions(
             request.central_idea,
@@ -120,7 +120,7 @@ async def summarize_content(
     Summarize content using AI.
     """
     logger.info(f"Summarization requested by user {current_user.username}")
-    
+
     try:
         summary = await ai_service.summarize_content(
             request.content,
@@ -145,7 +145,7 @@ async def generate_dime_suggestions(
     Generate DIME framework suggestions using AI.
     """
     logger.info(f"DIME suggestions requested by user {current_user.username}")
-    
+
     try:
         suggestions = await ai_service.generate_dime_suggestions(
             request.scenario,
@@ -163,12 +163,12 @@ async def generate_dime_suggestions(
 @router.get("/status")
 async def get_ai_status(
     current_user: User = Depends(get_current_user)
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Check AI service status and availability.
     """
     is_available = ai_service.async_client is not None
-    
+
     return {
         "available": "true" if is_available else "false",
         "model": ai_service.model if is_available else "not configured",

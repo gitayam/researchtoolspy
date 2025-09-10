@@ -4,7 +4,6 @@ Framework analysis endpoints.
 
 import json
 from datetime import datetime
-from typing import Sequence, Optional, Dict, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -24,16 +23,16 @@ router = APIRouter()
 class FrameworkSessionCreate(BaseModel):
     """Framework session creation request."""
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     framework_type: FrameworkType
-    data: Optional[dict] = None
+    data: dict | None = None
 
 
 class FrameworkSessionResponse(BaseModel):
     """Framework session response."""
     id: int
     title: str
-    description: Optional[str]
+    description: str | None
     framework_type: FrameworkType
     status: FrameworkStatus
     data: dict
@@ -41,23 +40,23 @@ class FrameworkSessionResponse(BaseModel):
     created_at: str
     updated_at: str
     user_id: int
-    
+
     class Config:
         from_attributes = True
 
 
 class FrameworkSessionUpdate(BaseModel):
     """Framework session update request."""
-    title: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[FrameworkStatus] = None
-    data: Optional[dict] = None
+    title: str | None = None
+    description: str | None = None
+    status: FrameworkStatus | None = None
+    data: dict | None = None
 
 
 @router.get("/", response_model=list[FrameworkSessionResponse])
 async def list_framework_sessions(
-    framework_type: Optional[FrameworkType] = None,
-    status: Optional[FrameworkStatus] = None,
+    framework_type: FrameworkType | None = None,
+    status: FrameworkStatus | None = None,
     limit: int = 50,
     offset: int = 0,
     current_user: User = Depends(get_current_user),
@@ -78,26 +77,26 @@ async def list_framework_sessions(
         list[FrameworkSessionResponse]: List of framework sessions
     """
     logger.info(f"Listing framework sessions for user {current_user.username}")
-    
+
     # Build query
     query = select(FrameworkSession).where(FrameworkSession.user_id == current_user.id)
-    
+
     # Apply filters
     if framework_type:
         query = query.where(FrameworkSession.framework_type == framework_type)
     if status:
         query = query.where(FrameworkSession.status == status)
-    
+
     # Order by updated_at (newest first)
     query = query.order_by(FrameworkSession.updated_at.desc())
-    
+
     # Apply pagination
     query = query.offset(offset).limit(limit)
-    
+
     # Execute query
     result = await db.execute(query)
     sessions = result.scalars().all()
-    
+
     # Convert to response format
     responses = []
     for session in sessions:
@@ -106,7 +105,7 @@ async def list_framework_sessions(
             data = json.loads(session.data) if session.data else {}
         except (json.JSONDecodeError, TypeError):
             data = {}
-            
+
         responses.append(FrameworkSessionResponse(
             id=session.id,
             title=session.title,
@@ -119,7 +118,7 @@ async def list_framework_sessions(
             updated_at=session.updated_at.isoformat() + "Z",
             user_id=session.user_id,
         ))
-    
+
     logger.info(f"Found {len(responses)} framework sessions for user {current_user.username}")
     return responses
 
@@ -142,12 +141,12 @@ async def create_framework_session(
         FrameworkSessionResponse: Created framework session
     """
     logger.info(f"Creating framework session: {session_data.title} ({session_data.framework_type})")
-    
+
     # Check user permissions
     if not hasattr(current_user, 'can_create_frameworks') or not current_user.can_create_frameworks:
         # For now, allow all authenticated users to create frameworks
         pass
-    
+
     # Create database session
     db_session = FrameworkSession(
         title=session_data.title,
@@ -158,14 +157,14 @@ async def create_framework_session(
         data=json.dumps(session_data.data or {}),
         version=1,
     )
-    
+
     # Save to database
     db.add(db_session)
     await db.commit()
     await db.refresh(db_session)
-    
+
     logger.info(f"Created framework session {db_session.id} in database")
-    
+
     # Convert to response format
     return FrameworkSessionResponse(
         id=db_session.id,
@@ -202,7 +201,7 @@ async def get_framework_session(
         HTTPException: If session not found
     """
     logger.info(f"Getting framework session {session_id}")
-    
+
     # Query database for session
     result = await db.execute(
         select(FrameworkSession).where(
@@ -211,22 +210,22 @@ async def get_framework_session(
         )
     )
     session = result.scalar_one_or_none()
-    
+
     if not session:
         logger.warning(f"Framework session {session_id} not found for user {current_user.username}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Framework session not found"
         )
-    
+
     logger.info(f"Found framework session {session_id}")
-    
+
     # Convert to response format
     try:
         data = json.loads(session.data) if session.data else {}
     except (json.JSONDecodeError, TypeError):
         data = {}
-        
+
     return FrameworkSessionResponse(
         id=session.id,
         title=session.title,
@@ -264,7 +263,7 @@ async def update_framework_session(
         HTTPException: If session not found
     """
     logger.info(f"Updating framework session {session_id}")
-    
+
     # Query database for session
     result = await db.execute(
         select(FrameworkSession).where(
@@ -273,14 +272,14 @@ async def update_framework_session(
         )
     )
     session = result.scalar_one_or_none()
-    
+
     if not session:
         logger.warning(f"Framework session {session_id} not found for user {current_user.username}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Framework session not found"
         )
-    
+
     # Update fields if provided
     if update_data.title is not None:
         session.title = update_data.title
@@ -290,23 +289,23 @@ async def update_framework_session(
         session.status = update_data.status
     if update_data.data is not None:
         session.data = json.dumps(update_data.data)
-    
+
     # Increment version and update timestamp
     session.version += 1
     session.updated_at = datetime.utcnow()
-    
+
     # Save to database
     await db.commit()
     await db.refresh(session)
-    
+
     logger.info(f"Updated framework session {session_id} in database")
-    
+
     # Convert to response format
     try:
         data = json.loads(session.data) if session.data else {}
     except (json.JSONDecodeError, TypeError):
         data = {}
-        
+
     return FrameworkSessionResponse(
         id=session.id,
         title=session.title,
@@ -342,7 +341,7 @@ async def delete_framework_session(
         HTTPException: If session not found
     """
     logger.info(f"Deleting framework session {session_id}")
-    
+
     # Query database for session
     result = await db.execute(
         select(FrameworkSession).where(
@@ -351,18 +350,18 @@ async def delete_framework_session(
         )
     )
     session = result.scalar_one_or_none()
-    
+
     if not session:
         logger.warning(f"Framework session {session_id} not found for user {current_user.username}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Framework session not found"
         )
-    
+
     # Delete from database
     await db.delete(session)
     await db.commit()
-    
+
     logger.info(f"Deleted framework session {session_id} from database")
-    
+
     return {"message": "Framework session deleted successfully"}

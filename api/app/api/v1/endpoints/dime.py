@@ -3,7 +3,6 @@ DIME Framework API endpoints.
 Diplomatic, Information, Military, Economic analysis for strategic assessment.
 """
 
-from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -25,52 +24,52 @@ class DIMEFactor(BaseModel):
     id: str
     name: str
     description: str
-    current_state: Optional[str] = None
-    strength: Optional[float] = 0.5  # 0-1 scale
-    trend: Optional[str] = "stable"  # improving, stable, declining
-    importance: Optional[float] = 0.5  # 0-1 scale
-    indicators: Optional[List[str]] = []
-    risks: Optional[List[str]] = []
-    opportunities: Optional[List[str]] = []
+    current_state: str | None = None
+    strength: float | None = 0.5  # 0-1 scale
+    trend: str | None = "stable"  # improving, stable, declining
+    importance: float | None = 0.5  # 0-1 scale
+    indicators: list[str] | None = []
+    risks: list[str] | None = []
+    opportunities: list[str] | None = []
 
 
 class DIMEComponent(BaseModel):
     """Base model for DIME components (Diplomatic, Information, Military, Economic)."""
     description: str
-    overall_assessment: Optional[str] = None
-    strength_score: Optional[float] = 0.5  # 0-1 scale
-    trend: Optional[str] = "stable"  # improving, stable, declining
-    factors: List[DIMEFactor]
-    key_players: Optional[List[str]] = []
-    strategic_implications: Optional[str] = None
-    recommendations: Optional[List[str]] = []
+    overall_assessment: str | None = None
+    strength_score: float | None = 0.5  # 0-1 scale
+    trend: str | None = "stable"  # improving, stable, declining
+    factors: list[DIMEFactor]
+    key_players: list[str] | None = []
+    strategic_implications: str | None = None
+    recommendations: list[str] | None = []
 
 
 class DIMECreateRequest(BaseModel):
     """DIME analysis creation request."""
     title: str
     scenario: str
-    region: Optional[str] = None
-    timeframe: Optional[str] = None
-    strategic_objective: Optional[str] = None
-    diplomatic: Optional[DIMEComponent] = None
-    information: Optional[DIMEComponent] = None
-    military: Optional[DIMEComponent] = None
-    economic: Optional[DIMEComponent] = None
+    region: str | None = None
+    timeframe: str | None = None
+    strategic_objective: str | None = None
+    diplomatic: DIMEComponent | None = None
+    information: DIMEComponent | None = None
+    military: DIMEComponent | None = None
+    economic: DIMEComponent | None = None
     request_ai_analysis: bool = True
 
 
 class DIMEUpdateRequest(BaseModel):
     """DIME analysis update request."""
-    title: Optional[str] = None
-    scenario: Optional[str] = None
-    region: Optional[str] = None
-    timeframe: Optional[str] = None
-    strategic_objective: Optional[str] = None
-    diplomatic: Optional[DIMEComponent] = None
-    information: Optional[DIMEComponent] = None
-    military: Optional[DIMEComponent] = None
-    economic: Optional[DIMEComponent] = None
+    title: str | None = None
+    scenario: str | None = None
+    region: str | None = None
+    timeframe: str | None = None
+    strategic_objective: str | None = None
+    diplomatic: DIMEComponent | None = None
+    information: DIMEComponent | None = None
+    military: DIMEComponent | None = None
+    economic: DIMEComponent | None = None
 
 
 class DIMEAnalysisResponse(BaseModel):
@@ -78,25 +77,25 @@ class DIMEAnalysisResponse(BaseModel):
     session_id: int
     title: str
     scenario: str
-    region: Optional[str]
-    timeframe: Optional[str]
-    strategic_objective: Optional[str]
+    region: str | None
+    timeframe: str | None
+    strategic_objective: str | None
     diplomatic: DIMEComponent
     information: DIMEComponent
     military: DIMEComponent
     economic: DIMEComponent
-    integration_analysis: Optional[Dict] = None
-    strategic_assessment: Optional[Dict] = None
-    ai_analysis: Optional[Dict] = None
+    integration_analysis: dict | None = None
+    strategic_assessment: dict | None = None
+    ai_analysis: dict | None = None
     status: str
     version: int
 
 
 class DIMEIntegrationRequest(BaseModel):
     """Request for DIME integration analysis."""
-    focus_areas: Optional[List[str]] = None  # diplomatic, information, military, economic
-    integration_scenarios: Optional[List[str]] = None
-    time_horizon: Optional[str] = "short-term"  # short-term, medium-term, long-term
+    focus_areas: list[str] | None = None  # diplomatic, information, military, economic
+    integration_scenarios: list[str] | None = None
+    time_horizon: str | None = "short-term"  # short-term, medium-term, long-term
 
 
 @router.post("/create", response_model=DIMEAnalysisResponse)
@@ -117,7 +116,7 @@ async def create_dime_analysis(
         DIMEAnalysisResponse: Created DIME analysis
     """
     logger.info(f"Creating DIME analysis: {request.title} for user {current_user.username}")
-    
+
     # Prepare DIME data
     dime_data = {
         "scenario": request.scenario,
@@ -129,7 +128,7 @@ async def create_dime_analysis(
         "military": request.military.dict() if request.military else _get_default_component("military"),
         "economic": request.economic.dict() if request.economic else _get_default_component("economic"),
     }
-    
+
     # Get AI analysis if requested
     ai_analysis = None
     if request.request_ai_analysis:
@@ -140,7 +139,7 @@ async def create_dime_analysis(
                 "suggest"
             )
             ai_analysis = ai_result.get("suggestions")
-            
+
             # Merge AI suggestions with initial data
             if ai_analysis:
                 for component in ["diplomatic", "information", "military", "economic"]:
@@ -148,7 +147,7 @@ async def create_dime_analysis(
                         # Merge AI suggestions into component
                         component_data = dime_data[component]
                         ai_component = ai_analysis[component]
-                        
+
                         # Update component fields
                         for key, value in ai_component.items():
                             if key == "factors" and isinstance(value, list):
@@ -171,10 +170,10 @@ async def create_dime_analysis(
                                 component_data[key].extend(value)
                             elif value and key not in ["factors"]:
                                 component_data[key] = value
-                        
+
         except Exception as e:
             logger.warning(f"Failed to get AI analysis: {e}")
-    
+
     # Create framework session
     framework_data = FrameworkData(
         framework_type=FrameworkType.DIME,
@@ -183,13 +182,13 @@ async def create_dime_analysis(
         data=dime_data,
         tags=["dime", "strategic-analysis", "diplomatic", "information", "military", "economic"]
     )
-    
+
     session = await framework_service.create_session(db, current_user, framework_data)
-    
+
     # Generate integration and strategic assessments
     integration_analysis = _generate_integration_analysis(dime_data)
     strategic_assessment = _generate_strategic_assessment(dime_data)
-    
+
     return DIMEAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -227,7 +226,7 @@ async def get_dime_analysis(
         DIMEAnalysisResponse: DIME analysis data
     """
     logger.info(f"Getting DIME analysis {session_id}")
-    
+
     # TODO: Implement database retrieval
     # For now, return comprehensive mock data
     diplomatic = DIMEComponent(
@@ -265,7 +264,7 @@ async def get_dime_analysis(
         strategic_implications="Diplomatic strength provides foundation for broader strategic objectives but requires active management",
         recommendations=["Strengthen alliance consultation", "Invest in multilateral leadership", "Address partner concerns"]
     )
-    
+
     information = DIMEComponent(
         description="Information environment and communication capabilities",
         overall_assessment="Strong information capabilities but facing significant disinformation challenges",
@@ -301,7 +300,7 @@ async def get_dime_analysis(
         strategic_implications="Information domain increasingly contested; requires comprehensive strategy",
         recommendations=["Develop information strategy", "Invest in counter-disinformation", "Promote media literacy"]
     )
-    
+
     military = DIMEComponent(
         description="Military capabilities and security posture",
         overall_assessment="Strong conventional capabilities with growing focus on hybrid and cyber threats",
@@ -337,7 +336,7 @@ async def get_dime_analysis(
         strategic_implications="Military strength provides deterrent effect but must adapt to hybrid threats",
         recommendations=["Modernize cyber capabilities", "Enhance hybrid threat response", "Maintain conventional deterrence"]
     )
-    
+
     economic = DIMEComponent(
         description="Economic strength and leverage",
         overall_assessment="Robust economy with strong fundamentals but facing structural challenges",
@@ -373,21 +372,21 @@ async def get_dime_analysis(
         strategic_implications="Economic strength enables strategic options but requires careful management of dependencies",
         recommendations=["Diversify supply chains", "Strengthen economic partnerships", "Invest in strategic sectors"]
     )
-    
+
     integration_analysis = _generate_integration_analysis({
         "diplomatic": diplomatic.dict(),
         "information": information.dict(),
         "military": military.dict(),
         "economic": economic.dict()
     })
-    
+
     strategic_assessment = _generate_strategic_assessment({
         "diplomatic": diplomatic.dict(),
         "information": information.dict(),
         "military": military.dict(),
         "economic": economic.dict()
     })
-    
+
     return DIMEAnalysisResponse(
         session_id=session_id,
         title="Regional Strategic Assessment",
@@ -426,39 +425,39 @@ async def update_dime_analysis(
         DIMEAnalysisResponse: Updated DIME analysis
     """
     logger.info(f"Updating DIME analysis {session_id}")
-    
+
     # Build update data
     updates = {}
     dime_data = {}
-    
+
     if request.title:
         updates["title"] = request.title
-    
+
     for field in ["scenario", "region", "timeframe", "strategic_objective"]:
         value = getattr(request, field)
         if value is not None:
             dime_data[field] = value
-    
+
     for component in ["diplomatic", "information", "military", "economic"]:
         value = getattr(request, component)
         if value is not None:
             dime_data[component] = value.dict()
-    
+
     if dime_data:
         updates["data"] = dime_data
-    
+
     # Update session
     session = await framework_service.update_session(
         db, session_id, current_user, updates
     )
-    
+
     # Parse data
     import json
     data = json.loads(session.data)
-    
+
     integration_analysis = _generate_integration_analysis(data)
     strategic_assessment = _generate_strategic_assessment(data)
-    
+
     return DIMEAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -499,18 +498,18 @@ async def update_dime_component(
         dict: Success message
     """
     valid_components = ["diplomatic", "information", "military", "economic"]
-    
+
     if component_name not in valid_components:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid component. Must be one of: {', '.join(valid_components)}"
         )
-    
+
     logger.info(f"Updating {component_name} component for DIME {session_id}")
-    
+
     # TODO: Implement actual database update
     # For now, return success response
-    
+
     return {
         "message": f"Successfully updated {component_name} component",
         "session_id": session_id,
@@ -539,7 +538,7 @@ async def perform_integration_analysis(
         dict: Integration analysis results
     """
     logger.info(f"Performing DIME integration analysis for {session_id}")
-    
+
     # TODO: Get actual session data from database
     # For now, use mock data
     dime_data = {
@@ -549,14 +548,14 @@ async def perform_integration_analysis(
         "military": {"strength_score": 0.85},
         "economic": {"strength_score": 0.75}
     }
-    
+
     # Perform AI integration analysis
     ai_result = await framework_service.analyze_with_ai(
         FrameworkType.DIME,
         {**dime_data, "integration_request": request.dict()},
         "integrate"
     )
-    
+
     # Generate comprehensive integration analysis
     integration_results = {
         "overall_strategic_posture": {
@@ -635,7 +634,7 @@ async def perform_integration_analysis(
             }
         ]
     }
-    
+
     return {
         "session_id": session_id,
         "analysis_parameters": request.dict(),
@@ -663,7 +662,7 @@ async def get_strategic_matrix(
         dict: Strategic matrix visualization data
     """
     logger.info(f"Getting strategic matrix for DIME {session_id}")
-    
+
     # TODO: Get actual data from database
     # For now, return mock matrix data
     matrix = {
@@ -731,7 +730,7 @@ async def get_strategic_matrix(
             }
         ]
     }
-    
+
     return {
         "session_id": session_id,
         "strategic_matrix": matrix
@@ -758,13 +757,13 @@ async def export_dime_analysis(
         dict: Export information
     """
     logger.info(f"Exporting DIME analysis {session_id} as {format}")
-    
+
     if format not in ["pdf", "docx", "json", "pptx"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid export format. Supported: pdf, docx, json, pptx"
         )
-    
+
     # TODO: Implement actual export functionality
     return {
         "session_id": session_id,
@@ -883,7 +882,7 @@ async def list_dime_templates(
             }
         }
     ]
-    
+
     return templates
 
 
@@ -906,19 +905,19 @@ def _generate_integration_analysis(dime_data: dict) -> dict:
     # Calculate overall strength scores
     components = ["diplomatic", "information", "military", "economic"]
     strength_scores = {}
-    
+
     for component in components:
         if component in dime_data and "strength_score" in dime_data[component]:
             strength_scores[component] = dime_data[component]["strength_score"]
         else:
             strength_scores[component] = 0.5
-    
+
     overall_strength = sum(strength_scores.values()) / len(strength_scores)
-    
+
     # Identify strongest and weakest components
     strongest = max(strength_scores, key=strength_scores.get)
     weakest = min(strength_scores, key=strength_scores.get)
-    
+
     return {
         "overall_strength": round(overall_strength, 2),
         "component_scores": strength_scores,

@@ -13,7 +13,7 @@ async def test_user_registration(client: AsyncClient, mock_user_data: dict):
         "/api/v1/auth/register",
         json=mock_user_data
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["username"] == mock_user_data["username"]
@@ -34,7 +34,7 @@ async def test_user_login_success(client: AsyncClient):
             "password": "test"
         }
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "user" in data
@@ -54,7 +54,7 @@ async def test_user_login_failure(client: AsyncClient):
             "password": "wrongpassword"
         }
     )
-    
+
     assert response.status_code == 401
     data = response.json()
     assert "detail" in data
@@ -71,7 +71,7 @@ async def test_admin_login(client: AsyncClient):
             "password": "admin"
         }
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["user"]["role"] == "admin"
@@ -89,16 +89,16 @@ async def test_refresh_token(client: AsyncClient):
             "password": "test"
         }
     )
-    
+
     tokens = login_response.json()["tokens"]
     refresh_token = tokens["refresh_token"]
-    
+
     # Use refresh token to get new tokens
     response = await client.post(
         "/api/v1/auth/refresh",
         json={"refresh_token": refresh_token}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
@@ -117,15 +117,15 @@ async def test_get_current_user(client: AsyncClient):
             "password": "test"
         }
     )
-    
+
     access_token = login_response.json()["tokens"]["access_token"]
-    
+
     # Get current user with token
     response = await client.get(
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {access_token}"}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["username"] == "test"

@@ -3,22 +3,21 @@ Analysis of Competing Hypotheses (ACH) API endpoints.
 Structured analytical technique for intelligence analysis.
 """
 
-from typing import Dict, List, Optional
 import io
-import json
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+
 try:
-    import xlsxwriter
     import docx
+    import xlsxwriter
     from pptx import Presentation as PPTXPresentation
     from pptx.util import Inches
     EXPORT_AVAILABLE = True
-except ImportError as e:
+except ImportError:
     # Logger not available yet during import
     EXPORT_AVAILABLE = False
 
@@ -27,8 +26,8 @@ from app.core.database import get_db
 from app.core.logging import get_logger
 from app.models.framework import FrameworkType
 from app.models.user import User
-from app.services.framework_service import FrameworkData, framework_service
 from app.services.ai_service import ai_service
+from app.services.framework_service import FrameworkData, framework_service
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -38,8 +37,8 @@ class Hypothesis(BaseModel):
     """Hypothesis model for ACH analysis."""
     id: str
     description: str
-    probability: Optional[float] = 0.5  # 0-1 scale
-    notes: Optional[str] = None
+    probability: float | None = 0.5  # 0-1 scale
+    notes: str | None = None
 
 
 class SATSEvaluation(BaseModel):
@@ -54,19 +53,19 @@ class SATSEvaluation(BaseModel):
     completeness: int = 3  # 1-5 scale
     overall_score: float = 0.0  # Calculated average
     evaluation_date: str
-    evaluator: Optional[str] = None
-    notes: Optional[str] = None
+    evaluator: str | None = None
+    notes: str | None = None
 
 
 class Evidence(BaseModel):
     """Evidence model for ACH analysis."""
     id: str
     description: str
-    credibility: Optional[float] = 0.5  # 0-1 scale (legacy)
-    relevance: Optional[float] = 0.5  # 0-1 scale (legacy)
-    source: Optional[str] = None
-    date: Optional[str] = None
-    sats_evaluation: Optional[SATSEvaluation] = None
+    credibility: float | None = 0.5  # 0-1 scale (legacy)
+    relevance: float | None = 0.5  # 0-1 scale (legacy)
+    source: str | None = None
+    date: str | None = None
+    sats_evaluation: SATSEvaluation | None = None
 
 
 class EvidenceAssessment(BaseModel):
@@ -74,8 +73,8 @@ class EvidenceAssessment(BaseModel):
     evidence_id: str
     hypothesis_id: str
     consistency: str  # "consistent", "inconsistent", "neutral", "not_applicable"
-    weight: Optional[float] = 0.5  # 0-1 scale for importance
-    notes: Optional[str] = None
+    weight: float | None = 0.5  # 0-1 scale for importance
+    notes: str | None = None
 
 
 class ACHCreateRequest(BaseModel):
@@ -83,19 +82,19 @@ class ACHCreateRequest(BaseModel):
     title: str
     scenario: str
     key_question: str
-    initial_hypotheses: Optional[List[Hypothesis]] = []
-    initial_evidence: Optional[List[Evidence]] = []
+    initial_hypotheses: list[Hypothesis] | None = []
+    initial_evidence: list[Evidence] | None = []
     request_ai_analysis: bool = True
 
 
 class ACHUpdateRequest(BaseModel):
     """ACH analysis update request."""
-    title: Optional[str] = None
-    scenario: Optional[str] = None
-    key_question: Optional[str] = None
-    hypotheses: Optional[List[Hypothesis]] = None
-    evidence: Optional[List[Evidence]] = None
-    assessments: Optional[List[EvidenceAssessment]] = None
+    title: str | None = None
+    scenario: str | None = None
+    key_question: str | None = None
+    hypotheses: list[Hypothesis] | None = None
+    evidence: list[Evidence] | None = None
+    assessments: list[EvidenceAssessment] | None = None
 
 
 class ACHAnalysisResponse(BaseModel):
@@ -104,11 +103,11 @@ class ACHAnalysisResponse(BaseModel):
     title: str
     scenario: str
     key_question: str
-    hypotheses: List[Hypothesis]
-    evidence: List[Evidence]
-    assessments: List[EvidenceAssessment]
-    matrix: Optional[Dict] = None
-    ai_analysis: Optional[Dict] = None
+    hypotheses: list[Hypothesis]
+    evidence: list[Evidence]
+    assessments: list[EvidenceAssessment]
+    matrix: dict | None = None
+    ai_analysis: dict | None = None
     status: str
     version: int
 
@@ -141,7 +140,7 @@ async def create_ach_analysis(
         ACHAnalysisResponse: Created ACH analysis
     """
     logger.info(f"Creating ACH analysis: {request.title} for user {current_user.username}")
-    
+
     # Prepare ACH data
     ach_data = {
         "scenario": request.scenario,
@@ -150,7 +149,7 @@ async def create_ach_analysis(
         "evidence": [e.dict() for e in request.initial_evidence] if request.initial_evidence else [],
         "assessments": [],
     }
-    
+
     # Get AI analysis if requested
     ai_analysis = None
     if request.request_ai_analysis and request.key_question:
@@ -161,7 +160,7 @@ async def create_ach_analysis(
                 "suggest"
             )
             ai_analysis = ai_result.get("suggestions")
-            
+
             # Add AI-suggested hypotheses and evidence
             if ai_analysis:
                 if "hypotheses" in ai_analysis and isinstance(ai_analysis["hypotheses"], list):
@@ -172,7 +171,7 @@ async def create_ach_analysis(
                             "probability": 0.5,
                             "notes": "AI-generated hypothesis"
                         })
-                
+
                 if "evidence" in ai_analysis and isinstance(ai_analysis["evidence"], list):
                     for idx, ev in enumerate(ai_analysis["evidence"]):
                         ach_data["evidence"].append({
@@ -182,10 +181,10 @@ async def create_ach_analysis(
                             "relevance": 0.5,
                             "source": "AI suggestion"
                         })
-                        
+
         except Exception as e:
             logger.warning(f"Failed to get AI analysis: {e}")
-    
+
     # Create initial assessment matrix
     for hypothesis in ach_data["hypotheses"]:
         for evidence in ach_data["evidence"]:
@@ -196,7 +195,7 @@ async def create_ach_analysis(
                 "weight": 0.5,
                 "notes": ""
             })
-    
+
     # Create framework session
     framework_data = FrameworkData(
         framework_type=FrameworkType.ACH,
@@ -205,12 +204,12 @@ async def create_ach_analysis(
         data=ach_data,
         tags=["ach", "hypothesis-testing", "structured-analysis"]
     )
-    
+
     session = await framework_service.create_session(db, current_user, framework_data)
-    
+
     # Generate matrix
     matrix = _generate_ach_matrix(ach_data["hypotheses"], ach_data["evidence"], ach_data["assessments"])
-    
+
     return ACHAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -244,81 +243,49 @@ async def get_ach_analysis(
         ACHAnalysisResponse: ACH analysis data
     """
     logger.info(f"Getting ACH analysis {session_id}")
+
+    # Get real data from database
+    session = await framework_service.get_session(db, current_user, session_id, FrameworkType.ACH)
     
-    # Mock data for demonstration
-    hypotheses = [
-        Hypothesis(
-            id="h1",
-            description="State-sponsored cyber attack",
-            probability=0.7,
-            notes="Multiple indicators point to APT group"
-        ),
-        Hypothesis(
-            id="h2",
-            description="Criminal ransomware operation",
-            probability=0.5,
-            notes="Financial motivation apparent"
-        ),
-        Hypothesis(
-            id="h3",
-            description="Insider threat",
-            probability=0.3,
-            notes="Less likely but cannot be ruled out"
-        ),
-    ]
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ACH analysis session not found"
+        )
+
+    # Extract data from session
+    session_data = session.data or {}
     
-    evidence = [
-        Evidence(
-            id="e1",
-            description="Advanced persistent techniques observed",
-            credibility=0.9,
-            relevance=0.8,
-            source="Network logs",
-            date="2025-08-15"
-        ),
-        Evidence(
-            id="e2",
-            description="Ransom note discovered",
-            credibility=0.7,
-            relevance=0.9,
-            source="Incident response team",
-            date="2025-08-16"
-        ),
-        Evidence(
-            id="e3",
-            description="Attack occurred during business hours",
-            credibility=1.0,
-            relevance=0.6,
-            source="SIEM data",
-            date="2025-08-15"
-        ),
-    ]
+    # Parse hypotheses
+    hypotheses_data = session_data.get("hypotheses", [])
+    hypotheses = [Hypothesis(**hyp) for hyp in hypotheses_data if isinstance(hyp, dict)]
     
-    assessments = [
-        EvidenceAssessment(evidence_id="e1", hypothesis_id="h1", consistency="consistent", weight=0.8),
-        EvidenceAssessment(evidence_id="e1", hypothesis_id="h2", consistency="neutral", weight=0.5),
-        EvidenceAssessment(evidence_id="e1", hypothesis_id="h3", consistency="inconsistent", weight=0.7),
-        EvidenceAssessment(evidence_id="e2", hypothesis_id="h1", consistency="inconsistent", weight=0.6),
-        EvidenceAssessment(evidence_id="e2", hypothesis_id="h2", consistency="consistent", weight=0.9),
-        EvidenceAssessment(evidence_id="e2", hypothesis_id="h3", consistency="neutral", weight=0.4),
-        EvidenceAssessment(evidence_id="e3", hypothesis_id="h1", consistency="neutral", weight=0.3),
-        EvidenceAssessment(evidence_id="e3", hypothesis_id="h2", consistency="neutral", weight=0.3),
-        EvidenceAssessment(evidence_id="e3", hypothesis_id="h3", consistency="consistent", weight=0.6),
-    ]
+    # Parse evidence
+    evidence_data = session_data.get("evidence", [])
+    evidence = [Evidence(**evd) for evd in evidence_data if isinstance(evd, dict)]
     
+    # Parse assessments
+    assessments_data = session_data.get("assessments", [])
+    assessments = [EvidenceAssessment(**ass) for ass in assessments_data if isinstance(ass, dict)]
+    
+    # Generate matrix
     matrix = _generate_ach_matrix(hypotheses, evidence, assessments)
     
+    # Get scenario and key question
+    scenario = session_data.get("scenario", "Analysis scenario")
+    key_question = session_data.get("key_question", "Key intelligence question")
+
     return ACHAnalysisResponse(
-        session_id=session_id,
-        title="Cyber Incident Attribution Analysis",
-        scenario="Major cyber incident affecting critical infrastructure",
-        key_question="Who is responsible for the cyber attack?",
+        session_id=session.id,
+        title=session.title,
+        scenario=scenario,
+        key_question=key_question,
         hypotheses=hypotheses,
         evidence=evidence,
         assessments=assessments,
         matrix=matrix,
-        status="in_progress",
-        version=1
+        status=session.status.value,
+        version=session.version
     )
 
 
@@ -342,13 +309,13 @@ async def update_ach_analysis(
         ACHAnalysisResponse: Updated ACH analysis
     """
     logger.info(f"Updating ACH analysis {session_id}")
-    
+
     # TODO: Implement actual database update
     # For now, return mock updated data
-    
+
     # Get current session (mock)
     current_analysis = await get_ach_analysis(session_id, current_user, db)
-    
+
     # Update fields
     updated_title = request.title or current_analysis.title
     updated_scenario = request.scenario or current_analysis.scenario
@@ -356,10 +323,10 @@ async def update_ach_analysis(
     updated_hypotheses = request.hypotheses or current_analysis.hypotheses
     updated_evidence = request.evidence or current_analysis.evidence
     updated_assessments = request.assessments or current_analysis.assessments
-    
+
     # Generate updated matrix
     matrix = _generate_ach_matrix(updated_hypotheses, updated_evidence, updated_assessments)
-    
+
     return ACHAnalysisResponse(
         session_id=session_id,
         title=updated_title,
@@ -394,7 +361,7 @@ async def add_hypothesis(
         dict: Success message
     """
     logger.info(f"Adding hypothesis to ACH {session_id}: {hypothesis.description}")
-    
+
     return {
         "message": "Hypothesis added successfully",
         "hypothesis": hypothesis.dict(),
@@ -422,7 +389,7 @@ async def add_evidence(
         dict: Success message
     """
     logger.info(f"Adding evidence to ACH {session_id}: {evidence.description}")
-    
+
     return {
         "message": "Evidence added successfully",
         "evidence": evidence.dict(),
@@ -453,7 +420,7 @@ async def update_assessment(
         f"Updating assessment in ACH {session_id}: "
         f"E{assessment.evidence_id} vs H{assessment.hypothesis_id} = {assessment.consistency}"
     )
-    
+
     return {
         "message": "Assessment updated successfully",
         "assessment": assessment.dict(),
@@ -479,7 +446,7 @@ async def get_ach_matrix(
         dict: Matrix data for visualization
     """
     logger.info(f"Getting ACH matrix for session {session_id}")
-    
+
     # TODO: Get actual data from database
     # For now, return mock matrix
     hypotheses = [
@@ -487,13 +454,13 @@ async def get_ach_matrix(
         {"id": "h2", "description": "Criminal group", "score": 5.8},
         {"id": "h3", "description": "Insider threat", "score": 3.1},
     ]
-    
+
     evidence = [
         {"id": "e1", "description": "Advanced techniques"},
         {"id": "e2", "description": "Ransom note"},
         {"id": "e3", "description": "Timing of attack"},
     ]
-    
+
     return {
         "session_id": session_id,
         "hypotheses": hypotheses,
@@ -533,10 +500,10 @@ async def calculate_probabilities(
         dict: Updated probabilities
     """
     logger.info(f"Calculating probabilities for ACH {session_id}")
-    
+
     # TODO: Implement Bayesian or weighted scoring algorithm
     # For now, return mock calculations
-    
+
     probabilities = {
         "h1": {
             "hypothesis": "State-sponsored cyber attack",
@@ -563,7 +530,7 @@ async def calculate_probabilities(
             "contradicting_evidence": 2
         }
     }
-    
+
     return {
         "session_id": session_id,
         "probabilities": probabilities,
@@ -573,10 +540,10 @@ async def calculate_probabilities(
 
 
 def _generate_ach_matrix(
-    hypotheses: List,
-    evidence: List,
-    assessments: List
-) -> Dict:
+    hypotheses: list,
+    evidence: list,
+    assessments: list
+) -> dict:
     """
     Generate ACH matrix from hypotheses, evidence, and assessments.
     
@@ -589,27 +556,27 @@ def _generate_ach_matrix(
         dict: Matrix structure
     """
     matrix = {
-        "headers": ["Evidence"] + [h.description if hasattr(h, 'description') else h["description"] 
+        "headers": ["Evidence"] + [h.description if hasattr(h, 'description') else h["description"]
                                    for h in hypotheses],
         "rows": []
     }
-    
+
     for ev in evidence:
         ev_id = ev.id if hasattr(ev, 'id') else ev["id"]
         ev_desc = ev.description if hasattr(ev, 'description') else ev["description"]
         row = [ev_desc]
-        
+
         for hyp in hypotheses:
             hyp_id = hyp.id if hasattr(hyp, 'id') else hyp["id"]
-            
+
             # Find assessment for this evidence-hypothesis pair
             assessment = next(
-                (a for a in assessments 
+                (a for a in assessments
                  if (a.evidence_id if hasattr(a, 'evidence_id') else a["evidence_id"]) == ev_id and
                     (a.hypothesis_id if hasattr(a, 'hypothesis_id') else a["hypothesis_id"]) == hyp_id),
                 None
             )
-            
+
             if assessment:
                 consistency = assessment.consistency if hasattr(assessment, 'consistency') else assessment["consistency"]
                 symbol_map = {
@@ -623,9 +590,9 @@ def _generate_ach_matrix(
                 row.append(symbol_map.get(consistency, "0"))
             else:
                 row.append("0")
-        
+
         matrix["rows"].append(row)
-    
+
     return matrix
 
 
@@ -697,7 +664,7 @@ async def list_ach_templates(
             ]
         }
     ]
-    
+
     return templates
 
 
@@ -710,9 +677,9 @@ async def generate_ach_hypotheses_endpoint(
         scenario = request.get("scenario", "")
         key_question = request.get("key_question", "")
         context = request.get("context", "")
-        
+
         hypotheses = await ai_service.generate_ach_hypotheses(scenario, key_question, context)
-        
+
         return {
             "hypotheses": hypotheses,
             "count": len(hypotheses),
@@ -732,9 +699,9 @@ async def refine_hypothesis_endpoint(
         hypothesis = request.get("hypothesis", "")
         evidence = request.get("evidence", [])
         feedback = request.get("feedback", "")
-        
+
         refined = await ai_service.refine_hypothesis(hypothesis, evidence, feedback)
-        
+
         return {
             "original_hypothesis": hypothesis,
             "refined_hypothesis": refined,
@@ -753,9 +720,9 @@ async def suggest_evidence_gaps_endpoint(
     try:
         hypotheses = [h.get("text", "") for h in request.get("hypotheses", [])]
         evidence = request.get("evidence", [])
-        
+
         gaps = await ai_service.suggest_evidence_gaps(hypotheses, evidence)
-        
+
         return {
             "evidence_gaps": gaps,
             "gap_count": len(gaps),
@@ -780,9 +747,9 @@ async def detect_analysis_bias_endpoint(
         hypotheses = [h.get("text", "") for h in request.get("hypotheses", [])]
         evidence = request.get("evidence", [])
         scores = request.get("scores", [])
-        
+
         bias_analysis = await ai_service.detect_analysis_bias(hypotheses, evidence, scores)
-        
+
         return {
             "bias_analysis": bias_analysis,
             "analysis_date": datetime.now().isoformat(),
@@ -800,12 +767,12 @@ class ACHExportRequest(BaseModel):
     title: str
     scenario: str
     key_question: str
-    hypotheses: List[dict]
-    evidence: List[dict]  
-    scores: List[dict]
-    analysis_date: Optional[str] = None
-    analyst_name: Optional[str] = "Anonymous User"
-    ranked_hypotheses: Optional[List[dict]] = None
+    hypotheses: list[dict]
+    evidence: list[dict]
+    scores: list[dict]
+    analysis_date: str | None = None
+    analyst_name: str | None = "Anonymous User"
+    ranked_hypotheses: list[dict] | None = None
 
 
 # Temporarily disabled until dependencies are properly installed
@@ -814,7 +781,7 @@ async def export_ach_excel(request: ACHExportRequest) -> StreamingResponse:
     """Export ACH analysis as Excel matrix."""
     if not EXPORT_AVAILABLE:
         raise HTTPException(status_code=503, detail="Export functionality not available - missing dependencies")
-    
+
     try:
         # Create Excel file in memory
         output = io.BytesIO()
@@ -828,7 +795,7 @@ async def export_ach_excel(request: ACHExportRequest) -> StreamingResponse:
             'border': 1
         })
         cell_format = workbook.add_format({'border': 1})
-        
+
         # Write title and metadata
         worksheet.write(0, 0, 'ACH Analysis: ' + request.title)
         worksheet.write(1, 0, 'Scenario: ' + request.scenario)
@@ -839,7 +806,7 @@ async def export_ach_excel(request: ACHExportRequest) -> StreamingResponse:
         # Create matrix headers
         start_row = 6
         worksheet.write(start_row, 0, 'Evidence', header_format)
-        
+
         # Write hypothesis headers
         for i, hypothesis in enumerate(request.hypotheses):
             worksheet.write(start_row, i + 1, f"H{i+1}: {hypothesis.get('text', '')[:30]}", header_format)
@@ -848,14 +815,14 @@ async def export_ach_excel(request: ACHExportRequest) -> StreamingResponse:
         for i, evidence in enumerate(request.evidence):
             row = start_row + 1 + i
             worksheet.write(row, 0, f"E{i+1}: {evidence.get('text', '')[:50]}", cell_format)
-            
+
             # Fill matrix with scores
             for j, hypothesis in enumerate(request.hypotheses):
                 # Find score for this evidence/hypothesis pair
-                score_obj = next((s for s in request.scores 
-                                if s.get('evidenceId') == evidence.get('id') and 
+                score_obj = next((s for s in request.scores
+                                if s.get('evidenceId') == evidence.get('id') and
                                    s.get('hypothesisId') == hypothesis.get('id')), None)
-                
+
                 score_val = score_obj.get('score', 0) if score_obj else 0
                 # Convert to traditional ACH symbols
                 if score_val >= 3:
@@ -864,13 +831,13 @@ async def export_ach_excel(request: ACHExportRequest) -> StreamingResponse:
                     symbol = "-" if score_val == -3 else "--"
                 else:
                     symbol = "0"
-                    
+
                 worksheet.write(row, j + 1, symbol, cell_format)
 
         # Add SATS evaluation if present
         sats_row = start_row + len(request.evidence) + 3
         worksheet.write(sats_row, 0, 'SATS Evaluation Summary', header_format)
-        
+
         for i, evidence in enumerate(request.evidence):
             sats = evidence.get('sats_evaluation')
             if sats:
@@ -892,44 +859,44 @@ async def export_ach_excel(request: ACHExportRequest) -> StreamingResponse:
         raise HTTPException(status_code=500, detail="Export failed")
 
 
-@router.post("/export/word")  
+@router.post("/export/word")
 async def export_ach_word(request: ACHExportRequest) -> StreamingResponse:
     """Export ACH analysis as Word document."""
     if not EXPORT_AVAILABLE:
         raise HTTPException(status_code=503, detail="Export functionality not available - missing dependencies")
-    
+
     try:
         doc = docx.Document()
-        
+
         # Title and metadata
         title = doc.add_heading(f'Analysis of Competing Hypotheses: {request.title}', 0)
-        
+
         doc.add_paragraph(f'Analysis Date: {request.analysis_date or datetime.now().strftime("%Y-%m-%d")}')
         doc.add_paragraph(f'Analyst: {request.analyst_name}')
-        doc.add_paragraph(f'Classification: UNCLASSIFIED')
-        
+        doc.add_paragraph('Classification: UNCLASSIFIED')
+
         # Executive Summary
         doc.add_heading('Executive Summary', level=1)
         doc.add_paragraph('This ACH analysis evaluates competing hypotheses to provide structured analytical reasoning.')
-        
+
         # Scenario
-        doc.add_heading('Scenario', level=1) 
+        doc.add_heading('Scenario', level=1)
         doc.add_paragraph(request.scenario)
-        
+
         # Key Question
         doc.add_heading('Key Intelligence Question', level=1)
         doc.add_paragraph(request.key_question)
-        
+
         # Hypotheses
         doc.add_heading('Hypotheses Under Consideration', level=1)
         for i, hypothesis in enumerate(request.hypotheses):
             doc.add_paragraph(f"H{i+1}: {hypothesis.get('text', '')}", style='List Number')
-            
-        # Evidence  
+
+        # Evidence
         doc.add_heading('Evidence Evaluation', level=1)
         for i, evidence in enumerate(request.evidence):
             doc.add_paragraph(f"E{i+1}: {evidence.get('text', '')}", style='List Number')
-            
+
             # Add SATS evaluation if available
             sats = evidence.get('sats_evaluation')
             if sats:
@@ -973,51 +940,51 @@ async def export_ach_powerpoint(request: ACHExportRequest) -> StreamingResponse:
     """Export ACH analysis as PowerPoint presentation."""
     if not EXPORT_AVAILABLE:
         raise HTTPException(status_code=503, detail="Export functionality not available - missing dependencies")
-    
+
     try:
         prs = PPTXPresentation()
-        
+
         # Title slide
         slide_layout = prs.slide_layouts[0]
         slide = prs.slides.add_slide(slide_layout)
         title = slide.shapes.title
         subtitle = slide.placeholders[1]
-        
+
         title.text = f"ACH Analysis: {request.title}"
         subtitle.text = f"Analysis Date: {request.analysis_date or datetime.now().strftime('%Y-%m-%d')}\nAnalyst: {request.analyst_name}\nClassification: UNCLASSIFIED"
-        
+
         # Scenario slide
         slide_layout = prs.slide_layouts[1]
         slide = prs.slides.add_slide(slide_layout)
         title = slide.shapes.title
         content = slide.placeholders[1]
-        
+
         title.text = "Analysis Scenario"
         content.text = request.scenario
-        
+
         # Key question slide
         slide = prs.slides.add_slide(slide_layout)
         title = slide.shapes.title
         content = slide.placeholders[1]
-        
+
         title.text = "Key Intelligence Question"
         content.text = request.key_question
-        
+
         # Hypotheses slide
         slide = prs.slides.add_slide(slide_layout)
         title = slide.shapes.title
         content = slide.placeholders[1]
-        
+
         title.text = "Hypotheses Under Consideration"
         hyp_text = "\n".join([f"H{i+1}: {h.get('text', '')}" for i, h in enumerate(request.hypotheses)])
         content.text = hyp_text
-        
+
         # Results slide
         if request.ranked_hypotheses:
             slide = prs.slides.add_slide(slide_layout)
             title = slide.shapes.title
             content = slide.placeholders[1]
-            
+
             title.text = "Analysis Results"
             results_text = "Hypotheses ranked by evidence support:\n\n"
             for i, hyp in enumerate(request.ranked_hypotheses[:3]):  # Top 3
@@ -1026,9 +993,9 @@ async def export_ach_powerpoint(request: ACHExportRequest) -> StreamingResponse:
 
         # Methodology slide
         slide = prs.slides.add_slide(slide_layout)
-        title = slide.shapes.title  
+        title = slide.shapes.title
         content = slide.placeholders[1]
-        
+
         title.text = "Methodology"
         content.text = "Analysis of Competing Hypotheses (ACH)\n\n• Structured analytical technique\n• Systematic evaluation of evidence\n• SATS criteria applied where applicable\n• Reduces cognitive bias in analysis"
 

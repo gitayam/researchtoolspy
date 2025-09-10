@@ -2,10 +2,8 @@
 Security assessment and hardening endpoints.
 """
 
-import json
 from datetime import datetime
-from typing import Optional, List, Dict, Any
-from uuid import UUID
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -26,10 +24,10 @@ class SecurityQuestion(BaseModel):
     id: str
     category: str
     question: str
-    description: Optional[str] = None
+    description: str | None = None
     evidence_required: bool = False
     priority: str = 'medium'
-    tags: Optional[List[str]] = []
+    tags: list[str] | None = []
 
 class EvidenceSource(BaseModel):
     """Evidence source model."""
@@ -37,32 +35,32 @@ class EvidenceSource(BaseModel):
     source: str
     content: str
     reliability: str = 'medium'
-    timestamp: Optional[str] = None
+    timestamp: str | None = None
 
 class SecurityQuestionResponse(BaseModel):
     """Security question response model."""
     question_id: str
     response: str
-    evidence: List[EvidenceSource] = []
+    evidence: list[EvidenceSource] = []
     confidence_level: str = 'medium'
     follow_up_required: bool = False
-    follow_up_actions: List[str] = []
+    follow_up_actions: list[str] = []
 
 class SecurityAssessmentCreate(BaseModel):
     """Security assessment creation request."""
     title: str
-    description: Optional[str] = None
-    methodology: List[str] = []
-    scope: Dict[str, Any] = {}
+    description: str | None = None
+    methodology: list[str] = []
+    scope: dict[str, Any] = {}
 
 class SecurityAssessmentResponse(BaseModel):
     """Security assessment response."""
     id: str
     title: str
-    description: Optional[str]
-    methodology: List[str]
-    scope: Dict[str, Any]
-    responses: Dict[str, SecurityQuestionResponse]
+    description: str | None
+    methodology: list[str]
+    scope: dict[str, Any]
+    responses: dict[str, SecurityQuestionResponse]
     completion_percentage: float
     risk_level: str
     created_at: str
@@ -75,8 +73,8 @@ class VulnerabilityAssessment(BaseModel):
     title: str
     description: str
     severity: str
-    cvss_score: Optional[float] = None
-    affected_components: List[str] = []
+    cvss_score: float | None = None
+    affected_components: list[str] = []
     evidence_type: str
     discovery_date: str
     status: str = 'open'
@@ -89,8 +87,8 @@ class SecurityRecommendation(BaseModel):
     priority: str
     category: str
     implementation_effort: str
-    timeline: Optional[str] = None
-    success_criteria: List[str] = []
+    timeline: str | None = None
+    success_criteria: list[str] = []
 
 # Predefined security questions based on implementation plan
 SECURITY_QUESTIONS = [
@@ -105,7 +103,7 @@ SECURITY_QUESTIONS = [
         tags=["attack-vectors", "api-security", "threat-modeling"]
     ),
     SecurityQuestion(
-        id="threat_breach_evidence", 
+        id="threat_breach_evidence",
         category="Threat Assessment",
         question="What evidence do we have of current or attempted security breaches?",
         description="Review logs, monitoring alerts, and incident reports for breach indicators",
@@ -115,14 +113,14 @@ SECURITY_QUESTIONS = [
     ),
     SecurityQuestion(
         id="threat_valuable_assets",
-        category="Threat Assessment", 
+        category="Threat Assessment",
         question="What are the most valuable assets accessible through our API?",
         description="Catalog sensitive data, critical functions, and high-value endpoints",
         evidence_required=True,
         priority="high",
         tags=["asset-inventory", "data-classification"]
     ),
-    
+
     # Vulnerability Assessment
     SecurityQuestion(
         id="vuln_security_testing",
@@ -151,7 +149,7 @@ SECURITY_QUESTIONS = [
         priority="critical",
         tags=["authentication", "authorization", "access-control"]
     ),
-    
+
     # Risk Analysis
     SecurityQuestion(
         id="risk_business_impact",
@@ -171,7 +169,7 @@ SECURITY_QUESTIONS = [
         priority="critical",
         tags=["data-mapping", "pii-protection"]
     ),
-    
+
     # Mitigation Analysis
     SecurityQuestion(
         id="mitigation_current_controls",
@@ -195,12 +193,12 @@ SECURITY_QUESTIONS = [
 
 # API Endpoints
 
-@router.get("/questions", response_model=List[SecurityQuestion])
+@router.get("/questions", response_model=list[SecurityQuestion])
 async def get_security_questions(
-    category: Optional[str] = None,
-    priority: Optional[str] = None,
+    category: str | None = None,
+    priority: str | None = None,
     current_user: User = Depends(get_current_user)
-) -> List[SecurityQuestion]:
+) -> list[SecurityQuestion]:
     """
     Get all security assessment questions.
     
@@ -213,16 +211,16 @@ async def get_security_questions(
         List of security questions
     """
     questions = SECURITY_QUESTIONS.copy()
-    
+
     if category:
         questions = [q for q in questions if q.category == category]
-    
+
     if priority:
         questions = [q for q in questions if q.priority == priority]
-    
-    logger.info(f"Retrieved {len(questions)} security questions", 
+
+    logger.info(f"Retrieved {len(questions)} security questions",
                 extra={"user_id": current_user.id, "category": category, "priority": priority})
-    
+
     return questions
 
 @router.post("/assessment", response_model=SecurityAssessmentResponse)
@@ -243,7 +241,7 @@ async def create_security_assessment(
         Created security assessment
     """
     assessment_id = f"security_assessment_{int(datetime.now().timestamp())}"
-    
+
     assessment_response = SecurityAssessmentResponse(
         id=assessment_id,
         title=assessment.title,
@@ -257,10 +255,10 @@ async def create_security_assessment(
         updated_at=datetime.now().isoformat(),
         created_by=current_user.username or str(current_user.id)
     )
-    
+
     logger.info(f"Created security assessment: {assessment_id}",
                 extra={"user_id": current_user.id, "assessment_title": assessment.title})
-    
+
     return assessment_response
 
 @router.post("/assessment/{assessment_id}/response")
@@ -269,7 +267,7 @@ async def add_question_response(
     response: SecurityQuestionResponse,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Add a response to a security question.
     
@@ -284,7 +282,7 @@ async def add_question_response(
     """
     # In a real implementation, this would save to database
     # For now, just log the response
-    
+
     logger.info(f"Added response to question {response.question_id}",
                 extra={
                     "user_id": current_user.id,
@@ -292,7 +290,7 @@ async def add_question_response(
                     "question_id": response.question_id,
                     "confidence_level": response.confidence_level
                 })
-    
+
     return {"message": "Response recorded successfully", "question_id": response.question_id}
 
 @router.get("/assessment/{assessment_id}/report")
@@ -300,7 +298,7 @@ async def generate_security_report(
     assessment_id: str,
     format: str = "json",
     current_user: User = Depends(get_current_user)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generate a security assessment report.
     
@@ -317,11 +315,11 @@ async def generate_security_report(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid format. Supported formats: json, summary"
         )
-    
+
     # Mock report data - in real implementation, fetch from database
     report = {
         "assessment_id": assessment_id,
-        "title": "API Security Assessment Report", 
+        "title": "API Security Assessment Report",
         "generated_at": datetime.now().isoformat(),
         "generated_by": current_user.username or str(current_user.id),
         "summary": {
@@ -333,13 +331,13 @@ async def generate_security_report(
         "categories": list(set(q.category for q in SECURITY_QUESTIONS)),
         "recommendations": [
             "Implement comprehensive input validation",
-            "Enable rate limiting on all API endpoints", 
+            "Enable rate limiting on all API endpoints",
             "Add security headers (CORS, CSP, HSTS)",
             "Implement comprehensive logging and monitoring",
             "Conduct regular security assessments"
         ]
     }
-    
+
     if format == "summary":
         return {
             "assessment_id": assessment_id,
@@ -347,18 +345,18 @@ async def generate_security_report(
             "categories": report["categories"],
             "generated_at": report["generated_at"]
         }
-    
+
     logger.info(f"Generated security report for assessment {assessment_id}",
                 extra={"user_id": current_user.id, "format": format})
-    
+
     return report
 
 @router.post("/vulnerability-scan")
 async def initiate_vulnerability_scan(
-    targets: List[str],
+    targets: list[str],
     scan_type: str = "basic",
     current_user: User = Depends(get_current_user)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Initiate a vulnerability scan (mock implementation).
     
@@ -371,7 +369,7 @@ async def initiate_vulnerability_scan(
         Scan initiation response
     """
     scan_id = f"scan_{int(datetime.now().timestamp())}"
-    
+
     # Mock vulnerability scan results
     mock_vulnerabilities = [
         VulnerabilityAssessment(
@@ -385,7 +383,7 @@ async def initiate_vulnerability_scan(
             status="open"
         ),
         VulnerabilityAssessment(
-            vulnerability_id="VULN-002", 
+            vulnerability_id="VULN-002",
             title="Missing Security Headers",
             description="Response headers lack security controls (HSTS, CSP)",
             severity="low",
@@ -395,10 +393,10 @@ async def initiate_vulnerability_scan(
             status="open"
         )
     ]
-    
+
     logger.info(f"Initiated vulnerability scan: {scan_id}",
                 extra={"user_id": current_user.id, "targets": targets, "scan_type": scan_type})
-    
+
     return {
         "scan_id": scan_id,
         "status": "completed", # Mock - would be "initiated" in real implementation
@@ -409,12 +407,12 @@ async def initiate_vulnerability_scan(
         "initiated_at": datetime.now().isoformat()
     }
 
-@router.get("/recommendations", response_model=List[SecurityRecommendation])
+@router.get("/recommendations", response_model=list[SecurityRecommendation])
 async def get_security_recommendations(
-    priority: Optional[str] = None,
-    category: Optional[str] = None,
+    priority: str | None = None,
+    category: str | None = None,
     current_user: User = Depends(get_current_user)
-) -> List[SecurityRecommendation]:
+) -> list[SecurityRecommendation]:
     """
     Get security hardening recommendations.
     
@@ -438,11 +436,11 @@ async def get_security_recommendations(
             success_criteria=["Rate limits enforced on all endpoints", "Proper error responses for exceeded limits"]
         ),
         SecurityRecommendation(
-            recommendation_id="REC-002", 
+            recommendation_id="REC-002",
             title="Add Security Headers",
             description="Implement comprehensive security headers (CORS, CSP, HSTS, X-Frame-Options)",
             priority="medium",
-            category="technical", 
+            category="technical",
             implementation_effort="low",
             timeline="1 week",
             success_criteria=["All security headers present", "Headers configured correctly"]
@@ -453,29 +451,29 @@ async def get_security_recommendations(
             description="Implement comprehensive input validation and sanitization",
             priority="critical",
             category="technical",
-            implementation_effort="high", 
+            implementation_effort="high",
             timeline="2-4 weeks",
             success_criteria=["All inputs validated", "SQL injection prevented", "XSS prevented"]
         ),
         SecurityRecommendation(
             recommendation_id="REC-004",
-            title="Security Monitoring Implementation", 
+            title="Security Monitoring Implementation",
             description="Deploy comprehensive security logging and monitoring",
             priority="high",
             category="technical",
             implementation_effort="high",
-            timeline="3-4 weeks", 
+            timeline="3-4 weeks",
             success_criteria=["Security events logged", "Alerting configured", "SIEM integration"]
         )
     ]
-    
+
     if priority:
         recommendations = [r for r in recommendations if r.priority == priority]
-        
+
     if category:
         recommendations = [r for r in recommendations if r.category == category]
-    
+
     logger.info(f"Retrieved {len(recommendations)} security recommendations",
                 extra={"user_id": current_user.id, "priority": priority, "category": category})
-    
+
     return recommendations

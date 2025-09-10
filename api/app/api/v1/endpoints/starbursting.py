@@ -3,7 +3,6 @@ Starbursting API endpoints.
 Question-based exploration framework using the 5 W's and H (Who, What, Where, When, Why, How).
 """
 
-from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -25,28 +24,28 @@ class StarburstingQuestion(BaseModel):
     id: str
     category: str  # who, what, where, when, why, how
     question: str
-    answer: Optional[str] = None
-    priority: Optional[int] = 1  # 1-5 scale
-    source: Optional[str] = None
+    answer: str | None = None
+    priority: int | None = 1  # 1-5 scale
+    source: str | None = None
     status: str = "pending"  # pending, answered, researched, validated
-    follow_up_questions: Optional[List[str]] = []
+    follow_up_questions: list[str] | None = []
 
 
 class StarburstingCreateRequest(BaseModel):
     """Starbursting analysis creation request."""
     title: str
     central_topic: str
-    context: Optional[str] = None
-    initial_questions: Optional[List[StarburstingQuestion]] = []
+    context: str | None = None
+    initial_questions: list[StarburstingQuestion] | None = []
     request_ai_questions: bool = True
 
 
 class StarburstingUpdateRequest(BaseModel):
     """Starbursting analysis update request."""
-    title: Optional[str] = None
-    central_topic: Optional[str] = None
-    context: Optional[str] = None
-    questions: Optional[List[StarburstingQuestion]] = None
+    title: str | None = None
+    central_topic: str | None = None
+    context: str | None = None
+    questions: list[StarburstingQuestion] | None = None
 
 
 class StarburstingAnalysisResponse(BaseModel):
@@ -54,10 +53,10 @@ class StarburstingAnalysisResponse(BaseModel):
     session_id: int
     title: str
     central_topic: str
-    context: Optional[str]
-    questions: List[StarburstingQuestion]
-    categories: Dict[str, List[StarburstingQuestion]]
-    ai_questions: Optional[Dict] = None
+    context: str | None
+    questions: list[StarburstingQuestion]
+    categories: dict[str, list[StarburstingQuestion]]
+    ai_questions: dict | None = None
     status: str
     version: int
 
@@ -66,9 +65,9 @@ class StarburstingQuestionRequest(BaseModel):
     """Request for adding/updating individual questions."""
     category: str
     question: str
-    answer: Optional[str] = None
-    priority: Optional[int] = 1
-    source: Optional[str] = None
+    answer: str | None = None
+    priority: int | None = 1
+    source: str | None = None
 
 
 @router.post("/create", response_model=StarburstingAnalysisResponse)
@@ -89,14 +88,14 @@ async def create_starbursting_analysis(
         StarburstingAnalysisResponse: Created Starbursting analysis
     """
     logger.info(f"Creating Starbursting analysis: {request.title} for user {current_user.username}")
-    
+
     # Prepare Starbursting data
     starbursting_data = {
         "central_topic": request.central_topic,
         "context": request.context or "",
         "questions": [q.dict() for q in request.initial_questions] if request.initial_questions else [],
     }
-    
+
     # Get AI-generated questions if requested
     ai_questions = None
     if request.request_ai_questions:
@@ -107,7 +106,7 @@ async def create_starbursting_analysis(
                 "suggest"
             )
             ai_questions = ai_result.get("suggestions")
-            
+
             # Add AI-suggested questions
             if ai_questions and "questions" in ai_questions:
                 for category, questions in ai_questions["questions"].items():
@@ -124,10 +123,10 @@ async def create_starbursting_analysis(
                                 "status": "pending",
                                 "follow_up_questions": []
                             })
-                        
+
         except Exception as e:
             logger.warning(f"Failed to get AI questions: {e}")
-    
+
     # Create framework session
     framework_data = FrameworkData(
         framework_type=FrameworkType.STARBURSTING,
@@ -136,13 +135,13 @@ async def create_starbursting_analysis(
         data=starbursting_data,
         tags=["starbursting", "question-exploration", "5w1h"]
     )
-    
+
     session = await framework_service.create_session(db, current_user, framework_data)
-    
+
     # Parse questions into categories
     questions = [StarburstingQuestion(**q) for q in starbursting_data["questions"]]
     categories = _categorize_questions(questions)
-    
+
     return StarburstingAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -174,7 +173,7 @@ async def get_starbursting_analysis(
         StarburstingAnalysisResponse: Starbursting analysis data
     """
     logger.info(f"Getting Starbursting analysis {session_id}")
-    
+
     # TODO: Implement database retrieval
     # For now, return mock data
     questions = [
@@ -242,9 +241,9 @@ async def get_starbursting_analysis(
             status="pending"
         )
     ]
-    
+
     categories = _categorize_questions(questions)
-    
+
     return StarburstingAnalysisResponse(
         session_id=session_id,
         title="Strategic Intelligence Initiative Analysis",
@@ -277,38 +276,38 @@ async def update_starbursting_analysis(
         StarburstingAnalysisResponse: Updated Starbursting analysis
     """
     logger.info(f"Updating Starbursting analysis {session_id}")
-    
+
     # Build update data
     updates = {}
     starbursting_data = {}
-    
+
     if request.title:
         updates["title"] = request.title
-    
+
     if request.central_topic is not None:
         starbursting_data["central_topic"] = request.central_topic
-    
+
     if request.context is not None:
         starbursting_data["context"] = request.context
-    
+
     if request.questions is not None:
         starbursting_data["questions"] = [q.dict() for q in request.questions]
-    
+
     if starbursting_data:
         updates["data"] = starbursting_data
-    
+
     # Update session
     session = await framework_service.update_session(
         db, session_id, current_user, updates
     )
-    
+
     # Parse data
     import json
     data = json.loads(session.data)
-    
+
     questions = [StarburstingQuestion(**q) for q in data.get("questions", [])]
     categories = _categorize_questions(questions)
-    
+
     return StarburstingAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -341,18 +340,18 @@ async def add_question(
         dict: Success message
     """
     valid_categories = ["who", "what", "where", "when", "why", "how"]
-    
+
     if question_request.category.lower() not in valid_categories:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid category. Must be one of: {', '.join(valid_categories)}"
         )
-    
+
     logger.info(f"Adding question to Starbursting {session_id}: {question_request.question}")
-    
+
     # TODO: Implement actual database update
     # For now, return success response
-    
+
     return {
         "message": "Question added successfully",
         "session_id": session_id,
@@ -389,10 +388,10 @@ async def update_question(
         dict: Success message
     """
     logger.info(f"Updating question {question_id} in Starbursting {session_id}")
-    
+
     # TODO: Implement actual database update
     # For now, return success response
-    
+
     return {
         "message": "Question updated successfully",
         "session_id": session_id,
@@ -404,7 +403,7 @@ async def update_question(
 @router.post("/{session_id}/ai-questions")
 async def generate_ai_questions(
     session_id: int,
-    categories: Optional[List[str]] = None,
+    categories: list[str] | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> dict:
@@ -421,7 +420,7 @@ async def generate_ai_questions(
         dict: Generated questions
     """
     logger.info(f"Generating AI questions for Starbursting {session_id}")
-    
+
     # TODO: Get actual session data from database
     # For now, use mock data
     starbursting_data = {
@@ -429,20 +428,20 @@ async def generate_ai_questions(
         "context": "Development of enhanced analytical capabilities",
         "questions": []
     }
-    
+
     # Get AI questions
     ai_result = await framework_service.analyze_with_ai(
         FrameworkType.STARBURSTING,
         starbursting_data,
         "suggest"
     )
-    
+
     # Filter by categories if specified
     generated_questions = ai_result.get("suggestions", {}).get("questions", {})
     if categories:
-        generated_questions = {k: v for k, v in generated_questions.items() 
+        generated_questions = {k: v for k, v in generated_questions.items()
                              if k in categories}
-    
+
     return {
         "session_id": session_id,
         "generated_questions": generated_questions,
@@ -468,7 +467,7 @@ async def get_question_matrix(
         dict: Matrix visualization data
     """
     logger.info(f"Getting question matrix for Starbursting {session_id}")
-    
+
     # TODO: Get actual data from database
     # For now, return mock matrix
     matrix = {
@@ -539,7 +538,7 @@ async def get_question_matrix(
             "completion_rate": 55.6
         }
     }
-    
+
     return {
         "session_id": session_id,
         "matrix": matrix
@@ -566,13 +565,13 @@ async def export_starbursting_analysis(
         dict: Export information
     """
     logger.info(f"Exporting Starbursting analysis {session_id} as {format}")
-    
+
     if format not in ["pdf", "docx", "json"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid export format. Supported: pdf, docx, json"
         )
-    
+
     # TODO: Implement actual export functionality
     return {
         "session_id": session_id,
@@ -651,11 +650,11 @@ async def list_starbursting_templates(
             }
         }
     ]
-    
+
     return templates
 
 
-def _categorize_questions(questions: List[StarburstingQuestion]) -> Dict[str, List[StarburstingQuestion]]:
+def _categorize_questions(questions: list[StarburstingQuestion]) -> dict[str, list[StarburstingQuestion]]:
     """
     Categorize questions by their 5W1H category.
     
@@ -673,10 +672,10 @@ def _categorize_questions(questions: List[StarburstingQuestion]) -> Dict[str, Li
         "why": [],
         "how": []
     }
-    
+
     for question in questions:
         category = question.category.lower()
         if category in categories:
             categories[category].append(question)
-    
+
     return categories

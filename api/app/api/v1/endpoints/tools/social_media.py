@@ -2,20 +2,21 @@
 Social media download API endpoints for content collection and analysis.
 """
 
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
-from pydantic import BaseModel, validator
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 import json
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
-from app.core.database import get_db
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from pydantic import BaseModel, validator
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.endpoints.auth import get_current_user
+from app.core.database import get_db
 from app.core.logging import get_logger
-from app.models.user import User
 from app.models.research_tool import ResearchJob, ResearchJobStatus, ResearchJobType
+from app.models.user import User
 
 logger = get_logger(__name__)
 
@@ -46,13 +47,13 @@ class SocialMediaDownloadRequest(BaseModel):
     """Request model for social media content download."""
     platform: SocialPlatform
     url: str
-    content_types: List[ContentType] = [ContentType.POST, ContentType.METADATA]
+    content_types: list[ContentType] = [ContentType.POST, ContentType.METADATA]
     include_comments: bool = False
     include_media: bool = False
     max_comments: int = 100
     download_images: bool = False
     download_videos: bool = False
-    
+
     @validator('max_comments')
     def validate_max_comments(cls, v):
         """Validate max comments."""
@@ -63,8 +64,8 @@ class SocialMediaDownloadRequest(BaseModel):
 
 class BatchSocialMediaRequest(BaseModel):
     """Request model for batch social media downloads."""
-    downloads: List[SocialMediaDownloadRequest]
-    
+    downloads: list[SocialMediaDownloadRequest]
+
     @validator('downloads')
     def validate_downloads(cls, v):
         """Validate downloads list."""
@@ -81,11 +82,11 @@ class SocialMediaJobResponse(BaseModel):
     platform: str
     status: str
     progress_percentage: int
-    current_step: Optional[str]
-    started_at: Optional[datetime]
-    estimated_completion: Optional[datetime]
+    current_step: str | None
+    started_at: datetime | None
+    estimated_completion: datetime | None
     message: str
-    
+
     class Config:
         from_attributes = True
 
@@ -95,15 +96,15 @@ class PlatformInfoResponse(BaseModel):
     platform: str
     supported: bool
     requires_auth: bool
-    content_types: List[str]
-    rate_limits: Dict[str, Any]
-    notes: Optional[str]
+    content_types: list[str]
+    rate_limits: dict[str, Any]
+    notes: str | None
 
 
 # Social Media Service
 class SocialMediaService:
     """Service for social media content download."""
-    
+
     # Platform configurations
     PLATFORM_CONFIG = {
         SocialPlatform.TWITTER: {
@@ -156,16 +157,16 @@ class SocialMediaService:
             "notes": "Not currently supported"
         }
     }
-    
-    async def download_twitter_content(self, url: str, options: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def download_twitter_content(self, url: str, options: dict[str, Any]) -> dict[str, Any]:
         """Download Twitter content."""
         # Placeholder for Twitter API integration
         # In production, this would use the Twitter API v2
-        
+
         try:
             # Simulate Twitter content extraction
             await asyncio.sleep(2)  # Simulate API call
-            
+
             return {
                 "platform": "twitter",
                 "url": url,
@@ -183,20 +184,20 @@ class SocialMediaService:
                 "mentions": [],
                 "status": "simulated"
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to download Twitter content: {e}")
             return {"error": str(e), "status": "failed"}
-    
-    async def download_youtube_content(self, url: str, options: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def download_youtube_content(self, url: str, options: dict[str, Any]) -> dict[str, Any]:
         """Download YouTube content."""
         # Placeholder for YouTube content extraction
         # In production, this would use yt-dlp or YouTube Data API
-        
+
         try:
             # Simulate YouTube content extraction
             await asyncio.sleep(3)  # Simulate processing
-            
+
             return {
                 "platform": "youtube",
                 "url": url,
@@ -212,19 +213,19 @@ class SocialMediaService:
                 "tags": [],
                 "status": "simulated"
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to download YouTube content: {e}")
             return {"error": str(e), "status": "failed"}
-    
-    async def download_instagram_content(self, url: str, options: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def download_instagram_content(self, url: str, options: dict[str, Any]) -> dict[str, Any]:
         """Download Instagram content."""
         # Placeholder for Instagram content extraction
-        
+
         try:
             # Simulate Instagram content extraction
             await asyncio.sleep(2)  # Simulate processing
-            
+
             return {
                 "platform": "instagram",
                 "url": url,
@@ -239,20 +240,20 @@ class SocialMediaService:
                 "hashtags": [],
                 "status": "simulated"
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to download Instagram content: {e}")
             return {"error": str(e), "status": "failed"}
-    
-    async def download_reddit_content(self, url: str, options: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def download_reddit_content(self, url: str, options: dict[str, Any]) -> dict[str, Any]:
         """Download Reddit content."""
         # Placeholder for Reddit content extraction
         # In production, this would use PRAW (Python Reddit API Wrapper)
-        
+
         try:
             # Simulate Reddit content extraction
             await asyncio.sleep(1)  # Simulate API call
-            
+
             return {
                 "platform": "reddit",
                 "url": url,
@@ -268,21 +269,21 @@ class SocialMediaService:
                 "flair": None,
                 "status": "simulated"
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to download Reddit content: {e}")
             return {"error": str(e), "status": "failed"}
-    
-    async def download_content(self, platform: SocialPlatform, url: str, options: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def download_content(self, platform: SocialPlatform, url: str, options: dict[str, Any]) -> dict[str, Any]:
         """Download content from specified platform."""
-        
+
         # Check if platform is supported
         if not self.PLATFORM_CONFIG[platform]["supported"]:
             return {
                 "error": f"Platform {platform} is not currently supported",
                 "status": "unsupported"
             }
-        
+
         # Route to appropriate platform handler
         if platform == SocialPlatform.TWITTER:
             return await self.download_twitter_content(url, options)
@@ -297,55 +298,55 @@ class SocialMediaService:
                 "error": f"No handler implemented for platform {platform}",
                 "status": "not_implemented"
             }
-    
+
     async def process_download_job(
         self,
         job_id: int,
-        downloads: List[Dict[str, Any]],
+        downloads: list[dict[str, Any]],
         db: AsyncSession
     ):
         """Process a social media download job in the background."""
         import asyncio
-        
+
         try:
             # Get job
             result = await db.execute(
                 select(ResearchJob).where(ResearchJob.id == job_id)
             )
             job = result.scalar_one_or_none()
-            
+
             if not job:
                 logger.error(f"Download job {job_id} not found")
                 return
-            
+
             # Update job status
             job.status = ResearchJobStatus.IN_PROGRESS
             job.started_at = datetime.utcnow()
             job.current_step = "Starting downloads"
             await db.commit()
-            
+
             results = []
             total_downloads = len(downloads)
-            
+
             for i, download_config in enumerate(downloads):
                 try:
                     # Update progress
                     job.progress_percentage = int((i / total_downloads) * 100)
                     job.current_step = f"Downloading from {download_config['platform']}"
                     await db.commit()
-                    
+
                     # Download content
                     result = await self.download_content(
                         platform=SocialPlatform(download_config['platform']),
                         url=download_config['url'],
                         options=download_config
                     )
-                    
+
                     results.append(result)
-                    
+
                     # Add delay between downloads to respect rate limits
                     await asyncio.sleep(1)
-                    
+
                 except Exception as e:
                     logger.error(f"Failed to download from {download_config.get('platform', 'unknown')}: {e}")
                     results.append({
@@ -354,21 +355,21 @@ class SocialMediaService:
                         "error": str(e),
                         "status": "failed"
                     })
-            
+
             # Update job completion
             job.status = ResearchJobStatus.COMPLETED
             job.progress_percentage = 100
             job.completed_at = datetime.utcnow()
             job.current_step = "Downloads completed"
             job.result_data = json.dumps(results)
-            
+
             await db.commit()
-            
+
             logger.info(f"Completed download job {job_id} with {len(results)} results")
-            
+
         except Exception as e:
             logger.error(f"Failed to process download job {job_id}: {e}")
-            
+
             # Update job with error
             try:
                 job.status = ResearchJobStatus.FAILED
@@ -383,13 +384,13 @@ class SocialMediaService:
 social_media_service = SocialMediaService()
 
 # API Endpoints
-@router.get("/platforms", response_model=List[PlatformInfoResponse])
-async def get_supported_platforms() -> List[PlatformInfoResponse]:
+@router.get("/platforms", response_model=list[PlatformInfoResponse])
+async def get_supported_platforms() -> list[PlatformInfoResponse]:
     """
     Get list of supported social media platforms and their capabilities.
     """
     platforms = []
-    
+
     for platform, config in social_media_service.PLATFORM_CONFIG.items():
         platforms.append(PlatformInfoResponse(
             platform=platform.value,
@@ -399,7 +400,7 @@ async def get_supported_platforms() -> List[PlatformInfoResponse]:
             rate_limits=config["rate_limits"],
             notes=config.get("notes")
         ))
-    
+
     return platforms
 
 
@@ -428,10 +429,10 @@ async def download_social_media_content(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Platform {request.platform} is not currently supported"
             )
-        
+
         # Create download job
         job_data = request.dict()
-        
+
         job = ResearchJob(
             job_type=ResearchJobType.SOCIAL_MEDIA_ANALYSIS,
             job_name=f"Download: {request.platform} - {request.url}",
@@ -439,11 +440,11 @@ async def download_social_media_content(
             input_data=json.dumps(job_data),
             user_id=current_user.id
         )
-        
+
         db.add(job)
         await db.commit()
         await db.refresh(job)
-        
+
         # Start background processing
         background_tasks.add_task(
             social_media_service.process_download_job,
@@ -451,9 +452,9 @@ async def download_social_media_content(
             [job_data],
             db
         )
-        
+
         logger.info(f"Started social media download job {job.id} for {request.platform}: {request.url}")
-        
+
         return SocialMediaJobResponse(
             job_id=job.id,
             platform=request.platform,
@@ -464,7 +465,7 @@ async def download_social_media_content(
             estimated_completion=None,
             message="Download job started successfully"
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to start download job: {e}")
         raise HTTPException(
@@ -493,13 +494,13 @@ async def download_batch_social_media(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Platform {download.platform} is not currently supported"
                 )
-        
+
         # Create batch download job
         job_data = [download.dict() for download in request.downloads]
-        
+
         platforms = list(set(d.platform for d in request.downloads))
         platform_str = ", ".join(platforms)
-        
+
         job = ResearchJob(
             job_type=ResearchJobType.SOCIAL_MEDIA_ANALYSIS,
             job_name=f"Batch Download: {len(request.downloads)} items from {platform_str}",
@@ -507,11 +508,11 @@ async def download_batch_social_media(
             input_data=json.dumps(job_data),
             user_id=current_user.id
         )
-        
+
         db.add(job)
         await db.commit()
         await db.refresh(job)
-        
+
         # Start background processing
         background_tasks.add_task(
             social_media_service.process_download_job,
@@ -519,9 +520,9 @@ async def download_batch_social_media(
             job_data,
             db
         )
-        
+
         logger.info(f"Started batch download job {job.id} for {len(request.downloads)} items")
-        
+
         return SocialMediaJobResponse(
             job_id=job.id,
             platform=platform_str,
@@ -532,7 +533,7 @@ async def download_batch_social_media(
             estimated_completion=None,
             message=f"Batch download job started for {len(request.downloads)} items"
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to start batch download job: {e}")
         raise HTTPException(
@@ -561,13 +562,13 @@ async def get_download_job_status(
             )
         )
         job = result.scalar_one_or_none()
-        
+
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Download job not found"
             )
-        
+
         # Extract platform from job name or input data
         platform = "unknown"
         if job.input_data:
@@ -579,7 +580,7 @@ async def get_download_job_status(
                     platform = input_data.get('platform', 'unknown')
             except json.JSONDecodeError:
                 pass
-        
+
         return SocialMediaJobResponse(
             job_id=job.id,
             platform=platform,
@@ -590,7 +591,7 @@ async def get_download_job_status(
             estimated_completion=job.estimated_completion,
             message=f"Job status: {job.status}"
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -621,19 +622,19 @@ async def get_download_job_results(
             )
         )
         job = result.scalar_one_or_none()
-        
+
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Download job not found"
             )
-        
+
         if job.status != ResearchJobStatus.COMPLETED:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Job is not completed. Current status: {job.status}"
             )
-        
+
         # Parse results
         results = []
         if job.result_data:
@@ -641,7 +642,7 @@ async def get_download_job_results(
                 results = json.loads(job.result_data)
             except json.JSONDecodeError:
                 logger.error(f"Failed to parse results for job {job_id}")
-        
+
         return {
             "job_id": job.id,
             "status": job.status,
@@ -651,7 +652,7 @@ async def get_download_job_results(
             "failed_downloads": len([r for r in results if r.get("status") == "failed"]),
             "results": results
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -668,9 +669,9 @@ async def get_download_jobs(
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(50, ge=1, le=100, description="Number of records to return"),
-    platform: Optional[str] = Query(None, description="Filter by platform"),
-    status_filter: Optional[str] = Query(None, description="Filter by job status")
-) -> List[dict]:
+    platform: str | None = Query(None, description="Filter by platform"),
+    status_filter: str | None = Query(None, description="Filter by job status")
+) -> list[dict]:
     """
     Get user's social media download jobs with optional filtering.
     
@@ -684,15 +685,15 @@ async def get_download_jobs(
             ResearchJob.user_id == current_user.id,
             ResearchJob.job_type == ResearchJobType.SOCIAL_MEDIA_ANALYSIS
         )
-        
+
         if status_filter:
             query = query.where(ResearchJob.status == status_filter)
-        
+
         query = query.order_by(ResearchJob.created_at.desc()).offset(skip).limit(limit)
-        
+
         result = await db.execute(query)
         jobs = result.scalars().all()
-        
+
         # Format jobs with platform information
         formatted_jobs = []
         for job in jobs:
@@ -707,11 +708,11 @@ async def get_download_jobs(
                         platform_name = input_data.get('platform', 'unknown')
                 except json.JSONDecodeError:
                     pass
-            
+
             # Apply platform filter
             if platform and platform_name != platform:
                 continue
-            
+
             formatted_jobs.append({
                 "job_id": job.id,
                 "platform": platform_name,
@@ -723,9 +724,9 @@ async def get_download_jobs(
                 "completed_at": job.completed_at.isoformat() if job.completed_at else None,
                 "created_at": job.created_at.isoformat()
             })
-        
+
         return formatted_jobs
-        
+
     except Exception as e:
         logger.error(f"Failed to get download jobs: {e}")
         raise HTTPException(
@@ -754,13 +755,13 @@ async def cancel_download_job(
             )
         )
         job = result.scalar_one_or_none()
-        
+
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Download job not found"
             )
-        
+
         # If job is running, mark as cancelled. If completed/failed, delete it.
         if job.status in [ResearchJobStatus.PENDING, ResearchJobStatus.IN_PROGRESS]:
             job.status = ResearchJobStatus.CANCELLED
@@ -769,9 +770,9 @@ async def cancel_download_job(
         else:
             await db.delete(job)
             await db.commit()
-        
+
         logger.info(f"Cancelled/deleted download job {job_id} for user {current_user.username}")
-        
+
     except HTTPException:
         raise
     except Exception as e:
