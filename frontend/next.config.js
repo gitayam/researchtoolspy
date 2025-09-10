@@ -7,6 +7,7 @@ const nextConfig = {
   distDir: '.next',
   trailingSlash: false,
   poweredByHeader: false,
+
   
   
   // Disable ESLint during build in Docker

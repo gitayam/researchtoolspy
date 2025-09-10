@@ -37,6 +37,12 @@ selenium>=4.33.0
 chromedriver-binary>=138.0.7201.0.0
 webdriver-manager>=4.0.2
 
+# Modern content extraction
+trafilatura>=1.11.0
+readability-lxml>=0.8.1
+newspaper3k>=0.2.8
+playwright-stealth>=1.0.6
+
 # Advanced Scraper Framework
 wikipedia>=1.4.0
 

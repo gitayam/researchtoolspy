@@ -3,8 +3,8 @@ OmniCore API - Intelligence Analysis Platform
 FastAPI application entry point
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,9 +25,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup
     setup_logging()
     await init_db()
-    
+
     yield
-    
+
     # Shutdown
     # Add cleanup tasks here if needed
     pass
@@ -105,7 +105,7 @@ async def health_check() -> dict[str, str]:
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",

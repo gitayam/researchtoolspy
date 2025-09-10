@@ -2,23 +2,32 @@
 Document processing API endpoints for file analysis and conversion.
 """
 
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, BackgroundTasks
-from pydantic import BaseModel, validator
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-import json
-import os
 import hashlib
+import json
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
-from app.core.database import get_db
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
+from pydantic import BaseModel, validator
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.endpoints.auth import get_current_user
+from app.core.database import get_db
 from app.core.logging import get_logger
-from app.models.user import User
 from app.models.research_tool import ResearchJob, ResearchJobStatus, ResearchJobType
+from app.models.user import User
 
 logger = get_logger(__name__)
 
@@ -54,13 +63,13 @@ class ProcessingTask(str, Enum):
 
 class DocumentProcessingRequest(BaseModel):
     """Request model for document processing."""
-    tasks: List[ProcessingTask]
-    convert_to: Optional[DocumentType] = None
+    tasks: list[ProcessingTask]
+    convert_to: DocumentType | None = None
     extract_images: bool = False
     preserve_formatting: bool = True
-    language: Optional[str] = "auto"
-    analysis_options: Optional[Dict[str, Any]] = {}
-    
+    language: str | None = "auto"
+    analysis_options: dict[str, Any] | None = {}
+
     @validator('tasks')
     def validate_tasks(cls, v):
         """Validate processing tasks."""
@@ -78,7 +87,7 @@ class DocumentUploadResponse(BaseModel):
     file_size: int
     file_type: str
     uploaded_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -90,12 +99,12 @@ class DocumentProcessingJobResponse(BaseModel):
     filename: str
     status: str
     progress_percentage: int
-    current_step: Optional[str]
-    tasks: List[str]
-    started_at: Optional[datetime]
-    estimated_completion: Optional[datetime]
+    current_step: str | None
+    tasks: list[str]
+    started_at: datetime | None
+    estimated_completion: datetime | None
     message: str
-    
+
     class Config:
         from_attributes = True
 
@@ -106,15 +115,15 @@ class DocumentAnalysisResult(BaseModel):
     filename: str
     file_type: str
     file_size: int
-    processing_tasks: List[str]
-    extracted_text: Optional[str]
-    metadata: Optional[Dict[str, Any]]
-    summary: Optional[str]
-    entities: Optional[List[Dict[str, Any]]]
-    classification: Optional[Dict[str, Any]]
-    converted_files: Optional[List[Dict[str, str]]]
+    processing_tasks: list[str]
+    extracted_text: str | None
+    metadata: dict[str, Any] | None
+    summary: str | None
+    entities: list[dict[str, Any]] | None
+    classification: dict[str, Any] | None
+    converted_files: list[dict[str, str]] | None
     processing_time: float
-    
+
     class Config:
         from_attributes = True
 
@@ -122,36 +131,36 @@ class DocumentAnalysisResult(BaseModel):
 # Document Processing Service
 class DocumentProcessingService:
     """Service for document processing operations."""
-    
+
     def __init__(self):
         self.upload_dir = Path("uploads/documents")
         self.output_dir = Path("uploads/processed")
-        
+
         # Create directories if they don't exist
         self.upload_dir.mkdir(parents=True, exist_ok=True)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def generate_file_id(self, filename: str, content: bytes) -> str:
         """Generate unique file ID based on content hash."""
         content_hash = hashlib.sha256(content).hexdigest()
         timestamp = int(datetime.utcnow().timestamp())
         return f"{timestamp}_{content_hash[:16]}"
-    
+
     async def save_uploaded_file(self, file: UploadFile) -> tuple[str, Path]:
         """Save uploaded file and return file ID and path."""
         content = await file.read()
         file_id = self.generate_file_id(file.filename, content)
-        
+
         # Determine file extension
         file_extension = Path(file.filename).suffix.lower()
         file_path = self.upload_dir / f"{file_id}{file_extension}"
-        
+
         # Save file
         with open(file_path, "wb") as f:
             f.write(content)
-        
+
         return file_id, file_path
-    
+
     async def extract_text_from_pdf(self, file_path: Path) -> str:
         """Extract text from PDF file."""
         try:
@@ -161,7 +170,7 @@ class DocumentProcessingService:
         except Exception as e:
             logger.error(f"Failed to extract text from PDF: {e}")
             raise
-    
+
     async def extract_text_from_docx(self, file_path: Path) -> str:
         """Extract text from DOCX file."""
         try:
@@ -171,26 +180,26 @@ class DocumentProcessingService:
         except Exception as e:
             logger.error(f"Failed to extract text from DOCX: {e}")
             raise
-    
+
     async def extract_text_from_txt(self, file_path: Path) -> str:
         """Extract text from TXT file."""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding='utf-8') as f:
                 return f.read()
         except UnicodeDecodeError:
             # Try different encodings
             for encoding in ['latin-1', 'cp1252', 'iso-8859-1']:
                 try:
-                    with open(file_path, 'r', encoding=encoding) as f:
+                    with open(file_path, encoding=encoding) as f:
                         return f.read()
                 except UnicodeDecodeError:
                     continue
             raise ValueError("Unable to decode text file")
-    
+
     async def extract_text(self, file_path: Path, file_type: str) -> str:
         """Extract text from document based on file type."""
         file_type = file_type.lower().replace('.', '')
-        
+
         if file_type == 'pdf':
             return await self.extract_text_from_pdf(file_path)
         elif file_type in ['docx', 'doc']:
@@ -200,13 +209,13 @@ class DocumentProcessingService:
         elif file_type == 'html':
             # Use BeautifulSoup for HTML
             from bs4 import BeautifulSoup
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding='utf-8') as f:
                 soup = BeautifulSoup(f.read(), 'html.parser')
                 return soup.get_text()
         else:
             return f"Text extraction not implemented for {file_type} files"
-    
-    async def extract_metadata(self, file_path: Path, file_type: str) -> Dict[str, Any]:
+
+    async def extract_metadata(self, file_path: Path, file_type: str) -> dict[str, Any]:
         """Extract metadata from document."""
         metadata = {
             "filename": file_path.name,
@@ -215,7 +224,7 @@ class DocumentProcessingService:
             "created_at": datetime.fromtimestamp(file_path.stat().st_ctime).isoformat(),
             "modified_at": datetime.fromtimestamp(file_path.stat().st_mtime).isoformat()
         }
-        
+
         # Add file-type specific metadata
         if file_type.lower() == 'pdf':
             # Placeholder for PDF metadata extraction
@@ -232,49 +241,49 @@ class DocumentProcessingService:
                 "author": "Unknown",
                 "title": "Unknown"
             })
-        
+
         return metadata
-    
+
     async def generate_summary(self, text: str, max_length: int = 500) -> str:
         """Generate document summary."""
         # Simple extractive summary - first few sentences
         sentences = text.split('. ')
-        
+
         summary = ""
         for sentence in sentences:
             if len(summary) + len(sentence) < max_length:
                 summary += sentence + ". "
             else:
                 break
-        
+
         if not summary:
             summary = text[:max_length] + "..." if len(text) > max_length else text
-        
+
         # In production, integrate with AI service for better summarization
         return summary.strip()
-    
-    async def extract_entities(self, text: str) -> List[Dict[str, Any]]:
+
+    async def extract_entities(self, text: str) -> list[dict[str, Any]]:
         """Extract named entities from text."""
         # Placeholder for named entity recognition
         # In production, use spaCy, NLTK, or cloud NER services
-        
+
         # Simple keyword extraction as placeholder
         common_words = set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'])
         words = text.split()
-        
+
         # Find capitalized words (potential entities)
         entities = []
         for word in words:
             clean_word = word.strip('.,!?()[]{}":;')
-            if (clean_word.istitle() and 
-                len(clean_word) > 2 and 
+            if (clean_word.istitle() and
+                len(clean_word) > 2 and
                 clean_word.lower() not in common_words):
                 entities.append({
                     "text": clean_word,
                     "label": "UNKNOWN",
                     "confidence": 0.5
                 })
-        
+
         # Remove duplicates and limit results
         unique_entities = []
         seen = set()
@@ -284,14 +293,14 @@ class DocumentProcessingService:
                 unique_entities.append(entity)
                 if len(unique_entities) >= 20:  # Limit to top 20
                     break
-        
+
         return unique_entities
-    
-    async def classify_document(self, text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def classify_document(self, text: str, metadata: dict[str, Any]) -> dict[str, Any]:
         """Classify document type and content."""
         # Simple rule-based classification
         text_lower = text.lower()
-        
+
         # Document type classification
         if any(word in text_lower for word in ['report', 'analysis', 'findings', 'conclusion']):
             doc_type = "report"
@@ -303,7 +312,7 @@ class DocumentProcessingService:
             doc_type = "financial"
         else:
             doc_type = "general"
-        
+
         # Content classification
         if any(word in text_lower for word in ['confidential', 'classified', 'secret', 'restricted']):
             classification_level = "confidential"
@@ -311,11 +320,11 @@ class DocumentProcessingService:
             classification_level = "internal"
         else:
             classification_level = "public"
-        
+
         # Estimate reading time (average 200 words per minute)
         word_count = len(text.split())
         reading_time_minutes = max(1, word_count // 200)
-        
+
         return {
             "document_type": doc_type,
             "classification_level": classification_level,
@@ -324,30 +333,30 @@ class DocumentProcessingService:
             "language": "english",  # Placeholder
             "confidence": 0.7
         }
-    
-    async def convert_document(self, file_path: Path, source_type: str, target_type: str) -> Optional[Path]:
+
+    async def convert_document(self, file_path: Path, source_type: str, target_type: str) -> Path | None:
         """Convert document to different format."""
         # Placeholder for document conversion
         # In production, use libraries like pandoc, LibreOffice, or cloud conversion services
-        
+
         output_filename = f"{file_path.stem}_converted.{target_type}"
         output_path = self.output_dir / output_filename
-        
+
         # Simulate conversion
         conversion_note = f"Document conversion from {source_type} to {target_type} (conversion library required)"
-        
+
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(conversion_note)
-        
+
         return output_path
-    
+
     async def process_document_job(
         self,
         job_id: int,
         file_id: str,
         file_path: Path,
-        tasks: List[ProcessingTask],
-        options: Dict[str, Any],
+        tasks: list[ProcessingTask],
+        options: dict[str, Any],
         db: AsyncSession
     ):
         """Process a document processing job in the background."""
@@ -357,36 +366,36 @@ class DocumentProcessingService:
                 select(ResearchJob).where(ResearchJob.id == job_id)
             )
             job = result.scalar_one_or_none()
-            
+
             if not job:
                 logger.error(f"Document processing job {job_id} not found")
                 return
-            
+
             # Update job status
             job.status = ResearchJobStatus.IN_PROGRESS
             job.started_at = datetime.utcnow()
             job.current_step = "Starting document processing"
             await db.commit()
-            
+
             results = {}
             total_tasks = len(tasks)
             file_type = file_path.suffix.lower().replace('.', '')
-            
+
             for i, task in enumerate(tasks):
                 try:
                     # Update progress
                     job.progress_percentage = int((i / total_tasks) * 100)
                     job.current_step = f"Processing: {task.value}"
                     await db.commit()
-                    
+
                     if task == ProcessingTask.EXTRACT_TEXT:
                         text = await self.extract_text(file_path, file_type)
                         results["extracted_text"] = text[:10000]  # Limit size
-                    
+
                     elif task == ProcessingTask.EXTRACT_METADATA:
                         metadata = await self.extract_metadata(file_path, file_type)
                         results["metadata"] = metadata
-                    
+
                     elif task == ProcessingTask.GENERATE_SUMMARY:
                         if "extracted_text" not in results:
                             text = await self.extract_text(file_path, file_type)
@@ -394,7 +403,7 @@ class DocumentProcessingService:
                             text = results["extracted_text"]
                         summary = await self.generate_summary(text)
                         results["summary"] = summary
-                    
+
                     elif task == ProcessingTask.EXTRACT_ENTITIES:
                         if "extracted_text" not in results:
                             text = await self.extract_text(file_path, file_type)
@@ -402,7 +411,7 @@ class DocumentProcessingService:
                             text = results["extracted_text"]
                         entities = await self.extract_entities(text)
                         results["entities"] = entities
-                    
+
                     elif task == ProcessingTask.CLASSIFY_DOCUMENT:
                         if "extracted_text" not in results:
                             text = await self.extract_text(file_path, file_type)
@@ -414,7 +423,7 @@ class DocumentProcessingService:
                             metadata = results["metadata"]
                         classification = await self.classify_document(text, metadata)
                         results["classification"] = classification
-                    
+
                     elif task == ProcessingTask.CONVERT_FORMAT:
                         target_type = options.get("convert_to")
                         if target_type:
@@ -425,25 +434,25 @@ class DocumentProcessingService:
                                     "filename": converted_path.name,
                                     "path": str(converted_path)
                                 }]
-                    
+
                 except Exception as e:
                     logger.error(f"Failed to process task {task}: {e}")
                     results[f"{task.value}_error"] = str(e)
-            
+
             # Update job completion
             job.status = ResearchJobStatus.COMPLETED
             job.progress_percentage = 100
             job.completed_at = datetime.utcnow()
             job.current_step = "Processing completed"
             job.result_data = json.dumps(results)
-            
+
             await db.commit()
-            
+
             logger.info(f"Completed document processing job {job_id}")
-            
+
         except Exception as e:
             logger.error(f"Failed to process document job {job_id}: {e}")
-            
+
             # Update job with error
             try:
                 job.status = ResearchJobStatus.FAILED
@@ -472,13 +481,13 @@ async def upload_document(
         # Validate file type
         allowed_extensions = {'.pdf', '.docx', '.doc', '.txt', '.rtf', '.html', '.md', '.csv', '.xlsx', '.xls', '.pptx', '.ppt'}
         file_extension = Path(file.filename).suffix.lower()
-        
+
         if file_extension not in allowed_extensions:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"File type {file_extension} not supported. Allowed types: {', '.join(allowed_extensions)}"
             )
-        
+
         # Check file size (max 50MB)
         max_size = 50 * 1024 * 1024  # 50MB
         if file.size and file.size > max_size:
@@ -486,12 +495,12 @@ async def upload_document(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="File size exceeds 50MB limit"
             )
-        
+
         # Save file
         file_id, file_path = await document_service.save_uploaded_file(file)
-        
+
         logger.info(f"Uploaded document {file.filename} as {file_id} for user {current_user.username}")
-        
+
         return DocumentUploadResponse(
             file_id=file_id,
             filename=file.filename,
@@ -499,7 +508,7 @@ async def upload_document(
             file_type=file_extension.replace('.', ''),
             uploaded_at=datetime.utcnow()
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to upload document: {e}")
         raise HTTPException(
@@ -529,23 +538,23 @@ async def process_document(
         # Find uploaded file
         file_pattern = f"{file_id}.*"
         matching_files = list(document_service.upload_dir.glob(file_pattern))
-        
+
         if not matching_files:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Uploaded file not found"
             )
-        
+
         file_path = matching_files[0]
         filename = file_path.name
-        
+
         # Validate convert_to parameter if needed
         if ProcessingTask.CONVERT_FORMAT in request.tasks and not request.convert_to:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="convert_to parameter required when convert_format task is selected"
             )
-        
+
         # Create processing job
         job_data = {
             "file_id": file_id,
@@ -557,7 +566,7 @@ async def process_document(
             "language": request.language,
             "analysis_options": request.analysis_options
         }
-        
+
         job = ResearchJob(
             job_type=ResearchJobType.DOCUMENT_PROCESSING,
             job_name=f"Process: {filename}",
@@ -565,11 +574,11 @@ async def process_document(
             input_data=json.dumps(job_data),
             user_id=current_user.id
         )
-        
+
         db.add(job)
         await db.commit()
         await db.refresh(job)
-        
+
         # Start background processing
         background_tasks.add_task(
             document_service.process_document_job,
@@ -580,9 +589,9 @@ async def process_document(
             job_data,
             db
         )
-        
+
         logger.info(f"Started document processing job {job.id} for file {file_id}")
-        
+
         return DocumentProcessingJobResponse(
             job_id=job.id,
             file_id=file_id,
@@ -595,7 +604,7 @@ async def process_document(
             estimated_completion=None,
             message="Document processing job started successfully"
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to start document processing job: {e}")
         raise HTTPException(
@@ -624,13 +633,13 @@ async def get_processing_job_status(
             )
         )
         job = result.scalar_one_or_none()
-        
+
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Processing job not found"
             )
-        
+
         # Extract job data
         job_data = {}
         if job.input_data:
@@ -638,7 +647,7 @@ async def get_processing_job_status(
                 job_data = json.loads(job.input_data)
             except json.JSONDecodeError:
                 pass
-        
+
         return DocumentProcessingJobResponse(
             job_id=job.id,
             file_id=job_data.get("file_id", "unknown"),
@@ -651,7 +660,7 @@ async def get_processing_job_status(
             estimated_completion=job.estimated_completion,
             message=f"Job status: {job.status}"
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -682,19 +691,19 @@ async def get_processing_job_results(
             )
         )
         job = result.scalar_one_or_none()
-        
+
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Processing job not found"
             )
-        
+
         if job.status != ResearchJobStatus.COMPLETED:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Job is not completed. Current status: {job.status}"
             )
-        
+
         # Parse job data and results
         job_data = {}
         if job.input_data:
@@ -702,18 +711,18 @@ async def get_processing_job_results(
                 job_data = json.loads(job.input_data)
             except json.JSONDecodeError:
                 pass
-        
+
         results = {}
         if job.result_data:
             try:
                 results = json.loads(job.result_data)
             except json.JSONDecodeError:
                 logger.error(f"Failed to parse results for job {job_id}")
-        
+
         processing_time = 0
         if job.started_at and job.completed_at:
             processing_time = (job.completed_at - job.started_at).total_seconds()
-        
+
         return {
             "job_id": job.id,
             "file_id": job_data.get("file_id", "unknown"),
@@ -725,7 +734,7 @@ async def get_processing_job_results(
             "processing_time": processing_time,
             "results": results
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -742,8 +751,8 @@ async def get_processing_jobs(
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(50, ge=1, le=100, description="Number of records to return"),
-    status_filter: Optional[str] = Query(None, description="Filter by job status")
-) -> List[dict]:
+    status_filter: str | None = Query(None, description="Filter by job status")
+) -> list[dict]:
     """
     Get user's document processing jobs with optional filtering.
     
@@ -756,15 +765,15 @@ async def get_processing_jobs(
             ResearchJob.user_id == current_user.id,
             ResearchJob.job_type == ResearchJobType.DOCUMENT_PROCESSING
         )
-        
+
         if status_filter:
             query = query.where(ResearchJob.status == status_filter)
-        
+
         query = query.order_by(ResearchJob.created_at.desc()).offset(skip).limit(limit)
-        
+
         result = await db.execute(query)
         jobs = result.scalars().all()
-        
+
         # Format jobs
         formatted_jobs = []
         for job in jobs:
@@ -774,7 +783,7 @@ async def get_processing_jobs(
                     job_data = json.loads(job.input_data)
                 except json.JSONDecodeError:
                     pass
-            
+
             formatted_jobs.append({
                 "job_id": job.id,
                 "file_id": job_data.get("file_id", "unknown"),
@@ -788,9 +797,9 @@ async def get_processing_jobs(
                 "completed_at": job.completed_at.isoformat() if job.completed_at else None,
                 "created_at": job.created_at.isoformat()
             })
-        
+
         return formatted_jobs
-        
+
     except Exception as e:
         logger.error(f"Failed to get processing jobs: {e}")
         raise HTTPException(
@@ -819,13 +828,13 @@ async def cancel_processing_job(
             )
         )
         job = result.scalar_one_or_none()
-        
+
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Processing job not found"
             )
-        
+
         # If job is running, mark as cancelled. If completed/failed, delete it.
         if job.status in [ResearchJobStatus.PENDING, ResearchJobStatus.IN_PROGRESS]:
             job.status = ResearchJobStatus.CANCELLED
@@ -834,9 +843,9 @@ async def cancel_processing_job(
         else:
             await db.delete(job)
             await db.commit()
-        
+
         logger.info(f"Cancelled/deleted processing job {job_id} for user {current_user.username}")
-        
+
     except HTTPException:
         raise
     except Exception as e:

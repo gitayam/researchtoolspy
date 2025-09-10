@@ -3,7 +3,6 @@ PMESII-PT Framework API endpoints.
 Comprehensive operational environment analysis for intelligence professionals.
 """
 
-from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -16,7 +15,6 @@ from app.models.framework import FrameworkType
 from app.models.user import User
 from app.services.framework_service import (
     FrameworkData,
-    PMESIIPTData,
     framework_service,
 )
 
@@ -28,41 +26,41 @@ class PMESIIPTComponent(BaseModel):
     """Base model for PMESII-PT components."""
     description: str
     factors: list[str]
-    assessment: Optional[str] = None
-    indicators: Optional[list[str]] = []
-    trends: Optional[str] = None
-    implications: Optional[str] = None
+    assessment: str | None = None
+    indicators: list[str] | None = []
+    trends: str | None = None
+    implications: str | None = None
 
 
 class PMESIIPTCreateRequest(BaseModel):
     """PMESII-PT analysis creation request."""
     title: str
     scenario: str
-    region: Optional[str] = None
-    timeframe: Optional[str] = None
-    political: Optional[PMESIIPTComponent] = None
-    military: Optional[PMESIIPTComponent] = None
-    economic: Optional[PMESIIPTComponent] = None
-    social: Optional[PMESIIPTComponent] = None
-    infrastructure: Optional[PMESIIPTComponent] = None
-    information: Optional[PMESIIPTComponent] = None
-    physical_environment: Optional[PMESIIPTComponent] = None
-    time: Optional[PMESIIPTComponent] = None
+    region: str | None = None
+    timeframe: str | None = None
+    political: PMESIIPTComponent | None = None
+    military: PMESIIPTComponent | None = None
+    economic: PMESIIPTComponent | None = None
+    social: PMESIIPTComponent | None = None
+    infrastructure: PMESIIPTComponent | None = None
+    information: PMESIIPTComponent | None = None
+    physical_environment: PMESIIPTComponent | None = None
+    time: PMESIIPTComponent | None = None
     request_ai_analysis: bool = True
 
 
 class PMESIIPTUpdateRequest(BaseModel):
     """PMESII-PT analysis update request."""
-    title: Optional[str] = None
-    scenario: Optional[str] = None
-    political: Optional[PMESIIPTComponent] = None
-    military: Optional[PMESIIPTComponent] = None
-    economic: Optional[PMESIIPTComponent] = None
-    social: Optional[PMESIIPTComponent] = None
-    infrastructure: Optional[PMESIIPTComponent] = None
-    information: Optional[PMESIIPTComponent] = None
-    physical_environment: Optional[PMESIIPTComponent] = None
-    time: Optional[PMESIIPTComponent] = None
+    title: str | None = None
+    scenario: str | None = None
+    political: PMESIIPTComponent | None = None
+    military: PMESIIPTComponent | None = None
+    economic: PMESIIPTComponent | None = None
+    social: PMESIIPTComponent | None = None
+    infrastructure: PMESIIPTComponent | None = None
+    information: PMESIIPTComponent | None = None
+    physical_environment: PMESIIPTComponent | None = None
+    time: PMESIIPTComponent | None = None
 
 
 class PMESIIPTAnalysisResponse(BaseModel):
@@ -70,8 +68,8 @@ class PMESIIPTAnalysisResponse(BaseModel):
     session_id: int
     title: str
     scenario: str
-    region: Optional[str]
-    timeframe: Optional[str]
+    region: str | None
+    timeframe: str | None
     political: PMESIIPTComponent
     military: PMESIIPTComponent
     economic: PMESIIPTComponent
@@ -80,7 +78,7 @@ class PMESIIPTAnalysisResponse(BaseModel):
     information: PMESIIPTComponent
     physical_environment: PMESIIPTComponent
     time: PMESIIPTComponent
-    ai_analysis: Optional[dict] = None
+    ai_analysis: dict | None = None
     status: str
     version: int
 
@@ -115,7 +113,7 @@ async def create_pmesii_pt_analysis(
         PMESIIPTAnalysisResponse: Created PMESII-PT analysis
     """
     logger.info(f"Creating PMESII-PT analysis: {request.title} for user {current_user.username}")
-    
+
     # Prepare PMESII-PT data
     pmesii_data = {
         "scenario": request.scenario,
@@ -130,7 +128,7 @@ async def create_pmesii_pt_analysis(
         "physical_environment": request.physical_environment.dict() if request.physical_environment else _get_default_component(),
         "time": request.time.dict() if request.time else _get_default_component(),
     }
-    
+
     # Get AI analysis if requested
     ai_analysis = None
     if request.request_ai_analysis:
@@ -141,10 +139,10 @@ async def create_pmesii_pt_analysis(
                 "suggest"
             )
             ai_analysis = ai_result.get("suggestions")
-            
+
             # Merge AI suggestions with initial data
             if ai_analysis:
-                for component in ["political", "military", "economic", "social", 
+                for component in ["political", "military", "economic", "social",
                                 "infrastructure", "information", "physical_environment", "time"]:
                     if component in ai_analysis and isinstance(ai_analysis[component], dict):
                         # Merge AI suggestions into component
@@ -155,10 +153,10 @@ async def create_pmesii_pt_analysis(
                                 pmesii_data[component]["factors"] = list(set(pmesii_data[component]["factors"]))
                             elif value:
                                 pmesii_data[component][key] = value
-                        
+
         except Exception as e:
             logger.warning(f"Failed to get AI analysis: {e}")
-    
+
     # Create framework session
     framework_data = FrameworkData(
         framework_type=FrameworkType.PMESII_PT,
@@ -167,9 +165,9 @@ async def create_pmesii_pt_analysis(
         data=pmesii_data,
         tags=["pmesii-pt", "operational-environment", "intelligence-preparation"]
     )
-    
+
     session = await framework_service.create_session(db, current_user, framework_data)
-    
+
     return PMESIIPTAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -210,7 +208,7 @@ async def get_pmesii_pt_analysis(
     # TODO: Implement database retrieval
     # For now, return comprehensive mock data
     logger.info(f"Getting PMESII-PT analysis {session_id}")
-    
+
     return PMESIIPTAnalysisResponse(
         session_id=session_id,
         title="Regional Stability Assessment",
@@ -307,20 +305,20 @@ async def update_pmesii_component(
     Returns:
         dict: Success message
     """
-    valid_components = ["political", "military", "economic", "social", 
+    valid_components = ["political", "military", "economic", "social",
                        "infrastructure", "information", "physical_environment", "time"]
-    
+
     if component_name not in valid_components:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid component. Must be one of: {', '.join(valid_components)}"
         )
-    
+
     logger.info(f"Updating {component_name} component for PMESII-PT {session_id}")
-    
+
     # TODO: Implement actual database update
     # For now, return success response
-    
+
     return {
         "message": f"Successfully updated {component_name} component",
         "session_id": session_id,
@@ -332,7 +330,7 @@ async def update_pmesii_component(
 @router.post("/{session_id}/ai-analysis")
 async def get_pmesii_ai_analysis(
     session_id: int,
-    components: Optional[list[str]] = None,
+    components: list[str] | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> dict:
@@ -349,7 +347,7 @@ async def get_pmesii_ai_analysis(
         dict: AI analysis results
     """
     logger.info(f"Getting AI analysis for PMESII-PT {session_id}")
-    
+
     # TODO: Get actual session data from database
     # For now, use mock data
     pmesii_data = {
@@ -363,19 +361,19 @@ async def get_pmesii_ai_analysis(
         "physical_environment": {"description": "Geographic factors", "factors": ["Climate", "Resources"]},
         "time": {"description": "Temporal factors", "factors": ["History", "Timing"]}
     }
-    
+
     # Filter components if specified
     if components:
-        pmesii_data = {k: v for k, v in pmesii_data.items() 
+        pmesii_data = {k: v for k, v in pmesii_data.items()
                       if k in components or k == "scenario"}
-    
+
     # Get AI analysis
     ai_result = await framework_service.analyze_with_ai(
         FrameworkType.PMESII_PT,
         pmesii_data,
         "suggest"
     )
-    
+
     return {
         "session_id": session_id,
         "analyzed_components": components or "all",
@@ -404,13 +402,13 @@ async def export_pmesii_analysis(
         dict: Export information
     """
     logger.info(f"Exporting PMESII-PT analysis {session_id} as {format}")
-    
+
     if format not in ["pdf", "docx", "json", "pptx"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid export format. Supported: pdf, docx, json, pptx"
         )
-    
+
     # TODO: Implement actual export functionality
     return {
         "session_id": session_id,
@@ -482,5 +480,5 @@ async def list_pmesii_templates(
             }
         }
     ]
-    
+
     return templates

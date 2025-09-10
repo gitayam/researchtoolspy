@@ -3,7 +3,6 @@ Center of Gravity (COG) Analysis API endpoints.
 Strategic analysis for intelligence professionals.
 """
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -15,7 +14,6 @@ from app.core.logging import get_logger
 from app.models.framework import FrameworkType
 from app.models.user import User
 from app.services.framework_service import (
-    COGAnalysisData,
     FrameworkData,
     framework_service,
 )
@@ -29,21 +27,21 @@ class COGCreateRequest(BaseModel):
     title: str
     user_details: str
     desired_end_state: str
-    initial_entities: Optional[list[dict]] = []
-    initial_relationships: Optional[list[dict]] = []
+    initial_entities: list[dict] | None = []
+    initial_relationships: list[dict] | None = []
     request_ai_analysis: bool = True
 
 
 class COGUpdateRequest(BaseModel):
     """COG analysis update request."""
-    title: Optional[str] = None
-    user_details: Optional[str] = None
-    desired_end_state: Optional[str] = None
-    entities: Optional[list[dict]] = None
-    relationships: Optional[list[dict]] = None
-    critical_capabilities: Optional[list[str]] = None
-    critical_requirements: Optional[list[str]] = None
-    critical_vulnerabilities: Optional[list[str]] = None
+    title: str | None = None
+    user_details: str | None = None
+    desired_end_state: str | None = None
+    entities: list[dict] | None = None
+    relationships: list[dict] | None = None
+    critical_capabilities: list[str] | None = None
+    critical_requirements: list[str] | None = None
+    critical_vulnerabilities: list[str] | None = None
 
 
 class COGAnalysisResponse(BaseModel):
@@ -54,10 +52,10 @@ class COGAnalysisResponse(BaseModel):
     desired_end_state: str
     entities: list[dict]
     relationships: list[dict]
-    critical_capabilities: Optional[list[str]]
-    critical_requirements: Optional[list[str]]
-    critical_vulnerabilities: Optional[list[str]]
-    ai_analysis: Optional[dict] = None
+    critical_capabilities: list[str] | None
+    critical_requirements: list[str] | None
+    critical_vulnerabilities: list[str] | None
+    ai_analysis: dict | None = None
     status: str
     version: int
 
@@ -66,8 +64,8 @@ class COGEntityRequest(BaseModel):
     """Request to add/update COG entity."""
     name: str
     type: str  # actor, capability, requirement, vulnerability
-    description: Optional[str] = None
-    attributes: Optional[dict] = None
+    description: str | None = None
+    attributes: dict | None = None
 
 
 class COGRelationshipRequest(BaseModel):
@@ -75,8 +73,8 @@ class COGRelationshipRequest(BaseModel):
     source_entity: str
     target_entity: str
     relationship_type: str  # supports, requires, threatens, etc.
-    strength: Optional[float] = 1.0  # 0-1 scale
-    description: Optional[str] = None
+    strength: float | None = 1.0  # 0-1 scale
+    description: str | None = None
 
 
 @router.post("/create", response_model=COGAnalysisResponse)
@@ -97,7 +95,7 @@ async def create_cog_analysis(
         COGAnalysisResponse: Created COG analysis
     """
     logger.info(f"Creating COG analysis: {request.title} for user {current_user.username}")
-    
+
     # Prepare COG data
     cog_data = {
         "user_details": request.user_details,
@@ -108,7 +106,7 @@ async def create_cog_analysis(
         "critical_requirements": [],
         "critical_vulnerabilities": [],
     }
-    
+
     # Get AI analysis if requested
     ai_analysis = None
     if request.request_ai_analysis:
@@ -119,7 +117,7 @@ async def create_cog_analysis(
                 "suggest"
             )
             ai_analysis = ai_result.get("suggestions")
-            
+
             # Merge AI suggestions with initial data
             if ai_analysis:
                 if "critical_capabilities" in ai_analysis:
@@ -136,10 +134,10 @@ async def create_cog_analysis(
                             "type": "center_of_gravity",
                             "ai_generated": True
                         })
-                        
+
         except Exception as e:
             logger.warning(f"Failed to get AI analysis: {e}")
-    
+
     # Create framework session
     framework_data = FrameworkData(
         framework_type=FrameworkType.COG,
@@ -148,9 +146,9 @@ async def create_cog_analysis(
         data=cog_data,
         tags=["cog", "strategic-analysis", "center-of-gravity"]
     )
-    
+
     session = await framework_service.create_session(db, current_user, framework_data)
-    
+
     return COGAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -187,7 +185,7 @@ async def get_cog_analysis(
     # TODO: Implement database retrieval
     # For now, return mock data
     logger.info(f"Getting COG analysis {session_id}")
-    
+
     return COGAnalysisResponse(
         session_id=session_id,
         title="Strategic COG Analysis",
@@ -255,10 +253,10 @@ async def add_cog_entity(
         dict: Success message with entity ID
     """
     logger.info(f"Adding entity to COG analysis {session_id}: {entity.name}")
-    
+
     # TODO: Implement actual database update
     # For now, return mock response
-    
+
     entity_data = {
         "id": f"entity_{session_id}_{entity.name.lower().replace(' ', '_')}",
         "name": entity.name,
@@ -267,7 +265,7 @@ async def add_cog_entity(
         "attributes": entity.attributes or {},
         "created_at": "2025-08-16T00:00:00Z"
     }
-    
+
     return {
         "message": "Entity added successfully",
         "entity": entity_data
@@ -297,9 +295,9 @@ async def add_cog_relationship(
         f"Adding relationship to COG {session_id}: "
         f"{relationship.source_entity} -> {relationship.target_entity}"
     )
-    
+
     # TODO: Implement actual database update
-    
+
     relationship_data = {
         "id": f"rel_{session_id}_{len(str(session_id))}",
         "source": relationship.source_entity,
@@ -309,7 +307,7 @@ async def add_cog_relationship(
         "description": relationship.description,
         "created_at": "2025-08-16T00:00:00Z"
     }
-    
+
     return {
         "message": "Relationship added successfully",
         "relationship": relationship_data
@@ -334,7 +332,7 @@ async def normalize_cog_entities(
         dict: Normalization results
     """
     logger.info(f"Normalizing COG entities for session {session_id}")
-    
+
     # TODO: Get actual session data from database
     # For now, use mock data
     cog_data = {
@@ -344,14 +342,14 @@ async def normalize_cog_entities(
         ],
         "desired_end_state": "Strategic stability"
     }
-    
+
     # Analyze with AI
     ai_result = await framework_service.analyze_with_ai(
         FrameworkType.COG,
         cog_data,
         "suggest"
     )
-    
+
     return {
         "message": "Entities normalized successfully",
         "normalized_entities": ai_result.get("suggestions", {}).get("entities", []),
@@ -380,13 +378,13 @@ async def export_cog_analysis(
         dict: Export information
     """
     logger.info(f"Exporting COG analysis {session_id} as {format}")
-    
+
     if format not in ["pdf", "docx", "json", "graphml"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid export format. Supported: pdf, docx, json, graphml"
         )
-    
+
     # TODO: Implement actual export functionality
     # For now, return mock response
     return {
@@ -448,5 +446,5 @@ async def list_cog_templates(
             ]
         }
     ]
-    
+
     return templates

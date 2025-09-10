@@ -2,18 +2,18 @@
 Citation management API endpoints for academic and source management.
 """
 
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from pydantic import BaseModel, validator
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
 from datetime import datetime
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, validator
+from sqlalchemy import func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.endpoints.auth import get_current_user
+from app.core.database import get_db
 from app.core.logging import get_logger
+from app.models.research_tool import Citation
 from app.models.user import User
-from app.models.research_tool import Citation, ProcessedUrl
 
 logger = get_logger(__name__)
 
@@ -23,32 +23,32 @@ router = APIRouter()
 class CitationCreateRequest(BaseModel):
     """Request model for creating citations."""
     title: str
-    authors: Optional[List[str]] = None
-    publication_date: Optional[datetime] = None
+    authors: list[str] | None = None
+    publication_date: datetime | None = None
     source_type: str  # article, book, website, report, etc.
-    source_name: Optional[str] = None
-    url: Optional[str] = None
-    doi: Optional[str] = None
-    isbn: Optional[str] = None
-    pmid: Optional[str] = None
-    tags: Optional[List[str]] = None
-    notes: Optional[str] = None
-    reliability_rating: Optional[int] = None
-    relevance_rating: Optional[int] = None
-    processed_url_id: Optional[int] = None
-    additional_data: Optional[dict] = None
-    
+    source_name: str | None = None
+    url: str | None = None
+    doi: str | None = None
+    isbn: str | None = None
+    pmid: str | None = None
+    tags: list[str] | None = None
+    notes: str | None = None
+    reliability_rating: int | None = None
+    relevance_rating: int | None = None
+    processed_url_id: int | None = None
+    additional_data: dict | None = None
+
     @validator('source_type')
     def validate_source_type(cls, v):
         """Validate source type."""
         valid_types = {
-            'article', 'book', 'website', 'report', 'thesis', 'conference', 
+            'article', 'book', 'website', 'report', 'thesis', 'conference',
             'news', 'blog', 'social_media', 'government', 'academic', 'other'
         }
         if v.lower() not in valid_types:
             raise ValueError(f"Source type must be one of: {', '.join(valid_types)}")
         return v.lower()
-    
+
     @validator('reliability_rating', 'relevance_rating')
     def validate_rating(cls, v):
         """Validate rating is between 1-5."""
@@ -59,56 +59,56 @@ class CitationCreateRequest(BaseModel):
 
 class CitationUpdateRequest(BaseModel):
     """Request model for updating citations."""
-    title: Optional[str] = None
-    authors: Optional[List[str]] = None
-    publication_date: Optional[datetime] = None
-    source_type: Optional[str] = None
-    source_name: Optional[str] = None
-    url: Optional[str] = None
-    doi: Optional[str] = None
-    isbn: Optional[str] = None
-    pmid: Optional[str] = None
-    tags: Optional[List[str]] = None
-    notes: Optional[str] = None
-    reliability_rating: Optional[int] = None
-    relevance_rating: Optional[int] = None
-    additional_data: Optional[dict] = None
+    title: str | None = None
+    authors: list[str] | None = None
+    publication_date: datetime | None = None
+    source_type: str | None = None
+    source_name: str | None = None
+    url: str | None = None
+    doi: str | None = None
+    isbn: str | None = None
+    pmid: str | None = None
+    tags: list[str] | None = None
+    notes: str | None = None
+    reliability_rating: int | None = None
+    relevance_rating: int | None = None
+    additional_data: dict | None = None
 
 
 class CitationResponse(BaseModel):
     """Response model for citations."""
     id: int
     title: str
-    authors: Optional[List[str]]
-    publication_date: Optional[datetime]
+    authors: list[str] | None
+    publication_date: datetime | None
     source_type: str
-    source_name: Optional[str]
-    url: Optional[str]
-    doi: Optional[str]
-    isbn: Optional[str]
-    pmid: Optional[str]
-    apa_citation: Optional[str]
-    mla_citation: Optional[str]
-    chicago_citation: Optional[str]
-    bibtex_citation: Optional[str]
-    tags: Optional[List[str]]
-    notes: Optional[str]
-    reliability_rating: Optional[int]
-    relevance_rating: Optional[int]
-    processed_url_id: Optional[int]
+    source_name: str | None
+    url: str | None
+    doi: str | None
+    isbn: str | None
+    pmid: str | None
+    apa_citation: str | None
+    mla_citation: str | None
+    chicago_citation: str | None
+    bibtex_citation: str | None
+    tags: list[str] | None
+    notes: str | None
+    reliability_rating: int | None
+    relevance_rating: int | None
+    processed_url_id: int | None
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 
 class BibliographyExportRequest(BaseModel):
     """Request model for bibliography export."""
-    citation_ids: List[int]
+    citation_ids: list[int]
     format: str  # apa, mla, chicago, bibtex
-    title: Optional[str] = "Bibliography"
-    
+    title: str | None = "Bibliography"
+
     @validator('format')
     def validate_format(cls, v):
         """Validate citation format."""
@@ -124,13 +124,13 @@ class CitationStatsResponse(BaseModel):
     by_source_type: dict
     by_rating: dict
     recent_citations: int  # Last 30 days
-    top_tags: List[dict]
+    top_tags: list[dict]
 
 
 # Citation Format Generator Helper
 class CitationFormatter:
     """Helper class for generating citation formats."""
-    
+
     @staticmethod
     def generate_apa(citation_data: dict) -> str:
         """Generate APA format citation."""
@@ -139,7 +139,7 @@ class CitationFormatter:
         source_name = citation_data.get('source_name', '')
         publication_date = citation_data.get('publication_date')
         url = citation_data.get('url', '')
-        
+
         # Simplified APA format - in production, use a proper citation library
         author_str = ""
         if authors:
@@ -149,17 +149,17 @@ class CitationFormatter:
                 author_str = ", ".join(authors[:-1]) + f", & {authors[-1]}"
             else:
                 author_str = ", ".join(authors[:6]) + ", ... " + authors[-1]
-        
+
         year = f"({publication_date.year})" if publication_date else "(n.d.)"
-        
+
         citation = f"{author_str} {year}. {title}."
         if source_name:
             citation += f" {source_name}."
         if url:
             citation += f" {url}"
-        
+
         return citation
-    
+
     @staticmethod
     def generate_mla(citation_data: dict) -> str:
         """Generate MLA format citation."""
@@ -168,14 +168,14 @@ class CitationFormatter:
         source_name = citation_data.get('source_name', '')
         publication_date = citation_data.get('publication_date')
         url = citation_data.get('url', '')
-        
+
         # Simplified MLA format
         author_str = ""
         if authors:
             author_str = authors[0]
             if len(authors) > 1:
                 author_str += ", et al."
-        
+
         citation = f"{author_str}. \"{title}.\""
         if source_name:
             citation += f" {source_name},"
@@ -183,9 +183,9 @@ class CitationFormatter:
             citation += f" {publication_date.year},"
         if url:
             citation += f" {url}."
-        
+
         return citation
-    
+
     @staticmethod
     def generate_chicago(citation_data: dict) -> str:
         """Generate Chicago format citation."""
@@ -194,21 +194,21 @@ class CitationFormatter:
         title = citation_data.get('title', '')
         source_name = citation_data.get('source_name', '')
         publication_date = citation_data.get('publication_date')
-        
+
         author_str = ""
         if authors:
             author_str = authors[0]
             if len(authors) > 1:
                 author_str += " et al."
-        
+
         citation = f"{author_str}. \"{title}.\""
         if source_name:
             citation += f" {source_name}."
         if publication_date:
             citation += f" {publication_date.year}."
-        
+
         return citation
-    
+
     @staticmethod
     def generate_bibtex(citation_data: dict, citation_id: int) -> str:
         """Generate BibTeX format citation."""
@@ -219,7 +219,7 @@ class CitationFormatter:
         publication_date = citation_data.get('publication_date')
         url = citation_data.get('url', '')
         doi = citation_data.get('doi', '')
-        
+
         # Map source types to BibTeX entry types
         bibtex_type_map = {
             'article': 'article',
@@ -229,34 +229,34 @@ class CitationFormatter:
             'thesis': 'phdthesis',
             'conference': 'inproceedings'
         }
-        
+
         entry_type = bibtex_type_map.get(source_type, 'misc')
         key = f"citation{citation_id}"
-        
+
         bibtex = f"@{entry_type}{{{key},\n"
         bibtex += f"  title={{{title}}},\n"
-        
+
         if authors:
             author_str = " and ".join(authors)
             bibtex += f"  author={{{author_str}}},\n"
-        
+
         if source_name:
             if entry_type == 'article':
                 bibtex += f"  journal={{{source_name}}},\n"
             else:
                 bibtex += f"  publisher={{{source_name}}},\n"
-        
+
         if publication_date:
             bibtex += f"  year={{{publication_date.year}}},\n"
-        
+
         if url:
             bibtex += f"  url={{{url}}},\n"
-        
+
         if doi:
             bibtex += f"  doi={{{doi}}},\n"
-        
+
         bibtex += "}"
-        
+
         return bibtex
 
 
@@ -291,13 +291,13 @@ async def create_citation(
             'doi': request.doi,
             'source_type': request.source_type
         }
-        
+
         # Generate citation formats
         formatter = CitationFormatter()
         apa_citation = formatter.generate_apa(citation_data)
         mla_citation = formatter.generate_mla(citation_data)
         chicago_citation = formatter.generate_chicago(citation_data)
-        
+
         # Create citation
         citation = Citation(
             title=request.title,
@@ -320,20 +320,20 @@ async def create_citation(
             citation_data=str(request.additional_data) if request.additional_data else None,
             user_id=current_user.id
         )
-        
+
         db.add(citation)
         await db.commit()
         await db.refresh(citation)
-        
+
         # Generate BibTeX after we have the ID
         bibtex_citation = formatter.generate_bibtex(citation_data, citation.id)
         citation.bibtex_citation = bibtex_citation
         await db.commit()
         await db.refresh(citation)
-        
+
         logger.info(f"Created citation {citation.id} for user {current_user.username}")
         return CitationResponse.from_orm(citation)
-        
+
     except Exception as e:
         logger.error(f"Failed to create citation: {e}")
         raise HTTPException(
@@ -342,16 +342,16 @@ async def create_citation(
         )
 
 
-@router.get("/", response_model=List[CitationResponse])
+@router.get("/", response_model=list[CitationResponse])
 async def get_citations(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of records to return"),
-    source_type: Optional[str] = Query(None, description="Filter by source type"),
-    tag: Optional[str] = Query(None, description="Filter by tag"),
-    search: Optional[str] = Query(None, description="Search in title, authors, notes")
-) -> List[CitationResponse]:
+    source_type: str | None = Query(None, description="Filter by source type"),
+    tag: str | None = Query(None, description="Filter by tag"),
+    search: str | None = Query(None, description="Search in title, authors, notes")
+) -> list[CitationResponse]:
     """
     Get user's citations with optional filtering and search.
     
@@ -363,14 +363,14 @@ async def get_citations(
     """
     try:
         query = select(Citation).where(Citation.user_id == current_user.id)
-        
+
         # Apply filters
         if source_type:
             query = query.where(Citation.source_type == source_type)
-        
+
         if tag:
             query = query.where(Citation.tags.ilike(f"%{tag}%"))
-        
+
         if search:
             search_term = f"%{search}%"
             query = query.where(
@@ -380,15 +380,15 @@ async def get_citations(
                     Citation.notes.ilike(search_term)
                 )
             )
-        
+
         # Apply pagination and ordering
         query = query.order_by(Citation.created_at.desc()).offset(skip).limit(limit)
-        
+
         result = await db.execute(query)
         citations = result.scalars().all()
-        
+
         return [CitationResponse.from_orm(citation) for citation in citations]
-        
+
     except Exception as e:
         logger.error(f"Failed to get citations: {e}")
         raise HTTPException(
@@ -416,15 +416,15 @@ async def get_citation(
             )
         )
         citation = result.scalar_one_or_none()
-        
+
         if not citation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Citation not found"
             )
-        
+
         return CitationResponse.from_orm(citation)
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -455,23 +455,23 @@ async def update_citation(
             )
         )
         citation = result.scalar_one_or_none()
-        
+
         if not citation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Citation not found"
             )
-        
+
         # Update fields
         update_data = request.dict(exclude_unset=True)
         for field, value in update_data.items():
             if field in ['authors', 'tags'] and value is not None:
                 setattr(citation, field, str(value))
             elif field == 'additional_data' and value is not None:
-                setattr(citation, 'citation_data', str(value))
+                citation.citation_data = str(value)
             else:
                 setattr(citation, field, value)
-        
+
         # Regenerate citation formats if relevant fields changed
         if any(field in update_data for field in ['title', 'authors', 'source_name', 'publication_date', 'url', 'doi']):
             citation_data = {
@@ -483,19 +483,19 @@ async def update_citation(
                 'doi': citation.doi,
                 'source_type': citation.source_type
             }
-            
+
             formatter = CitationFormatter()
             citation.apa_citation = formatter.generate_apa(citation_data)
             citation.mla_citation = formatter.generate_mla(citation_data)
             citation.chicago_citation = formatter.generate_chicago(citation_data)
             citation.bibtex_citation = formatter.generate_bibtex(citation_data, citation.id)
-        
+
         await db.commit()
         await db.refresh(citation)
-        
+
         logger.info(f"Updated citation {citation_id} for user {current_user.username}")
         return CitationResponse.from_orm(citation)
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -525,18 +525,18 @@ async def delete_citation(
             )
         )
         citation = result.scalar_one_or_none()
-        
+
         if not citation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Citation not found"
             )
-        
+
         await db.delete(citation)
         await db.commit()
-        
+
         logger.info(f"Deleted citation {citation_id} for user {current_user.username}")
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -569,16 +569,16 @@ async def export_bibliography(
             ).order_by(Citation.created_at)
         )
         citations = result.scalars().all()
-        
+
         if not citations:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No citations found"
             )
-        
+
         # Generate bibliography
         bibliography_lines = [f"# {request.title}\n"]
-        
+
         for citation in citations:
             if request.format == 'apa':
                 line = citation.apa_citation
@@ -590,11 +590,11 @@ async def export_bibliography(
                 line = citation.bibtex_citation
             else:
                 line = citation.apa_citation  # Default fallback
-            
+
             bibliography_lines.append(line)
-        
+
         bibliography_text = "\n\n".join(bibliography_lines)
-        
+
         return {
             "success": True,
             "format": request.format,
@@ -602,7 +602,7 @@ async def export_bibliography(
             "citation_count": len(citations),
             "bibliography": bibliography_text
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -627,7 +627,7 @@ async def get_citation_stats(
             select(func.count(Citation.id)).where(Citation.user_id == current_user.id)
         )
         total_citations = total_result.scalar() or 0
-        
+
         # By source type
         source_type_result = await db.execute(
             select(
@@ -638,7 +638,7 @@ async def get_citation_stats(
             ).group_by(Citation.source_type)
         )
         by_source_type = {row[0]: row[1] for row in source_type_result}
-        
+
         # By rating (simplified)
         rating_result = await db.execute(
             select(
@@ -650,7 +650,7 @@ async def get_citation_stats(
             ).group_by(Citation.reliability_rating)
         )
         by_rating = {f"rating_{row[0]}": row[1] for row in rating_result}
-        
+
         # Recent citations (last 30 days)
         from datetime import datetime, timedelta
         thirty_days_ago = datetime.now() - timedelta(days=30)
@@ -661,14 +661,14 @@ async def get_citation_stats(
             )
         )
         recent_citations = recent_result.scalar() or 0
-        
+
         # Top tags (simplified - would need better JSON handling in production)
         top_tags = [
             {"tag": "research", "count": 0},
             {"tag": "analysis", "count": 0},
             {"tag": "intelligence", "count": 0}
         ]
-        
+
         return CitationStatsResponse(
             total_citations=total_citations,
             by_source_type=by_source_type,
@@ -676,7 +676,7 @@ async def get_citation_stats(
             recent_citations=recent_citations,
             top_tags=top_tags
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to get citation stats: {e}")
         raise HTTPException(

@@ -2,11 +2,11 @@
 Health check endpoints for monitoring.
 """
 
-from typing import Dict, Union
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db, db_manager
+from app.core.database import db_manager, get_db
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -27,7 +27,7 @@ async def health_check() -> dict[str, str]:
 @router.get("/detailed")
 async def detailed_health_check(
     db: AsyncSession = Depends(get_db)
-) -> Dict[str, Union[str, bool]]:
+) -> dict[str, str | bool]:
     """
     Detailed health check including database connectivity.
     
@@ -40,13 +40,13 @@ async def detailed_health_check(
     try:
         # Check database connectivity
         db_healthy = await db_manager.health_check()
-        
+
         return {
             "status": "healthy" if db_healthy else "unhealthy",
             "database": db_healthy,
             "service": "omnicore-api",
         }
-        
+
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return {

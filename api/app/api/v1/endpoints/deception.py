@@ -3,7 +3,6 @@ Deception Detection Framework API endpoints.
 Information reliability and veracity assessment for intelligence analysis.
 """
 
-from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -28,17 +27,17 @@ class DeceptionIndicator(BaseModel):
     description: str
     severity: str  # high, medium, low
     confidence: float  # 0-1 scale
-    evidence: Optional[str] = None
-    notes: Optional[str] = None
+    evidence: str | None = None
+    notes: str | None = None
 
 
 class ContentAnalysis(BaseModel):
     """Content analysis for deception detection."""
     content_type: str  # text, speech, document, communication
     source: str
-    timestamp: Optional[str] = None
+    timestamp: str | None = None
     content: str
-    metadata: Optional[Dict] = {}
+    metadata: dict | None = {}
 
 
 class DeceptionCreateRequest(BaseModel):
@@ -46,17 +45,17 @@ class DeceptionCreateRequest(BaseModel):
     title: str
     content_to_analyze: ContentAnalysis
     analysis_type: str = "comprehensive"  # comprehensive, linguistic, behavioral, contextual
-    context: Optional[str] = None
-    known_facts: Optional[List[str]] = []
+    context: str | None = None
+    known_facts: list[str] | None = []
     request_ai_analysis: bool = True
 
 
 class DeceptionUpdateRequest(BaseModel):
     """Deception detection analysis update request."""
-    title: Optional[str] = None
-    indicators: Optional[List[DeceptionIndicator]] = None
-    additional_context: Optional[str] = None
-    verified_facts: Optional[List[str]] = None
+    title: str | None = None
+    indicators: list[DeceptionIndicator] | None = None
+    additional_context: str | None = None
+    verified_facts: list[str] | None = None
 
 
 class DeceptionAnalysisResponse(BaseModel):
@@ -64,12 +63,12 @@ class DeceptionAnalysisResponse(BaseModel):
     session_id: int
     title: str
     content_analyzed: ContentAnalysis
-    indicators: List[DeceptionIndicator]
-    overall_assessment: Dict
+    indicators: list[DeceptionIndicator]
+    overall_assessment: dict
     reliability_score: float  # 0-1 scale
     deception_probability: float  # 0-1 scale
-    ai_analysis: Optional[Dict] = None
-    recommendations: List[str]
+    ai_analysis: dict | None = None
+    recommendations: list[str]
     status: str
     version: int
 
@@ -102,7 +101,7 @@ async def create_deception_analysis(
         DeceptionAnalysisResponse: Created deception analysis
     """
     logger.info(f"Creating deception analysis: {request.title} for user {current_user.username}")
-    
+
     # Prepare deception data
     deception_data = {
         "content_to_analyze": request.content_to_analyze.dict(),
@@ -113,11 +112,11 @@ async def create_deception_analysis(
         "reliability_metrics": {},
         "overall_assessment": {}
     }
-    
+
     # Get AI analysis if requested
     ai_analysis = None
     indicators = []
-    
+
     if request.request_ai_analysis:
         try:
             ai_result = await framework_service.analyze_with_ai(
@@ -126,33 +125,33 @@ async def create_deception_analysis(
                 "analyze"
             )
             ai_analysis = ai_result.get("analysis")
-            
+
             # Extract indicators from AI analysis
             if ai_analysis and "indicators" in ai_analysis:
                 for idx, indicator in enumerate(ai_analysis["indicators"]):
                     if isinstance(indicator, dict):
                         indicator["id"] = f"ind_ai_{idx}"
                         indicators.append(indicator)
-                        
+
             # Update overall assessment
             if ai_analysis and "assessment" in ai_analysis:
                 deception_data["overall_assessment"] = ai_analysis["assessment"]
-                
+
         except Exception as e:
             logger.warning(f"Failed to get AI analysis: {e}")
-    
+
     # Calculate initial scores
     reliability_score = 0.7  # Default moderate reliability
     deception_probability = 0.3  # Default low deception probability
-    
+
     if ai_analysis:
         reliability_score = ai_analysis.get("reliability_score", 0.7)
         deception_probability = ai_analysis.get("deception_probability", 0.3)
-    
+
     deception_data["indicators"] = indicators
     deception_data["reliability_score"] = reliability_score
     deception_data["deception_probability"] = deception_probability
-    
+
     # Create framework session
     framework_data = FrameworkData(
         framework_type=FrameworkType.DECEPTION_DETECTION,
@@ -161,12 +160,12 @@ async def create_deception_analysis(
         data=deception_data,
         tags=["deception-detection", "veracity-assessment", "reliability-analysis"]
     )
-    
+
     session = await framework_service.create_session(db, current_user, framework_data)
-    
+
     # Generate recommendations
     recommendations = _generate_recommendations(deception_probability, reliability_score)
-    
+
     return DeceptionAnalysisResponse(
         session_id=session.id,
         title=session.title,
@@ -200,79 +199,62 @@ async def get_deception_analysis(
         DeceptionAnalysisResponse: Deception analysis data
     """
     logger.info(f"Getting deception analysis {session_id}")
+
+    # Get real data from database
+    session = await framework_service.get_session(db, current_user, session_id, FrameworkType.DECEPTION_DETECTION)
     
-    # Mock data for demonstration
-    content = ContentAnalysis(
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Deception analysis session not found"
+        )
+
+    # Extract data from session
+    session_data = session.data or {}
+    
+    # Parse content data
+    content_data = session_data.get("content_to_analyze", {})
+    content = ContentAnalysis(**content_data) if content_data else ContentAnalysis(
         content_type="text",
-        source="Intelligence report",
-        timestamp="2025-08-15T12:00:00Z",
-        content="Subject claims to have insider knowledge of planned operations...",
-        metadata={"length": 500, "language": "en"}
+        source="Unknown",
+        content="No content provided",
+        metadata={}
     )
     
-    indicators = [
-        DeceptionIndicator(
-            id="ind1",
-            category="linguistic",
-            indicator_type="Lack of specific details",
-            description="Vague descriptions without concrete specifics",
-            severity="medium",
-            confidence=0.75,
-            evidence="Multiple instances of generalization",
-            notes="Common deception pattern"
-        ),
-        DeceptionIndicator(
-            id="ind2",
-            category="behavioral",
-            indicator_type="Inconsistent timeline",
-            description="Events described don't align with known timeline",
-            severity="high",
-            confidence=0.85,
-            evidence="Date discrepancies identified",
-            notes="Significant reliability concern"
-        ),
-        DeceptionIndicator(
-            id="ind3",
-            category="contextual",
-            indicator_type="Unverifiable claims",
-            description="Key claims cannot be independently verified",
-            severity="medium",
-            confidence=0.7,
-            evidence="No corroborating sources found",
-            notes="Requires further investigation"
-        )
-    ]
+    # Parse indicators
+    indicators_data = session_data.get("indicators", [])
+    indicators = [DeceptionIndicator(**ind) for ind in indicators_data if isinstance(ind, dict)]
     
-    overall_assessment = {
-        "summary": "Moderate to high likelihood of deception detected",
-        "key_concerns": [
-            "Timeline inconsistencies",
-            "Lack of specific details",
-            "Unverifiable claims"
-        ],
-        "reliability_assessment": "Low to moderate reliability",
-        "recommended_action": "Seek corroboration before acting on information"
-    }
+    # Get assessment data
+    overall_assessment = session_data.get("overall_assessment", {
+        "summary": "Analysis in progress",
+        "key_concerns": [],
+        "reliability_assessment": "Pending",
+        "recommended_action": "Complete analysis"
+    })
     
-    recommendations = [
-        "Verify timeline through independent sources",
-        "Request specific details and documentation",
-        "Cross-reference with known reliable sources",
-        "Consider source motivation and potential biases",
-        "Apply additional verification methods"
-    ]
+    # Get scores
+    reliability_score = session_data.get("reliability_score", 0.5)
+    deception_probability = session_data.get("deception_probability", 0.5)
     
+    # Generate recommendations based on current data
+    recommendations = _generate_recommendations(deception_probability, reliability_score)
+    
+    # Get AI analysis if available
+    ai_analysis = session_data.get("ai_analysis")
+
     return DeceptionAnalysisResponse(
-        session_id=session_id,
-        title="Intelligence Report Veracity Assessment",
+        session_id=session.id,
+        title=session.title,
         content_analyzed=content,
         indicators=indicators,
         overall_assessment=overall_assessment,
-        reliability_score=0.4,
-        deception_probability=0.7,
+        reliability_score=reliability_score,
+        deception_probability=deception_probability,
+        ai_analysis=ai_analysis,
         recommendations=recommendations,
-        status="completed",
-        version=1
+        status=session.status.value,
+        version=session.version
     )
 
 
@@ -296,19 +278,19 @@ async def analyze_content(
         dict: Analysis results
     """
     logger.info(f"Analyzing content for deception in session {session_id}")
-    
+
     # Perform deception analysis
     analysis_data = {
         "content": content.dict(),
         "analysis_type": "detailed"
     }
-    
+
     ai_result = await framework_service.analyze_with_ai(
         FrameworkType.DECEPTION_DETECTION,
         analysis_data,
         "analyze"
     )
-    
+
     return {
         "session_id": session_id,
         "content_analyzed": content.dict(),
@@ -321,8 +303,8 @@ async def analyze_content(
 @router.get("/{session_id}/indicators")
 async def get_deception_indicators(
     session_id: int,
-    category: Optional[str] = None,
-    severity: Optional[str] = None,
+    category: str | None = None,
+    severity: str | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> dict:
@@ -340,7 +322,7 @@ async def get_deception_indicators(
         dict: Deception indicators
     """
     logger.info(f"Getting deception indicators for session {session_id}")
-    
+
     # All possible indicators
     all_indicators = {
         "linguistic": [
@@ -365,11 +347,11 @@ async def get_deception_indicators(
             {"type": "Timeline conflicts", "description": "Chronological impossibilities"}
         ]
     }
-    
+
     # Filter if needed
     if category:
         all_indicators = {category: all_indicators.get(category, [])}
-    
+
     return {
         "session_id": session_id,
         "indicators": all_indicators,
@@ -401,7 +383,7 @@ async def assess_reliability(
         dict: Reliability assessment
     """
     logger.info(f"Assessing reliability for session {session_id}")
-    
+
     # Calculate weighted reliability score
     weights = {
         "consistency_score": 0.2,
@@ -410,12 +392,12 @@ async def assess_reliability(
         "logical_coherence": 0.2,
         "temporal_consistency": 0.1
     }
-    
+
     weighted_score = sum(
-        getattr(metrics, metric) * weight 
+        getattr(metrics, metric) * weight
         for metric, weight in weights.items()
     )
-    
+
     # Determine reliability level
     if weighted_score >= 0.8:
         reliability_level = "High"
@@ -429,7 +411,7 @@ async def assess_reliability(
     else:
         reliability_level = "Very Low"
         confidence = "Very low confidence, treat with extreme caution"
-    
+
     return {
         "session_id": session_id,
         "metrics": metrics.dict(),
@@ -460,13 +442,13 @@ async def export_deception_analysis(
         dict: Export information
     """
     logger.info(f"Exporting deception analysis {session_id} as {format}")
-    
+
     if format not in ["pdf", "docx", "json"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid export format. Supported: pdf, docx, json"
         )
-    
+
     return {
         "session_id": session_id,
         "format": format,
@@ -475,10 +457,10 @@ async def export_deception_analysis(
     }
 
 
-def _generate_recommendations(deception_prob: float, reliability: float) -> List[str]:
+def _generate_recommendations(deception_prob: float, reliability: float) -> list[str]:
     """Generate recommendations based on analysis results."""
     recommendations = []
-    
+
     if deception_prob > 0.7:
         recommendations.extend([
             "High deception probability - treat information with extreme caution",
@@ -497,18 +479,18 @@ def _generate_recommendations(deception_prob: float, reliability: float) -> List
             "Standard verification procedures recommended",
             "Monitor for any changes or contradictions"
         ])
-    
+
     if reliability < 0.5:
         recommendations.extend([
             "Low reliability score - additional verification critical",
             "Identify and address specific reliability concerns",
             "Consider alternative information sources"
         ])
-    
+
     return recommendations
 
 
-def _generate_reliability_recommendations(score: float) -> List[str]:
+def _generate_reliability_recommendations(score: float) -> list[str]:
     """Generate recommendations based on reliability score."""
     if score >= 0.8:
         return [
@@ -575,5 +557,5 @@ async def list_deception_templates(
             "use_cases": ["Document verification", "Forgery detection", "Content validation"]
         }
     ]
-    
+
     return templates
