@@ -31,7 +31,9 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { useFrameworkSession } from '@/hooks/use-framework-session'
-import { AutoSaveIndicator } from '@/components/auto-save/auto-save-indicator'
+import { SaveStatusIndicator } from '@/components/auto-save/save-status-indicator'
+import { useIsAuthenticated } from '@/stores/auth'
+import { apiClient } from '@/lib/api'
 
 interface DOTMLPFCapability {
   id: string
@@ -59,6 +61,7 @@ interface DOTMLPFData {
 export default function DOTMLPFCreatePage() {
   const router = useRouter()
   const { toast } = useToast()
+  const isAuthenticated = useIsAuthenticated()
   const [loading, setLoading] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -70,20 +73,22 @@ export default function DOTMLPFCreatePage() {
   // Initialize auto-save session
   const { 
     sessionId, 
-    saveStatus, 
-    lastSaved, 
-    saveSession,
-    publishSession 
-  } = useFrameworkSession<DOTMLPFData>({
-    frameworkType: 'dotmlpf',
-    autoSaveInterval: 30000, // Auto-save every 30 seconds
-    initialData: {
-      title: '',
-      description: '',
-      mission: '',
-      context: '',
-      capabilities: []
-    }
+    data,
+    title: sessionTitle,
+    saveStatus,
+    updateData,
+    setTitle,
+    hasData,
+    isNewSession
+  } = useFrameworkSession<DOTMLPFData>('dotmlpf', {
+    title: '',
+    description: '',
+    mission: '',
+    context: '',
+    capabilities: []
+  }, {
+    title: 'DOTMLPF Analysis',
+    autoSaveEnabled: true
   })
 
   const domains = [
@@ -125,8 +130,8 @@ export default function DOTMLPFCreatePage() {
       context,
       capabilities
     }
-    saveSession(sessionData)
-  }, [title, description, mission, context, capabilities, saveSession])
+    updateData(sessionData)
+  }, [title, description, mission, context, capabilities, updateData])
 
   const addCapability = (domain: string) => {
     const newCapability: DOTMLPFCapability = {
@@ -191,28 +196,31 @@ export default function DOTMLPFCreatePage() {
 
     setLoading(true)
     try {
-      const sessionData: DOTMLPFData = {
-        title,
-        description,
-        mission,
-        context,
-        capabilities
+      const payload = {
+        title: title.trim(),
+        description: 'DOTMLPF Framework Analysis',
+        framework_type: 'dotmlpf',
+        data: {
+          title,
+          description,
+          mission,
+          context,
+          capabilities
+        }
       }
       
-      const result = await publishSession(sessionData)
+      await apiClient.post('/frameworks/', payload)
       
-      if (result.success) {
-        toast({
-          title: 'Success',
-          description: 'DOTMLpf analysis published successfully'
-        })
-        
-        router.push('/frameworks/dotmlpf')
-      }
+      toast({
+        title: 'Success',
+        description: 'DOTMLPF analysis published successfully'
+      })
+      
+      router.push('/frameworks/dotmlpf')
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to publish DOTMLpf analysis',
+        description: error.message || 'Failed to publish DOTMLPF analysis',
         variant: 'destructive'
       })
     } finally {
@@ -231,7 +239,7 @@ export default function DOTMLPFCreatePage() {
               <p className="text-gray-600 dark:text-gray-400">Capability-based assessment framework</p>
             </div>
           </div>
-          <AutoSaveIndicator status={saveStatus} lastSaved={lastSaved} />
+          <SaveStatusIndicator sessionId={sessionId} />
         </div>
 
         {/* Basic Information */}
