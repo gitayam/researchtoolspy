@@ -89,7 +89,7 @@ interface ACHData {
   scaleType: 'logarithmic' | 'linear'
 }
 
-const SCORING_SCALE = [
+const LINEAR_SCORING_SCALE = [
   { value: -3, label: 'Strongly Contradicts', color: 'bg-red-500' },
   { value: -2, label: 'Contradicts', color: 'bg-red-400' },
   { value: -1, label: 'Slightly Contradicts', color: 'bg-red-300' },
@@ -97,6 +97,20 @@ const SCORING_SCALE = [
   { value: 1, label: 'Slightly Supports', color: 'bg-green-300' },
   { value: 2, label: 'Supports', color: 'bg-green-400' },
   { value: 3, label: 'Strongly Supports', color: 'bg-green-500' }
+]
+
+const LOGARITHMIC_SCORING_SCALE = [
+  { value: -8, label: 'Impossible/Strongly Contradicts', color: 'bg-red-600' },
+  { value: -5, label: 'Very Unlikely/Contradicts', color: 'bg-red-500' },
+  { value: -3, label: 'Unlikely/Slightly Contradicts', color: 'bg-red-400' },
+  { value: -2, label: 'Somewhat Unlikely', color: 'bg-red-300' },
+  { value: -1, label: 'Slightly Against', color: 'bg-red-200' },
+  { value: 0, label: 'Neutral/No Impact', color: 'bg-gray-400' },
+  { value: 1, label: 'Slightly For', color: 'bg-green-200' },
+  { value: 2, label: 'Somewhat Likely', color: 'bg-green-300' },
+  { value: 3, label: 'Likely/Slightly Supports', color: 'bg-green-400' },
+  { value: 5, label: 'Very Likely/Supports', color: 'bg-green-500' },
+  { value: 8, label: 'Almost Certain/Strongly Supports', color: 'bg-green-600' }
 ]
 
 export default function PublicACHCreatePage() {
@@ -110,7 +124,7 @@ export default function PublicACHCreatePage() {
     hypotheses: [],
     evidence: [],
     scores: [],
-    scaleType: 'linear'
+    scaleType: 'logarithmic'
   })
   const [title, setTitle] = useState('ACH Analysis')
   const [isLoading] = useState(false)
@@ -493,6 +507,9 @@ export default function PublicACHCreatePage() {
                   <Badge variant={data.scaleType === 'linear' ? 'default' : 'outline'}>
                     Linear (-3 to +3)
                   </Badge>
+                  <Badge variant={data.scaleType === 'logarithmic' ? 'default' : 'outline'}>
+                    Logarithmic (-8 to +8)
+                  </Badge>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -786,7 +803,8 @@ export default function PublicACHCreatePage() {
                           </td>
                           {data.hypotheses.map((hypothesis) => {
                             const score = getScore(hypothesis.id, evidence.id)
-                            const scaleItem = SCORING_SCALE.find(s => s.value === score)
+                            const currentScale = data.scaleType === 'logarithmic' ? LOGARITHMIC_SCORING_SCALE : LINEAR_SCORING_SCALE
+                            const scaleItem = currentScale.find(s => s.value === score)
                             
                             return (
                               <td key={hypothesis.id} className="p-3 text-center">
@@ -796,7 +814,7 @@ export default function PublicACHCreatePage() {
                                     onChange={(e) => updateScore(hypothesis.id, evidence.id, parseInt(e.target.value))}
                                     className="w-full text-xs p-2 border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                                   >
-                                    {SCORING_SCALE.map((item) => (
+                                    {currentScale.map((item) => (
                                       <option key={item.value} value={item.value}>
                                         {item.value >= 0 ? '+' : ''}{item.value}: {item.label}
                                       </option>
