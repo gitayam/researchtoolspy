@@ -11,12 +11,12 @@ import json
 import logging
 from datetime import datetime
 
-from app.services.ai_service import AIService
+from app.services.ai_service import IntelligenceAnalysisService
 
 router = APIRouter()
 
 # Initialize AI service
-ai_service = AIService()
+ai_service = IntelligenceAnalysisService()
 
 # Data Models
 class ThreatSuggestionsRequest(BaseModel):

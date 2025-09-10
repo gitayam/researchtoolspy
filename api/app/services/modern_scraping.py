@@ -11,7 +11,17 @@ from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urljoin, urlparse
 
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
-from playwright_stealth import stealth_async
+try:
+    from playwright_stealth import stealth_async
+except ImportError:
+    # Fallback if stealth_async is not available
+    async def stealth_async(page):
+        await page.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => false,
+            })
+        """)
+        await page.set_extra_http_headers({'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
 
 from app.core.logging import get_logger
 
