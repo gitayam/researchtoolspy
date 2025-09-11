@@ -1,144 +1,153 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Save, AlertTriangle, Eye, Search, Shield, Target, FileText, Brain } from 'lucide-react'
+import { Save, AlertTriangle, Brain, Search, FileText, Shield, Eye, CheckCircle, XCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Slider } from '@/components/ui/slider'
+import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { apiClient } from '@/lib/api'
 
-interface DeceptionIndicator {
-  id: string
-  category: 'linguistic' | 'logical' | 'behavioral' | 'contextual'
-  indicator: string
-  evidence: string
-  severity: 'low' | 'medium' | 'high'
-  confidence: number
+// Enhanced SAT Deception Detection Questions - 2024 IC Standards
+const MOM_QUESTIONS = {
+  "motive": "What are the goals and motives of the potential deceiver?",
+  "channels": "What means are available to feed information to us?",
+  "risks": "What consequences would the adversary suffer if deception was revealed?",
+  "costs": "Would they need to sacrifice sensitive information for credibility?",
+  "feedback": "Do they have a way to monitor the impact of the deception?",
+  "digital_channels": "What digital platforms and social media channels could they use for deception?",
+  "ai_capabilities": "Do they have access to AI tools for generating deepfakes, synthetic text, or manipulated content?",
+  "cyber_infrastructure": "What cyber infrastructure and technical capabilities do they possess for digital deception?",
+  "influence_operations": "Are they capable of conducting coordinated information influence operations?",
+  "detection_awareness": "How aware are they of our detection capabilities and methods?"
 }
 
-interface DeceptionAnalysis {
-  content: string
-  source: string
-  credibilityScore: number
-  overallAssessment: 'credible' | 'questionable' | 'likely_deceptive'
-  indicators: DeceptionIndicator[]
-  recommendations: string[]
+const POP_QUESTIONS = {
+  "history": "What is the history of deception by this actor or similar actors?",
+  "patterns": "Are there patterns or signatures in their previous deception attempts?",
+  "success": "How successful have their previous deception operations been?",
+  "digital_precedents": "Have they previously used deepfakes, AI-generated content, or synthetic media?",
+  "social_media_history": "What is their track record with social media manipulation and disinformation campaigns?",
+  "cyber_deception": "Have they engaged in previous cyber deception operations or false flag activities?",
+  "attribution_methods": "How have they previously attempted to obscure attribution or create false narratives?",
+  "learning_adaptation": "How have they adapted their deception methods over time based on previous exposures?"
+}
+
+const MOSES_QUESTIONS = {
+  "control": "How much control does the potential deceiver have over our sources?",
+  "access": "Do they have access to our collection methods?",
+  "vulnerability": "How vulnerable are our sources to manipulation?",
+  "digital_manipulation": "Could our digital sources (social media, online content) be manipulated or fabricated?",
+  "source_verification": "Can we verify the authenticity and credibility of sources through multiple platforms?",
+  "ai_detection": "Have we applied AI-powered tools to detect potential deepfakes or synthetic content?",
+  "cross_platform_consistency": "Is the information consistent across multiple independent platforms and sources?",
+  "technical_forensics": "What digital forensics evidence supports or contradicts the source material?",
+  "behavioral_analysis": "Are there behavioral patterns or linguistic markers that suggest manipulation?",
+  "metadata_analysis": "Does technical metadata support the claimed origin and authenticity of the information?",
+  "network_analysis": "Can we trace the information flow and identify potential manipulation points?"
+}
+
+const EVE_QUESTIONS = {
+  "consistency": "Is the information internally consistent?",
+  "corroboration": "Is it confirmed by multiple independent sources?",
+  "gaps": "Are there gaps or missing information in the evidence?",
+  "digital_provenance": "Can we establish a clear digital chain of custody for the evidence?",
+  "timeline_analysis": "Are all temporal elements and sequences logically consistent?",
+  "technical_authenticity": "Does technical analysis support the claimed authenticity of digital evidence?",
+  "multi_modal_consistency": "Is the information consistent across text, audio, video, and image formats?",
+  "linguistic_analysis": "Are there linguistic patterns or markers consistent with the claimed source?",
+  "behavioral_coherence": "Do behavioral patterns in the evidence align with known characteristics of the source?",
+  "contextual_plausibility": "Is the evidence plausible within the broader geopolitical and technical context?"
+}
+
+const BIAS_CHECK_PROMPTS = {
+  "confirmation_bias": "Have I actively sought evidence that contradicts my initial assessment?",
+  "anchoring_bias": "Am I overly influenced by the first piece of evidence I encountered?",
+  "availability_heuristic": "Am I giving too much weight to recent or memorable examples?",
+  "groupthink": "Have I independently verified this assessment or am I following group consensus?",
+  "attribution_error": "Am I properly considering alternative explanations for observed behaviors?"
+}
+
+interface SATResponses {
+  mom: { [key: string]: string }
+  pop: { [key: string]: string }
+  moses: { [key: string]: string }
+  eve: { [key: string]: string }
+  biasCheck: { [key: string]: string }
+}
+
+interface ConfidenceScores {
+  mom: number
+  pop: number
+  moses: number
+  eve: number
+  overall: number
 }
 
 export default function CreateDeceptionDetectionPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [title, setTitle] = useState('')
-  const [targetContent, setTargetContent] = useState('')
-  const [sourceContext, setSourceContext] = useState('')
-  const [purpose, setPurpose] = useState('')
-  const [analysis, setAnalysis] = useState<DeceptionAnalysis | null>(null)
-  const [indicators, setIndicators] = useState<DeceptionIndicator[]>([])
+  const [scenario, setScenario] = useState('')
+  const [responses, setResponses] = useState<SATResponses>({
+    mom: {},
+    pop: {},
+    moses: {},
+    eve: {},
+    biasCheck: {}
+  })
+  const [confidenceScores, setConfidenceScores] = useState<ConfidenceScores>({
+    mom: 0,
+    pop: 0,
+    moses: 0,
+    eve: 0,
+    overall: 0
+  })
   const [saving, setSaving] = useState(false)
-  const [analyzing, setAnalyzing] = useState(false)
+  const [activeTab, setActiveTab] = useState('scenario')
 
-  const addIndicator = () => {
-    const newIndicator: DeceptionIndicator = {
-      id: Date.now().toString(),
-      category: 'linguistic',
-      indicator: '',
-      evidence: '',
-      severity: 'medium',
-      confidence: 50
-    }
-    setIndicators(prev => [...prev, newIndicator])
+  // Calculate progress
+  const calculateProgress = () => {
+    let progress = 0
+    if (scenario.trim()) progress += 15
+    if (Object.values(responses.mom).some(v => v.trim())) progress += 15
+    if (Object.values(responses.pop).some(v => v.trim())) progress += 15
+    if (Object.values(responses.moses).some(v => v.trim())) progress += 15
+    if (Object.values(responses.eve).some(v => v.trim())) progress += 15
+    if (Object.values(responses.biasCheck).some(v => v.trim())) progress += 15
+    if (confidenceScores.overall > 0) progress += 10
+    return progress
   }
 
-  const updateIndicator = (id: string, field: keyof DeceptionIndicator, value: any) => {
-    setIndicators(prev => prev.map(indicator => 
-      indicator.id === id ? { ...indicator, [field]: value } : indicator
-    ))
+  // Calculate overall confidence automatically
+  useEffect(() => {
+    const overall = (confidenceScores.mom + confidenceScores.pop + confidenceScores.moses + confidenceScores.eve) / 4
+    setConfidenceScores(prev => ({ ...prev, overall }))
+  }, [confidenceScores.mom, confidenceScores.pop, confidenceScores.moses, confidenceScores.eve])
+
+  const updateResponse = (section: keyof SATResponses, key: string, value: string) => {
+    setResponses(prev => ({
+      ...prev,
+      [section]: { ...prev[section], [key]: value }
+    }))
   }
 
-  const removeIndicator = (id: string) => {
-    setIndicators(prev => prev.filter(indicator => indicator.id !== id))
+  const updateConfidence = (section: keyof Omit<ConfidenceScores, 'overall'>, value: number[]) => {
+    setConfidenceScores(prev => ({ ...prev, [section]: value[0] }))
   }
 
-  const analyzeDeception = async () => {
-    if (!targetContent.trim()) {
-      toast({
-        title: 'No Content',
-        description: 'Please provide content to analyze for deception',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    setAnalyzing(true)
-    try {
-      // Mock analysis for now - will be replaced with AI integration
-      const mockAnalysis: DeceptionAnalysis = {
-        content: targetContent,
-        source: sourceContext || 'Unknown',
-        credibilityScore: Math.floor(Math.random() * 100),
-        overallAssessment: Math.random() > 0.6 ? 'credible' : Math.random() > 0.3 ? 'questionable' : 'likely_deceptive',
-        indicators: [
-          {
-            id: 'mock1',
-            category: 'linguistic',
-            indicator: 'Unusual language patterns detected',
-            evidence: 'Excessive use of qualifiers and hedging language',
-            severity: 'medium',
-            confidence: 75
-          },
-          {
-            id: 'mock2',
-            category: 'logical',
-            indicator: 'Inconsistent timeline references',
-            evidence: 'Conflicting dates and sequence of events',
-            severity: 'high',
-            confidence: 85
-          }
-        ],
-        recommendations: [
-          'Cross-reference dates and facts with external sources',
-          'Verify claims through independent channels',
-          'Consider potential bias or motivation of source'
-        ]
-      }
-
-      setAnalysis(mockAnalysis)
-      setIndicators(mockAnalysis.indicators)
-
-      toast({
-        title: 'Analysis Complete',
-        description: 'Deception detection analysis has been generated',
-      })
-    } catch (error: any) {
-      toast({
-        title: 'Analysis Error',
-        description: error.message || 'Failed to analyze content',
-        variant: 'destructive'
-      })
-    } finally {
-      setAnalyzing(false)
-    }
-  }
-
-  const handleSave = async () => {
-    if (!title.trim()) {
+  const saveSession = async () => {
+    if (!title.trim() || !scenario.trim()) {
       toast({
         title: 'Validation Error',
-        description: 'Please provide a title for your deception detection analysis',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    if (!targetContent.trim()) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please provide content to analyze',
+        description: 'Please provide a title and scenario',
         variant: 'destructive'
       })
       return
@@ -146,30 +155,31 @@ export default function CreateDeceptionDetectionPage() {
 
     setSaving(true)
     try {
-      const payload = {
-        title: title.trim(),
+      const sessionData = {
         framework_type: 'deception_detection',
+        title,
         data: {
-          target_content: targetContent,
-          source_context: sourceContext,
-          purpose: purpose,
-          analysis: analysis,
-          indicators: indicators.filter(i => i.indicator.trim()),
+          scenario,
+          responses,
+          confidenceScores,
+          progress: calculateProgress(),
+          methodology: 'SAT (MOM/POP/MOSES/EVE)',
+          version: '2024_IC_Standards'
         }
       }
 
-      const response = await apiClient.post<{ id: string }>('/frameworks/', payload)
+      const response = await apiClient.post('/frameworks/', sessionData)
       
       toast({
         title: 'Success',
         description: 'Deception detection analysis saved successfully'
       })
-
-      router.push(`/frameworks/deception/${response.id}`)
+      
+      router.push(`/analysis-frameworks/deception/${response.id}`)
     } catch (error: any) {
       toast({
-        title: 'Save Error',
-        description: error.message || 'Failed to save deception detection analysis',
+        title: 'Error',
+        description: 'Failed to save analysis',
         variant: 'destructive'
       })
     } finally {
@@ -177,337 +187,242 @@ export default function CreateDeceptionDetectionPage() {
     }
   }
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'high': return 'bg-red-100 text-red-800 border-red-200'
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'low': return 'bg-green-100 text-green-800 border-green-200'
-      default: return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-200'
-    }
-  }
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'linguistic': return FileText
-      case 'logical': return Target
-      case 'behavioral': return Eye
-      case 'contextual': return Shield
-      default: return AlertTriangle
-    }
+  const renderQuestionSection = (
+    title: string, 
+    questions: { [key: string]: string }, 
+    section: keyof SATResponses,
+    icon: any,
+    color: string
+  ) => {
+    const Icon = icon
+    return (
+      <Card className={`border-l-4 border-l-${color}-500`}>
+        <CardHeader>
+          <CardTitle className={`flex items-center gap-2 text-${color}-700`}>
+            <Icon className="h-5 w-5" />
+            {title}
+          </CardTitle>
+          <CardDescription>
+            {section === 'mom' && 'Assess the deceiver\'s motives, opportunities, and means'}
+            {section === 'pop' && 'Analyze past opposition practices and historical patterns'}
+            {section === 'moses' && 'Evaluate the manipulability of sources'}
+            {section === 'eve' && 'Examine the evaluation of evidence'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {Object.entries(questions).map(([key, question]) => (
+            <div key={key} className="space-y-2">
+              <Label className="text-sm font-medium">
+                {question}
+              </Label>
+              <Textarea
+                value={responses[section][key] || ''}
+                onChange={(e) => updateResponse(section, key, e.target.value)}
+                placeholder="Provide your analysis..."
+                className="min-h-[80px]"
+              />
+            </div>
+          ))}
+          
+          {section !== 'biasCheck' && (
+            <div className="pt-4 border-t">
+              <Label className="text-sm font-medium mb-2 block">
+                Confidence Level: {confidenceScores[section as keyof Omit<ConfidenceScores, 'overall'>]}%
+              </Label>
+              <Slider
+                value={[confidenceScores[section as keyof Omit<ConfidenceScores, 'overall'>]]}
+                onValueChange={(value) => updateConfidence(section as keyof Omit<ConfidenceScores, 'overall'>, value)}
+                max={100}
+                step={1}
+                className="w-full"
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Deception Detection Analysis</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Identify potential deception, misinformation, and credibility issues in content
+          <h1 className="text-2xl font-bold">SAT Deception Detection Analysis</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Structured Analytic Technique using MOM, POP, MOSES, and EVE methodology
           </p>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-              <Brain className="h-3 w-3 mr-1" />
-              AI-Enhanced (Coming Soon)
-            </span>
-          </div>
         </div>
-        <Button 
-          onClick={handleSave} 
-          disabled={saving}
-          className="bg-orange-600 hover:bg-orange-700"
-        >
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? 'Saving...' : 'Save Analysis'}
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="text-right text-sm">
+            <div className="font-medium">Progress: {calculateProgress()}%</div>
+            <Progress value={calculateProgress()} className="w-24 h-2" />
+          </div>
+          <Button 
+            onClick={saveSession} 
+            disabled={saving || !title.trim() || !scenario.trim()}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {saving ? 'Saving...' : 'Save Analysis'}
+          </Button>
+        </div>
       </div>
 
       {/* Basic Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Analysis Information
-          </CardTitle>
+          <CardTitle>Analysis Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="title">Analysis Title</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Social Media Post Credibility Check"
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="purpose">Analysis Purpose</Label>
-            <Input
-              id="purpose"
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-              placeholder="e.g., Verify claims in news article, assess testimonial credibility"
-              className="mt-1"
+              placeholder="Enter a descriptive title for your analysis"
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Content Analysis */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Content to Analyze
-          </CardTitle>
-          <CardDescription>
-            Provide the content you want to analyze for potential deception or credibility issues
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="target-content">Target Content</Label>
-            <Textarea
-              id="target-content"
-              value={targetContent}
-              onChange={(e) => setTargetContent(e.target.value)}
-              placeholder="Paste the text, statement, or content you want to analyze..."
-              className="mt-1"
-              rows={6}
-            />
-          </div>
-          <div>
-            <Label htmlFor="source-context">Source Context (Optional)</Label>
-            <Textarea
-              id="source-context"
-              value={sourceContext}
-              onChange={(e) => setSourceContext(e.target.value)}
-              placeholder="Provide context about the source, timing, or circumstances..."
-              className="mt-1"
-              rows={3}
-            />
-          </div>
-          <Button 
-            onClick={analyzeDeception}
-            disabled={analyzing || !targetContent.trim()}
-            className="w-full"
-            variant="outline"
-          >
-            <Search className="h-4 w-4 mr-2" />
-            {analyzing ? 'Analyzing...' : 'Analyze for Deception'}
-          </Button>
-        </CardContent>
-      </Card>
+      {/* SAT Framework Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="scenario">Scenario</TabsTrigger>
+          <TabsTrigger value="mom">MOM</TabsTrigger>
+          <TabsTrigger value="pop">POP</TabsTrigger>
+          <TabsTrigger value="moses">MOSES</TabsTrigger>
+          <TabsTrigger value="eve">EVE</TabsTrigger>
+          <TabsTrigger value="bias">Bias Check</TabsTrigger>
+          <TabsTrigger value="assessment">Assessment</TabsTrigger>
+        </TabsList>
 
-      {/* Analysis Results */}
-      {analysis && (
-        <Card className="border-2 border-orange-200 bg-orange-50 dark:bg-orange-900/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-orange-600" />
-              Analysis Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{analysis.credibilityScore}%</div>
-                <div className="text-sm text-gray-500">Credibility Score</div>
-              </div>
-              <div className="text-center">
-                <Badge variant="outline" className={`${
-                  analysis.overallAssessment === 'credible' ? 'border-green-500 text-green-700' :
-                  analysis.overallAssessment === 'questionable' ? 'border-yellow-500 text-yellow-700' :
-                  'border-red-500 text-red-700'
-                }`}>
-                  {analysis.overallAssessment.replace('_', ' ').toUpperCase()}
-                </Badge>
-                <div className="text-sm text-gray-500 mt-1">Overall Assessment</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{indicators.length}</div>
-                <div className="text-sm text-gray-500">Indicators Found</div>
-              </div>
-            </div>
+        <TabsContent value="scenario" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Analysis Scenario
+              </CardTitle>
+              <CardDescription>
+                Describe the situation, information, or content you want to analyze for potential deception
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={scenario}
+                onChange={(e) => setScenario(e.target.value)}
+                placeholder="Provide a detailed description of the scenario, including the source of information, context, and any relevant background..."
+                className="min-h-[200px]"
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            {analysis.recommendations.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-2">Recommendations:</h4>
-                <ul className="space-y-1">
-                  {analysis.recommendations.map((rec, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm">
-                      <span className="text-orange-600 mt-1">•</span>
-                      <span>{rec}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+        <TabsContent value="mom">
+          {renderQuestionSection('Motive, Opportunity, and Means (MOM)', MOM_QUESTIONS, 'mom', Brain, 'blue')}
+        </TabsContent>
 
-      {/* Deception Indicators */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Deception Indicators
-            </div>
-            <Button onClick={addIndicator} size="sm">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Add Indicator
-            </Button>
-          </CardTitle>
-          <CardDescription>
-            Document specific indicators that suggest potential deception or credibility issues
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {indicators.map((indicator) => {
-            const IconComponent = getCategoryIcon(indicator.category)
-            return (
-              <div key={indicator.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <IconComponent className="h-4 w-4 text-orange-600" />
-                    <select
-                      value={indicator.category}
-                      onChange={(e) => updateIndicator(indicator.id, 'category', e.target.value)}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm"
+        <TabsContent value="pop">
+          {renderQuestionSection('Past Opposition Practices (POP)', POP_QUESTIONS, 'pop', Search, 'green')}
+        </TabsContent>
+
+        <TabsContent value="moses">
+          {renderQuestionSection('Manipulability of Sources (MOSES)', MOSES_QUESTIONS, 'moses', Shield, 'purple')}
+        </TabsContent>
+
+        <TabsContent value="eve">
+          {renderQuestionSection('Evaluation of Evidence (EVE)', EVE_QUESTIONS, 'eve', Eye, 'orange')}
+        </TabsContent>
+
+        <TabsContent value="bias">
+          {renderQuestionSection('Cognitive Bias Check', BIAS_CHECK_PROMPTS, 'biasCheck', AlertTriangle, 'red')}
+        </TabsContent>
+
+        <TabsContent value="assessment" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5" />
+                Assessment Matrix
+              </CardTitle>
+              <CardDescription>
+                Overall confidence assessment and integrated analysis
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Confidence Matrix */}
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { key: 'mom', label: 'MOM Analysis', color: 'blue' },
+                  { key: 'pop', label: 'POP Analysis', color: 'green' },
+                  { key: 'moses', label: 'MOSES Analysis', color: 'purple' },
+                  { key: 'eve', label: 'EVE Analysis', color: 'orange' }
+                ].map(({ key, label, color }) => (
+                  <Card key={key} className={`border-l-4 border-l-${color}-500`}>
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold mb-1">
+                          {confidenceScores[key as keyof Omit<ConfidenceScores, 'overall'>]}%
+                        </div>
+                        <div className="text-sm text-gray-600">{label}</div>
+                        <Progress 
+                          value={confidenceScores[key as keyof Omit<ConfidenceScores, 'overall'>]} 
+                          className="mt-2"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Overall Assessment */}
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-blue-700 mb-2">
+                      {confidenceScores.overall.toFixed(1)}%
+                    </div>
+                    <div className="text-lg font-medium text-blue-800 mb-1">
+                      Overall Confidence
+                    </div>
+                    <Badge 
+                      variant="outline" 
+                      className={
+                        confidenceScores.overall > 70 
+                          ? 'bg-red-100 text-red-800 border-red-200' 
+                          : confidenceScores.overall > 40 
+                          ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                          : 'bg-green-100 text-green-800 border-green-200'
+                      }
                     >
-                      <option value="linguistic">Linguistic</option>
-                      <option value="logical">Logical</option>
-                      <option value="behavioral">Behavioral</option>
-                      <option value="contextual">Contextual</option>
-                    </select>
-                    <Badge className={getSeverityColor(indicator.severity)}>
-                      {indicator.severity}
+                      {confidenceScores.overall > 70 ? 'High Deception Risk' : 
+                       confidenceScores.overall > 40 ? 'Medium Risk' : 'Low Risk'}
                     </Badge>
+                    <div className="mt-3 text-sm text-blue-700">
+                      {confidenceScores.overall > 60 
+                        ? 'Further investigation recommended' 
+                        : confidenceScores.overall > 30 
+                        ? 'Monitor situation closely' 
+                        : 'Low priority for deception concern'}
+                    </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeIndicator(indicator.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    Remove
-                  </Button>
-                </div>
+                </CardContent>
+              </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Indicator Description</Label>
-                    <Textarea
-                      value={indicator.indicator}
-                      onChange={(e) => updateIndicator(indicator.id, 'indicator', e.target.value)}
-                      placeholder="Describe the specific indicator..."
-                      rows={2}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label>Supporting Evidence</Label>
-                    <Textarea
-                      value={indicator.evidence}
-                      onChange={(e) => updateIndicator(indicator.id, 'evidence', e.target.value)}
-                      placeholder="Provide specific evidence for this indicator..."
-                      rows={2}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Severity Level</Label>
-                    <select
-                      value={indicator.severity}
-                      onChange={(e) => updateIndicator(indicator.id, 'severity', e.target.value)}
-                      className="w-full border border-gray-300 rounded px-3 py-2 mt-1"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label>Confidence Level ({indicator.confidence}%)</Label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={indicator.confidence}
-                      onChange={(e) => updateIndicator(indicator.id, 'confidence', parseInt(e.target.value))}
-                      className="w-full mt-1"
-                    />
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-
-          {indicators.length === 0 && (
-            <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg">
-              <AlertTriangle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500 dark:text-gray-400">No deception indicators added yet</p>
-              <p className="text-sm text-gray-400">
-                Add indicators to document potential credibility issues
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Analysis Framework Guide */}
-      <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Deception Detection Guidelines
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <h4 className="font-medium">Linguistic Indicators:</h4>
-              <ul className="text-sm space-y-1 text-gray-600">
-                <li>• Unusual language patterns or word choice</li>
-                <li>• Excessive qualifiers or hedging language</li>
-                <li>• Inconsistent tone or writing style</li>
-                <li>• Overly complex or simplified explanations</li>
-              </ul>
-            </div>
-            <div className="space-y-3">
-              <h4 className="font-medium">Logical Indicators:</h4>
-              <ul className="text-sm space-y-1 text-gray-600">
-                <li>• Internal contradictions or inconsistencies</li>
-                <li>• Missing critical information or context</li>
-                <li>• Circular reasoning or logical fallacies</li>
-                <li>• Implausible claims or timeline issues</li>
-              </ul>
-            </div>
-            <div className="space-y-3">
-              <h4 className="font-medium">Behavioral Indicators:</h4>
-              <ul className="text-sm space-y-1 text-gray-600">
-                <li>• Deflection or topic avoidance</li>
-                <li>• Emotional manipulation techniques</li>
-                <li>• Credibility appeals without substance</li>
-                <li>• Defensive or evasive responses</li>
-              </ul>
-            </div>
-            <div className="space-y-3">
-              <h4 className="font-medium">Contextual Indicators:</h4>
-              <ul className="text-sm space-y-1 text-gray-600">
-                <li>• Source credibility and motivation</li>
-                <li>• Timing and external circumstances</li>
-                <li>• Verification possibilities</li>
-                <li>• Consistency with established facts</li>
-              </ul>
-            </div>
-          </div>
+      {/* Footer Note */}
+      <Card className="bg-gray-50 dark:bg-gray-900 border-gray-200">
+        <CardContent className="pt-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+            <strong>Framework:</strong> Based on Richards J. Heuer Jr.'s work and CIA Structured Analytic Techniques (SATs) • 
+            Enhanced for 2024-2025 Intelligence Community Standards
+          </p>
         </CardContent>
       </Card>
     </div>
