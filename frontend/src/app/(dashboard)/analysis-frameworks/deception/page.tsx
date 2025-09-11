@@ -16,13 +16,24 @@ interface DeceptionSession {
   created_at: string
   updated_at: string
   data: {
-    analysis?: {
-      credibilityScore?: number
-      overallAssessment?: string
-      indicators?: any[]
+    scenario?: string
+    responses?: {
+      mom?: { [key: string]: string }
+      pop?: { [key: string]: string }
+      moses?: { [key: string]: string }
+      eve?: { [key: string]: string }
+      biasCheck?: { [key: string]: string }
     }
-    target_content?: string
-    purpose?: string
+    confidenceScores?: {
+      mom?: number
+      pop?: number
+      moses?: number
+      eve?: number
+      overall?: number
+    }
+    progress?: number
+    methodology?: string
+    version?: string
   }
 }
 
@@ -51,13 +62,16 @@ export default function DeceptionDetectionPage() {
     }
   }
 
-  const getAssessmentColor = (assessment: string) => {
-    switch (assessment) {
-      case 'credible': return 'bg-green-100 text-green-800 border-green-200'
-      case 'questionable': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'likely_deceptive': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 dark:text-gray-200 border-gray-200'
-    }
+  const getRiskColor = (overall: number) => {
+    if (overall > 70) return 'bg-red-100 text-red-800 border-red-200'
+    if (overall > 40) return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+    return 'bg-green-100 text-green-800 border-green-200'
+  }
+
+  const getRiskLevel = (overall: number) => {
+    if (overall > 70) return 'High Risk'
+    if (overall > 40) return 'Medium Risk'
+    return 'Low Risk'
   }
 
   if (loading) {
@@ -96,11 +110,11 @@ export default function DeceptionDetectionPage() {
         <div>
           <h1 className="text-2xl font-bold">Deception Detection</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Analyze content for potential deception, misinformation, and credibility issues
+            Structured Analytic Technique (SAT) using MOM, POP, MOSES, and EVE methodology for intelligence analysis
           </p>
         </div>
         <Button 
-          onClick={() => router.push('/frameworks/deception/create')}
+          onClick={() => router.push('/analysis-frameworks/deception/create')}
           className="bg-orange-600 hover:bg-orange-700"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -118,27 +132,27 @@ export default function DeceptionDetectionPage() {
         </CardHeader>
         <CardContent className="text-orange-700 dark:text-orange-300">
           <p className="mb-4">
-            Deception Detection is a structured analytic technique used to identify potential deception, 
-            misinformation, or credibility issues in various forms of content including statements, 
-            documents, claims, and narratives.
+            SAT Deception Detection is a CIA intelligence methodology based on Richards J. Heuer Jr.'s work, 
+            designed to systematically analyze information sources for potential deception using four key components: 
+            MOM, POP, MOSES, and EVE. Enhanced for 2024-2025 Intelligence Community standards.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h4 className="font-medium mb-2">Key Applications:</h4>
+              <h4 className="font-medium mb-2">SAT Components:</h4>
               <ul className="text-sm space-y-1">
-                <li>• Information verification and fact-checking</li>
-                <li>• Source credibility assessment</li>
-                <li>• Disinformation campaign analysis</li>
-                <li>• Testimonial and witness statement evaluation</li>
+                <li>• <strong>MOM:</strong> Motive, Opportunity, and Means analysis</li>
+                <li>• <strong>POP:</strong> Past Opposition Practices examination</li>
+                <li>• <strong>MOSES:</strong> Manipulability of Sources evaluation</li>
+                <li>• <strong>EVE:</strong> Evaluation of Evidence assessment</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-medium mb-2">Analysis Categories:</h4>
+              <h4 className="font-medium mb-2">Enhanced Features:</h4>
               <ul className="text-sm space-y-1">
-                <li>• <strong>Linguistic:</strong> Language patterns and word choice</li>
-                <li>• <strong>Logical:</strong> Consistency and reasoning</li>
-                <li>• <strong>Behavioral:</strong> Communication patterns</li>
-                <li>• <strong>Contextual:</strong> Source and circumstantial factors</li>
+                <li>• <strong>Digital Deception:</strong> AI-generated content detection</li>
+                <li>• <strong>Cognitive Bias:</strong> Structured bias mitigation</li>
+                <li>• <strong>Assessment Matrix:</strong> Confidence scoring system</li>
+                <li>• <strong>Modern Threats:</strong> Cyber and influence operations</li>
               </ul>
             </div>
           </div>
@@ -152,10 +166,10 @@ export default function DeceptionDetectionPage() {
             <AlertTriangle className="h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No analyses yet</h3>
             <p className="text-gray-500 text-center mb-6 max-w-sm">
-              Create your first deception detection analysis to identify potential credibility issues in content.
+              Create your first SAT deception detection analysis using MOM, POP, MOSES, and EVE methodology.
             </p>
             <Button 
-              onClick={() => router.push('/frameworks/deception/create')}
+              onClick={() => router.push('/analysis-frameworks/deception/create')}
               className="bg-orange-600 hover:bg-orange-700"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -166,7 +180,7 @@ export default function DeceptionDetectionPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sessions.map((session) => (
-            <Link key={session.id} href={`/frameworks/deception/${session.id}`}>
+            <Link key={session.id} href={`/analysis-frameworks/deception/${session.id}`}>
               <Card className="cursor-pointer hover:shadow-lg transition-shadow border-l-4 border-l-orange-500">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">{session.title}</CardTitle>
@@ -182,44 +196,47 @@ export default function DeceptionDetectionPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {session.data.analysis && (
+                  {session.data.confidenceScores && (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">Credibility:</span>
+                        <span className="text-sm text-gray-600">Overall Confidence:</span>
                         <span className="font-medium text-orange-600">
-                          {session.data.analysis.credibilityScore || 0}%
+                          {session.data.confidenceScores.overall?.toFixed(1) || 0}%
                         </span>
                       </div>
-                      {session.data.analysis.overallAssessment && (
-                        <Badge 
-                          variant="outline" 
-                          className={getAssessmentColor(session.data.analysis.overallAssessment)}
-                        >
-                          {session.data.analysis.overallAssessment.replace('_', ' ')}
-                        </Badge>
-                      )}
+                      <Badge 
+                        variant="outline" 
+                        className={getRiskColor(session.data.confidenceScores.overall || 0)}
+                      >
+                        {getRiskLevel(session.data.confidenceScores.overall || 0)}
+                      </Badge>
                     </div>
                   )}
                   
-                  {session.data.purpose && (
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      Purpose: {session.data.purpose}
+                  {session.data.methodology && (
+                    <p className="text-sm text-gray-600 line-clamp-1">
+                      Method: {session.data.methodology}
                     </p>
                   )}
 
-                  {session.data.target_content && (
+                  {session.data.scenario && (
                     <p className="text-sm text-gray-500 line-clamp-3">
-                      {session.data.target_content.substring(0, 150)}
-                      {session.data.target_content.length > 150 ? '...' : ''}
+                      {session.data.scenario.substring(0, 150)}
+                      {session.data.scenario.length > 150 ? '...' : ''}
                     </p>
                   )}
 
                   <div className="flex items-center justify-between pt-2 border-t">
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Eye className="h-3 w-3" />
                       <span>
-                        {session.data.analysis?.indicators?.length || 0} indicators
+                        Progress: {session.data.progress || 0}%
                       </span>
+                      {session.data.version && (
+                        <Badge variant="secondary" className="text-xs px-1 py-0.5">
+                          {session.data.version.replace('_', ' ')}
+                        </Badge>
+                      )}
                     </div>
                     <span className="text-xs text-gray-400">
                       Updated {new Date(session.updated_at).toLocaleDateString()}

@@ -52,7 +52,7 @@ export default function DeceptionDetectionViewPage() {
 
   const fetchSession = async (id: string) => {
     try {
-      const response = await apiClient.get(`/frameworks/${id}`)
+      const response = await apiClient.get(`/analysis-frameworks/${id}`)
       setSession(response)
     } catch (error: any) {
       toast({
@@ -60,7 +60,7 @@ export default function DeceptionDetectionViewPage() {
         description: 'Failed to load deception detection analysis',
         variant: 'destructive'
       })
-      router.push('/frameworks/deception')
+      router.push('/analysis-frameworks/deception')
     } finally {
       setLoading(false)
     }
@@ -161,7 +161,7 @@ export default function DeceptionDetectionViewPage() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button onClick={() => router.push(`/frameworks/deception/${session.id}/edit`)}>
+          <Button onClick={() => router.push(`/analysis-frameworks/deception/${session.id}/edit`)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
