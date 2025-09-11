@@ -41,28 +41,77 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
     deception is present, and figure out what to do to avoid being deceived.
     """
     
-    # Class-level question dictionaries for use in all sections
+    # Class-level question dictionaries for use in all sections - Enhanced for 2024 IC Standards
     MOM_QUESTIONS = {
+        # Traditional MOM questions
         "motive": "What are the goals and motives of the potential deceiver?",
         "channels": "What means are available to feed information to us?",
         "risks": "What consequences would the adversary suffer if deception was revealed?",
         "costs": "Would they need to sacrifice sensitive information for credibility?",
-        "feedback": "Do they have a way to monitor the impact of the deception?"
+        "feedback": "Do they have a way to monitor the impact of the deception?",
+        
+        # Enhanced digital/modern questions
+        "digital_channels": "What digital platforms and social media channels could they use for deception?",
+        "ai_capabilities": "Do they have access to AI tools for generating deepfakes, synthetic text, or manipulated content?",
+        "cyber_infrastructure": "What cyber infrastructure and technical capabilities do they possess for digital deception?",
+        "influence_operations": "Are they capable of conducting coordinated information influence operations?",
+        "detection_awareness": "How aware are they of our detection capabilities and methods?"
     }
+    
     POP_QUESTIONS = {
+        # Traditional POP questions
         "history": "What is the history of deception by this actor or similar actors?",
         "patterns": "Are there patterns or signatures in their previous deception attempts?",
-        "success": "How successful have their previous deception operations been?"
+        "success": "How successful have their previous deception operations been?",
+        
+        # Enhanced digital/historical questions
+        "digital_precedents": "Have they previously used deepfakes, AI-generated content, or synthetic media?",
+        "social_media_history": "What is their track record with social media manipulation and disinformation campaigns?",
+        "cyber_deception": "Have they engaged in previous cyber deception operations or false flag activities?",
+        "attribution_methods": "How have they previously attempted to obscure attribution or create false narratives?",
+        "learning_adaptation": "How have they adapted their deception methods over time based on previous exposures?"
     }
+    
     MOSES_QUESTIONS = {
+        # Traditional MOSES questions
         "control": "How much control does the potential deceiver have over our sources?",
         "access": "Do they have access to our collection methods?",
-        "vulnerability": "How vulnerable are our sources to manipulation?"
+        "vulnerability": "How vulnerable are our sources to manipulation?",
+        
+        # Enhanced source evaluation questions
+        "digital_manipulation": "Could our digital sources (social media, online content) be manipulated or fabricated?",
+        "source_verification": "Can we verify the authenticity and credibility of sources through multiple platforms?",
+        "ai_detection": "Have we applied AI-powered tools to detect potential deepfakes or synthetic content?",
+        "cross_platform_consistency": "Is the information consistent across multiple independent platforms and sources?",
+        "technical_forensics": "What digital forensics evidence supports or contradicts the source material?",
+        "behavioral_analysis": "Are there behavioral patterns or linguistic markers that suggest manipulation?",
+        "metadata_analysis": "Does technical metadata support the claimed origin and authenticity of the information?",
+        "network_analysis": "Can we trace the information flow and identify potential manipulation points?"
     }
+    
     EVE_QUESTIONS = {
+        # Traditional EVE questions
         "consistency": "Is the information internally consistent?",
         "corroboration": "Is it confirmed by multiple independent sources?",
-        "gaps": "Are there gaps or missing information in the evidence?"
+        "gaps": "Are there gaps or missing information in the evidence?",
+        
+        # Enhanced evidence evaluation questions
+        "digital_provenance": "Can we establish a clear digital chain of custody for the evidence?",
+        "timeline_analysis": "Are all temporal elements and sequences logically consistent?",
+        "technical_authenticity": "Does technical analysis support the claimed authenticity of digital evidence?",
+        "multi_modal_consistency": "Is the information consistent across text, audio, video, and image formats?",
+        "linguistic_analysis": "Are there linguistic patterns or markers consistent with the claimed source?",
+        "behavioral_coherence": "Do behavioral patterns in the evidence align with known characteristics of the source?",
+        "contextual_plausibility": "Is the evidence plausible within the broader geopolitical and technical context?"
+    }
+    
+    # Cognitive bias mitigation prompts for each component
+    BIAS_CHECK_PROMPTS = {
+        "confirmation_bias": "Have I actively sought evidence that contradicts my initial assessment?",
+        "anchoring_bias": "Am I overly influenced by the first piece of evidence I encountered?",
+        "availability_heuristic": "Am I giving too much weight to recent or memorable examples?",
+        "groupthink": "Have I independently verified this assessment or am I following group consensus?",
+        "attribution_error": "Am I properly considering alternative explanations for observed behaviors?"
     }
     
     def __init__(self):
@@ -88,9 +137,18 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
             "pop_responses": {k: "" for k in self.POP_QUESTIONS.keys()},
             "moses_responses": {k: "" for k in self.MOSES_QUESTIONS.keys()},
             "eve_responses": {k: "" for k in self.EVE_QUESTIONS.keys()},
+            "bias_check_responses": {k: "" for k in self.BIAS_CHECK_PROMPTS.keys()},
             "selected_framework": "ALL",
             "auto_scraped_url": "",
-            "scenario_5w_summary": ""
+            "scenario_5w_summary": "",
+            "assessment_matrix": {},
+            "confidence_scores": {
+                "mom_confidence": 0,
+                "pop_confidence": 0,
+                "moses_confidence": 0,
+                "eve_confidence": 0,
+                "overall_confidence": 0
+            }
         }
         for k, v in defaults.items():
             if k not in st.session_state:
@@ -122,17 +180,19 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                 </div>
                 """, unsafe_allow_html=True)
                 progress = 0.0
-                if st.session_state.get("scenario"): progress += 0.2
-                if any(st.session_state.get("mom_responses", {}).values()): progress += 0.2
-                if any(st.session_state.get("pop_responses", {}).values()): progress += 0.2
-                if any(st.session_state.get("moses_responses", {}).values()): progress += 0.2
-                if any(st.session_state.get("eve_responses", {}).values()): progress += 0.2
+                if st.session_state.get("scenario"): progress += 0.15
+                if any(st.session_state.get("mom_responses", {}).values()): progress += 0.15
+                if any(st.session_state.get("pop_responses", {}).values()): progress += 0.15
+                if any(st.session_state.get("moses_responses", {}).values()): progress += 0.15
+                if any(st.session_state.get("eve_responses", {}).values()): progress += 0.15
+                if any(st.session_state.get("bias_check_responses", {}).values()): progress += 0.15
+                if st.session_state.get("confidence_scores", {}).get("overall_confidence", 0) > 0: progress += 0.10
                 st.progress(progress)
                 st.markdown(f"**Progress:** {int(progress*100)}% Complete")
                 st.markdown("---")
                 if st.button(" Reset Analysis"):
                     for k in list(st.session_state.keys()):
-                        if k in ["scenario", "url_input", "scraped_content", "scraped_metadata", "mom_responses", "pop_responses", "moses_responses", "eve_responses", "selected_framework", "auto_scraped_url", "scenario_5w_summary"]:
+                        if k in ["scenario", "url_input", "scraped_content", "scraped_metadata", "mom_responses", "pop_responses", "moses_responses", "eve_responses", "bias_check_responses", "selected_framework", "auto_scraped_url", "scenario_5w_summary", "assessment_matrix", "confidence_scores"]:
                             del st.session_state[k]
                     st.experimental_rerun()
                 st.markdown("---")
@@ -148,6 +208,8 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                     self._render_pop_section()
                     self._render_moses_section()
                     self._render_eve_section()
+                    self._render_bias_check_section()
+                    self._render_assessment_matrix_section()
                     self._render_summary_section()
                 elif selected == "MOM":
                     self._render_mom_section()
@@ -632,6 +694,12 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
                 
                 EVE Analysis:
                 {dict(st.session_state['eve_responses'])}
+                
+                Cognitive Bias Check:
+                {dict(st.session_state.get('bias_check_responses', {}))}
+                
+                Confidence Scores:
+                {dict(st.session_state.get('confidence_scores', {}))}
                 """
                 
                 user_msg = {
@@ -740,6 +808,159 @@ class DeceptionDetection(BaseFramework if BASE_FRAMEWORK_AVAILABLE else object):
             logging.error(error_msg)
             st.error(error_msg)
             return {}
+
+    def _render_bias_check_section(self) -> None:
+        """Render the cognitive bias mitigation section."""
+        self._section_header(5, "Cognitive Bias Check", "#9C27B0")
+        
+        st.markdown("""
+        <div style="background-color:#f8f9fa; padding:15px; border-radius:5px; margin-bottom:20px;">
+        <strong>🧠 Cognitive Bias Mitigation</strong><br>
+        Reflect on these questions to help identify and mitigate cognitive biases in your analysis.
+        </div>
+        """, unsafe_allow_html=True)
+        
+        for bias_key, question in self.BIAS_CHECK_PROMPTS.items():
+            st.markdown(f"**{bias_key.replace('_', ' ').title()}:**")
+            response = st.text_area(
+                question,
+                value=st.session_state["bias_check_responses"][bias_key],
+                key=f"bias_{bias_key}",
+                height=80
+            )
+            st.session_state["bias_check_responses"][bias_key] = response
+            
+        # AI-powered bias assessment
+        if st.button("🤖 AI Bias Assessment"):
+            try:
+                system_msg = {
+                    "role": "system",
+                    "content": "You are an expert in intelligence analysis and cognitive bias mitigation. Analyze the user's responses for potential cognitive biases and provide recommendations."
+                }
+                
+                bias_content = f"""
+                Analysis Scenario: {st.session_state.get('scenario', '')}
+                
+                Bias Check Responses:
+                {dict(st.session_state['bias_check_responses'])}
+                
+                Analysis Responses:
+                MOM: {dict(st.session_state.get('mom_responses', {}))}
+                POP: {dict(st.session_state.get('pop_responses', {}))}
+                MOSES: {dict(st.session_state.get('moses_responses', {}))}
+                EVE: {dict(st.session_state.get('eve_responses', {}))}
+                """
+                
+                user_msg = {
+                    "role": "user", 
+                    "content": f"Please analyze this for potential cognitive biases and provide specific recommendations:\n{bias_content}"
+                }
+                
+                bias_assessment = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
+                st.info("🔍 **AI Bias Assessment:**\n" + bias_assessment)
+            except Exception as e:
+                st.error(f"Error generating bias assessment: {e}")
+
+    def _render_assessment_matrix_section(self) -> None:
+        """Render the integrated assessment matrix."""
+        self._section_header(6, "Assessment Matrix", "#FF9800")
+        
+        # Check if we have enough data for assessment
+        has_responses = any([
+            any(st.session_state.get("mom_responses", {}).values()),
+            any(st.session_state.get("pop_responses", {}).values()),
+            any(st.session_state.get("moses_responses", {}).values()),
+            any(st.session_state.get("eve_responses", {}).values())
+        ])
+        
+        if not has_responses:
+            st.warning("⚠️ Complete at least one component analysis to generate assessment matrix")
+            return
+            
+        # Confidence scoring
+        st.markdown("### Confidence Scoring")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            mom_conf = st.slider("MOM Analysis Confidence", 0, 100, 
+                               st.session_state["confidence_scores"]["mom_confidence"], 
+                               key="mom_conf_slider")
+            st.session_state["confidence_scores"]["mom_confidence"] = mom_conf
+            
+            moses_conf = st.slider("MOSES Analysis Confidence", 0, 100, 
+                                 st.session_state["confidence_scores"]["moses_confidence"], 
+                                 key="moses_conf_slider")
+            st.session_state["confidence_scores"]["moses_confidence"] = moses_conf
+            
+        with col2:
+            pop_conf = st.slider("POP Analysis Confidence", 0, 100, 
+                               st.session_state["confidence_scores"]["pop_confidence"], 
+                               key="pop_conf_slider")
+            st.session_state["confidence_scores"]["pop_confidence"] = pop_conf
+            
+            eve_conf = st.slider("EVE Analysis Confidence", 0, 100, 
+                               st.session_state["confidence_scores"]["eve_confidence"], 
+                               key="eve_conf_slider")
+            st.session_state["confidence_scores"]["eve_confidence"] = eve_conf
+            
+        # Calculate overall confidence
+        overall_conf = (mom_conf + pop_conf + moses_conf + eve_conf) / 4
+        st.session_state["confidence_scores"]["overall_confidence"] = overall_conf
+        
+        # Assessment matrix visualization
+        st.markdown("### Integrated Assessment Matrix")
+        
+        assessment_data = {
+            "Component": ["MOM", "POP", "MOSES", "EVE"],
+            "Confidence": [mom_conf, pop_conf, moses_conf, eve_conf],
+            "Response Count": [
+                len([v for v in st.session_state.get("mom_responses", {}).values() if v.strip()]),
+                len([v for v in st.session_state.get("pop_responses", {}).values() if v.strip()]),
+                len([v for v in st.session_state.get("moses_responses", {}).values() if v.strip()]),
+                len([v for v in st.session_state.get("eve_responses", {}).values() if v.strip()])
+            ]
+        }
+        
+        # Display matrix as table
+        st.dataframe(assessment_data, use_container_width=True)
+        
+        # Overall assessment
+        st.markdown(f"""
+        <div style="background-color:#e3f2fd; padding:20px; border-radius:10px; margin:20px 0;">
+        <h3 style="color:#1976d2; margin-top:0;">Overall Assessment</h3>
+        <p><strong>Overall Confidence:</strong> {overall_conf:.1f}%</p>
+        <p><strong>Deception Likelihood:</strong> {"High" if overall_conf > 70 else "Medium" if overall_conf > 40 else "Low"}</p>
+        <p><strong>Recommendation:</strong> {"Further investigation recommended" if overall_conf > 60 else "Monitor situation" if overall_conf > 30 else "Low priority for deception concern"}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Generate ACH transition
+        if st.button("🔄 Generate ACH Hypotheses"):
+            try:
+                system_msg = {
+                    "role": "system",
+                    "content": "You are an expert intelligence analyst. Based on the deception detection analysis, generate competing hypotheses for Analysis of Competing Hypotheses (ACH) methodology."
+                }
+                
+                analysis_summary = f"""
+                Scenario: {st.session_state.get('scenario', '')}
+                Overall Confidence: {overall_conf:.1f}%
+                
+                MOM Analysis: {dict(st.session_state.get('mom_responses', {}))}
+                POP Analysis: {dict(st.session_state.get('pop_responses', {}))}
+                MOSES Analysis: {dict(st.session_state.get('moses_responses', {}))}
+                EVE Analysis: {dict(st.session_state.get('eve_responses', {}))}
+                """
+                
+                user_msg = {
+                    "role": "user",
+                    "content": f"Generate 3-5 competing hypotheses for ACH analysis based on this deception detection assessment:\n{analysis_summary}"
+                }
+                
+                hypotheses = chat_gpt([system_msg, user_msg], model="gpt-4o-mini")
+                st.success("🎯 **Generated ACH Hypotheses:**\n" + hypotheses)
+            except Exception as e:
+                st.error(f"Error generating ACH hypotheses: {e}")
 
 def _legacy_deception_detection():
     """Legacy implementation as a fallback in case the class-based version fails."""
