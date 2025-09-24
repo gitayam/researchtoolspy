@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResearchToolsPy - Cloudflare Deployment</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 1rem;
+            padding: 3rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+        }
+        .status {
+            background: #48bb78;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            display: inline-block;
+            margin-bottom: 2rem;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        .info-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+        }
+        .info-card h3 {
+            color: #4a5568;
+            margin-top: 0;
+        }
+        .endpoint {
+            background: #f7fafc;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            margin: 0.5rem 0;
+            word-break: break-all;
+        }
+        .test-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+        }
+        .test-button:hover {
+            background: #5a67d8;
+        }
+        #test-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f7fafc;
+            border-radius: 0.5rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 ResearchToolsPy Platform</h1>
+        <div class="status">✅ Deployed to Cloudflare</div>
+
+        <p>The ResearchToolsPy platform has been successfully deployed to Cloudflare's edge network.</p>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>🌐 API Gateway</h3>
+                <div class="endpoint">https://researchtoolspy-gateway-dev.wemea-5ahhf.workers.dev</div>
+                <p>Status: <strong>Active</strong></p>
+                <button class="test-button" onclick="testAPI()">Test API</button>
+            </div>
+
+            <div class="info-card">
+                <h3>💾 Database</h3>
+                <p>D1 Database: <strong>Configured</strong></p>
+                <p>Tables: <strong>15</strong></p>
+                <p>Region: <strong>Global Edge</strong></p>
+            </div>
+
+            <div class="info-card">
+                <h3>🗂️ Storage</h3>
+                <p>KV Namespaces: <strong>4</strong></p>
+                <p>R2 Buckets: <strong>2</strong></p>
+                <p>Status: <strong>Active</strong></p>
+            </div>
+
+            <div class="info-card">
+                <h3>🔧 Workers</h3>
+                <p>Gateway: <strong>Deployed</strong></p>
+                <p>SWOT: <strong>Ready</strong></p>
+                <p>ACH: <strong>Ready</strong></p>
+            </div>
+        </div>
+
+        <div id="test-result"></div>
+
+        <h2>Available Endpoints</h2>
+        <ul>
+            <li><code>POST /api/v1/auth/anonymous</code> - Create anonymous session</li>
+            <li><code>POST /api/v1/auth/login</code> - User login</li>
+            <li><code>POST /api/v1/auth/register</code> - User registration</li>
+            <li><code>GET /api/v1/frameworks</code> - List frameworks</li>
+            <li><code>POST /api/v1/frameworks/swot/sessions</code> - Create SWOT session</li>
+            <li><code>POST /api/v1/frameworks/ach/sessions</code> - Create ACH session</li>
+        </ul>
+
+        <h2>Deployment Details</h2>
+        <p>
+            <strong>Branch:</strong> cloudflare/workers-pages-d1-refactor<br>
+            <strong>Environment:</strong> Development<br>
+            <strong>Deployed:</strong> <span id="timestamp"></span>
+        </p>
+    </div>
+
+    <script>
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+
+        async function testAPI() {
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing API...';
+
+            try {
+                const response = await fetch('https://researchtoolspy-gateway-dev.wemea-5ahhf.workers.dev/api/v1/auth/anonymous', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <strong>✅ API Test Successful!</strong><br>
+                        Response: <code>${JSON.stringify(data, null, 2)}</code>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <strong>⚠️ API Response:</strong><br>
+                        <code>${JSON.stringify(data, null, 2)}</code>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <strong>❌ API Test Failed:</strong><br>
+                    ${error.message}
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

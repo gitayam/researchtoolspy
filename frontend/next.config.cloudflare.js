@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Use Edge Runtime for Cloudflare Pages
-  experimental: {
-    runtime: 'edge',
-  },
+  // Cloudflare Pages configuration
+  // Edge Runtime is configured per-route, not globally
 
   // Output configuration for Cloudflare Pages
   output: 'export',

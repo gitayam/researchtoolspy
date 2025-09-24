@@ -1,43 +1,99 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Docker production build configuration
-  output: 'standalone',
-  
-  // Disable all static optimization to avoid useSearchParams issues
-  distDir: '.next',
-  trailingSlash: false,
-  poweredByHeader: false,
+  // Cloudflare Pages configuration
+  // Edge Runtime is configured per-route, not globally
 
-  
-  
-  // Disable ESLint during build in Docker
-  eslint: {
-    ignoreDuringBuilds: true,
+  // Output configuration for Cloudflare Pages
+  output: 'export',
+
+  // Disable image optimization (handled by Cloudflare)
+  images: {
+    unoptimized: true,
   },
-  
-  // Disable TypeScript errors during build in Docker
-  typescript: {
-    ignoreBuildErrors: true,
+
+  // Environment variables for Cloudflare
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://api.researchtoolspy.com',
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'https://app.researchtoolspy.com',
+    NEXT_PUBLIC_ENVIRONMENT: process.env.NEXT_PUBLIC_ENVIRONMENT || 'production',
   },
-  
-  // Allow Cloudflare tunnel origins for public hosting (strings only, no regex)
-  // allowedDevOrigins: [
-  //   'mtv-accessibility-loving-mm.trycloudflare.com',
-  //   'heading-cutting-decades-ghz.trycloudflare.com',
-  // ],
+
+  // Webpack configuration for Cloudflare compatibility
   webpack: (config, { isServer }) => {
-    // Ignore pptxgenjs Node.js dependencies in browser builds
     if (!isServer) {
+      // Cloudflare Pages specific optimizations
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
-        path: false,
-        stream: false,
+        net: false,
+        tls: false,
         crypto: false,
-      }
+        stream: false,
+        os: false,
+        util: false,
+        path: false,
+      };
     }
-    return config
+    return config;
   },
-}
 
-module.exports = nextConfig
+  // Headers for security and caching
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+      {
+        source: '/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
+
+  // Redirects for old routes
+  async redirects() {
+    return [
+      {
+        source: '/frameworks',
+        destination: '/analysis-frameworks',
+        permanent: true,
+      },
+    ];
+  },
+
+  // Disable server-side features for static export
+  trailingSlash: true,
+
+  // TypeScript and ESLint
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+};
+
+module.exports = nextConfig;
