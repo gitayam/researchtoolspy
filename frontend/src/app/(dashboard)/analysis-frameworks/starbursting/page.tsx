@@ -48,7 +48,7 @@ export default function StarburstingPage() {
   }, [toast])
 
   const handleCreateNew = () => {
-    router.push('/frameworks/starbursting/create')
+    router.push('/analysis-frameworks/starbursting/create')
   }
 
   const statusColors = {
@@ -190,7 +190,7 @@ export default function StarburstingPage() {
                     variant="outline" 
                     size="sm" 
                     className="flex-1"
-                    onClick={() => router.push(`/frameworks/starbursting/${session.id}`)}
+                    onClick={() => router.push(`/analysis-frameworks/starbursting/${session.id}`)}
                   >
                     <Search className="h-4 w-4 mr-2" />
                     View
@@ -198,7 +198,7 @@ export default function StarburstingPage() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => router.push(`/frameworks/starbursting/${session.id}/edit`)}
+                    onClick={() => router.push(`/analysis-frameworks/starbursting/${session.id}/edit`)}
                   >
                     Edit
                   </Button>

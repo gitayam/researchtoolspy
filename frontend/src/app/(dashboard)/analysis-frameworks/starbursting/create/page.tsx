@@ -304,7 +304,7 @@ export default function CreateStarburstingPage() {
         description: 'Starbursting analysis saved successfully'
       })
 
-      router.push(`/frameworks/starbursting/${response.id}`)
+      router.push(`/analysis-frameworks/starbursting/${response.id}`)
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to save Starbursting analysis'
       toast({

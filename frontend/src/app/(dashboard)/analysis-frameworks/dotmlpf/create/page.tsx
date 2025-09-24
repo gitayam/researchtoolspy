@@ -142,7 +142,7 @@ export default function DOTMLPFCreatePage() {
         description: 'DOTMLPF-P analysis saved successfully'
       })
       
-      router.push(`/frameworks/dotmlpf/${response.id}`)
+      router.push(`/analysis-frameworks/dotmlpf/${response.id}`)
     } catch (error: any) {
       toast({
         title: 'Error',

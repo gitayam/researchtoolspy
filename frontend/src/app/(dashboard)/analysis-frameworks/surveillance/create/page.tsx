@@ -129,14 +129,14 @@ export default function CreateSurveillanceAnalysisPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // TODO: Save to API
-    router.push('/frameworks/surveillance')
+    router.push('/analysis-frameworks/surveillance')
   }
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <Link href="/frameworks/surveillance">
+          <Link href="/analysis-frameworks/surveillance">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -474,7 +474,7 @@ export default function CreateSurveillanceAnalysisPage() {
             <Save className="h-4 w-4 mr-2" />
             Save Analysis
           </Button>
-          <Button type="button" variant="outline" onClick={() => router.push('/frameworks/surveillance')}>
+          <Button type="button" variant="outline" onClick={() => router.push('/analysis-frameworks/surveillance')}>
             Cancel
           </Button>
         </div>

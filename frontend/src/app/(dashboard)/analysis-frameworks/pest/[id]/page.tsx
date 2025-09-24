@@ -64,7 +64,7 @@ export default function PESTViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<PESTSession>(`/frameworks/${params.id}`)
+        const data = await apiClient.get<PESTSession>(`/analysis-frameworks/${params.id}`)
         setSession(data)
       } catch (error: any) {
         toast({
@@ -84,7 +84,7 @@ export default function PESTViewPage() {
   }, [params.id, router, toast])
 
   const handleEdit = () => {
-    router.push(`/frameworks/pest/${params.id}/edit`)
+    router.push(`/analysis-frameworks/pest/${params.id}/edit`)
   }
 
   const handleShare = () => {

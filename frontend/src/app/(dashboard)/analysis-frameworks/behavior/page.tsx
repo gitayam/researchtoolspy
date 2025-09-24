@@ -76,7 +76,7 @@ export default function BehaviorListPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await apiClient.delete(`/frameworks/${id}`)
+      await apiClient.delete(`/analysis-frameworks/${id}`)
       setAnalyses(analyses.filter(a => a.id !== id))
       toast({
         title: 'Success',
@@ -142,7 +142,7 @@ export default function BehaviorListPage() {
           <h1 className="text-3xl font-bold">COM-B Behavior Analysis</h1>
           <p className="text-gray-600 mt-2">Capability, Opportunity, Motivation framework for behavior change</p>
         </div>
-        <Link href="/frameworks/behavior/create">
+        <Link href="/analysis-frameworks/behavior/create">
           <Button className="bg-emerald-600 hover:bg-emerald-700">
             <Plus className="h-4 w-4 mr-2" />
             New Analysis
@@ -186,7 +186,7 @@ export default function BehaviorListPage() {
                 }
               </p>
               {!searchTerm && (
-                <Link href="/frameworks/behavior/create">
+                <Link href="/analysis-frameworks/behavior/create">
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
                     Create Your First Analysis
@@ -207,7 +207,7 @@ export default function BehaviorListPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <Link href={`/frameworks/behavior/${analysis.id}`}>
+                        <Link href={`/analysis-frameworks/behavior/${analysis.id}`}>
                           <h3 className="text-xl font-semibold hover:text-blue-600 transition-colors">
                             {analysis.title}
                           </h3>
@@ -273,10 +273,10 @@ export default function BehaviorListPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
-                          <Link href={`/frameworks/behavior/${analysis.id}`}>View</Link>
+                          <Link href={`/analysis-frameworks/behavior/${analysis.id}`}>View</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/frameworks/behavior/${analysis.id}/edit`}>Edit</Link>
+                          <Link href={`/analysis-frameworks/behavior/${analysis.id}/edit`}>Edit</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className="text-red-600"

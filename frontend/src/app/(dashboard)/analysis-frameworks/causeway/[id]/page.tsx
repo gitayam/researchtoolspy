@@ -53,7 +53,7 @@ export default function CausewayDetailPage() {
     const fetchAnalysis = async () => {
       try {
         setLoading(true)
-        const response = await apiClient.get<CausewayAnalysis>(`/frameworks/${params.id}`)
+        const response = await apiClient.get<CausewayAnalysis>(`/analysis-frameworks/${params.id}`)
         setAnalysis(response)
       } catch (error: any) {
         console.warn('API not available, using mock data:', error.message)
@@ -109,7 +109,7 @@ export default function CausewayDetailPage() {
     if (!confirm('Are you sure you want to delete this analysis?')) return
     
     try {
-      await apiClient.delete(`/frameworks/${params.id}`)
+      await apiClient.delete(`/analysis-frameworks/${params.id}`)
       toast({
         title: 'Success',
         description: 'Analysis deleted successfully'

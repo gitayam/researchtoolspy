@@ -72,7 +72,7 @@ export default function SurveillanceViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<SurveillanceSession>(`/frameworks/${params.id}`)
+        const data = await apiClient.get<SurveillanceSession>(`/analysis-frameworks/${params.id}`)
         setSession(data)
       } catch (error: any) {
         toast({
@@ -92,7 +92,7 @@ export default function SurveillanceViewPage() {
   }, [params.id, router, toast])
 
   const handleEdit = () => {
-    router.push(`/frameworks/surveillance/${params.id}/edit`)
+    router.push(`/analysis-frameworks/surveillance/${params.id}/edit`)
   }
 
   const handleShare = () => {

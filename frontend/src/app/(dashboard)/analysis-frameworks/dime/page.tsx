@@ -47,7 +47,7 @@ export default function DIMEListPage() {
           <h1 className="text-3xl font-bold">DIME Framework Analysis</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">Diplomatic, Information, Military, and Economic instruments</p>
         </div>
-        <Link href="/frameworks/dime/create">
+        <Link href="/analysis-frameworks/dime/create">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             New Analysis
@@ -75,7 +75,7 @@ export default function DIMEListPage() {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <Link href={`/frameworks/dime/${analysis.id}`}>
+                    <Link href={`/analysis-frameworks/dime/${analysis.id}`}>
                       <h3 className="text-xl font-semibold hover:text-blue-600 transition-colors">
                         {analysis.title}
                       </h3>
@@ -126,10 +126,10 @@ export default function DIMEListPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/frameworks/dime/${analysis.id}`}>View</Link>
+                      <Link href={`/analysis-frameworks/dime/${analysis.id}`}>View</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href={`/frameworks/dime/${analysis.id}/edit`}>Edit</Link>
+                      <Link href={`/analysis-frameworks/dime/${analysis.id}/edit`}>Edit</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>Duplicate</DropdownMenuItem>
                     <DropdownMenuItem>Export</DropdownMenuItem>
@@ -151,7 +151,7 @@ export default function DIMEListPage() {
               {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first DIME analysis'}
             </p>
             {!searchTerm && (
-              <Link href="/frameworks/dime/create">
+              <Link href="/analysis-frameworks/dime/create">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Analysis

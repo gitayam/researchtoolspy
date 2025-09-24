@@ -190,7 +190,7 @@ export default function CreateDIMEPage() {
         description: 'DIME analysis created successfully'
       })
 
-      router.push(`/frameworks/dime/${response.session_id}`)
+      router.push(`/analysis-frameworks/dime/${response.session_id}`)
     } catch (error: any) {
       toast({
         title: 'Error',

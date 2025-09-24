@@ -56,7 +56,7 @@ export default function FundamentalFlowViewPage() {
 
   const fetchSession = async (id: string) => {
     try {
-      const response = await apiClient.get(`/frameworks/${id}`)
+      const response = await apiClient.get(`/analysis-frameworks/${id}`)
       setSession(response)
     } catch (error: any) {
       toast({
@@ -64,7 +64,7 @@ export default function FundamentalFlowViewPage() {
         description: 'Failed to load Fundamental Flow analysis',
         variant: 'destructive'
       })
-      router.push('/frameworks/fundamental-flow')
+      router.push('/analysis-frameworks/fundamental-flow')
     } finally {
       setLoading(false)
     }
@@ -158,7 +158,7 @@ export default function FundamentalFlowViewPage() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button onClick={() => router.push(`/frameworks/fundamental-flow/${session.id}/edit`)}>
+          <Button onClick={() => router.push(`/analysis-frameworks/fundamental-flow/${session.id}/edit`)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>

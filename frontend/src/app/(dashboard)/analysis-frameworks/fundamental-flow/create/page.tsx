@@ -130,7 +130,7 @@ export default function CreateFundamentalFlowPage() {
         description: 'Fundamental Flow analysis saved successfully'
       })
 
-      router.push(`/frameworks/fundamental-flow/${response.id}`)
+      router.push(`/analysis-frameworks/fundamental-flow/${response.id}`)
     } catch (error: any) {
       toast({
         title: 'Save Error',

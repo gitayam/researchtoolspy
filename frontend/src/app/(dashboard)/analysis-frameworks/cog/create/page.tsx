@@ -95,7 +95,7 @@ export default function CreateCOGPage() {
         description: 'COG analysis saved successfully'
       })
 
-      router.push(`/frameworks/cog/${response.id}`)
+      router.push(`/analysis-frameworks/cog/${response.id}`)
     } catch (error: any) {
       toast({
         title: 'Error',

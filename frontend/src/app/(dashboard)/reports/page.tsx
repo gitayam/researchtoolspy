@@ -157,7 +157,7 @@ export default function ReportsPage() {
                       <div className="flex items-center gap-2">
                         <FrameworkIcon className="h-5 w-5 text-gray-600" />
                         <Link 
-                          href={`/frameworks/${report.framework.toLowerCase()}/${report.id}`}
+                          href={`/analysis-frameworks/${report.framework.toLowerCase()}/${report.id}`}
                           className="text-lg font-semibold hover:text-blue-600 transition-colors"
                         >
                           {report.title}
@@ -209,7 +209,7 @@ export default function ReportsPage() {
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/frameworks/${report.framework.toLowerCase()}/${report.id}`}>
+                      <Link href={`/analysis-frameworks/${report.framework.toLowerCase()}/${report.id}`}>
                         <Eye className="h-4 w-4 mr-2" />
                         View
                       </Link>

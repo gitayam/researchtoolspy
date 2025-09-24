@@ -74,7 +74,7 @@ export default function PMESIIPTViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<PMESIISession>(`/frameworks/sessions/${params.id}`)
+        const data = await apiClient.get<PMESIISession>(`/analysis-frameworks/sessions/${params.id}`)
         setSession(data)
       } catch (error: any) {
         toast({
@@ -94,7 +94,7 @@ export default function PMESIIPTViewPage() {
   }, [params.id, router, toast])
 
   const handleEdit = () => {
-    router.push(`/frameworks/pmesii-pt/${params.id}/edit`)
+    router.push(`/analysis-frameworks/pmesii-pt/${params.id}/edit`)
   }
 
   const handleExport = async (format: ExportFormat) => {

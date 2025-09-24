@@ -84,14 +84,14 @@ export default function DashboardPage() {
     {
       title: 'New SWOT Analysis',
       description: 'Strategic planning analysis',
-      href: '/frameworks/swot/create',
+      href: '/analysis-frameworks/swot/create',
       icon: Target,
       color: 'bg-blue-500 hover:bg-blue-600'
     },
     {
       title: 'COG Analysis',
       description: 'Center of gravity assessment',
-      href: '/frameworks/cog/create', 
+      href: '/analysis-frameworks/cog/create', 
       icon: Brain,
       color: 'bg-green-500 hover:bg-green-600'
     },
@@ -225,7 +225,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <Link 
-                        href={`/frameworks/${session.framework_type}/${session.id}`}
+                        href={`/analysis-frameworks/${session.framework_type}/${session.id}`}
                         className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600"
                       >
                         {session.title}

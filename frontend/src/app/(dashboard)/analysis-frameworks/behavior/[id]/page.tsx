@@ -69,7 +69,7 @@ export default function BehaviorViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<BehaviorSession>(`/frameworks/${params.id}`)
+        const data = await apiClient.get<BehaviorSession>(`/analysis-frameworks/${params.id}`)
         setSession(data)
       } catch (error: any) {
         console.warn('API not available, redirecting to frameworks:', error.message)
@@ -86,7 +86,7 @@ export default function BehaviorViewPage() {
   }, [params.id, router, toast])
 
   const handleEdit = () => {
-    router.push(`/frameworks/behavior/${params.id}/edit`)
+    router.push(`/analysis-frameworks/behavior/${params.id}/edit`)
   }
 
   const handleShare = () => {

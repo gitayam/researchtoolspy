@@ -51,7 +51,7 @@ export default function SWOTViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<SWOTSession>(`/frameworks/swot/${params.id}`)
+        const data = await apiClient.get<SWOTSession>(`/analysis-frameworks/swot/${params.id}`)
         setSession(data)
       } catch (error: any) {
         toast({
@@ -71,7 +71,7 @@ export default function SWOTViewPage() {
   }, [params.id, router, toast])
 
   const handleEdit = () => {
-    router.push(`/frameworks/swot/${params.id}/edit`)
+    router.push(`/analysis-frameworks/swot/${params.id}/edit`)
   }
 
   const handleExport = () => {

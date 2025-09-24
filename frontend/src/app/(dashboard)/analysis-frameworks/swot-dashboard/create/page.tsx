@@ -93,7 +93,7 @@ export default function CreateSWOTPage() {
         description: 'SWOT analysis saved successfully'
       })
 
-      router.push(`/frameworks/swot/${response.session_id}`)
+      router.push(`/analysis-frameworks/swot/${response.session_id}`)
     } catch (error: any) {
       toast({
         title: 'Error',

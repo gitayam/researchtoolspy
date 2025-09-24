@@ -41,7 +41,7 @@ export default function TrendAnalysisPage() {
           <h1 className="text-3xl font-bold">Trend Analysis</h1>
           <p className="text-gray-600 mt-2">Identify patterns and forecast future developments</p>
         </div>
-        <Link href="/frameworks/trend/create">
+        <Link href="/analysis-frameworks/trend/create">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             New Analysis
@@ -120,7 +120,7 @@ export default function TrendAnalysisPage() {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <Link href={`/frameworks/trend/${analysis.id}`}>
+                    <Link href={`/analysis-frameworks/trend/${analysis.id}`}>
                       <h3 className="text-xl font-semibold hover:text-blue-600 transition-colors">
                         {analysis.title}
                       </h3>
@@ -164,10 +164,10 @@ export default function TrendAnalysisPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/frameworks/trend/${analysis.id}`}>View</Link>
+                      <Link href={`/analysis-frameworks/trend/${analysis.id}`}>View</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href={`/frameworks/trend/${analysis.id}/edit`}>Edit</Link>
+                      <Link href={`/analysis-frameworks/trend/${analysis.id}/edit`}>Edit</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>Duplicate</DropdownMenuItem>
                     <DropdownMenuItem>Export</DropdownMenuItem>
@@ -189,7 +189,7 @@ export default function TrendAnalysisPage() {
               {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first trend analysis'}
             </p>
             {!searchTerm && (
-              <Link href="/frameworks/trend/create">
+              <Link href="/analysis-frameworks/trend/create">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Analysis

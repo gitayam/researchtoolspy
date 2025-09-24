@@ -66,7 +66,7 @@ export default function COGViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<COGSession>(`/frameworks/sessions/${params.id}`)
+        const data = await apiClient.get<COGSession>(`/analysis-frameworks/sessions/${params.id}`)
         setSession(data)
       } catch (error: any) {
         toast({
@@ -86,7 +86,7 @@ export default function COGViewPage() {
   }, [params.id, router, toast])
 
   const handleEdit = () => {
-    router.push(`/frameworks/cog/${params.id}/edit`)
+    router.push(`/analysis-frameworks/cog/${params.id}/edit`)
   }
 
   const handleExport = async (format: ExportFormat) => {

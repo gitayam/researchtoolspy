@@ -149,14 +149,14 @@ export default function CreateTrendAnalysisPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // TODO: Save to API
-    router.push('/frameworks/trend')
+    router.push('/analysis-frameworks/trend')
   }
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <Link href="/frameworks/trend">
+          <Link href="/analysis-frameworks/trend">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -491,7 +491,7 @@ export default function CreateTrendAnalysisPage() {
             <Save className="h-4 w-4 mr-2" />
             Save Analysis
           </Button>
-          <Button type="button" variant="outline" onClick={() => router.push('/frameworks/trend')}>
+          <Button type="button" variant="outline" onClick={() => router.push('/analysis-frameworks/trend')}>
             Cancel
           </Button>
         </div>

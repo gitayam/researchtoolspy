@@ -108,7 +108,7 @@ export default function CreateVRIOPage() {
         description: 'VRIO analysis saved successfully'
       })
 
-      router.push(`/frameworks/vrio/${response.id}`)
+      router.push(`/analysis-frameworks/vrio/${response.id}`)
     } catch (error: any) {
       toast({
         title: 'Error',

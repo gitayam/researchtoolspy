@@ -104,7 +104,7 @@ export default function ACHListPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await apiClient.delete(`/frameworks/${id}`)
+      await apiClient.delete(`/analysis-frameworks/${id}`)
       toast({
         title: 'Success',
         description: 'Analysis deleted successfully'
@@ -147,7 +147,7 @@ export default function ACHListPage() {
               }
             </p>
             {!searchTerm && (
-              <Link href="/frameworks/ach/create">
+              <Link href="/analysis-frameworks/ach/create">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Your First Analysis
@@ -165,7 +165,7 @@ export default function ACHListPage() {
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <Link href={`/frameworks/ach/${analysis.id}`}>
+                <Link href={`/analysis-frameworks/ach/${analysis.id}`}>
                   <h3 className="text-xl font-semibold hover:text-blue-600 transition-colors">
                     {analysis.title}
                   </h3>
@@ -205,10 +205,10 @@ export default function ACHListPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link href={`/frameworks/ach/${analysis.id}`}>View</Link>
+                  <Link href={`/analysis-frameworks/ach/${analysis.id}`}>View</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href={`/frameworks/ach/${analysis.id}/edit`}>Edit</Link>
+                  <Link href={`/analysis-frameworks/ach/${analysis.id}/edit`}>Edit</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   className="text-red-600"
@@ -231,7 +231,7 @@ export default function ACHListPage() {
           <h1 className="text-3xl font-bold">Analysis of Competing Hypotheses</h1>
           <p className="text-gray-600 mt-2">Systematic analysis of alternative explanations</p>
         </div>
-        <Link href="/frameworks/ach/create">
+        <Link href="/analysis-frameworks/ach/create">
           <Button className="bg-orange-600 hover:bg-orange-700">
             <Plus className="h-4 w-4 mr-2" />
             New Analysis

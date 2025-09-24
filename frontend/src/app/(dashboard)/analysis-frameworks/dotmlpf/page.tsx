@@ -82,7 +82,7 @@ export default function DOTMLPFListPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await apiClient.delete(`/frameworks/${id}`)
+      await apiClient.delete(`/analysis-frameworks/${id}`)
       setAnalyses(analyses.filter(a => a.id !== id))
       toast({
         title: 'Success',
@@ -148,7 +148,7 @@ export default function DOTMLPFListPage() {
           <h1 className="text-3xl font-bold">DOTMLPF-P Analysis</h1>
           <p className="text-gray-600 mt-2">Military capability assessment framework</p>
         </div>
-        <Link href="/frameworks/dotmlpf/create">
+        <Link href="/analysis-frameworks/dotmlpf/create">
           <Button className="bg-amber-600 hover:bg-amber-700">
             <Plus className="h-4 w-4 mr-2" />
             New Analysis
@@ -192,7 +192,7 @@ export default function DOTMLPFListPage() {
                 }
               </p>
               {!searchTerm && (
-                <Link href="/frameworks/dotmlpf/create">
+                <Link href="/analysis-frameworks/dotmlpf/create">
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
                     Create Your First Analysis
@@ -213,7 +213,7 @@ export default function DOTMLPFListPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <Link href={`/frameworks/dotmlpf/${analysis.id}`}>
+                        <Link href={`/analysis-frameworks/dotmlpf/${analysis.id}`}>
                           <h3 className="text-xl font-semibold hover:text-blue-600 transition-colors">
                             {analysis.title}
                           </h3>
@@ -276,10 +276,10 @@ export default function DOTMLPFListPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
-                          <Link href={`/frameworks/dotmlpf/${analysis.id}`}>View</Link>
+                          <Link href={`/analysis-frameworks/dotmlpf/${analysis.id}`}>View</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/frameworks/dotmlpf/${analysis.id}/edit`}>Edit</Link>
+                          <Link href={`/analysis-frameworks/dotmlpf/${analysis.id}/edit`}>Edit</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className="text-red-600"

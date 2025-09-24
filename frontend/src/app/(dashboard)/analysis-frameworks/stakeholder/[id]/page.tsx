@@ -63,7 +63,7 @@ export default function StakeholderViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<StakeholderSession>(`/frameworks/${params.id}`)
+        const data = await apiClient.get<StakeholderSession>(`/analysis-frameworks/${params.id}`)
         setSession(data)
       } catch (error: any) {
         toast({
@@ -83,7 +83,7 @@ export default function StakeholderViewPage() {
   }, [params.id, router, toast])
 
   const handleEdit = () => {
-    router.push(`/frameworks/stakeholder/${params.id}/edit`)
+    router.push(`/analysis-frameworks/stakeholder/${params.id}/edit`)
   }
 
   const handleShare = () => {

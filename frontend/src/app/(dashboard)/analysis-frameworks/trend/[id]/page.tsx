@@ -68,7 +68,7 @@ export default function TrendViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<TrendSession>(`/frameworks/${params.id}`)
+        const data = await apiClient.get<TrendSession>(`/analysis-frameworks/${params.id}`)
         setSession(data)
       } catch (error: any) {
         toast({
@@ -88,7 +88,7 @@ export default function TrendViewPage() {
   }, [params.id, router, toast])
 
   const handleEdit = () => {
-    router.push(`/frameworks/trend/${params.id}/edit`)
+    router.push(`/analysis-frameworks/trend/${params.id}/edit`)
   }
 
   const handleShare = () => {

@@ -88,7 +88,7 @@ export default function FundamentalFlowPage() {
           </p>
         </div>
         <Button 
-          onClick={() => router.push('/frameworks/fundamental-flow/create')}
+          onClick={() => router.push('/analysis-frameworks/fundamental-flow/create')}
           className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -144,7 +144,7 @@ export default function FundamentalFlowPage() {
               Create your first Fundamental Flow analysis to map causal relationships and identify root causes.
             </p>
             <Button 
-              onClick={() => router.push('/frameworks/fundamental-flow/create')}
+              onClick={() => router.push('/analysis-frameworks/fundamental-flow/create')}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -155,7 +155,7 @@ export default function FundamentalFlowPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sessions.map((session) => (
-            <Link key={session.id} href={`/frameworks/fundamental-flow/${session.id}`}>
+            <Link key={session.id} href={`/analysis-frameworks/fundamental-flow/${session.id}`}>
               <Card className="cursor-pointer hover:shadow-lg transition-shadow border-l-4 border-l-blue-500">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">{session.title}</CardTitle>

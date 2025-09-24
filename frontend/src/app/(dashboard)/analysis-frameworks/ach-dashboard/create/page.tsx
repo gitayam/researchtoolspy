@@ -136,7 +136,7 @@ export default function CreateACHPage() {
       // Load existing session data
       const loadExistingSession = async () => {
         try {
-          const sessionData = await apiClient.get<ApiSessionResponse>(`/frameworks/${editId}`)
+          const sessionData = await apiClient.get<ApiSessionResponse>(`/analysis-frameworks/${editId}`)
           
           // Set basic fields
           setTitle(sessionData.title || '')
@@ -185,7 +185,7 @@ export default function CreateACHPage() {
             description: errorMessage || 'Failed to load session for editing',
             variant: 'destructive'
           })
-          router.push('/frameworks/ach')
+          router.push('/analysis-frameworks/ach')
         } finally {
           setLoading(false)
         }
@@ -451,7 +451,7 @@ export default function CreateACHPage() {
       let response
       if (isEditMode && editSessionId) {
         // Update existing session
-        response = await apiClient.put(`/frameworks/${editSessionId}`, {
+        response = await apiClient.put(`/analysis-frameworks/${editSessionId}`, {
           title,
           description,
           framework_type: 'ach',
@@ -466,7 +466,7 @@ export default function CreateACHPage() {
           description: 'ACH analysis updated successfully'
         })
         
-        router.push(`/frameworks/ach/${editSessionId}`)
+        router.push(`/analysis-frameworks/ach/${editSessionId}`)
       } else {
         // Create new session
         response = await apiClient.post('/frameworks/', {
@@ -484,7 +484,7 @@ export default function CreateACHPage() {
           description: 'ACH analysis saved successfully'
         })
         
-        router.push(`/frameworks/ach/${(response as { id: string }).id}`)
+        router.push(`/analysis-frameworks/ach/${(response as { id: string }).id}`)
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'

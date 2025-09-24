@@ -41,7 +41,7 @@ export default function VRIOListPage() {
           <h1 className="text-3xl font-bold">VRIO Framework</h1>
           <p className="text-gray-600 mt-2">Value, Rarity, Imitability, and Organization analysis</p>
         </div>
-        <Link href="/frameworks/vrio/create">
+        <Link href="/analysis-frameworks/vrio/create">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             New Analysis
@@ -69,7 +69,7 @@ export default function VRIOListPage() {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <Link href={`/frameworks/vrio/${analysis.id}`}>
+                    <Link href={`/analysis-frameworks/vrio/${analysis.id}`}>
                       <h3 className="text-xl font-semibold hover:text-blue-600 transition-colors">
                         {analysis.title}
                       </h3>
@@ -107,10 +107,10 @@ export default function VRIOListPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/frameworks/vrio/${analysis.id}`}>View</Link>
+                      <Link href={`/analysis-frameworks/vrio/${analysis.id}`}>View</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href={`/frameworks/vrio/${analysis.id}/edit`}>Edit</Link>
+                      <Link href={`/analysis-frameworks/vrio/${analysis.id}/edit`}>Edit</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>Duplicate</DropdownMenuItem>
                     <DropdownMenuItem>Export</DropdownMenuItem>
@@ -132,7 +132,7 @@ export default function VRIOListPage() {
               {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first VRIO analysis'}
             </p>
             {!searchTerm && (
-              <Link href="/frameworks/vrio/create">
+              <Link href="/analysis-frameworks/vrio/create">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Analysis

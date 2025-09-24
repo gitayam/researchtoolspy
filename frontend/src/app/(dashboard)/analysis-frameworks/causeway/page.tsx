@@ -85,7 +85,7 @@ export default function CausewayListPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await apiClient.delete(`/frameworks/${id}`)
+      await apiClient.delete(`/analysis-frameworks/${id}`)
       setAnalyses(analyses.filter(a => a.id !== id))
       toast({
         title: 'Success',

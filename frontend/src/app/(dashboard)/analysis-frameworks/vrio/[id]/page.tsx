@@ -63,7 +63,7 @@ export default function VRIOViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<VRIOSession>(`/frameworks/${params.id}`)
+        const data = await apiClient.get<VRIOSession>(`/analysis-frameworks/${params.id}`)
         setSession(data)
       } catch (error: any) {
         toast({
@@ -83,7 +83,7 @@ export default function VRIOViewPage() {
   }, [params.id, router, toast])
 
   const handleEdit = () => {
-    router.push(`/frameworks/vrio/${params.id}/edit`)
+    router.push(`/analysis-frameworks/vrio/${params.id}/edit`)
   }
 
   const handleShare = () => {

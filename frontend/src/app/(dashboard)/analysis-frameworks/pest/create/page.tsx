@@ -95,7 +95,7 @@ export default function CreatePESTPage() {
         description: 'PEST analysis saved successfully'
       })
 
-      router.push(`/frameworks/pest/${response.id}`)
+      router.push(`/analysis-frameworks/pest/${response.id}`)
     } catch (error: any) {
       toast({
         title: 'Error',

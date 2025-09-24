@@ -159,7 +159,7 @@ export default function BehaviorCreatePage() {
         description: 'Behavior analysis saved successfully'
       })
       
-      router.push(`/frameworks/behavior/${(response as { id: string }).id}`)
+      router.push(`/analysis-frameworks/behavior/${(response as { id: string }).id}`)
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
       toast({

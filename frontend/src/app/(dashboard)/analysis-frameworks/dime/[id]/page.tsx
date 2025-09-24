@@ -67,7 +67,7 @@ export default function DIMEViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<DIMESession>(`/frameworks/sessions/${params.id}`)
+        const data = await apiClient.get<DIMESession>(`/analysis-frameworks/sessions/${params.id}`)
         setSession(data)
       } catch (error: any) {
         toast({
@@ -87,7 +87,7 @@ export default function DIMEViewPage() {
   }, [params.id, router, toast])
 
   const handleEdit = () => {
-    router.push(`/frameworks/dime/${params.id}/edit`)
+    router.push(`/analysis-frameworks/dime/${params.id}/edit`)
   }
 
   const handleExport = async (format: ExportFormat) => {

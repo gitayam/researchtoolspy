@@ -107,7 +107,7 @@ export default function CreatePMESIIPTPage() {
         description: 'PMESII-PT analysis saved successfully'
       })
 
-      router.push(`/frameworks/pmesii-pt/${response.id}`)
+      router.push(`/analysis-frameworks/pmesii-pt/${response.id}`)
     } catch (error: any) {
       toast({
         title: 'Error',

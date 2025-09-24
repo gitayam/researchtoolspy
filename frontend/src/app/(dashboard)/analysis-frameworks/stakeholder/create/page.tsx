@@ -85,14 +85,14 @@ export default function CreateStakeholderAnalysisPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // TODO: Save to API
-    router.push('/frameworks/stakeholder')
+    router.push('/analysis-frameworks/stakeholder')
   }
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <Link href="/frameworks/stakeholder">
+          <Link href="/analysis-frameworks/stakeholder">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -354,7 +354,7 @@ export default function CreateStakeholderAnalysisPage() {
             <Save className="h-4 w-4 mr-2" />
             Save Analysis
           </Button>
-          <Button type="button" variant="outline" onClick={() => router.push('/frameworks/stakeholder')}>
+          <Button type="button" variant="outline" onClick={() => router.push('/analysis-frameworks/stakeholder')}>
             Cancel
           </Button>
         </div>

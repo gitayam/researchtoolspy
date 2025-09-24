@@ -99,7 +99,7 @@ export default function ACHViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<ACHSession>(`/frameworks/${params.id}`)
+        const data = await apiClient.get<ACHSession>(`/analysis-frameworks/${params.id}`)
         setSession(data)
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
@@ -121,7 +121,7 @@ export default function ACHViewPage() {
 
   const handleEdit = () => {
     // Navigate to create page with session ID for editing
-    router.push(`/frameworks/ach/create?edit=${params.id}`)
+    router.push(`/analysis-frameworks/ach/create?edit=${params.id}`)
   }
 
   const handleSave = async () => {
@@ -139,7 +139,7 @@ export default function ACHViewPage() {
         status: 'completed' as const
       }
 
-      await apiClient.put(`/frameworks/${params.id}`, payload)
+      await apiClient.put(`/analysis-frameworks/${params.id}`, payload)
       
       toast({
         title: 'Analysis Saved',

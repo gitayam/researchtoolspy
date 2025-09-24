@@ -77,7 +77,7 @@ export default function StarburstingViewPage() {
     const fetchSession = async () => {
       try {
         setError(null)
-        const data = await apiClient.get<StarburstingSession>(`/frameworks/sessions/${params.id}`)
+        const data = await apiClient.get<StarburstingSession>(`/analysis-frameworks/sessions/${params.id}`)
         setSession(data)
       } catch (error: any) {
         const errorMessage = error.message || 'Failed to load Starbursting analysis'
@@ -102,7 +102,7 @@ export default function StarburstingViewPage() {
     setError(null)
     const fetchSession = async () => {
       try {
-        const data = await apiClient.get<StarburstingSession>(`/frameworks/sessions/${params.id}`)
+        const data = await apiClient.get<StarburstingSession>(`/analysis-frameworks/sessions/${params.id}`)
         setSession(data)
       } catch (error: any) {
         const errorMessage = error.message || 'Failed to load Starbursting analysis'
@@ -115,7 +115,7 @@ export default function StarburstingViewPage() {
   }
 
   const handleEdit = () => {
-    router.push(`/frameworks/starbursting/${params.id}/edit`)
+    router.push(`/analysis-frameworks/starbursting/${params.id}/edit`)
   }
 
   const handleExport = async (format: ExportFormat) => {
