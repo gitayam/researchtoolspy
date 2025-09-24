@@ -1,0 +1,21 @@
+{
+  "name": "@researchtoolspy/migration",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "export": "bash export-existing-data.sh",
+    "import:dev": "D1_ENV=development tsx import-to-d1.ts",
+    "import:staging": "D1_ENV=staging tsx import-to-d1.ts",
+    "import:prod": "D1_ENV=production tsx import-to-d1.ts",
+    "migrate:dev": "npm run export && npm run import:dev",
+    "verify": "tsx verify-migration.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "wrangler": "^4.39.0"
+  }
+}

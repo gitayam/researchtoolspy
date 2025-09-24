@@ -1,0 +1,37 @@
+name = "researchtoolspy-export"
+main = "src/index.ts"
+compatibility_date = "2024-01-24"
+compatibility_flags = ["nodejs_compat"]
+
+# Development configuration
+[env.development]
+name = "researchtoolspy-export-dev"
+workers_dev = true
+
+[[env.development.kv_namespaces]]
+binding = "CACHE"
+id = "export-cache-dev"
+preview_id = "export-cache-preview"
+
+[[env.development.r2_buckets]]
+binding = "EXPORTS"
+bucket_name = "researchtoolspy-exports-dev"
+
+[env.development.vars]
+ENVIRONMENT = "development"
+
+# Production configuration
+[env.production]
+name = "researchtoolspy-export"
+workers_dev = false
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "export-cache-prod"
+
+[[env.production.r2_buckets]]
+binding = "EXPORTS"
+bucket_name = "researchtoolspy-exports"
+
+[env.production.vars]
+ENVIRONMENT = "production"

@@ -1,0 +1,21 @@
+{
+  "name": "@researchtoolspy/export-worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240124.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^4.39.0"
+  },
+  "dependencies": {
+    "pdfkit": "^0.13.0",
+    "exceljs": "^4.4.0",
+    "docx": "^8.0.0"
+  }
+}

@@ -254,7 +254,9 @@ async function handleACHFramework(
   env: Env,
   ctx: ExecutionContext
 ): Promise<Response> {
-  return createErrorResponse(501, 'ACH framework not yet implemented', 'NOT_IMPLEMENTED');
+  // Import and use the ACH worker
+  const { handleACHRequest } = await import('../../../frameworks/ach/src/index');
+  return handleACHRequest(request, env, ctx);
 }
 
 async function handleBehavioralFramework(
