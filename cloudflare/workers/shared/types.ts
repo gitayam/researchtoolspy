@@ -29,6 +29,27 @@ export interface Env {
   // Service bindings (for worker-to-worker communication)
   AUTH_SERVICE?: Fetcher;
   FRAMEWORK_SERVICE?: Fetcher;
+  SWOT_SERVICE?: Fetcher;
+  ACH_SERVICE?: Fetcher;
+  BEHAVIORAL_SERVICE?: Fetcher;
+  DECEPTION_SERVICE?: Fetcher;
+  DOTMLPF_SERVICE?: Fetcher;
+  PMESII_SERVICE?: Fetcher;
+  DIME_SERVICE?: Fetcher;
+  PEST_SERVICE?: Fetcher;
+  VRIO_SERVICE?: Fetcher;
+  STAKEHOLDER_SERVICE?: Fetcher;
+  TREND_SERVICE?: Fetcher;
+  SURVEILLANCE_SERVICE?: Fetcher;
+  CAUSEWAY_SERVICE?: Fetcher;
+  COG_SERVICE?: Fetcher;
+  STARBURSTING_SERVICE?: Fetcher;
+  FLOW_SERVICE?: Fetcher;
+  TOOLS_SERVICE?: Fetcher;
+  AI_SERVICE?: Fetcher;
+  EXPORT_SERVICE?: Fetcher;
+  ANALYTICS_SERVICE?: Fetcher;
+  USERS_SERVICE?: Fetcher;
 }
 
 // User types
@@ -61,6 +82,7 @@ export interface JWTPayload {
   exp: number;
   iat: number;
   jti?: string; // JWT ID for revocation
+  type?: string; // For refresh tokens
 }
 
 export interface AuthSession {
@@ -109,11 +131,11 @@ export interface FrameworkSession {
   framework_type: FrameworkType;
   status: FrameworkStatus;
   user_id: number;
-  data: Record<string, any>;
-  config?: Record<string, any>;
-  tags?: string[];
+  data: string; // JSON string
+  config?: string; // JSON string
+  tags?: string; // JSON string
   version: number;
-  ai_suggestions?: Record<string, any>;
+  ai_suggestions?: string; // JSON string
   ai_analysis_count: number;
   created_at: string;
   updated_at: string;

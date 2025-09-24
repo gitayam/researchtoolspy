@@ -1,0 +1,108 @@
+name = "researchtoolspy-gateway"
+main = "src/index.ts"
+compatibility_date = "2024-01-24"
+compatibility_flags = ["nodejs_compat"]
+
+# Development configuration
+[env.development]
+name = "researchtoolspy-gateway-dev"
+workers_dev = true
+
+# Local development bindings
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "researchtoolspy-dev"
+database_id = "local-db-id"
+
+[[env.development.kv_namespaces]]
+binding = "SESSIONS"
+id = "sessions-dev"
+preview_id = "sessions-preview"
+
+[[env.development.kv_namespaces]]
+binding = "RATE_LIMITS"
+id = "rate-limits-dev"
+preview_id = "rate-limits-preview"
+
+[[env.development.kv_namespaces]]
+binding = "CACHE"
+id = "cache-dev"
+preview_id = "cache-preview"
+
+[[env.development.kv_namespaces]]
+binding = "ANONYMOUS_SESSIONS"
+id = "anonymous-sessions-dev"
+preview_id = "anonymous-sessions-preview"
+
+[env.development.vars]
+ENVIRONMENT = "development"
+JWT_SECRET = "dev-secret-change-in-production"
+
+# Staging configuration
+[env.staging]
+name = "researchtoolspy-gateway-staging"
+workers_dev = true
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "researchtoolspy-staging"
+database_id = "staging-db-id"
+
+[[env.staging.kv_namespaces]]
+binding = "SESSIONS"
+id = "sessions-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "RATE_LIMITS"
+id = "rate-limits-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "CACHE"
+id = "cache-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "ANONYMOUS_SESSIONS"
+id = "anonymous-sessions-staging"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+
+# Production configuration
+[env.production]
+name = "researchtoolspy-gateway"
+workers_dev = false
+routes = [
+  { pattern = "api.researchtoolspy.com/*", zone_name = "researchtoolspy.com" }
+]
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "researchtoolspy-prod"
+database_id = "prod-db-id"
+
+[[env.production.kv_namespaces]]
+binding = "SESSIONS"
+id = "sessions-prod"
+
+[[env.production.kv_namespaces]]
+binding = "RATE_LIMITS"
+id = "rate-limits-prod"
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "cache-prod"
+
+[[env.production.kv_namespaces]]
+binding = "ANONYMOUS_SESSIONS"
+id = "anonymous-sessions-prod"
+
+[[env.production.r2_buckets]]
+binding = "DOCUMENTS"
+bucket_name = "researchtoolspy-documents"
+
+[[env.production.r2_buckets]]
+binding = "EXPORTS"
+bucket_name = "researchtoolspy-exports"
+
+[env.production.vars]
+ENVIRONMENT = "production"
