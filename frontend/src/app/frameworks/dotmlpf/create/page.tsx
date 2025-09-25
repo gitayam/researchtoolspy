@@ -31,7 +31,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { useFrameworkSession } from '@/hooks/use-framework-session'
-import { SaveStatusIndicator } from '@/components/auto-save/save-status-indicator'
+// import { SaveStatusIndicator } from '@/components/auto-save/save-status-indicator'
 import { useIsAuthenticated } from '@/stores/auth'
 import { apiClient } from '@/lib/api'
 
@@ -63,11 +63,6 @@ export default function DOTMLPFCreatePage() {
   const { toast } = useToast()
   const isAuthenticated = useIsAuthenticated()
   const [loading, setLoading] = useState(false)
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [mission, setMission] = useState('')
-  const [context, setContext] = useState('')
-  const [capabilities, setCapabilities] = useState<DOTMLPFCapability[]>([])
   const [activeTab, setActiveTab] = useState('doctrine')
 
   // Initialize auto-save session
@@ -77,7 +72,7 @@ export default function DOTMLPFCreatePage() {
     title: sessionTitle,
     saveStatus,
     updateData,
-    setTitle,
+    setTitle: updateSessionTitle,
     hasData,
     isNewSession
   } = useFrameworkSession<DOTMLPFData>('dotmlpf', {
@@ -90,6 +85,20 @@ export default function DOTMLPFCreatePage() {
     title: 'DOTMLPF Analysis',
     autoSaveEnabled: true
   })
+
+  // Extract data from session
+  const title = data?.title || ''
+  const description = data?.description || ''
+  const mission = data?.mission || ''
+  const context = data?.context || ''
+  const capabilities = data?.capabilities || []
+
+  // Create setter functions
+  const setTitle = (val: string) => updateData({ ...data, title: val })
+  const setDescription = (val: string) => updateData({ ...data, description: val })
+  const setMission = (val: string) => updateData({ ...data, mission: val })
+  const setContext = (val: string) => updateData({ ...data, context: val })
+  const setCapabilities = (val: DOTMLPFCapability[]) => updateData({ ...data, capabilities: val })
 
   const domains = [
     { id: 'doctrine', name: 'Doctrine', icon: FileText, description: 'Fundamental principles and tactics' },

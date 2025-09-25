@@ -23,7 +23,7 @@ export default function LandingPage() {
   const features = [
     {
       icon: Brain,
-      title: "10 Analysis Frameworks",
+      title: "14+ Analysis Frameworks",
       description: "SWOT, COG, PMESII-PT, ACH, DOTMLPF, and more specialized research frameworks",
       link: "#frameworks"
     },
@@ -109,7 +109,7 @@ export default function LandingPage() {
             <span className="block text-gray-900 dark:text-white">Advanced Research Analysis Platform</span>
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-            Streamline your research analysis workflow with 10 specialized frameworks, 
+            Streamline your research analysis workflow with 14+ specialized frameworks, 
             AI-powered insights, and comprehensive research tools. ResearchTools is a free service for the IrregularChat community.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -190,16 +190,20 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {[
-              { name: "SWOT Analysis", path: "/frameworks/swot" },
-              { name: "COG Analysis", path: "/frameworks/cog" },
-              { name: "PMESII-PT", path: "/frameworks/pmesii-pt" },
-              { name: "ACH Analysis", path: "/frameworks/ach" },
-              { name: "DOTMLPF", path: "/frameworks/dotmlpf" },
-              { name: "Deception Detection", path: "/frameworks/deception-detection" },
-              { name: "Behavioral Analysis", path: "/frameworks/behavioral-analysis" },
-              { name: "Starbursting", path: "/frameworks/starbursting" },
-              { name: "Causeway", path: "/frameworks/causeway" },
-              { name: "Security Assessment", path: "/security-assessment" }
+              { name: "SWOT Analysis", path: "/analysis-frameworks/swot-dashboard" },
+              { name: "COG Analysis", path: "/analysis-frameworks/cog" },
+              { name: "PMESII-PT", path: "/analysis-frameworks/pmesii-pt" },
+              { name: "ACH Analysis", path: "/analysis-frameworks/ach-dashboard" },
+              { name: "DOTMLPF", path: "/analysis-frameworks/dotmlpf" },
+              { name: "PEST Analysis", path: "/analysis-frameworks/pest" },
+              { name: "Stakeholder", path: "/analysis-frameworks/stakeholder" },
+              { name: "VRIO Framework", path: "/analysis-frameworks/vrio" },
+              { name: "Trend Analysis", path: "/analysis-frameworks/trend" },
+              { name: "Surveillance", path: "/analysis-frameworks/surveillance" },
+              { name: "Behavioral", path: "/analysis-frameworks/behavior" },
+              { name: "Starbursting", path: "/analysis-frameworks/starbursting" },
+              { name: "Causeway", path: "/analysis-frameworks/causeway" },
+              { name: "DIME/Fundamental", path: "/analysis-frameworks/dime" }
             ].map((framework, index) => (
               <Link key={index} href={framework.path}>
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center shadow-sm hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group">

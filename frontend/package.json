@@ -38,7 +38,7 @@
     "clsx": "^2.1.1",
     "docx": "^9.5.1",
     "exceljs": "^4.4.0",
-    "framer-motion": "^12.23.12",
+    "framer-motion": "^12.23.21",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.539.0",

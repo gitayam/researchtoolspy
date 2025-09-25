@@ -32,7 +32,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { useToast } from '@/components/ui/use-toast'
-import { SaveStatusIndicator } from '@/components/ui/save-status-indicator'
+// import { SaveStatusIndicator } from '@/components/ui/save-status-indicator'
 import { useIsAuthenticated } from '@/stores/auth'
 import { apiClient } from '@/lib/api'
 
