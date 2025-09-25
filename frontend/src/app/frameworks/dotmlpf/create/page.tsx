@@ -63,16 +63,11 @@ export default function DOTMLPFCreatePage() {
   const { toast } = useToast()
   const isAuthenticated = useIsAuthenticated()
   const [loading, setLoading] = useState(false)
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [mission, setMission] = useState('')
-  const [context, setContext] = useState('')
-  const [capabilities, setCapabilities] = useState<DOTMLPFCapability[]>([])
   const [activeTab, setActiveTab] = useState('doctrine')
 
   // Initialize auto-save session
-  const { 
-    sessionId, 
+  const {
+    sessionId,
     data,
     title: sessionTitle,
     saveStatus,

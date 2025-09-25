@@ -1,0 +1,7 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(dashboard)/layout,_N_T_/(dashboard)/analysis-frameworks/layout,_N_T_/(dashboard)/analysis-frameworks/swot-dashboard/layout,_N_T_/(dashboard)/analysis-frameworks/swot-dashboard/create/layout,_N_T_/(dashboard)/analysis-frameworks/swot-dashboard/create/page,_N_T_/analysis-frameworks/swot-dashboard/create/"
+  }
+}

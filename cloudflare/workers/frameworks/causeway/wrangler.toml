@@ -1,0 +1,39 @@
+name = "researchtoolspy-causeway"
+main = "src/index.ts"
+compatibility_date = "2024-01-24"
+compatibility_flags = ["nodejs_compat"]
+
+# Development configuration
+[env.development]
+name = "researchtoolspy-causeway-dev"
+workers_dev = true
+
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "researchtoolspy-dev"
+database_id = "local-db-id"
+
+[[env.development.kv_namespaces]]
+binding = "CACHE"
+id = "causeway-cache-dev"
+preview_id = "causeway-cache-preview"
+
+[env.development.vars]
+ENVIRONMENT = "development"
+
+# Production configuration
+[env.production]
+name = "researchtoolspy-causeway"
+workers_dev = false
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "researchtoolspy-prod"
+database_id = "prod-db-id"
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "causeway-cache-prod"
+
+[env.production.vars]
+ENVIRONMENT = "production"
