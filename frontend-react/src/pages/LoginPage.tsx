@@ -53,7 +53,7 @@ export function LoginPage() {
     }
   }, [searchParams, setValue])
 
-  const watchedHash = watch('account_hash', '')
+  // const watchedHash = watch('account_hash', '')
 
   const onSubmit = async (data: HashLoginRequest) => {
     try {
