@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "wrangler:dev": "npm run build && wrangler pages dev dist --compatibility-date=2025-09-30",
+    "wrangler:deploy": "npm run build && wrangler pages deploy dist --project-name=researchtoolspy"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -56,6 +58,7 @@
     "tailwindcss": "^4.1.13",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.44.0",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "wrangler": "^4.40.3"
   }
 }
