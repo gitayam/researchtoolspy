@@ -73,12 +73,21 @@ pages_build_output_dir = "dist"
 
 ### Migrated Components
 
-#### Pages (3/19)
+#### Pages (20/35)
 - ✅ LandingPage
 - ✅ LoginPage (with hash auth)
 - ✅ RegisterPage (with hash generation)
-- ⏳ DashboardPage (stub only)
-- ⏳ 16 Framework analysis pages (SWOT, ACH, COG, etc.)
+- ✅ DashboardPage (complete with stats and analytics)
+- ✅ All 16 Framework analysis pages (placeholders routed):
+  - SWOT Analysis, ACH, COG, PMESII-PT, DOTMLPF
+  - DIME, PEST, VRIO, Stakeholder, Trend
+  - Deception, Behavior, Starbursting, Causeway, Surveillance
+  - Fundamental Flow
+- ⏳ Research Tools pages (7 pages)
+- ⏳ Evidence Collector page
+- ⏳ Reports page
+- ⏳ Collaboration page
+- ⏳ Settings page
 
 #### UI Components (22/22)
 - ✅ All core UI components migrated
@@ -162,14 +171,16 @@ npm run wrangler:deploy
 **Build Time:** ~1.2 seconds
 **Response Times:** 1-23ms (excellent!)
 **Bundle Size:**
-- Total JS: 463 KB (147 KB gzip) - Good
-- Total CSS: 43 KB (8 KB gzip) - Excellent
+- Total JS: 568 KB (179 KB gzip) - Good
+- Total CSS: 47 KB (8.5 KB gzip) - Excellent
 
 ### Commits & Tags
 
 - `v0.1.0-phase1` - Infrastructure setup
 - `v0.2.0-phase3` - Component migration
 - `v0.3.0-phase3-complete` - Build working, wrangler tested
+- `v0.4.0-dashboard-complete` - Dashboard page with layout and analytics
+- `v0.5.0-frameworks-routed` - All 16 framework pages routed and accessible
 
 ### Production Readiness
 
@@ -191,8 +202,8 @@ npm run wrangler:deploy
 - ⏳ Production API endpoint integration
 - ⏳ CI/CD pipeline
 
-**Estimated Completion:** Phase 4 (50%), Phase 5 (0%)
-**Total Progress:** ~35% complete
+**Estimated Completion:** Phase 4 (65%), Phase 5 (0%)
+**Total Progress:** ~50% complete
 
 ---
 
