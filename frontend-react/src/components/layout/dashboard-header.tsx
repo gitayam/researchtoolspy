@@ -6,8 +6,8 @@ import {
   LogOut,
   Settings,
   User,
-  Moon,
-  Sun
+  Save,
+  LogIn
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -16,30 +16,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
-  // Hash-based user info
+  // Hash-based user info (optional authentication)
   const [userHash, setUserHash] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
     const hash = localStorage.getItem('omnicore_user_hash')
+    const authenticated = localStorage.getItem('omnicore_authenticated') === 'true'
     setUserHash(hash)
+    setIsAuthenticated(authenticated && !!hash)
   }, [])
 
   const user = {
-    username: userHash ? `Hash: ${userHash.slice(0, 8)}...` : 'User',
+    username: userHash ? `Hash: ${userHash.slice(0, 8)}...` : 'Guest',
     role: 'user'
   }
-  // const { logout } = useAuthStore()
 
   const handleLogout = () => {
     // Clear hash-based authentication
     localStorage.removeItem('omnicore_user_hash')
     localStorage.removeItem('omnicore_authenticated')
-    navigate('/login')
+    setIsAuthenticated(false)
+    setUserHash(null)
+    // Stay on current page - no redirect needed
   }
 
   const getRoleColor = (role: string) => {
@@ -72,64 +77,82 @@ export function DashboardHeader() {
           {/* Theme Toggle */}
           <ThemeToggle />
 
-          {/* Notifications */}
-          <button
-            type="button"
-            className="relative rounded-full bg-white p-1 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-900 dark:hover:text-gray-300"
-          >
-            <Bell className="h-6 w-6" />
-            {/* Notification badge */}
-            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">
-              3
-            </span>
-          </button>
-
-          {/* User menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-x-2 rounded-full bg-white p-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-900">
-              <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-                <User className="h-4 w-4 text-white" />
+          {/* Authentication Status */}
+          {!isAuthenticated ? (
+            // Not logged in - show login button with save benefit
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <Save className="h-4 w-4" />
+                <span>Login to save your work</span>
               </div>
-              <div className="hidden lg:flex lg:flex-col lg:items-start">
-                <div className="text-sm font-medium text-gray-900 dark:text-white">
-                  {user?.username}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={cn(
-                    'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                    getRoleColor(user?.role || '')
-                  )}>
-                    {user?.role?.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <ChevronDown className="h-4 w-4 text-gray-400" />
-            </DropdownMenuTrigger>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-2"
+              >
+                <LogIn className="h-4 w-4" />
+                <span>Login</span>
+              </Button>
+            </div>
+          ) : (
+            // Logged in - show user menu
+            <>
+              {/* Notifications */}
+              <button
+                type="button"
+                className="relative rounded-full bg-white p-1 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-900 dark:hover:text-gray-300"
+              >
+                <Bell className="h-6 w-6" />
+                {/* Notification badge */}
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">
+                  3
+                </span>
+              </button>
 
-            <DropdownMenuContent align="end" className="w-48">
-              <div className="px-2 py-1.5 text-sm font-semibold">
-                {user?.username}
-              </div>
-              <DropdownMenuSeparator />
+              {/* User menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-x-2 rounded-full bg-white p-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-900">
+                  <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
+                    <User className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="hidden lg:flex lg:flex-col lg:items-start">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      {user?.username}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                        getRoleColor(user?.role || '')
+                      )}>
+                        {user?.role?.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                </DropdownMenuTrigger>
 
-              <DropdownMenuItem onClick={() => navigate('/profile')}>
-                <User className="h-4 w-4 mr-2" />
-                Your Profile
-              </DropdownMenuItem>
+                <DropdownMenuContent align="end" className="w-48">
+                  <div className="px-2 py-1.5 text-sm font-semibold">
+                    {user?.username}
+                  </div>
+                  <DropdownMenuSeparator />
 
-              <DropdownMenuItem onClick={() => navigate('/settings')}>
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/dashboard/settings')}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
 
-              <DropdownMenuSeparator />
+                  <DropdownMenuSeparator />
 
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
         </div>
       </div>
     </div>

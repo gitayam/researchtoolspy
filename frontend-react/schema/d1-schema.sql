@@ -138,3 +138,51 @@ CREATE TABLE IF NOT EXISTS research_tool_results (
 CREATE INDEX IF NOT EXISTS idx_research_tool_results_user_id ON research_tool_results(user_id);
 CREATE INDEX IF NOT EXISTS idx_research_tool_results_tool_type ON research_tool_results(tool_type);
 CREATE INDEX IF NOT EXISTS idx_research_tool_results_status ON research_tool_results(status);
+
+-- Evidence table
+CREATE TABLE IF NOT EXISTS evidence (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  content TEXT NOT NULL,
+  type TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'PENDING',
+  tags TEXT NOT NULL DEFAULT '[]', -- JSON array
+  source TEXT NOT NULL DEFAULT '{}', -- JSON object
+  metadata TEXT NOT NULL DEFAULT '{}', -- JSON object
+  sats_evaluation TEXT, -- JSON object (optional)
+  frameworks TEXT NOT NULL DEFAULT '[]', -- JSON array of framework associations
+  attachments TEXT NOT NULL DEFAULT '[]', -- JSON array of attachments
+  created_by TEXT NOT NULL DEFAULT 'anonymous',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_by TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  key_points TEXT NOT NULL DEFAULT '[]', -- JSON array
+  contradictions TEXT NOT NULL DEFAULT '[]', -- JSON array
+  corroborations TEXT NOT NULL DEFAULT '[]', -- JSON array
+  implications TEXT NOT NULL DEFAULT '[]', -- JSON array
+  version INTEGER NOT NULL DEFAULT 1,
+  previous_versions TEXT NOT NULL DEFAULT '[]' -- JSON array of previous version IDs
+);
+
+CREATE INDEX IF NOT EXISTS idx_evidence_type ON evidence(type);
+CREATE INDEX IF NOT EXISTS idx_evidence_status ON evidence(status);
+CREATE INDEX IF NOT EXISTS idx_evidence_created_by ON evidence(created_by);
+CREATE INDEX IF NOT EXISTS idx_evidence_created_at ON evidence(created_at);
+CREATE INDEX IF NOT EXISTS idx_evidence_updated_at ON evidence(updated_at);
+
+-- Evidence Collections table
+CREATE TABLE IF NOT EXISTS evidence_collections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  evidence_ids TEXT NOT NULL DEFAULT '[]', -- JSON array
+  tags TEXT NOT NULL DEFAULT '[]', -- JSON array
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  shared_with TEXT NOT NULL DEFAULT '[]' -- JSON array of user IDs
+);
+
+CREATE INDEX IF NOT EXISTS idx_evidence_collections_created_by ON evidence_collections(created_by);
+CREATE INDEX IF NOT EXISTS idx_evidence_collections_created_at ON evidence_collections(created_at);
