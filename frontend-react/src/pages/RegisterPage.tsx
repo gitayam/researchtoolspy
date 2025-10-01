@@ -4,8 +4,7 @@ import { Copy, Check, Bookmark, Share2, Shield, AlertCircle, RefreshCw } from 'l
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatHashForDisplay } from '@/lib/hash-auth'
-import { apiClient } from '@/lib/api'
+import { formatHashForDisplay, generateAccountHash } from '@/lib/hash-auth'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -13,27 +12,12 @@ export function RegisterPage() {
   const [copied, setCopied] = useState(false)
   const [hashSaved, setHashSaved] = useState(false)
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
-  // Generate hash using backend API on client side
+  // Generate hash client-side (Mullvad-style)
   useEffect(() => {
-    const registerHash = async () => {
-      try {
-        setLoading(true)
-        setError('')
-        console.log('Frontend: Requesting hash from backend...')
-        const result = await apiClient.registerWithHash()
-        setAccountHash(result.account_hash)
-        console.log('Frontend: Hash registered successfully:', result.account_hash.substring(0, 4) + '...')
-      } catch (err) {
-        console.error('Frontend: Hash registration failed:', err)
-        setError('Failed to generate bookmark hash. Please refresh the page to try again.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    registerHash()
+    const hash = generateAccountHash()
+    setAccountHash(hash)
   }, [])
 
   const handleCopyHash = async () => {
@@ -46,22 +30,11 @@ export function RegisterPage() {
     }
   }
 
-  const handleGenerateNew = async () => {
-    try {
-      setLoading(true)
-      setError('')
-      setCopied(false)
-      setHashSaved(false)
-      console.log('Frontend: Requesting new hash from backend...')
-      const result = await apiClient.registerWithHash()
-      setAccountHash(result.account_hash)
-      console.log('Frontend: New hash registered successfully:', result.account_hash.substring(0, 4) + '...')
-    } catch (err) {
-      console.error('Frontend: New hash registration failed:', err)
-      setError('Failed to generate new bookmark hash. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+  const handleGenerateNew = () => {
+    setCopied(false)
+    setHashSaved(false)
+    const hash = generateAccountHash()
+    setAccountHash(hash)
   }
 
   const handleSaveAndContinue = () => {
