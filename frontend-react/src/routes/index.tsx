@@ -3,6 +3,11 @@ import { LandingPage } from '@/pages/LandingPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
+import { EvidencePage } from '@/pages/EvidencePage'
+import { ToolsPage } from '@/pages/ToolsPage'
+import { ReportsPage } from '@/pages/ReportsPage'
+import { CollaborationPage } from '@/pages/CollaborationPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import {
   SwotPage,
@@ -44,70 +49,96 @@ export const router = createBrowserRouter([
         index: true,
         element: <DashboardPage />,
       },
-      // Analysis Framework Routes
+      // Analysis Framework Routes (relative paths)
       {
-        path: '/dashboard/analysis-frameworks/swot-dashboard',
+        path: 'analysis-frameworks/swot-dashboard',
         element: <SwotPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/ach-dashboard',
+        path: 'analysis-frameworks/ach-dashboard',
         element: <AchPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/cog',
+        path: 'analysis-frameworks/cog',
         element: <CogPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/pmesii-pt',
+        path: 'analysis-frameworks/pmesii-pt',
         element: <PmesiiPtPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/dotmlpf',
+        path: 'analysis-frameworks/dotmlpf',
         element: <DotmlpfPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/deception',
+        path: 'analysis-frameworks/deception',
         element: <DeceptionPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/behavior',
+        path: 'analysis-frameworks/behavior',
         element: <BehaviorPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/starbursting',
+        path: 'analysis-frameworks/starbursting',
         element: <StarburstingPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/causeway',
+        path: 'analysis-frameworks/causeway',
         element: <CausewayPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/dime',
+        path: 'analysis-frameworks/dime',
         element: <DimePage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/pest',
+        path: 'analysis-frameworks/pest',
         element: <PestPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/vrio',
+        path: 'analysis-frameworks/vrio',
         element: <VrioPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/stakeholder',
+        path: 'analysis-frameworks/stakeholder',
         element: <StakeholderPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/trend',
+        path: 'analysis-frameworks/trend',
         element: <TrendPage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/surveillance',
+        path: 'analysis-frameworks/surveillance',
         element: <SurveillancePage />,
       },
       {
-        path: '/dashboard/analysis-frameworks/fundamental-flow',
+        path: 'analysis-frameworks/fundamental-flow',
         element: <FundamentalFlowPage />,
+      },
+      // Research Tools Routes
+      {
+        path: 'tools',
+        element: <ToolsPage />,
+      },
+      {
+        path: 'tools/:toolId',
+        element: <ToolsPage />,
+      },
+      // Other Routes
+      {
+        path: 'evidence',
+        element: <EvidencePage />,
+      },
+      {
+        path: 'reports',
+        element: <ReportsPage />,
+      },
+      {
+        path: 'collaboration',
+        element: <CollaborationPage />,
+      },
+      {
+        path: 'settings',
+        element: <SettingsPage />,
       },
     ],
   },
