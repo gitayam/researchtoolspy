@@ -11,12 +11,12 @@ database_id = "aa7d1fbd-23b2-4fc4-8271-4b0070bb24b3"
 # KV Namespace binding for sessions
 [[kv_namespaces]]
 binding = "SESSIONS"
-id = "placeholder"  # Will be created
+id = "17796fa8100b419f8df5ad08b2a09d7a"
 
 # KV Namespace for cache
 [[kv_namespaces]]
 binding = "CACHE"
-id = "placeholder"  # Will be created
+id = "48afc9fe53a3425b8757e9dc526c359e"
 
 # R2 Bucket for file uploads
 [[r2_buckets]]
