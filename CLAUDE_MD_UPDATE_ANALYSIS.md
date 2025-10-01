@@ -334,3 +334,166 @@ curl https://muse-customer.pages.dev/api/surveys
 - Configuration → Vite/Wrangler
 - Project Structure → Current structure
 - Environment Setup → npm-based
+---
+
+# Dark Mode Implementation Analysis & Plan
+*Updated: October 1, 2025*
+
+## Current Dark Mode Issues
+
+### 1. Missing Tailwind v4 Dark Mode Configuration ❌
+**Problem:** Tailwind CSS v4 requires explicit dark mode variant configuration
+**Current State:** No `@custom-variant dark` directive in `src/index.css`
+**Impact:** Dark mode classes (`dark:`) are defined but not properly activated
+
+### 2. No Dark Class Applied to HTML ❌
+**Problem:** The `<html>` element never receives the `dark` class
+**Current State:** `index.html` has `<html lang="en">` with no dark class toggle
+**Impact:** Dark mode is never activated even though CSS variables exist
+
+### 3. Missing Theme Toggle Component ❌
+**Problem:** No UI control for users to switch between light/dark themes
+**Current State:** No toggle button or mechanism exists anywhere
+**Impact:** Users cannot manually enable dark mode
+
+### 4. Low Contrast in Dark Mode Colors ❌
+**Problem:** Dark mode colors don't meet WCAG AA contrast standards
+**Issues:**
+- Background: `hsl(222.2 84% 4.9%)` - too dark, near black
+- Cards: Same color as background (no visual separation)
+- Muted text: `hsl(215 20.2% 65.1%)` - insufficient contrast
+- Borders: Too dark to be visible
+
+### 5. No System Preference Detection ❌
+**Problem:** App doesn't respect user's OS dark mode setting
+**Current State:** No `prefers-color-scheme` detection
+**Impact:** Users with OS dark mode see light mode only
+
+## Research: 2025 Best Practices
+
+### Tailwind v4 Dark Mode Configuration
+```css
+@import "tailwindcss";
+
+/* Required for Tailwind v4 class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+```
+
+### WCAG AA Color Contrast Standards
+- Normal text: Minimum 4.5:1 ratio
+- Large text (18pt+): Minimum 3:1 ratio
+- UI components: Minimum 3:1 ratio
+
+### Recommended Dark Mode Palette (Slate)
+- Background: `#0f172a` (slate-900)
+- Cards: `#1e293b` (slate-800) 
+- Text: `#f1f5f9` (slate-100)
+- Muted: `#94a3b8` (slate-400)
+- Borders: `#334155` (slate-700)
+
+## Implementation Plan
+
+### Phase 1: Configure Tailwind v4 Dark Mode
+1. Add `@custom-variant dark` to `src/index.css`
+2. Test that dark: classes activate when .dark is on <html>
+
+### Phase 2: Improve Color Contrast
+1. Update dark mode CSS variables to use slate palette
+2. Ensure visible card/background separation
+3. Meet WCAG AA standards for all text
+
+### Phase 3: Create Theme Hook
+```tsx
+// src/hooks/useTheme.ts
+function useTheme() {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+
+  useEffect(() => {
+    // 1. Check localStorage
+    const stored = localStorage.getItem('theme')
+    if (stored) {
+      applyTheme(stored as 'light' | 'dark')
+      return
+    }
+
+    // 2. Check system preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    applyTheme(prefersDark ? 'dark' : 'light')
+  }, [])
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light'
+    applyTheme(newTheme)
+    localStorage.setItem('theme', newTheme)
+  }
+
+  const applyTheme = (newTheme: 'light' | 'dark') => {
+    setTheme(newTheme)
+    document.documentElement.classList.toggle('dark', newTheme === 'dark')
+  }
+
+  return { theme, toggleTheme }
+}
+```
+
+### Phase 4: Add Theme Toggle UI
+1. Create ThemeToggle component with sun/moon icons
+2. Add to dashboard header (top right)
+3. Implement smooth CSS transitions
+4. Add ARIA labels for accessibility
+
+### Phase 5: Test & Validate
+- [ ] Color contrast meets WCAG AA
+- [ ] Theme persists on reload
+- [ ] System preference detected
+- [ ] Toggle accessible via keyboard
+- [ ] Works on all pages
+- [ ] Smooth transitions
+
+## Color Changes
+
+### Before (Low Contrast):
+```css
+.dark {
+  --background: 222.2 84% 4.9%;       /* Near black */
+  --card: 222.2 84% 4.9%;             /* Same as bg */
+  --border: 217.2 32.6% 17.5%;        /* Too dark */
+  --muted-foreground: 215 20.2% 65.1%; /* Low contrast */
+}
+```
+
+### After (WCAG AA Compliant):
+```css
+.dark {
+  --background: 222.2 47.4% 11.2%;     /* Slate-900 */
+  --card: 217.2 32.6% 17.5%;           /* Slate-800 */
+  --border: 215.3 25% 26.7%;           /* Slate-700 */
+  --muted-foreground: 215.4 16.3% 56.9%; /* Slate-400 */
+  --foreground: 210 40% 98%;           /* Slate-100 */
+}
+```
+
+## Files to Modify
+
+1. `src/index.css` - Add variant config + improve colors
+2. `src/hooks/useTheme.ts` - NEW: Theme management hook
+3. `src/components/ThemeToggle.tsx` - NEW: Toggle UI component
+4. `src/components/layout/dashboard-header.tsx` - Add toggle button
+
+## Testing Checklist
+
+- [ ] Dark mode activates on toggle
+- [ ] Theme persists across sessions
+- [ ] System preference works
+- [ ] All text readable (contrast)
+- [ ] Cards separated from background
+- [ ] Keyboard accessible
+- [ ] No console errors
+- [ ] Production build works
+
+## References
+
+- [Tailwind CSS v4 Dark Mode](https://tailwindcss.com/docs/dark-mode)
+- [WCAG Contrast Guidelines](https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html)
+- [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/)
+- [Tailwind v4 Custom Variants](https://github.com/tailwindlabs/tailwindcss/discussions/13863)

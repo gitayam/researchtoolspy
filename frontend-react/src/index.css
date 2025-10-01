@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Enable dark mode with class strategy (Tailwind v4) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
@@ -24,25 +27,26 @@
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 48%;
+  /* Improved contrast - slate palette for better readability */
+  --background: 222.2 47.4% 11.2%;     /* slate-900: #0f172a */
+  --foreground: 210 40% 98%;           /* slate-100: #f1f5f9 */
+  --card: 217.2 32.6% 17.5%;           /* slate-800: #1e293b */
+  --card-foreground: 210 40% 98%;      /* slate-100: #f1f5f9 */
+  --popover: 217.2 32.6% 17.5%;        /* slate-800: #1e293b */
+  --popover-foreground: 210 40% 98%;   /* slate-100: #f1f5f9 */
+  --primary: 217.2 91.2% 59.8%;        /* blue-500: #3b82f6 */
+  --primary-foreground: 210 40% 98%;   /* slate-100: #f1f5f9 */
+  --secondary: 215.3 25% 26.7%;        /* slate-700: #334155 */
+  --secondary-foreground: 210 40% 98%; /* slate-100: #f1f5f9 */
+  --muted: 215.3 25% 26.7%;            /* slate-700: #334155 */
+  --muted-foreground: 215.4 16.3% 56.9%; /* slate-400: #94a3b8 - improved contrast */
+  --accent: 215.3 25% 26.7%;           /* slate-700: #334155 */
+  --accent-foreground: 210 40% 98%;    /* slate-100: #f1f5f9 */
+  --destructive: 0 62.8% 50.6%;        /* red-500: #ef4444 */
+  --destructive-foreground: 210 40% 98%; /* slate-100: #f1f5f9 */
+  --border: 215.3 25% 26.7%;           /* slate-700: #334155 - visible borders */
+  --input: 215.3 25% 26.7%;            /* slate-700: #334155 */
+  --ring: 217.2 91.2% 59.8%;           /* blue-500: #3b82f6 */
 }
 
 * {

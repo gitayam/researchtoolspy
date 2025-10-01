@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
@@ -68,6 +69,9 @@ export function DashboardHeader() {
 
         {/* Right side */}
         <div className="flex items-center gap-x-4">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
           {/* Notifications */}
           <button
             type="button"

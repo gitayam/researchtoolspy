@@ -814,3 +814,182 @@ export async function onRequest(context: any) {
 **Last Updated**: September 27, 2025
 **Version**: 2.0 (Cloudflare-focused)
 **Stack**: React 18 + Vite + TypeScript + Cloudflare Pages + D1
+---
+
+## Dark Mode Implementation (Tailwind v4)
+
+### Overview
+Tailwind CSS v4 requires explicit configuration for dark mode class strategy. This guide covers proper setup for React + Cloudflare Pages projects.
+
+### Tailwind v4 Configuration
+
+**Required: Add dark variant to CSS**
+```css
+/* src/index.css */
+@import "tailwindcss";
+
+/* Enable dark mode with class strategy (Tailwind v4) */
+@custom-variant dark (&:where(.dark, .dark *));
+```
+
+**Note:** Tailwind v4 does NOT use `tailwind.config.js` for dark mode. Configuration is CSS-based.
+
+### Color Contrast Standards (WCAG AA)
+
+- Normal text: Minimum 4.5:1 contrast ratio
+- Large text (18pt+): Minimum 3:1 ratio
+- UI components: Minimum 3:1 ratio
+
+**Recommended Dark Mode Palette (Slate):**
+```css
+.dark {
+  --background: 222.2 47.4% 11.2%;     /* #0f172a - slate-900 */
+  --card: 217.2 32.6% 17.5%;           /* #1e293b - slate-800 */
+  --foreground: 210 40% 98%;           /* #f1f5f9 - slate-100 */
+  --muted-foreground: 215.4 16.3% 56.9%; /* #94a3b8 - slate-400 */
+  --border: 215.3 25% 26.7%;           /* #334155 - slate-700 */
+}
+```
+
+### Theme Management Hook
+
+```tsx
+// src/hooks/useTheme.ts
+import { useEffect, useState } from 'react'
+
+export type Theme = 'light' | 'dark'
+
+export function useTheme() {
+  const [theme, setTheme] = useState<Theme>('light')
+
+  useEffect(() => {
+    // 1. Check localStorage first
+    const stored = localStorage.getItem('theme') as Theme | null
+    if (stored) {
+      applyTheme(stored)
+      return
+    }
+
+    // 2. Check system preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    applyTheme(prefersDark ? 'dark' : 'light')
+  }, [])
+
+  const applyTheme = (newTheme: Theme) => {
+    setTheme(newTheme)
+    document.documentElement.classList.toggle('dark', newTheme === 'dark')
+  }
+
+  const toggleTheme = () => {
+    const newTheme: Theme = theme === 'light' ? 'dark' : 'light'
+    applyTheme(newTheme)
+    localStorage.setItem('theme', newTheme)
+  }
+
+  return { theme, toggleTheme, isDark: theme === 'dark' }
+}
+```
+
+### Theme Toggle Component
+
+```tsx
+// src/components/ThemeToggle.tsx
+import { Moon, Sun } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useTheme } from '@/hooks/useTheme'
+
+export function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme()
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggleTheme}
+      aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+      className="transition-colors"
+    >
+      {theme === 'light' ? (
+        <Moon className="h-5 w-5" />
+      ) : (
+        <Sun className="h-5 w-5" />
+      )}
+    </Button>
+  )
+}
+```
+
+### Adding to Dashboard Header
+
+```tsx
+// src/components/layout/dashboard-header.tsx
+import { ThemeToggle } from '@/components/ThemeToggle'
+
+export function DashboardHeader() {
+  return (
+    <header>
+      {/* Other header content */}
+      <div className="flex items-center gap-4">
+        <ThemeToggle />
+        {/* User menu, etc */}
+      </div>
+    </header>
+  )
+}
+```
+
+### CSS Transitions (Optional)
+
+```css
+/* src/index.css */
+* {
+  transition: background-color 200ms ease-in-out, 
+              border-color 200ms ease-in-out,
+              color 200ms ease-in-out;
+}
+```
+
+### Common Issues & Solutions
+
+**Issue 1: Dark mode not activating**
+- Solution: Ensure `@custom-variant dark` is in CSS
+- Verify `dark` class is added to `<html>` element
+
+**Issue 2: Low contrast in dark mode**
+- Solution: Use slate palette instead of near-black
+- Test with WebAIM contrast checker
+
+**Issue 3: Theme doesn't persist**
+- Solution: Save to localStorage in toggleTheme
+- Check localStorage on mount
+
+**Issue 4: System preference ignored**
+- Solution: Use `window.matchMedia('(prefers-color-scheme: dark)')` on first load
+
+### Testing Checklist
+
+- [ ] Toggle switches between light/dark
+- [ ] Theme persists on page reload
+- [ ] System preference detected on first visit
+- [ ] All text meets WCAG AA contrast (4.5:1)
+- [ ] Cards visually separated from background
+- [ ] Toggle accessible via keyboard (Tab + Enter)
+- [ ] ARIA labels present
+- [ ] No console errors
+- [ ] Smooth transitions
+- [ ] Works in production build
+
+### Deployment Notes
+
+- Theme state is client-side only (localStorage)
+- No server-side rendering needed
+- Works perfectly with Cloudflare Pages
+- No environment variables required
+- Fast, instant theme switching
+
+### References
+
+- [Tailwind v4 Dark Mode](https://tailwindcss.com/docs/dark-mode)
+- [Tailwind v4 Custom Variants](https://github.com/tailwindlabs/tailwindcss/discussions/13863)
+- [WCAG Contrast Guidelines](https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html)
+- [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/)
