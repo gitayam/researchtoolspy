@@ -20,7 +20,7 @@ export async function onRequest(context: any) {
     const frameworkId = url.searchParams.get('framework_id')
     const evidenceId = url.searchParams.get('evidence_id')
 
-    // GET - Get linked evidence for a framework or frameworks for an evidence
+    // GET - Get linked evidence for a framework or frameworks for an evidence item
     if (request.method === 'GET') {
       if (frameworkId) {
         // Get all evidence linked to this framework
@@ -30,19 +30,23 @@ export async function onRequest(context: any) {
             e.id as evidence_id,
             e.title,
             e.description,
-            e.type,
+            e.who,
+            e.what,
+            e.when_occurred,
+            e.where_location,
+            e.evidence_type,
+            e.evidence_level,
+            e.priority,
             e.status,
-            e.source,
             e.tags
           FROM framework_evidence fe
-          JOIN evidence e ON fe.evidence_id = e.id
+          JOIN evidence_items e ON fe.evidence_id = e.id
           WHERE fe.framework_id = ?
           ORDER BY fe.created_at DESC
         `).bind(frameworkId).all()
 
         const parsedLinks = links.results.map((link: any) => ({
           ...link,
-          source: JSON.parse(link.source || '{}'),
           tags: JSON.parse(link.tags || '[]')
         }))
 
@@ -90,19 +94,21 @@ export async function onRequest(context: any) {
         })
       }
 
-      // Link each evidence to the framework
+      // Link each evidence item to the framework
       const results = []
       for (const evidenceId of body.evidence_ids) {
         try {
           const result = await env.DB.prepare(`
             INSERT OR REPLACE INTO framework_evidence
-            (framework_id, evidence_id, section_key, relevance_note, created_by)
-            VALUES (?, ?, ?, ?, ?)
+            (framework_id, evidence_id, section_key, relevance_note, weight, supports, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
           `).bind(
             body.framework_id,
             evidenceId,
             body.section_key || null,
             body.relevance_note || null,
+            body.weight || 1.0,
+            body.supports !== undefined ? body.supports : 1,
             body.created_by || 1
           ).run()
 
