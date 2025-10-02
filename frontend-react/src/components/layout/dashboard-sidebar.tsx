@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { 
-  BarChart3, 
-  Brain, 
-  FileText, 
-  Globe, 
-  Home, 
-  Search, 
+import {
+  BarChart3,
+  Brain,
+  FileText,
+  Globe,
+  Home,
+  Search,
   Settings,
   Target,
   Users,
   Zap,
   Menu,
   X,
-  Archive
+  Archive,
+  Database
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -57,6 +58,7 @@ const navigation = [
     ]
   },
   { name: 'Evidence Collector', href: '/dashboard/evidence', icon: Archive },
+  { name: 'Dataset Library', href: '/dashboard/datasets', icon: Database },
   { name: 'Reports', href: '/dashboard/reports', icon: FileText },
   { name: 'Collaboration', href: '/dashboard/collaboration', icon: Users },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },

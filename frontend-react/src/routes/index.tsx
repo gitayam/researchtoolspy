@@ -4,6 +4,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { EvidencePage } from '@/pages/EvidencePage'
+import { DatasetPage } from '@/pages/DatasetPage'
 import { ToolsPage } from '@/pages/ToolsPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { CollaborationPage } from '@/pages/CollaborationPage'
@@ -261,6 +262,10 @@ export const router = createBrowserRouter([
       {
         path: 'evidence',
         element: <EvidencePage />,
+      },
+      {
+        path: 'datasets',
+        element: <DatasetPage />,
       },
       {
         path: 'reports',

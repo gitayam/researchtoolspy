@@ -7,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
-import { EvidenceSelector } from '@/components/evidence/EvidenceSelector'
-import { EvidenceBadge } from '@/components/evidence/EvidenceBadge'
-import type { Evidence } from '@/types/evidence'
+import { DatasetSelector } from '@/components/datasets/DatasetSelector'
+import { DatasetBadge } from '@/components/datasets/DatasetBadge'
+import type { Dataset } from '@/types/dataset'
 
 interface FrameworkItem {
   id: string
@@ -48,9 +48,9 @@ const SectionCard = memo(({
   setNewItem,
   onAdd,
   onRemove,
-  linkedEvidence,
-  onLinkEvidence,
-  onRemoveEvidence
+  linkedDataset,
+  onLinkDataset,
+  onRemoveDataset
 }: {
   section: FrameworkSection
   items: FrameworkItem[]
@@ -58,9 +58,9 @@ const SectionCard = memo(({
   setNewItem: (value: string) => void
   onAdd: () => void
   onRemove: (id: string) => void
-  linkedEvidence: Evidence[]
-  onLinkEvidence: () => void
-  onRemoveEvidence: (evidenceId: string) => void
+  linkedDataset: Dataset[]
+  onLinkDataset: () => void
+  onRemoveDataset: (datasetId: string) => void
 }) => (
   <Card className={`border-l-4 ${section.color}`}>
     <CardHeader>
@@ -107,30 +107,30 @@ const SectionCard = memo(({
         )}
       </div>
 
-      {/* Evidence Section */}
+      {/* Dataset Section */}
       <div className="pt-4 border-t">
         <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm font-medium">Linked Evidence ({linkedEvidence.length})</Label>
+          <Label className="text-sm font-medium">Linked Dataset ({linkedDataset.length})</Label>
           <Button
             variant="outline"
             size="sm"
-            onClick={onLinkEvidence}
+            onClick={onLinkDataset}
           >
             <Link2 className="h-3 w-3 mr-2" />
-            Link Evidence
+            Link Dataset
           </Button>
         </div>
         <div className="flex flex-wrap gap-2">
-          {linkedEvidence.length === 0 ? (
+          {linkedDataset.length === 0 ? (
             <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-              No evidence linked to this section
+              No dataset linked to this section
             </p>
           ) : (
-            linkedEvidence.map((evidence) => (
-              <EvidenceBadge
-                key={evidence.id}
-                evidence={evidence}
-                onRemove={() => onRemoveEvidence(evidence.id.toString())}
+            linkedDataset.map((dataset) => (
+              <DatasetBadge
+                key={dataset.id}
+                dataset={dataset}
+                onRemove={() => onRemoveDataset(dataset.id.toString())}
                 showDetails={false}
               />
             ))
@@ -173,31 +173,31 @@ export function GenericFrameworkForm({
     }, {} as { [key: string]: string })
   )
 
-  // Evidence linking state
-  const [sectionEvidence, setSectionEvidence] = useState<{ [key: string]: Evidence[] }>(
+  // Dataset linking state
+  const [sectionDataset, setSectionDataset] = useState<{ [key: string]: Dataset[] }>(
     sections.reduce((acc, section) => {
       acc[section.key] = []
       return acc
-    }, {} as { [key: string]: Evidence[] })
+    }, {} as { [key: string]: Dataset[] })
   )
-  const [evidenceSelectorOpen, setEvidenceSelectorOpen] = useState(false)
+  const [datasetSelectorOpen, setDatasetSelectorOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<string | null>(null)
 
-  // Load linked evidence if editing
+  // Load linked datasets if editing
   useEffect(() => {
     if (frameworkId && mode === 'edit') {
-      loadLinkedEvidence()
+      loadLinkedDataset()
     }
   }, [frameworkId, mode])
 
-  const loadLinkedEvidence = async () => {
+  const loadLinkedDataset = async () => {
     if (!frameworkId) return
     try {
-      const response = await fetch(`/api/framework-evidence?framework_id=${frameworkId}`)
+      const response = await fetch(`/api/framework-datasets?framework_id=${frameworkId}`)
       if (response.ok) {
         const data = await response.json()
-        // Group evidence by section
-        const grouped: { [key: string]: Evidence[] } = {}
+        // Group datasets by section
+        const grouped: { [key: string]: Dataset[] } = {}
         sections.forEach(section => {
           grouped[section.key] = []
         })
@@ -206,10 +206,10 @@ export function GenericFrameworkForm({
             grouped[link.section_key].push(link)
           }
         })
-        setSectionEvidence(grouped)
+        setSectionDataset(grouped)
       }
     } catch (error) {
-      console.error('Failed to load linked evidence:', error)
+      console.error('Failed to load linked datasets:', error)
     }
   }
 
@@ -239,57 +239,57 @@ export function GenericFrameworkForm({
     }))
   }
 
-  const openEvidenceSelector = (sectionKey: string) => {
+  const openDatasetSelector = (sectionKey: string) => {
     setActiveSection(sectionKey)
-    setEvidenceSelectorOpen(true)
+    setDatasetSelectorOpen(true)
   }
 
-  const handleEvidenceSelect = async (evidenceIds: string[]) => {
+  const handleDatasetSelect = async (datasetIds: string[]) => {
     if (!activeSection || !frameworkId) {
       // For new frameworks, just store locally until save
-      const selectedEvidence: Evidence[] = []
+      const selectedDataset: Dataset[] = []
       try {
-        for (const id of evidenceIds) {
-          const response = await fetch(`/api/evidence?id=${id}`)
+        for (const id of datasetIds) {
+          const response = await fetch(`/api/datasets?id=${id}`)
           if (response.ok) {
-            const evidence = await response.json()
-            selectedEvidence.push(evidence)
+            const dataset = await response.json()
+            selectedDataset.push(dataset)
           }
         }
-        setSectionEvidence(prev => ({
+        setSectionDataset(prev => ({
           ...prev,
-          [activeSection]: selectedEvidence
+          [activeSection]: selectedDataset
         }))
       } catch (error) {
-        console.error('Failed to load evidence:', error)
+        console.error('Failed to load dataset:', error)
       }
       return
     }
 
     // For existing frameworks, link via API
     try {
-      await fetch('/api/framework-evidence', {
+      await fetch('/api/framework-datasets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           framework_id: frameworkId,
-          evidence_ids: evidenceIds,
+          dataset_ids: datasetIds,
           section_key: activeSection
         })
       })
-      await loadLinkedEvidence()
+      await loadLinkedDataset()
     } catch (error) {
-      console.error('Failed to link evidence:', error)
-      alert('Failed to link evidence. Please try again.')
+      console.error('Failed to link dataset:', error)
+      alert('Failed to link dataset. Please try again.')
     }
   }
 
-  const handleRemoveEvidence = async (sectionKey: string, evidenceId: string) => {
+  const handleRemoveDataset = async (sectionKey: string, datasetId: string) => {
     if (!frameworkId) {
       // Remove from local state only
-      setSectionEvidence(prev => ({
+      setSectionDataset(prev => ({
         ...prev,
-        [sectionKey]: prev[sectionKey].filter(e => e.id.toString() !== evidenceId)
+        [sectionKey]: prev[sectionKey].filter(e => e.id.toString() !== datasetId)
       }))
       return
     }
@@ -297,16 +297,16 @@ export function GenericFrameworkForm({
     // Remove via API
     try {
       await fetch(
-        `/api/framework-evidence?framework_id=${frameworkId}&evidence_id=${evidenceId}&section_key=${sectionKey}`,
+        `/api/framework-datasets?framework_id=${frameworkId}&dataset_id=${datasetId}&section_key=${sectionKey}`,
         { method: 'DELETE' }
       )
-      setSectionEvidence(prev => ({
+      setSectionDataset(prev => ({
         ...prev,
-        [sectionKey]: prev[sectionKey].filter(e => e.id.toString() !== evidenceId)
+        [sectionKey]: prev[sectionKey].filter(e => e.id.toString() !== datasetId)
       }))
     } catch (error) {
-      console.error('Failed to unlink evidence:', error)
-      alert('Failed to unlink evidence. Please try again.')
+      console.error('Failed to unlink dataset:', error)
+      alert('Failed to unlink dataset. Please try again.')
     }
   }
 
@@ -395,22 +395,22 @@ export function GenericFrameworkForm({
             setNewItem={(value) => setNewItems(prev => ({ ...prev, [section.key]: value }))}
             onAdd={() => addItem(section.key, newItems[section.key])}
             onRemove={(id) => removeItem(section.key, id)}
-            linkedEvidence={sectionEvidence[section.key] || []}
-            onLinkEvidence={() => openEvidenceSelector(section.key)}
-            onRemoveEvidence={(evidenceId) => handleRemoveEvidence(section.key, evidenceId)}
+            linkedDataset={sectionDataset[section.key] || []}
+            onLinkDataset={() => openDatasetSelector(section.key)}
+            onRemoveDataset={(datasetId) => handleRemoveDataset(section.key, datasetId)}
           />
         ))}
       </div>
 
-      {/* Evidence Selector Modal */}
-      <EvidenceSelector
-        open={evidenceSelectorOpen}
+      {/* Dataset Selector Modal */}
+      <DatasetSelector
+        open={datasetSelectorOpen}
         onClose={() => {
-          setEvidenceSelectorOpen(false)
+          setDatasetSelectorOpen(false)
           setActiveSection(null)
         }}
-        onSelect={handleEvidenceSelect}
-        selectedIds={activeSection ? sectionEvidence[activeSection]?.map(e => e.id.toString()) : []}
+        onSelect={handleDatasetSelect}
+        selectedIds={activeSection ? sectionDataset[activeSection]?.map(e => e.id.toString()) : []}
         frameworkId={frameworkId}
         sectionKey={activeSection || undefined}
       />
