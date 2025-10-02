@@ -1,22 +1,18 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, Upload, Tag, Clock, Shield, Globe, FileText, Link as LinkIcon, Image, Video, Music, MessageSquare, Mail, FileBarChart, MoreHorizontal, Trash2, Edit, Copy, Archive, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { Plus, Search, Tag, Clock, FileText, MoreHorizontal, Trash2, Edit, Archive, CheckCircle2, XCircle, AlertCircle, Target, TrendingUp, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import type { Evidence, EvidenceFilter, EvidenceStatistics } from '@/types/evidence'
-import { EvidenceType, EvidenceStatus, CredibilityLevel } from '@/types/evidence'
+import type { EvidenceItem, EvidenceFilter, EvidenceStatistics } from '@/types/evidence'
+import { EvidenceType, EvidenceStatus, EvidenceLevel, PriorityLevel } from '@/types/evidence'
 import { cn } from '@/lib/utils'
-import { EvidenceForm } from '@/components/evidence/EvidenceForm'
-
-// Mock data - will be replaced with API calls
-const mockEvidence: Evidence[] = []
+import { EvidenceItemForm } from '@/components/evidence/EvidenceItemForm'
 
 export function EvidencePage() {
-  const [evidence, setEvidence] = useState<Evidence[]>(mockEvidence)
-  const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null)
+  const [evidence, setEvidence] = useState<EvidenceItem[]>([])
   const [filter, setFilter] = useState<EvidenceFilter>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [formOpen, setFormOpen] = useState(false)
@@ -25,7 +21,7 @@ export function EvidencePage() {
 
   const loadEvidence = async () => {
     try {
-      const response = await fetch('/api/evidence')
+      const response = await fetch('/api/evidence-items')
       if (response.ok) {
         const data = await response.json()
         setEvidence(data.evidence || [])
@@ -41,31 +37,18 @@ export function EvidencePage() {
 
   const handleSaveEvidence = async (data: any) => {
     try {
-      const payload = {
-        title: data.title,
-        description: data.description,
-        type: data.type,
-        source_type: data.type,
-        source_name: data.source,
-        source_url: data.url || null,
-        reliability: data.reliability || 'F',
-        credibility: data.credibility || '6',
-        tags: JSON.stringify(data.tags || []),
-        status: 'pending'
-      }
-
       if (formMode === 'edit' && editingEvidence?.id) {
-        const response = await fetch(`/api/evidence?id=${editingEvidence.id}`, {
+        const response = await fetch(`/api/evidence-items?id=${editingEvidence.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(data)
         })
         if (!response.ok) throw new Error('Failed to update evidence')
       } else {
-        const response = await fetch('/api/evidence', {
+        const response = await fetch('/api/evidence-items', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(data)
         })
         if (!response.ok) throw new Error('Failed to create evidence')
       }
@@ -79,11 +62,11 @@ export function EvidencePage() {
     }
   }
 
-  const handleDeleteEvidence = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this evidence?')) return
+  const handleDeleteEvidence = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this evidence item?')) return
 
     try {
-      const response = await fetch(`/api/evidence?id=${id}`, {
+      const response = await fetch(`/api/evidence-items?id=${id}`, {
         method: 'DELETE'
       })
       if (response.ok) {
@@ -110,54 +93,54 @@ export function EvidencePage() {
   const filteredEvidence = evidence.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.who?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.what?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
 
-    const matchesType = !filter.type || item.type === filter.type
+    const matchesType = !filter.type || item.evidence_type === filter.type
+    const matchesLevel = !filter.level || item.evidence_level === filter.level
     const matchesStatus = !filter.status || item.status === filter.status
-    const matchesCredibility = !filter.credibility || item.source.credibility === filter.credibility
+    const matchesPriority = !filter.priority || item.priority === filter.priority
 
-    return matchesSearch && matchesType && matchesStatus && matchesCredibility
+    return matchesSearch && matchesType && matchesLevel && matchesStatus && matchesPriority
   })
 
-  const getTypeIcon = (type: EvidenceType) => {
-    switch (type) {
-      case EvidenceType.DOCUMENT: return FileText
-      case EvidenceType.WEB_PAGE: return Globe
-      case EvidenceType.IMAGE: return Image
-      case EvidenceType.VIDEO: return Video
-      case EvidenceType.AUDIO: return Music
-      case EvidenceType.SOCIAL_MEDIA: return MessageSquare
-      case EvidenceType.EMAIL: return Mail
-      case EvidenceType.DATABASE: return FileBarChart
-      case EvidenceType.API: return LinkIcon
-      case EvidenceType.GOVERNMENT: return Shield
-      default: return FileText
+  const getLevelIcon = (level: EvidenceLevel) => {
+    switch (level) {
+      case 'tactical': return Target
+      case 'operational': return TrendingUp
+      case 'strategic': return Zap
+      default: return Target
     }
   }
 
   const getStatusIcon = (status: EvidenceStatus) => {
     switch (status) {
-      case EvidenceStatus.VERIFIED: return CheckCircle2
-      case EvidenceStatus.PENDING: return Clock
-      case EvidenceStatus.REJECTED: return XCircle
-      case EvidenceStatus.NEEDS_REVIEW: return AlertCircle
+      case 'verified': return CheckCircle2
+      case 'pending': return Clock
+      case 'rejected': return XCircle
+      case 'needs_review': return AlertCircle
       default: return Clock
     }
   }
 
   const statistics: EvidenceStatistics = {
     total: evidence.length,
-    verified: evidence.filter(e => e.status === EvidenceStatus.VERIFIED).length,
-    pending: evidence.filter(e => e.status === EvidenceStatus.PENDING).length,
-    rejected: evidence.filter(e => e.status === EvidenceStatus.REJECTED).length,
+    verified: evidence.filter(e => e.status === 'verified').length,
+    pending: evidence.filter(e => e.status === 'pending').length,
+    rejected: evidence.filter(e => e.status === 'rejected').length,
     by_type: Object.values(EvidenceType).reduce((acc, type) => {
-      acc[type] = evidence.filter(e => e.type === type).length
+      acc[type] = evidence.filter(e => e.evidence_type === type).length
       return acc
     }, {} as Record<EvidenceType, number>),
-    by_credibility: Object.values(CredibilityLevel).reduce((acc, level) => {
-      acc[level] = evidence.filter(e => e.source.credibility === level).length
+    by_level: Object.values(EvidenceLevel).reduce((acc, level) => {
+      acc[level] = evidence.filter(e => e.evidence_level === level).length
       return acc
-    }, {} as Record<CredibilityLevel, number>)
+    }, {} as Record<EvidenceLevel, number>),
+    by_priority: Object.values(PriorityLevel).reduce((acc, priority) => {
+      acc[priority] = evidence.filter(e => e.priority === priority).length
+      return acc
+    }, {} as Record<PriorityLevel, number>)
   }
 
   return (
@@ -165,27 +148,15 @@ export function EvidencePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Evidence Collector</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Evidence Items</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Manage and organize evidence for your research analysis
+            Manage analyzed evidence with 5 W's + How framework
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => {
-              console.log('Import button clicked')
-              alert('Import feature coming soon!')
-            }}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-          </Button>
-          <Button onClick={openCreateForm}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Evidence
-          </Button>
-        </div>
+        <Button onClick={openCreateForm}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Evidence
+        </Button>
       </div>
 
       {/* Statistics Cards */}
@@ -247,14 +218,25 @@ export function EvidencePage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Select value={filter.type || 'all'} onValueChange={(value) => setFilter({ ...filter, type: value === 'all' ? undefined : value as EvidenceType })}>
+        <Select value={filter.level || 'all'} onValueChange={(value) => setFilter({ ...filter, level: value === 'all' ? undefined : value as EvidenceLevel })}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by type" />
+            <SelectValue placeholder="Filter by level" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {Object.values(EvidenceType).map(type => (
-              <SelectItem key={type} value={type}>{type.replace('_', ' ')}</SelectItem>
+            <SelectItem value="all">All Levels</SelectItem>
+            {Object.values(EvidenceLevel).map(level => (
+              <SelectItem key={level} value={level}>{level.toUpperCase()}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filter.priority || 'all'} onValueChange={(value) => setFilter({ ...filter, priority: value === 'all' ? undefined : value as PriorityLevel })}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filter by priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Priorities</SelectItem>
+            {Object.values(PriorityLevel).map(priority => (
+              <SelectItem key={priority} value={priority}>{priority.toUpperCase()}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -265,7 +247,7 @@ export function EvidencePage() {
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             {Object.values(EvidenceStatus).map(status => (
-              <SelectItem key={status} value={status}>{status.replace('_', ' ')}</SelectItem>
+              <SelectItem key={status} value={status}>{status.replace('_', ' ').toUpperCase()}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -281,7 +263,7 @@ export function EvidencePage() {
             </h3>
             <p className="text-gray-500 dark:text-gray-500 mb-4">
               {evidence.length === 0
-                ? "Start building your evidence collection by adding your first piece of evidence."
+                ? "Start building your evidence collection by adding your first evidence item."
                 : "Try adjusting your search criteria or filters."
               }
             </p>
@@ -292,7 +274,7 @@ export function EvidencePage() {
           </Card>
         ) : (
           filteredEvidence.map((item) => {
-            const TypeIcon = getTypeIcon(item.type)
+            const LevelIcon = getLevelIcon(item.evidence_level)
             const StatusIcon = getStatusIcon(item.status)
 
             return (
@@ -301,28 +283,37 @@ export function EvidencePage() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
                       <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-                        <TypeIcon className="h-5 w-5" />
+                        <LevelIcon className="h-5 w-5" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{item.title}</h3>
+                          <Badge variant="outline" className="text-xs">
+                            {item.evidence_level}
+                          </Badge>
+                          <Badge variant={item.priority === 'critical' ? 'destructive' : 'secondary'} className="text-xs">
+                            {item.priority}
+                          </Badge>
                           <StatusIcon className={cn(
                             "h-4 w-4",
-                            item.status === EvidenceStatus.VERIFIED && "text-green-500",
-                            item.status === EvidenceStatus.PENDING && "text-yellow-500",
-                            item.status === EvidenceStatus.REJECTED && "text-red-500",
-                            item.status === EvidenceStatus.NEEDS_REVIEW && "text-orange-500"
+                            item.status === 'verified' && "text-green-500",
+                            item.status === 'pending' && "text-yellow-500",
+                            item.status === 'rejected' && "text-red-500",
+                            item.status === 'needs_review' && "text-orange-500"
                           )} />
                         </div>
                         {item.description && (
                           <p className="text-gray-600 dark:text-gray-400 mb-3">{item.description}</p>
                         )}
-                        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-500 mb-3">
-                          <span>Source: {item.source.name}</span>
-                          <span>•</span>
-                          <span>Updated {new Date(item.updated_at).toLocaleDateString()}</span>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm mb-3">
+                          {item.who && <div><span className="font-medium">Who:</span> {item.who}</div>}
+                          {item.what && <div><span className="font-medium">What:</span> {item.what}</div>}
+                          {item.when_occurred && <div><span className="font-medium">When:</span> {item.when_occurred}</div>}
+                          {item.where_location && <div><span className="font-medium">Where:</span> {item.where_location}</div>}
+                          {item.why_purpose && <div><span className="font-medium">Why:</span> {item.why_purpose}</div>}
+                          {item.how_method && <div><span className="font-medium">How:</span> {item.how_method}</div>}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           {item.tags.map(tag => (
                             <Badge key={tag} variant="secondary" className="text-xs">
                               <Tag className="h-3 w-3 mr-1" />
@@ -342,10 +333,6 @@ export function EvidencePage() {
                         <DropdownMenuItem onClick={() => openEditForm(item)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Duplicate
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Archive className="h-4 w-4 mr-2" />
@@ -370,7 +357,7 @@ export function EvidencePage() {
       </div>
 
       {/* Evidence Form Modal */}
-      <EvidenceForm
+      <EvidenceItemForm
         open={formOpen}
         onClose={() => {
           setFormOpen(false)

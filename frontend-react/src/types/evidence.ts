@@ -1,155 +1,205 @@
-/**
- * Evidence Management Types
- * For collecting, organizing, and sharing evidence across frameworks
- */
+// Evidence System Types
 
+// Evidence Type (what kind of evidence)
 export const EvidenceType = {
-  DOCUMENT: 'DOCUMENT',
-  WEB_PAGE: 'WEB_PAGE',
-  IMAGE: 'IMAGE',
-  VIDEO: 'VIDEO',
-  AUDIO: 'AUDIO',
-  SOCIAL_MEDIA: 'SOCIAL_MEDIA',
-  EMAIL: 'EMAIL',
-  DATABASE: 'DATABASE',
-  API: 'API',
-  GOVERNMENT: 'GOVERNMENT'
+  OBSERVATION: 'observation',
+  DOCUMENT: 'document',
+  TESTIMONY: 'testimony',
+  PHYSICAL: 'physical',
+  DIGITAL: 'digital',
+  INTERCEPTED: 'intercepted',
+  OPEN_SOURCE: 'open_source',
+  CLASSIFIED: 'classified',
+  FINANCIAL: 'financial',
+  GEOSPATIAL: 'geospatial',
+  BIOMETRIC: 'biometric',
+  TECHNICAL: 'technical',
 } as const
 
 export type EvidenceType = typeof EvidenceType[keyof typeof EvidenceType]
 
+// Evidence Level (tactical, operational, strategic)
+export const EvidenceLevel = {
+  TACTICAL: 'tactical',
+  OPERATIONAL: 'operational',
+  STRATEGIC: 'strategic',
+} as const
+
+export type EvidenceLevel = typeof EvidenceLevel[keyof typeof EvidenceLevel]
+
+// Evidence Status
 export const EvidenceStatus = {
-  PENDING: 'PENDING',
-  VERIFIED: 'VERIFIED',
-  REJECTED: 'REJECTED',
-  NEEDS_REVIEW: 'NEEDS_REVIEW'
+  PENDING: 'pending',
+  VERIFIED: 'verified',
+  REJECTED: 'rejected',
+  NEEDS_REVIEW: 'needs_review',
+  ARCHIVED: 'archived',
 } as const
 
 export type EvidenceStatus = typeof EvidenceStatus[keyof typeof EvidenceStatus]
 
-export const CredibilityLevel = {
-  VERY_HIGH: 'VERY_HIGH',
-  HIGH: 'HIGH',
-  MEDIUM: 'MEDIUM',
-  LOW: 'LOW',
-  VERY_LOW: 'VERY_LOW',
-  UNKNOWN: 'UNKNOWN'
+// Confidence Level
+export const ConfidenceLevel = {
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  CONFIRMED: 'confirmed',
 } as const
 
-export type CredibilityLevel = typeof CredibilityLevel[keyof typeof CredibilityLevel]
+export type ConfidenceLevel = typeof ConfidenceLevel[keyof typeof ConfidenceLevel]
 
-export interface EvidenceSource {
-  name: string
-  url?: string
-  date?: string
-  author?: string
-  organization?: string
-  credibility: CredibilityLevel
-}
+// Priority Level
+export const PriorityLevel = {
+  LOW: 'low',
+  NORMAL: 'normal',
+  HIGH: 'high',
+  CRITICAL: 'critical',
+} as const
 
-export interface EvidenceMetadata {
-  collection_date: string
-  collection_method?: string
-  chain_of_custody?: string[]
-  classification?: string
-  handling_instructions?: string
-  expiry_date?: string
-  geo_location?: {
-    lat: number
-    lng: number
-    accuracy?: number
-    place_name?: string
-  }
-}
+export type PriorityLevel = typeof PriorityLevel[keyof typeof PriorityLevel]
 
-export interface SATSEvaluation {
-  reliability: number // 1-5
-  credibility: number // 1-5
-  validity: number // 1-5
-  relevance: number // 1-5
-  significance: number // 1-5
-  timeliness: number // 1-5
-  accuracy: number // 1-5
-  completeness: number // 1-5
-  overall_score: number
-  evaluation_date: string
-  evaluator?: string
-  notes?: string
-}
+// Citation Type
+export const CitationType = {
+  PRIMARY: 'primary',
+  SECONDARY: 'secondary',
+  SUPPORTING: 'supporting',
+} as const
 
-export interface Evidence {
-  id: string
+export type CitationType = typeof CitationType[keyof typeof CitationType]
+
+// Citation Style
+export const CitationStyle = {
+  APA: 'apa',
+  MLA: 'mla',
+  CHICAGO: 'chicago',
+  BLUEBOOK: 'bluebook',
+  VANCOUVER: 'vancouver',
+} as const
+
+export type CitationStyle = typeof CitationStyle[keyof typeof CitationStyle]
+
+// Main Evidence Item Interface
+export interface EvidenceItem {
+  id: number
   title: string
   description?: string
-  content: string
-  type: EvidenceType
-  status: EvidenceStatus
+
+  // 5 W's + How
+  who?: string           // Person, entity, or actor involved
+  what?: string          // What happened or what is it
+  when_occurred?: string // When it happened (timestamp or date range)
+  where_location?: string// Where it occurred (location, coordinates, place)
+  why_purpose?: string   // Why it happened or purpose
+  how_method?: string    // How it happened or method used
+
+  // Classification
+  evidence_type: EvidenceType
+  evidence_level: EvidenceLevel
+  category?: string      // For framework categorization (PMESII, DIME, etc.)
+
+  // Assessment
+  credibility: string    // Credibility rating (A-F scale or 1-6)
+  reliability: string    // Reliability rating
+  confidence_level: ConfidenceLevel
+
+  // Metadata
   tags: string[]
-  source: EvidenceSource
-  metadata: EvidenceMetadata
-  sats_evaluation?: SATSEvaluation
-
-  // Framework associations
-  frameworks?: {
-    framework_type: string
-    framework_id: string
-    usage_context?: string
-  }[]
-
-  // Files and attachments
-  attachments?: {
-    id: string
-    filename: string
-    url: string
-    size: number
-    mime_type: string
-  }[]
+  status: EvidenceStatus
+  priority: PriorityLevel
 
   // Timestamps
   created_at: string
   updated_at: string
-  created_by: string
-  updated_by?: string
+  created_by: number
+  updated_by: number
 
-  // Analysis
-  key_points?: string[]
-  contradictions?: string[]
-  corroborations?: string[]
-  implications?: string[]
-
-  // Versioning
-  version: number
-  previous_versions?: string[]
+  // Related data (loaded from joins)
+  citations?: EvidenceCitation[]
 }
 
+// Evidence Citation Interface
+export interface EvidenceCitation {
+  id: number
+  evidence_id: number
+  dataset_id: number
+
+  // Citation details
+  citation_type: CitationType
+  page_number?: string
+  quote?: string
+  context?: string
+  citation_style: CitationStyle
+  formatted_citation?: string
+
+  // Metadata
+  relevance_score: number  // 1-10
+  notes?: string
+
+  // Timestamps
+  created_at: string
+  created_by: number
+
+  // Joined dataset information
+  dataset?: {
+    id: number
+    title: string
+    description?: string
+    type: string
+    source: {
+      name: string
+      url?: string
+      author?: string
+      organization?: string
+    }
+  }
+}
+
+// Filter Interface
 export interface EvidenceFilter {
   type?: EvidenceType
+  level?: EvidenceLevel
   status?: EvidenceStatus
-  credibility?: CredibilityLevel
-  tags?: string[]
-  date_from?: string
-  date_to?: string
-  frameworks?: string[]
-  has_sats_evaluation?: boolean
+  priority?: PriorityLevel
+  confidence?: ConfidenceLevel
+  category?: string
+  created_after?: string
+  created_before?: string
 }
 
+// Statistics Interface
 export interface EvidenceStatistics {
   total: number
   verified: number
   pending: number
   rejected: number
   by_type: Record<EvidenceType, number>
-  by_credibility: Record<CredibilityLevel, number>
+  by_level: Record<EvidenceLevel, number>
+  by_priority: Record<PriorityLevel, number>
 }
 
-export interface EvidenceCollection {
-  id: string
-  name: string
-  description: string
-  evidence_ids: string[]
+// Form Data Interface
+export interface EvidenceFormData {
+  title: string
+  description?: string
+  who?: string
+  what?: string
+  when_occurred?: string
+  where_location?: string
+  why_purpose?: string
+  how_method?: string
+  evidence_type: EvidenceType
+  evidence_level: EvidenceLevel
+  category?: string
+  credibility: string
+  reliability: string
+  confidence_level: ConfidenceLevel
   tags: string[]
-  created_at: string
-  updated_at: string
-  created_by: string
-  shared_with?: string[]
+  priority: PriorityLevel
+  citations?: {
+    dataset_id: number
+    citation_type: CitationType
+    page_number?: string
+    quote?: string
+    context?: string
+  }[]
 }
