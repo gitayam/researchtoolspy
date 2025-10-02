@@ -59,10 +59,16 @@ export async function onRequest(context: any) {
       // List all dataset with optional filters
       const type = url.searchParams.get('type')
       const status = url.searchParams.get('status')
+      const publicOnly = url.searchParams.get('public') === 'true'
       const limit = parseInt(url.searchParams.get('limit') || '50')
 
       let query = 'SELECT * FROM datasets WHERE 1=1'
       const params: any[] = []
+
+      // Filter by public access if requested
+      if (publicOnly) {
+        query += ' AND is_public = 1'
+      }
 
       if (type) {
         query += ' AND type = ?'
@@ -124,8 +130,8 @@ export async function onRequest(context: any) {
           source, metadata, sats_evaluation, frameworks, attachments,
           created_by, created_at, updated_at,
           key_points, contradictions, corroborations, implications,
-          version, previous_versions
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), ?, ?, ?, ?, ?, ?)`
+          version, previous_versions, is_public, shared_by_user_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         body.title,
         body.description || '',
@@ -144,7 +150,9 @@ export async function onRequest(context: any) {
         JSON.stringify(body.corroborations || []),
         JSON.stringify(body.implications || []),
         body.version || 1,
-        JSON.stringify(body.previous_versions || [])
+        JSON.stringify(body.previous_versions || []),
+        body.is_public ? 1 : 0,
+        body.shared_by_user_id || null
       ).run()
 
       return new Response(JSON.stringify({
@@ -175,7 +183,8 @@ export async function onRequest(context: any) {
              tags = ?, source = ?, metadata = ?, sats_evaluation = ?,
              frameworks = ?, attachments = ?, updated_at = datetime('now'),
              updated_by = ?, key_points = ?, contradictions = ?,
-             corroborations = ?, implications = ?, version = ?, previous_versions = ?
+             corroborations = ?, implications = ?, version = ?, previous_versions = ?,
+             is_public = ?, shared_by_user_id = ?
          WHERE id = ?`
       ).bind(
         body.title,
@@ -196,6 +205,8 @@ export async function onRequest(context: any) {
         JSON.stringify(body.implications || []),
         body.version || 1,
         JSON.stringify(body.previous_versions || []),
+        body.is_public ? 1 : 0,
+        body.shared_by_user_id || null,
         datasetId
       ).run()
 

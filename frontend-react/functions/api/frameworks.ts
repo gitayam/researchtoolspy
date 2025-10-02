@@ -40,10 +40,18 @@ export async function onRequest(context: any) {
         })
       }
 
-      // List all frameworks
-      const frameworks = await env.DB.prepare(
-        'SELECT * FROM framework_sessions ORDER BY created_at DESC LIMIT 50'
-      ).all()
+      // List all frameworks with optional public filter
+      const publicOnly = url.searchParams.get('public') === 'true'
+
+      let query = 'SELECT * FROM framework_sessions WHERE 1=1'
+
+      if (publicOnly) {
+        query += ' AND is_public = 1'
+      }
+
+      query += ' ORDER BY created_at DESC LIMIT 50'
+
+      const frameworks = await env.DB.prepare(query).all()
 
       return new Response(JSON.stringify({ frameworks: frameworks.results }), {
         status: 200,
@@ -56,15 +64,17 @@ export async function onRequest(context: any) {
       const body = await request.json()
       
       const result = await env.DB.prepare(
-        `INSERT INTO framework_sessions (user_id, title, description, framework_type, data, status)
-         VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO framework_sessions (user_id, title, description, framework_type, data, status, is_public, shared_publicly_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         body.user_id || 1,
         body.title,
         body.description || '',
         body.framework_type,
         JSON.stringify(body.data || {}),
-        body.status || 'draft'
+        body.status || 'draft',
+        body.is_public ? 1 : 0,
+        body.is_public ? new Date().toISOString() : null
       ).run()
 
       return new Response(JSON.stringify({ 
@@ -81,14 +91,17 @@ export async function onRequest(context: any) {
       const body = await request.json()
       
       await env.DB.prepare(
-        `UPDATE framework_sessions 
-         SET title = ?, description = ?, data = ?, status = ?, updated_at = datetime('now')
+        `UPDATE framework_sessions
+         SET title = ?, description = ?, data = ?, status = ?, updated_at = datetime('now'),
+             is_public = ?, shared_publicly_at = ?
          WHERE id = ?`
       ).bind(
         body.title,
         body.description,
         JSON.stringify(body.data),
         body.status,
+        body.is_public ? 1 : 0,
+        body.is_public ? new Date().toISOString() : null,
         frameworkId
       ).run()
 

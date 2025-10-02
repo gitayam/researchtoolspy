@@ -657,13 +657,7 @@ export const BehaviorPage = () => <GenericFrameworkPage frameworkKey="behavior" 
 
 export const StarburstingPage = () => <GenericFrameworkPage frameworkKey="starbursting" />
 
-export const CausewayPage = () => (
-  <FrameworkListPage
-    title="Causeway Analysis"
-    description="Causeway Terrain Analysis"
-    frameworkType="causeway"
-  />
-)
+export const CausewayPage = () => <GenericFrameworkPage frameworkKey="causeway" />
 
 export const DimePage = () => <GenericFrameworkPage frameworkKey="dime" />
 

@@ -82,6 +82,12 @@ export async function onRequest(context: any) {
       const priority = url.searchParams.get('priority')
       const confidence = url.searchParams.get('confidence_level')
       const category = url.searchParams.get('category')
+      const publicOnly = url.searchParams.get('public') === 'true'
+
+      // Filter by public access if requested
+      if (publicOnly) {
+        query += ' AND is_public = 1'
+      }
 
       if (type) {
         query += ' AND evidence_type = ?'
@@ -145,8 +151,8 @@ export async function onRequest(context: any) {
           evidence_type, evidence_level, category,
           credibility, reliability, confidence_level,
           tags, status, priority,
-          created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          created_by, is_public, shared_by_user_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         body.title,
         body.description || null,
@@ -165,7 +171,9 @@ export async function onRequest(context: any) {
         JSON.stringify(body.tags || []),
         body.status || 'pending',
         body.priority || 'normal',
-        body.created_by || 1
+        body.created_by || 1,
+        body.is_public ? 1 : 0,
+        body.shared_by_user_id || null
       ).run()
 
       const evidenceId = result.meta.last_row_id
@@ -236,7 +244,9 @@ export async function onRequest(context: any) {
           status = ?,
           priority = ?,
           updated_at = datetime('now'),
-          updated_by = ?
+          updated_by = ?,
+          is_public = ?,
+          shared_by_user_id = ?
         WHERE id = ?
       `).bind(
         body.title,
@@ -257,6 +267,8 @@ export async function onRequest(context: any) {
         body.status,
         body.priority,
         body.updated_by || 1,
+        body.is_public ? 1 : 0,
+        body.shared_by_user_id || null,
         evidenceId
       ).run()
 

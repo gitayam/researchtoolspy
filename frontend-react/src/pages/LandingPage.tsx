@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { ArrowRight, Brain, Shield, Zap, Users, BarChart3, Target, Unlock, KeyRound } from 'lucide-react'
+import { ArrowRight, Brain, Sparkles, Zap, Users, BarChart3, Target, Unlock, KeyRound } from 'lucide-react'
 
 export function LandingPage() {
   const navigate = useNavigate()
@@ -17,8 +17,8 @@ export function LandingPage() {
   const features = [
     {
       icon: Brain,
-      title: "10 Analysis Frameworks",
-      description: "SWOT, COG, PMESII-PT, ACH, DOTMLPF, and more specialized research frameworks"
+      title: "13 Analysis Frameworks",
+      description: "SWOT, COG, PMESII-PT, ACH, DOTMLPF, SATS Deception Detection, TM 3-53.11 Behavior Analysis, and more"
     },
     {
       icon: Zap,
@@ -36,9 +36,9 @@ export function LandingPage() {
       description: "Share analyses, work in teams, and maintain version control for all projects"
     },
     {
-      icon: Shield,
-      title: "Secure & Compliant",
-      description: "Role-based access control, secure authentication, and enterprise-grade security"
+      icon: Sparkles,
+      title: "Public & Free",
+      description: "Browse all frameworks without signup • Optional login to save work permanently"
     },
     {
       icon: Target,
@@ -49,6 +49,15 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Public Access Banner */}
+      <div className="bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
+        <div className="container mx-auto px-4 py-3 text-center">
+          <p className="text-green-800 dark:text-green-300 font-medium text-sm sm:text-base">
+            ✨ All frameworks are FREE and publicly accessible • No login required to explore • Optional account to save your work permanently
+          </p>
+        </div>
+      </div>
+
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -92,20 +101,29 @@ export function LandingPage() {
             <span className="block text-gray-900 dark:text-white">Advanced Research Analysis Platform</span>
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-            Streamline your research analysis workflow with 10 specialized frameworks,
-            AI-powered insights, and comprehensive research tools. ResearchTools is a free service for the IrregularChat community.
+            Streamline your research analysis workflow with 13 specialized frameworks,
+            AI-powered insights, and comprehensive research tools. <strong className="text-green-600 dark:text-green-400">Free and publicly accessible</strong> for the IrregularChat community.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link to="/dashboard" className="w-full sm:w-auto">
+              <button className="w-full sm:w-auto text-lg px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center justify-center gap-2">
+                <Target className="h-6 w-6" />
+                Browse Frameworks
+                <ArrowRight className="h-6 w-6" />
+              </button>
+            </Link>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
             <Link to="/login">
-              <button className="text-lg px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2">
-                <Unlock className="h-6 w-6" />
-                Access Saved Research
+              <button className="text-base px-6 py-2.5 border-2 border-green-600 dark:border-green-500 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 font-semibold rounded-lg transition-colors flex items-center gap-2">
+                <Unlock className="h-5 w-5" />
+                Access Saved Work
               </button>
             </Link>
             <Link to="/register">
-              <button className="text-lg px-8 py-4 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-semibold rounded-lg transition-colors flex items-center gap-2">
-                <KeyRound className="h-5 w-5" />
-                Create New Bookmark
+              <button className="text-base px-6 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium rounded-lg transition-colors flex items-center gap-2">
+                <KeyRound className="h-4 w-4" />
+                Create Account
               </button>
             </Link>
           </div>
@@ -192,15 +210,23 @@ export function LandingPage() {
               Ready to Transform Your Analysis Workflow?
             </h2>
             <p className="text-blue-100 dark:text-blue-200 mb-6 text-lg">
-              Join research professionals who trust ResearchTools for their critical analysis work.
+              Browse all 13 frameworks for free • No login required • Optional account to save your work
             </p>
-            <Link to="/login">
-              <button className="text-lg px-8 py-3 bg-white hover:bg-gray-100 text-blue-700 font-bold rounded-lg shadow-md transition-colors flex items-center gap-2 mx-auto">
-                <Unlock className="h-5 w-5" />
-                Access Now
-                <ArrowRight className="h-5 w-5" />
-              </button>
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/dashboard">
+                <button className="text-lg px-8 py-3 bg-white hover:bg-gray-100 text-blue-700 font-bold rounded-lg shadow-md transition-colors flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Browse Frameworks Now
+                  <ArrowRight className="h-5 w-5" />
+                </button>
+              </Link>
+              <Link to="/login">
+                <button className="text-lg px-8 py-3 border-2 border-white text-white hover:bg-white/10 font-semibold rounded-lg transition-colors flex items-center gap-2">
+                  <Unlock className="h-5 w-5" />
+                  Access Saved Work
+                </button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>

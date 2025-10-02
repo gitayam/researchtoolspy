@@ -393,80 +393,160 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
 
   'deception': {
     type: 'deception',
-    title: 'Deception Detection',
-    description: 'Identify and analyze deception indicators',
+    title: 'Deception Detection (SATS)',
+    description: 'CIA Structured Analytic Techniques for detecting deception - based on Richards J. Heuer Jr. methodology',
     sections: [
       {
-        key: 'behavioral_indicators',
-        label: 'Behavioral Indicators',
-        description: 'Observable behavioral patterns suggesting deception',
+        key: 'scenario',
+        label: 'Scenario',
+        description: 'Describe the information or situation being analyzed for potential deception',
+        color: 'border-gray-500',
+        bgColor: 'bg-gray-50 dark:bg-gray-900/20',
+        icon: '📋'
+      },
+      {
+        key: 'mom',
+        label: 'MOM (Motive, Opportunity, Means)',
+        description: 'Assess whether the adversary has motive, opportunity, and means to deceive',
         color: 'border-red-500',
         bgColor: 'bg-red-50 dark:bg-red-900/20',
-        icon: '👁️'
+        icon: '🎯'
       },
       {
-        key: 'verbal_indicators',
-        label: 'Verbal Indicators',
-        description: 'Linguistic cues and speech patterns',
+        key: 'pop',
+        label: 'POP (Patterns of Practice)',
+        description: 'Examine historical deception patterns of this actor',
         color: 'border-orange-500',
         bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-        icon: '💬'
+        icon: '📊'
       },
       {
-        key: 'contextual_indicators',
-        label: 'Contextual Indicators',
-        description: 'Situational and environmental factors',
+        key: 'moses',
+        label: 'MOSES (My Own Sources)',
+        description: 'Evaluate vulnerability of your information sources to manipulation',
         color: 'border-yellow-500',
         bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
         icon: '🔍'
       },
       {
-        key: 'physiological_indicators',
-        label: 'Physiological Indicators',
-        description: 'Physical responses and reactions',
+        key: 'eve',
+        label: 'EVE (Evaluation of Evidence)',
+        description: 'Assess internal consistency and corroboration of evidence',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '✓'
+      },
+      {
+        key: 'assessment',
+        label: 'Overall Assessment',
+        description: 'Synthesize findings and determine deception likelihood',
         color: 'border-purple-500',
         bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-        icon: '❤️'
+        icon: '📝'
       }
     ]
   },
 
   'behavior': {
     type: 'behavior',
-    title: 'Behavioral Analysis',
-    description: 'Analyze patterns of behavior',
+    title: 'Action or Behavior Analysis',
+    description: 'Based on TM 3-53.11 Influence Process Activity: Target Audience Analysis Chapter 2',
     sections: [
       {
-        key: 'normal_patterns',
-        label: 'Normal Patterns',
-        description: 'Baseline behavioral patterns',
-        color: 'border-green-500',
-        bgColor: 'bg-green-50 dark:bg-green-900/20',
-        icon: '✅'
+        key: 'basic_info',
+        label: 'Basic Information',
+        description: 'Define the behavior and location being analyzed',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '📋'
       },
       {
-        key: 'anomalies',
-        label: 'Anomalies',
-        description: 'Deviations from normal behavior',
+        key: 'timeline',
+        label: 'Behavior Timeline',
+        description: 'Document when, where, and how long the behavior occurs',
+        color: 'border-green-500',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        icon: '📅'
+      },
+      {
+        key: 'supporting_behaviors',
+        label: 'Supporting Behaviors Required',
+        description: 'Chronological steps and intermediate behaviors needed',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '🔄'
+      },
+      {
+        key: 'obstacles',
+        label: 'Obstacles and Challenges',
+        description: 'Physical, legal, social barriers and resource limitations',
         color: 'border-red-500',
         bgColor: 'bg-red-50 dark:bg-red-900/20',
         icon: '⚠️'
       },
       {
-        key: 'triggers',
-        label: 'Triggers',
-        description: 'Events or conditions causing behavior changes',
-        color: 'border-orange-500',
-        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-        icon: '⚡'
+        key: 'symbols',
+        label: 'Associated Symbols and Signals',
+        description: 'Cultural symbols, gestures, codes or signals used',
+        color: 'border-yellow-500',
+        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+        icon: '🎭'
       },
       {
-        key: 'predictions',
-        label: 'Predictions',
-        description: 'Expected future behavioral patterns',
-        color: 'border-blue-500',
-        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-        icon: '🔮'
+        key: 'capabilities',
+        label: 'Required Capabilities',
+        description: 'Physical, cognitive, social, and economic capabilities needed',
+        color: 'border-orange-500',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        icon: '💪'
+      },
+      {
+        key: 'social_factors',
+        label: 'Social Norms and Pressures',
+        description: 'Cultural expectations, peer pressure, traditional practices',
+        color: 'border-cyan-500',
+        bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
+        icon: '👥'
+      },
+      {
+        key: 'motivations',
+        label: 'Motivations and Drivers',
+        description: 'What motivates individuals to engage in this behavior',
+        color: 'border-indigo-500',
+        bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
+        icon: '🎯'
+      },
+      {
+        key: 'consequences',
+        label: 'Consequences and Outcomes',
+        description: 'Positive outcomes and negative repercussions for actors',
+        color: 'border-pink-500',
+        bgColor: 'bg-pink-50 dark:bg-pink-900/20',
+        icon: '⚖️'
+      },
+      {
+        key: 'environmental',
+        label: 'Environmental Factors',
+        description: 'Political climate, economic conditions, technology',
+        color: 'border-teal-500',
+        bgColor: 'bg-teal-50 dark:bg-teal-900/20',
+        icon: '🌍'
+      },
+      {
+        key: 'strategies',
+        label: 'Impact Strategies',
+        description: 'Strategies that have previously affected this behavior',
+        color: 'border-lime-500',
+        bgColor: 'bg-lime-50 dark:bg-lime-900/20',
+        icon: '📊'
+      },
+      {
+        key: 'target_audiences',
+        label: 'Target Audience Refinement',
+        description: 'Identify primary, secondary, enablers, opposers, beneficiaries',
+        color: 'border-violet-500',
+        bgColor: 'bg-violet-50 dark:bg-violet-900/20',
+        icon: '🎪'
       }
     ]
   },
@@ -523,6 +603,54 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         color: 'border-cyan-500',
         bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
         icon: '⚙️'
+      }
+    ]
+  },
+
+  'causeway': {
+    type: 'causeway',
+    title: 'Causeway Analysis',
+    description: 'Strategic threat and influence operations framework using PUTAR methodology',
+    sections: [
+      {
+        key: 'scenario',
+        label: 'Scenario Development',
+        description: 'Define Issue, Location, and Threat being analyzed',
+        color: 'border-gray-500',
+        bgColor: 'bg-gray-50 dark:bg-gray-900/20',
+        icon: '📋'
+      },
+      {
+        key: 'putars',
+        label: 'PUTAR Identification',
+        description: 'Problem, Undesired Actor, Target Audience, Remedy, Story',
+        color: 'border-red-500',
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        icon: '🎯'
+      },
+      {
+        key: 'critical_capabilities',
+        label: 'Critical Capabilities',
+        description: 'Capabilities needed by actors to execute threats',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '⚡'
+      },
+      {
+        key: 'critical_requirements',
+        label: 'Critical Requirements',
+        description: 'Requirements needed for each capability',
+        color: 'border-yellow-500',
+        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+        icon: '📋'
+      },
+      {
+        key: 'proximate_targets',
+        label: 'Proximate Targets',
+        description: 'Tangible targets that can be influenced or attacked',
+        color: 'border-orange-500',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        icon: '🎪'
       }
     ]
   }
