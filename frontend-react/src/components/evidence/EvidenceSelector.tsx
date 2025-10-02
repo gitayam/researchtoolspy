@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, CheckSquare, Check, Target, TrendingUp, Zap } from 'lucide-react'
+import { Search, CheckSquare, Check, Target, TrendingUp, Zap, Plus } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { EvidenceItem } from '@/types/evidence'
 import { EvidenceLevel } from '@/types/evidence'
+import { QuickEvidenceForm } from './QuickEvidenceForm'
 
 interface EvidenceSelectorProps {
   open: boolean
@@ -29,6 +30,7 @@ export function EvidenceSelector({
   const [searchTerm, setSearchTerm] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds))
   const [loading, setLoading] = useState(false)
+  const [createMode, setCreateMode] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -67,6 +69,37 @@ export function EvidenceSelector({
     onClose()
   }
 
+  const handleCreateEvidence = async (data: any) => {
+    try {
+      const response = await fetch('/api/evidence-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create evidence')
+      }
+
+      const result = await response.json()
+      const newEvidence = result.evidence
+
+      // Reload evidence list
+      await loadEvidence()
+
+      // Auto-select newly created evidence
+      const newSelected = new Set(selected)
+      newSelected.add(newEvidence.id.toString())
+      setSelected(newSelected)
+
+      // Exit create mode
+      setCreateMode(false)
+    } catch (error) {
+      console.error('Failed to create evidence:', error)
+      throw error
+    }
+  }
+
   const getLevelIcon = (level: EvidenceLevel) => {
     switch (level) {
       case 'tactical': return Target
@@ -100,15 +133,46 @@ export function EvidenceSelector({
         </DialogHeader>
 
         <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search evidence..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          {/* Toggle Create/Select Mode */}
+          <Button
+            variant={createMode ? "secondary" : "outline"}
+            onClick={() => setCreateMode(!createMode)}
+            className="w-full"
+          >
+            {createMode ? (
+              <>Back to Selection</>
+            ) : (
+              <>
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Evidence
+              </>
+            )}
+          </Button>
+
+          {/* Create Mode: Quick Form */}
+          {createMode ? (
+            <div className="flex-1 overflow-y-auto">
+              <QuickEvidenceForm
+                onSave={handleCreateEvidence}
+                onCancel={() => setCreateMode(false)}
+                contextData={{
+                  section: sectionKey,
+                  framework: frameworkId
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              {/* Select Mode: Search and List */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search evidence..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
 
           <div className="flex-1 overflow-y-auto space-y-2 pr-2">
             {loading ? (
@@ -196,20 +260,25 @@ export function EvidenceSelector({
               })
             )}
           </div>
+            </>
+          )}
 
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              {selected.size} evidence item{selected.size !== 1 ? 's' : ''} selected
+          {/* Footer - only show in select mode */}
+          {!createMode && (
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {selected.size} evidence item{selected.size !== 1 ? 's' : ''} selected
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSave} disabled={selected.size === 0}>
+                  Link Evidence
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={selected.size === 0}>
-                Link Evidence
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

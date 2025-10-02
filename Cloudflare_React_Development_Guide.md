@@ -514,6 +514,297 @@ import { motion } from 'framer-motion'
 </div>
 ```
 
+## Evidence System Patterns
+
+### Quick Evidence Creation in Selector Dialogs
+
+**Pattern**: Allow users to create new evidence items inline while selecting evidence to link
+
+**Use Case**: When linking evidence to frameworks, users often realize they need to create a new evidence item that doesn't exist yet. Rather than closing the dialog, navigating away, creating evidence, and returning, we provide inline creation.
+
+**Implementation Pattern**:
+
+```typescript
+// src/components/evidence/EvidenceSelector.tsx
+export function EvidenceSelector({
+  open,
+  onClose,
+  onSelect,
+  selectedIds = [],
+  frameworkId,
+  sectionKey  // Context for pre-filling
+}: EvidenceSelectorProps) {
+  const [createMode, setCreateMode] = useState(false)
+  const [evidence, setEvidence] = useState<EvidenceItem[]>([])
+  const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds))
+
+  const handleCreateEvidence = async (data: any) => {
+    // 1. Create evidence via API
+    const response = await fetch('/api/evidence-items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...data,
+        // Pre-fill from context
+        context_section: sectionKey
+      })
+    })
+
+    if (response.ok) {
+      const { evidence: newEvidence } = await response.json()
+
+      // 2. Reload evidence list
+      await loadEvidence()
+
+      // 3. Auto-select newly created evidence
+      setSelected(new Set([...selected, newEvidence.id.toString()]))
+
+      // 4. Exit create mode
+      setCreateMode(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Link Evidence Items</DialogTitle>
+          <DialogDescription>
+            Select evidence to link to {sectionKey}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Toggle Button */}
+        <Button
+          variant="outline"
+          onClick={() => setCreateMode(!createMode)}
+          className="w-full"
+        >
+          {createMode ? 'Back to Selection' : '+ Create New Evidence'}
+        </Button>
+
+        {/* Create Mode: Inline Form */}
+        {createMode ? (
+          <QuickEvidenceForm
+            onSave={handleCreateEvidence}
+            onCancel={() => setCreateMode(false)}
+            contextData={{ section: sectionKey, framework: frameworkId }}
+          />
+        ) : (
+          <>
+            {/* Select Mode: Evidence List */}
+            <Input placeholder="Search evidence..." />
+            <div className="space-y-2">
+              {evidence.map(item => (
+                <EvidenceCard
+                  key={item.id}
+                  item={item}
+                  selected={selected.has(item.id.toString())}
+                  onToggle={() => toggleSelection(item.id.toString())}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave} disabled={selected.size === 0}>
+            Link {selected.size} Evidence
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+```
+
+**Quick Create Form Component**:
+
+```typescript
+// src/components/evidence/QuickEvidenceForm.tsx
+interface QuickEvidenceFormProps {
+  onSave: (data: any) => Promise<void>
+  onCancel: () => void
+  contextData?: {
+    section?: string
+    framework?: string
+    [key: string]: any
+  }
+}
+
+export function QuickEvidenceForm({
+  onSave,
+  onCancel,
+  contextData
+}: QuickEvidenceFormProps) {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    evidence_type: 'observation',
+    evidence_level: 'tactical',
+    priority: 'normal',
+    // Context-aware pre-filling
+    ...getPrefilledData(contextData)
+  })
+  const [showAllFields, setShowAllFields] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await onSave(formData)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Required Fields (always shown) */}
+      <div>
+        <Label>Title *</Label>
+        <Input
+          value={formData.title}
+          onChange={e => setFormData({...formData, title: e.target.value})}
+          required
+        />
+      </div>
+
+      <div>
+        <Label>Description *</Label>
+        <Textarea
+          value={formData.description}
+          onChange={e => setFormData({...formData, description: e.target.value})}
+          rows={3}
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <Label>Type *</Label>
+          <Select value={formData.evidence_type} onValueChange={val => setFormData({...formData, evidence_type: val})}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.values(EvidenceType).map(type => (
+                <SelectItem key={type} value={type}>{type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label>Level *</Label>
+          <Select value={formData.evidence_level} onValueChange={val => setFormData({...formData, evidence_level: val})}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.values(EvidenceLevel).map(level => (
+                <SelectItem key={level} value={level}>{level}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label>Priority</Label>
+          <Select value={formData.priority} onValueChange={val => setFormData({...formData, priority: val})}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.values(PriorityLevel).map(priority => (
+                <SelectItem key={priority} value={priority}>{priority}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Expandable: 5 W's + How */}
+      <div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowAllFields(!showAllFields)}
+        >
+          {showAllFields ? '− Hide' : '+ Show'} all fields (5 W's + How)
+        </Button>
+      </div>
+
+      {showAllFields && (
+        <div className="grid grid-cols-2 gap-3 p-3 border rounded-lg bg-gray-50 dark:bg-gray-900">
+          <div>
+            <Label>Who</Label>
+            <Input value={formData.who || ''} onChange={e => setFormData({...formData, who: e.target.value})} />
+          </div>
+          <div>
+            <Label>What</Label>
+            <Input value={formData.what || ''} onChange={e => setFormData({...formData, what: e.target.value})} />
+          </div>
+          <div>
+            <Label>When</Label>
+            <Input type="date" value={formData.when_occurred || ''} onChange={e => setFormData({...formData, when_occurred: e.target.value})} />
+          </div>
+          <div>
+            <Label>Where</Label>
+            <Input value={formData.where_location || ''} onChange={e => setFormData({...formData, where_location: e.target.value})} />
+          </div>
+          <div>
+            <Label>Why</Label>
+            <Input value={formData.why_purpose || ''} onChange={e => setFormData({...formData, why_purpose: e.target.value})} />
+          </div>
+          <div>
+            <Label>How</Label>
+            <Input value={formData.how_method || ''} onChange={e => setFormData({...formData, how_method: e.target.value})} />
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 justify-end">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit">
+          Create & Link
+        </Button>
+      </div>
+    </form>
+  )
+}
+```
+
+**Context-Aware Pre-filling**:
+
+```typescript
+// Helper function to pre-fill based on context
+function getPrefilledData(contextData?: any) {
+  if (!contextData) return {}
+
+  const prefilled: any = {}
+
+  // Example: Pre-fill "who" if context is from "who" section
+  if (contextData.section === 'who') {
+    prefilled.what = `Information related to ${contextData.section}`
+  }
+
+  // Example: Pre-fill tags based on framework type
+  if (contextData.framework) {
+    prefilled.tags = [contextData.framework]
+  }
+
+  return prefilled
+}
+```
+
+**Key Benefits**:
+- Reduces cognitive load (no navigation away)
+- Maintains user context
+- Auto-selects created evidence
+- Supports partial completion (quick capture)
+- Expandable for power users (5 W's + How)
+
+**Where to Apply**:
+- All framework forms (13 frameworks)
+- Dataset-to-evidence linking
+- Any evidence selector usage
+
+---
+
 ## Deployment Workflow
 
 ### Local Testing (ALWAYS DO BEFORE DEPLOYING)
