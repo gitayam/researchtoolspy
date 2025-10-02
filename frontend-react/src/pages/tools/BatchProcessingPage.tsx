@@ -5,6 +5,7 @@ import {
   Play,
   Download,
   Copy,
+  Check,
   FileText,
   Upload,
   Loader2,
@@ -44,11 +45,27 @@ export function BatchProcessingPage() {
   const [stopOnError, setStopOnError] = useState(false)
   const [retryFailed, setRetryFailed] = useState(false)
 
+  // Citations
+  const [generatedCitations, setGeneratedCitations] = useState<SavedCitation[]>([])
+  const [showCitations, setShowCitations] = useState(false)
+  const [copied, setCopied] = useState(false)
+
   const parseURLs = (text: string): string[] => {
     return text
       .split('\n')
       .map(line => line.trim())
       .filter(line => line && line.startsWith('http'))
+  }
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy:', error)
+      alert('Failed to copy to clipboard')
+    }
   }
 
   const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,7 +183,7 @@ export function BatchProcessingPage() {
       return
     }
 
-    let citationsAdded = 0
+    const createdCitations: SavedCitation[] = []
 
     successfulItems.forEach(item => {
       const data = item.result
@@ -204,15 +221,17 @@ export function BatchProcessingPage() {
           }
 
           addCitation(savedCitation)
-          citationsAdded++
+          createdCitations.push(savedCitation)
         } catch (error) {
           console.error('Failed to create citation:', error)
         }
       }
     })
 
-    if (citationsAdded > 0) {
-      alert(`${citationsAdded} citation(s) added to your library!\n\nGo to Citations Generator to view and manage them.`)
+    if (createdCitations.length > 0) {
+      setGeneratedCitations(createdCitations)
+      setShowCitations(true)
+      alert(`${createdCitations.length} citation(s) created and displayed below!`)
     } else {
       alert('Could not create citations from these results. Try using URLs with better metadata.')
     }
@@ -277,31 +296,107 @@ export function BatchProcessingPage() {
   const generateSummary = () => {
     if (!result) return
 
-    const successful = result.items.filter(i => i.status === 'success')
-    const failed = result.items.filter(i => i.status === 'error')
+    const successful = result.items.filter(i => i.status === 'success' && i.result)
 
-    const summary = `
-Batch Processing Summary
-========================
+    if (successful.length === 0) {
+      alert('No successful results to summarize')
+      return
+    }
 
-Operation: ${getOperationName(result.operation)}
-Total Items: ${result.total}
-Succeeded: ${result.succeeded} (${Math.round((result.succeeded / result.total) * 100)}%)
-Failed: ${result.failed} (${Math.round((result.failed / result.total) * 100)}%)
-Duration: ${((result.duration || 0) / 1000).toFixed(1)}s
+    let summary = `Content Summary\n${'='.repeat(50)}\n\n`
+    summary += `Operation: ${getOperationName(result.operation)}\n`
+    summary += `Sources Analyzed: ${successful.length}\n`
+    summary += `Date: ${new Date().toLocaleDateString()}\n\n`
+    summary += `${'='.repeat(50)}\n\n`
 
-Successful URLs:
-${successful.map((item, i) => `${i + 1}. ${item.source}`).join('\n')}
+    // Generate content summary based on operation type
+    successful.forEach((item, index) => {
+      const data = item.result
 
-${failed.length > 0 ? `
-Failed URLs:
-${failed.map((item, i) => `${i + 1}. ${item.source} - ${item.error || 'Unknown error'}`).join('\n')}
-` : ''}
-    `.trim()
+      summary += `${index + 1}. ${item.source}\n`
+      summary += `${'-'.repeat(50)}\n`
+
+      if (result.operation === 'analyze-url') {
+        // Extract metadata from URL analysis
+        if (data.metadata) {
+          if (data.metadata.title) {
+            summary += `Title: ${data.metadata.title}\n`
+          }
+          if (data.metadata.author) {
+            summary += `Author: ${data.metadata.author}\n`
+          }
+          if (data.metadata.publishDate) {
+            summary += `Published: ${data.metadata.publishDate}\n`
+          }
+          if (data.metadata.description) {
+            summary += `\nDescription:\n${data.metadata.description}\n`
+          }
+        }
+
+        if (data.domain?.name) {
+          summary += `Source: ${data.domain.name}\n`
+        }
+
+        if (data.reliability) {
+          summary += `\nReliability: ${data.reliability.score}/100 (${data.reliability.category})\n`
+          if (data.reliability.notes && data.reliability.notes.length > 0) {
+            summary += `Notes:\n${data.reliability.notes.map(n => `  • ${n}`).join('\n')}\n`
+          }
+        }
+
+      } else if (result.operation === 'extract-content') {
+        // Extract content summary
+        if (data.metadata?.title) {
+          summary += `Title: ${data.metadata.title}\n`
+        }
+        if (data.content?.text) {
+          const text = data.content.text.trim()
+          const preview = text.length > 500 ? text.substring(0, 500) + '...' : text
+          summary += `\nContent Preview:\n${preview}\n`
+          summary += `\nTotal Characters: ${text.length}\n`
+        }
+        if (data.analysis) {
+          summary += `\nAnalysis:\n`
+          if (data.analysis.summary) {
+            summary += `Summary: ${data.analysis.summary}\n`
+          }
+          if (data.analysis.keyPoints && data.analysis.keyPoints.length > 0) {
+            summary += `Key Points:\n${data.analysis.keyPoints.map(p => `  • ${p}`).join('\n')}\n`
+          }
+        }
+
+      } else if (result.operation === 'scrape-metadata') {
+        // Display scraped metadata
+        if (data.title) summary += `Title: ${data.title}\n`
+        if (data.author) summary += `Author: ${data.author}\n`
+        if (data.description) summary += `Description: ${data.description}\n`
+        if (data.siteName) summary += `Site: ${data.siteName}\n`
+        if (data.publishDate) summary += `Published: ${data.publishDate}\n`
+
+        if (data.openGraph) {
+          summary += `\nOpen Graph Data:\n`
+          Object.entries(data.openGraph).forEach(([key, value]) => {
+            if (typeof value === 'string') {
+              summary += `  ${key}: ${value}\n`
+            }
+          })
+        }
+      }
+
+      summary += `\n`
+    })
+
+    // Add stats at the end
+    summary += `${'='.repeat(50)}\n`
+    summary += `Processing Stats:\n`
+    summary += `  Total Processed: ${result.total}\n`
+    summary += `  Successful: ${result.succeeded}\n`
+    summary += `  Failed: ${result.failed}\n`
+    summary += `  Duration: ${((result.duration || 0) / 1000).toFixed(1)}s\n`
 
     // Copy to clipboard
     navigator.clipboard.writeText(summary).then(() => {
-      alert('Summary copied to clipboard!')
+      alert('Content summary copied to clipboard!')
     }).catch(() => {
       // Fallback: show in alert
       alert(summary)
@@ -638,6 +733,91 @@ ${failed.map((item, i) => `${i + 1}. ${item.source} - ${item.error || 'Unknown e
               </div>
             </CardContent>
           </Card>
+
+          {/* Generated Citations Section */}
+          {generatedCitations.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Generated Citations</CardTitle>
+                    <CardDescription>
+                      {generatedCitations.length} citation(s) created from batch results
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCitations(!showCitations)}
+                  >
+                    {showCitations ? 'Hide Citations' : 'Show Citations'}
+                  </Button>
+                </div>
+              </CardHeader>
+
+              {showCitations && (
+                <CardContent className="space-y-3">
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {generatedCitations.map((citation, idx) => (
+                      <div
+                        key={citation.id}
+                        className="p-3 border rounded-lg dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400 mt-1">
+                            {idx + 1}.
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
+                              {citation.citation}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(citation.citation)}
+                          >
+                            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 pt-3 border-t dark:border-gray-700">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const text = generatedCitations
+                          .map((c, i) => `${i + 1}. ${c.citation}`)
+                          .join('\n\n')
+                        copyToClipboard(text)
+                      }}
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy All
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate('/dashboard/tools/citations-generator')}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      View in Citation Library
+                    </Button>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
         </div>
       )}
     </div>
