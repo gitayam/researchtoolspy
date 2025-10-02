@@ -51,7 +51,7 @@ const navigation = [
       { name: 'Content Extraction', href: '/dashboard/tools/content-extraction' },
       { name: 'Batch Processing', href: '/dashboard/tools/batch-processing' },
       { name: 'URL Processing', href: '/dashboard/tools/url' },
-      { name: 'Citations', href: '/dashboard/tools/citations' },
+      { name: 'Citations Generator', href: '/dashboard/tools/citations-generator' },
       { name: 'Web Scraping', href: '/dashboard/tools/scraping' },
       { name: 'Social Media', href: '/dashboard/tools/social-media' },
       { name: 'Documents', href: '/dashboard/tools/documents' },

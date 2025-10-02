@@ -28,11 +28,11 @@ const tools = [
     features: ['URL validation', 'Content scraping', 'Metadata extraction', 'Link analysis']
   },
   {
-    id: 'citations',
-    name: 'Citations',
+    id: 'citations-generator',
+    name: 'Citations Generator',
     description: 'Generate and manage citations in multiple formats',
     icon: LinkIcon,
-    features: ['APA format', 'MLA format', 'Chicago style', 'BibTeX export']
+    features: ['APA 7th Edition', 'MLA 9th Edition', 'Chicago 17th', 'Harvard format']
   },
   {
     id: 'scraping',

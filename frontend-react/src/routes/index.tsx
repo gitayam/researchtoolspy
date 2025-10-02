@@ -7,6 +7,10 @@ import { EvidencePage } from '@/pages/EvidencePage'
 import { DatasetPage } from '@/pages/DatasetPage'
 import { ToolsPage } from '@/pages/ToolsPage'
 import { WebScraperPage } from '@/pages/WebScraperPage'
+import { ContentExtractionPage } from '@/pages/tools/ContentExtractionPage'
+import { CitationsGeneratorPage } from '@/pages/tools/CitationsGeneratorPage'
+import { URLProcessingPage } from '@/pages/tools/URLProcessingPage'
+import { BatchProcessingPage } from '@/pages/tools/BatchProcessingPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { CollaborationPage } from '@/pages/CollaborationPage'
 import { SettingsPage } from '@/pages/SettingsPage'
@@ -258,6 +262,22 @@ export const router = createBrowserRouter([
       {
         path: 'tools/scraping',
         element: <WebScraperPage />,
+      },
+      {
+        path: 'tools/content-extraction',
+        element: <ContentExtractionPage />,
+      },
+      {
+        path: 'tools/citations-generator',
+        element: <CitationsGeneratorPage />,
+      },
+      {
+        path: 'tools/url',
+        element: <URLProcessingPage />,
+      },
+      {
+        path: 'tools/batch-processing',
+        element: <BatchProcessingPage />,
       },
       {
         path: 'tools/:toolId',
