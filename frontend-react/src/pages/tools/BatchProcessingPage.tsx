@@ -25,6 +25,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { BatchOperation, BatchJob } from '@/types/batch-processing'
+import type { SavedCitation } from '@/types/citations'
+import { generateCitation } from '@/utils/citation-formatters'
+import { addCitation, generateCitationId } from '@/utils/citation-library'
+import { useNavigate as useNav } from 'react-router-dom'
 
 export function BatchProcessingPage() {
   const navigate = useNavigate()
@@ -151,6 +155,157 @@ export function BatchProcessingPage() {
     link.download = `batch-results-${result.jobId}.csv`
     link.click()
     URL.revokeObjectURL(url)
+  }
+
+  const createCitationsFromBatch = () => {
+    if (!result) return
+
+    const successfulItems = result.items.filter(item => item.status === 'success' && item.result)
+    if (successfulItems.length === 0) {
+      alert('No successful results to create citations from')
+      return
+    }
+
+    let citationsAdded = 0
+
+    successfulItems.forEach(item => {
+      const data = item.result
+
+      // Extract citation info from the result
+      if (data.metadata && data.metadata.title) {
+        try {
+          const authors = data.metadata.author
+            ? [{
+                firstName: data.metadata.author.split(' ')[0] || '',
+                lastName: data.metadata.author.split(' ').slice(-1)[0] || '',
+                middleName: ''
+              }]
+            : [{ firstName: '', lastName: 'Unknown', middleName: '' }]
+
+          const fields = {
+            authors,
+            title: data.metadata.title || item.source,
+            year: data.metadata.publishDate || data.domain?.registrationDate || '',
+            url: item.source,
+            siteName: data.metadata.siteName || data.domain?.name || '',
+            accessDate: new Date().toISOString().split('T')[0]
+          }
+
+          const { citation, inTextCitation } = generateCitation(fields, 'website', 'apa')
+
+          const savedCitation: SavedCitation = {
+            id: generateCitationId(),
+            citationStyle: 'apa',
+            sourceType: 'website',
+            fields,
+            citation,
+            inTextCitation,
+            addedAt: new Date().toISOString()
+          }
+
+          addCitation(savedCitation)
+          citationsAdded++
+        } catch (error) {
+          console.error('Failed to create citation:', error)
+        }
+      }
+    })
+
+    if (citationsAdded > 0) {
+      alert(`${citationsAdded} citation(s) added to your library!\n\nGo to Citations Generator to view and manage them.`)
+    } else {
+      alert('Could not create citations from these results. Try using URLs with better metadata.')
+    }
+  }
+
+  const saveAsDataset = async () => {
+    if (!result) return
+
+    const successfulItems = result.items.filter(item => item.status === 'success')
+    if (successfulItems.length === 0) {
+      alert('No successful results to save')
+      return
+    }
+
+    try {
+      const dataset = {
+        title: `Batch Analysis - ${new Date().toLocaleDateString()}`,
+        description: `Batch ${result.operation} of ${result.total} URLs`,
+        source: 'batch-processing',
+        type: 'batch_analysis',
+        source_name: 'Batch Processing Tool',
+        tags: ['batch', result.operation],
+        metadata: JSON.stringify({
+          jobId: result.jobId,
+          operation: result.operation,
+          total: result.total,
+          succeeded: result.succeeded,
+          failed: result.failed,
+          items: successfulItems.map(item => ({
+            source: item.source,
+            result: item.result
+          }))
+        }),
+        access_date: new Date().toISOString().split('T')[0],
+        public: false
+      }
+
+      const response = await fetch('/api/datasets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataset)
+      })
+
+      if (response.ok) {
+        const { dataset: created } = await response.json()
+        if (confirm(`Dataset created successfully! ID: ${created.id}\n\nGo to Dataset Library?`)) {
+          navigate('/dashboard/datasets')
+        }
+      } else {
+        throw new Error('Failed to create dataset')
+      }
+    } catch (error) {
+      console.error('Dataset creation error:', error)
+      alert('Failed to save as dataset. Please try again.')
+    }
+  }
+
+  const addToEvidence = () => {
+    alert('Add to Evidence feature coming in Phase 3!\n\nThis will allow you to convert batch results into evidence items with claims.')
+  }
+
+  const generateSummary = () => {
+    if (!result) return
+
+    const successful = result.items.filter(i => i.status === 'success')
+    const failed = result.items.filter(i => i.status === 'error')
+
+    const summary = `
+Batch Processing Summary
+========================
+
+Operation: ${getOperationName(result.operation)}
+Total Items: ${result.total}
+Succeeded: ${result.succeeded} (${Math.round((result.succeeded / result.total) * 100)}%)
+Failed: ${result.failed} (${Math.round((result.failed / result.total) * 100)}%)
+Duration: ${((result.duration || 0) / 1000).toFixed(1)}s
+
+Successful URLs:
+${successful.map((item, i) => `${i + 1}. ${item.source}`).join('\n')}
+
+${failed.length > 0 ? `
+Failed URLs:
+${failed.map((item, i) => `${i + 1}. ${item.source} - ${item.error || 'Unknown error'}`).join('\n')}
+` : ''}
+    `.trim()
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(summary).then(() => {
+      alert('Summary copied to clipboard!')
+    }).catch(() => {
+      // Fallback: show in alert
+      alert(summary)
+    })
   }
 
   const getStatusIcon = (status: string) => {
@@ -394,7 +549,7 @@ export function BatchProcessingPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => alert('Creating citations from batch results... (Coming soon)')}
+                    onClick={createCitationsFromBatch}
                     disabled={result.succeeded === 0}
                   >
                     <FileText className="h-4 w-4 mr-2" />
@@ -403,7 +558,7 @@ export function BatchProcessingPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => alert('Saving as dataset... (Coming soon)')}
+                    onClick={saveAsDataset}
                     disabled={result.succeeded === 0}
                   >
                     <Download className="h-4 w-4 mr-2" />
@@ -412,7 +567,7 @@ export function BatchProcessingPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => alert('Adding to evidence collector... (Coming soon)')}
+                    onClick={addToEvidence}
                     disabled={result.succeeded === 0}
                   >
                     <Archive className="h-4 w-4 mr-2" />
@@ -421,7 +576,7 @@ export function BatchProcessingPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => alert('Generating summary... (Coming soon)')}
+                    onClick={generateSummary}
                     disabled={result.succeeded === 0}
                   >
                     <FileText className="h-4 w-4 mr-2" />
