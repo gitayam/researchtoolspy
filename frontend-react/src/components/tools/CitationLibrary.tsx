@@ -9,7 +9,8 @@ import {
   Copy,
   Check,
   FileText,
-  Archive
+  Archive,
+  FileCheck
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,6 +31,7 @@ import {
   exportToCSV
 } from '@/utils/citation-library'
 import { generateCitation } from '@/utils/citation-formatters'
+import { CitationToEvidenceModal } from '@/components/modals/CitationToEvidenceModal'
 
 interface CitationLibraryProps {
   onRefresh?: () => void
@@ -44,6 +46,7 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [displayStyle, setDisplayStyle] = useState<CitationStyle>('apa')
   const [copied, setCopied] = useState(false)
+  const [selectedCitationForEvidence, setSelectedCitationForEvidence] = useState<SavedCitation | null>(null)
 
   // Load citations
   const loadCitations = () => {
@@ -184,6 +187,7 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -332,7 +336,16 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => setSelectedCitationForEvidence(citation)}
+                    title="Add as Evidence"
+                  >
+                    <FileCheck className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => copyToClipboard(citation.citation)}
+                    title="Copy Citation"
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
@@ -340,6 +353,7 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDelete(citation.id)}
+                    title="Delete Citation"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -408,5 +422,17 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
         </div>
       </CardContent>
     </Card>
+
+    {/* Citation to Evidence Modal */}
+    {selectedCitationForEvidence && (
+      <CitationToEvidenceModal
+        citation={selectedCitationForEvidence}
+        onClose={() => setSelectedCitationForEvidence(null)}
+        onSuccess={() => {
+          alert('Evidence created successfully! You can view it in the Evidence Collector.')
+        }}
+      />
+    )}
+    </>
   )
 }
