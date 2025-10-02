@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Copy, Check, Trash2, BookOpen, Globe, Loader2 } from 'lucide-react'
+import { ArrowLeft, Plus, Copy, Check, Trash2, BookOpen, Globe, Loader2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { Author, CitationStyle, SourceType, CitationFields } from '@/types/citations'
+import type { Author, CitationStyle, SourceType, CitationFields, SavedCitation } from '@/types/citations'
 import { generateCitation } from '@/utils/citation-formatters'
+import { addCitation, generateCitationId } from '@/utils/citation-library'
+import { CitationLibrary } from '@/components/tools/CitationLibrary'
 
 export function CitationsGeneratorPage() {
   const navigate = useNavigate()
@@ -17,7 +19,9 @@ export function CitationsGeneratorPage() {
   const [sourceType, setSourceType] = useState<SourceType>('website')
   const [authors, setAuthors] = useState<Author[]>([{ firstName: '', lastName: '', middleName: '' }])
   const [copied, setCopied] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [scraping, setScraping] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Form fields
   const [title, setTitle] = useState('')
@@ -101,6 +105,33 @@ export function CitationsGeneratorPage() {
     } catch (error) {
       console.error('Failed to copy:', error)
     }
+  }
+
+  const saveToLibrary = () => {
+    if (!title.trim()) {
+      alert('Please enter a title before saving')
+      return
+    }
+
+    if (authors.length === 0 || !authors[0].lastName.trim()) {
+      alert('Please enter at least one author')
+      return
+    }
+
+    const savedCitation: SavedCitation = {
+      id: generateCitationId(),
+      citationStyle,
+      sourceType,
+      fields: getFields(),
+      citation,
+      inTextCitation,
+      addedAt: new Date().toISOString()
+    }
+
+    addCitation(savedCitation)
+    setSaved(true)
+    setRefreshKey(prev => prev + 1)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   const scrapeFromUrl = async () => {
@@ -555,15 +586,24 @@ export function CitationsGeneratorPage() {
                   readOnly
                   className="min-h-[120px] font-serif text-sm mt-2"
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(citation)}
-                  className="mt-2 w-full"
-                >
-                  {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                  {copied ? 'Copied!' : 'Copy Citation'}
-                </Button>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(citation)}
+                  >
+                    {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                    {copied ? 'Copied!' : 'Copy'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={saveToLibrary}
+                  >
+                    {saved ? <Check className="h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    {saved ? 'Saved!' : 'Save'}
+                  </Button>
+                </div>
               </div>
 
               {inTextCitation && (
@@ -600,6 +640,9 @@ export function CitationsGeneratorPage() {
           </Card>
         </div>
       </div>
+
+      {/* Citation Library */}
+      <CitationLibrary key={refreshKey} onRefresh={() => setRefreshKey(prev => prev + 1)} />
     </div>
   )
 }

@@ -55,6 +55,34 @@ export interface Citation {
   createdAt: string
 }
 
+// Saved Citation in Library
+export interface SavedCitation {
+  id: string
+  citationStyle: CitationStyle
+  sourceType: SourceType
+  fields: CitationFields
+  citation: string
+  inTextCitation: string
+  notes?: string
+  tags?: string[]
+  addedAt: string
+}
+
+// Citation Library
+export interface CitationLibrary {
+  id: string
+  userId?: string
+  name: string
+  description?: string
+  citations: SavedCitation[]
+  createdAt: string
+  updatedAt: string
+}
+
+// Sort options
+export type CitationSortBy = 'date' | 'author' | 'title' | 'type'
+export type SortOrder = 'asc' | 'desc'
+
 export interface CitationRequest {
   sourceType: SourceType
   citationStyle: CitationStyle
