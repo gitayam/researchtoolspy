@@ -630,3 +630,321 @@ researchtoolspy/
 
 **Last Updated:** October 1, 2025
 **Next Review:** After Phase 1 completion
+
+---
+
+## 📋 Phase 4: Public Access & Authentication Strategy
+
+### Overview
+**Goal**: Make frameworks and tools publicly available. Hash-based authentication only required for saving work and team collaboration.
+
+**Philosophy**: Lower barrier to entry, increase adoption, convert users to authenticated mode organically.
+
+### Current State
+- Hash-based authentication required for ALL access
+- Users must have valid hash to use any features
+- No guest/anonymous usage possible
+
+### Target State
+- **Public Access (No Auth)**: All frameworks, tools, and public datasets viewable and usable
+- **Hash Login Required For**:
+  - Saving work (framework sessions, datasets, evidence)
+  - Team collaboration and sharing
+  - Access to personal history
+  - Creating private datasets/evidence
+
+---
+
+### 4.1 Public Routes Implementation
+
+#### Frontend Routes (No Auth Required)
+```
+Public Pages:
+- / (landing page - updated with "Continue as Guest" option)
+- /frameworks (list all 13 frameworks)
+- /frameworks/:type (specific framework - ephemeral usage)
+- /tools (list all tools)
+- /tools/web-scraper (web scraping tool - results in browser only)
+- /datasets?filter=public (public datasets only)
+- /evidence?filter=public (public evidence only)
+
+Auth-Protected Pages:
+- /dashboard (user's saved work)
+- /dashboard/sessions (user's framework sessions)
+- /dashboard/datasets (user's datasets)
+- /dashboard/evidence (user's evidence items)
+- /settings (user settings)
+```
+
+#### Backend API Routes
+
+**Public Endpoints (No Auth)**:
+```typescript
+GET  /api/frameworks          // List all framework types
+GET  /api/frameworks/:id      // Get public framework template
+GET  /api/datasets?public=true // List public datasets
+GET  /api/evidence-items?public=true // List public evidence
+POST /api/web-scraper         // Scrape URL (no save)
+```
+
+**Auth-Protected Endpoints**:
+```typescript
+POST   /api/framework-sessions    // Save framework session
+PUT    /api/framework-sessions/:id
+DELETE /api/framework-sessions/:id
+POST   /api/datasets              // Create dataset
+PUT    /api/datasets/:id
+DELETE /api/datasets/:id
+POST   /api/evidence-items        // Create evidence
+PUT    /api/evidence-items/:id
+DELETE /api/evidence-items/:id
+```
+
+---
+
+### 4.2 Guest Mode Features
+
+#### What Guest Users Can Do
+- ✅ Use all 13 analytical frameworks (SWOT, PMESII-PT, etc.)
+- ✅ Use web scraper (results shown in browser)
+- ✅ View public datasets and evidence
+- ✅ Export framework results as PDF/JSON
+- ✅ Work temporarily (local storage up to 7 days)
+- ✅ Share framework link (read-only snapshot)
+
+#### What Guest Users Cannot Do
+- ❌ Save framework sessions to database
+- ❌ Create permanent datasets
+- ❌ Create permanent evidence items
+- ❌ Collaborate with team members
+- ❌ Access work history
+- ❌ Make private datasets/evidence
+
+#### Guest Data Management
+```typescript
+// Local storage structure for guest work
+localStorage.setItem('guest-framework-{id}', JSON.stringify({
+  framework_type: 'swot',
+  data: { /* framework data */ },
+  created_at: '2025-10-01T12:00:00Z',
+  expires_at: '2025-10-08T12:00:00Z'  // 7 days
+}))
+
+// Periodic cleanup of expired guest data
+setInterval(() => {
+  cleanupExpiredGuestData()
+}, 3600000) // Every hour
+```
+
+---
+
+### 4.3 UI/UX Changes
+
+#### Landing Page Redesign
+```
+┌──────────────────────────────────────────┐
+│  ResearchTools Intelligence Platform     │
+├──────────────────────────────────────────┤
+│                                          │
+│  Professional Intelligence Analysis      │
+│  for Everyone                            │
+│                                          │
+│  [Try It Now - No Sign Up Required]     │
+│  [Sign In with Hash Code]               │
+│                                          │
+│  As a guest you can:                     │
+│  ✓ Use all 13 analytical frameworks      │
+│  ✓ Web scraping & data extraction        │
+│  ✓ View public intelligence datasets     │
+│  ✓ Export your analysis                  │
+│                                          │
+│  With a hash code you can also:          │
+│  ✓ Save your work permanently            │
+│  ✓ Build a personal intel library        │
+│  ✓ Collaborate with your team            │
+│  ✓ Access work from anywhere             │
+└──────────────────────────────────────────┘
+```
+
+#### Framework Page (Guest Mode)
+```
+┌──────────────────────────────────────────┐
+│ SWOT Analysis                      [Menu]│
+├──────────────────────────────────────────┤
+│ ⚠️  Guest Mode - Work not saved          │
+│ [Sign In to Save Permanently] [Export]   │
+├──────────────────────────────────────────┤
+│                                          │
+│ [Framework content and inputs]           │
+│                                          │
+│ Your work is temporarily stored in       │
+│ your browser. Sign in to save forever.   │
+└──────────────────────────────────────────┘
+```
+
+#### Framework Page (Authenticated Mode)
+```
+┌──────────────────────────────────────────┐
+│ SWOT Analysis                      [Menu]│
+├──────────────────────────────────────────┤
+│ ✓ Auto-saving... Last saved 2 min ago    │
+│ [Export] [Share with Team]               │
+├──────────────────────────────────────────┤
+│                                          │
+│ [Framework content and inputs]           │
+│                                          │
+│ All changes automatically saved          │
+└──────────────────────────────────────────┘
+```
+
+---
+
+### 4.4 Implementation Tasks
+
+#### Frontend Changes
+- [ ] Update routing to remove auth guards from public pages
+- [ ] Create GuestModeProvider context
+- [ ] Add "Save your work" conversion prompts
+- [ ] Implement local storage for guest sessions
+- [ ] Add guest data expiration warnings
+- [ ] Create guest-to-auth conversion flow
+- [ ] Add "Continue as Guest" to landing page
+- [ ] Update navigation to show auth status clearly
+
+#### Backend Changes
+- [ ] Make framework GET endpoints public
+- [ ] Add `is_public` flag to datasets/evidence
+- [ ] Implement rate limiting for guests (stricter)
+- [ ] Add IP-based throttling
+- [ ] Create guest analytics tracking
+- [ ] Keep POST/PUT/DELETE auth-protected
+
+#### Database Schema Updates
+```sql
+-- Add public flag to datasets
+ALTER TABLE datasets ADD COLUMN is_public BOOLEAN DEFAULT FALSE;
+ALTER TABLE datasets ADD COLUMN shared_by_user_id INTEGER;
+CREATE INDEX idx_datasets_public ON datasets(is_public);
+
+-- Add public flag to evidence
+ALTER TABLE evidence_items ADD COLUMN is_public BOOLEAN DEFAULT FALSE;
+ALTER TABLE evidence_items ADD COLUMN shared_by_user_id INTEGER;
+CREATE INDEX idx_evidence_public ON evidence_items(is_public);
+
+-- Track guest sessions (optional)
+CREATE TABLE guest_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id TEXT NOT NULL UNIQUE,
+  ip_address TEXT,
+  user_agent TEXT,
+  last_activity TEXT,
+  expires_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+```
+
+#### Security Considerations
+- Rate limiting: 100 requests/hour for guests vs 1000 for auth
+- IP-based throttling to prevent abuse
+- No sensitive operations without auth
+- Guest data auto-expires after 7 days
+- CAPTCHA for intensive scraping operations
+- Monitor for abuse patterns
+
+---
+
+### 4.5 Migration Strategy
+
+**Phase A: Preparation (Week 1)**
+1. Add public flags to database tables
+2. Update API endpoints with public filtering
+3. Implement rate limiting infrastructure
+4. Test public endpoints with auth still enforced
+
+**Phase B: Frontend Updates (Week 2)**
+1. Create GuestModeProvider
+2. Update landing page with guest option
+3. Add conversion prompts to framework pages
+4. Implement local storage for guest work
+5. Test guest flow end-to-end
+
+**Phase C: Backend Enablement (Week 3)**
+1. Remove auth guards from public GET endpoints
+2. Enable public dataset/evidence filtering
+3. Deploy rate limiting for guests
+4. Monitor for abuse/performance issues
+
+**Phase D: Gradual Rollout (Week 4)**
+1. Enable public access for 10% of traffic
+2. Monitor conversion rates and abuse
+3. Gradually increase to 50%, then 100%
+4. Gather user feedback
+5. Optimize conversion funnel
+
+---
+
+### 4.6 Success Metrics
+
+**Adoption Metrics**:
+- [ ] 80%+ of traffic can access without auth
+- [ ] <10% bounce rate on landing page
+- [ ] 50%+ of users try at least one framework as guest
+- [ ] 20%+ guest-to-auth conversion rate within 30 days
+
+**Performance Metrics**:
+- [ ] No degradation in response times
+- [ ] <5% increase in server load
+- [ ] Rate limiting catches 99%+ abuse attempts
+- [ ] Zero security incidents
+
+**Business Metrics**:
+- [ ] 3x increase in total users (including guests)
+- [ ] 2x increase in authenticated users (absolute numbers)
+- [ ] 5x increase in framework usage
+- [ ] Improved SEO ranking (public content indexed)
+
+---
+
+### 4.7 Guest-to-Auth Conversion Strategy
+
+#### Conversion Triggers
+1. **After completing framework**: "Save this analysis permanently?"
+2. **On page refresh**: "Your work will be lost. Sign in to save."
+3. **After 3 framework uses**: "You're getting the hang of this! Save your progress."
+4. **Export attempt**: "Export now or sign in to save forever"
+5. **7-day expiration warning**: "Your work expires in 24 hours"
+
+#### Conversion Incentives
+- Unlimited storage vs 7-day expiration
+- Team collaboration features
+- Private datasets and evidence
+- Work history and versioning
+- Priority support
+- Advanced features (bulk processing, etc.)
+
+#### Onboarding Flow
+```
+Guest completes SWOT analysis
+  ↓
+"Great work! Save this permanently?"
+  ↓
+[Get Hash Code] or [Continue as Guest]
+  ↓
+If "Get Hash Code":
+  → Show hash request form
+  → Email hash code
+  → Auto-login on first use
+  → Migrate guest work to account
+```
+
+---
+
+**Phase 4 Timeline:** 4 weeks
+**Phase 4 Priority:** High (increases adoption significantly)
+**Phase 4 Dependencies:** Phases 1-3 complete
+
+---
+
+**Last Updated:** October 1, 2025
+**Next Review:** After Phase 4 completion
+

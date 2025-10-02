@@ -6,6 +6,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { EvidencePage } from '@/pages/EvidencePage'
 import { DatasetPage } from '@/pages/DatasetPage'
 import { ToolsPage } from '@/pages/ToolsPage'
+import { WebScraperPage } from '@/pages/WebScraperPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { CollaborationPage } from '@/pages/CollaborationPage'
 import { SettingsPage } from '@/pages/SettingsPage'
@@ -253,6 +254,10 @@ export const router = createBrowserRouter([
       {
         path: 'tools',
         element: <ToolsPage />,
+      },
+      {
+        path: 'tools/scraping',
+        element: <WebScraperPage />,
       },
       {
         path: 'tools/:toolId',
