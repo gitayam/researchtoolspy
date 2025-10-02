@@ -416,6 +416,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
         }}
         onSave={handleSave}
         backPath={basePath}
+        frameworkId={currentAnalysis.id.toString()}
       />
     )
   }
