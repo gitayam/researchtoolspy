@@ -326,11 +326,19 @@ export const router = createBrowserRouter([
         element: <SourcesPage />,
       },
       {
+        path: 'entities/sources/:id/edit',
+        element: <SourcesPage />,
+      },
+      {
         path: 'entities/events',
         element: <EventsPage />,
       },
       {
         path: 'entities/events/:id',
+        element: <EventsPage />,
+      },
+      {
+        path: 'entities/events/:id/edit',
         element: <EventsPage />,
       },
       {
