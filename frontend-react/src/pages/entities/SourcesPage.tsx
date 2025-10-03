@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { SourceForm } from '@/components/entities/SourceForm'
 import type { Source, SourceType } from '@/types/entities'
 
 export function SourcesPage() {
@@ -13,6 +15,8 @@ export function SourcesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<SourceType | 'all'>('all')
   const [workspaceId, setWorkspaceId] = useState<number>(1)
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingSource, setEditingSource] = useState<Source | undefined>(undefined)
 
   useEffect(() => {
     loadSources()
@@ -37,6 +41,52 @@ export function SourcesPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleCreateSource = async (data: Partial<Source>) => {
+    const response = await fetch('/api/sources', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, workspace_id: workspaceId })
+    })
+
+    if (response.ok) {
+      setIsFormOpen(false)
+      setEditingSource(undefined)
+      loadSources()
+    } else {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to create source')
+    }
+  }
+
+  const handleUpdateSource = async (data: Partial<Source>) => {
+    if (!editingSource) return
+
+    const response = await fetch(`/api/sources/${editingSource.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+
+    if (response.ok) {
+      setIsFormOpen(false)
+      setEditingSource(undefined)
+      loadSources()
+    } else {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to update source')
+    }
+  }
+
+  const openCreateForm = () => {
+    setEditingSource(undefined)
+    setIsFormOpen(true)
+  }
+
+  const openEditForm = (source: Source) => {
+    setEditingSource(source)
+    setIsFormOpen(true)
   }
 
   const filteredSources = sources.filter(source =>
@@ -117,7 +167,7 @@ export function SourcesPage() {
             Intelligence sources with MOSES assessment
           </p>
         </div>
-        <Button onClick={() => {/* TODO: Open create modal */}}>
+        <Button onClick={openCreateForm}>
           <Plus className="h-4 w-4 mr-2" />
           Add Source
         </Button>
@@ -221,7 +271,7 @@ export function SourcesPage() {
           <CardContent className="py-12 text-center">
             <Database className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">No sources found</p>
-            <Button className="mt-4" onClick={() => {/* TODO: Open create modal */}}>
+            <Button className="mt-4" onClick={openCreateForm}>
               <Plus className="h-4 w-4 mr-2" />
               Add Your First Source
             </Button>
@@ -230,7 +280,7 @@ export function SourcesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSources.map((source) => (
-            <Card key={source.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card key={source.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openEditForm(source)}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
@@ -287,6 +337,28 @@ export function SourcesPage() {
           ))}
         </div>
       )}
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={(open) => {
+        setIsFormOpen(open)
+        if (!open) setEditingSource(undefined)
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingSource ? 'Edit Source' : 'Create New Source'}
+            </DialogTitle>
+          </DialogHeader>
+          <SourceForm
+            source={editingSource}
+            onSubmit={editingSource ? handleUpdateSource : handleCreateSource}
+            onCancel={() => {
+              setIsFormOpen(false)
+              setEditingSource(undefined)
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

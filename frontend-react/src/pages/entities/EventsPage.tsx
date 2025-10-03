@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { EventForm } from '@/components/entities/EventForm'
 import type { Event, EventType } from '@/types/entities'
 
 export function EventsPage() {
@@ -13,6 +15,8 @@ export function EventsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<EventType | 'all'>('all')
   const [workspaceId, setWorkspaceId] = useState<number>(1)
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<Event | undefined>(undefined)
 
   useEffect(() => {
     loadEvents()
@@ -37,6 +41,52 @@ export function EventsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleCreateEvent = async (data: Partial<Event>) => {
+    const response = await fetch('/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, workspace_id: workspaceId })
+    })
+
+    if (response.ok) {
+      setIsFormOpen(false)
+      setEditingEvent(undefined)
+      loadEvents()
+    } else {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to create event')
+    }
+  }
+
+  const handleUpdateEvent = async (data: Partial<Event>) => {
+    if (!editingEvent) return
+
+    const response = await fetch(`/api/events/${editingEvent.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+
+    if (response.ok) {
+      setIsFormOpen(false)
+      setEditingEvent(undefined)
+      loadEvents()
+    } else {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to update event')
+    }
+  }
+
+  const openCreateForm = () => {
+    setEditingEvent(undefined)
+    setIsFormOpen(true)
+  }
+
+  const openEditForm = (event: Event) => {
+    setEditingEvent(event)
+    setIsFormOpen(true)
   }
 
   const filteredEvents = events.filter(event =>
@@ -83,7 +133,7 @@ export function EventsPage() {
             Operations, incidents, meetings, and activities timeline
           </p>
         </div>
-        <Button onClick={() => {/* TODO: Open create modal */}}>
+        <Button onClick={openCreateForm}>
           <Plus className="h-4 w-4 mr-2" />
           Add Event
         </Button>
@@ -189,7 +239,7 @@ export function EventsPage() {
           <CardContent className="py-12 text-center">
             <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">No events found</p>
-            <Button className="mt-4" onClick={() => {/* TODO: Open create modal */}}>
+            <Button className="mt-4" onClick={openCreateForm}>
               <Plus className="h-4 w-4 mr-2" />
               Add Your First Event
             </Button>
@@ -198,7 +248,7 @@ export function EventsPage() {
       ) : (
         <div className="space-y-4">
           {filteredEvents.map((event) => (
-            <Card key={event.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card key={event.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openEditForm(event)}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -253,6 +303,28 @@ export function EventsPage() {
           ))}
         </div>
       )}
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={(open) => {
+        setIsFormOpen(open)
+        if (!open) setEditingEvent(undefined)
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingEvent ? 'Edit Event' : 'Create New Event'}
+            </DialogTitle>
+          </DialogHeader>
+          <EventForm
+            event={editingEvent}
+            onSubmit={editingEvent ? handleUpdateEvent : handleCreateEvent}
+            onCancel={() => {
+              setIsFormOpen(false)
+              setEditingEvent(undefined)
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
