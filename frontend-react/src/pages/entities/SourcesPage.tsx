@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { Plus, Search, Database, Shield, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,10 +8,15 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { SourceForm } from '@/components/entities/SourceForm'
+import { SourceDetailView } from '@/components/entities/SourceDetailView'
 import type { Source, SourceType } from '@/types/entities'
 
 export function SourcesPage() {
+  const { id } = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [sources, setSources] = useState<Source[]>([])
+  const [currentSource, setCurrentSource] = useState<Source | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<SourceType | 'all'>('all')
@@ -18,9 +24,20 @@ export function SourcesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingSource, setEditingSource] = useState<Source | undefined>(undefined)
 
+  const isDetailView = id && !location.pathname.includes('/edit')
+  const isEditMode = id && location.pathname.includes('/edit')
+
   useEffect(() => {
-    loadSources()
-  }, [workspaceId, filterType])
+    if (!isDetailView && !isEditMode) {
+      loadSources()
+    }
+  }, [workspaceId, filterType, isDetailView, isEditMode])
+
+  useEffect(() => {
+    if (id) {
+      loadSource(id)
+    }
+  }, [id])
 
   const loadSources = async () => {
     setLoading(true)
@@ -38,6 +55,25 @@ export function SourcesPage() {
       }
     } catch (error) {
       console.error('Failed to load sources:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadSource = async (sourceId: string) => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/sources/${sourceId}`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setCurrentSource(data.source)
+        if (isEditMode) {
+          setEditingSource(data.source)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load source:', error)
     } finally {
       setLoading(false)
     }
@@ -72,11 +108,41 @@ export function SourcesPage() {
     if (response.ok) {
       setIsFormOpen(false)
       setEditingSource(undefined)
-      loadSources()
+      if (id) {
+        navigate(`/dashboard/entities/sources/${id}`)
+        loadSource(id)
+      } else {
+        loadSources()
+      }
     } else {
       const error = await response.json()
       throw new Error(error.error || 'Failed to update source')
     }
+  }
+
+  const handleDelete = async () => {
+    if (!currentSource) return
+    if (!confirm(`Are you sure you want to delete "${currentSource.name}"?`)) return
+
+    try {
+      const response = await fetch(`/api/sources/${currentSource.id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        navigate('/dashboard/entities/sources')
+      } else {
+        const error = await response.json()
+        alert(`Failed to delete source: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Failed to delete source:', error)
+      alert('Failed to delete source')
+    }
+  }
+
+  const viewSourceDetail = (source: Source) => {
+    navigate(`/dashboard/entities/sources/${source.id}`)
   }
 
   const openCreateForm = () => {
@@ -154,6 +220,44 @@ export function SourcesPage() {
     return <Badge className="bg-red-100 text-red-800">Unreliable</Badge>
   }
 
+  // Detail view mode
+  if (isDetailView && currentSource) {
+    return (
+      <SourceDetailView
+        source={currentSource}
+        onEdit={() => navigate(`/dashboard/entities/sources/${currentSource.id}/edit`)}
+        onDelete={handleDelete}
+      />
+    )
+  }
+
+  // Edit mode
+  if (isEditMode && editingSource) {
+    return (
+      <div className="p-6">
+        <SourceForm
+          source={editingSource}
+          onSubmit={handleUpdateSource}
+          onCancel={() => navigate(`/dashboard/entities/sources/${editingSource.id}`)}
+        />
+      </div>
+    )
+  }
+
+  // Loading state
+  if (loading && (isDetailView || isEditMode)) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-gray-500">Loading source...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // List view (default)
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
