@@ -302,6 +302,24 @@ MEANS: Iraqi deception means are limited:
 - Limited ability to control defector narratives after they leave Iraq
 - Weak capabilities for sophisticated technical deception`,
 
+    pop: `HISTORICAL PATTERN: Iraq has some history of deception but not this specific type:
+- Past deception focused on concealing military capabilities from neighbors
+- History of denial and deception regarding WMD programs (1980s-1990s)
+- However, this case is NOT primarily Iraqi deception of US intelligence
+- Pattern is more US intelligence self-deception and confirmation bias
+
+SOPHISTICATION LEVEL: Limited sophistication for deceiving US intelligence:
+- Iraq lacks sophisticated technical deception capabilities
+- Cannot manipulate US technical collection systems
+- Deception efforts historically focused on regional adversaries, not superpowers
+- No track record of successfully deceiving US satellite/SIGINT collection
+
+SUCCESS RATE: Mixed historical success:
+- Successfully hid WMD programs from inspectors in 1980s-1990s (when they existed)
+- Successfully deceived Iran about military capabilities during Iran-Iraq War
+- NOT successful at deceiving US intelligence during Gulf War (1991)
+- This case represents US intelligence deceiving ITSELF, not Iraqi deception success`,
+
     moses: `SOURCE VULNERABILITY: US sources have vulnerabilities:
 - Curveball: Single source, no direct US access (handled by German intelligence)
 - Never interviewed by US intelligence directly
