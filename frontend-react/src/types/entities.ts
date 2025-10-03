@@ -61,6 +61,57 @@ export interface WorkspaceMember {
 
 export type ActorType = 'PERSON' | 'ORGANIZATION' | 'UNIT' | 'GOVERNMENT' | 'GROUP' | 'OTHER'
 
+// ============================================================
+// MOM ASSESSMENT TYPES (NEW - Event-Actor Connected)
+// ============================================================
+
+export interface MOMAssessment {
+  id: string
+  actor_id: string           // Required - who is being assessed
+  event_id?: string          // Optional - specific event/incident
+  scenario_description: string  // Required - what scenario is this
+
+  // MOM Scores (0-5 each)
+  motive: number
+  opportunity: number
+  means: number
+
+  // Context
+  notes: string
+  assessed_by?: number
+  assessed_at: string
+
+  // Metadata
+  workspace_id: string
+  created_at: string
+  updated_at: string
+}
+
+// ============================================================
+// POP ASSESSMENT TYPES (Enhanced - Actor Connected)
+// ============================================================
+
+export interface POPAssessment {
+  historical_pattern: number      // 0-5: How consistent are their deception patterns?
+  sophistication_level: number    // 0-5: How advanced is their tradecraft?
+  success_rate: number            // 0-5: How often do they succeed?
+  notes: string
+  assessed_at: string
+}
+
+export interface POPVariation {
+  topic: string                   // e.g., "Cyber Operations", "Financial Fraud"
+  assessment: POPAssessment
+}
+
+// ============================================================
+// LEGACY DECEPTION PROFILE (Deprecated - for backward compatibility)
+// ============================================================
+
+/**
+ * @deprecated Use separate MOMAssessment entity and Actor.primary_pop instead
+ * This structure will be removed in a future version.
+ */
 export interface ActorDeceptionProfile {
   mom: {
     motive: number // 0-5
@@ -92,7 +143,15 @@ export interface Actor {
   role?: string // e.g., "Commander", "Minister", "Operative"
   affiliation?: string // e.g., "Russian Federation", "Wagner Group"
 
-  // Deception Assessment (MOM-POP)
+  // NEW: POP Assessment (Actor-centric behavioral patterns)
+  primary_pop?: POPAssessment         // General deception patterns
+  pop_variations?: POPVariation[]     // Topic-specific patterns (e.g., "Cyber Ops", "Social Engineering")
+
+  // LEGACY: Deception Assessment (Deprecated - for backward compatibility)
+  /**
+   * @deprecated Use primary_pop for POP assessment. MOM assessments are now separate entities.
+   * This field will be removed in a future version.
+   */
   deception_profile?: ActorDeceptionProfile
 
   // Framework Links
@@ -546,6 +605,25 @@ export interface CreateRelationshipRequest {
   weight?: number
   confidence?: RelationshipConfidence
   workspace_id: string
+}
+
+export interface CreateMOMAssessmentRequest {
+  actor_id: string
+  event_id?: string
+  scenario_description: string
+  motive: number
+  opportunity: number
+  means: number
+  notes?: string
+  workspace_id: string
+}
+
+export interface UpdateMOMAssessmentRequest {
+  scenario_description?: string
+  motive?: number
+  opportunity?: number
+  means?: number
+  notes?: string
 }
 
 // ============================================================
