@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
-import { Shield } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Shield, AlertCircle } from 'lucide-react'
 import type { Source, SourceType, SourceAccessLevel, SourceReliability } from '@/types/entities'
 
 interface SourceFormProps {
@@ -18,9 +19,10 @@ interface SourceFormProps {
 
 export function SourceForm({ source, onSubmit, onCancel }: SourceFormProps) {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: source?.name || '',
-    type: (source?.type || 'OSINT') as SourceType,
+    type: (source?.type || 'DOCUMENT') as SourceType,
     description: source?.description || '',
     source_type: source?.source_type || '',
     moses_assessment: source?.moses_assessment || {
@@ -47,6 +49,7 @@ export function SourceForm({ source, onSubmit, onCancel }: SourceFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
     try {
       const reliability = calculateReliabilityScore()
       await onSubmit({
@@ -56,18 +59,26 @@ export function SourceForm({ source, onSubmit, onCancel }: SourceFormProps) {
           reliability
         }
       })
-    } finally {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save source')
       setLoading(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Basic Information */}
       <Card>
         <CardHeader>
           <CardTitle>Basic Information</CardTitle>
-          <CardDescription>Identify the intelligence source</CardDescription>
+          <CardDescription>Identify and categorize the source</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -76,37 +87,37 @@ export function SourceForm({ source, onSubmit, onCancel }: SourceFormProps) {
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., Agent BLACKBIRD, Satellite XKS-11, SIGINT Station Alpha"
+              placeholder="e.g., Jane Doe, NY Times Article, CIA Report, whistleblower.com"
               required
             />
           </div>
 
           <div>
-            <Label htmlFor="type">Intelligence Type *</Label>
+            <Label htmlFor="type">Source Category *</Label>
             <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v as SourceType })}>
               <SelectTrigger id="type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="HUMINT">👤 HUMINT - Human Intelligence</SelectItem>
-                <SelectItem value="SIGINT">📡 SIGINT - Signals Intelligence</SelectItem>
-                <SelectItem value="IMINT">📸 IMINT - Imagery Intelligence</SelectItem>
-                <SelectItem value="OSINT">🌐 OSINT - Open Source Intelligence</SelectItem>
-                <SelectItem value="GEOINT">🗺️ GEOINT - Geospatial Intelligence</SelectItem>
-                <SelectItem value="MASINT">⚡ MASINT - Measurement & Signature Intelligence</SelectItem>
-                <SelectItem value="TECHINT">🔬 TECHINT - Technical Intelligence</SelectItem>
-                <SelectItem value="CYBER">💻 CYBER - Cyber Intelligence</SelectItem>
+                <SelectItem value="PERSON">👤 Person - Human source, witness, informant</SelectItem>
+                <SelectItem value="DOCUMENT">📄 Document - Reports, papers, files, records</SelectItem>
+                <SelectItem value="WEBSITE">🌐 Website - Online sources, social media, blogs</SelectItem>
+                <SelectItem value="DATABASE">🗄️ Database - Structured data repositories</SelectItem>
+                <SelectItem value="MEDIA">📸 Media - Audio, video, images, recordings</SelectItem>
+                <SelectItem value="SYSTEM">⚙️ System - Technical systems, sensors, equipment</SelectItem>
+                <SelectItem value="ORGANIZATION">🏢 Organization - Companies, agencies, groups</SelectItem>
+                <SelectItem value="OTHER">❓ Other - Miscellaneous sources</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label htmlFor="source_type">Source Type/Category</Label>
+            <Label htmlFor="source_type">Specific Type/Role</Label>
             <Input
               id="source_type"
               value={formData.source_type}
               onChange={(e) => setFormData({ ...formData, source_type: e.target.value })}
-              placeholder="e.g., Agent, Intercept, Satellite, Website, Database"
+              placeholder="e.g., Journalist, Whistleblower, Government Report, News Article"
             />
           </div>
 

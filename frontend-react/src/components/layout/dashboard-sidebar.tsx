@@ -59,12 +59,12 @@ const navigation = [
       { name: 'Documents', href: '/dashboard/tools/documents' },
     ]
   },
-  { name: 'Evidence Collector', href: '/dashboard/evidence', icon: Archive },
   {
-    name: 'Intelligence Entities',
-    href: '/dashboard/entities',
-    icon: Shield,
+    name: 'Evidence Collection',
+    href: '/dashboard/evidence',
+    icon: Archive,
     children: [
+      { name: 'Data', href: '/dashboard/evidence' },
       { name: 'Actors', href: '/dashboard/entities/actors' },
       { name: 'Sources', href: '/dashboard/entities/sources' },
       { name: 'Events', href: '/dashboard/entities/events' },
@@ -80,7 +80,7 @@ export function DashboardSidebar() {
   const location = useLocation()
   const pathname = location.pathname
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Analysis Frameworks', 'Intelligence Entities'])
+  const [expandedItems, setExpandedItems] = useState<string[]>(['Analysis Frameworks', 'Evidence Collection'])
 
   const toggleExpanded = (name: string) => {
     setExpandedItems(prev => 

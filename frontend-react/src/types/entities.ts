@@ -114,7 +114,7 @@ export interface Actor {
 // SOURCE TYPES
 // ============================================================
 
-export type SourceType = 'HUMINT' | 'SIGINT' | 'IMINT' | 'OSINT' | 'GEOINT' | 'MASINT' | 'TECHINT' | 'CYBER'
+export type SourceType = 'PERSON' | 'DOCUMENT' | 'WEBSITE' | 'DATABASE' | 'MEDIA' | 'SYSTEM' | 'ORGANIZATION' | 'OTHER'
 export type SourceAccessLevel = 'EXCLUSIVE' | 'LIMITED' | 'SHARED' | 'OPEN'
 export type SourceReliability = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
 

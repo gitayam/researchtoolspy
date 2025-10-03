@@ -3,7 +3,7 @@
  * Display completed deception analysis with visual dashboard
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,12 +12,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Edit, Trash2, Download, Share2, Sparkles, FileText, File } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Download, Share2, Sparkles, FileText, File, Link2, Plus } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { DeceptionDashboard } from './DeceptionDashboard'
 import { DeceptionPredictions } from './DeceptionPredictions'
 import type { DeceptionAssessment, DeceptionScores } from '@/lib/deception-scoring'
 import type { AIDeceptionAnalysis } from '@/lib/ai-deception-analysis'
 import { generatePDFReport, generateDOCXReport, generateExecutiveBriefing, type ReportOptions } from '@/lib/deception-report-generator'
+import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type LinkedEvidence, type EvidenceEntityType } from '@/components/evidence'
 
 interface DeceptionViewProps {
   data: {
@@ -53,6 +55,37 @@ export function DeceptionView({
   const [organizationName, setOrganizationName] = useState('Intelligence Analysis Unit')
   const [analystName, setAnalystName] = useState('AI-Assisted Analysis')
   const [exporting, setExporting] = useState(false)
+
+  // Evidence linking state
+  const [linkedEvidence, setLinkedEvidence] = useState<LinkedEvidence[]>([])
+  const [showEvidenceLinker, setShowEvidenceLinker] = useState(false)
+  const [showEvidencePanel, setShowEvidencePanel] = useState(false)
+  const [showEntityCreate, setShowEntityCreate] = useState(false)
+  const [entityCreateTab, setEntityCreateTab] = useState<EvidenceEntityType>('data')
+
+  // Load linked evidence on mount
+  useEffect(() => {
+    // TODO: Load linked evidence from API
+    // For now, using empty array
+    setLinkedEvidence([])
+  }, [data.id])
+
+  const handleEntityCreated = (entityType: EvidenceEntityType, entityData: any) => {
+    // Auto-link the newly created entity
+    const newLink: LinkedEvidence = {
+      entity_type: entityType,
+      entity_id: entityData.id,
+      entity_data: entityData,
+      linked_at: new Date().toISOString()
+    }
+    setLinkedEvidence([...linkedEvidence, newLink])
+    setShowEvidencePanel(true) // Show panel to see the newly linked entity
+  }
+
+  const openEntityCreate = (type: EvidenceEntityType) => {
+    setEntityCreateTab(type)
+    setShowEntityCreate(true)
+  }
 
   const handleExport = async () => {
     setExporting(true)
@@ -94,6 +127,19 @@ export function DeceptionView({
     console.log('Share functionality coming soon')
   }
 
+  const handleLinkEvidence = async (selected: LinkedEvidence[]) => {
+    // TODO: Save links to API
+    setLinkedEvidence([...linkedEvidence, ...selected])
+    console.log('Linked evidence:', selected)
+  }
+
+  const handleUnlinkEvidence = (entity_type: string, entity_id: string | number) => {
+    // TODO: Remove link from API
+    setLinkedEvidence(
+      linkedEvidence.filter(e => !(e.entity_type === entity_type && e.entity_id === entity_id))
+    )
+  }
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       {/* Header */}
@@ -109,9 +155,17 @@ export function DeceptionView({
 
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              {data.title}
-            </h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                {data.title}
+              </h1>
+              <EvidenceBadge
+                linkedEvidence={linkedEvidence}
+                onClick={() => setShowEvidencePanel(!showEvidencePanel)}
+                showBreakdown
+                size="lg"
+              />
+            </div>
             {data.description && (
               <p className="text-gray-600 dark:text-gray-400">{data.description}</p>
             )}
@@ -123,6 +177,34 @@ export function DeceptionView({
           </div>
 
           <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Entity
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openEntityCreate('data')}>
+                  Create Data
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openEntityCreate('actor')}>
+                  Create Actor
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openEntityCreate('source')}>
+                  Create Source
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openEntityCreate('event')}>
+                  Create Event
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button variant="outline" onClick={() => setShowEvidenceLinker(true)}>
+              <Link2 className="h-4 w-4 mr-2" />
+              Link Evidence
+            </Button>
+
             <Button variant="outline" onClick={handleShare}>
               <Share2 className="h-4 w-4 mr-2" />
               Share
@@ -532,6 +614,40 @@ export function DeceptionView({
           </div>
         </div>
       </div>
+
+      {/* Entity Quick Create Modal */}
+      <EntityQuickCreate
+        open={showEntityCreate}
+        onClose={() => setShowEntityCreate(false)}
+        onEntityCreated={handleEntityCreated}
+        defaultTab={entityCreateTab}
+        frameworkContext={{
+          frameworkType: 'deception',
+          frameworkId: data.id?.toString()
+        }}
+      />
+
+      {/* Evidence Linker Modal */}
+      <EvidenceLinker
+        open={showEvidenceLinker}
+        onClose={() => setShowEvidenceLinker(false)}
+        onLink={handleLinkEvidence}
+        alreadyLinked={linkedEvidence}
+        title="Link Evidence to Deception Analysis"
+        description="Select evidence items (Data, Actors, Sources, Events) that support or inform this deception analysis"
+      />
+
+      {/* Evidence Panel - Right Sidebar */}
+      {showEvidencePanel && (
+        <div className="fixed right-0 top-0 h-screen w-96 shadow-2xl z-50">
+          <EvidencePanel
+            linkedEvidence={linkedEvidence}
+            onUnlink={handleUnlinkEvidence}
+            onClose={() => setShowEvidencePanel(false)}
+            title="Linked Evidence"
+          />
+        </div>
+      )}
     </div>
   )
 }
