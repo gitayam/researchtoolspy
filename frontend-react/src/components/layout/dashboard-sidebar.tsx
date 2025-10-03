@@ -14,7 +14,9 @@ import {
   Menu,
   X,
   Archive,
-  Database
+  Database,
+  Calendar,
+  Shield
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -58,6 +60,16 @@ const navigation = [
     ]
   },
   { name: 'Evidence Collector', href: '/dashboard/evidence', icon: Archive },
+  {
+    name: 'Intelligence Entities',
+    href: '/dashboard/entities',
+    icon: Shield,
+    children: [
+      { name: 'Actors', href: '/dashboard/entities/actors' },
+      { name: 'Sources', href: '/dashboard/entities/sources' },
+      { name: 'Events', href: '/dashboard/entities/events' },
+    ]
+  },
   { name: 'Dataset Library', href: '/dashboard/datasets', icon: Database },
   { name: 'Reports', href: '/dashboard/reports', icon: FileText },
   { name: 'Collaboration', href: '/dashboard/collaboration', icon: Users },
@@ -68,7 +80,7 @@ export function DashboardSidebar() {
   const location = useLocation()
   const pathname = location.pathname
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Analysis Frameworks'])
+  const [expandedItems, setExpandedItems] = useState<string[]>(['Analysis Frameworks', 'Intelligence Entities'])
 
   const toggleExpanded = (name: string) => {
     setExpandedItems(prev => 
