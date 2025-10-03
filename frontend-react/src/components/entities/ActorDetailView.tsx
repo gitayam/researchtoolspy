@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Users, Shield, TrendingUp, AlertTriangle, Link as LinkIcon, Calendar, FileText } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Users, Shield, TrendingUp, AlertTriangle, Link as LinkIcon, Calendar, FileText, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
-import type { Actor } from '@/types/entities'
+import { MOMAssessmentList } from './MOMAssessmentList'
+import type { Actor, MOMAssessment, POPVariation } from '@/types/entities'
 
 interface ActorDetailViewProps {
   actor: Actor
@@ -18,6 +19,30 @@ interface ActorDetailViewProps {
 export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProps) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('overview')
+  const [momAssessments, setMomAssessments] = useState<MOMAssessment[]>([])
+  const [loadingMom, setLoadingMom] = useState(false)
+
+  // Load MOM assessments for this actor
+  useEffect(() => {
+    const loadMomAssessments = async () => {
+      setLoadingMom(true)
+      try {
+        const response = await fetch(`/api/mom-assessments?actor_id=${actor.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setMomAssessments(data.assessments || [])
+        }
+      } catch (error) {
+        console.error('Failed to load MOM assessments:', error)
+      } finally {
+        setLoadingMom(false)
+      }
+    }
+
+    if (actor.id) {
+      loadMomAssessments()
+    }
+  }, [actor.id])
 
   const getActorTypeIcon = (type: string) => {
     const icons = {
