@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Users, Shield, TrendingUp, AlertTriangle, Link as LinkIcon, Calendar, FileText, Plus } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Users, Shield, TrendingUp, AlertTriangle, Link as LinkIcon, Calendar, FileText, Plus, Target } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -228,147 +228,187 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
 
         {/* Deception Profile Tab */}
         <TabsContent value="deception" className="space-y-6">
-          {actor.deception_profile && actor.deception_profile.mom ? (
-            <>
-              {/* Overall Risk Card */}
-              <Card className="border-l-4" style={{ borderLeftColor: risk.color === 'red' ? '#dc2626' : risk.color === 'orange' ? '#ea580c' : risk.color === 'yellow' ? '#ca8a04' : '#16a34a' }}>
-                <CardHeader>
+          {/* Primary POP Assessment */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Primary POP Assessment
+                  </CardTitle>
+                  <CardDescription>General behavioral deception patterns</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={onEdit}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {actor.primary_pop ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Historical Pattern</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold">{actor.primary_pop.historical_pattern}</span>
+                        <span className="text-gray-500">/5</span>
+                      </div>
+                      <Progress value={(actor.primary_pop.historical_pattern / 5) * 100} className="h-2 mt-2" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Sophistication</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold">{actor.primary_pop.sophistication_level}</span>
+                        <span className="text-gray-500">/5</span>
+                      </div>
+                      <Progress value={(actor.primary_pop.sophistication_level / 5) * 100} className="h-2 mt-2" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Success Rate</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold">{actor.primary_pop.success_rate}</span>
+                        <span className="text-gray-500">/5</span>
+                      </div>
+                      <Progress value={(actor.primary_pop.success_rate / 5) * 100} className="h-2 mt-2" />
+                    </div>
+                  </div>
+                  {actor.primary_pop.notes && (
+                    <div className="pt-4 border-t">
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Notes</h3>
+                      <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                        {actor.primary_pop.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No primary POP assessment available. Click edit to add one.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* POP Variations */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Topic-Based POP Variations
+                  </CardTitle>
+                  <CardDescription>Domain-specific behavioral patterns</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={onEdit}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Variation
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {actor.pop_variations && actor.pop_variations.length > 0 ? (
+                <div className="space-y-4">
+                  {actor.pop_variations.map((variation, index) => (
+                    <Card key={index} className="border-l-4 border-l-blue-600">
+                      <CardHeader>
+                        <CardTitle className="text-base">{variation.topic}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <div className="text-gray-500 mb-1">Historical Pattern</div>
+                            <div className="font-semibold">{variation.assessment.historical_pattern}/5</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500 mb-1">Sophistication</div>
+                            <div className="font-semibold">{variation.assessment.sophistication_level}/5</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500 mb-1">Success Rate</div>
+                            <div className="font-semibold">{variation.assessment.success_rate}/5</div>
+                          </div>
+                        </div>
+                        {variation.assessment.notes && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 pt-3 border-t">
+                            {variation.assessment.notes}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No topic-based variations. Add variations to track patterns across different domains.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* MOM Assessments */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
                   <CardTitle className="flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5" />
-                    Overall Deception Risk: {risk.level}
+                    MOM Assessments
                   </CardTitle>
-                  <CardDescription>
-                    Based on MOM-POP assessment (Motive, Opportunity, Means + Patterns of Practice)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Risk Score</span>
-                      <span className="font-semibold">{risk.score.toFixed(1)}%</span>
-                    </div>
-                    <Progress value={risk.score} className={`h-3 ${getProgressColor(risk.color)}`} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* MOM Scores */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Motive</CardTitle>
-                    <CardDescription>Reason to deceive</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-3xl font-bold">{actor.deception_profile.mom.motive || 0}</span>
-                        <span className="text-gray-500">/5</span>
-                      </div>
-                      <Progress value={((actor.deception_profile.mom.motive || 0) / 5) * 100} className="h-2" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Opportunity</CardTitle>
-                    <CardDescription>Ability to deceive</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-3xl font-bold">{actor.deception_profile.mom.opportunity || 0}</span>
-                        <span className="text-gray-500">/5</span>
-                      </div>
-                      <Progress value={((actor.deception_profile.mom.opportunity || 0) / 5) * 100} className="h-2" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Means</CardTitle>
-                    <CardDescription>Capability to deceive</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-3xl font-bold">{actor.deception_profile.mom.means || 0}</span>
-                        <span className="text-gray-500">/5</span>
-                      </div>
-                      <Progress value={((actor.deception_profile.mom.means || 0) / 5) * 100} className="h-2" />
-                    </div>
-                  </CardContent>
-                </Card>
+                  <CardDescription>Scenario-specific motive, opportunity, and means assessments</CardDescription>
+                </div>
               </div>
-
-              {/* POP - Patterns of Practice */}
-              {actor.deception_profile.pop && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Patterns of Practice (POP)</CardTitle>
-                    <CardDescription>Historical deception behavior</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Historical Pattern</h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl font-bold">{actor.deception_profile.pop.historical_pattern}</span>
-                          <span className="text-gray-500">/5</span>
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Sophistication</h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl font-bold">{actor.deception_profile.pop.sophistication_level}</span>
-                          <span className="text-gray-500">/5</span>
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Success Rate</h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl font-bold">{actor.deception_profile.pop.success_rate}</span>
-                          <span className="text-gray-500">/5</span>
-                        </div>
-                      </div>
-                    </div>
-                    {actor.deception_profile.pop.notes && (
-                      <div className="pt-4 border-t">
-                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Notes</h3>
-                        <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                          {actor.deception_profile.pop.notes}
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+            </CardHeader>
+            <CardContent>
+              {loadingMom ? (
+                <div className="text-center py-8 text-gray-500">Loading MOM assessments...</div>
+              ) : (
+                <MOMAssessmentList
+                  assessments={momAssessments}
+                  compact={true}
+                  showFilters={momAssessments.length > 3}
+                  onCreateNew={() => {
+                    // TODO: Open MOM assessment creation modal
+                    console.log('Create new MOM assessment')
+                  }}
+                  onEdit={(assessment) => {
+                    // TODO: Open MOM assessment edit modal
+                    console.log('Edit MOM assessment:', assessment.id)
+                  }}
+                  onDelete={async (assessment) => {
+                    if (!confirm(`Delete MOM assessment "${assessment.scenario_description}"?`)) return
+                    try {
+                      await fetch(`/api/mom-assessments/${assessment.id}`, { method: 'DELETE' })
+                      setMomAssessments(prev => prev.filter(a => a.id !== assessment.id))
+                    } catch (error) {
+                      console.error('Failed to delete MOM assessment:', error)
+                      alert('Failed to delete MOM assessment')
+                    }
+                  }}
+                />
               )}
+            </CardContent>
+          </Card>
 
-              {/* MOM Assessment Notes */}
-              {actor.deception_profile.mom && actor.deception_profile.mom.notes && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>MOM Assessment Notes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                      {actor.deception_profile.mom.notes}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </>
-          ) : (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Shield className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">No deception profile available</p>
-                <Button onClick={onEdit}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Add Deception Profile
-                </Button>
+          {/* Legacy Deception Profile (Backward Compatibility) */}
+          {actor.deception_profile && (
+            <Card className="border-yellow-300 dark:border-yellow-700 border-2">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  Legacy Deception Profile (Deprecated)
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  This data is from the old structure. Please migrate to the new MOM/POP system.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm">
+                <div className="space-y-2">
+                  <div>MOM: Motive {actor.deception_profile.mom?.motive}/5, Opportunity {actor.deception_profile.mom?.opportunity}/5, Means {actor.deception_profile.mom?.means}/5</div>
+                  <div>POP: Pattern {actor.deception_profile.pop?.historical_pattern}/5, Sophistication {actor.deception_profile.pop?.sophistication_level}/5, Success {actor.deception_profile.pop?.success_rate}/5</div>
+                </div>
               </CardContent>
             </Card>
           )}

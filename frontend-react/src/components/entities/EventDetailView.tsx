@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Calendar, Clock, MapPin, AlertTriangle, CheckCircle, Users, FileText } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Calendar, Clock, MapPin, AlertTriangle, CheckCircle, Users, FileText, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
-import type { Event } from '@/types/entities'
+import { MOMAssessmentList } from './MOMAssessmentList'
+import type { Event, MOMAssessment } from '@/types/entities'
 
 interface EventDetailViewProps {
   event: Event
@@ -17,6 +18,47 @@ interface EventDetailViewProps {
 export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProps) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('overview')
+  const [momAssessments, setMomAssessments] = useState<MOMAssessment[]>([])
+  const [loadingMom, setLoadingMom] = useState(false)
+  const [actorNames, setActorNames] = useState<Record<string, string>>({})
+
+  // Load MOM assessments for this event
+  useEffect(() => {
+    const loadMomAssessments = async () => {
+      setLoadingMom(true)
+      try {
+        const response = await fetch(`/api/mom-assessments?event_id=${event.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setMomAssessments(data.assessments || [])
+
+          // Load actor names
+          const uniqueActorIds = [...new Set((data.assessments || []).map((a: MOMAssessment) => a.actor_id))] as string[]
+          const names: Record<string, string> = {}
+          for (const actorId of uniqueActorIds) {
+            try {
+              const actorResponse = await fetch(`/api/actors/${actorId}`)
+              if (actorResponse.ok) {
+                const actorData = await actorResponse.json()
+                names[actorId] = actorData.actor.name
+              }
+            } catch (e) {
+              console.error(`Failed to load actor ${actorId}:`, e)
+            }
+          }
+          setActorNames(names)
+        }
+      } catch (error) {
+        console.error('Failed to load MOM assessments:', error)
+      } finally {
+        setLoadingMom(false)
+      }
+    }
+
+    if (event.id) {
+      loadMomAssessments()
+    }
+  }, [event.id])
 
   const getEventTypeIcon = (type: string) => {
     const icons = {
@@ -332,12 +374,65 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
         {/* Linked Actors Tab */}
         <TabsContent value="actors" className="space-y-6">
           <Card>
-            <CardContent className="py-12 text-center">
-              <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 mb-2">Linked actors display coming soon</p>
-              <p className="text-sm text-gray-400">
-                View all actors involved in this event with their MOM assessments
-              </p>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Actor MOM Assessments for This Event
+                  </CardTitle>
+                  <CardDescription>
+                    Motive, Opportunity, and Means assessments for actors involved in this event
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingMom ? (
+                <div className="text-center py-12 text-gray-500">
+                  Loading MOM assessments...
+                </div>
+              ) : momAssessments.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-2">No actor assessments for this event yet</p>
+                  <p className="text-sm text-gray-400 mb-4">
+                    Create MOM assessments to track which actors had motive, opportunity, and means
+                  </p>
+                  <Button onClick={() => {
+                    // TODO: Open MOM assessment creation modal with event pre-selected
+                    console.log('Create MOM assessment for event:', event.id)
+                  }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Actor Assessment
+                  </Button>
+                </div>
+              ) : (
+                <MOMAssessmentList
+                  assessments={momAssessments}
+                  actorNames={actorNames}
+                  compact={true}
+                  showFilters={momAssessments.length > 3}
+                  onCreateNew={() => {
+                    // TODO: Open MOM assessment creation modal with event pre-selected
+                    console.log('Create MOM assessment for event:', event.id)
+                  }}
+                  onEdit={(assessment) => {
+                    // TODO: Open MOM assessment edit modal
+                    console.log('Edit MOM assessment:', assessment.id)
+                  }}
+                  onDelete={async (assessment) => {
+                    if (!confirm(`Delete MOM assessment "${assessment.scenario_description}"?`)) return
+                    try {
+                      await fetch(`/api/mom-assessments/${assessment.id}`, { method: 'DELETE' })
+                      setMomAssessments(prev => prev.filter(a => a.id !== assessment.id))
+                    } catch (error) {
+                      console.error('Failed to delete MOM assessment:', error)
+                      alert('Failed to delete MOM assessment')
+                    }
+                  }}
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
