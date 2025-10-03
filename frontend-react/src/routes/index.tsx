@@ -7,6 +7,7 @@ import { EvidencePage } from '@/pages/EvidencePage'
 import { DatasetPage } from '@/pages/DatasetPage'
 import { ToolsPage } from '@/pages/ToolsPage'
 import { WebScraperPage } from '@/pages/WebScraperPage'
+import { SocialMediaPage } from '@/pages/SocialMediaPage'
 import { ContentExtractionPage } from '@/pages/tools/ContentExtractionPage'
 import { CitationsGeneratorPage } from '@/pages/tools/CitationsGeneratorPage'
 import { URLProcessingPage } from '@/pages/tools/URLProcessingPage'
@@ -282,6 +283,10 @@ export const router = createBrowserRouter([
       {
         path: 'tools/batch-processing',
         element: <BatchProcessingPage />,
+      },
+      {
+        path: 'tools/social-media',
+        element: <SocialMediaPage />,
       },
       {
         path: 'tools/:toolId',
