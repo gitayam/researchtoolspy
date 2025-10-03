@@ -1,5 +1,21 @@
 // Evidence System Types
 
+// Source Classification (Primary, Secondary, Tertiary)
+export const SourceClassification = {
+  PRIMARY: 'primary',           // First-hand, original evidence
+  SECONDARY: 'secondary',       // Analysis/interpretation of primary sources
+  TERTIARY: 'tertiary',         // Compilations/summaries of secondary sources
+} as const
+
+export type SourceClassification = typeof SourceClassification[keyof typeof SourceClassification]
+
+// Source Classification Descriptions
+export const SourceClassificationDescriptions: Record<SourceClassification, string> = {
+  primary: 'First-hand evidence: Original documents, direct observations, eyewitness accounts, raw data',
+  secondary: 'Second-hand evidence: Analysis, interpretation, or discussion of primary sources',
+  tertiary: 'Third-hand evidence: Summaries, compilations, or indexes of primary and secondary sources'
+}
+
 // Evidence Type (what kind of evidence)
 export const EvidenceType = {
   OBSERVATION: 'observation',
@@ -17,6 +33,22 @@ export const EvidenceType = {
 } as const
 
 export type EvidenceType = typeof EvidenceType[keyof typeof EvidenceType]
+
+// Evidence Type Descriptions
+export const EvidenceTypeDescriptions: Record<EvidenceType, string> = {
+  observation: 'Direct observation or firsthand account',
+  document: 'Written or recorded document',
+  testimony: 'Witness testimony or statement',
+  physical: 'Physical artifact or material evidence',
+  digital: 'Digital files, emails, or electronic records',
+  intercepted: 'Intercepted communications (SIGINT)',
+  open_source: 'Publicly available information (OSINT)',
+  classified: 'Classified or restricted information',
+  financial: 'Financial records or transactions',
+  geospatial: 'Geographic or location-based data',
+  biometric: 'Biometric data (fingerprints, DNA, etc.)',
+  technical: 'Technical measurements or sensor data'
+}
 
 // Evidence Level (tactical, operational, strategic)
 export const EvidenceLevel = {
@@ -78,6 +110,16 @@ export const CitationStyle = {
 
 export type CitationStyle = typeof CitationStyle[keyof typeof CitationStyle]
 
+// EVE Deception Assessment (from Deception Detection Framework)
+export interface EVEAssessment {
+  internal_consistency: number      // 0-5 (INVERTED: low score = high deception risk)
+  external_corroboration: number    // 0-5 (INVERTED: low score = high deception risk)
+  anomaly_detection: number         // 0-5 (high score = high deception risk)
+  notes: string
+  assessed_at: string
+  overall_risk: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'  // Calculated risk level
+}
+
 // Main Evidence Item Interface
 export interface EvidenceItem {
   id: number
@@ -92,6 +134,12 @@ export interface EvidenceItem {
   why_purpose?: string   // Why it happened or purpose
   how_method?: string    // How it happened or method used
 
+  // Source Classification (NEW)
+  source_classification?: SourceClassification  // Primary, Secondary, or Tertiary
+  source_name?: string                          // Name of the source
+  source_url?: string                           // URL/reference to source
+  source_id?: string                            // Link to Source entity from Entity System
+
   // Classification
   evidence_type: EvidenceType
   evidence_level: EvidenceLevel
@@ -101,6 +149,9 @@ export interface EvidenceItem {
   credibility: string    // Credibility rating (A-F scale or 1-6)
   reliability: string    // Reliability rating
   confidence_level: ConfidenceLevel
+
+  // EVE Deception Assessment (NEW - from Deception Framework)
+  eve_assessment?: EVEAssessment
 
   // Metadata
   tags: string[]
@@ -187,12 +238,28 @@ export interface EvidenceFormData {
   where_location?: string
   why_purpose?: string
   how_method?: string
+
+  // Source Classification (NEW)
+  source_classification?: SourceClassification
+  source_name?: string
+  source_url?: string
+  source_id?: string
+
   evidence_type: EvidenceType
   evidence_level: EvidenceLevel
   category?: string
   credibility: string
   reliability: string
   confidence_level: ConfidenceLevel
+
+  // EVE Assessment (NEW)
+  eve_assessment?: {
+    internal_consistency: number
+    external_corroboration: number
+    anomaly_detection: number
+    notes: string
+  }
+
   tags: string[]
   priority: PriorityLevel
   citations?: {
