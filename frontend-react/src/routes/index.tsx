@@ -35,6 +35,9 @@ import {
   SurveillancePage,
   FundamentalFlowPage,
 } from '@/pages/frameworks'
+import { ActorsPage } from '@/pages/entities/ActorsPage'
+import { SourcesPage } from '@/pages/entities/SourcesPage'
+import { EventsPage } from '@/pages/entities/EventsPage'
 
 export const router = createBrowserRouter([
   {
@@ -300,6 +303,19 @@ export const router = createBrowserRouter([
       {
         path: 'datasets',
         element: <DatasetPage />,
+      },
+      // Entity System Routes
+      {
+        path: 'entities/actors',
+        element: <ActorsPage />,
+      },
+      {
+        path: 'entities/sources',
+        element: <SourcesPage />,
+      },
+      {
+        path: 'entities/events',
+        element: <EventsPage />,
       },
       {
         path: 'reports',
