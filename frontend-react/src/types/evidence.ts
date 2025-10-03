@@ -16,39 +16,108 @@ export const SourceClassificationDescriptions: Record<SourceClassification, stri
   tertiary: 'Third-hand evidence: Summaries, compilations, or indexes of primary and secondary sources'
 }
 
-// Evidence Type (what kind of evidence)
+// Evidence Type (journalist-friendly categories)
 export const EvidenceType = {
-  OBSERVATION: 'observation',
-  DOCUMENT: 'document',
+  // Media & Social
+  SOCIAL_MEDIA: 'social_media',
+  NEWS_ARTICLE: 'news_article',
+  BLOG_POST: 'blog_post',
+  VIDEO: 'video',
+  PHOTO: 'photo',
+  AUDIO: 'audio',
+
+  // Documents
+  OFFICIAL_DOCUMENT: 'official_document',
+  REPORT: 'report',
+  EMAIL: 'email',
+  LEAKED_DOCUMENT: 'leaked_document',
+  MEMO: 'memo',
+
+  // Human Sources
+  INTERVIEW: 'interview',
+  ANONYMOUS_SOURCE: 'anonymous_source',
+  EYEWITNESS: 'eyewitness',
+  EXPERT_OPINION: 'expert_opinion',
   TESTIMONY: 'testimony',
-  PHYSICAL: 'physical',
-  DIGITAL: 'digital',
-  INTERCEPTED: 'intercepted',
-  OPEN_SOURCE: 'open_source',
-  CLASSIFIED: 'classified',
-  FINANCIAL: 'financial',
-  GEOSPATIAL: 'geospatial',
-  BIOMETRIC: 'biometric',
-  TECHNICAL: 'technical',
+
+  // Data & Records
+  DATASET: 'dataset',
+  FINANCIAL_RECORD: 'financial_record',
+  GEOSPATIAL_DATA: 'geospatial_data',
+  PHYSICAL_EVIDENCE: 'physical_evidence',
+
+  // Legacy/Other
+  OTHER: 'other',
 } as const
 
 export type EvidenceType = typeof EvidenceType[keyof typeof EvidenceType]
 
 // Evidence Type Descriptions
 export const EvidenceTypeDescriptions: Record<EvidenceType, string> = {
-  observation: 'Direct observation or firsthand account',
-  document: 'Written or recorded document',
-  testimony: 'Witness testimony or statement',
-  physical: 'Physical artifact or material evidence',
-  digital: 'Digital files, emails, or electronic records',
-  intercepted: 'Intercepted communications (SIGINT)',
-  open_source: 'Publicly available information (OSINT)',
-  classified: 'Classified or restricted information',
-  financial: 'Financial records or transactions',
-  geospatial: 'Geographic or location-based data',
-  biometric: 'Biometric data (fingerprints, DNA, etc.)',
-  technical: 'Technical measurements or sensor data'
+  // Media & Social
+  social_media: 'Social media post (Twitter/X, Facebook, Instagram, TikTok, LinkedIn)',
+  news_article: 'News article (online news, newspaper)',
+  blog_post: 'Blog post or opinion piece',
+  video: 'Video content (YouTube, news footage, raw video)',
+  photo: 'Photo or image',
+  audio: 'Audio recording (podcast, interview, phone call)',
+
+  // Documents
+  official_document: 'Official document (government, court filing, legal document)',
+  report: 'Report (investigation, research, analysis)',
+  email: 'Email or message',
+  leaked_document: 'Leaked or confidential document',
+  memo: 'Memo or letter',
+
+  // Human Sources
+  interview: 'Interview (on-record)',
+  anonymous_source: 'Anonymous source (confidential, off-record)',
+  eyewitness: 'Eyewitness account or observation',
+  expert_opinion: 'Expert opinion or analysis',
+  testimony: 'Testimony (court, sworn statement)',
+
+  // Data & Records
+  dataset: 'Dataset (spreadsheet, database, structured data)',
+  financial_record: 'Financial record (transaction, statement, tax document)',
+  geospatial_data: 'Geospatial data (satellite imagery, GPS, maps)',
+  physical_evidence: 'Physical evidence (artifact, object, material)',
+
+  // Legacy/Other
+  other: 'Other type of evidence',
 }
+
+// Evidence Type Categories (for organized display)
+export const EvidenceTypeCategories = {
+  'Media & Social': [
+    'social_media',
+    'news_article',
+    'blog_post',
+    'video',
+    'photo',
+    'audio',
+  ],
+  'Documents': [
+    'official_document',
+    'report',
+    'email',
+    'leaked_document',
+    'memo',
+  ],
+  'Human Sources': [
+    'interview',
+    'anonymous_source',
+    'eyewitness',
+    'expert_opinion',
+    'testimony',
+  ],
+  'Data & Records': [
+    'dataset',
+    'financial_record',
+    'geospatial_data',
+    'physical_evidence',
+  ],
+  'Other': ['other'],
+} as const
 
 // Evidence Level (tactical, operational, strategic)
 export const EvidenceLevel = {

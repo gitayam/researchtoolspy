@@ -119,7 +119,7 @@ export function URLProcessingPage() {
         who: result.metadata.author,
         where_location: result.normalizedUrl,
         when_occurred: new Date().toISOString().split('T')[0],
-        evidence_type: result.metadata.type === 'article' ? 'document' : 'open_source',
+        evidence_type: result.metadata.type === 'article' ? 'news_article' : 'blog_post',
         credibility: result.reliability.rating === 'Excellent' ? 'A' :
                      result.reliability.rating === 'Good' ? 'B' :
                      result.reliability.rating === 'Fair' ? 'C' : 'D',
