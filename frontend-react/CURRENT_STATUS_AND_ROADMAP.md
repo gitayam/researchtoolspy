@@ -1,9 +1,9 @@
 # 📊 Current Status & Roadmap - October 2025
 
-**Last Updated:** October 2, 2025
-**Current Branch:** cloudflare/react-nextjs-to-vite
-**Production:** https://cloudflare-react-nextjs-to-v.researchtoolspy.pages.dev
-**Status:** Sprint 2 Complete ✅ | Sprint 3 In Progress 🚀 (25%)
+**Last Updated:** October 3, 2025
+**Current Branch:** main
+**Production:** https://researchtools.net
+**Status:** Entity System Phase 1 Complete ✅ (100%) | Phase 2 UI Ready to Start 🚀
 
 ---
 
@@ -354,20 +354,27 @@ npx wrangler d1 execute researchtoolspy-dev --file=schema/d1-schema.sql
    - Predictions (346 lines)
    - Testing & documentation (1,000+ lines)
 
-### NEW PRIORITY: Intelligence Entity System (60-80 hours) ⭐⭐⭐
-**See**: `INTELLIGENCE_ENTITY_SYSTEM_PLAN.md` for comprehensive plan
+### ✅ COMPLETE: Intelligence Entity System Phase 1 (100%) ⭐⭐⭐
+**See**: `ENTITY_SYSTEM_PHASE1_STATUS.md` for full details
 
-**Phase 1: Foundation** (15-20 hours)
-- Database schema for entities (actors, sources, events, places, behaviors)
-- User authentication and workspace system
-- Basic entity CRUD operations
-- Workspace management UI
+**✅ Phase 1: Foundation** (COMPLETE - Deployed to Production)
+- ✅ Database schema: 15 new tables (workspaces, actors, sources, events, places, behaviors, relationships, etc.)
+- ✅ Migration applied to remote D1 database (32 tables total)
+- ✅ 8 complete REST APIs with ~4,500 lines of code
+- ✅ Workspace isolation with role-based access control (OWNER, ADMIN, EDITOR, VIEWER)
+- ✅ Full CRUD operations for all entity types
+- ✅ Deception detection integrated:
+  - ✅ MOM-POP for Actors (Motive, Opportunity, Means + Patterns of Practice)
+  - ✅ MOSES for Sources (My Own Sources evaluation)
+  - ✅ EVE for Evidence (Evaluation of Evidence)
+- ✅ Relationship mapping infrastructure (12 relationship types)
+- ✅ Deployed to https://researchtools.net
 
-**Phase 2: Deception Integration** (12-15 hours)
-- Actor profiles with MOM-POP assessment
-- Source profiles with MOSES assessment
-- Evidence enhancement with EVE assessment
-- Combined deception analysis workflow
+**Phase 2: Intelligence UI** (Next - 2-3 days)
+- Entity management pages with deception dashboards
+- Interactive network visualization
+- Workspace selector and team management UI
+- Evidence linking to actors/events/sources
 
 **Phase 3: Network Analysis** (15-20 hours)
 - Interactive network graph (D3/Cytoscape/Vis.js)
