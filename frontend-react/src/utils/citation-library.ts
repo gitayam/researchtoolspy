@@ -1,4 +1,5 @@
 import type { SavedCitation, CitationLibrary, CitationSortBy, SortOrder } from '@/types/citations'
+import { generateCitation } from './citation-formatters'
 
 const LIBRARY_KEY = 'citations-library'
 
@@ -45,7 +46,21 @@ export function updateCitation(id: string, updates: Partial<SavedCitation>): voi
   const library = getLibrary()
   const index = library.citations.findIndex(c => c.id === id)
   if (index !== -1) {
-    library.citations[index] = { ...library.citations[index], ...updates }
+    const existing = library.citations[index]
+    const updated = { ...existing, ...updates }
+
+    // Regenerate citation if fields, style, or source type changed
+    if (updates.fields || updates.citationStyle || updates.sourceType) {
+      const { citation, inTextCitation } = generateCitation(
+        updated.fields,
+        updated.sourceType,
+        updated.citationStyle
+      )
+      updated.citation = citation
+      updated.inTextCitation = inTextCitation
+    }
+
+    library.citations[index] = updated
     saveLibrary(library)
   }
 }

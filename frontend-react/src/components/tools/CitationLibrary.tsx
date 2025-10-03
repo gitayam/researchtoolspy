@@ -10,7 +10,8 @@ import {
   Check,
   FileText,
   Archive,
-  FileCheck
+  FileCheck,
+  Edit
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,10 +29,12 @@ import {
   exportToText,
   exportToBibTeX,
   exportToRIS,
-  exportToCSV
+  exportToCSV,
+  updateCitation
 } from '@/utils/citation-library'
 import { generateCitation } from '@/utils/citation-formatters'
 import { CitationToEvidenceModal } from '@/components/modals/CitationToEvidenceModal'
+import { CitationEditForm } from '@/components/tools/CitationEditForm'
 
 interface CitationLibraryProps {
   onRefresh?: () => void
@@ -47,6 +50,7 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
   const [displayStyle, setDisplayStyle] = useState<CitationStyle>('apa')
   const [copied, setCopied] = useState(false)
   const [selectedCitationForEvidence, setSelectedCitationForEvidence] = useState<SavedCitation | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   // Load citations
   const loadCitations = () => {
@@ -124,6 +128,21 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
     } catch (error) {
       console.error('Failed to copy:', error)
     }
+  }
+
+  const handleEdit = (citation: SavedCitation) => {
+    setEditingId(citation.id)
+  }
+
+  const handleSaveEdit = (updated: SavedCitation) => {
+    updateCitation(updated.id, updated)
+    setEditingId(null)
+    loadCitations()
+    onRefresh?.()
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
   }
 
   const copyAll = () => {
@@ -288,77 +307,92 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
         {/* Citations List */}
         <div className="space-y-3 max-h-96 overflow-y-auto">
           {filteredCitations.map((citation, index) => (
-            <div
-              key={citation.id}
-              className="p-4 border rounded-lg dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
-              <div className="flex items-start gap-3">
-                <button
-                  onClick={() => toggleSelect(citation.id)}
-                  className="mt-1 flex-shrink-0"
-                >
-                  {selected.has(citation.id) ? (
-                    <CheckSquare className="h-5 w-5 text-blue-600" />
-                  ) : (
-                    <Square className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
+            <div key={citation.id}>
+              {editingId === citation.id ? (
+                <CitationEditForm
+                  citation={citation}
+                  onSave={handleSaveEdit}
+                  onCancel={handleCancelEdit}
+                />
+              ) : (
+                <div className="p-4 border rounded-lg dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <div className="flex items-start gap-3">
+                    <button
+                      onClick={() => toggleSelect(citation.id)}
+                      className="mt-1 flex-shrink-0"
+                    >
+                      {selected.has(citation.id) ? (
+                        <CheckSquare className="h-5 w-5 text-blue-600" />
+                      ) : (
+                        <Square className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      {index + 1}.
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
-                    {citation.citation}
-                  </p>
-                  {citation.notes && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 italic">
-                      Notes: {citation.notes}
-                    </p>
-                  )}
-                  {citation.tags && citation.tags.length > 0 && (
-                    <div className="flex gap-1 mt-2">
-                      {citation.tags.map(tag => (
-                        <span
-                          key={tag}
-                          className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded"
-                        >
-                          {tag}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          {index + 1}.
                         </span>
-                      ))}
+                      </div>
+                      <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
+                        {citation.citation}
+                      </p>
+                      {citation.notes && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 italic">
+                          Notes: {citation.notes}
+                        </p>
+                      )}
+                      {citation.tags && citation.tags.length > 0 && (
+                        <div className="flex gap-1 mt-2">
+                          {citation.tags.map(tag => (
+                            <span
+                              key={tag}
+                              className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedCitationForEvidence(citation)}
-                    title="Add as Evidence"
-                  >
-                    <FileCheck className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(citation.citation)}
-                    title="Copy Citation"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(citation.id)}
-                    title="Delete Citation"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(citation)}
+                        title="Edit Citation"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedCitationForEvidence(citation)}
+                        title="Add as Evidence"
+                      >
+                        <FileCheck className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(citation.citation)}
+                        title="Copy Citation"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(citation.id)}
+                        title="Delete Citation"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>

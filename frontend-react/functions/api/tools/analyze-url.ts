@@ -1,4 +1,5 @@
 import { Env } from '../../types'
+import { enhancedFetch } from '../../utils/browser-profiles'
 
 interface URLAnalysisRequest {
   url: string
@@ -246,17 +247,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const normalizedUrl = parsedUrl.href
     const startTime = Date.now()
 
-    // Fetch the URL
+    // Fetch the URL with enhanced browser headers
     let response: Response
     let finalUrl = normalizedUrl
     const redirects: string[] = []
 
     try {
-      response = await fetch(normalizedUrl, {
-        headers: {
-          'User-Agent': 'ResearchToolsPy URL Analyzer/1.0 (Academic Research Tool)'
-        },
-        redirect: 'follow'
+      response = await enhancedFetch(normalizedUrl, {
+        maxRetries: 3,
+        retryDelay: 500
       })
 
       // Track redirects
@@ -349,8 +348,41 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               // CDX failed, continue with basic wayback data
             }
           } else {
+            // Not archived - attempt to save it to Wayback Machine
             wayback = {
-              isArchived: false
+              isArchived: false,
+              saveRequested: false
+            }
+
+            try {
+              // Send save request to Wayback Machine
+              const saveUrl = `https://web.archive.org/save/${normalizedUrl}`
+              const saveResponse = await fetch(saveUrl, {
+                headers: {
+                  'User-Agent': 'ResearchToolsPy URL Analyzer/1.0 (Academic Research Tool)'
+                }
+              })
+
+              if (saveResponse.ok) {
+                // Extract the archive URL from response headers or body
+                const contentLocation = saveResponse.headers.get('Content-Location')
+                const archiveUrl = contentLocation
+                  ? `https://web.archive.org${contentLocation}`
+                  : `https://web.archive.org/web/${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}/${normalizedUrl}`
+
+                wayback = {
+                  isArchived: true,
+                  saveRequested: true,
+                  archiveUrl,
+                  lastSnapshot: new Date().toISOString().replace(/[-:]/g, '').split('.')[0].replace('T', ''), // YYYYMMDDHHmmss format
+                  totalSnapshots: 1,
+                  message: 'URL has been saved to the Wayback Machine'
+                }
+              } else {
+                wayback.message = 'Failed to save to Wayback Machine. You can try manually at web.archive.org'
+              }
+            } catch (saveError) {
+              wayback.message = 'Could not automatically save to Wayback Machine'
             }
           }
         }

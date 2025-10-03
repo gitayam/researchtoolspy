@@ -51,6 +51,8 @@ export interface WaybackInfo {
   totalSnapshots?: number
   archiveUrl?: string
   recentSnapshots?: WaybackSnapshot[]
+  message?: string
+  saveRequested?: boolean
 }
 
 export interface ReliabilityBreakdown {

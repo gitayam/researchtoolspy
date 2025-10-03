@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { evidenceToCitation } from '@/utils/evidence-to-citation'
+import { addCitation } from '@/utils/citation-library'
+import type { EvidenceItem } from '@/types/evidence'
 import {
   ArrowLeft,
   Globe,
@@ -12,7 +15,9 @@ import {
   Download,
   Copy,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  Link,
+  FileText
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -99,6 +104,35 @@ export function URLProcessingPage() {
       case 'Fair': return 'text-yellow-600 dark:text-yellow-400'
       case 'Poor': return 'text-red-600 dark:text-red-400'
       default: return 'text-gray-600 dark:text-gray-400'
+    }
+  }
+
+  const createCitationFromUrl = async () => {
+    if (!result) return
+
+    try {
+      // Create a pseudo-evidence item from URL analysis
+      const evidenceItem: Partial<EvidenceItem> = {
+        id: Date.now(),
+        title: result.metadata.title || 'Untitled',
+        description: result.metadata.description,
+        who: result.metadata.author,
+        where_location: result.normalizedUrl,
+        when_occurred: new Date().toISOString().split('T')[0],
+        evidence_type: result.metadata.type === 'article' ? 'document' : 'open_source',
+        credibility: result.reliability.rating === 'Excellent' ? 'A' :
+                     result.reliability.rating === 'Good' ? 'B' :
+                     result.reliability.rating === 'Fair' ? 'C' : 'D',
+        tags: []
+      }
+
+      const citation = evidenceToCitation(evidenceItem as EvidenceItem, 'apa')
+      addCitation(citation)
+
+      alert(`Citation created and added to your library!\n\nTitle: ${citation.fields.title}\n\nGo to Citations Generator to view and manage it.`)
+    } catch (error) {
+      console.error('Failed to create citation:', error)
+      alert('Failed to create citation. Please try again.')
     }
   }
 
@@ -213,6 +247,55 @@ export function URLProcessingPage() {
       {/* Results */}
       {result && (
         <div className="space-y-4">
+          {/* Bypass & Archive Links - TOP PRIORITY */}
+          <Card className="border-blue-500 dark:border-blue-400">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Link className="h-5 w-5" />
+                Quick Access & Bypass Links
+              </CardTitle>
+              <CardDescription>
+                Alternative ways to access this content
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => window.open(`https://12ft.io/proxy?q=${encodeURIComponent(result.normalizedUrl)}`, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  12ft Ladder (Paywall Bypass)
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => window.open(`https://archive.is/?run=1&url=${encodeURIComponent(result.normalizedUrl)}`, '_blank')}
+                >
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archive.is
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => window.open(`https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(result.normalizedUrl)}`, '_blank')}
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  Google Cache
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => window.open(`https://outline.com/${result.normalizedUrl}`, '_blank')}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Outline (Reader)
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Reliability Score */}
           <Card>
             <CardHeader>
@@ -390,6 +473,12 @@ export function URLProcessingPage() {
               <CardContent>
                 {result.wayback.isArchived ? (
                   <div className="space-y-3">
+                    {result.wayback.message && (
+                      <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-md">
+                        <CheckCircle className="h-4 w-4" />
+                        <span className="text-sm">{result.wayback.message}</span>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {result.wayback.firstSnapshot && (
                         <div>
@@ -422,20 +511,39 @@ export function URLProcessingPage() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    This URL has not been archived by the Wayback Machine
-                  </p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {result.wayback.message || 'This URL has not been archived by the Wayback Machine'}
+                    </p>
+                    {result.wayback.message && result.wayback.message.includes('Failed') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`https://web.archive.org/save/${result.normalizedUrl}`, '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Save Manually to Wayback Machine
+                      </Button>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
           )}
 
-          {/* Export Options */}
+          {/* Export & Citation Options */}
           <Card>
             <CardHeader>
-              <CardTitle>Export Results</CardTitle>
+              <CardTitle>Export & Citation Tools</CardTitle>
+              <CardDescription>
+                Save this analysis or create a citation for your research
+              </CardDescription>
             </CardHeader>
-            <CardContent className="flex gap-2">
+            <CardContent className="flex flex-wrap gap-2">
+              <Button onClick={createCitationFromUrl} className="bg-blue-600 hover:bg-blue-700">
+                <FileText className="h-4 w-4 mr-2" />
+                Create Citation
+              </Button>
               <Button variant="outline" onClick={exportJSON}>
                 <Download className="h-4 w-4 mr-2" />
                 Export JSON

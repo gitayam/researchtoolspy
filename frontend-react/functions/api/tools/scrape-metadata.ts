@@ -1,4 +1,5 @@
 import { Env } from '../../types'
+import { enhancedFetch } from '../../utils/browser-profiles'
 
 interface ScrapedMetadata {
   title?: string
@@ -270,16 +271,30 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Fetch the URL
-    const response = await fetch(body.url, {
-      headers: {
-        'User-Agent': 'ResearchToolsPy Citation Bot/1.0 (Academic Research Tool)'
-      }
-    })
+    // Fetch the URL with enhanced browser headers and retry logic
+    let response: Response
+    try {
+      response = await enhancedFetch(body.url, {
+        maxRetries: 3,
+        retryDelay: 500
+      })
 
-    if (!response.ok) {
+      if (!response.ok) {
+        return new Response(JSON.stringify({
+          error: `Failed to fetch URL: ${response.status} ${response.statusText}`,
+          statusCode: response.status,
+          suggestion: response.status === 401 || response.status === 403
+            ? 'Site has anti-bot protection. The URL may require authentication or has strict access controls.'
+            : undefined
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+    } catch (fetchError: any) {
       return new Response(JSON.stringify({
-        error: `Failed to fetch URL: ${response.statusText}`
+        error: `Failed to fetch URL: ${fetchError.message}`,
+        suggestion: 'Unable to access the URL. It may be down, blocked, or require authentication.'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }

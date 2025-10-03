@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, Tag, Clock, FileText, MoreHorizontal, Trash2, Edit, Archive, CheckCircle2, XCircle, AlertCircle, Target, TrendingUp, Zap } from 'lucide-react'
+import { Plus, Search, Tag, Clock, FileText, MoreHorizontal, Trash2, Edit, Archive, CheckCircle2, XCircle, AlertCircle, Target, TrendingUp, Zap, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,6 +10,8 @@ import type { EvidenceItem, EvidenceFilter, EvidenceStatistics } from '@/types/e
 import { EvidenceType, EvidenceStatus, EvidenceLevel, PriorityLevel } from '@/types/evidence'
 import { cn } from '@/lib/utils'
 import { EvidenceItemForm } from '@/components/evidence/EvidenceItemForm'
+import { evidenceToCitation } from '@/utils/evidence-to-citation'
+import { addCitation } from '@/utils/citation-library'
 
 export function EvidencePage() {
   const [evidence, setEvidence] = useState<EvidenceItem[]>([])
@@ -88,6 +90,17 @@ export function EvidencePage() {
     setFormMode('edit')
     setEditingEvidence(evidence)
     setFormOpen(true)
+  }
+
+  const handleGenerateCitation = (item: EvidenceItem) => {
+    try {
+      const citation = evidenceToCitation(item, 'apa')
+      addCitation(citation)
+      alert(`Citation generated and added to your library!\n\nGo to Citations Generator to view and manage it.`)
+    } catch (error) {
+      console.error('Failed to generate citation:', error)
+      alert('Failed to generate citation. Please try again.')
+    }
   }
 
   const filteredEvidence = evidence.filter(item => {
@@ -333,6 +346,10 @@ export function EvidencePage() {
                         <DropdownMenuItem onClick={() => openEditForm(item)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleGenerateCitation(item)}>
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          Generate Citation
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Archive className="h-4 w-4 mr-2" />

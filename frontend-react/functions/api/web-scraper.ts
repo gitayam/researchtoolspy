@@ -1,4 +1,6 @@
 // Cloudflare Pages Function for Web Scraping API
+import { enhancedFetch } from '../utils/browser-profiles'
+
 interface ScrapingRequest {
   url: string
   extract_mode?: 'full' | 'metadata' | 'summary'
@@ -75,12 +77,10 @@ export async function onRequest(context: any) {
       })
     }
 
-    // Fetch the URL
-    const response = await fetch(url.toString(), {
-      headers: {
-        'User-Agent': 'ResearchTools Web Scraper/1.0',
-      },
-      redirect: 'follow',
+    // Fetch the URL with enhanced browser headers
+    const response = await enhancedFetch(url.toString(), {
+      maxRetries: 3,
+      retryDelay: 500
     })
 
     if (!response.ok) {
