@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { Plus, Search, Calendar, MapPin, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,10 +8,15 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EventForm } from '@/components/entities/EventForm'
+import { EventDetailView } from '@/components/entities/EventDetailView'
 import type { Event, EventType } from '@/types/entities'
 
 export function EventsPage() {
+  const { id } = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [events, setEvents] = useState<Event[]>([])
+  const [currentEvent, setCurrentEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<EventType | 'all'>('all')
@@ -18,9 +24,20 @@ export function EventsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<Event | undefined>(undefined)
 
+  const isDetailView = id && !location.pathname.includes('/edit')
+  const isEditMode = id && location.pathname.includes('/edit')
+
   useEffect(() => {
-    loadEvents()
-  }, [workspaceId, filterType])
+    if (!isDetailView && !isEditMode) {
+      loadEvents()
+    }
+  }, [workspaceId, filterType, isDetailView, isEditMode])
+
+  useEffect(() => {
+    if (id) {
+      loadEvent(id)
+    }
+  }, [id])
 
   const loadEvents = async () => {
     setLoading(true)
@@ -38,6 +55,25 @@ export function EventsPage() {
       }
     } catch (error) {
       console.error('Failed to load events:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadEvent = async (eventId: string) => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/events/${eventId}`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setCurrentEvent(data.event)
+        if (isEditMode) {
+          setEditingEvent(data.event)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load event:', error)
     } finally {
       setLoading(false)
     }
@@ -72,11 +108,41 @@ export function EventsPage() {
     if (response.ok) {
       setIsFormOpen(false)
       setEditingEvent(undefined)
-      loadEvents()
+      if (id) {
+        navigate(`/dashboard/entities/events/${id}`)
+        loadEvent(id)
+      } else {
+        loadEvents()
+      }
     } else {
       const error = await response.json()
       throw new Error(error.error || 'Failed to update event')
     }
+  }
+
+  const handleDelete = async () => {
+    if (!currentEvent) return
+    if (!confirm(`Are you sure you want to delete "${currentEvent.name}"?`)) return
+
+    try {
+      const response = await fetch(`/api/events/${currentEvent.id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        navigate('/dashboard/entities/events')
+      } else {
+        const error = await response.json()
+        alert(`Failed to delete event: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Failed to delete event:', error)
+      alert('Failed to delete event')
+    }
+  }
+
+  const viewEventDetail = (event: Event) => {
+    navigate(`/dashboard/entities/events/${event.id}`)
   }
 
   const openCreateForm = () => {
@@ -120,6 +186,44 @@ export function EventsPage() {
     return new Date(dateStr).toLocaleDateString()
   }
 
+  // Detail view mode
+  if (isDetailView && currentEvent) {
+    return (
+      <EventDetailView
+        event={currentEvent}
+        onEdit={() => navigate(`/dashboard/entities/events/${currentEvent.id}/edit`)}
+        onDelete={handleDelete}
+      />
+    )
+  }
+
+  // Edit mode
+  if (isEditMode && editingEvent) {
+    return (
+      <div className="p-6">
+        <EventForm
+          event={editingEvent}
+          onSubmit={handleUpdateEvent}
+          onCancel={() => navigate(`/dashboard/entities/events/${editingEvent.id}`)}
+        />
+      </div>
+    )
+  }
+
+  // Loading state
+  if (loading && (isDetailView || isEditMode)) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-gray-500">Loading event...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // List view (default)
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
