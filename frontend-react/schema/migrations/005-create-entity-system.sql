@@ -393,7 +393,7 @@ CREATE TABLE IF NOT EXISTS evidence_actors (
   actor_id TEXT NOT NULL,
   relevance TEXT, -- e.g., "Mentioned", "Involved", "Author"
   PRIMARY KEY (evidence_id, actor_id),
-  FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE,
+  FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE,
   FOREIGN KEY (actor_id) REFERENCES actors(id) ON DELETE CASCADE
 );
 
@@ -403,7 +403,7 @@ CREATE TABLE IF NOT EXISTS source_evidence (
   evidence_id INTEGER NOT NULL,
   PRIMARY KEY (source_id, evidence_id),
   FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE CASCADE,
-  FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE
+  FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE
 );
 
 -- Actor <-> Behaviors
@@ -424,22 +424,22 @@ CREATE TABLE IF NOT EXISTS event_evidence (
   relevance TEXT,
   PRIMARY KEY (event_id, evidence_id),
   FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-  FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE
+  FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE
 );
 
 -- ============================================================
 -- ENHANCED EVIDENCE TABLE (Add EVE assessment and workspace)
 -- ============================================================
 
--- Add new columns to existing evidence table
-ALTER TABLE evidence ADD COLUMN eve_assessment TEXT; -- JSON: {internal_consistency: 0-5, external_corroboration: 0-5, anomaly_detection: 0-5, notes: "...", assessed_at: "..."}
-ALTER TABLE evidence ADD COLUMN source_id TEXT REFERENCES sources(id);
-ALTER TABLE evidence ADD COLUMN event_id TEXT REFERENCES events(id);
-ALTER TABLE evidence ADD COLUMN workspace_id TEXT REFERENCES workspaces(id);
-ALTER TABLE evidence ADD COLUMN is_public INTEGER DEFAULT 0;
-ALTER TABLE evidence ADD COLUMN votes INTEGER DEFAULT 0;
+-- Add new columns to existing evidence_items table
+ALTER TABLE evidence_items ADD COLUMN eve_assessment TEXT; -- JSON: {internal_consistency: 0-5, external_corroboration: 0-5, anomaly_detection: 0-5, notes: "...", assessed_at: "..."}
+ALTER TABLE evidence_items ADD COLUMN source_id TEXT REFERENCES sources(id);
+ALTER TABLE evidence_items ADD COLUMN event_id TEXT REFERENCES events(id);
+ALTER TABLE evidence_items ADD COLUMN workspace_id TEXT REFERENCES workspaces(id);
+ALTER TABLE evidence_items ADD COLUMN is_public INTEGER DEFAULT 0;
+ALTER TABLE evidence_items ADD COLUMN votes INTEGER DEFAULT 0;
 
-CREATE INDEX IF NOT EXISTS idx_evidence_workspace ON evidence(workspace_id);
-CREATE INDEX IF NOT EXISTS idx_evidence_source ON evidence(source_id);
-CREATE INDEX IF NOT EXISTS idx_evidence_event ON evidence(event_id);
-CREATE INDEX IF NOT EXISTS idx_evidence_is_public ON evidence(is_public);
+CREATE INDEX IF NOT EXISTS idx_evidence_workspace ON evidence_items(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_source ON evidence_items(source_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_event ON evidence_items(event_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_is_public ON evidence_items(is_public);
