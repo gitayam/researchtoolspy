@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ActorForm } from '@/components/entities/ActorForm'
+import { ActorFormEnhanced } from '@/components/entities/ActorFormEnhanced'
 import type { Actor, ActorType } from '@/types/entities'
 
 export function ActorsPage() {
@@ -341,7 +341,7 @@ export function ActorsPage() {
               {editingActor ? 'Edit Actor' : 'Create New Actor'}
             </DialogTitle>
           </DialogHeader>
-          <ActorForm
+          <ActorFormEnhanced
             actor={editingActor}
             onSubmit={editingActor ? handleUpdateActor : handleCreateActor}
             onCancel={() => {

@@ -5,6 +5,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 import type { Event, EventType, EventSignificance, EventConfidence } from '@/types/entities'
 
 interface EventFormProps {
@@ -15,6 +17,7 @@ interface EventFormProps {
 
 export function EventForm({ event, onSubmit, onCancel }: EventFormProps) {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: event?.name || '',
     event_type: (event?.event_type || 'ACTIVITY') as EventType,
@@ -30,6 +33,7 @@ export function EventForm({ event, onSubmit, onCancel }: EventFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
     try {
       // Calculate duration in minutes if both dates provided
       const submitData = { ...formData }
@@ -39,13 +43,21 @@ export function EventForm({ event, onSubmit, onCancel }: EventFormProps) {
         submitData.duration = Math.floor((end.getTime() - start.getTime()) / (1000 * 60))
       }
       await onSubmit(submitData)
-    } finally {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save event')
       setLoading(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Basic Information */}
       <Card>
         <CardHeader>

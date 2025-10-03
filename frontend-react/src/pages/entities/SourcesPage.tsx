@@ -96,28 +96,28 @@ export function SourcesPage() {
 
   const getSourceTypeIcon = (type: SourceType) => {
     const icons = {
-      HUMINT: '👤',
-      SIGINT: '📡',
-      IMINT: '📸',
-      OSINT: '🌐',
-      GEOINT: '🗺️',
-      MASINT: '⚡',
-      TECHINT: '🔬',
-      CYBER: '💻',
+      PERSON: '👤',
+      DOCUMENT: '📄',
+      WEBSITE: '🌐',
+      DATABASE: '🗄️',
+      MEDIA: '📸',
+      SYSTEM: '⚙️',
+      ORGANIZATION: '🏢',
+      OTHER: '❓',
     }
     return icons[type] || '❓'
   }
 
   const getSourceTypeBadge = (type: SourceType) => {
     const colors = {
-      HUMINT: 'bg-blue-100 text-blue-800',
-      SIGINT: 'bg-purple-100 text-purple-800',
-      IMINT: 'bg-green-100 text-green-800',
-      OSINT: 'bg-cyan-100 text-cyan-800',
-      GEOINT: 'bg-orange-100 text-orange-800',
-      MASINT: 'bg-yellow-100 text-yellow-800',
-      TECHINT: 'bg-pink-100 text-pink-800',
-      CYBER: 'bg-red-100 text-red-800',
+      PERSON: 'bg-blue-100 text-blue-800',
+      DOCUMENT: 'bg-purple-100 text-purple-800',
+      WEBSITE: 'bg-cyan-100 text-cyan-800',
+      DATABASE: 'bg-green-100 text-green-800',
+      MEDIA: 'bg-orange-100 text-orange-800',
+      SYSTEM: 'bg-yellow-100 text-yellow-800',
+      ORGANIZATION: 'bg-pink-100 text-pink-800',
+      OTHER: 'bg-gray-100 text-gray-800',
     }
     return colors[type] || 'bg-gray-100 text-gray-800'
   }
@@ -164,7 +164,7 @@ export function SourcesPage() {
             Sources
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Intelligence sources with MOSES assessment
+            Information sources with MOSES reliability assessment
           </p>
         </div>
         <Button onClick={openCreateForm}>
@@ -188,24 +188,24 @@ export function SourcesPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              HUMINT
+              People
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {sources.filter(s => s.type === 'HUMINT').length}
+              {sources.filter(s => s.type === 'PERSON').length}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              OSINT
+              Documents
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {sources.filter(s => s.type === 'OSINT').length}
+              {sources.filter(s => s.type === 'DOCUMENT').length}
             </p>
           </CardContent>
         </Card>
@@ -244,14 +244,13 @@ export function SourcesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="HUMINT">HUMINT</SelectItem>
-                <SelectItem value="SIGINT">SIGINT</SelectItem>
-                <SelectItem value="IMINT">IMINT</SelectItem>
-                <SelectItem value="OSINT">OSINT</SelectItem>
-                <SelectItem value="GEOINT">GEOINT</SelectItem>
-                <SelectItem value="MASINT">MASINT</SelectItem>
-                <SelectItem value="TECHINT">TECHINT</SelectItem>
-                <SelectItem value="CYBER">CYBER</SelectItem>
+                <SelectItem value="PERSON">Person</SelectItem>
+                <SelectItem value="DOCUMENT">Document</SelectItem>
+                <SelectItem value="WEBSITE">Website</SelectItem>
+                <SelectItem value="DATABASE">Database</SelectItem>
+                <SelectItem value="MEDIA">Media</SelectItem>
+                <SelectItem value="SYSTEM">System</SelectItem>
+                <SelectItem value="ORGANIZATION">Organization</SelectItem>
                 <SelectItem value="OTHER">Other</SelectItem>
               </SelectContent>
             </Select>
