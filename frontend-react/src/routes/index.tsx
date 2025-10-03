@@ -310,11 +310,27 @@ export const router = createBrowserRouter([
         element: <ActorsPage />,
       },
       {
+        path: 'entities/actors/:id',
+        element: <ActorsPage />,
+      },
+      {
+        path: 'entities/actors/:id/edit',
+        element: <ActorsPage />,
+      },
+      {
         path: 'entities/sources',
         element: <SourcesPage />,
       },
       {
+        path: 'entities/sources/:id',
+        element: <SourcesPage />,
+      },
+      {
         path: 'entities/events',
+        element: <EventsPage />,
+      },
+      {
+        path: 'entities/events/:id',
         element: <EventsPage />,
       },
       {

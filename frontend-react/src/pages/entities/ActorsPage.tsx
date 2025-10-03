@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { Plus, Search, Users, AlertTriangle, Shield, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,10 +8,15 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ActorFormEnhanced } from '@/components/entities/ActorFormEnhanced'
+import { ActorDetailView } from '@/components/entities/ActorDetailView'
 import type { Actor, ActorType } from '@/types/entities'
 
 export function ActorsPage() {
+  const { id } = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [actors, setActors] = useState<Actor[]>([])
+  const [currentActor, setCurrentActor] = useState<Actor | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<ActorType | 'all'>('all')
@@ -18,9 +24,20 @@ export function ActorsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingActor, setEditingActor] = useState<Actor | undefined>(undefined)
 
+  const isDetailView = id && !location.pathname.includes('/edit')
+  const isEditMode = id && location.pathname.includes('/edit')
+
   useEffect(() => {
-    loadActors()
-  }, [workspaceId, filterType])
+    if (!isDetailView && !isEditMode) {
+      loadActors()
+    }
+  }, [workspaceId, filterType, isDetailView, isEditMode])
+
+  useEffect(() => {
+    if (id) {
+      loadActor(id)
+    }
+  }, [id])
 
   const loadActors = async () => {
     setLoading(true)
@@ -38,6 +55,25 @@ export function ActorsPage() {
       }
     } catch (error) {
       console.error('Failed to load actors:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadActor = async (actorId: string) => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/actors/${actorId}`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setCurrentActor(data.actor)
+        if (isEditMode) {
+          setEditingActor(data.actor)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load actor:', error)
     } finally {
       setLoading(false)
     }
@@ -72,10 +108,37 @@ export function ActorsPage() {
     if (response.ok) {
       setIsFormOpen(false)
       setEditingActor(undefined)
-      loadActors()
+      if (id) {
+        // Redirect to detail view after edit
+        navigate(`/dashboard/entities/actors/${id}`)
+        loadActor(id)
+      } else {
+        loadActors()
+      }
     } else {
       const error = await response.json()
       throw new Error(error.error || 'Failed to update actor')
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!currentActor) return
+    if (!confirm(`Are you sure you want to delete "${currentActor.name}"?`)) return
+
+    try {
+      const response = await fetch(`/api/actors/${currentActor.id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        navigate('/dashboard/entities/actors')
+      } else {
+        const error = await response.json()
+        alert(`Failed to delete actor: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Failed to delete actor:', error)
+      alert('Failed to delete actor')
     }
   }
 
@@ -85,8 +148,11 @@ export function ActorsPage() {
   }
 
   const openEditForm = (actor: Actor) => {
-    setEditingActor(actor)
-    setIsFormOpen(true)
+    navigate(`/dashboard/entities/actors/${actor.id}/edit`)
+  }
+
+  const viewActorDetail = (actor: Actor) => {
+    navigate(`/dashboard/entities/actors/${actor.id}`)
   }
 
   const filteredActors = actors.filter(actor =>
@@ -132,6 +198,44 @@ export function ActorsPage() {
     return <Badge className="bg-green-100 text-green-800">Minimal Risk</Badge>
   }
 
+  // Detail view mode
+  if (isDetailView && currentActor) {
+    return (
+      <ActorDetailView
+        actor={currentActor}
+        onEdit={() => navigate(`/dashboard/entities/actors/${currentActor.id}/edit`)}
+        onDelete={handleDelete}
+      />
+    )
+  }
+
+  // Edit mode
+  if (isEditMode && editingActor) {
+    return (
+      <div className="p-6">
+        <ActorFormEnhanced
+          actor={editingActor}
+          onSubmit={handleUpdateActor}
+          onCancel={() => navigate(`/dashboard/entities/actors/${editingActor.id}`)}
+        />
+      </div>
+    )
+  }
+
+  // Loading state
+  if (loading && (isDetailView || isEditMode)) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-gray-500">Loading actor...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // List view (default)
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -260,7 +364,7 @@ export function ActorsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredActors.map((actor) => (
-            <Card key={actor.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openEditForm(actor)}>
+            <Card key={actor.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => viewActorDetail(actor)}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
