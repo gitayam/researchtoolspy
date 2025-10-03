@@ -2,7 +2,7 @@
 
 **Date**: October 3, 2025
 **Branch**: `feature/entity-system-phase1`
-**Status**: Foundation Complete (50% of Phase 1)
+**Status**: API Layer Complete (85% of Phase 1) ⭐
 
 ---
 
@@ -128,6 +128,107 @@ Phase 1 (Foundation) establishes the core infrastructure for the Intelligence En
 - Workspace access control
 
 **Total**: 380+ lines
+
+#### Events API (`functions/api/events.ts`)
+
+**Endpoints**:
+- ✅ `GET /api/events?workspace_id=xxx` - List events with filters
+- ✅ `POST /api/events` - Create event with actor/evidence linking
+- ✅ `GET /api/events/:id` - Get event with related entities
+- ✅ `PUT /api/events/:id` - Update event and relationships
+- ✅ `DELETE /api/events/:id` - Delete event
+
+**Features**:
+- Event types: OPERATION, INCIDENT, MEETING, ACTIVITY, OTHER
+- Temporal tracking (start/end dates, duration auto-calculation)
+- Spatial tracking (coordinates, location linkage to Places)
+- Significance levels: CRITICAL, HIGH, MEDIUM, LOW
+- Confidence levels: CONFIRMED, PROBABLE, POSSIBLE, DOUBTFUL
+- Actor participation with roles
+- Evidence linkage with relevance
+- Timeline framework integration
+
+**Total**: 480+ lines
+
+#### Places API (`functions/api/places.ts`)
+
+**Endpoints**:
+- ✅ `GET /api/places?workspace_id=xxx` - List places with filters
+- ✅ `POST /api/places` - Create place
+- ✅ `GET /api/places/:id` - Get place with controlling actor and events
+- ✅ `PUT /api/places/:id` - Update place
+- ✅ `DELETE /api/places/:id` - Delete place
+
+**Features**:
+- Place types: FACILITY, CITY, REGION, COUNTRY, INSTALLATION, OTHER
+- Geographic coordinates (lat/lng) - REQUIRED
+- Address, country, region tracking
+- Strategic importance: CRITICAL, HIGH, MEDIUM, LOW
+- Controlled-by actor relationship
+- Events at location linkage
+- Workspace access control
+
+**Total**: 390+ lines
+
+#### Behaviors API (`functions/api/behaviors.ts`)
+
+**Endpoints**:
+- ✅ `GET /api/behaviors?workspace_id=xxx` - List behaviors with filters
+- ✅ `POST /api/behaviors` - Create behavior with actor linking
+- ✅ `GET /api/behaviors/:id` - Get behavior with actors
+- ✅ `PUT /api/behaviors/:id` - Update behavior
+- ✅ `DELETE /api/behaviors/:id` - Delete behavior
+
+**Features**:
+- Behavior types: TTP, PATTERN, TACTIC, TECHNIQUE, PROCEDURE
+- Observable indicators (JSON array)
+- Frequency tracking: CONTINUOUS, FREQUENT, OCCASIONAL, RARE
+- Sophistication: ADVANCED, INTERMEDIATE, BASIC
+- Effectiveness: HIGHLY_EFFECTIVE, EFFECTIVE, MODERATELY_EFFECTIVE, INEFFECTIVE
+- First/last observed dates
+- Actor-behavior relationships with frequency
+- Workspace access control
+
+**Total**: 410+ lines
+
+#### Relationships API (`functions/api/relationships.ts`)
+
+**Endpoints**:
+- ✅ `GET /api/relationships?workspace_id=xxx` - List relationships with filters
+- ✅ `POST /api/relationships` - Create typed relationship
+- ✅ `GET /api/relationships/:id` - Get relationship with entities
+- ✅ `PUT /api/relationships/:id` - Update relationship
+- ✅ `DELETE /api/relationships/:id` - Delete relationship
+
+**Features**:
+- 12 relationship types: CONTROLS, REPORTS_TO, ALLIED_WITH, ADVERSARY_OF, MEMBER_OF, LOCATED_AT, PARTICIPATED_IN, PROVIDED_BY, EXHIBITS, CORROBORATES, CONTRADICTS, CUSTOM
+- Connects ANY entity type to ANY entity type
+- Weighted relationships (strength 0.0-1.0)
+- Temporal ranges (start/end dates)
+- Confidence levels: CONFIRMED, PROBABLE, POSSIBLE, SUSPECTED
+- Evidence supporting relationship (JSON array)
+- Bi-directional querying (source/target)
+- **Critical for network visualization**
+
+**Total**: 410+ lines
+
+#### Evidence EVE Assessment API (`functions/api/evidence-eve.ts`)
+
+**Endpoints**:
+- ✅ `GET /api/evidence-eve/:evidenceId` - Get EVE assessment
+- ✅ `PUT /api/evidence-eve/:evidenceId` - Update EVE assessment
+- ✅ `DELETE /api/evidence-eve/:evidenceId` - Remove EVE assessment
+
+**Features**:
+- **EVE (Evaluation of Evidence)** deception assessment
+- `internal_consistency`: 0-5 (INVERTED - low = high risk)
+- `external_corroboration`: 0-5 (INVERTED - low = high risk)
+- `anomaly_detection`: 0-5 (high = high risk)
+- Assessment notes and timestamp
+- Workspace-aware access control
+- Integrates with existing evidence table
+
+**Total**: 230+ lines
 
 ---
 
@@ -368,24 +469,27 @@ npx wrangler d1 execute researchtoolspy-prod \
 
 ## Phase 1 Completion Metrics
 
-**Current Progress**: ~50%
+**Current Progress**: ~85% ⭐
 
-| Component | Status | Progress |
-|-----------|--------|----------|
-| Database Schema | ✅ Complete | 100% |
-| TypeScript Types | ✅ Complete | 100% |
-| Workspace API | ✅ Complete | 100% |
-| Actors API | ✅ Complete | 100% |
-| Sources API | ✅ Complete | 100% |
-| Events API | ⏳ Pending | 0% |
-| Places API | ⏳ Pending | 0% |
-| Behaviors API | ⏳ Pending | 0% |
-| Relationships API | ⏳ Pending | 0% |
-| Enhanced Evidence API | ⏳ Pending | 0% |
-| Frontend Components | ⏳ Pending | 0% |
-| Testing | ⏳ Pending | 0% |
+| Component | Status | Progress | Lines |
+|-----------|--------|----------|-------|
+| Database Schema | ✅ Complete | 100% | 520 |
+| TypeScript Types | ✅ Complete | 100% | 700+ |
+| Workspace API | ✅ Complete | 100% | 420 |
+| Actors API | ✅ Complete | 100% | 570 |
+| Sources API | ✅ Complete | 100% | 380 |
+| Events API | ✅ Complete | 100% | 480 |
+| Places API | ✅ Complete | 100% | 390 |
+| Behaviors API | ✅ Complete | 100% | 410 |
+| Relationships API | ✅ Complete | 100% | 410 |
+| Evidence EVE API | ✅ Complete | 100% | 230 |
+| **Total API Code** | ✅ **Complete** | **100%** | **~4,500** |
+| Frontend Components | ⏳ Pending | 0% | - |
+| Testing | ⏳ Pending | 0% | - |
+| Migration Applied | ⏳ Pending | 0% | - |
 
-**Estimated Remaining**: 8-10 hours
+**API Layer**: 100% Complete (8 APIs, 4,500+ lines) ✅
+**Estimated Remaining**: 2-3 hours (frontend, testing, migration)
 
 ---
 
