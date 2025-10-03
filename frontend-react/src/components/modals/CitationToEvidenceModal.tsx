@@ -22,7 +22,7 @@ export function CitationToEvidenceModal({ citation, onClose, onSuccess }: Citati
     who: citation.fields.authors.map(a => `${a.firstName} ${a.lastName}`).join(', '),
     when_occurred: citation.fields.year || '',
     where_location: citation.fields.url || '',
-    evidence_type: 'document' as const,
+    evidence_type: 'official_document' as const,
     evidence_level: 'tactical' as const,
     credibility: '3',
     reliability: '3',
@@ -162,10 +162,11 @@ export function CitationToEvidenceModal({ citation, onClose, onSuccess }: Citati
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={EvidenceType.DOCUMENT}>Document</SelectItem>
-                  <SelectItem value={EvidenceType.OPEN_SOURCE}>Open Source</SelectItem>
-                  <SelectItem value={EvidenceType.DIGITAL}>Digital</SelectItem>
-                  <SelectItem value={EvidenceType.OBSERVATION}>Observation</SelectItem>
+                  <SelectItem value={EvidenceType.OFFICIAL_DOCUMENT}>Official Document</SelectItem>
+                  <SelectItem value={EvidenceType.NEWS_ARTICLE}>News Article</SelectItem>
+                  <SelectItem value={EvidenceType.REPORT}>Report</SelectItem>
+                  <SelectItem value={EvidenceType.BLOG_POST}>Blog Post</SelectItem>
+                  <SelectItem value={EvidenceType.EYEWITNESS}>Eyewitness</SelectItem>
                   <SelectItem value={EvidenceType.TESTIMONY}>Testimony</SelectItem>
                 </SelectContent>
               </Select>

@@ -6,12 +6,25 @@ import { generateCitationId } from './citation-library'
 // Map evidence type to citation source type
 function mapEvidenceTypeToSourceType(evidenceType: string): SourceType {
   switch (evidenceType) {
-    case 'document':
-    case 'open_source':
+    case 'news_article':
+    case 'blog_post':
+    case 'social_media':
       return 'website'
-    case 'testimony':
-    case 'observation':
+    case 'official_document':
+    case 'report':
+    case 'leaked_document':
+    case 'memo':
       return 'report'
+    case 'testimony':
+    case 'eyewitness':
+    case 'interview':
+    case 'expert_opinion':
+    case 'anonymous_source':
+      return 'report'
+    case 'video':
+    case 'audio':
+    case 'photo':
+      return 'website'
     default:
       return 'website'
   }
@@ -101,11 +114,11 @@ export function evidenceToCitation(
   }
 
   // Add type-specific fields based on evidence type
-  if (evidence.evidence_type === 'document' || evidence.evidence_type === 'open_source') {
+  if (evidence.evidence_type === 'news_article' || evidence.evidence_type === 'blog_post' || evidence.evidence_type === 'social_media') {
     fields.siteName = evidence.category || undefined
   }
 
-  if (evidence.evidence_type === 'testimony' || evidence.evidence_type === 'observation') {
+  if (evidence.evidence_type === 'testimony' || evidence.evidence_type === 'eyewitness' || evidence.evidence_type === 'interview') {
     fields.institution = evidence.category || undefined
   }
 
