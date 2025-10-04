@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import type { ACHAnalysis, AnalysisStatus } from '@/types/ach'
 import { cn } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
+import { ACHAnalysisForm, type ACHFormData } from '@/components/ach/ACHAnalysisForm'
 
 export function ACHPage() {
   const navigate = useNavigate()
@@ -16,6 +17,9 @@ export function ACHPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<AnalysisStatus | 'all'>('all')
   const [loading, setLoading] = useState(true)
+  const [formOpen, setFormOpen] = useState(false)
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
+  const [editingAnalysis, setEditingAnalysis] = useState<ACHAnalysis | undefined>(undefined)
 
   const loadAnalyses = async () => {
     try {
@@ -53,11 +57,123 @@ export function ACHPage() {
   }
 
   const handleCreateAnalysis = () => {
-    navigate('/tools/ach/new')
+    setFormMode('create')
+    setEditingAnalysis(undefined)
+    setFormOpen(true)
+  }
+
+  const handleEditAnalysis = async (id: string) => {
+    try {
+      const response = await fetch(`/api/ach?id=${id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setFormMode('edit')
+        setEditingAnalysis(data)
+        setFormOpen(true)
+      }
+    } catch (error) {
+      console.error('Failed to load analysis:', error)
+      alert('Failed to load analysis')
+    }
+  }
+
+  const handleSaveAnalysis = async (formData: ACHFormData) => {
+    try {
+      if (formMode === 'edit' && editingAnalysis?.id) {
+        // Update existing analysis
+        const response = await fetch(`/api/ach?id=${editingAnalysis.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: formData.title,
+            description: formData.description,
+            question: formData.question,
+            analyst: formData.analyst,
+            organization: formData.organization,
+            scale_type: formData.scale_type,
+            status: formData.status
+          })
+        })
+        if (!response.ok) throw new Error('Failed to update analysis')
+
+        // Update hypotheses
+        // First, delete existing hypotheses that are not in the new list
+        if (editingAnalysis.hypotheses) {
+          for (const oldHyp of editingAnalysis.hypotheses) {
+            const stillExists = formData.hypotheses.find(h => h.id === oldHyp.id)
+            if (!stillExists) {
+              await fetch(`/api/ach/hypotheses?id=${oldHyp.id}`, { method: 'DELETE' })
+            }
+          }
+        }
+
+        // Then, update or create hypotheses
+        for (const hyp of formData.hypotheses) {
+          if (hyp.id) {
+            // Update existing
+            await fetch(`/api/ach/hypotheses?id=${hyp.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(hyp)
+            })
+          } else {
+            // Create new
+            await fetch('/api/ach/hypotheses', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...hyp,
+                ach_analysis_id: editingAnalysis.id
+              })
+            })
+          }
+        }
+      } else {
+        // Create new analysis
+        const response = await fetch('/api/ach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: formData.title,
+            description: formData.description,
+            question: formData.question,
+            analyst: formData.analyst,
+            organization: formData.organization,
+            scale_type: formData.scale_type,
+            status: formData.status
+          })
+        })
+        if (!response.ok) throw new Error('Failed to create analysis')
+
+        const newAnalysis = await response.json()
+
+        // Create hypotheses
+        for (const hyp of formData.hypotheses) {
+          await fetch('/api/ach/hypotheses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...hyp,
+              ach_analysis_id: newAnalysis.id
+            })
+          })
+        }
+
+        // Navigate to the new analysis
+        navigate(`/dashboard/tools/ach/${newAnalysis.id}`)
+      }
+
+      await loadAnalyses()
+      setFormOpen(false)
+      setEditingAnalysis(undefined)
+    } catch (error) {
+      console.error('Error saving analysis:', error)
+      throw error
+    }
   }
 
   const handleOpenAnalysis = (id: string) => {
-    navigate(`/tools/ach/${id}`)
+    navigate(`/dashboard/tools/ach/${id}`)
   }
 
   const filteredAnalyses = analyses.filter(analysis => {
@@ -284,7 +400,7 @@ export function ACHPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => {
                           e.stopPropagation()
-                          navigate(`/tools/ach/${analysis.id}/edit`)
+                          handleEditAnalysis(analysis.id)
                         }}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit Details
@@ -309,6 +425,18 @@ export function ACHPage() {
           })
         )}
       </div>
+
+      {/* Analysis Form Modal */}
+      <ACHAnalysisForm
+        open={formOpen}
+        onClose={() => {
+          setFormOpen(false)
+          setEditingAnalysis(undefined)
+        }}
+        onSave={handleSaveAnalysis}
+        initialData={editingAnalysis}
+        mode={formMode}
+      />
     </div>
   )
 }
