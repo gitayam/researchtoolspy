@@ -130,33 +130,45 @@ const SectionCard = memo(({
               No items added yet
             </p>
           ) : (
-            items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-start gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800"
-              >
-                {isQA && isQuestionAnswerItem(item) ? (
-                  <div className="flex-1 space-y-1">
-                    <div className="text-sm font-medium">Q: {item.question}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      A: {item.answer || <span className="italic">No answer provided</span>}
-                    </div>
-                  </div>
-                ) : (
-                  <span className="flex-1 text-sm">
-                    {'text' in item ? item.text : (item as any).question || ''}
-                  </span>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onRemove(item.id)}
-                  className="h-6 w-6 p-0"
+            items.map((item) => {
+              // Check if this item needs an answer (from URL scraper unanswered questions)
+              const needsAnswer = isQA && isQuestionAnswerItem(item) && (item.needsAnswer || !item.answer?.trim())
+
+              return (
+                <div
+                  key={item.id}
+                  className={`flex items-start gap-2 p-3 rounded-lg ${
+                    needsAnswer
+                      ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800'
+                      : 'bg-gray-50 dark:bg-gray-800'
+                  }`}
                 >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))
+                  {isQA && isQuestionAnswerItem(item) ? (
+                    <div className="flex-1 space-y-1">
+                      <div className="text-sm font-medium flex items-center gap-2">
+                        {needsAnswer && <span className="text-red-600 dark:text-red-400">❗</span>}
+                        Q: {item.question}
+                      </div>
+                      <div className={`text-sm ${needsAnswer ? 'text-red-700 dark:text-red-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                        A: {item.answer || <span className="italic font-semibold">Needs answer - please fill in</span>}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="flex-1 text-sm">
+                      {'text' in item ? item.text : (item as any).question || ''}
+                    </span>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRemove(item.id)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )
+            })
           )}
         </div>
 
@@ -464,14 +476,16 @@ export function GenericFrameworkForm({
               return {
                 id: crypto.randomUUID(),
                 question: item.question?.trim() || '',
-                answer: item.answer?.trim() || ''
+                answer: item.answer?.trim() || '',
+                needsAnswer: item.needsAnswer || false // Preserve needsAnswer flag from URL scraper
               } as QuestionAnswerItem
             }
             // Fallback: treat as question with no answer
             return {
               id: crypto.randomUUID(),
               question: typeof item === 'string' ? item.trim() : '',
-              answer: ''
+              answer: '',
+              needsAnswer: true // String questions without answers need answers
             } as QuestionAnswerItem
           } else {
             // Handle text items
