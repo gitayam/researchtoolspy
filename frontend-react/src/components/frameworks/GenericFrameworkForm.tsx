@@ -170,6 +170,8 @@ export function GenericFrameworkForm({
 }: GenericFrameworkFormProps) {
   const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [title, setTitle] = useState(initialData?.title || '')
   const [description, setDescription] = useState(initialData?.description || '')
 
@@ -204,6 +206,57 @@ export function GenericFrameworkForm({
       loadLinkedDataset()
     }
   }, [frameworkId, mode])
+
+  // Auto-save draft to localStorage every 30 seconds
+  useEffect(() => {
+    const draftKey = `draft_${frameworkType}_${frameworkId || 'new'}`
+
+    const interval = setInterval(() => {
+      const draftData = {
+        title,
+        description,
+        sectionData,
+        timestamp: new Date().toISOString()
+      }
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(draftData))
+        console.log(`Auto-saved draft for ${frameworkType}`)
+      } catch (error) {
+        console.error('Failed to auto-save draft:', error)
+      }
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
+  }, [title, description, sectionData, frameworkType, frameworkId])
+
+  // Restore draft on mount if available
+  useEffect(() => {
+    if (mode === 'create' && !initialData) {
+      const draftKey = `draft_${frameworkType}_new`
+      const savedDraft = localStorage.getItem(draftKey)
+
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft)
+          const draftAge = Date.now() - new Date(draft.timestamp).getTime()
+
+          // Only restore if draft is less than 24 hours old
+          if (draftAge < 24 * 60 * 60 * 1000) {
+            if (confirm(`Found unsaved draft from ${new Date(draft.timestamp).toLocaleString()}. Restore it?`)) {
+              setTitle(draft.title || '')
+              setDescription(draft.description || '')
+              setSectionData(draft.sectionData || {})
+            }
+          } else {
+            // Clean up old drafts
+            localStorage.removeItem(draftKey)
+          }
+        } catch (error) {
+          console.error('Failed to restore draft:', error)
+        }
+      }
+    }
+  }, [mode, frameworkType, initialData])
 
   const loadLinkedDataset = async () => {
     if (!frameworkId) return
@@ -344,22 +397,50 @@ export function GenericFrameworkForm({
 
   const handleSave = async () => {
     if (!title.trim()) {
+      setSaveError('Please enter a title for your analysis')
       alert(`Please enter a title for your ${frameworkTitle} analysis`)
       return
     }
 
+    // Validate that at least one section has data
+    const hasData = sections.some(section => sectionData[section.key]?.length > 0)
+    if (!hasData) {
+      setSaveError('Please add at least one item to any section')
+      alert('Please add at least one item before saving')
+      return
+    }
+
     setSaving(true)
+    setSaveError(null)
+
     try {
       const data: GenericFrameworkData = {
         title: title.trim(),
         description: description.trim(),
         ...sectionData
       }
+
+      console.log(`Saving ${frameworkType} analysis:`, data)
+
       await onSave(data)
-      navigate(backPath)
+
+      // Clear draft from localStorage after successful save
+      const draftKey = `draft_${frameworkType}_${frameworkId || 'new'}`
+      localStorage.removeItem(draftKey)
+
+      setLastSaved(new Date())
+      console.log(`Successfully saved ${frameworkType} analysis`)
+
+      // Navigate back after short delay to show success
+      setTimeout(() => {
+        navigate(backPath)
+      }, 500)
+
     } catch (error) {
       console.error(`Failed to save ${frameworkTitle} analysis:`, error)
-      alert(`Failed to save ${frameworkTitle} analysis. Please try again.`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      setSaveError(`Failed to save: ${errorMessage}`)
+      alert(`Failed to save ${frameworkTitle} analysis. ${errorMessage}\n\nYour data has been auto-saved locally. Please try again or contact support if the issue persists.`)
     } finally {
       setSaving(false)
     }
@@ -381,6 +462,11 @@ export function GenericFrameworkForm({
             <p className="text-gray-600 dark:text-gray-400">
               {frameworkType} framework analysis
             </p>
+            {lastSaved && (
+              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                ✓ Saved at {lastSaved.toLocaleTimeString()}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex gap-2">
@@ -394,6 +480,22 @@ export function GenericFrameworkForm({
           </Button>
         </div>
       </div>
+
+      {/* Error Alert */}
+      {saveError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="text-red-600 dark:text-red-400 mt-0.5">⚠️</div>
+            <div>
+              <h3 className="font-semibold text-red-800 dark:text-red-200">Save Failed</h3>
+              <p className="text-sm text-red-700 dark:text-red-300 mt-1">{saveError}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                Your data has been auto-saved locally and will be restored if you refresh the page.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Basic Info */}
       <Card>
