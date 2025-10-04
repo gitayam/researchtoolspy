@@ -206,6 +206,34 @@ export function AIUrlScraper({
                       </p>
                     ) : (
                       <>
+                        {/* Error Display */}
+                        {scrapedData.extractedData._error && (
+                          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg">
+                            <h4 className="font-semibold text-red-800 dark:text-red-400 mb-2">⚠️ Extraction Error</h4>
+                            <p className="text-sm text-red-700 dark:text-red-300 mb-2">{scrapedData.extractedData._error}</p>
+                            <p className="text-xs text-red-600 dark:text-red-400">
+                              Model: {scrapedData.extractedData._model || 'unknown'} • Framework: {scrapedData.extractedData._framework || 'unknown'}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Parse Error Display */}
+                        {scrapedData.extractedData._parseError && (
+                          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
+                            <h4 className="font-semibold text-yellow-800 dark:text-yellow-400 mb-2">⚠️ JSON Parsing Error</h4>
+                            <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-2">The AI response couldn't be parsed as JSON:</p>
+                            <p className="text-xs font-mono text-yellow-600 dark:text-yellow-400 mb-2">{scrapedData.extractedData._parseError}</p>
+                            {scrapedData.extractedData._raw && (
+                              <details className="mt-2">
+                                <summary className="text-xs font-semibold text-yellow-700 dark:text-yellow-300 cursor-pointer">Show raw response</summary>
+                                <pre className="mt-2 text-xs bg-yellow-100 dark:bg-yellow-900/40 p-2 rounded overflow-x-auto whitespace-pre-wrap">
+                                  {scrapedData.extractedData._raw}
+                                </pre>
+                              </details>
+                            )}
+                          </div>
+                        )}
+
                         {/* Answered Questions/Data */}
                         {Object.entries(scrapedData.extractedData)
                           .filter(([key]) => !key.startsWith('_'))
@@ -302,7 +330,16 @@ export function AIUrlScraper({
           <div className="flex justify-between items-center pt-4 border-t">
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {scrapedData && scrapedData.extractedData && Object.keys(scrapedData.extractedData).length > 0
-                ? `Ready to populate ${Object.keys(scrapedData.extractedData).length} fields`
+                ? (() => {
+                    const validFields = Object.keys(scrapedData.extractedData).filter(key => !key.startsWith('_')).length
+                    const hasErrors = scrapedData.extractedData._error || scrapedData.extractedData._parseError
+                    if (hasErrors && validFields === 0) {
+                      return '⚠️ Extraction failed - see error details above'
+                    }
+                    return validFields > 0
+                      ? `Ready to populate ${validFields} ${validFields === 1 ? 'field' : 'fields'}`
+                      : 'No data extracted'
+                  })()
                 : 'AI will extract relevant information for your framework'
               }
             </p>
