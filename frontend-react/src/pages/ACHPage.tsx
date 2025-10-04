@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, MoreHorizontal, Trash2, Edit, FileText, Clock, CheckCircle2, AlertCircle, Grid3x3 } from 'lucide-react'
+import { Plus, Search, MoreHorizontal, Trash2, Edit, FileText, Clock, CheckCircle2, AlertCircle, Grid3x3, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,6 +10,7 @@ import type { ACHAnalysis, AnalysisStatus } from '@/types/ach'
 import { cn } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
 import { ACHAnalysisForm, type ACHFormData } from '@/components/ach/ACHAnalysisForm'
+import { frameworkDescriptions } from '@/config/framework-descriptions'
 
 export function ACHPage() {
   const navigate = useNavigate()
@@ -211,6 +212,8 @@ export function ACHPage() {
     completed: analyses.filter(a => a.status === 'completed').length
   }
 
+  const frameworkInfo = frameworkDescriptions['ach']
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -226,6 +229,52 @@ export function ACHPage() {
           New Analysis
         </Button>
       </div>
+
+      {/* Framework Context */}
+      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <p className="text-gray-700 dark:text-gray-300">{frameworkInfo.context}</p>
+
+            {frameworkInfo.wikipediaUrl && (
+              <a
+                href={frameworkInfo.wikipediaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Learn more on Wikipedia
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Good Use Cases
+                </h4>
+                <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                  {frameworkInfo.goodUseCases.map((useCase, idx) => (
+                    <li key={idx}>{useCase}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Not Ideal For
+                </h4>
+                <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                  {frameworkInfo.notIdealFor.map((useCase, idx) => (
+                    <li key={idx}>{useCase}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
