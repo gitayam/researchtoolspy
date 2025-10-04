@@ -24,6 +24,7 @@ interface NetworkGraphCanvasProps {
   onBackgroundClick?: () => void
   width?: number
   height?: number
+  highlightedPath?: string[] // Array of node IDs in the path
 }
 
 const ENTITY_TYPE_COLORS: Record<EntityType, string> = {
@@ -50,7 +51,8 @@ export function NetworkGraphCanvas({
   onNodeClick,
   onBackgroundClick,
   width = 800,
-  height = 600
+  height = 600,
+  highlightedPath = []
 }: NetworkGraphCanvasProps) {
   const graphRef = useRef<any>(null)
 
@@ -95,6 +97,7 @@ export function NetworkGraphCanvas({
     const label = node.name
     const fontSize = 12 / globalScale
     const nodeRadius = Math.sqrt(node.val || 1) * 4
+    const isHighlighted = highlightedPath.includes(node.id)
 
     // Draw node circle
     ctx.beginPath()
@@ -102,18 +105,27 @@ export function NetworkGraphCanvas({
     ctx.fillStyle = node.color || '#999999'
     ctx.fill()
 
-    // Draw white border
-    ctx.strokeStyle = '#ffffff'
-    ctx.lineWidth = 1.5 / globalScale
+    // Draw border (golden if highlighted, white otherwise)
+    ctx.strokeStyle = isHighlighted ? '#fbbf24' : '#ffffff' // golden-400
+    ctx.lineWidth = isHighlighted ? 3 / globalScale : 1.5 / globalScale
     ctx.stroke()
+
+    // Draw outer glow for highlighted nodes
+    if (isHighlighted) {
+      ctx.beginPath()
+      ctx.arc(node.x, node.y, nodeRadius + 2 / globalScale, 0, 2 * Math.PI)
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)' // golden with opacity
+      ctx.lineWidth = 4 / globalScale
+      ctx.stroke()
+    }
 
     // Draw label
     ctx.font = `${fontSize}px Sans-Serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillStyle = '#333333'
+    ctx.fillStyle = isHighlighted ? '#92400e' : '#333333' // darker text for highlighted
     ctx.fillText(label, node.x, node.y + nodeRadius + fontSize)
-  }, [])
+  }, [highlightedPath])
 
   // Custom link canvas rendering
   const paintLink = useCallback((link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
@@ -122,13 +134,21 @@ export function NetworkGraphCanvas({
 
     if (typeof start !== 'object' || typeof end !== 'object') return
 
-    const lineWidth = (link.width || 1) / globalScale
+    // Check if this link is part of the highlighted path
+    const isHighlighted = highlightedPath.length > 1 && (
+      (highlightedPath.indexOf(start.id) !== -1 &&
+       highlightedPath.indexOf(end.id) === highlightedPath.indexOf(start.id) + 1) ||
+      (highlightedPath.indexOf(end.id) !== -1 &&
+       highlightedPath.indexOf(start.id) === highlightedPath.indexOf(end.id) + 1)
+    )
 
-    ctx.strokeStyle = link.color || '#cccccc'
+    const lineWidth = isHighlighted ? 4 / globalScale : (link.width || 1) / globalScale
+
+    ctx.strokeStyle = isHighlighted ? '#fbbf24' : (link.color || '#cccccc') // golden if highlighted
     ctx.lineWidth = lineWidth
 
-    // Draw dashed line for lower confidence
-    if (link.confidence === 'POSSIBLE' || link.confidence === 'SUSPECTED') {
+    // Draw dashed line for lower confidence (unless highlighted)
+    if (!isHighlighted && (link.confidence === 'POSSIBLE' || link.confidence === 'SUSPECTED')) {
       ctx.setLineDash([5 / globalScale, 5 / globalScale])
     } else {
       ctx.setLineDash([])
@@ -158,12 +178,12 @@ export function NetworkGraphCanvas({
     ctx.lineTo(-arrowLength, arrowWidth / 2)
     ctx.closePath()
 
-    ctx.fillStyle = link.color || '#cccccc'
+    ctx.fillStyle = isHighlighted ? '#fbbf24' : (link.color || '#cccccc')
     ctx.fill()
     ctx.restore()
 
     ctx.setLineDash([])
-  }, [])
+  }, [highlightedPath])
 
   return (
     <div className="relative" style={{ width, height }}>

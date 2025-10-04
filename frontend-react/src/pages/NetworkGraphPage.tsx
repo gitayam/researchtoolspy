@@ -66,15 +66,134 @@ export function NetworkGraphPage() {
           const data = await response.json()
           setRelationships(data.relationships || [])
 
-          // Collect all unique entity IDs
-          const entityIds = new Set<string>()
-          const entityInfo: Record<string, { name: string; type: EntityType }> = {}
+          // Collect all unique entity IDs grouped by type
+          const entityIdsByType: Record<EntityType, Set<string>> = {
+            ACTOR: new Set(),
+            SOURCE: new Set(),
+            EVENT: new Set(),
+            PLACE: new Set(),
+            BEHAVIOR: new Set(),
+            EVIDENCE: new Set()
+          }
 
           data.relationships.forEach((rel: Relationship) => {
-            entityIds.add(rel.source_entity_id)
-            entityIds.add(rel.target_entity_id)
+            entityIdsByType[rel.source_entity_type].add(rel.source_entity_id)
+            entityIdsByType[rel.target_entity_type].add(rel.target_entity_id)
+          })
 
-            // Store entity type info
+          // Fetch actual entity names from API
+          const entityInfo: Record<string, { name: string; type: EntityType }> = {}
+
+          // Fetch actors
+          if (entityIdsByType.ACTOR.size > 0) {
+            try {
+              const actorResponse = await fetch(`/api/actors?workspace_id=${workspaceId}`)
+              if (actorResponse.ok) {
+                const actorData = await actorResponse.json()
+                const actorIds = entityIdsByType.ACTOR
+                actorData.actors?.forEach((actor: any) => {
+                  if (actorIds.has(actor.id)) {
+                    entityInfo[actor.id] = { name: actor.name, type: 'ACTOR' }
+                  }
+                })
+              }
+            } catch (err) {
+              console.error('Failed to load actor names:', err)
+            }
+          }
+
+          // Fetch events
+          if (entityIdsByType.EVENT.size > 0) {
+            try {
+              const eventResponse = await fetch(`/api/events?workspace_id=${workspaceId}`)
+              if (eventResponse.ok) {
+                const eventData = await eventResponse.json()
+                const eventIds = entityIdsByType.EVENT
+                eventData.events?.forEach((event: any) => {
+                  if (eventIds.has(event.id)) {
+                    entityInfo[event.id] = { name: event.title, type: 'EVENT' }
+                  }
+                })
+              }
+            } catch (err) {
+              console.error('Failed to load event names:', err)
+            }
+          }
+
+          // Fetch sources
+          if (entityIdsByType.SOURCE.size > 0) {
+            try {
+              const sourceResponse = await fetch(`/api/sources?workspace_id=${workspaceId}`)
+              if (sourceResponse.ok) {
+                const sourceData = await sourceResponse.json()
+                const sourceIds = entityIdsByType.SOURCE
+                sourceData.sources?.forEach((source: any) => {
+                  if (sourceIds.has(source.id)) {
+                    entityInfo[source.id] = { name: source.name, type: 'SOURCE' }
+                  }
+                })
+              }
+            } catch (err) {
+              console.error('Failed to load source names:', err)
+            }
+          }
+
+          // Fetch places
+          if (entityIdsByType.PLACE.size > 0) {
+            try {
+              const placeResponse = await fetch(`/api/places?workspace_id=${workspaceId}`)
+              if (placeResponse.ok) {
+                const placeData = await placeResponse.json()
+                const placeIds = entityIdsByType.PLACE
+                placeData.places?.forEach((place: any) => {
+                  if (placeIds.has(place.id)) {
+                    entityInfo[place.id] = { name: place.name, type: 'PLACE' }
+                  }
+                })
+              }
+            } catch (err) {
+              console.error('Failed to load place names:', err)
+            }
+          }
+
+          // Fetch behaviors
+          if (entityIdsByType.BEHAVIOR.size > 0) {
+            try {
+              const behaviorResponse = await fetch(`/api/behaviors?workspace_id=${workspaceId}`)
+              if (behaviorResponse.ok) {
+                const behaviorData = await behaviorResponse.json()
+                const behaviorIds = entityIdsByType.BEHAVIOR
+                behaviorData.behaviors?.forEach((behavior: any) => {
+                  if (behaviorIds.has(behavior.id)) {
+                    entityInfo[behavior.id] = { name: behavior.title, type: 'BEHAVIOR' }
+                  }
+                })
+              }
+            } catch (err) {
+              console.error('Failed to load behavior names:', err)
+            }
+          }
+
+          // Fetch evidence
+          if (entityIdsByType.EVIDENCE.size > 0) {
+            try {
+              const evidenceResponse = await fetch(`/api/evidence?workspace_id=${workspaceId}`)
+              if (evidenceResponse.ok) {
+                const evidenceData = await evidenceResponse.json()
+                const evidenceIds = entityIdsByType.EVIDENCE
+                evidenceData.evidence?.forEach((evidence: any) => {
+                  if (evidenceIds.has(evidence.id)) {
+                    entityInfo[evidence.id] = { name: evidence.title, type: 'EVIDENCE' }
+                  }
+                })
+              }
+            } catch (err) {
+              console.error('Failed to load evidence names:', err)
+            }
+          }
+
+          // Fallback: Use placeholder names for any entities we couldn't fetch
+          data.relationships.forEach((rel: Relationship) => {
             if (!entityInfo[rel.source_entity_id]) {
               entityInfo[rel.source_entity_id] = {
                 name: `${rel.source_entity_type.substring(0, 1)}${rel.source_entity_id.substring(0, 6)}`,
@@ -89,8 +208,6 @@ export function NetworkGraphPage() {
             }
           })
 
-          // TODO: Fetch actual entity names from API
-          // For now, use generated names
           setEntityNames(entityInfo)
         }
       } catch (error) {
@@ -294,6 +411,7 @@ export function NetworkGraphPage() {
             onBackgroundClick={handleBackgroundClick}
             width={containerSize.width}
             height={containerSize.height}
+            highlightedPath={highlightedPath}
           />
         </div>
 
@@ -375,7 +493,6 @@ export function NetworkGraphPage() {
         onPathSelect={(path) => {
           setHighlightedPath(path)
           setPathFinderOpen(false)
-          // TODO: Implement path highlighting in graph
         }}
       />
     </div>
