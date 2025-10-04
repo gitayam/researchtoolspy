@@ -391,6 +391,15 @@ export interface NetworkPattern {
   description: string
 }
 
+export interface NetworkAnomaly {
+  type: 'ISOLATED' | 'SUPER_CONNECTED' | 'BRIDGE' | 'STRUCTURAL_HOLE' | 'SUSPICIOUS_LINK'
+  nodeIds: string[]
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  score: number
+  description: string
+  recommendation: string
+}
+
 export function detectPatterns(
   nodes: GraphNode[],
   edges: GraphEdge[]
@@ -492,4 +501,242 @@ function detectStars(
   })
 
   return stars.sort((a, b) => b.connections - a.connections)
+}
+
+/**
+ * Detect network anomalies
+ */
+export function detectAnomalies(
+  nodes: GraphNode[],
+  edges: GraphEdge[]
+): NetworkAnomaly[] {
+  const anomalies: NetworkAnomaly[] = []
+  const adjacencyList = buildAdjacencyList(nodes, edges)
+  const nodeIds = nodes.map(n => n.id)
+
+  // Calculate basic statistics
+  const degrees = nodeIds.map(id => {
+    const adj = adjacencyList.get(id)
+    return (adj?.in.length || 0) + (adj?.out.length || 0)
+  })
+  const avgDegree = degrees.reduce((sum, d) => sum + d, 0) / nodeIds.length
+  const stdDev = Math.sqrt(
+    degrees.reduce((sum, d) => sum + Math.pow(d - avgDegree, 2), 0) / nodeIds.length
+  )
+
+  // 1. Detect isolated nodes (0 or 1 connections)
+  nodeIds.forEach(nodeId => {
+    const adj = adjacencyList.get(nodeId)
+    const degree = (adj?.in.length || 0) + (adj?.out.length || 0)
+
+    if (degree === 0) {
+      anomalies.push({
+        type: 'ISOLATED',
+        nodeIds: [nodeId],
+        severity: 'MEDIUM',
+        score: 0.6,
+        description: `Isolated node with no connections`,
+        recommendation: 'Verify if this entity should be connected or removed from the network'
+      })
+    } else if (degree === 1 && nodeIds.length > 10) {
+      anomalies.push({
+        type: 'ISOLATED',
+        nodeIds: [nodeId],
+        severity: 'LOW',
+        score: 0.3,
+        description: `Node with only 1 connection in network of ${nodeIds.length} nodes`,
+        recommendation: 'May indicate peripheral or newly added entity'
+      })
+    }
+  })
+
+  // 2. Detect super-connected nodes (outliers > 2 std dev above mean)
+  const threshold = avgDegree + (2 * stdDev)
+  nodeIds.forEach(nodeId => {
+    const adj = adjacencyList.get(nodeId)
+    const degree = (adj?.in.length || 0) + (adj?.out.length || 0)
+
+    if (degree > threshold && degree > 5) {
+      const severity: NetworkAnomaly['severity'] =
+        degree > avgDegree + (3 * stdDev) ? 'CRITICAL' :
+        degree > avgDegree + (2.5 * stdDev) ? 'HIGH' : 'MEDIUM'
+
+      anomalies.push({
+        type: 'SUPER_CONNECTED',
+        nodeIds: [nodeId],
+        severity,
+        score: Math.min((degree - avgDegree) / (3 * stdDev), 1),
+        description: `Hub node with ${degree} connections (avg: ${avgDegree.toFixed(1)})`,
+        recommendation: 'Central hub - may be critical for network connectivity or a data collection point'
+      })
+    }
+  })
+
+  // 3. Detect bridge nodes (high betweenness relative to degree)
+  const betweenness = calculateBetweennessCentrality(nodeIds, adjacencyList)
+  nodeIds.forEach(nodeId => {
+    const adj = adjacencyList.get(nodeId)
+    const degree = (adj?.in.length || 0) + (adj?.out.length || 0)
+    const bet = betweenness[nodeId] || 0
+
+    // High betweenness but low degree = bridge
+    if (bet > 0.1 && degree < avgDegree && degree > 2) {
+      anomalies.push({
+        type: 'BRIDGE',
+        nodeIds: [nodeId],
+        severity: 'HIGH',
+        score: bet,
+        description: `Bridge node connecting separate network regions (betweenness: ${bet.toFixed(3)})`,
+        recommendation: 'Critical connector - removal may fragment the network'
+      })
+    }
+  })
+
+  // 4. Detect structural holes (nodes connecting disconnected groups)
+  nodeIds.forEach(nodeId => {
+    const adj = adjacencyList.get(nodeId)
+    if (!adj) return
+
+    const neighbors = [...new Set([...adj.in, ...adj.out])]
+    if (neighbors.length < 3) return
+
+    // Check if neighbors are NOT connected to each other
+    let disconnectedNeighborPairs = 0
+    for (let i = 0; i < neighbors.length; i++) {
+      for (let j = i + 1; j < neighbors.length; j++) {
+        const n1Adj = adjacencyList.get(neighbors[i])
+        const isConnected = n1Adj &&
+          (n1Adj.out.includes(neighbors[j]) || n1Adj.in.includes(neighbors[j]))
+
+        if (!isConnected) {
+          disconnectedNeighborPairs++
+        }
+      }
+    }
+
+    const totalPairs = (neighbors.length * (neighbors.length - 1)) / 2
+    const disconnectedRatio = disconnectedNeighborPairs / totalPairs
+
+    if (disconnectedRatio > 0.7 && neighbors.length >= 3) {
+      anomalies.push({
+        type: 'STRUCTURAL_HOLE',
+        nodeIds: [nodeId],
+        severity: 'MEDIUM',
+        score: disconnectedRatio,
+        description: `Structural hole - connects ${neighbors.length} otherwise unconnected entities`,
+        recommendation: 'Broker position - controls information flow between groups'
+      })
+    }
+  })
+
+  // 5. Detect suspicious links (if edge data includes confidence/weight)
+  edges.forEach(edge => {
+    const weight = edge.weight || 0.5
+    const confidence = edge.confidence
+
+    // Low confidence but high weight = suspicious
+    if (confidence === 'SUSPECTED' && weight > 0.8) {
+      anomalies.push({
+        type: 'SUSPICIOUS_LINK',
+        nodeIds: [edge.source, edge.target],
+        severity: 'MEDIUM',
+        score: weight - 0.5,
+        description: `High-weight relationship (${weight.toFixed(2)}) with low confidence (SUSPECTED)`,
+        recommendation: 'Verify this relationship - high importance but unconfirmed'
+      })
+    }
+
+    // Confirmed but very low weight = unusual
+    if (confidence === 'CONFIRMED' && weight < 0.2) {
+      anomalies.push({
+        type: 'SUSPICIOUS_LINK',
+        nodeIds: [edge.source, edge.target],
+        severity: 'LOW',
+        score: 0.2 - weight,
+        description: `Confirmed relationship but very low weight (${weight.toFixed(2)})`,
+        recommendation: 'May indicate a weak or historical connection'
+      })
+    }
+  })
+
+  // Sort by severity and score
+  const severityOrder = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }
+  return anomalies.sort((a, b) => {
+    const severityDiff = severityOrder[b.severity] - severityOrder[a.severity]
+    return severityDiff !== 0 ? severityDiff : b.score - a.score
+  })
+}
+
+/**
+ * Find shortest path between two nodes (BFS)
+ */
+export function findShortestPath(
+  sourceId: string,
+  targetId: string,
+  nodes: GraphNode[],
+  edges: GraphEdge[]
+): { path: string[]; distance: number } | null {
+  const adjacencyList = buildAdjacencyList(nodes, edges)
+
+  const queue: Array<{ node: string; path: string[] }> = [{ node: sourceId, path: [sourceId] }]
+  const visited = new Set<string>([sourceId])
+
+  while (queue.length > 0) {
+    const { node, path } = queue.shift()!
+
+    if (node === targetId) {
+      return { path, distance: path.length - 1 }
+    }
+
+    const adj = adjacencyList.get(node)
+    if (!adj) continue
+
+    const neighbors = [...new Set([...adj.out, ...adj.in])]
+
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor)
+        queue.push({ node: neighbor, path: [...path, neighbor] })
+      }
+    }
+  }
+
+  return null // No path found
+}
+
+/**
+ * Find all paths between two nodes (limited depth)
+ */
+export function findAllPaths(
+  sourceId: string,
+  targetId: string,
+  nodes: GraphNode[],
+  edges: GraphEdge[],
+  maxDepth: number = 5
+): string[][] {
+  const adjacencyList = buildAdjacencyList(nodes, edges)
+  const paths: string[][] = []
+
+  function dfs(currentNode: string, path: string[], depth: number) {
+    if (depth > maxDepth) return
+
+    if (currentNode === targetId) {
+      paths.push([...path])
+      return
+    }
+
+    const adj = adjacencyList.get(currentNode)
+    if (!adj) return
+
+    const neighbors = [...new Set([...adj.out, ...adj.in])]
+
+    for (const neighbor of neighbors) {
+      if (!path.includes(neighbor)) {
+        dfs(neighbor, [...path, neighbor], depth + 1)
+      }
+    }
+  }
+
+  dfs(sourceId, [sourceId], 0)
+  return paths
 }
