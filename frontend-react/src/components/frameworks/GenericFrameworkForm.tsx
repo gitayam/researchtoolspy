@@ -1,4 +1,4 @@
-import { useState, memo, useEffect } from 'react'
+import { useState, memo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -387,10 +387,19 @@ export function GenericFrameworkForm({
   }, [frameworkId, mode])
 
   // Auto-save draft to localStorage every 30 seconds
+  // Only auto-save in create mode to avoid overwriting existing analyses
   useEffect(() => {
-    const draftKey = `draft_${frameworkType}_${frameworkId || 'new'}`
+    if (mode !== 'create') return // Don't auto-save in edit mode
+
+    const draftKey = `draft_${frameworkType}_new`
 
     const interval = setInterval(() => {
+      // Only save if there's actual content
+      const hasContent = title.trim() || description.trim() ||
+        Object.values(sectionData).some(items => items.length > 0)
+
+      if (!hasContent) return
+
       const draftData = {
         title,
         description,
@@ -399,18 +408,21 @@ export function GenericFrameworkForm({
       }
       try {
         localStorage.setItem(draftKey, JSON.stringify(draftData))
-        console.log(`Auto-saved draft for ${frameworkType}`)
+        // Removed console.log to reduce noise
       } catch (error) {
         console.error('Failed to auto-save draft:', error)
       }
     }, 30000) // 30 seconds
 
     return () => clearInterval(interval)
-  }, [title, description, sectionData, frameworkType, frameworkId])
+  }, [title, description, sectionData, frameworkType, mode])
 
   // Restore draft on mount if available
+  // Using a ref to ensure this only runs once
+  const draftRestored = useRef(false)
+
   useEffect(() => {
-    if (mode === 'create' && !initialData) {
+    if (mode === 'create' && !initialData && !draftRestored.current) {
       const draftKey = `draft_${frameworkType}_new`
       const savedDraft = localStorage.getItem(draftKey)
 
@@ -421,10 +433,24 @@ export function GenericFrameworkForm({
 
           // Only restore if draft is less than 24 hours old
           if (draftAge < 24 * 60 * 60 * 1000) {
-            if (confirm(`Found unsaved draft from ${new Date(draft.timestamp).toLocaleString()}. Restore it?`)) {
-              setTitle(draft.title || '')
-              setDescription(draft.description || '')
-              setSectionData(draft.sectionData || {})
+            // Check if draft has actual content before prompting
+            const hasContent = (draft.title?.trim() || '') ||
+                              (draft.description?.trim() || '') ||
+                              Object.values(draft.sectionData || {}).some((items: any) => items.length > 0)
+
+            if (hasContent) {
+              const draftDate = new Date(draft.timestamp).toLocaleString()
+              if (confirm(`Found unsaved draft from ${draftDate}. Restore it?`)) {
+                setTitle(draft.title || '')
+                setDescription(draft.description || '')
+                setSectionData(draft.sectionData || {})
+              } else {
+                // User declined, clean up the draft
+                localStorage.removeItem(draftKey)
+              }
+            } else {
+              // Empty draft, just remove it
+              localStorage.removeItem(draftKey)
             }
           } else {
             // Clean up old drafts
@@ -432,8 +458,11 @@ export function GenericFrameworkForm({
           }
         } catch (error) {
           console.error('Failed to restore draft:', error)
+          // Clean up corrupted draft
+          localStorage.removeItem(draftKey)
         }
       }
+      draftRestored.current = true
     }
   }, [mode, frameworkType, initialData])
 
