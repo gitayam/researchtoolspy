@@ -172,13 +172,18 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
 
           // Only restore if draft is less than 24 hours old
           if (draftAge < 24 * 60 * 60 * 1000) {
-            if (confirm(`Found unsaved SWOT draft from ${new Date(draft.timestamp).toLocaleString()}. Restore it?`)) {
+            const draftDate = new Date(draft.timestamp).toLocaleString()
+            const message = `You have an unsaved SWOT draft from ${draftDate}.\n\nWould you like to restore it and continue where you left off?\n\nClick OK to restore, or Cancel to start fresh.`
+            if (confirm(message)) {
               setTitle(draft.title || '')
               setDescription(draft.description || '')
               setStrengths(draft.strengths || [])
               setWeaknesses(draft.weaknesses || [])
               setOpportunities(draft.opportunities || [])
               setThreats(draft.threats || [])
+            } else {
+              // User declined, clean up the draft
+              localStorage.removeItem(draftKey)
             }
           } else {
             // Clean up old drafts

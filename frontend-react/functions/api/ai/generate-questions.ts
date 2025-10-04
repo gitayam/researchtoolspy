@@ -52,7 +52,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const existingQuestions = Object.entries(existingData)
       .map(([category, items]) => {
         if (Array.isArray(items)) {
-          return `${category}: ${items.map((item: any) => 
+          return `${category}: ${items.map((item: any) =>
             typeof item === 'object' && item.question ? item.question : item
           ).join(', ')}`
         }
@@ -61,8 +61,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       .filter(Boolean)
       .join('\n')
 
+    // Check if there are any existing questions
+    const hasExistingQuestions = existingQuestions.trim().length > 0
+
+    // If no existing questions, generate initial questions from context
+    // If existing questions, generate follow-up questions
     const prompt = framework === 'starbursting'
-      ? `You are analyzing an existing Starbursting analysis. Your task is to generate SPECIFIC, TARGETED follow-up questions that:
+      ? (hasExistingQuestions
+          ? `You are analyzing an existing Starbursting analysis. Your task is to generate SPECIFIC, TARGETED follow-up questions that:
 - Build directly upon the existing questions and their context
 - Identify information gaps that need further investigation
 - Are concrete and actionable (not generic or broad)
@@ -80,7 +86,21 @@ Generate exactly 2 specific, contextual follow-up questions for each category. E
 
 Return ONLY valid JSON in this exact format:
 {"who": ["Specific question 1?", "Specific question 2?"], "what": ["Specific question 1?", "Specific question 2?"], "when": ["Specific question 1?", "Specific question 2?"], "where": ["Specific question 1?", "Specific question 2?"], "why": ["Specific question 1?", "Specific question 2?"], "how": ["Specific question 1?", "Specific question 2?"]}`
-      : `You are analyzing an existing DIME framework analysis. Your task is to generate SPECIFIC, TARGETED follow-up questions that:
+          : `You are analyzing a topic for Starbursting analysis. Your task is to generate SPECIFIC, TARGETED questions based on the description provided.
+
+Topic/Description:
+${analysisContext || 'No description provided'}
+
+Generate exactly 3 specific, insightful questions for each category (Who, What, When, Where, Why, How). Each question must:
+- Be directly related to the topic described
+- Be specific and actionable (not generic)
+- Help uncover critical information about the topic
+- Be appropriate for the category (Who = people/stakeholders, What = actions/things, When = timing, Where = location, Why = reasons/motivations, How = methods/processes)
+
+Return ONLY valid JSON in this exact format:
+{"who": ["Question 1?", "Question 2?", "Question 3?"], "what": ["Question 1?", "Question 2?", "Question 3?"], "when": ["Question 1?", "Question 2?", "Question 3?"], "where": ["Question 1?", "Question 2?", "Question 3?"], "why": ["Question 1?", "Question 2?", "Question 3?"], "how": ["Question 1?", "Question 2?", "Question 3?"]}`)
+      : (hasExistingQuestions
+          ? `You are analyzing an existing DIME framework analysis. Your task is to generate SPECIFIC, TARGETED follow-up questions that:
 - Build directly upon the existing questions and their context
 - Identify information gaps in each DIME dimension
 - Are concrete and actionable (not generic or broad)
@@ -98,6 +118,19 @@ Generate exactly 2 specific, contextual follow-up questions for each DIME dimens
 
 Return ONLY valid JSON in this exact format:
 {"diplomatic": ["Specific question 1?", "Specific question 2?"], "information": ["Specific question 1?", "Specific question 2?"], "military": ["Specific question 1?", "Specific question 2?"], "economic": ["Specific question 1?", "Specific question 2?"]}`
+          : `You are analyzing a topic for DIME framework analysis. Your task is to generate SPECIFIC, TARGETED questions based on the description provided.
+
+Topic/Description:
+${analysisContext || 'No description provided'}
+
+Generate exactly 3 specific, insightful questions for each DIME dimension (Diplomatic, Information, Military, Economic). Each question must:
+- Be directly related to the topic described
+- Be specific and actionable (not generic)
+- Help analyze the dimension's impact and considerations
+- Be appropriate for the dimension (Diplomatic = relationships/negotiations, Information = intelligence/communications, Military = force/capabilities, Economic = resources/sanctions)
+
+Return ONLY valid JSON in this exact format:
+{"diplomatic": ["Question 1?", "Question 2?", "Question 3?"], "information": ["Question 1?", "Question 2?", "Question 3?"], "military": ["Question 1?", "Question 2?", "Question 3?"], "economic": ["Question 1?", "Question 2?", "Question 3?"]}`)
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -110,7 +143,9 @@ Return ONLY valid JSON in this exact format:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert intelligence analyst specializing in identifying critical information gaps. Generate SPECIFIC, CONTEXTUAL follow-up questions that build upon existing analysis. Your questions must be concrete, actionable, and reference specific details from the analysis - never generic or broad. Return ONLY valid JSON with no other text.'
+            content: hasExistingQuestions
+              ? 'You are an expert intelligence analyst specializing in identifying critical information gaps. Generate SPECIFIC, CONTEXTUAL follow-up questions that build upon existing analysis. Your questions must be concrete, actionable, and reference specific details from the analysis - never generic or broad. Return ONLY valid JSON with no other text.'
+              : 'You are an expert intelligence analyst specializing in generating insightful questions for analysis. Generate SPECIFIC, TARGETED initial questions based on the topic description. Your questions must be concrete, actionable, and directly related to the topic - never generic or broad. Return ONLY valid JSON with no other text.'
           },
           {
             role: 'user',
