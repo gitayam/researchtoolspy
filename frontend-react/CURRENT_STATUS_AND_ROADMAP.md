@@ -1,9 +1,9 @@
 # 📊 Current Status & Roadmap - October 2025
 
-**Last Updated:** October 3, 2025 (Evidence Enhancement Update)
+**Last Updated:** October 4, 2025 (Q&A Framework Enhancement + AI Export System)
 **Current Branch:** main
 **Production:** https://researchtools.net
-**Status:** Entity System Phase 1 Complete ✅ (100%) | Evidence Enhanced with Source Classification & EVE ✅ | Phase 2 UI Ready to Start 🚀
+**Status:** Entity System Phase 1 Complete ✅ (100%) | Q&A Frameworks + AI-Enhanced Exports ✅ (100%) | Evidence Enhanced ✅ | Phase 2 UI Ready to Start 🚀
 
 ---
 
@@ -487,6 +487,122 @@ npx wrangler d1 execute researchtoolspy-dev --file=schema/d1-schema.sql
 **Build Status**: ✅ Successful (2.47s, no errors)
 **Bundle Size**: 1,788.33 kB (514.40 kB gzipped)
 
+### ✅ COMPLETED: Q&A Framework Enhancement + AI Export System (October 4, 2025) ⭐
+**Implementation Time**: 8-10 hours
+**Deployment:** https://c028151c.researchtoolspy.pages.dev
+
+**Phase: Question-Answer Framework Support + Comprehensive Export System**
+
+**✅ Q&A Framework Implementation** (COMPLETE)
+- ✅ Added Question-Answer item type support to framework system
+- ✅ Updated type system with QuestionAnswerItem and TextFrameworkItem union types
+- ✅ Type guards: `isQuestionAnswerItem()` and `isTextItem()`
+- ✅ Backward compatibility with `normalizeItem()` helper
+- ✅ Framework configs updated with `itemType: 'qa'` for Starbursting and DIME
+- ✅ AI URL scraper now extracts Q&A pairs from content:
+  - Questions generated based on framework type (5W+H for Starbursting, DIME dimensions)
+  - Answers extracted from article content when available
+  - Empty answers when information not found in source
+- ✅ GenericFrameworkForm component enhanced with Q&A input UI:
+  - Question input field
+  - Answer textarea (can be left blank)
+  - "Add Question & Answer" button
+  - Q&A display with formatted labels
+- ✅ GenericFrameworkView component displays Q&A pairs:
+  - "Q:" and "A:" labels with proper formatting
+  - Shows "No answer provided" for blank answers
+  - Indented answer display
+
+**✅ AIUrlScraper Display Fix** (COMPLETE)
+- ✅ Fixed Q&A pair preview display (was showing `[object Object]`)
+- ✅ Added proper Q&A rendering with formatted cards
+- ✅ Question displayed in bold
+- ✅ Answer indented and styled
+- ✅ Shows "No answer extracted" for empty answers
+- ✅ File: `src/components/ai/AIUrlScraper.tsx:217-225`
+
+**✅ Comprehensive Export System Enhancement** (COMPLETE)
+- ✅ **PDF Exports** (751 lines total in report-generator.ts)
+  - Full framework sections with all data (not just metadata)
+  - Q&A format: bold questions with indented answers
+  - Automatic page breaks for long content
+  - Framework sections with proper headings
+  - AI insights and recommendations sections
+  - Proper text wrapping and formatting
+  - Helper function `checkPageBreak()` for pagination
+  - File: `src/lib/report-generator.ts:226-374`
+
+- ✅ **PowerPoint Exports**
+  - Professional slide layouts for each framework section
+  - Q&A formatting: 3 pairs per slide, 6 text items per slide
+  - Section headers with pagination (e.g., "Who Questions (1/3)")
+  - Proper spacing and typography
+  - Color-coded headings
+  - AI insights and recommendations slides
+  - File: `src/lib/report-generator.ts:379-581`
+
+- ✅ **Word Document Exports** (already working)
+  - Q&A bullet points with indentation
+  - Hierarchical structure maintained
+
+- ✅ **CSV Exports** (already working)
+  - Question/Answer columns for Q&A frameworks
+  - Section/Question/Answer format
+
+**✅ AI Enhancement Prompts for All Frameworks** (COMPLETE)
+- ✅ Added comprehensive AI prompts for 7 additional frameworks:
+  - **Starbursting**: 5W+H question analysis with gap identification
+  - **COG**: Center of Gravity strategic insights
+  - **CAUSEWAY**: PUTAR methodology with influence operations
+  - **DOTMLPF**: Capability analysis across all domains
+  - **PEST**: Environmental factor analysis
+  - **Stakeholder**: Power/interest dynamics and engagement
+  - **Behavior**: Pattern analysis and intervention strategies
+
+- ✅ Each framework gets three AI-generated sections:
+  - **Executive Summary** (BLUF format, 2-3 sentences)
+  - **Key Insights** (4-6 strategic insights with patterns)
+  - **Actionable Recommendations** (4-6 specific recommendations)
+
+- ✅ Previously had prompts for: SWOT, ACH, DIME, PMESII-PT, Deception
+- ✅ Now **all 13 frameworks** have tailored AI enhancement prompts
+- ✅ Generic fallback prompts for any future frameworks
+- ✅ File: `functions/api/ai/report-enhance.ts` (269 new lines)
+
+**TypeScript Type Definitions**:
+- ✅ `src/types/frameworks.ts` enhanced with:
+  - QuestionAnswerItem interface: `{id, question, answer}`
+  - TextFrameworkItem interface: `{id, text}`
+  - FrameworkItem union type
+  - Type guard functions
+  - normalizeItem() helper for backward compatibility
+
+**Components Updated**:
+- ✅ `src/config/framework-configs.ts` - Added `itemType` property
+- ✅ `src/components/frameworks/GenericFrameworkForm.tsx` - Q&A input UI
+- ✅ `src/components/frameworks/GenericFrameworkView.tsx` - Q&A display
+- ✅ `src/components/ai/AIUrlScraper.tsx` - Q&A preview rendering
+- ✅ `src/lib/report-generator.ts` - Complete export system (751 lines)
+- ✅ `functions/api/ai/report-enhance.ts` - AI prompts for all frameworks
+- ✅ `functions/api/ai/scrape-url.ts` - Q&A extraction from URLs
+
+**Git Commits**:
+- ✅ `6ca7da7` - fix(url-scraper): properly display Q&A pairs in extracted data preview
+- ✅ `c7cadd79` - feat(reports): add comprehensive Q&A export support for all formats
+- ✅ `c0c291b1` - feat(ai): add comprehensive AI enhancement prompts for all frameworks
+
+**Build Status**: ✅ Successful (3.46s, no errors)
+**Bundle Size**: 2,695.41 kB (781.09 kB gzipped)
+
+**Key Features**:
+- ✅ Q&A frameworks (Starbursting, DIME) with question-answer pairs
+- ✅ AI extracts both questions AND answers from source URLs
+- ✅ Users can add/edit questions and answers manually
+- ✅ Export to PDF, PowerPoint, Word, CSV with proper Q&A formatting
+- ✅ AI-enhanced exports with summaries, insights, recommendations for ALL frameworks
+- ✅ Toggle "Include AI Insights" in export menu
+- ✅ Framework-specific AI prompts tailored to each methodology
+
 ### Sprint 3 Status: ✅ EXCEEDED (4/4 tools complete)
 
 ### ✅ COMPLETED: Advanced Intelligence Analysis (28 hours) ⭐
@@ -595,20 +711,26 @@ npx wrangler d1 execute researchtoolspy-dev --file=schema/d1-schema.sql
 ## 📝 TECHNICAL DEBT
 
 ### Code Quality
-- 32 TODO/placeholder comments to address
+- **18 TODO comments to address** (down from 32) ⭐
+  - See `UNFINISHED_ITEMS_LIST.md` for complete breakdown
+  - 14 HIGH priority (evidence linking, MOM modals)
+  - 3 MEDIUM priority (network graph, batch AI)
+  - 1 LOW priority (authentication)
 - No unit tests yet
 - No integration tests
 - Limited error handling in forms
 
 ### Performance
-- Bundle size: 591KB (needs code splitting)
+- Bundle size: 2,695KB (needs code splitting) - **INCREASED due to export libraries**
 - No lazy loading
 - No caching strategy
+- N+1 queries in entity name loading
 
 ### Documentation
 - API documentation needed
 - Component documentation needed
 - Deployment guide needs update
+- ✅ UNFINISHED_ITEMS_LIST.md created (October 4, 2025)
 
 ---
 
@@ -637,5 +759,24 @@ npx wrangler d1 execute researchtoolspy-dev --file=schema/d1-schema.sql
 
 ---
 
-**Last Updated:** October 1, 2025
+**Last Updated:** October 4, 2025
 **Next Review:** October 8, 2025
+
+## 📋 Recent Updates (October 4, 2025)
+
+### Completed This Session:
+1. ✅ **Q&A Framework System** - Question-answer pairs for Starbursting and DIME
+2. ✅ **AI URL Scraper Enhancement** - Extracts Q&A from articles with AI
+3. ✅ **Comprehensive Export System** - PDF, PowerPoint, Word, CSV with Q&A support
+4. ✅ **AI Enhancement for ALL Frameworks** - 13 frameworks now have AI prompts
+5. ✅ **Documentation** - Created UNFINISHED_ITEMS_LIST.md with 18 TODOs cataloged
+
+### Next Priority Sprint:
+**Evidence Linking System** (Week of Oct 7)
+- Implement 8 evidence linking API endpoints
+- Complete DeceptionView and GenericFrameworkView integration
+- Add relationship auto-generation for COG/Causeway frameworks
+- Build MOM assessment modals for Actor/Event pages
+
+**Estimated Time:** 14-20 hours
+**Success Criteria:** Evidence fully integrated with frameworks, relationships auto-generate, network graph updates in real-time
