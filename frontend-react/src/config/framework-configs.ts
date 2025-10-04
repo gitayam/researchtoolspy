@@ -276,36 +276,37 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
   'stakeholder': {
     type: 'stakeholder',
     title: 'Stakeholder Analysis',
-    description: 'Stakeholder mapping and influence assessment',
+    description: 'Power/Interest Matrix - Comprehensive stakeholder mapping and engagement planning',
+    itemType: 'stakeholder' as 'text' | 'qa',
     sections: [
       {
         key: 'high_power_high_interest',
-        label: 'High Power, High Interest',
-        description: 'Manage closely - key players',
+        label: 'Key Players',
+        description: 'High Power, High Interest - Manage Closely: Engage actively, involve in decisions, build strong relationships',
         color: 'border-red-500',
         bgColor: 'bg-red-50 dark:bg-red-900/20',
         icon: '👑'
       },
       {
         key: 'high_power_low_interest',
-        label: 'High Power, Low Interest',
-        description: 'Keep satisfied',
+        label: 'Keep Satisfied',
+        description: 'High Power, Low Interest - Keep Satisfied: Regular updates, ensure concerns addressed, maintain goodwill',
         color: 'border-orange-500',
         bgColor: 'bg-orange-50 dark:bg-orange-900/20',
         icon: '🤝'
       },
       {
         key: 'low_power_high_interest',
-        label: 'Low Power, High Interest',
-        description: 'Keep informed',
+        label: 'Keep Informed',
+        description: 'Low Power, High Interest - Keep Informed: Regular communication, leverage as advocates, consult on issues',
         color: 'border-blue-500',
         bgColor: 'bg-blue-50 dark:bg-blue-900/20',
         icon: '📢'
       },
       {
         key: 'low_power_low_interest',
-        label: 'Low Power, Low Interest',
-        description: 'Monitor - minimal effort',
+        label: 'Monitor',
+        description: 'Low Power, Low Interest - Monitor: Minimal effort, periodic updates, watch for changes in status',
         color: 'border-gray-500',
         bgColor: 'bg-gray-50 dark:bg-gray-900/20',
         icon: '👥'

@@ -63,8 +63,26 @@ export interface QuestionAnswerItem {
   answer: string
 }
 
+// Stakeholder item with rich metadata
+export interface StakeholderItem {
+  id: string
+  name: string
+  role?: string
+  organization?: string
+  contact_email?: string
+  contact_phone?: string
+  power_level: number // 1-10
+  interest_level: number // 1-10
+  position: 'supporter' | 'neutral' | 'opposer' | 'unknown'
+  engagement_strategy?: string
+  communication_frequency?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'as_needed'
+  key_concerns?: string[]
+  influence_tactics?: string[]
+  notes?: string
+}
+
 // Union type for framework items
-export type FrameworkItem = TextFrameworkItem | QuestionAnswerItem
+export type FrameworkItem = TextFrameworkItem | QuestionAnswerItem | StakeholderItem
 
 // Type guards
 export function isQuestionAnswerItem(item: FrameworkItem): item is QuestionAnswerItem {
@@ -72,7 +90,11 @@ export function isQuestionAnswerItem(item: FrameworkItem): item is QuestionAnswe
 }
 
 export function isTextItem(item: FrameworkItem): item is TextFrameworkItem {
-  return 'text' in item
+  return 'text' in item && !('question' in item) && !('name' in item)
+}
+
+export function isStakeholderItem(item: FrameworkItem): item is StakeholderItem {
+  return 'name' in item && 'power_level' in item && 'interest_level' in item
 }
 
 // Helper to normalize items (for backward compatibility)

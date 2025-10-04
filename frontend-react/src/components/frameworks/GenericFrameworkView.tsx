@@ -429,6 +429,65 @@ export function GenericFrameworkView({
         </CardContent>
       </Card>
 
+      {/* Stakeholder-Specific Engagement Recommendations */}
+      {frameworkType === 'stakeholder' && (
+        <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-xl">📋</span>
+              Engagement Strategy Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <h4 className="font-semibold text-red-700 dark:text-red-400">🎯 Priority Actions (Key Players)</h4>
+                <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                  <li>• Schedule regular 1-on-1 meetings ({data.high_power_high_interest?.length || 0} stakeholders)</li>
+                  <li>• Involve in major decision points</li>
+                  <li>• Build strong personal relationships</li>
+                  <li>• Seek input on strategy and direction</li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-semibold text-orange-700 dark:text-orange-400">🤝 Maintain Satisfaction</h4>
+                <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                  <li>• Send monthly progress updates ({data.high_power_low_interest?.length || 0} stakeholders)</li>
+                  <li>• Address concerns proactively</li>
+                  <li>• Keep satisfied but don't over-engage</li>
+                  <li>• Monitor for changes in interest level</li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-semibold text-blue-700 dark:text-blue-400">📢 Communication Plan</h4>
+                <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                  <li>• Regular newsletters/updates ({data.low_power_high_interest?.length || 0} stakeholders)</li>
+                  <li>• Leverage as advocates and champions</li>
+                  <li>• Consult on relevant issues</li>
+                  <li>• Build grassroots support</li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-700 dark:text-gray-400">👀 Monitor & Watch</h4>
+                <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                  <li>• Periodic updates only ({data.low_power_low_interest?.length || 0} stakeholders)</li>
+                  <li>• Minimal engagement effort</li>
+                  <li>• Watch for status changes</li>
+                  <li>• Include in broad communications</li>
+                </ul>
+              </div>
+            </div>
+            <div className="pt-4 border-t border-blue-300 dark:border-blue-700">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <strong>Total Stakeholders:</strong> {(data.high_power_high_interest?.length || 0) + (data.high_power_low_interest?.length || 0) + (data.low_power_high_interest?.length || 0) + (data.low_power_low_interest?.length || 0)}
+                {' • '}
+                <strong>High Priority:</strong> {(data.high_power_high_interest?.length || 0) + (data.high_power_low_interest?.length || 0)} stakeholders requiring active management
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Framework Sections */}
       <div className={`grid grid-cols-1 ${sections.length === 4 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
         {sections.map(section => (
