@@ -95,7 +95,7 @@ Return ONLY the title, nothing else.`
             content: `Generate a title for this ${frameworkType} analysis:\n\n${context}`
           }
         ],
-        temperature: 0.7,
+        // Note: gpt-5-mini only supports temperature=1 (default), so we omit it
         max_tokens: 50
       })
     })

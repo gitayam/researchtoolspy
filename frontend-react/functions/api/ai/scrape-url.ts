@@ -328,6 +328,78 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.log(`No extraction prompt found for framework: ${framework}`)
     }
 
+    // Generate unanswered questions for Q&A frameworks (starbursting, dime)
+    if ((framework === 'starbursting' || framework === 'dime') &&
+        !extractedData._error &&
+        !extractedData._parseError) {
+
+      console.log(`Generating unanswered questions for ${framework}`)
+
+      const unansweredPrompt = framework === 'starbursting'
+        ? `Based on this article, generate 2-3 important questions for each category (Who, What, When, Where, Why, How) that CANNOT be answered from the article content. These should be relevant follow-up questions that a researcher would want to investigate further.
+
+Article: ${content.substring(0, 15000)}
+
+Return ONLY valid JSON with unanswered questions:
+{
+  "who": ["Question 1?", "Question 2?"],
+  "what": ["Question 1?", "Question 2?"],
+  "when": ["Question 1?", "Question 2?"],
+  "where": ["Question 1?", "Question 2?"],
+  "why": ["Question 1?", "Question 2?"],
+  "how": ["Question 1?", "Question 2?"]
+}`
+        : `Based on this article, generate 2-3 important questions for each DIME category (Diplomatic, Information, Military, Economic) that CANNOT be answered from the article content. These should be relevant follow-up questions that a researcher would want to investigate further.
+
+Article: ${content.substring(0, 15000)}
+
+Return ONLY valid JSON with unanswered questions:
+{
+  "diplomatic": ["Question 1?", "Question 2?"],
+  "information": ["Question 1?", "Question 2?"],
+  "military": ["Question 1?", "Question 2?"],
+  "economic": ["Question 1?", "Question 2?"]
+}`
+
+      const unansweredResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-5-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert intelligence analyst. Generate relevant unanswered questions that would help researchers identify information gaps. Return ONLY valid JSON.'
+            },
+            {
+              role: 'user',
+              content: unansweredPrompt
+            }
+          ],
+          max_completion_tokens: 2000
+        })
+      })
+
+      if (unansweredResponse.ok) {
+        const unansweredData = await unansweredResponse.json()
+        const unansweredText = unansweredData.choices[0].message.content
+
+        try {
+          const jsonText = unansweredText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+          const unansweredQuestions = JSON.parse(jsonText)
+          extractedData._unansweredQuestions = unansweredQuestions
+          console.log(`Generated ${Object.keys(unansweredQuestions).length} categories of unanswered questions`)
+        } catch (e) {
+          console.error('Failed to parse unanswered questions JSON:', e)
+        }
+      } else {
+        console.error('Failed to generate unanswered questions')
+      }
+    }
+
     // Build response
     const result: ScrapeResponse = {
       url,
