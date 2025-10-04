@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu'
-import { ReportGenerator, type ExportFormat } from '@/lib/report-generator'
+import type { ExportFormat } from '@/lib/report-generator'
 
 export interface ExportButtonProps {
   frameworkType: string
@@ -45,6 +45,10 @@ export function ExportButton({
     setCurrentFormat(format)
 
     try {
+      // Dynamically import ReportGenerator (includes heavy export libraries)
+      console.log(`Loading export libraries for ${format}...`)
+      const { ReportGenerator } = await import('@/lib/report-generator')
+
       // Get AI enhancements if requested
       let aiEnhancements
       if (includeAI) {
