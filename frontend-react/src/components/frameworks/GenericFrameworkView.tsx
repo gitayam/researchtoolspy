@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type LinkedEvidence, type EvidenceEntityType } from '@/components/evidence'
+import { AutoGenerateButton } from '@/components/network'
+import { generateRelationshipsFromCOG, generateRelationshipsFromCauseway } from '@/utils/framework-relationships'
+import type { CreateRelationshipRequest } from '@/types/entities'
 
 interface FrameworkItem {
   id: string
@@ -55,11 +58,26 @@ export function GenericFrameworkView({
   const [showEntityCreate, setShowEntityCreate] = useState(false)
   const [entityCreateTab, setEntityCreateTab] = useState<EvidenceEntityType>('data')
 
+  // Relationship generation state
+  const [generatedRelationships, setGeneratedRelationships] = useState<CreateRelationshipRequest[]>([])
+
+  // Determine framework type for relationship generation
+  const frameworkType = frameworkTitle.toLowerCase().includes('cog') ? 'cog' :
+                         frameworkTitle.toLowerCase().includes('causeway') ? 'causeway' : null
+
   // Load linked evidence on mount
   useEffect(() => {
     // TODO: Load linked evidence from API
     setLinkedEvidence([])
   }, [data.id])
+
+  // Generate relationships based on framework type and linked evidence
+  useEffect(() => {
+    // TODO: Implement COG and Causeway relationship generation
+    // For COG: Extract dependencies from linked entities
+    // For Causeway: Extract actor-action-target relationships
+    setGeneratedRelationships([])
+  }, [linkedEvidence, frameworkType])
 
   const handleLinkEvidence = async (selected: LinkedEvidence[]) => {
     // TODO: Save links to API
@@ -189,6 +207,20 @@ export function GenericFrameworkView({
             <Link2 className="h-4 w-4 mr-2" />
             Link Evidence
           </Button>
+          {frameworkType && (
+            <AutoGenerateButton
+              relationships={generatedRelationships}
+              source={frameworkType === 'cog' ? 'COG' : 'CAUSEWAY'}
+              onComplete={(created, failed) => {
+                console.log(`Created ${created} relationships, ${failed} failed`)
+                // TODO: Refresh network graph or show success message
+              }}
+              label="Generate Relationships"
+              variant="outline"
+              size="default"
+              disabled={generatedRelationships.length === 0}
+            />
+          )}
           <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Export

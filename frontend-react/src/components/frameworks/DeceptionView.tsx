@@ -20,6 +20,9 @@ import type { DeceptionAssessment, DeceptionScores } from '@/lib/deception-scori
 import type { AIDeceptionAnalysis } from '@/lib/ai-deception-analysis'
 import { generatePDFReport, generateDOCXReport, generateExecutiveBriefing, type ReportOptions } from '@/lib/deception-report-generator'
 import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type LinkedEvidence, type EvidenceEntityType } from '@/components/evidence'
+import { AutoGenerateButton } from '@/components/network'
+import { generateRelationshipsFromMOM } from '@/utils/framework-relationships'
+import type { CreateRelationshipRequest } from '@/types/entities'
 
 interface DeceptionViewProps {
   data: {
@@ -62,6 +65,23 @@ export function DeceptionView({
   const [showEvidencePanel, setShowEvidencePanel] = useState(false)
   const [showEntityCreate, setShowEntityCreate] = useState(false)
   const [entityCreateTab, setEntityCreateTab] = useState<EvidenceEntityType>('data')
+
+  // Relationship generation state
+  const [generatedRelationships, setGeneratedRelationships] = useState<CreateRelationshipRequest[]>([])
+
+  // TODO: Generate relationships from linked evidence when actors/events are linked
+  // For now, this is a placeholder for when entity linking with MOM is implemented
+  useEffect(() => {
+    // When linkedEvidence contains actors and events, generate MOM relationships
+    const actors = linkedEvidence.filter(e => e.entity_type === 'actor')
+    const events = linkedEvidence.filter(e => e.entity_type === 'event')
+
+    if (actors.length > 0 && events.length > 0 && data.calculatedAssessment) {
+      // TODO: Map deception analysis to MOMAssessment structure
+      // This will be implemented when entity linking is fully integrated
+      setGeneratedRelationships([])
+    }
+  }, [linkedEvidence, data.calculatedAssessment])
 
   // Load linked evidence on mount
   useEffect(() => {
@@ -204,6 +224,19 @@ export function DeceptionView({
               <Link2 className="h-4 w-4 mr-2" />
               Link Evidence
             </Button>
+
+            <AutoGenerateButton
+              relationships={generatedRelationships}
+              source="MOM"
+              onComplete={(created, failed) => {
+                console.log(`Created ${created} relationships, ${failed} failed`)
+                // TODO: Refresh network graph or show success message
+              }}
+              label="Generate Relationships"
+              variant="outline"
+              size="default"
+              disabled={generatedRelationships.length === 0}
+            />
 
             <Button variant="outline" onClick={handleShare}>
               <Share2 className="h-4 w-4 mr-2" />
