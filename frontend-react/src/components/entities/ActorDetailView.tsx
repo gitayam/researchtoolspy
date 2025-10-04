@@ -7,8 +7,10 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MOMAssessmentList } from './MOMAssessmentList'
-import type { Actor, MOMAssessment, POPVariation } from '@/types/entities'
+import { RelationshipList, RelationshipForm } from '@/components/network'
+import type { Actor, MOMAssessment, POPVariation, Relationship, CreateRelationshipRequest, UpdateRelationshipRequest } from '@/types/entities'
 
 interface ActorDetailViewProps {
   actor: Actor
@@ -21,6 +23,11 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
   const [activeTab, setActiveTab] = useState('overview')
   const [momAssessments, setMomAssessments] = useState<MOMAssessment[]>([])
   const [loadingMom, setLoadingMom] = useState(false)
+  const [relationships, setRelationships] = useState<Relationship[]>([])
+  const [loadingRelationships, setLoadingRelationships] = useState(false)
+  const [entityNames, setEntityNames] = useState<Record<string, string>>({})
+  const [isRelationshipFormOpen, setIsRelationshipFormOpen] = useState(false)
+  const [editingRelationship, setEditingRelationship] = useState<Relationship | undefined>(undefined)
 
   // Load MOM assessments for this actor
   useEffect(() => {
@@ -41,6 +48,43 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
 
     if (actor.id) {
       loadMomAssessments()
+    }
+  }, [actor.id])
+
+  // Load relationships for this actor
+  useEffect(() => {
+    const loadRelationships = async () => {
+      setLoadingRelationships(true)
+      try {
+        const response = await fetch(`/api/relationships?entity_id=${actor.id}&workspace_id=${actor.workspace_id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setRelationships(data.relationships || [])
+
+          // Load entity names
+          const uniqueEntityIds = new Set<string>()
+          ;(data.relationships || []).forEach((rel: Relationship) => {
+            if (rel.source_entity_id !== actor.id) uniqueEntityIds.add(rel.source_entity_id)
+            if (rel.target_entity_id !== actor.id) uniqueEntityIds.add(rel.target_entity_id)
+          })
+
+          // TODO: Batch load entity names
+          const names: Record<string, string> = {}
+          for (const entityId of uniqueEntityIds) {
+            // For now, just use truncated ID
+            names[entityId] = entityId.substring(0, 8)
+          }
+          setEntityNames(names)
+        }
+      } catch (error) {
+        console.error('Failed to load relationships:', error)
+      } finally {
+        setLoadingRelationships(false)
+      }
+    }
+
+    if (actor.id) {
+      loadRelationships()
     }
   }, [actor.id])
 
@@ -417,15 +461,111 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
         {/* Relationships Tab */}
         <TabsContent value="relationships" className="space-y-6">
           <Card>
-            <CardContent className="py-12 text-center">
-              <LinkIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">Relationship visualization coming soon</p>
-              <p className="text-sm text-gray-400 mt-2">
-                Network graph showing connections to other actors, events, and evidence
-              </p>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <LinkIcon className="h-5 w-5" />
+                    Entity Relationships
+                  </CardTitle>
+                  <CardDescription>
+                    Connections to other actors, events, sources, places, and evidence
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingRelationships ? (
+                <div className="text-center py-12 text-gray-500">
+                  Loading relationships...
+                </div>
+              ) : (
+                <RelationshipList
+                  relationships={relationships}
+                  entityNames={entityNames}
+                  compact={false}
+                  showFilters={relationships.length > 3}
+                  onCreateNew={() => {
+                    setEditingRelationship(undefined)
+                    setIsRelationshipFormOpen(true)
+                  }}
+                  onEdit={(relationship) => {
+                    setEditingRelationship(relationship)
+                    setIsRelationshipFormOpen(true)
+                  }}
+                  onDelete={async (relationship) => {
+                    if (!confirm(`Delete relationship to ${entityNames[relationship.target_entity_id] || relationship.target_entity_id}?`)) return
+                    try {
+                      await fetch(`/api/relationships/${relationship.id}`, { method: 'DELETE' })
+                      setRelationships(prev => prev.filter(r => r.id !== relationship.id))
+                    } catch (error) {
+                      console.error('Failed to delete relationship:', error)
+                      alert('Failed to delete relationship')
+                    }
+                  }}
+                  onNavigateToEntity={(entityId, entityType) => {
+                    const paths: Record<string, string> = {
+                      ACTOR: `/dashboard/entities/actors/${entityId}`,
+                      SOURCE: `/dashboard/entities/sources/${entityId}`,
+                      EVENT: `/dashboard/entities/events/${entityId}`,
+                      PLACE: `/dashboard/entities/places/${entityId}`,
+                      BEHAVIOR: `/dashboard/entities/behaviors/${entityId}`,
+                      EVIDENCE: `/dashboard/evidence/${entityId}`
+                    }
+                    navigate(paths[entityType] || '/dashboard')
+                  }}
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Relationship Form Dialog */}
+        <Dialog open={isRelationshipFormOpen} onOpenChange={setIsRelationshipFormOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingRelationship ? 'Edit Relationship' : 'Create New Relationship'}
+              </DialogTitle>
+            </DialogHeader>
+            <RelationshipForm
+              relationship={editingRelationship}
+              sourceEntityId={editingRelationship ? undefined : actor.id}
+              sourceEntityType={editingRelationship ? undefined : 'ACTOR'}
+              workspaceId={actor.workspace_id}
+              onSubmit={async (data) => {
+                try {
+                  if (editingRelationship) {
+                    const response = await fetch(`/api/relationships/${editingRelationship.id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(data)
+                    })
+                    if (response.ok) {
+                      const updated = await response.json()
+                      setRelationships(prev => prev.map(r => r.id === editingRelationship.id ? updated.relationship : r))
+                      setIsRelationshipFormOpen(false)
+                    }
+                  } else {
+                    const response = await fetch('/api/relationships', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(data)
+                    })
+                    if (response.ok) {
+                      const created = await response.json()
+                      setRelationships(prev => [...prev, created.relationship])
+                      setIsRelationshipFormOpen(false)
+                    }
+                  }
+                } catch (error) {
+                  throw new Error('Failed to save relationship')
+                }
+              }}
+              onCancel={() => setIsRelationshipFormOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
 
         {/* Activity Tab */}
         <TabsContent value="activity" className="space-y-6">

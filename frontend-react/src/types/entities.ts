@@ -394,9 +394,23 @@ export type RelationshipType =
   | 'EXHIBITS'
   | 'CORROBORATES'
   | 'CONTRADICTS'
+  | 'DEPENDS_ON'
+  | 'ASSESSED_FOR'
+  | 'PERFORMED'
+  | 'TARGETED'
+  | 'USED'
   | 'CUSTOM'
 
 export type RelationshipConfidence = 'CONFIRMED' | 'PROBABLE' | 'POSSIBLE' | 'SUSPECTED'
+
+export type RelationshipValidationStatus = 'PENDING' | 'VALIDATED' | 'REJECTED'
+
+export type RelationshipGenerationSource =
+  | 'MANUAL'
+  | 'MOM_ASSESSMENT'
+  | 'COG_ANALYSIS'
+  | 'CAUSEWAY_ANALYSIS'
+  | 'FRAMEWORK_INFERENCE'
 
 export interface Relationship {
   id: string
@@ -421,6 +435,20 @@ export interface Relationship {
 
   // Supporting Evidence
   evidence_ids?: number[] // Evidence IDs supporting this relationship
+
+  // NEW: Auto-generation tracking
+  auto_generated: boolean
+  generation_source: RelationshipGenerationSource
+  inference_confidence?: number // 0-1 for inferred relationships
+
+  // NEW: Validation
+  validation_status: RelationshipValidationStatus
+  validated_by?: number // User ID who validated
+  validated_at?: string
+
+  // NEW: Conflict detection
+  conflicts_with?: string[] // IDs of contradictory relationships
+  conflict_reason?: string
 
   // Workspace
   workspace_id: string
@@ -602,8 +630,27 @@ export interface CreateRelationshipRequest {
   target_entity_id: string
   target_entity_type: EntityType
   relationship_type: RelationshipType
+  description?: string
   weight?: number
   confidence?: RelationshipConfidence
+  start_date?: string
+  end_date?: string
+  evidence_ids?: number[]
+  workspace_id: string
+}
+
+export interface UpdateRelationshipRequest {
+  relationship_type?: RelationshipType
+  description?: string
+  weight?: number
+  confidence?: RelationshipConfidence
+  start_date?: string
+  end_date?: string
+  evidence_ids?: number[]
+}
+
+export interface BulkCreateRelationshipsRequest {
+  relationships: CreateRelationshipRequest[]
   workspace_id: string
 }
 
