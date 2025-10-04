@@ -2,10 +2,12 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { NetworkGraphCanvas } from '@/components/network/NetworkGraphCanvas'
 import { NetworkControls, type NetworkFilters } from '@/components/network/NetworkControls'
+import { NetworkExportDialog } from '@/components/network/NetworkExportDialog'
+import { NetworkMetricsPanel } from '@/components/network/NetworkMetricsPanel'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Download, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Download, RefreshCw, BarChart3 } from 'lucide-react'
 import type { Relationship, EntityType } from '@/types/entities'
 
 interface NetworkNode {
@@ -37,6 +39,8 @@ export function NetworkGraphPage() {
   const [loading, setLoading] = useState(true)
   const [selectedNode, setSelectedNode] = useState<NetworkNode | null>(null)
   const [containerSize, setContainerSize] = useState({ width: 800, height: 600 })
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [showMetrics, setShowMetrics] = useState(true)
 
   const [filters, setFilters] = useState<NetworkFilters>({
     entityTypes: new Set(['ACTOR', 'SOURCE', 'EVENT', 'PLACE', 'BEHAVIOR', 'EVIDENCE']),
@@ -210,30 +214,11 @@ export function NetworkGraphPage() {
     navigate(paths[selectedNode.entityType] || '/dashboard')
   }
 
-  const handleExport = () => {
-    // Export graph data as JSON
-    const exportData = {
-      nodes: graphData.nodes,
-      edges: graphData.links,
-      metadata: {
-        exported_at: new Date().toISOString(),
-        total_nodes: graphData.nodes.length,
-        total_edges: graphData.links.length,
-        filters: {
-          entity_types: Array.from(filters.entityTypes),
-          min_confidence: filters.minConfidence,
-          search_query: filters.searchQuery
-        }
-      }
+  const handleNodeClickFromMetrics = (nodeId: string) => {
+    const node = graphData.nodes.find(n => n.id === nodeId)
+    if (node) {
+      setSelectedNode(node)
     }
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `network-graph-${new Date().toISOString().split('T')[0]}.json`
-    a.click()
-    URL.revokeObjectURL(url)
   }
 
   if (loading) {
@@ -265,7 +250,14 @@ export function NetworkGraphPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExport}>
+            <Button
+              variant={showMetrics ? "default" : "outline"}
+              onClick={() => setShowMetrics(!showMetrics)}
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              {showMetrics ? "Hide" : "Show"} Metrics
+            </Button>
+            <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
@@ -296,6 +288,17 @@ export function NetworkGraphPage() {
             height={containerSize.height}
           />
         </div>
+
+        {/* Metrics panel */}
+        {showMetrics && !selectedNode && (
+          <div className="w-80 bg-white border-l overflow-y-auto">
+            <NetworkMetricsPanel
+              nodes={graphData.nodes}
+              links={graphData.links}
+              onNodeClick={handleNodeClickFromMetrics}
+            />
+          </div>
+        )}
 
         {/* Selected node panel */}
         {selectedNode && (
@@ -341,6 +344,19 @@ export function NetworkGraphPage() {
           </div>
         )}
       </div>
+
+      {/* Export Dialog */}
+      <NetworkExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        nodes={graphData.nodes}
+        links={graphData.links}
+        filters={{
+          entity_types: Array.from(filters.entityTypes),
+          min_confidence: filters.minConfidence,
+          search_query: filters.searchQuery
+        }}
+      />
     </div>
   )
 }
