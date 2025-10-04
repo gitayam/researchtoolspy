@@ -81,28 +81,133 @@ export function GenericFrameworkView({
 
   // Load linked evidence on mount
   useEffect(() => {
-    // TODO: Load linked evidence from API
-    setLinkedEvidence([])
+    const loadLinkedEvidence = async () => {
+      if (!data.id) return
+
+      try {
+        const response = await fetch(`/api/framework-evidence?framework_id=${data.id}`)
+        if (response.ok) {
+          const result = await response.json()
+          // Transform API response to LinkedEvidence format
+          const evidence: LinkedEvidence[] = (result.links || []).map((link: any) => ({
+            entity_type: 'data', // Evidence items are 'data' type
+            entity_id: link.evidence_id,
+            entity_data: {
+              id: link.evidence_id,
+              title: link.title,
+              description: link.description,
+              who: link.who,
+              what: link.what,
+              when_occurred: link.when_occurred,
+              where_location: link.where_location,
+              evidence_type: link.evidence_type,
+              evidence_level: link.evidence_level,
+              priority: link.priority,
+              status: link.status,
+              tags: link.tags
+            },
+            linked_at: link.created_at
+          }))
+          setLinkedEvidence(evidence)
+        }
+      } catch (error) {
+        console.error('Failed to load linked evidence:', error)
+      }
+    }
+
+    loadLinkedEvidence()
   }, [data.id])
 
   // Generate relationships based on framework type and linked evidence
   useEffect(() => {
-    // TODO: Implement COG and Causeway relationship generation
-    // For COG: Extract dependencies from linked entities
-    // For Causeway: Extract actor-action-target relationships
-    setGeneratedRelationships([])
-  }, [linkedEvidence, frameworkTypeForRelationships])
+    if (!frameworkTypeForRelationships || linkedEvidence.length === 0) {
+      setGeneratedRelationships([])
+      return
+    }
+
+    // Generate relationships based on framework type
+    const relationships: CreateRelationshipRequest[] = []
+
+    if (frameworkTypeForRelationships === 'cog') {
+      // COG framework: Extract dependencies from critical capabilities/requirements/vulnerabilities
+      const cogElements: any[] = [
+        ...(data.center_of_gravity || []).map((item: any) => ({ ...item, type: 'CRITICAL_FACTOR' })),
+        ...(data.critical_capabilities || []).map((item: any) => ({ ...item, type: 'CAPABILITY' })),
+        ...(data.critical_requirements || []).map((item: any) => ({ ...item, type: 'REQUIREMENT' })),
+        ...(data.critical_vulnerabilities || []).map((item: any) => ({ ...item, type: 'VULNERABILITY' }))
+      ]
+
+      // TODO: Map COG items to entities and generate DEPENDS_ON relationships
+      // This requires entity linking infrastructure
+      console.log('COG elements for relationship generation:', cogElements)
+    } else if (frameworkTypeForRelationships === 'causeway') {
+      // Causeway framework: Extract actor-action-target relationships
+      const causewayRows: any[] = [
+        ...(data.putars || []),
+        ...(data.proximate_targets || [])
+      ]
+
+      // TODO: Map Causeway rows to actor/event entities and generate TARGETED relationships
+      // This requires entity linking infrastructure
+      console.log('Causeway rows for relationship generation:', causewayRows)
+    }
+
+    setGeneratedRelationships(relationships)
+  }, [linkedEvidence, frameworkTypeForRelationships, data])
 
   const handleLinkEvidence = async (selected: LinkedEvidence[]) => {
-    // TODO: Save links to API
-    setLinkedEvidence([...linkedEvidence, ...selected])
+    if (!data.id) return
+
+    try {
+      // Extract evidence IDs from selected items
+      const evidenceIds = selected.map(item => item.entity_id)
+
+      const response = await fetch('/api/framework-evidence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          framework_id: data.id,
+          evidence_ids: evidenceIds
+        })
+      })
+
+      if (response.ok) {
+        setLinkedEvidence([...linkedEvidence, ...selected])
+        console.log('Evidence linked successfully')
+      } else {
+        const error = await response.json()
+        console.error('Failed to link evidence:', error)
+        alert('Failed to link evidence. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error linking evidence:', error)
+      alert('An error occurred while linking evidence.')
+    }
   }
 
-  const handleUnlinkEvidence = (entity_type: string, entity_id: string | number) => {
-    // TODO: Remove link from API
-    setLinkedEvidence(
-      linkedEvidence.filter(e => !(e.entity_type === entity_type && e.entity_id === entity_id))
-    )
+  const handleUnlinkEvidence = async (entity_type: string, entity_id: string | number) => {
+    if (!data.id) return
+
+    try {
+      const response = await fetch(
+        `/api/framework-evidence?framework_id=${data.id}&evidence_id=${entity_id}`,
+        { method: 'DELETE' }
+      )
+
+      if (response.ok) {
+        setLinkedEvidence(
+          linkedEvidence.filter(e => !(e.entity_type === entity_type && e.entity_id === entity_id))
+        )
+        console.log('Evidence unlinked successfully')
+      } else {
+        const error = await response.json()
+        console.error('Failed to unlink evidence:', error)
+        alert('Failed to unlink evidence. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error unlinking evidence:', error)
+      alert('An error occurred while unlinking evidence.')
+    }
   }
 
   const handleEntityCreated = (entityType: EvidenceEntityType, entityData: any) => {
