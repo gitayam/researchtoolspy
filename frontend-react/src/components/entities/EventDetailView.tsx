@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Calendar, Clock, MapPin, AlertTriangle, CheckCircle, Users, FileText, Plus } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Calendar, Clock, MapPin, AlertTriangle, CheckCircle, Users, FileText, Plus, Link as LinkIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MOMAssessmentList } from './MOMAssessmentList'
-import type { Event, MOMAssessment } from '@/types/entities'
+import { RelationshipList, RelationshipForm } from '@/components/network'
+import type { Event, MOMAssessment, Relationship } from '@/types/entities'
 
 interface EventDetailViewProps {
   event: Event
@@ -21,6 +23,11 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
   const [momAssessments, setMomAssessments] = useState<MOMAssessment[]>([])
   const [loadingMom, setLoadingMom] = useState(false)
   const [actorNames, setActorNames] = useState<Record<string, string>>({})
+  const [relationships, setRelationships] = useState<Relationship[]>([])
+  const [loadingRelationships, setLoadingRelationships] = useState(false)
+  const [entityNames, setEntityNames] = useState<Record<string, string>>({})
+  const [isRelationshipFormOpen, setIsRelationshipFormOpen] = useState(false)
+  const [editingRelationship, setEditingRelationship] = useState<Relationship | undefined>(undefined)
 
   // Load MOM assessments for this event
   useEffect(() => {
@@ -59,6 +66,41 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
       loadMomAssessments()
     }
   }, [event.id])
+
+  // Load relationships
+  useEffect(() => {
+    const loadRelationships = async () => {
+      setLoadingRelationships(true)
+      try {
+        const response = await fetch(`/api/relationships?entity_id=${event.id}&workspace_id=${event.workspace_id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setRelationships(data.relationships || [])
+
+          // Load entity names for display
+          const uniqueEntityIds = new Set<string>()
+          data.relationships.forEach((rel: Relationship) => {
+            if (rel.source_entity_id !== event.id) uniqueEntityIds.add(rel.source_entity_id)
+            if (rel.target_entity_id !== event.id) uniqueEntityIds.add(rel.target_entity_id)
+          })
+
+          const names: Record<string, string> = {}
+          for (const entityId of Array.from(uniqueEntityIds)) {
+            names[entityId] = entityId.substring(0, 8)
+          }
+          setEntityNames(names)
+        }
+      } catch (error) {
+        console.error('Failed to load relationships:', error)
+      } finally {
+        setLoadingRelationships(false)
+      }
+    }
+
+    if (event.id) {
+      loadRelationships()
+    }
+  }, [event.id, event.workspace_id])
 
   const getEventTypeIcon = (type: string) => {
     const icons = {
@@ -195,11 +237,12 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="actors">Linked Actors</TabsTrigger>
           <TabsTrigger value="evidence">Linked Evidence</TabsTrigger>
+          <TabsTrigger value="relationships">Relationships</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -449,7 +492,121 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Relationships Tab */}
+        <TabsContent value="relationships" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LinkIcon className="h-5 w-5" />
+                Entity Relationships
+              </CardTitle>
+              <CardDescription>
+                Connections to other actors, events, sources, places, and evidence
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingRelationships ? (
+                <div className="text-center py-12 text-gray-500">Loading relationships...</div>
+              ) : (
+                <RelationshipList
+                  relationships={relationships}
+                  entityNames={entityNames}
+                  compact={false}
+                  showFilters={relationships.length > 3}
+                  onCreateNew={() => {
+                    setEditingRelationship(undefined)
+                    setIsRelationshipFormOpen(true)
+                  }}
+                  onEdit={(relationship) => {
+                    setEditingRelationship(relationship)
+                    setIsRelationshipFormOpen(true)
+                  }}
+                  onDelete={async (relationship) => {
+                    if (!confirm('Delete this relationship?')) return
+                    try {
+                      const response = await fetch(`/api/relationships/${relationship.id}`, {
+                        method: 'DELETE'
+                      })
+                      if (response.ok) {
+                        setRelationships(prev => prev.filter(r => r.id !== relationship.id))
+                      } else {
+                        alert('Failed to delete relationship')
+                      }
+                    } catch (error) {
+                      console.error('Failed to delete relationship:', error)
+                      alert('Failed to delete relationship')
+                    }
+                  }}
+                  onNavigateToEntity={(entityId, entityType) => {
+                    const paths: Record<string, string> = {
+                      ACTOR: `/dashboard/entities/actors/${entityId}`,
+                      SOURCE: `/dashboard/entities/sources/${entityId}`,
+                      EVENT: `/dashboard/entities/events/${entityId}`,
+                      PLACE: `/dashboard/entities/places/${entityId}`,
+                      BEHAVIOR: `/dashboard/entities/behaviors/${entityId}`,
+                      EVIDENCE: `/dashboard/entities/evidence/${entityId}`
+                    }
+                    navigate(paths[entityType] || '/dashboard')
+                  }}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Relationship Form Dialog */}
+      <Dialog open={isRelationshipFormOpen} onOpenChange={setIsRelationshipFormOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingRelationship ? 'Edit Relationship' : 'Create New Relationship'}
+            </DialogTitle>
+          </DialogHeader>
+          <RelationshipForm
+            relationship={editingRelationship}
+            sourceEntityId={editingRelationship ? undefined : event.id}
+            sourceEntityType={editingRelationship ? undefined : 'EVENT'}
+            workspaceId={event.workspace_id}
+            onSubmit={async (data) => {
+              try {
+                if (editingRelationship) {
+                  const response = await fetch(`/api/relationships/${editingRelationship.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                  })
+                  if (response.ok) {
+                    const updated = await response.json()
+                    setRelationships(prev => prev.map(r => r.id === editingRelationship.id ? updated.relationship : r))
+                    setIsRelationshipFormOpen(false)
+                  } else {
+                    throw new Error('Failed to update relationship')
+                  }
+                } else {
+                  const response = await fetch('/api/relationships', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                  })
+                  if (response.ok) {
+                    const created = await response.json()
+                    setRelationships(prev => [...prev, created.relationship])
+                    setIsRelationshipFormOpen(false)
+                  } else {
+                    throw new Error('Failed to create relationship')
+                  }
+                }
+              } catch (error) {
+                console.error('Failed to save relationship:', error)
+                throw error
+              }
+            }}
+            onCancel={() => setIsRelationshipFormOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
