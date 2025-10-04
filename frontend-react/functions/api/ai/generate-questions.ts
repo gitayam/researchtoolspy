@@ -20,7 +20,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const request = await context.request.json() as QuestionRequest
     const { framework, existingData, context: analysisContext } = request
 
-    console.log(`[Generate Questions] Framework: ${framework}`)
+    console.log(`[Generate Questions] Starting - Framework: ${framework}`)
+    console.log(`[Generate Questions] Has context description:`, !!analysisContext)
+    console.log(`[Generate Questions] Context length:`, analysisContext?.length || 0)
 
     const apiKey = context.env.OPENAI_API_KEY
     if (!apiKey) {
@@ -63,6 +65,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Check if there are any existing questions
     const hasExistingQuestions = existingQuestions.trim().length > 0
+    console.log(`[Generate Questions] Has existing questions:`, hasExistingQuestions)
+    console.log(`[Generate Questions] Generation mode:`, hasExistingQuestions ? 'follow-up' : 'initial')
 
     // If no existing questions, generate initial questions from context
     // If existing questions, generate follow-up questions
@@ -132,6 +136,12 @@ Generate exactly 3 specific, insightful questions for each DIME dimension (Diplo
 Return ONLY valid JSON in this exact format:
 {"diplomatic": ["Question 1?", "Question 2?", "Question 3?"], "information": ["Question 1?", "Question 2?", "Question 3?"], "military": ["Question 1?", "Question 2?", "Question 3?"], "economic": ["Question 1?", "Question 2?", "Question 3?"]}`)
 
+    // Log API call details
+    console.log(`[Generate Questions] Calling OpenAI API`)
+    console.log(`[Generate Questions] Model: gpt-5-mini`)
+    console.log(`[Generate Questions] Max tokens: 800`)
+    console.log(`[Generate Questions] Prompt preview:`, prompt.substring(0, 200))
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -164,20 +174,44 @@ Return ONLY valid JSON in this exact format:
 
     const data = await response.json()
 
+    // Log full response for debugging
+    console.log('[Generate Questions] OpenAI API response received')
+    console.log('[Generate Questions] Choices count:', data.choices?.length || 0)
+
     // Validate response structure
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid API response structure')
+      console.error('[Generate Questions] Invalid OpenAI response structure:', JSON.stringify(data))
+      throw new Error(`Invalid API response structure. Response: ${JSON.stringify(data).substring(0, 200)}`)
     }
 
     const generatedText = data.choices[0].message.content || ''
-    const jsonText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    console.log('[Generate Questions] Raw response length:', generatedText.length)
 
-    if (!jsonText) {
-      throw new Error('AI returned empty response')
+    // Validate content exists BEFORE cleaning
+    if (!generatedText.trim()) {
+      console.error('[Generate Questions] AI returned empty content')
+      console.error('[Generate Questions] Full response:', JSON.stringify(data))
+      throw new Error('AI returned empty response. This may be due to timeout, token limits, or model issues. Please try again with a shorter description.')
     }
 
-    const questions = JSON.parse(jsonText)
-    console.log(`[Generate Questions] Generated ${Object.keys(questions).length} categories`)
+    const jsonText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    console.log('[Generate Questions] Cleaned JSON length:', jsonText.length)
+
+    if (!jsonText) {
+      console.error('[Generate Questions] Empty response after cleaning markdown')
+      console.error('[Generate Questions] Raw text was:', generatedText)
+      throw new Error(`AI returned response but it was empty after cleaning. Raw: ${generatedText.substring(0, 100)}`)
+    }
+
+    let questions
+    try {
+      questions = JSON.parse(jsonText)
+      console.log(`[Generate Questions] Successfully parsed ${Object.keys(questions).length} categories`)
+    } catch (parseError) {
+      console.error('[Generate Questions] JSON parse error:', parseError)
+      console.error('[Generate Questions] Failed to parse:', jsonText.substring(0, 500))
+      throw new Error(`Failed to parse AI response as JSON. Error: ${parseError instanceof Error ? parseError.message : 'Unknown'}. Response preview: ${jsonText.substring(0, 200)}`)
+    }
 
     const result = { questions }
 
