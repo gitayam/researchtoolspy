@@ -1,6 +1,6 @@
 import { useState, memo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,6 +49,7 @@ const SectionCard = memo(({
   setNewAnswer,
   onAdd,
   onRemove,
+  onEdit,
   linkedDataset,
   onLinkDataset,
   onRemoveDataset,
@@ -64,6 +65,7 @@ const SectionCard = memo(({
   setNewAnswer?: (value: string) => void
   onAdd: () => void
   onRemove: (id: string) => void
+  onEdit: (id: string, updates: Partial<FrameworkItem>) => void
   linkedDataset: Dataset[]
   onLinkDataset: () => void
   onRemoveDataset: (datasetId: string) => void
@@ -72,6 +74,42 @@ const SectionCard = memo(({
   itemType?: 'text' | 'qa'
 }) => {
   const isQA = itemType === 'qa'
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editQuestion, setEditQuestion] = useState('')
+  const [editAnswer, setEditAnswer] = useState('')
+  const [editText, setEditText] = useState('')
+
+  const startEditing = (item: FrameworkItem) => {
+    setEditingId(item.id)
+    if (isQuestionAnswerItem(item)) {
+      setEditQuestion(item.question)
+      setEditAnswer(item.answer || '')
+    } else if ('text' in item) {
+      setEditText(item.text)
+    }
+  }
+
+  const saveEdit = () => {
+    if (!editingId) return
+
+    if (isQA) {
+      onEdit(editingId, { question: editQuestion, answer: editAnswer })
+    } else {
+      onEdit(editingId, { text: editText })
+    }
+
+    setEditingId(null)
+    setEditQuestion('')
+    setEditAnswer('')
+    setEditText('')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditQuestion('')
+    setEditAnswer('')
+    setEditText('')
+  }
 
   return (
     <Card className={`border-l-4 ${section.color}`}>
@@ -133,6 +171,7 @@ const SectionCard = memo(({
             items.map((item) => {
               // Check if this item needs an answer (from URL scraper unanswered questions)
               const needsAnswer = isQA && isQuestionAnswerItem(item) && (item.needsAnswer || !item.answer?.trim())
+              const isEditing = editingId === item.id
 
               return (
                 <div
@@ -143,29 +182,97 @@ const SectionCard = memo(({
                       : 'bg-gray-50 dark:bg-gray-800'
                   }`}
                 >
-                  {isQA && isQuestionAnswerItem(item) ? (
-                    <div className="flex-1 space-y-1">
-                      <div className="text-sm font-medium flex items-center gap-2">
-                        {needsAnswer && <span className="text-red-600 dark:text-red-400">❗</span>}
-                        Q: {item.question}
-                      </div>
-                      <div className={`text-sm ${needsAnswer ? 'text-red-700 dark:text-red-300' : 'text-gray-600 dark:text-gray-400'}`}>
-                        A: {item.answer || <span className="italic font-semibold">Needs answer - please fill in</span>}
-                      </div>
+                  {isEditing ? (
+                    // EDITING MODE
+                    <div className="flex-1 space-y-2">
+                      {isQA && isQuestionAnswerItem(item) ? (
+                        <>
+                          <Input
+                            placeholder="Question..."
+                            value={editQuestion}
+                            onChange={(e) => setEditQuestion(e.target.value)}
+                            className="text-sm"
+                          />
+                          <Textarea
+                            placeholder="Answer..."
+                            value={editAnswer}
+                            onChange={(e) => setEditAnswer(e.target.value)}
+                            rows={2}
+                            className="text-sm"
+                          />
+                        </>
+                      ) : (
+                        <Input
+                          placeholder="Text..."
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          className="text-sm"
+                        />
+                      )}
                     </div>
                   ) : (
-                    <span className="flex-1 text-sm">
-                      {'text' in item ? item.text : (item as any).question || ''}
-                    </span>
+                    // VIEW MODE
+                    <>
+                      {isQA && isQuestionAnswerItem(item) ? (
+                        <div className="flex-1 space-y-1">
+                          <div className="text-sm font-medium flex items-center gap-2">
+                            {needsAnswer && <span className="text-red-600 dark:text-red-400">❗</span>}
+                            Q: {item.question}
+                          </div>
+                          <div className={`text-sm ${needsAnswer ? 'text-red-700 dark:text-red-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                            A: {item.answer || <span className="italic font-semibold">Needs answer - please fill in</span>}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="flex-1 text-sm">
+                          {'text' in item ? item.text : (item as any).question || ''}
+                        </span>
+                      )}
+                    </>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRemove(item.id)}
-                    className="h-6 w-6 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+
+                  {/* EDIT/SAVE/DELETE BUTTONS */}
+                  <div className="flex gap-1">
+                    {isEditing ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={saveEdit}
+                          className="h-6 w-6 p-0 text-green-600 hover:text-green-700"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={cancelEdit}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditing(item)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onRemove(item.id)}
+                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               )
             })
@@ -389,6 +496,15 @@ export function GenericFrameworkForm({
     setSectionData(prev => ({
       ...prev,
       [sectionKey]: prev[sectionKey].filter(item => item.id !== id)
+    }))
+  }
+
+  const editItem = (sectionKey: string, id: string, updates: Partial<FrameworkItem>) => {
+    setSectionData(prev => ({
+      ...prev,
+      [sectionKey]: prev[sectionKey].map(item =>
+        item.id === id ? { ...item, ...updates } : item
+      )
     }))
   }
 
@@ -701,6 +817,7 @@ export function GenericFrameworkForm({
             setNewAnswer={itemType === 'qa' ? (value) => setNewAnswers(prev => ({ ...prev, [section.key]: value })) : undefined}
             onAdd={() => addItem(section.key, newItems[section.key])}
             onRemove={(id) => removeItem(section.key, id)}
+            onEdit={(id, updates) => editItem(section.key, id, updates)}
             linkedDataset={sectionDataset[section.key] || []}
             onLinkDataset={() => openDatasetSelector(section.key)}
             onRemoveDataset={(datasetId) => handleRemoveDataset(section.key, datasetId)}
