@@ -211,15 +211,28 @@ export function AIUrlScraper({
                             {key.replace(/_/g, ' ')}:
                           </h4>
                           {Array.isArray(value) ? (
-                            <ul className="space-y-1">
+                            <ul className="space-y-2">
                               {value.map((item, idx) => (
-                                <li key={idx} className="text-sm text-gray-700 dark:text-gray-300 ml-4 list-disc">
-                                  {item}
+                                <li key={idx} className="text-sm ml-4">
+                                  {typeof item === 'object' && item !== null && 'question' in item ? (
+                                    <div className="space-y-1 bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700">
+                                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                                        Q: {item.question}
+                                      </div>
+                                      <div className="text-gray-700 dark:text-gray-300 ml-4">
+                                        A: {item.answer || <span className="italic text-gray-500">No answer extracted</span>}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-700 dark:text-gray-300 list-disc">
+                                      {typeof item === 'string' ? item : JSON.stringify(item)}
+                                    </span>
+                                  )}
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <p className="text-sm text-gray-700 dark:text-gray-300">{value}</p>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">{typeof value === 'string' ? value : JSON.stringify(value)}</p>
                           )}
                         </div>
                       ))
