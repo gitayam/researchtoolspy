@@ -18,15 +18,41 @@ id = "17796fa8100b419f8df5ad08b2a09d7a"
 binding = "CACHE"
 id = "48afc9fe53a3425b8757e9dc526c359e"
 
+# KV Namespace for AI configuration
+[[kv_namespaces]]
+binding = "AI_CONFIG"
+id = "TBD"  # Will be created during deployment
+preview_id = "TBD"
+
 # R2 Bucket for file uploads
 [[r2_buckets]]
 binding = "UPLOADS"
 bucket_name = "researchtoolspy-uploads"
 
 [env.production]
-vars = { ENVIRONMENT = "production" }
+vars = {
+  ENVIRONMENT = "production",
+  ENABLE_AI_FEATURES = "true",
+  DEFAULT_AI_MODEL = "gpt-5-mini"
+}
 
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "researchtoolspy-prod"
 database_id = "a455c866-9d7e-471f-8c28-e3816f87e7e3"
+
+[[env.production.kv_namespaces]]
+binding = "SESSIONS"
+id = "17796fa8100b419f8df5ad08b2a09d7a"
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "48afc9fe53a3425b8757e9dc526c359e"
+
+[[env.production.kv_namespaces]]
+binding = "AI_CONFIG"
+id = "TBD"
+
+[[env.production.r2_buckets]]
+binding = "UPLOADS"
+bucket_name = "researchtoolspy-uploads"
