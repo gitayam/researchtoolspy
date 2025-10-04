@@ -11,11 +11,9 @@ import { AIFieldAssistant, AIUrlScraper } from '@/components/ai'
 import { DatasetSelector } from '@/components/datasets/DatasetSelector'
 import { DatasetBadge } from '@/components/datasets/DatasetBadge'
 import type { Dataset } from '@/types/dataset'
-
-interface FrameworkItem {
-  id: string
-  text: string
-}
+import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
+import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
+import { frameworkConfigs } from '@/config/framework-configs'
 
 interface FrameworkSection {
   key: string
@@ -46,19 +44,24 @@ const SectionCard = memo(({
   section,
   items,
   newItem,
+  newAnswer,
   setNewItem,
+  setNewAnswer,
   onAdd,
   onRemove,
   linkedDataset,
   onLinkDataset,
   onRemoveDataset,
   frameworkType,
-  allData
+  allData,
+  itemType
 }: {
   section: FrameworkSection
   items: FrameworkItem[]
   newItem: string
+  newAnswer?: string
   setNewItem: (value: string) => void
+  setNewAnswer?: (value: string) => void
   onAdd: () => void
   onRemove: (id: string) => void
   linkedDataset: Dataset[]
@@ -66,61 +69,96 @@ const SectionCard = memo(({
   onRemoveDataset: (datasetId: string) => void
   frameworkType: string
   allData?: GenericFrameworkData
-}) => (
-  <Card className={`border-l-4 ${section.color}`}>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <span className="text-2xl">{section.icon}</span>
-        {section.label}
-      </CardTitle>
-      <CardDescription>{section.description}</CardDescription>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      <div className="flex gap-2">
-        <Input
-          placeholder={`Add ${section.label.toLowerCase()}...`}
-          value={newItem}
-          onChange={(e) => setNewItem(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && onAdd()}
-        />
-        <AIFieldAssistant
-          fieldName={section.label}
-          currentValue={newItem}
-          onAccept={(value) => setNewItem(value)}
-          context={{
-            framework: frameworkType,
-            relatedFields: allData
-          }}
-          placeholder={`Add ${section.label.toLowerCase()}...`}
-        />
-        <Button onClick={onAdd} size="sm">
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-      <div className="space-y-2">
-        {items.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-            No items added yet
-          </p>
-        ) : (
-          items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-start gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800"
-            >
-              <span className="flex-1 text-sm">{item.text}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onRemove(item.id)}
-                className="h-6 w-6 p-0"
-              >
-                <X className="h-4 w-4" />
+  itemType?: 'text' | 'qa'
+}) => {
+  const isQA = itemType === 'qa'
+
+  return (
+    <Card className={`border-l-4 ${section.color}`}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <span className="text-2xl">{section.icon}</span>
+          {section.label}
+        </CardTitle>
+        <CardDescription>{section.description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Input
+              placeholder={isQA ? `Add question...` : `Add ${section.label.toLowerCase()}...`}
+              value={newItem}
+              onChange={(e) => setNewItem(e.target.value)}
+              onKeyPress={(e) => !isQA && e.key === 'Enter' && onAdd()}
+            />
+            {!isQA && (
+              <>
+                <AIFieldAssistant
+                  fieldName={section.label}
+                  currentValue={newItem}
+                  onAccept={(value) => setNewItem(value)}
+                  context={{
+                    framework: frameworkType,
+                    relatedFields: allData
+                  }}
+                  placeholder={`Add ${section.label.toLowerCase()}...`}
+                />
+                <Button onClick={onAdd} size="sm">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
+          {isQA && (
+            <>
+              <Textarea
+                placeholder="Add answer (leave blank if unknown)..."
+                value={newAnswer || ''}
+                onChange={(e) => setNewAnswer?.(e.target.value)}
+                rows={2}
+              />
+              <Button onClick={onAdd} size="sm" className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Question & Answer
               </Button>
-            </div>
-          ))
-        )}
-      </div>
+            </>
+          )}
+        </div>
+        <div className="space-y-2">
+          {items.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+              No items added yet
+            </p>
+          ) : (
+            items.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800"
+              >
+                {isQA && isQuestionAnswerItem(item) ? (
+                  <div className="flex-1 space-y-1">
+                    <div className="text-sm font-medium">Q: {item.question}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      A: {item.answer || <span className="italic">No answer provided</span>}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="flex-1 text-sm">
+                    {'text' in item ? item.text : (item as any).question || ''}
+                  </span>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onRemove(item.id)}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
 
       {/* Dataset Section */}
       <div className="pt-4 border-t">
@@ -156,7 +194,8 @@ const SectionCard = memo(({
       <Badge variant="secondary">{items.length} items</Badge>
     </CardContent>
   </Card>
-))
+  )
+})
 
 export function GenericFrameworkForm({
   initialData,
@@ -191,6 +230,14 @@ export function GenericFrameworkForm({
     }, {} as { [key: string]: string })
   )
 
+  // For Q&A frameworks, track answers separately
+  const [newAnswers, setNewAnswers] = useState<{ [key: string]: string }>(
+    sections.reduce((acc, section) => {
+      acc[section.key] = ''
+      return acc
+    }, {} as { [key: string]: string })
+  )
+
   // Dataset linking state
   const [sectionDataset, setSectionDataset] = useState<{ [key: string]: Dataset[] }>(
     sections.reduce((acc, section) => {
@@ -203,6 +250,9 @@ export function GenericFrameworkForm({
 
   // AI title generation state
   const [generatingTitle, setGeneratingTitle] = useState(false)
+
+  // Get item type from config
+  const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
 
   // Load linked datasets if editing
   useEffect(() => {
@@ -288,9 +338,21 @@ export function GenericFrameworkForm({
   const addItem = (sectionKey: string, text: string) => {
     if (!text.trim()) return
 
-    const newItem: FrameworkItem = {
-      id: crypto.randomUUID(),
-      text: text.trim()
+    let newItem: FrameworkItem
+
+    if (itemType === 'qa') {
+      // Q&A item - use question and answer
+      newItem = {
+        id: crypto.randomUUID(),
+        question: text.trim(),
+        answer: (newAnswers[sectionKey] || '').trim()
+      } as QuestionAnswerItem
+    } else {
+      // Text item
+      newItem = {
+        id: crypto.randomUUID(),
+        text: text.trim()
+      } as TextFrameworkItem
     }
 
     setSectionData(prev => ({
@@ -302,6 +364,13 @@ export function GenericFrameworkForm({
       ...prev,
       [sectionKey]: ''
     }))
+
+    if (itemType === 'qa') {
+      setNewAnswers(prev => ({
+        ...prev,
+        [sectionKey]: ''
+      }))
+    }
   }
 
   const removeItem = (sectionKey: string, id: string) => {
@@ -388,10 +457,30 @@ export function GenericFrameworkForm({
 
     sections.forEach(section => {
       if (extractedData[section.key] && Array.isArray(extractedData[section.key])) {
-        const items: FrameworkItem[] = extractedData[section.key].map((text: string) => ({
-          id: crypto.randomUUID(),
-          text: text.trim()
-        }))
+        const items: FrameworkItem[] = extractedData[section.key].map((item: any) => {
+          if (itemType === 'qa') {
+            // Handle Q&A items
+            if (typeof item === 'object' && 'question' in item) {
+              return {
+                id: crypto.randomUUID(),
+                question: item.question?.trim() || '',
+                answer: item.answer?.trim() || ''
+              } as QuestionAnswerItem
+            }
+            // Fallback: treat as question with no answer
+            return {
+              id: crypto.randomUUID(),
+              question: typeof item === 'string' ? item.trim() : '',
+              answer: ''
+            } as QuestionAnswerItem
+          } else {
+            // Handle text items
+            return {
+              id: crypto.randomUUID(),
+              text: typeof item === 'string' ? item.trim() : (item.text || item.question || '')
+            } as TextFrameworkItem
+          }
+        })
         newSectionData[section.key] = [...newSectionData[section.key], ...items]
       }
     })
@@ -593,7 +682,9 @@ export function GenericFrameworkForm({
             section={section}
             items={sectionData[section.key]}
             newItem={newItems[section.key]}
+            newAnswer={itemType === 'qa' ? newAnswers[section.key] : undefined}
             setNewItem={(value) => setNewItems(prev => ({ ...prev, [section.key]: value }))}
+            setNewAnswer={itemType === 'qa' ? (value) => setNewAnswers(prev => ({ ...prev, [section.key]: value })) : undefined}
             onAdd={() => addItem(section.key, newItems[section.key])}
             onRemove={(id) => removeItem(section.key, id)}
             linkedDataset={sectionDataset[section.key] || []}
@@ -601,6 +692,7 @@ export function GenericFrameworkForm({
             onRemoveDataset={(datasetId) => handleRemoveDataset(section.key, datasetId)}
             frameworkType={frameworkType}
             allData={{ title, description, ...sectionData }}
+            itemType={itemType}
           />
         ))}
       </div>

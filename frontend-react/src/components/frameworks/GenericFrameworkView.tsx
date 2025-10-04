@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink } from 'lucide-react'
+import type { FrameworkItem } from '@/types/frameworks'
+import { isQuestionAnswerItem } from '@/types/frameworks'
+import { frameworkConfigs } from '@/config/framework-configs'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,11 +13,6 @@ import { AutoGenerateButton } from '@/components/network'
 import { generateRelationshipsFromCOG, generateRelationshipsFromCauseway } from '@/utils/framework-relationships'
 import { ExportButton } from '@/components/reports/ExportButton'
 import type { CreateRelationshipRequest } from '@/types/entities'
-
-interface FrameworkItem {
-  id: string
-  text: string
-}
 
 interface FrameworkSection {
   key: string
@@ -77,6 +75,9 @@ export function GenericFrameworkView({
                         frameworkTitle.toLowerCase().includes('stakeholder') ? 'stakeholder' :
                         frameworkTitle.toLowerCase().includes('behavior') ? 'behavior' :
                         'generic'
+
+  // Get item type from config
+  const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
 
   // Load linked evidence on mount
   useEffect(() => {
@@ -150,10 +151,23 @@ export function GenericFrameworkView({
                 key={item.id}
                 className={`p-3 rounded-lg ${section.bgColor} text-sm`}
               >
-                <span className="font-medium text-gray-700 dark:text-gray-300">
-                  {index + 1}.
-                </span>{' '}
-                {item.text}
+                {itemType === 'qa' && isQuestionAnswerItem(item) ? (
+                  <div className="space-y-1">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">
+                      <span className="text-gray-600 dark:text-gray-400">{index + 1}.</span> Q: {item.question}
+                    </div>
+                    <div className="text-gray-700 dark:text-gray-300 ml-5">
+                      A: {item.answer || <span className="italic text-gray-500 dark:text-gray-400">No answer provided</span>}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                      {index + 1}.
+                    </span>{' '}
+                    {'text' in item ? item.text : (item as any).question || ''}
+                  </>
+                )}
               </li>
             ))}
           </ul>

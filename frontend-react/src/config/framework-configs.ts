@@ -12,6 +12,7 @@ export interface FrameworkConfig {
   title: string
   description: string
   sections: FrameworkSection[]
+  itemType?: 'text' | 'qa'  // 'text' for regular items, 'qa' for question-answer pairs
 }
 
 export const frameworkConfigs: Record<string, FrameworkConfig> = {
@@ -195,6 +196,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
     type: 'dime',
     title: 'DIME Framework',
     description: 'Diplomatic, Information, Military, Economic',
+    itemType: 'qa',
     sections: [
       {
         key: 'diplomatic',
@@ -475,6 +477,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
     type: 'starbursting',
     title: 'Starbursting',
     description: 'Question-based brainstorming technique',
+    itemType: 'qa',
     sections: [
       {
         key: 'who',
