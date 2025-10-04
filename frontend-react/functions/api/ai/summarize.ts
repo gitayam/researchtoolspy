@@ -61,7 +61,7 @@ ${mode === 'comprehensive' ? 'Use markdown headings (##) to organize sections.' 
 
     // Get model for summarization
     const config = await context.env.AI_CONFIG.get('default', { type: 'json' }) as any
-    const model = config?.useCases?.summarization || 'gpt-5-mini'
+    const model = config?.useCases?.summarization || 'gpt-4o-mini'
     const modelSettings = config?.models?.[model] || {
       verbosity: 'medium',
       maxTokens: 2048,

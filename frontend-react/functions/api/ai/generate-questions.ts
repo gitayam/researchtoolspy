@@ -145,7 +145,7 @@ Return ONLY valid JSON in this exact format:
 
     // Log API call details
     console.log(`[Generate Questions] Calling OpenAI API`)
-    console.log(`[Generate Questions] Model: gpt-5-mini`)
+    console.log(`[Generate Questions] Model: gpt-4o-mini`)
     console.log(`[Generate Questions] Max tokens:`, maxTokens)
     console.log(`[Generate Questions] Prompt preview:`, prompt.substring(0, 200))
 
@@ -156,7 +156,7 @@ Return ONLY valid JSON in this exact format:
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
