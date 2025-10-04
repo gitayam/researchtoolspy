@@ -379,7 +379,32 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.log(`No extraction prompt found for framework: ${framework}`)
     }
 
-    // Generate unanswered questions for Q&A frameworks (starbursting, dime)
+    // Build initial response with answered questions
+    const result: ScrapeResponse = {
+      url,
+      title,
+      content: content.substring(0, 5000), // Return first 5KB for reference
+      summary,
+      extractedData,
+      metadata: {
+        source: parsedUrl.hostname
+      }
+    }
+
+    console.log(`[Scrape] Returning answered questions (phase 1 complete)`)
+
+    // Skip unanswered questions generation for now to avoid timeouts
+    // This keeps response fast and within Cloudflare Workers limits
+    // TODO: Implement async unanswered questions as separate endpoint
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    // DISABLED: Generate unanswered questions (too slow, causes timeouts)
+    // Can be re-enabled as separate async endpoint later
+    /*
     if ((framework === 'starbursting' || framework === 'dime') &&
         !extractedData._error &&
         !extractedData._parseError) {
@@ -463,23 +488,9 @@ Return ONLY valid JSON with unanswered questions:
         console.error('Failed to generate unanswered questions')
       }
     }
+    */
 
-    // Build response
-    const result: ScrapeResponse = {
-      url,
-      title,
-      content: content.substring(0, 5000), // Return first 5KB for reference
-      summary,
-      extractedData,
-      metadata: {
-        source: parsedUrl.hostname
-      }
-    }
-
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    // Old duplicate response building code removed - now handled above
 
   } catch (error) {
     console.error('Scraping error:', error)
