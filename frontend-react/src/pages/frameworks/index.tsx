@@ -738,14 +738,6 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
   )
 }
 
-export const AchPage = () => (
-  <FrameworkListPage
-    title="ACH Analysis"
-    description="Analysis of Competing Hypotheses"
-    frameworkType="ach-dashboard"
-  />
-)
-
 export const CogPage = () => <GenericFrameworkPage frameworkKey="cog" />
 
 export const PmesiiPtPage = () => <GenericFrameworkPage frameworkKey="pmesii-pt" />

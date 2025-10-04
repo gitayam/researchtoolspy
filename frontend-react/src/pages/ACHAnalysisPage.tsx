@@ -31,7 +31,7 @@ export function ACHAnalysisPage() {
     } catch (error) {
       console.error('Failed to load analysis:', error)
       alert('Failed to load analysis')
-      navigate('/dashboard/tools/ach')
+      navigate('/dashboard/analysis-frameworks/ach-dashboard')
     } finally {
       setLoading(false)
     }
@@ -159,7 +159,7 @@ export function ACHAnalysisPage() {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Analysis not found</h2>
-        <Button onClick={() => navigate('/dashboard/tools/ach')}>
+        <Button onClick={() => navigate('/dashboard/analysis-frameworks/ach-dashboard')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to ACH Analyses
         </Button>
@@ -172,7 +172,7 @@ export function ACHAnalysisPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4 flex-1">
-          <Button variant="outline" onClick={() => navigate('/dashboard/tools/ach')}>
+          <Button variant="outline" onClick={() => navigate('/dashboard/analysis-frameworks/ach-dashboard')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
