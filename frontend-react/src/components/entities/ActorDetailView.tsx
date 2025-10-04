@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MOMAssessmentList } from './MOMAssessmentList'
+import { MOMAssessmentModal } from './MOMAssessmentModal'
 import { RelationshipList, RelationshipForm } from '@/components/network'
 import type { Actor, MOMAssessment, POPVariation, Relationship, CreateRelationshipRequest, UpdateRelationshipRequest } from '@/types/entities'
 
@@ -28,6 +29,8 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
   const [entityNames, setEntityNames] = useState<Record<string, string>>({})
   const [isRelationshipFormOpen, setIsRelationshipFormOpen] = useState(false)
   const [editingRelationship, setEditingRelationship] = useState<Relationship | undefined>(undefined)
+  const [isMomModalOpen, setIsMomModalOpen] = useState(false)
+  const [editingMomAssessment, setEditingMomAssessment] = useState<MOMAssessment | undefined>(undefined)
 
   // Load MOM assessments for this actor
   useEffect(() => {

@@ -92,28 +92,38 @@ Generate 3-5 specific questions for each category based on the article content. 
   ]
 }`,
 
-  dime: `Analyze this content for DIME framework elements (Diplomatic, Information, Military, Economic):
+  dime: `Analyze this article using the DIME framework (Diplomatic, Information, Military, Economic) and extract specific question-answer pairs:
 
 Article: {content}
 
-Generate questions AND answers for each DIME dimension based on the article content. For each question, provide an answer extracted from the article. If the answer is not available in the article, set answer to empty string "". Return ONLY valid JSON with question-answer pairs:
+For each DIME dimension, generate 2-4 specific questions about the article content WITH their answers extracted from the article. IMPORTANT:
+- Questions must be specific to the article content (not generic)
+- Answers must be direct quotes or paraphrases from the article
+- If an answer is not found in the article, use empty string ""
+- Focus on concrete facts, events, actors, and impacts mentioned in the article
+
+DIPLOMATIC: Questions about international relations, negotiations, treaties, alliances, diplomacy, foreign policy, bilateral/multilateral agreements, sanctions, embargoes, state actors, ambassadors, summits
+
+INFORMATION: Questions about narratives, messaging, propaganda, disinformation, media coverage, public perception, strategic communications, information campaigns, cyber influence, social media
+
+MILITARY: Questions about armed forces, defense capabilities, weapons systems, military operations, troop movements, conflicts, security threats, defense spending, military alliances, deterrence
+
+ECONOMIC: Questions about trade, commerce, financial systems, economic sanctions, market impacts, investments, supply chains, economic aid, development, monetary policy, resources
+
+Return ONLY valid JSON with question-answer pairs:
 
 {
   "diplomatic": [
-    {"question": "Question about diplomatic aspects?", "answer": "Answer from article or empty string"},
-    {"question": "Another diplomatic question?", "answer": "Answer from article or empty string"}
+    {"question": "Specific diplomatic question based on article?", "answer": "Direct answer from article or empty string"}
   ],
   "information": [
-    {"question": "Question about information aspects?", "answer": "Answer from article or empty string"},
-    {"question": "Another information question?", "answer": "Answer from article or empty string"}
+    {"question": "Specific information question based on article?", "answer": "Direct answer from article or empty string"}
   ],
   "military": [
-    {"question": "Question about military aspects?", "answer": "Answer from article or empty string"},
-    {"question": "Another military question?", "answer": "Answer from article or empty string"}
+    {"question": "Specific military question based on article?", "answer": "Direct answer from article or empty string"}
   ],
   "economic": [
-    {"question": "Question about economic aspects?", "answer": "Answer from article or empty string"},
-    {"question": "Another economic question?", "answer": "Answer from article or empty string"}
+    {"question": "Specific economic question based on article?", "answer": "Direct answer from article or empty string"}
   ]
 }`,
 
@@ -270,14 +280,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           messages: [
             {
               role: 'system',
-              content: 'You are a data extraction assistant. Return ONLY valid JSON, no other text.'
+              content: 'You are an expert intelligence analyst and data extraction assistant. Extract specific, factual information from articles and structure it as valid JSON. Be precise and thorough. Return ONLY valid JSON, no other text or explanations.'
             },
             {
               role: 'user',
               content: extractPrompt
             }
           ],
-          max_completion_tokens: 2000
+          max_completion_tokens: 3000,
+          temperature: 0.3
         })
       })
 
