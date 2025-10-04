@@ -210,7 +210,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             content: `Summarize this article:\n\n${content.substring(0, 10000)}`
           }
         ],
-        max_tokens: 500
+        max_completion_tokens: 500
       })
     })
 
@@ -247,7 +247,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               content: extractPrompt
             }
           ],
-          max_tokens: 2000
+          max_completion_tokens: 2000
         })
       })
 

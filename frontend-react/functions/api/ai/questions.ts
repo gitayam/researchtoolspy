@@ -86,7 +86,7 @@ No explanations, just the JSON array.`
           { role: 'system', content: 'You are an analytical quality assurance assistant. Generate probing questions that help analysts identify gaps, biases, and alternative hypotheses. Be specific and encourage critical thinking.' },
           { role: 'user', content: prompt }
         ],
-        max_tokens: modelSettings.maxTokens,
+        max_completion_tokens: modelSettings.maxTokens,
         verbosity: modelSettings.verbosity,
         ...(modelSettings.reasoningEffort && { reasoning_effort: modelSettings.reasoningEffort })
       })
