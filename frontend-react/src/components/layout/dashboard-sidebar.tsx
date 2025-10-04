@@ -17,7 +17,8 @@ import {
   Database,
   Calendar,
   Shield,
-  Network
+  Network,
+  Sparkles
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -75,7 +76,15 @@ const navigation = [
   { name: 'Dataset Library', href: '/dashboard/datasets', icon: Database },
   { name: 'Reports', href: '/dashboard/reports', icon: FileText },
   { name: 'Collaboration', href: '/dashboard/collaboration', icon: Users },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  {
+    name: 'Settings',
+    href: '/dashboard/settings',
+    icon: Settings,
+    children: [
+      { name: 'General', href: '/dashboard/settings' },
+      { name: 'AI Configuration', href: '/dashboard/settings/ai', icon: Sparkles },
+    ]
+  },
 ]
 
 export function DashboardSidebar() {

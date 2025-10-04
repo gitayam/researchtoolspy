@@ -15,6 +15,7 @@ import { BatchProcessingPage } from '@/pages/tools/BatchProcessingPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { CollaborationPage } from '@/pages/CollaborationPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { AISettingsPage } from '@/pages/AISettingsPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import {
@@ -358,6 +359,10 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <SettingsPage />,
+      },
+      {
+        path: 'settings/ai',
+        element: <AISettingsPage />,
       },
     ],
   },
