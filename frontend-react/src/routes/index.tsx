@@ -41,6 +41,7 @@ import { SourcesPage } from '@/pages/entities/SourcesPage'
 import { EventsPage } from '@/pages/entities/EventsPage'
 import { NetworkGraphPage } from '@/pages/NetworkGraphPage'
 import { ACHPage } from '@/pages/ACHPage'
+import { ACHAnalysisPage } from '@/pages/ACHAnalysisPage'
 
 export const router = createBrowserRouter([
   {
@@ -299,16 +300,8 @@ export const router = createBrowserRouter([
         element: <ACHPage />,
       },
       {
-        path: 'tools/ach/new',
-        element: <ACHPage />,
-      },
-      {
         path: 'tools/ach/:id',
-        element: <ACHPage />,
-      },
-      {
-        path: 'tools/ach/:id/edit',
-        element: <ACHPage />,
+        element: <ACHAnalysisPage />,
       },
       {
         path: 'tools/:toolId',
