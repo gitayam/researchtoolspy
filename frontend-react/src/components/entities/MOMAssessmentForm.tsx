@@ -43,13 +43,42 @@ export function MOMAssessmentForm({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Mock actor/event lists (in real implementation, fetch from API)
+  // Fetch actor/event lists from API
   const [actors, setActors] = useState<Array<{ id: string; name: string }>>([])
   const [events, setEvents] = useState<Array<{ id: string; name: string }>>([])
 
   useEffect(() => {
-    // TODO: Fetch actors and events from API
-    // For now, using mock data
+    const fetchActorsAndEvents = async () => {
+      try {
+        // Fetch actors
+        const actorResponse = await fetch(`/api/actors?workspace_id=${workspaceId}`)
+        if (actorResponse.ok) {
+          const actorData = await actorResponse.json()
+          setActors(
+            actorData.actors?.map((actor: any) => ({
+              id: actor.id,
+              name: actor.name
+            })) || []
+          )
+        }
+
+        // Fetch events
+        const eventResponse = await fetch(`/api/events?workspace_id=${workspaceId}`)
+        if (eventResponse.ok) {
+          const eventData = await eventResponse.json()
+          setEvents(
+            eventData.events?.map((event: any) => ({
+              id: event.id,
+              name: event.title
+            })) || []
+          )
+        }
+      } catch (error) {
+        console.error('Failed to fetch actors/events:', error)
+      }
+    }
+
+    fetchActorsAndEvents()
   }, [workspaceId])
 
   const calculateOverallRisk = () => {
