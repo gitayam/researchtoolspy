@@ -199,7 +199,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-5-nano',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -210,14 +210,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             content: `Summarize this article:\n\n${content.substring(0, 10000)}`
           }
         ],
-        max_tokens: 500,
-        verbosity: 'low',
-        reasoning_effort: 'minimal'
+        max_tokens: 500
       })
     })
 
     if (!summaryResponse.ok) {
-      throw new Error('Failed to generate summary')
+      const errorData = await summaryResponse.json().catch(() => ({ error: 'Unknown error' }))
+      console.error('OpenAI API error:', errorData)
+      throw new Error(`Failed to generate summary: ${JSON.stringify(errorData)}`)
     }
 
     const summaryData = await summaryResponse.json()
@@ -236,7 +236,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gpt-5-nano',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
@@ -247,9 +247,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               content: extractPrompt
             }
           ],
-          max_tokens: 2000,
-          verbosity: 'low',
-          reasoning_effort: 'minimal'
+          max_tokens: 2000
         })
       })
 
