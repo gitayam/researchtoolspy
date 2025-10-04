@@ -373,6 +373,9 @@ export function GenericFrameworkForm({
   // AI title generation state
   const [generatingTitle, setGeneratingTitle] = useState(false)
 
+  // AI follow-up questions generation state
+  const [generatingQuestions, setGeneratingQuestions] = useState(false)
+
   // Get item type from config
   const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
 
@@ -661,6 +664,53 @@ export function GenericFrameworkForm({
     }
   }
 
+  const generateFollowUpQuestions = async () => {
+    if (!['starbursting', 'dime'].includes(frameworkType)) return
+
+    setGeneratingQuestions(true)
+    try {
+      const response = await fetch('/api/ai/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          framework: frameworkType,
+          existingData: sectionData,
+          context: description
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to generate questions')
+      }
+
+      const { questions } = await response.json()
+
+      // Merge questions into sectionData with needsAnswer flag
+      setSectionData(prev => {
+        const updated = { ...prev }
+        Object.entries(questions).forEach(([category, newQuestions]) => {
+          if (Array.isArray(newQuestions)) {
+            const questionItems: QuestionAnswerItem[] = newQuestions.map((q: string) => ({
+              id: crypto.randomUUID(),
+              question: q,
+              answer: '',
+              needsAnswer: true
+            }))
+            // Add new questions at the beginning (so they're visible)
+            updated[category] = [...questionItems, ...(prev[category] || [])]
+          }
+        })
+        return updated
+      })
+    } catch (error) {
+      console.error('Failed to generate questions:', error)
+      alert(error instanceof Error ? error.message : 'Failed to generate follow-up questions. Please try again.')
+    } finally {
+      setGeneratingQuestions(false)
+    }
+  }
+
   const handleSave = async () => {
     if (!title.trim()) {
       setSaveError('Please enter a title for your analysis')
@@ -741,6 +791,26 @@ export function GenericFrameworkForm({
             framework={frameworkType}
             onExtract={handleUrlExtract}
           />
+          {(frameworkType === 'starbursting' || frameworkType === 'dime') && (
+            <Button
+              variant="outline"
+              onClick={generateFollowUpQuestions}
+              disabled={generatingQuestions || Object.values(sectionData).every(items => items.length === 0)}
+              title="Generate follow-up questions using AI"
+            >
+              {generatingQuestions ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate Questions
+                </>
+              )}
+            </Button>
+          )}
           <ExportButton
             frameworkType={frameworkType}
             frameworkTitle={frameworkTitle}
