@@ -82,7 +82,7 @@ ${mode === 'comprehensive' ? 'Use markdown headings (##) to organize sections.' 
           { role: 'system', content: modelSettings.systemPrompt },
           { role: 'user', content: prompt }
         ],
-        max_tokens: modelSettings.maxTokens,
+        max_completion_tokens: modelSettings.maxTokens,
         verbosity
       })
     })

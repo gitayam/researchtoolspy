@@ -110,7 +110,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           content: request.prompt
         }
       ],
-      max_tokens: request.maxTokens || modelSettings.maxTokens,
+      max_completion_tokens: request.maxTokens || modelSettings.maxTokens,
       ...(request.verbosity && { verbosity: request.verbosity }),
       ...(request.reasoningEffort && { reasoning_effort: request.reasoningEffort })
     }
