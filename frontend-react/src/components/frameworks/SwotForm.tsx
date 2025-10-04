@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { AIFieldAssistant } from '@/components/ai'
 
 interface SwotItem {
   id: string
@@ -36,7 +37,8 @@ const QuadrantCard = memo(({
   onAdd,
   onRemove,
   color,
-  icon
+  icon,
+  allData
 }: {
   title: string
   description: string
@@ -47,6 +49,7 @@ const QuadrantCard = memo(({
   onRemove: (id: string) => void
   color: string
   icon: string
+  allData?: SwotData
 }) => (
   <Card className={`border-l-4 ${color}`}>
     <CardHeader>
@@ -63,6 +66,23 @@ const QuadrantCard = memo(({
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && onAdd()}
+        />
+        <AIFieldAssistant
+          fieldName={quadrantTitle}
+          currentValue={newItem}
+          onAccept={(value) => setNewItem(value)}
+          context={{
+            framework: 'SWOT Analysis',
+            relatedFields: allData ? {
+              title: allData.title,
+              description: allData.description,
+              strengths: allData.strengths,
+              weaknesses: allData.weaknesses,
+              opportunities: allData.opportunities,
+              threats: allData.threats
+            } : undefined
+          }}
+          placeholder={`Add a ${quadrantTitle.toLowerCase()}...`}
         />
         <Button onClick={onAdd} size="sm">
           <Plus className="h-4 w-4" />
@@ -225,6 +245,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           onRemove={(id) => removeItem('strengths', id, setStrengths)}
           color="border-green-500"
           icon="💪"
+          allData={{ title, description, strengths, weaknesses, opportunities, threats }}
         />
         <QuadrantCard
           title="Weaknesses"
@@ -236,6 +257,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           onRemove={(id) => removeItem('weaknesses', id, setWeaknesses)}
           color="border-red-500"
           icon="⚠️"
+          allData={{ title, description, strengths, weaknesses, opportunities, threats }}
         />
         <QuadrantCard
           title="Opportunities"
@@ -247,6 +269,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           onRemove={(id) => removeItem('opportunities', id, setOpportunities)}
           color="border-blue-500"
           icon="🎯"
+          allData={{ title, description, strengths, weaknesses, opportunities, threats }}
         />
         <QuadrantCard
           title="Threats"
@@ -258,6 +281,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           onRemove={(id) => removeItem('threats', id, setThreats)}
           color="border-orange-500"
           icon="⚡"
+          allData={{ title, description, strengths, weaknesses, opportunities, threats }}
         />
       </div>
 
