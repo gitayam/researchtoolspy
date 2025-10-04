@@ -7,6 +7,7 @@
 interface Env {
   OPENAI_API_KEY: string
   AI_CONFIG: KVNamespace
+  CACHE: KVNamespace
 }
 
 interface ScrapeRequest {
@@ -206,6 +207,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         headers: { 'Content-Type': 'application/json' }
       })
     }
+
+    // KV Cache Check - save costs by caching AI responses
+    const cacheKey = `scrape:${url}:${framework}`
+    const cached = await context.env.CACHE.get(cacheKey, 'json')
+    if (cached) {
+      console.log(`[Scrape] Cache HIT for ${cacheKey}`)
+      return new Response(JSON.stringify(cached), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Cache': 'HIT'
+        }
+      })
+    }
+    console.log(`[Scrape] Cache MISS for ${cacheKey}`)
 
     console.log(`[Scrape] Fetching URL: ${url}`)
 
@@ -465,9 +481,24 @@ Article: ${content.substring(0, 10000)}
 
     console.log(`[Scrape] Complete - returning response`)
 
+    // Cache the result in KV for 1 hour (3600 seconds)
+    // This saves significant AI API costs on repeated requests
+    try {
+      await context.env.CACHE.put(cacheKey, JSON.stringify(result), {
+        expirationTtl: 3600 // 1 hour TTL
+      })
+      console.log(`[Scrape] Cached result with key: ${cacheKey}`)
+    } catch (cacheError) {
+      console.error('[Scrape] Failed to cache result:', cacheError)
+      // Continue anyway - caching is optional
+    }
+
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Cache': 'MISS'
+      }
     })
 
   } catch (error) {

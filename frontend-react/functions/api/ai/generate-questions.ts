@@ -6,6 +6,7 @@
 
 interface Env {
   OPENAI_API_KEY: string
+  CACHE: KVNamespace
 }
 
 interface QuestionRequest {
@@ -28,6 +29,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         headers: { 'Content-Type': 'application/json' }
       })
     }
+
+    // KV Cache Check - cache based on framework and existing questions hash
+    // Since existingData determines the output, we can safely cache
+    const dataHash = JSON.stringify(existingData).substring(0, 100) // Simple hash
+    const cacheKey = `questions:${framework}:${dataHash}`
+
+    const cached = await context.env.CACHE.get(cacheKey, 'json')
+    if (cached) {
+      console.log(`[Generate Questions] Cache HIT for ${cacheKey}`)
+      return new Response(JSON.stringify(cached), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Cache': 'HIT'
+        }
+      })
+    }
+    console.log(`[Generate Questions] Cache MISS for ${cacheKey}`)
 
     // Build context from existing data
     const existingQuestions = Object.entries(existingData)
@@ -105,9 +124,25 @@ Format: {"diplomatic": ["Q1?", "Q2?"], "information": ["Q1?", "Q2?"], "military"
     const questions = JSON.parse(jsonText)
     console.log(`[Generate Questions] Generated ${Object.keys(questions).length} categories`)
 
-    return new Response(JSON.stringify({ questions }), {
+    const result = { questions }
+
+    // Cache the result for 30 minutes
+    try {
+      await context.env.CACHE.put(cacheKey, JSON.stringify(result), {
+        expirationTtl: 1800 // 30 minutes TTL
+      })
+      console.log(`[Generate Questions] Cached result with key: ${cacheKey}`)
+    } catch (cacheError) {
+      console.error('[Generate Questions] Failed to cache result:', cacheError)
+      // Continue anyway
+    }
+
+    return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Cache': 'MISS'
+      }
     })
 
   } catch (error) {
