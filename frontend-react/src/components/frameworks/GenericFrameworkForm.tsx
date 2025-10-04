@@ -440,7 +440,8 @@ export function GenericFrameworkForm({
 
             if (hasContent) {
               const draftDate = new Date(draft.timestamp).toLocaleString()
-              if (confirm(`Found unsaved draft from ${draftDate}. Restore it?`)) {
+              const message = `You have an unsaved draft from ${draftDate}.\n\nWould you like to restore it and continue where you left off?\n\nClick OK to restore, or Cancel to start fresh.`
+              if (confirm(message)) {
                 setTitle(draft.title || '')
                 setDescription(draft.description || '')
                 setSectionData(draft.sectionData || {})
@@ -824,8 +825,10 @@ export function GenericFrameworkForm({
             <Button
               variant="outline"
               onClick={generateFollowUpQuestions}
-              disabled={generatingQuestions || Object.values(sectionData).every(items => items.length === 0)}
-              title="Generate follow-up questions using AI"
+              disabled={generatingQuestions || !description.trim()}
+              title={description.trim()
+                ? "Generate questions from your description using AI"
+                : "Add a description to generate AI questions"}
             >
               {generatingQuestions ? (
                 <>
