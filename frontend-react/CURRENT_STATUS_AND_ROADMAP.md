@@ -1,9 +1,9 @@
 # 📊 Current Status & Roadmap - October 2025
 
-**Last Updated:** October 4, 2025 (Evidence Linking System Complete)
+**Last Updated:** October 4, 2025 (Network Graph Enhancements Complete)
 **Current Branch:** main
 **Production:** https://researchtools.net
-**Status:** Entity System Phase 1 Complete ✅ (100%) | Q&A Frameworks + AI-Enhanced Exports ✅ (100%) | Evidence Linking ✅ (100%) | 44% TODO Reduction ⭐ | Phase 2 UI Ready to Start 🚀
+**Status:** Entity System Phase 1 Complete ✅ (100%) | Q&A Frameworks + AI-Enhanced Exports ✅ (100%) | Evidence Linking ✅ (100%) | Network Graph ✅ (100%) | 56% TODO Reduction ⭐⭐ | Phase 2 UI Ready to Start 🚀
 
 ---
 
@@ -757,17 +757,61 @@ npx wrangler d1 execute researchtoolspy-dev --file=schema/d1-schema.sql
 - ✅ COG/Causeway relationship foundation ready
 - ✅ 8 HIGH priority TODOs RESOLVED (44% reduction in total TODOs)
 
+### ✅ COMPLETED: Network Graph Enhancements (October 4, 2025) ⭐
+**Implementation Time**: 1-2 hours
+**Deployment:** https://45932a20.researchtoolspy.pages.dev
+
+**Phase: Entity Name Fetching & Path Highlighting**
+
+**✅ Entity Name Fetching** (COMPLETE)
+- Fetch actual entity names from API instead of placeholders
+- Group entity IDs by type (ACTOR, SOURCE, EVENT, PLACE, BEHAVIOR, EVIDENCE)
+- Batched API calls for each entity type (6 parallel calls max)
+- Client-side filtering to get only needed entities
+- Fallback to placeholder names if API fetch fails
+- File: `src/pages/NetworkGraphPage.tsx:69-211`
+- Resolved TODO at line 92
+
+**✅ Path Highlighting** (COMPLETE)
+- Added highlightedPath prop to NetworkGraphCanvas
+- Golden visual theme (#fbbf24) for highlighted elements
+- Nodes: Thicker golden borders (3px) + outer glow effect
+- Links: Golden color + increased width (4px)
+- Arrows: Golden fill color for highlighted paths
+- Links highlighted only if source and target are consecutive in path
+- Darker text (#92400e) for highlighted node labels
+- File: `src/components/network/NetworkGraphCanvas.tsx:20-186`
+- Resolved TODO at line 495 (NetworkGraphPage.tsx)
+
+**Components Updated**:
+- `src/pages/NetworkGraphPage.tsx` (135 lines modified)
+- `src/components/network/NetworkGraphCanvas.tsx` (45 lines modified)
+
+**Git Commit**:
+- `aae71fd8` - feat(network): implement entity name fetching and path highlighting
+
+**Build Status**: ✅ Successful (3.45s, no errors)
+
+**Key Features**:
+- Real entity names displayed in network graph
+- Path highlighting with professional golden theme
+- Batched API calls reduce network overhead
+- Graceful fallback to placeholders on error
+- Visual distinction for highlighted paths
+- 2 HIGH priority TODOs RESOLVED (56% total completion)
+
 ---
 
 ## 📝 TECHNICAL DEBT
 
 ### Code Quality
-- **10 TODO comments to address** (down from 18 - 44% reduction!) ⭐⭐
+- **8 TODO comments to address** (down from 18 - 56% completion!) ⭐⭐⭐
   - See `UNFINISHED_ITEMS_LIST.md` for complete breakdown
-  - 4 HIGH priority (network graph entity names, path highlighting)
-  - 3 MEDIUM priority (MOM modals, batch AI)
-  - 3 LOW priority (entity name batching, auth)
+  - 3 HIGH priority (MOM modals)
+  - 2 MEDIUM priority (batch AI, batch entity loading)
+  - 3 LOW priority (deferred features + auth)
   - ✅ Evidence linking RESOLVED (8 TODOs complete)
+  - ✅ Network graph RESOLVED (2 TODOs complete)
 - No unit tests yet
 - No integration tests
 - Limited error handling in forms
@@ -827,13 +871,19 @@ npx wrangler d1 execute researchtoolspy-dev --file=schema/d1-schema.sql
    - DeceptionView and GenericFrameworkView updated
    - COG/Causeway relationship foundation laid
    - Evidence persists to database and loads on mount
+7. ✅ **Network Graph Enhancements** - 2 TODOs RESOLVED (56% total completion) ⭐⭐
+   - Entity name fetching with batched API calls
+   - Path highlighting with golden visual theme
+   - Real names replace placeholders in graph
+   - Graceful fallback on API errors
 
 ### Next Priority Sprint:
-**Network Graph & MOM Assessment Modals** (Week of Oct 7)
-- Network graph entity name fetching (2 items)
-- Path highlighting in graph visualization
-- MOM assessment modals for Actor/Event pages (6 items)
-- Batch entity name loading optimization
+**MOM Assessment Modals** (Week of Oct 7)
+- Wire up MOM assessment creation modals from Actor pages
+- Wire up MOM assessment edit modals from Actor pages
+- Wire up MOM assessment modals from Event pages
+- Consolidate duplicate modal triggers in EventDetailView
+- Fetch actors/events for MOM form dropdowns
 
-**Estimated Time:** 8-12 hours
-**Success Criteria:** Network graph shows entity names, path highlighting works, MOM modals functional from Actor/Event pages
+**Estimated Time:** 3-4 hours
+**Success Criteria:** MOM assessments can be created/edited from Actor/Event detail pages with proper pre-population
