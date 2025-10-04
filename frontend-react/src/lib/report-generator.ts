@@ -682,6 +682,182 @@ export class ReportGenerator {
           })
         }
       })
+    } else if (frameworkType === 'stakeholder') {
+      // Stakeholder Analysis - Enhanced Export with Engagement Plans
+      paragraphs.push(
+        new Paragraph({
+          text: 'Stakeholder Power/Interest Matrix',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 200 }
+        })
+      )
+
+      const sections = [
+        {
+          key: 'high_power_high_interest',
+          label: '👑 Key Players (High Power, High Interest)',
+          strategy: 'MANAGE CLOSELY',
+          tactics: [
+            'Schedule regular 1-on-1 meetings and personal engagement',
+            'Involve directly in major decision-making processes',
+            'Build strong, trust-based relationships',
+            'Seek input on strategy and provide early visibility',
+            'Respond immediately to concerns or requests'
+          ]
+        },
+        {
+          key: 'high_power_low_interest',
+          label: '🤝 Keep Satisfied (High Power, Low Interest)',
+          strategy: 'KEEP SATISFIED',
+          tactics: [
+            'Provide monthly progress updates and status reports',
+            'Address concerns proactively before they escalate',
+            'Keep informed but avoid over-engagement',
+            'Monitor for changes in interest level or position',
+            'Ensure their needs are met without excessive demands'
+          ]
+        },
+        {
+          key: 'low_power_high_interest',
+          label: '📢 Keep Informed (Low Power, High Interest)',
+          strategy: 'KEEP INFORMED',
+          tactics: [
+            'Send regular newsletters and project updates',
+            'Leverage as advocates and champions for the initiative',
+            'Consult on relevant issues where their expertise helps',
+            'Build grassroots support and coalition',
+            'Provide opportunities for meaningful participation'
+          ]
+        },
+        {
+          key: 'low_power_low_interest',
+          label: '👥 Monitor (Low Power, Low Interest)',
+          strategy: 'MONITOR',
+          tactics: [
+            'Include in periodic broad communications only',
+            'Apply minimal engagement effort',
+            'Watch for changes in power or interest status',
+            'Keep on distribution lists for awareness',
+            'Respond to inquiries but don\'t proactively engage'
+          ]
+        }
+      ]
+
+      sections.forEach(section => {
+        const stakeholders = data[section.key] || []
+        if (stakeholders.length > 0) {
+          paragraphs.push(
+            new Paragraph({
+              text: section.label,
+              heading: HeadingLevel.HEADING_3,
+              spacing: { before: 300, after: 150 }
+            })
+          )
+
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: `Strategy: ${section.strategy}`, bold: true })],
+              spacing: { after: 100 },
+              indent: { left: 360 }
+            })
+          )
+
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: `Stakeholder Count: ${stakeholders.length}`, italics: true })],
+              spacing: { after: 150 },
+              indent: { left: 360 }
+            })
+          )
+
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: 'Engagement Tactics:', bold: true })],
+              spacing: { after: 100 },
+              indent: { left: 360 }
+            })
+          )
+
+          section.tactics.forEach((tactic: string) => {
+            paragraphs.push(
+              new Paragraph({
+                text: `• ${tactic}`,
+                spacing: { after: 80 },
+                indent: { left: 720 }
+              })
+            )
+          })
+
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: 'Stakeholders:', bold: true })],
+              spacing: { before: 150, after: 100 },
+              indent: { left: 360 }
+            })
+          )
+
+          stakeholders.forEach((item: any) => {
+            const text = item.text || item.name || 'Unnamed stakeholder'
+            paragraphs.push(
+              new Paragraph({
+                text: `• ${text}`,
+                spacing: { after: 80 },
+                indent: { left: 720 }
+              })
+            )
+          })
+
+          paragraphs.push(new Paragraph({ text: '', spacing: { after: 200 } }))
+        }
+      })
+
+      // Summary Section
+      const totalStakeholders = (data.high_power_high_interest?.length || 0) +
+                               (data.high_power_low_interest?.length || 0) +
+                               (data.low_power_high_interest?.length || 0) +
+                               (data.low_power_low_interest?.length || 0)
+      const highPriority = (data.high_power_high_interest?.length || 0) +
+                          (data.high_power_low_interest?.length || 0)
+
+      paragraphs.push(
+        new Paragraph({
+          text: 'Stakeholder Engagement Summary',
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 400, after: 200 }
+        })
+      )
+
+      paragraphs.push(
+        new Paragraph({
+          text: `• Total Stakeholders Identified: ${totalStakeholders}`,
+          spacing: { after: 100 },
+          indent: { left: 360 }
+        })
+      )
+
+      paragraphs.push(
+        new Paragraph({
+          text: `• High Priority (Requiring Active Management): ${highPriority} stakeholders`,
+          spacing: { after: 100 },
+          indent: { left: 360 }
+        })
+      )
+
+      paragraphs.push(
+        new Paragraph({
+          text: `• Key Players (Top Priority): ${data.high_power_high_interest?.length || 0} stakeholders`,
+          spacing: { after: 100 },
+          indent: { left: 360 }
+        })
+      )
+
+      paragraphs.push(
+        new Paragraph({
+          text: `• Potential Advocates: ${data.low_power_high_interest?.length || 0} stakeholders`,
+          spacing: { after: 100 },
+          indent: { left: 360 }
+        })
+      )
     } else {
       // Generic framework content (supports Q&A)
       const config = frameworkConfigs[frameworkType]
