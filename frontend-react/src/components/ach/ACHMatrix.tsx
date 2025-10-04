@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, X, Info } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Plus, X, Info, Star, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import type { ACHAnalysis, ACHHypothesis, ACHEvidenceLink, ACHScore } from '@/types/ach'
 import { LOGARITHMIC_SCORES, LINEAR_SCORES, type ScoreOption } from '@/lib/ach-scoring'
+import { calculateEvidenceQuality, getQualityColor, getQualityIcon, type EvidenceQuality } from '@/lib/evidence-quality'
 import { cn } from '@/lib/utils'
 
 interface ACHMatrixProps {
@@ -33,6 +34,15 @@ export function ACHMatrix({
 
   const scaleOptions = analysis.scale_type === 'logarithmic' ? LOGARITHMIC_SCORES : LINEAR_SCORES
 
+  // Calculate evidence quality for each piece of evidence
+  const evidenceQuality = useMemo(() => {
+    const qualityMap = new Map<string, EvidenceQuality>()
+    evidence.forEach(ev => {
+      qualityMap.set(ev.evidence_id, calculateEvidenceQuality(ev))
+    })
+    return qualityMap
+  }, [evidence])
+
   const getScore = (hypothesisId: string, evidenceId: string): ACHScore | undefined => {
     return scores.find(s => s.hypothesis_id === hypothesisId && s.evidence_id === evidenceId)
   }
@@ -57,11 +67,21 @@ export function ACHMatrix({
     setScoreNotes('')
   }
 
-  // Calculate column totals
+  // Calculate column totals (raw and weighted)
   const getColumnTotal = (hypothesisId: string): number => {
     return scores
       .filter(s => s.hypothesis_id === hypothesisId)
       .reduce((sum, s) => sum + s.score, 0)
+  }
+
+  const getWeightedColumnTotal = (hypothesisId: string): number => {
+    return scores
+      .filter(s => s.hypothesis_id === hypothesisId)
+      .reduce((sum, s) => {
+        const quality = evidenceQuality.get(s.evidence_id)
+        const weight = quality?.weight ?? 1.0
+        return sum + (s.score * weight)
+      }, 0)
   }
 
   if (hypotheses.length === 0) {
@@ -139,15 +159,36 @@ export function ACHMatrix({
                 </td>
               </tr>
             ) : (
-              evidence.map((ev) => (
+              evidence.map((ev) => {
+                const quality = evidenceQuality.get(ev.evidence_id)
+                return (
                 <tr key={ev.link_id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                   <td className="border border-gray-300 dark:border-gray-700 p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <div className="font-medium text-sm">{ev.evidence_title}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium text-sm">{ev.evidence_title}</div>
+                          {quality && (
+                            <span
+                              className={cn(
+                                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+                                getQualityColor(quality.tier)
+                              )}
+                              title={`Quality: ${quality.tier.toUpperCase()}\nWeight: ${quality.weight.toFixed(2)}x\n${quality.breakdown}`}
+                            >
+                              {getQualityIcon(quality.tier)}
+                              <span>{quality.weight.toFixed(2)}x</span>
+                            </span>
+                          )}
+                        </div>
                         {ev.source && (
                           <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                             {ev.source}
+                          </div>
+                        )}
+                        {quality && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {quality.breakdown}
                           </div>
                         )}
                       </div>
@@ -164,6 +205,7 @@ export function ACHMatrix({
                   {hypotheses.map((hypothesis) => {
                     const score = getScore(hypothesis.id, ev.evidence_id)
                     const scoreOption = score ? getScoreOption(score.score) : null
+                    const weightedScore = quality && score ? score.score * quality.weight : score?.score
 
                     return (
                       <td
@@ -175,6 +217,11 @@ export function ACHMatrix({
                           <div className={cn('p-2 rounded text-center', scoreOption.color)}>
                             <div className="font-bold">{scoreOption.value}</div>
                             <div className="text-xs">{scoreOption.label}</div>
+                            {quality && quality.weight !== 1.0 && weightedScore && (
+                              <div className="text-xs mt-1 font-semibold">
+                                Weighted: {weightedScore.toFixed(1)}
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="text-center text-gray-400 p-2">
@@ -185,14 +232,14 @@ export function ACHMatrix({
                     )
                   })}
                 </tr>
-              ))
+              )})
             )}
           </tbody>
           {evidence.length > 0 && (
             <tfoot>
-              <tr className="bg-gray-100 dark:bg-gray-800 font-bold">
-                <td className="border border-gray-300 dark:border-gray-700 p-3">
-                  Total Score
+              <tr className="bg-gray-50 dark:bg-gray-800/50">
+                <td className="border border-gray-300 dark:border-gray-700 p-3 font-medium">
+                  Raw Total
                 </td>
                 {hypotheses.map((hypothesis) => {
                   const total = getColumnTotal(hypothesis.id)
@@ -206,6 +253,34 @@ export function ACHMatrix({
                       )}
                     >
                       {total}
+                    </td>
+                  )
+                })}
+              </tr>
+              <tr className="bg-gray-100 dark:bg-gray-800 font-bold">
+                <td className="border border-gray-300 dark:border-gray-700 p-3">
+                  <div className="flex items-center gap-2">
+                    <span>Weighted Total</span>
+                    <span
+                      className="text-xs text-gray-600 dark:text-gray-400 font-normal"
+                      title="Weighted by evidence quality (credibility, source classification, confidence)"
+                    >
+                      <Info className="h-4 w-4" />
+                    </span>
+                  </div>
+                </td>
+                {hypotheses.map((hypothesis) => {
+                  const weightedTotal = getWeightedColumnTotal(hypothesis.id)
+                  return (
+                    <td
+                      key={hypothesis.id}
+                      className={cn(
+                        'border border-gray-300 dark:border-gray-700 p-3 text-center',
+                        weightedTotal > 0 && 'text-green-600 dark:text-green-400',
+                        weightedTotal < 0 && 'text-red-600 dark:text-red-400'
+                      )}
+                    >
+                      {weightedTotal.toFixed(1)}
                     </td>
                   )
                 })}
@@ -226,19 +301,45 @@ export function ACHMatrix({
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 <strong>Key Principle:</strong> The hypothesis with the LEAST contradictory evidence (highest score) is most likely correct.
               </p>
-              <div className="flex flex-wrap gap-2 mt-4">
-                {hypotheses
-                  .map((h, index) => ({ hypothesis: h, index, total: getColumnTotal(h.id) }))
-                  .sort((a, b) => b.total - a.total)
-                  .map(({ hypothesis, index, total }, rank) => (
-                    <Badge
-                      key={hypothesis.id}
-                      variant={rank === 0 ? 'default' : 'secondary'}
-                      className="text-sm"
-                    >
-                      H{index + 1}: {total} {rank === 0 && '(Most Likely)'}
-                    </Badge>
-                  ))}
+              <div className="space-y-3 mt-4">
+                <div>
+                  <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    Quality-Weighted Ranking:
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {hypotheses
+                      .map((h, index) => ({ hypothesis: h, index, total: getWeightedColumnTotal(h.id) }))
+                      .sort((a, b) => b.total - a.total)
+                      .map(({ hypothesis, index, total }, rank) => (
+                        <Badge
+                          key={hypothesis.id}
+                          variant={rank === 0 ? 'default' : 'secondary'}
+                          className="text-sm"
+                        >
+                          H{index + 1}: {total.toFixed(1)} {rank === 0 && '⭐ Most Likely'}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    Raw Scores (unweighted):
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {hypotheses
+                      .map((h, index) => ({ hypothesis: h, index, total: getColumnTotal(h.id) }))
+                      .sort((a, b) => b.total - a.total)
+                      .map(({ hypothesis, index, total }) => (
+                        <Badge
+                          key={hypothesis.id}
+                          variant="outline"
+                          className="text-sm"
+                        >
+                          H{index + 1}: {total}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
