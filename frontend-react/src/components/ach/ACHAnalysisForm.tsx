@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { ACHAnalysis, ACHHypothesis, ScaleType, AnalysisStatus } from '@/types/ach'
+import { ACHEvidenceManager } from './ACHEvidenceManager'
 
 interface ACHAnalysisFormProps {
   open: boolean
@@ -32,6 +33,7 @@ export interface ACHFormData {
     source?: string
     order_num: number
   }>
+  evidence_ids?: string[]  // Evidence to link to this analysis
 }
 
 export function ACHAnalysisForm({
@@ -50,7 +52,8 @@ export function ACHAnalysisForm({
     organization: '',
     scale_type: 'logarithmic',
     status: 'draft',
-    hypotheses: []
+    hypotheses: [],
+    evidence_ids: []
   })
   const [newHypothesis, setNewHypothesis] = useState('')
 
@@ -70,7 +73,8 @@ export function ACHAnalysisForm({
           rationale: h.rationale,
           source: h.source,
           order_num: h.order_num
-        })) || []
+        })) || [],
+        evidence_ids: initialData.evidence?.map(e => e.evidence_id) || []
       })
     } else {
       // Reset form for create mode
@@ -82,7 +86,8 @@ export function ACHAnalysisForm({
         organization: '',
         scale_type: 'logarithmic',
         status: 'draft',
-        hypotheses: []
+        hypotheses: [],
+        evidence_ids: []
       })
     }
   }, [initialData, open])
@@ -256,6 +261,13 @@ export function ACHAnalysisForm({
               </div>
             </div>
           </div>
+
+          {/* Evidence Manager */}
+          <ACHEvidenceManager
+            analysisId={initialData?.id}
+            selectedEvidence={formData.evidence_ids || []}
+            onEvidenceChange={(evidenceIds) => setFormData({ ...formData, evidence_ids: evidenceIds })}
+          />
 
           {/* Hypotheses Manager */}
           <Card>

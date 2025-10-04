@@ -66,9 +66,14 @@ export function DashboardHeader() {
     <div className="sticky top-0 z-40 bg-white shadow-sm dark:bg-gray-900 dark:border-b dark:border-gray-700">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Breadcrumbs / Page title */}
-        <div className="flex items-center">
+        <div className="flex items-center gap-3">
+          <img
+            src="/logo.png"
+            alt="Research Tools"
+            className="h-8 w-8 rounded-md lg:hidden"
+          />
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Research Analysis Platform
+            Research Tools
           </h1>
         </div>
 
