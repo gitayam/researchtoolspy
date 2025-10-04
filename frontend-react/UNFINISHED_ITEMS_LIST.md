@@ -1,22 +1,25 @@
 # 🚧 Unfinished Items & TODOs
 
-**Last Updated:** October 4, 2025 (Evening Update - Evidence Linking Complete)
-**Total Items:** 10 (down from 18 - 44% reduction!)
+**Last Updated:** October 4, 2025 (Network Graph Enhancements Complete)
+**Total Items:** 8 (down from 18 - 56% reduction!)
 
 ---
 
 ## 📋 Code TODOs by Category
 
-### 🌐 Network Graph & Visualization (4 items)
+### ✅ Network Graph & Visualization (2 items) - **COMPLETE** ⭐
 
 #### src/pages/NetworkGraphPage.tsx
-- **Line 92**: Fetch actual entity names from API
-  - Currently using placeholder names
-  - Need to integrate with entity API endpoints
+- ✅ **Line 92**: Fetch actual entity names from API - **RESOLVED**
+  - Now groups entity IDs by type and fetches from appropriate APIs
+  - Batched fetching for actors, events, sources, places, behaviors, evidence
+  - Fallback to placeholder names if API fetch fails
 
-- **Line 378**: Implement path highlighting in graph
-  - Path highlighting UI exists but logic not implemented
-  - Should highlight shortest path between selected nodes
+- ✅ **Line 495**: Implement path highlighting in graph - **RESOLVED**
+  - Path highlighting now fully functional with golden (#fbbf24) visual theme
+  - Nodes highlighted with thicker golden borders and outer glow
+  - Links highlighted with golden color and increased width
+  - Arrows also highlighted in golden color
 
 ### ✅ Evidence Linking (8 items) - **COMPLETE** ⭐
 
@@ -117,37 +120,43 @@
 
 ## 🎯 Priority Assessment
 
-### 🔴 HIGH PRIORITY (Blocking features)
+### ✅ COMPLETED (10 items resolved!)
 
-1. **Evidence Linking API Integration** (8 items)
-   - Critical for evidence-based analysis workflows
-   - Affects DeceptionView and GenericFrameworkView
-   - Est. time: 6-8 hours
+1. ✅ **Evidence Linking API Integration** (8 items) - **COMPLETE**
+   - All evidence linking TODOs resolved
+   - DeceptionView and GenericFrameworkView fully integrated
+   - COG/Causeway relationship extraction foundation laid
 
-2. **MOM Assessment Modals** (6 items)
+2. ✅ **Network Graph Enhancements** (2 items) - **COMPLETE**
+   - Entity names now fetched from API with batched calls
+   - Path highlighting fully functional with golden visual theme
+
+### 🔴 HIGH PRIORITY (Remaining features)
+
+1. **MOM Assessment Modals** (3 items)
    - Blocks deception analysis from Actor/Event pages
-   - UI buttons exist but no functionality
-   - Est. time: 4-6 hours
+   - UI buttons exist but modals not wired up
+   - Est. time: 3-4 hours
 
 ### 🟡 MEDIUM PRIORITY (UX improvements)
 
-3. **Network Graph Enhancements** (2 items)
-   - Entity names and path highlighting
-   - Improves usability but not blocking
-   - Est. time: 3-4 hours
-
-4. **Batch AI Processing** (1 item)
+2. **Batch AI Processing** (1 item)
    - Performance improvement for bulk operations
-   - Est. time: 3-4 hours
+   - Est. time: 2-3 hours
+
+3. **Batch Entity Name Loading** (1 item)
+   - Actor detail view loads entity names individually
+   - Should use batched API calls
+   - Est. time: 1-2 hours
 
 ### 🟢 LOW PRIORITY (Nice-to-haves)
 
-5. **Relationship Auto-generation** (2 items)
-   - COG/Causeway framework relationship mapping
-   - Advanced feature, not critical
-   - Est. time: 4-6 hours
+4. **Deferred Items** (3 items)
+   - Relationship auto-generation (requires entity linking)
+   - Sharing functionality (requires collaboration API - Phase 4)
+   - Network graph refresh (will resolve with entity linking)
 
-6. **Authentication System** (1 item)
+5. **Authentication System** (1 item)
    - Currently using hash-based workaround
    - Low priority unless multi-user needed
    - Est. time: 8-12 hours
@@ -156,44 +165,55 @@
 
 ## 📊 Completion Statistics
 
-- **Total TODOs:** 18
-- **High Priority:** 14 items (78%)
-- **Medium Priority:** 3 items (17%)
-- **Low Priority:** 1 item (5%)
+- **Total TODOs:** 18 (original)
+- **Completed:** 10 items ✅
+- **Remaining:** 8 items
+- **Completion Rate:** 56% ⬆️
 
-**Estimated Total Time:** 28-40 hours for all items
+**Breakdown:**
+- **High Priority:** 3 items (MOM modals)
+- **Medium Priority:** 2 items (batch AI, batch entity loading)
+- **Low Priority:** 3 items (deferred features + auth)
+
+**Estimated Remaining Time:** 14-21 hours
 
 ---
 
 ## 🔄 Next Actions
 
-### Sprint Focus: Evidence Linking System (Week of Oct 7)
-**Goal:** Complete all 8 evidence linking TODOs
+### ✅ Sprint 1: Evidence Linking System (Oct 4) - **COMPLETE**
+- ✅ All 8 evidence linking TODOs resolved
+- ✅ API integration complete (GET, POST, DELETE)
+- ✅ Foundation for COG/Causeway relationships laid
+
+### ✅ Sprint 2: Network Graph Enhancements (Oct 4) - **COMPLETE**
+- ✅ Entity name fetching from API
+- ✅ Path highlighting with golden visual theme
+
+### Sprint 3: MOM Assessment Modals (Next)
+**Goal:** Wire up MOM assessment modals from Actor/Event pages
 
 **Tasks:**
-1. Create evidence linking API endpoints
-   - POST `/api/frameworks/:id/evidence` - Link evidence
-   - DELETE `/api/frameworks/:id/evidence/:evidence_id` - Unlink
-   - GET `/api/frameworks/:id/evidence` - Get linked evidence
+1. Create or update MOM assessment modal component
+   - Form for creating new MOM assessments
+   - Pre-populate with actor/event context
+   - Wire up to Actor detail view (line 417, 421)
+   - Wire up to Event detail view (line 446, 460, 464)
 
-2. Update DeceptionView component
-   - Integrate with evidence linking API
-   - Implement relationship generation
-   - Add sharing functionality
+2. Consolidate duplicate modal triggers
+   - EventDetailView has duplicate "create" buttons (line 446, 460)
+   - Needs consolidation
 
-3. Update GenericFrameworkView component
-   - Same API integration as DeceptionView
-   - Add COG/Causeway relationship logic
-
-4. Add UI feedback
-   - Success toasts for link/unlink
-   - Network graph refresh after relationships
+3. Fetch actors/events for dropdowns
+   - MOMAssessmentForm.tsx line 51
+   - Replace placeholder data with API calls
 
 **Success Criteria:**
-- Evidence can be linked to any framework
-- Links persist to database
-- Network graph updates automatically
-- Relationships auto-generate for COG/Causeway
+- MOM assessment can be created from Actor page
+- MOM assessment can be edited from Actor page
+- MOM assessment can be created from Event page with event pre-selected
+- MOM assessment can be edited from Event page
+- No duplicate functionality or buttons
 
 ---
 
