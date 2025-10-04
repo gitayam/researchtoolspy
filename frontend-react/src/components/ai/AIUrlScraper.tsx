@@ -205,37 +205,74 @@ export function AIUrlScraper({
                         No structured data extracted for this framework
                       </p>
                     ) : (
-                      Object.entries(scrapedData.extractedData).map(([key, value]) => (
-                        <div key={key} className="space-y-2">
-                          <h4 className="font-medium text-sm capitalize">
-                            {key.replace(/_/g, ' ')}:
-                          </h4>
-                          {Array.isArray(value) ? (
-                            <ul className="space-y-2">
-                              {value.map((item, idx) => (
-                                <li key={idx} className="text-sm ml-4">
-                                  {typeof item === 'object' && item !== null && 'question' in item ? (
-                                    <div className="space-y-1 bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700">
-                                      <div className="font-medium text-gray-900 dark:text-gray-100">
-                                        Q: {item.question}
-                                      </div>
-                                      <div className="text-gray-700 dark:text-gray-300 ml-4">
-                                        A: {item.answer || <span className="italic text-gray-500">No answer extracted</span>}
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <span className="text-gray-700 dark:text-gray-300 list-disc">
-                                      {typeof item === 'string' ? item : JSON.stringify(item)}
-                                    </span>
-                                  )}
-                                </li>
+                      <>
+                        {/* Answered Questions/Data */}
+                        {Object.entries(scrapedData.extractedData)
+                          .filter(([key]) => !key.startsWith('_'))
+                          .map(([key, value]) => (
+                            <div key={key} className="space-y-2">
+                              <h4 className="font-medium text-sm capitalize">
+                                {key.replace(/_/g, ' ')}:
+                              </h4>
+                              {Array.isArray(value) ? (
+                                <ul className="space-y-2">
+                                  {value.map((item, idx) => (
+                                    <li key={idx} className="text-sm ml-4">
+                                      {typeof item === 'object' && item !== null && 'question' in item ? (
+                                        <div className="space-y-1 bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700">
+                                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                                            Q: {item.question}
+                                          </div>
+                                          <div className="text-gray-700 dark:text-gray-300 ml-4">
+                                            A: {item.answer || <span className="italic text-gray-500">No answer extracted</span>}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <span className="text-gray-700 dark:text-gray-300 list-disc">
+                                          {typeof item === 'string' ? item : JSON.stringify(item)}
+                                        </span>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-sm text-gray-700 dark:text-gray-300">{typeof value === 'string' ? value : JSON.stringify(value)}</p>
+                              )}
+                            </div>
+                          ))}
+
+                        {/* Unanswered Questions Section */}
+                        {scrapedData.extractedData._unansweredQuestions && (
+                          <div className="mt-6 pt-4 border-t border-gray-300 dark:border-gray-600">
+                            <h4 className="font-semibold text-base mb-3 text-orange-700 dark:text-orange-400">
+                              🔍 Questions to Investigate Further
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 italic">
+                              These questions could not be answered from the article and represent information gaps
+                            </p>
+                            <div className="space-y-3">
+                              {Object.entries(scrapedData.extractedData._unansweredQuestions).map(([category, questions]) => (
+                                <div key={category} className="space-y-2">
+                                  <h5 className="font-medium text-sm capitalize text-gray-700 dark:text-gray-300">
+                                    {category.replace(/_/g, ' ')}:
+                                  </h5>
+                                  <ul className="space-y-1.5">
+                                    {Array.isArray(questions) && questions.map((question: string, idx: number) => (
+                                      <li key={idx} className="text-sm ml-4">
+                                        <div className="bg-orange-50 dark:bg-orange-900/20 p-2 rounded border border-orange-200 dark:border-orange-800">
+                                          <div className="text-gray-900 dark:text-gray-100">
+                                            ❓ {question}
+                                          </div>
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
                               ))}
-                            </ul>
-                          ) : (
-                            <p className="text-sm text-gray-700 dark:text-gray-300">{typeof value === 'string' ? value : JSON.stringify(value)}</p>
-                          )}
-                        </div>
-                      ))
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </TabsContent>
 
