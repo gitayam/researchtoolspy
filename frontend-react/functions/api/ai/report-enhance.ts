@@ -479,6 +479,94 @@ Recommend:
 - Risk mitigation measures
 
 Return ONLY a JSON array of recommendation strings.`
+  },
+
+  surveillance: {
+    summary: `Analyze this ISR (Intelligence, Surveillance, Reconnaissance) collection plan and create an executive summary.
+
+ISR Data:
+{data}
+
+Provide a 2-3 sentence executive summary (BLUF format) highlighting:
+- Commander's priority intelligence requirements
+- Collection asset allocation efficiency
+- Critical intelligence gaps
+
+Start with the most critical finding first.`,
+
+    insights: `Analyze this ISR collection planning framework for key insights.
+
+ISR Data:
+{data}
+
+Identify insights about:
+- Collection priorities and PIR coverage
+- Asset allocation and efficiency optimization
+- Surveillance target coverage and gaps
+- Reconnaissance task effectiveness
+- Information processing and dissemination timeliness
+- Collection-to-intelligence timeline patterns
+
+Return ONLY a JSON array of insight strings: ["Insight 1", "Insight 2", ...]`,
+
+    recommendations: `Provide actionable recommendations based on this ISR collection plan.
+
+ISR Data:
+{data}
+
+Recommend:
+- Collection optimization strategies
+- Asset reallocation priorities
+- Intelligence gap filling approaches
+- Dissemination improvement methods
+- ISR process enhancements
+- Real-time retasking procedures
+
+Return ONLY a JSON array of recommendation strings: ["Recommendation 1", "Recommendation 2", ...]`
+  },
+
+  'fundamental-flow': {
+    summary: `Analyze this intelligence flow assessment and create an executive summary.
+
+Flow Data:
+{data}
+
+Provide a 2-3 sentence executive summary (BLUF format) highlighting:
+- Critical bottlenecks in intelligence flow
+- Overall process efficiency
+- Key improvement opportunities
+
+Start with the most critical bottleneck or inefficiency.`,
+
+    insights: `Analyze this fundamental flow framework for process optimization insights.
+
+Flow Data:
+{data}
+
+Identify insights about:
+- Information flow efficiency across intelligence cycle stages
+- Bottlenecks and delay points identified
+- Collection-to-dissemination timeline analysis
+- Feedback loop effectiveness
+- Processing and production stage patterns
+- Quality and timeliness trade-offs
+
+Return ONLY a JSON array of insight strings: ["Insight 1", "Insight 2", ...]`,
+
+    recommendations: `Provide process improvement recommendations based on this flow analysis.
+
+Flow Data:
+{data}
+
+Recommend:
+- Flow optimization strategies
+- Bottleneck elimination approaches
+- Process automation opportunities
+- Timeliness enhancement methods
+- Quality and accuracy improvements
+- Feedback mechanism enhancements
+
+Return ONLY a JSON array of recommendation strings: ["Recommendation 1", "Recommendation 2", ...]`
   }
 }
 

@@ -577,5 +577,149 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         icon: '🎪'
       }
     ]
+  },
+
+  'surveillance': {
+    type: 'surveillance',
+    title: 'Surveillance Framework (ISR Collection Planning)',
+    description: 'Intelligence, Surveillance, and Reconnaissance operations planning based on RAND Strategies-to-Tasks methodology',
+    sections: [
+      {
+        key: 'commanders_guidance',
+        label: "Commander's Guidance",
+        description: 'Top-level strategic objectives and operational priorities',
+        color: 'border-red-500',
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        icon: '⭐'
+      },
+      {
+        key: 'intelligence_requirements',
+        label: 'Intelligence Requirements',
+        description: 'Priority Intelligence Requirements (PIRs) and Essential Elements of Information (EEIs)',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '🎯'
+      },
+      {
+        key: 'collection_strategies',
+        label: 'Collection Strategies',
+        description: 'Methods, platforms, and approaches for information gathering',
+        color: 'border-green-500',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        icon: '📡'
+      },
+      {
+        key: 'surveillance_targets',
+        label: 'Surveillance Targets',
+        description: 'Entities, locations, or activities requiring persistent monitoring',
+        color: 'border-orange-500',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        icon: '👁️'
+      },
+      {
+        key: 'reconnaissance_tasks',
+        label: 'Reconnaissance Tasks',
+        description: 'Specific information-gathering missions to answer intelligence questions',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '🔍'
+      },
+      {
+        key: 'collection_assets',
+        label: 'Collection Assets',
+        description: 'Available sensors, platforms, and resources for ISR operations',
+        color: 'border-cyan-500',
+        bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
+        icon: '🛰️'
+      },
+      {
+        key: 'processing_plan',
+        label: 'Information Processing',
+        description: 'Analysis, fusion, and integration procedures',
+        color: 'border-yellow-500',
+        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+        icon: '⚙️'
+      },
+      {
+        key: 'dissemination',
+        label: 'Dissemination Plan',
+        description: 'Intelligence sharing and distribution procedures',
+        color: 'border-pink-500',
+        bgColor: 'bg-pink-50 dark:bg-pink-900/20',
+        icon: '📤'
+      }
+    ]
+  },
+
+  'fundamental-flow': {
+    type: 'fundamental-flow',
+    title: 'Fundamental Flow Analysis',
+    description: 'Intelligence cycle and information flow analysis for process optimization',
+    sections: [
+      {
+        key: 'planning_direction',
+        label: 'Planning & Direction',
+        description: 'Requirements definition and collection priorities',
+        color: 'border-red-500',
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        icon: '📋'
+      },
+      {
+        key: 'collection',
+        label: 'Collection',
+        description: 'Information gathering from various sources and methods',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '📡'
+      },
+      {
+        key: 'processing',
+        label: 'Processing',
+        description: 'Converting raw data into usable formats and structures',
+        color: 'border-green-500',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        icon: '⚙️'
+      },
+      {
+        key: 'exploitation_production',
+        label: 'Exploitation & Production',
+        description: 'Analysis and intelligence product creation',
+        color: 'border-orange-500',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        icon: '🔬'
+      },
+      {
+        key: 'dissemination',
+        label: 'Dissemination',
+        description: 'Distribution of intelligence to consumers and stakeholders',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '📤'
+      },
+      {
+        key: 'feedback_evaluation',
+        label: 'Feedback & Evaluation',
+        description: 'Assessment of intelligence value and process effectiveness',
+        color: 'border-cyan-500',
+        bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
+        icon: '📊'
+      },
+      {
+        key: 'information_sources',
+        label: 'Information Sources',
+        description: 'Catalog of available information feeds and collection capabilities',
+        color: 'border-yellow-500',
+        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+        icon: '🗂️'
+      },
+      {
+        key: 'flow_metrics',
+        label: 'Flow Metrics',
+        description: 'Timeliness, accuracy, relevance, and efficiency measurements',
+        color: 'border-pink-500',
+        bgColor: 'bg-pink-50 dark:bg-pink-900/20',
+        icon: '📈'
+      }
+    ]
   }
 }
