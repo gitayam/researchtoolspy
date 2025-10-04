@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
+import { AIFieldAssistant } from '@/components/ai'
 import { DatasetSelector } from '@/components/datasets/DatasetSelector'
 import { DatasetBadge } from '@/components/datasets/DatasetBadge'
 import type { Dataset } from '@/types/dataset'
@@ -50,7 +51,9 @@ const SectionCard = memo(({
   onRemove,
   linkedDataset,
   onLinkDataset,
-  onRemoveDataset
+  onRemoveDataset,
+  frameworkType,
+  allData
 }: {
   section: FrameworkSection
   items: FrameworkItem[]
@@ -61,6 +64,8 @@ const SectionCard = memo(({
   linkedDataset: Dataset[]
   onLinkDataset: () => void
   onRemoveDataset: (datasetId: string) => void
+  frameworkType: string
+  allData?: GenericFrameworkData
 }) => (
   <Card className={`border-l-4 ${section.color}`}>
     <CardHeader>
@@ -77,6 +82,16 @@ const SectionCard = memo(({
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && onAdd()}
+        />
+        <AIFieldAssistant
+          fieldName={section.label}
+          currentValue={newItem}
+          onAccept={(value) => setNewItem(value)}
+          context={{
+            framework: frameworkType,
+            relatedFields: allData
+          }}
+          placeholder={`Add ${section.label.toLowerCase()}...`}
         />
         <Button onClick={onAdd} size="sm">
           <Plus className="h-4 w-4" />
@@ -398,6 +413,8 @@ export function GenericFrameworkForm({
             linkedDataset={sectionDataset[section.key] || []}
             onLinkDataset={() => openDatasetSelector(section.key)}
             onRemoveDataset={(datasetId) => handleRemoveDataset(section.key, datasetId)}
+            frameworkType={frameworkType}
+            allData={{ title, description, ...sectionData }}
           />
         ))}
       </div>

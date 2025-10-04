@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, Save, Sparkles, AlertTriangle } from 'lucide-react'
+import { AIFieldAssistant } from '@/components/ai'
 import { DeceptionScoringForm } from './DeceptionScoringForm'
 import { DeceptionDashboard } from './DeceptionDashboard'
 import type { DeceptionScores } from '@/lib/deception-scoring'
@@ -243,14 +244,25 @@ export function DeceptionForm({
                         Describe the information or situation being analyzed
                       </span>
                     </Label>
-                    <Textarea
-                      id="scenario"
-                      value={scenario}
-                      onChange={(e) => setScenario(e.target.value)}
-                      placeholder="Provide detailed description of the scenario, including source of information, context, and what claims or information are being assessed..."
-                      rows={10}
-                      className="mt-2"
-                    />
+                    <div className="flex gap-2 mt-2">
+                      <Textarea
+                        id="scenario"
+                        value={scenario}
+                        onChange={(e) => setScenario(e.target.value)}
+                        placeholder="Provide detailed description of the scenario, including source of information, context, and what claims or information are being assessed..."
+                        rows={10}
+                      />
+                      <AIFieldAssistant
+                        fieldName="Scenario Description"
+                        currentValue={scenario}
+                        onAccept={(value) => setScenario(value)}
+                        context={{
+                          framework: 'Deception Detection (MOM-POP-MOSES-EVE)',
+                          relatedFields: { title, description, mom, pop, moses, eve, assessment }
+                        }}
+                        placeholder="Describe the scenario..."
+                      />
+                    </div>
                   </div>
                 </TabsContent>
 
@@ -262,14 +274,25 @@ export function DeceptionForm({
                         Assess whether adversary has motive, opportunity, and means to deceive
                       </span>
                     </Label>
-                    <Textarea
-                      id="mom"
-                      value={mom}
-                      onChange={(e) => setMom(e.target.value)}
-                      placeholder="Motive: Why would they want to deceive? What do they gain?&#10;Opportunity: Do they control information channels?&#10;Means: Do they have capabilities to execute deception?"
-                      rows={10}
-                      className="mt-2"
-                    />
+                    <div className="flex gap-2 mt-2">
+                      <Textarea
+                        id="mom"
+                        value={mom}
+                        onChange={(e) => setMom(e.target.value)}
+                        placeholder="Motive: Why would they want to deceive? What do they gain?&#10;Opportunity: Do they control information channels?&#10;Means: Do they have capabilities to execute deception?"
+                        rows={10}
+                      />
+                      <AIFieldAssistant
+                        fieldName="MOM Analysis"
+                        currentValue={mom}
+                        onAccept={(value) => setMom(value)}
+                        context={{
+                          framework: 'Deception Detection (MOM)',
+                          relatedFields: { scenario, pop, moses, eve }
+                        }}
+                        placeholder="Analyze motive, opportunity, and means..."
+                      />
+                    </div>
                   </div>
                 </TabsContent>
 
@@ -281,14 +304,25 @@ export function DeceptionForm({
                         Examine historical deception patterns
                       </span>
                     </Label>
-                    <Textarea
-                      id="pop"
-                      value={pop}
-                      onChange={(e) => setPop(e.target.value)}
-                      placeholder="Historical patterns: Has this actor used deception before?&#10;Sophistication: How advanced are their deception techniques?&#10;Success rate: Have their past deceptions worked?"
-                      rows={10}
-                      className="mt-2"
-                    />
+                    <div className="flex gap-2 mt-2">
+                      <Textarea
+                        id="pop"
+                        value={pop}
+                        onChange={(e) => setPop(e.target.value)}
+                        placeholder="Historical patterns: Has this actor used deception before?&#10;Sophistication: How advanced are their deception techniques?&#10;Success rate: Have their past deceptions worked?"
+                        rows={10}
+                      />
+                      <AIFieldAssistant
+                        fieldName="POP Analysis"
+                        currentValue={pop}
+                        onAccept={(value) => setPop(value)}
+                        context={{
+                          framework: 'Deception Detection (POP)',
+                          relatedFields: { scenario, mom, moses, eve }
+                        }}
+                        placeholder="Analyze patterns of practice..."
+                      />
+                    </div>
                   </div>
                 </TabsContent>
 
@@ -300,14 +334,25 @@ export function DeceptionForm({
                         Evaluate vulnerability of your sources to manipulation
                       </span>
                     </Label>
-                    <Textarea
-                      id="moses"
-                      value={moses}
-                      onChange={(e) => setMoses(e.target.value)}
-                      placeholder="Source vulnerability: Could our sources be compromised?&#10;Access: Do adversaries have access to our collection methods?&#10;Manipulation evidence: Any signs of source manipulation?"
-                      rows={10}
-                      className="mt-2"
-                    />
+                    <div className="flex gap-2 mt-2">
+                      <Textarea
+                        id="moses"
+                        value={moses}
+                        onChange={(e) => setMoses(e.target.value)}
+                        placeholder="Source vulnerability: Could our sources be compromised?&#10;Access: Do adversaries have access to our collection methods?&#10;Manipulation evidence: Any signs of source manipulation?"
+                        rows={10}
+                      />
+                      <AIFieldAssistant
+                        fieldName="MOSES Analysis"
+                        currentValue={moses}
+                        onAccept={(value) => setMoses(value)}
+                        context={{
+                          framework: 'Deception Detection (MOSES)',
+                          relatedFields: { scenario, mom, pop, eve }
+                        }}
+                        placeholder="Analyze source vulnerability..."
+                      />
+                    </div>
                   </div>
                 </TabsContent>
 
@@ -319,14 +364,25 @@ export function DeceptionForm({
                         Assess internal consistency and corroboration
                       </span>
                     </Label>
-                    <Textarea
-                      id="eve"
-                      value={eve}
-                      onChange={(e) => setEve(e.target.value)}
-                      placeholder="Internal consistency: Does the information hang together logically?&#10;External corroboration: Do independent sources confirm it?&#10;Anomalies: Are there any suspicious patterns or oddities?"
-                      rows={10}
-                      className="mt-2"
-                    />
+                    <div className="flex gap-2 mt-2">
+                      <Textarea
+                        id="eve"
+                        value={eve}
+                        onChange={(e) => setEve(e.target.value)}
+                        placeholder="Internal consistency: Does the information hang together logically?&#10;External corroboration: Do independent sources confirm it?&#10;Anomalies: Are there any suspicious patterns or oddities?"
+                        rows={10}
+                      />
+                      <AIFieldAssistant
+                        fieldName="EVE Analysis"
+                        currentValue={eve}
+                        onAccept={(value) => setEve(value)}
+                        context={{
+                          framework: 'Deception Detection (EVE)',
+                          relatedFields: { scenario, mom, pop, moses }
+                        }}
+                        placeholder="Analyze evidence evaluation..."
+                      />
+                    </div>
                   </div>
                 </TabsContent>
 
@@ -338,14 +394,25 @@ export function DeceptionForm({
                         Synthesize findings and determine deception likelihood
                       </span>
                     </Label>
-                    <Textarea
-                      id="assessment"
-                      value={assessment}
-                      onChange={(e) => setAssessment(e.target.value)}
-                      placeholder="Bottom Line Up Front (BLUF):&#10;&#10;Key Findings:&#10;&#10;Recommendations:&#10;&#10;Confidence Level:"
-                      rows={10}
-                      className="mt-2"
-                    />
+                    <div className="flex gap-2 mt-2">
+                      <Textarea
+                        id="assessment"
+                        value={assessment}
+                        onChange={(e) => setAssessment(e.target.value)}
+                        placeholder="Bottom Line Up Front (BLUF):&#10;&#10;Key Findings:&#10;&#10;Recommendations:&#10;&#10;Confidence Level:"
+                        rows={10}
+                      />
+                      <AIFieldAssistant
+                        fieldName="Overall Assessment"
+                        currentValue={assessment}
+                        onAccept={(value) => setAssessment(value)}
+                        context={{
+                          framework: 'Deception Detection (SATS)',
+                          relatedFields: { scenario, mom, pop, moses, eve, scores }
+                        }}
+                        placeholder="Synthesize findings..."
+                      />
+                    </div>
                   </div>
 
                   {aiAnalysis && (
