@@ -161,7 +161,7 @@ export function ACHPage() {
         }
 
         // Navigate to the new analysis
-        navigate(`/dashboard/tools/ach/${newAnalysis.id}`)
+        navigate(`/dashboard/analysis-frameworks/ach-dashboard/${newAnalysis.id}`)
       }
 
       await loadAnalyses()
@@ -174,7 +174,7 @@ export function ACHPage() {
   }
 
   const handleOpenAnalysis = (id: string) => {
-    navigate(`/dashboard/tools/ach/${id}`)
+    navigate(`/dashboard/analysis-frameworks/ach-dashboard/${id}`)
   }
 
   const filteredAnalyses = analyses.filter(analysis => {

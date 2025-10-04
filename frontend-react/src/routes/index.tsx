@@ -20,7 +20,6 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import {
   SwotPage,
-  AchPage,
   CogPage,
   PmesiiPtPage,
   DotmlpfPage,
@@ -86,15 +85,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'analysis-frameworks/ach-dashboard',
-        element: <AchPage />,
+        element: <ACHPage />,
       },
       {
-        path: 'analysis-frameworks/ach-dashboard/:action',
-        element: <AchPage />,
-      },
-      {
-        path: 'analysis-frameworks/ach-dashboard/:id/:action',
-        element: <AchPage />,
+        path: 'analysis-frameworks/ach-dashboard/:id',
+        element: <ACHAnalysisPage />,
       },
       {
         path: 'analysis-frameworks/cog',
