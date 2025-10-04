@@ -136,10 +136,17 @@ Generate exactly 3 specific, insightful questions for each DIME dimension (Diplo
 Return ONLY valid JSON in this exact format:
 {"diplomatic": ["Question 1?", "Question 2?", "Question 3?"], "information": ["Question 1?", "Question 2?", "Question 3?"], "military": ["Question 1?", "Question 2?", "Question 3?"], "economic": ["Question 1?", "Question 2?", "Question 3?"]}`)
 
+    // Calculate appropriate token limit based on mode and framework
+    // Initial questions need more tokens than follow-ups
+    // Starbursting (6 categories) needs more than DIME (4 categories)
+    const maxTokens = hasExistingQuestions
+      ? 800  // Follow-up: 2 questions per category
+      : (framework === 'starbursting' ? 1200 : 900)  // Initial: 3 questions per category
+
     // Log API call details
     console.log(`[Generate Questions] Calling OpenAI API`)
     console.log(`[Generate Questions] Model: gpt-5-mini`)
-    console.log(`[Generate Questions] Max tokens: 800`)
+    console.log(`[Generate Questions] Max tokens:`, maxTokens)
     console.log(`[Generate Questions] Prompt preview:`, prompt.substring(0, 200))
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -162,7 +169,7 @@ Return ONLY valid JSON in this exact format:
             content: prompt
           }
         ],
-        max_completion_tokens: 800
+        max_completion_tokens: maxTokens
       })
     })
 
