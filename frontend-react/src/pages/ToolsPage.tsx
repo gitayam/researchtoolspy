@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft } from 'lucide-react'
+import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,6 +33,13 @@ const tools = [
     description: 'Generate and manage citations in multiple formats',
     icon: LinkIcon,
     features: ['APA 7th Edition', 'MLA 9th Edition', 'Chicago 17th', 'Harvard format']
+  },
+  {
+    id: 'ach',
+    name: 'ACH Analysis',
+    description: 'Analysis of Competing Hypotheses - Structured intelligence methodology',
+    icon: Grid3x3,
+    features: ['Hypothesis matrix', 'Evidence evaluation', 'Logarithmic scoring', 'SATS integration']
   },
   {
     id: 'scraping',
