@@ -1,9 +1,99 @@
 # 📊 Current Status & Roadmap - October 2025
 
-**Last Updated:** October 4, 2025 (Network Graph Enhancements Complete)
+**Last Updated:** October 4, 2025 (Investigation Teams Complete ✅)
 **Current Branch:** main
-**Production:** https://researchtools.net
-**Status:** Entity System Phase 1 Complete ✅ (100%) | Q&A Frameworks + AI-Enhanced Exports ✅ (100%) | Evidence Linking ✅ (100%) | Network Graph ✅ (100%) | 56% TODO Reduction ⭐⭐ | Phase 2 UI Ready to Start 🚀
+**Production:** https://researchtoolspy.pages.dev
+**Latest Deployment:** https://03831671.researchtoolspy.pages.dev
+**Status:** Investigation Teams ✅ (100%) | Entity System Phase 1 Complete ✅ (100%) | Q&A Frameworks + AI-Enhanced Exports ✅ (100%) | Evidence Linking ✅ (100%) | Network Graph ✅ (100%) | Ready for Production Testing 🚀
+
+---
+
+## 🎉 LATEST: INVESTIGATION TEAMS (✅ COMPLETE - October 4, 2025)
+
+### ✅ What Was Built
+
+#### Secure Collaboration System
+- ✅ **Workspace invite system** - UUID-based invite tokens (NOT hash-based)
+- ✅ **Nickname support** - Workspace-specific display names for privacy
+- ✅ **Invite link generation** - Create secure, revocable invite links
+- ✅ **Invite management** - List, copy, revoke invite links
+- ✅ **Role-based access** - ADMIN, EDITOR, VIEWER roles per invite
+- ✅ **Usage controls** - Expiry dates (24h, 7d, 30d) and max uses (1, 5, 10, unlimited)
+- ✅ **Analytics tracking** - Track who joined via which invite
+
+#### Database Schema (Migration 011)
+- ✅ `workspace_invites` table with UUID tokens
+- ✅ `workspace_members` extended with nickname + joined_via_invite_id
+- ✅ `workspace_invite_uses` for analytics
+- ✅ All migrations applied to dev and prod databases
+
+#### API Endpoints (5 new endpoints)
+- ✅ POST `/api/workspaces/:id/invites` - Create invite link
+- ✅ GET `/api/workspaces/:id/invites` - List workspace invites
+- ✅ DELETE `/api/workspaces/:id/invites/:invite_id` - Revoke invite
+- ✅ GET `/api/invites/:token` - Get invite info (public, no auth)
+- ✅ POST `/api/invites/:token/accept` - Accept invite with nickname
+
+#### Frontend Components
+- ✅ **InviteAcceptPage** (`/invite/:token`) - Beautiful invite preview with nickname selection
+- ✅ **CollaborationPage** - Full team management UI with:
+  - Workspace selector
+  - Invite link creation dialog
+  - Active invites list with copy/revoke
+  - Team members list with nicknames
+  - Security info card
+- ✅ **Route integration** - `/invite/:token` route added
+
+#### Security Features
+- ✅ **Credential separation** - Invite tokens independent from account hashes
+- ✅ **Privacy-first** - Nicknames workspace-specific, not global
+- ✅ **Revocable access** - Instant invite revocation without affecting existing members
+- ✅ **Validation** - Expiry checks, max uses enforcement, duplicate prevention
+
+#### Documentation
+- ✅ **INVESTIGATION_TEAMS_DESIGN.md** - Complete design specification
+- ✅ **User flows** - 3 detailed scenarios documented
+- ✅ **API contracts** - Request/response examples for all endpoints
+- ✅ **Security model** - Threat analysis and mitigation strategies
+
+### 🎯 User Flow Example
+
+```
+1. Team Lead creates TEAM workspace "Russia-Ukraine Intelligence"
+2. Clicks "Collaboration" > "New Invite"
+3. Sets: Role=Editor, Expires=7d, Label="External analysts"
+4. Copies invite link: https://researchtoolspy.pages.dev/invite/inv_abc123xyz
+5. Shares link via Signal/WhatsApp
+
+6. Analyst receives link, clicks it
+7. If not logged in: redirects to login with account hash
+8. Shows invite preview with workspace name, role, expiry
+9. Enters nickname: "Jane Doe"
+10. Clicks "Join Investigation Team"
+11. Added to workspace with Editor role and "Jane Doe" nickname
+12. Redirected to workspace dashboard
+```
+
+### 📊 Implementation Stats
+- **Files Created:** 5 new files (1 design doc, 1 API, 1 migration, 2 components)
+- **Files Modified:** 3 files (routes, types, CollaborationPage)
+- **Lines of Code:** ~2000 lines
+- **Database Tables:** 3 new tables
+- **API Endpoints:** 5 new endpoints
+- **Development Time:** ~3 hours
+- **Migration Status:** ✅ Applied to dev and prod
+
+### 🔒 Security Highlights
+- **No credential exposure** - Invite links use UUID tokens, not account hashes
+- **Workspace isolation** - Nicknames scoped per workspace
+- **Granular control** - Per-invite role, expiry, and usage limits
+- **Audit trail** - workspace_invite_uses tracks all join events
+- **Immediate revocation** - Deactivate invite links instantly
+
+### 🚀 Deployment
+- **Migration:** Applied to researchtoolspy-dev and researchtoolspy-prod
+- **Frontend:** Deployed to https://03831671.researchtoolspy.pages.dev
+- **Status:** ✅ Live and ready for testing
 
 ---
 
