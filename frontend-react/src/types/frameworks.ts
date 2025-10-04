@@ -61,6 +61,7 @@ export interface QuestionAnswerItem {
   id: string
   question: string
   answer: string
+  needsAnswer?: boolean // Flag for questions that need answers (red highlight)
 }
 
 // Stakeholder item with rich metadata

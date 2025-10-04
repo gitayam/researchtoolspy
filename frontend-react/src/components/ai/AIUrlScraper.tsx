@@ -84,7 +84,33 @@ export function AIUrlScraper({
 
   const handleAccept = () => {
     if (scrapedData && scrapedData.extractedData) {
-      onExtract(scrapedData.extractedData, {
+      // Merge answered and unanswered questions
+      const mergedData = { ...scrapedData.extractedData }
+
+      // If there are unanswered questions, add them to each category
+      if (scrapedData.extractedData._unansweredQuestions) {
+        const unanswered = scrapedData.extractedData._unansweredQuestions
+
+        Object.keys(unanswered).forEach(category => {
+          const unansweredQuestions = unanswered[category]
+
+          if (Array.isArray(unansweredQuestions) && unansweredQuestions.length > 0) {
+            // Convert unanswered string questions to Q&A format with empty answers
+            const unansweredQA = unansweredQuestions.map((q: string) => ({
+              id: crypto.randomUUID(),
+              question: q,
+              answer: '', // Empty answer indicates it needs to be filled in
+              needsAnswer: true // Flag for red highlighting
+            }))
+
+            // Merge with existing answered questions, unanswered first
+            const existingQuestions = mergedData[category] || []
+            mergedData[category] = [...unansweredQA, ...existingQuestions]
+          }
+        })
+      }
+
+      onExtract(mergedData, {
         url: scrapedData.url,
         title: scrapedData.title,
         summary: scrapedData.summary
