@@ -187,26 +187,28 @@ const SectionCard = memo(({
                     <div className="flex-1 space-y-2">
                       {isQA && isQuestionAnswerItem(item) ? (
                         <>
-                          <Input
+                          <Textarea
                             placeholder="Question..."
                             value={editQuestion}
                             onChange={(e) => setEditQuestion(e.target.value)}
-                            className="text-sm"
+                            rows={2}
+                            className="text-sm resize-y"
                           />
                           <Textarea
                             placeholder="Answer..."
                             value={editAnswer}
                             onChange={(e) => setEditAnswer(e.target.value)}
-                            rows={2}
-                            className="text-sm"
+                            rows={3}
+                            className="text-sm resize-y"
                           />
                         </>
                       ) : (
-                        <Input
+                        <Textarea
                           placeholder="Text..."
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
-                          className="text-sm"
+                          rows={2}
+                          className="text-sm resize-y"
                         />
                       )}
                     </div>
@@ -215,16 +217,16 @@ const SectionCard = memo(({
                     <>
                       {isQA && isQuestionAnswerItem(item) ? (
                         <div className="flex-1 space-y-1">
-                          <div className="text-sm font-medium flex items-center gap-2">
-                            {needsAnswer && <span className="text-red-600 dark:text-red-400">❗</span>}
-                            Q: {item.question}
+                          <div className="text-sm font-medium flex items-start gap-2">
+                            {needsAnswer && <span className="text-red-600 dark:text-red-400 flex-shrink-0">❗</span>}
+                            <span className="break-words">Q: {item.question}</span>
                           </div>
-                          <div className={`text-sm ${needsAnswer ? 'text-red-700 dark:text-red-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                          <div className={`text-sm break-words ${needsAnswer ? 'text-red-700 dark:text-red-300' : 'text-gray-600 dark:text-gray-400'}`}>
                             A: {item.answer || <span className="italic font-semibold">Needs answer - please fill in</span>}
                           </div>
                         </div>
                       ) : (
-                        <span className="flex-1 text-sm">
+                        <span className="flex-1 text-sm break-words">
                           {'text' in item ? item.text : (item as any).question || ''}
                         </span>
                       )}
