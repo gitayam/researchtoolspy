@@ -1,0 +1,751 @@
+/**
+ * Report Generator
+ *
+ * Generates professional reports from framework analyses with AI enhancements
+ * Supports export to Word, PDF, PowerPoint, and CSV formats
+ */
+
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType } from 'docx'
+import { jsPDF } from 'jspdf'
+import pptxgen from 'pptxgenjs'
+import Papa from 'papaparse'
+import type { FrameworkItem } from '@/types/frameworks'
+import { isQuestionAnswerItem } from '@/types/frameworks'
+import { frameworkConfigs } from '@/config/framework-configs'
+
+export type ExportFormat = 'word' | 'pdf' | 'pptx' | 'csv'
+export type ReportTemplate = 'standard' | 'executive' | 'detailed'
+
+export interface ReportOptions {
+  frameworkType: string
+  frameworkTitle: string
+  data: any
+  format: ExportFormat
+  template?: ReportTemplate
+  includeAI?: boolean
+  aiEnhancements?: AIEnhancements
+}
+
+export interface AIEnhancements {
+  executiveSummary?: string
+  keyInsights?: string[]
+  recommendations?: string[]
+  comprehensiveAnalysis?: string
+}
+
+export class ReportGenerator {
+  /**
+   * Generate and download a report in the specified format
+   */
+  static async generate(options: ReportOptions): Promise<void> {
+    const {
+      frameworkType,
+      frameworkTitle,
+      data,
+      format,
+      template = 'standard',
+      includeAI = false,
+      aiEnhancements
+    } = options
+
+    console.log(`Generating ${format.toUpperCase()} report for ${frameworkType}...`)
+
+    switch (format) {
+      case 'word':
+        return this.generateWord(options)
+      case 'pdf':
+        return this.generatePDF(options)
+      case 'pptx':
+        return this.generatePowerPoint(options)
+      case 'csv':
+        return this.generateCSV(options)
+      default:
+        throw new Error(`Unsupported format: ${format}`)
+    }
+  }
+
+  /**
+   * Generate AI enhancements for a report
+   */
+  static async enhanceReport(frameworkType: string, data: any, verbosity: 'executive' | 'standard' | 'comprehensive' = 'standard'): Promise<AIEnhancements> {
+    try {
+      const response = await fetch('/api/ai/report-enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frameworkType,
+          data,
+          enhancementType: 'full',
+          verbosity
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to enhance report')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Failed to enhance report:', error)
+      return {}
+    }
+  }
+
+  /**
+   * Generate Word document (.docx)
+   */
+  private static async generateWord(options: ReportOptions): Promise<void> {
+    const { frameworkTitle, data, aiEnhancements } = options
+
+    const sections: any[] = []
+
+    // Title
+    sections.push(
+      new Paragraph({
+        text: `${frameworkTitle} Analysis Report`,
+        heading: HeadingLevel.HEADING_1,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 400 }
+      })
+    )
+
+    // Metadata
+    sections.push(
+      new Paragraph({
+        text: `Title: ${data.title || 'Untitled Analysis'}`,
+        spacing: { after: 200 }
+      }),
+      new Paragraph({
+        text: `Date: ${new Date().toLocaleDateString()}`,
+        spacing: { after: 200 }
+      }),
+      new Paragraph({
+        text: `Framework: ${frameworkTitle}`,
+        spacing: { after: data.source_url ? 200 : 400 }
+      })
+    )
+
+    // Source URL (if available)
+    if (data.source_url) {
+      sections.push(
+        new Paragraph({
+          text: `Source: ${data.source_url}`,
+          spacing: { after: 400 }
+        })
+      )
+    }
+
+    // Executive Summary (if AI enhanced)
+    if (aiEnhancements?.executiveSummary) {
+      sections.push(
+        new Paragraph({
+          text: 'Executive Summary',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 200 }
+        }),
+        new Paragraph({
+          text: aiEnhancements.executiveSummary,
+          spacing: { after: 400 }
+        })
+      )
+    }
+
+    // Analysis Overview
+    if (data.description) {
+      sections.push(
+        new Paragraph({
+          text: 'Analysis Overview',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 200 }
+        }),
+        new Paragraph({
+          text: data.description,
+          spacing: { after: 400 }
+        })
+      )
+    }
+
+    // Framework-specific content
+    sections.push(...this.getFrameworkContent(options))
+
+    // Key Insights (if AI enhanced)
+    if (aiEnhancements?.keyInsights && aiEnhancements.keyInsights.length > 0) {
+      sections.push(
+        new Paragraph({
+          text: 'Key Insights',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 200 }
+        })
+      )
+      aiEnhancements.keyInsights.forEach((insight, idx) => {
+        sections.push(
+          new Paragraph({
+            text: `${idx + 1}. ${insight}`,
+            spacing: { after: 100 }
+          })
+        )
+      })
+      sections.push(new Paragraph({ text: '', spacing: { after: 400 } }))
+    }
+
+    // Recommendations (if AI enhanced)
+    if (aiEnhancements?.recommendations && aiEnhancements.recommendations.length > 0) {
+      sections.push(
+        new Paragraph({
+          text: 'Recommendations',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 200 }
+        })
+      )
+      aiEnhancements.recommendations.forEach((rec, idx) => {
+        sections.push(
+          new Paragraph({
+            text: `${idx + 1}. ${rec}`,
+            spacing: { after: 100 }
+          })
+        )
+      })
+    }
+
+    // Create document
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: sections
+      }]
+    })
+
+    // Generate and download
+    const blob = await Packer.toBlob(doc)
+    this.downloadFile(blob, `${data.title || 'report'}.docx`)
+  }
+
+  /**
+   * Generate PDF document
+   */
+  private static async generatePDF(options: ReportOptions): Promise<void> {
+    const { frameworkType, frameworkTitle, data, aiEnhancements } = options
+    const pdf = new jsPDF()
+
+    let yPos = 20
+
+    // Get item type from config
+    const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
+    const isQA = itemType === 'qa'
+
+    // Helper function to check page break
+    const checkPageBreak = (requiredSpace: number = 20) => {
+      if (yPos > 280 - requiredSpace) {
+        pdf.addPage()
+        yPos = 20
+      }
+    }
+
+    // Title
+    pdf.setFontSize(20)
+    pdf.text(`${frameworkTitle} Analysis Report`, 105, yPos, { align: 'center' })
+    yPos += 15
+
+    // Metadata
+    pdf.setFontSize(11)
+    pdf.text(`Title: ${data.title || 'Untitled Analysis'}`, 20, yPos)
+    yPos += 7
+    pdf.text(`Date: ${new Date().toLocaleDateString()}`, 20, yPos)
+    yPos += 7
+    pdf.text(`Framework: ${frameworkTitle}`, 20, yPos)
+    yPos += 7
+
+    // Source URL (if available)
+    if (data.source_url) {
+      const urlText = `Source: ${data.source_url}`
+      const urlLines = pdf.splitTextToSize(urlText, 170)
+      pdf.text(urlLines, 20, yPos)
+      yPos += urlLines.length * 7
+    }
+
+    yPos += 8
+
+    // Executive Summary
+    if (aiEnhancements?.executiveSummary) {
+      checkPageBreak(30)
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Executive Summary', 20, yPos)
+      yPos += 10
+
+      pdf.setFontSize(11)
+      pdf.setFont('helvetica', 'normal')
+      const summaryLines = pdf.splitTextToSize(aiEnhancements.executiveSummary, 170)
+      pdf.text(summaryLines, 20, yPos)
+      yPos += (summaryLines.length * 7) + 10
+    }
+
+    // Framework Sections
+    const config = frameworkConfigs[frameworkType]
+    if (config?.sections) {
+      config.sections.forEach(section => {
+        if (data[section.key] && data[section.key].length > 0) {
+          checkPageBreak(20)
+
+          // Section header
+          pdf.setFontSize(14)
+          pdf.setFont('helvetica', 'bold')
+          pdf.text(`${section.label}`, 20, yPos)
+          yPos += 10
+
+          pdf.setFontSize(11)
+          pdf.setFont('helvetica', 'normal')
+
+          // Section items
+          data[section.key].forEach((item: FrameworkItem, idx: number) => {
+            if (isQA && isQuestionAnswerItem(item)) {
+              // Q&A format
+              checkPageBreak(15)
+
+              pdf.setFont('helvetica', 'bold')
+              const questionText = `Q: ${item.question}`
+              const questionLines = pdf.splitTextToSize(questionText, 165)
+              pdf.text(questionLines, 25, yPos)
+              yPos += questionLines.length * 6
+
+              pdf.setFont('helvetica', 'normal')
+              const answerText = `A: ${item.answer || 'No answer provided'}`
+              const answerLines = pdf.splitTextToSize(answerText, 160)
+              pdf.text(answerLines, 30, yPos)
+              yPos += answerLines.length * 6 + 4
+            } else {
+              // Text format
+              checkPageBreak(10)
+
+              const text = 'text' in item ? item.text : (item as any).question || ''
+              const itemText = `${idx + 1}. ${text}`
+              const itemLines = pdf.splitTextToSize(itemText, 165)
+              pdf.text(itemLines, 25, yPos)
+              yPos += itemLines.length * 6 + 2
+            }
+          })
+
+          yPos += 8
+        }
+      })
+    }
+
+    // Key Insights
+    if (aiEnhancements?.keyInsights && aiEnhancements.keyInsights.length > 0) {
+      checkPageBreak(30)
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Key Insights', 20, yPos)
+      yPos += 10
+
+      pdf.setFontSize(11)
+      pdf.setFont('helvetica', 'normal')
+      aiEnhancements.keyInsights.forEach((insight, idx) => {
+        checkPageBreak(10)
+        const insightText = `${idx + 1}. ${insight}`
+        const insightLines = pdf.splitTextToSize(insightText, 165)
+        pdf.text(insightLines, 25, yPos)
+        yPos += insightLines.length * 6 + 2
+      })
+      yPos += 8
+    }
+
+    // Recommendations
+    if (aiEnhancements?.recommendations && aiEnhancements.recommendations.length > 0) {
+      checkPageBreak(30)
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Recommendations', 20, yPos)
+      yPos += 10
+
+      pdf.setFontSize(11)
+      pdf.setFont('helvetica', 'normal')
+      aiEnhancements.recommendations.forEach((rec, idx) => {
+        checkPageBreak(10)
+        const recText = `${idx + 1}. ${rec}`
+        const recLines = pdf.splitTextToSize(recText, 165)
+        pdf.text(recLines, 25, yPos)
+        yPos += recLines.length * 6 + 2
+      })
+    }
+
+    // Save PDF
+    pdf.save(`${data.title || 'report'}.pdf`)
+  }
+
+  /**
+   * Generate PowerPoint presentation
+   */
+  private static async generatePowerPoint(options: ReportOptions): Promise<void> {
+    const { frameworkType, frameworkTitle, data, aiEnhancements } = options
+    const pptx = new pptxgen()
+
+    // Get item type from config
+    const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
+    const isQA = itemType === 'qa'
+
+    // Title Slide
+    const titleSlide = pptx.addSlide()
+    titleSlide.addText(`${frameworkTitle} Analysis`, {
+      x: 0.5,
+      y: 1.5,
+      w: 9,
+      h: 1,
+      fontSize: 40,
+      bold: true,
+      align: 'center'
+    })
+    titleSlide.addText(data.title || 'Analysis Report', {
+      x: 0.5,
+      y: 2.8,
+      w: 9,
+      h: 0.5,
+      fontSize: 24,
+      align: 'center'
+    })
+    titleSlide.addText(new Date().toLocaleDateString(), {
+      x: 0.5,
+      y: 4.5,
+      w: 9,
+      h: 0.3,
+      fontSize: 14,
+      align: 'center',
+      color: '666666'
+    })
+
+    // Source URL (if available)
+    if (data.source_url) {
+      titleSlide.addText(`Source: ${data.source_url}`, {
+        x: 0.5,
+        y: 5.0,
+        w: 9,
+        h: 0.3,
+        fontSize: 12,
+        align: 'center',
+        color: '0066CC'
+      })
+    }
+
+    // Executive Summary Slide (if AI enhanced)
+    if (aiEnhancements?.executiveSummary) {
+      const summarySlide = pptx.addSlide()
+      summarySlide.addText('Executive Summary', {
+        x: 0.5,
+        y: 0.5,
+        w: 9,
+        h: 0.75,
+        fontSize: 32,
+        bold: true
+      })
+      summarySlide.addText(aiEnhancements.executiveSummary, {
+        x: 0.5,
+        y: 1.5,
+        w: 9,
+        h: 4,
+        fontSize: 18
+      })
+    }
+
+    // Framework Sections
+    const config = frameworkConfigs[frameworkType]
+    if (config?.sections) {
+      config.sections.forEach(section => {
+        if (data[section.key] && data[section.key].length > 0) {
+          const items = data[section.key]
+
+          // Split items across multiple slides if needed (max 5-6 items per slide)
+          const itemsPerSlide = isQA ? 3 : 6
+          const numSlides = Math.ceil(items.length / itemsPerSlide)
+
+          for (let slideNum = 0; slideNum < numSlides; slideNum++) {
+            const slide = pptx.addSlide()
+            const slideItems = items.slice(slideNum * itemsPerSlide, (slideNum + 1) * itemsPerSlide)
+
+            // Section header
+            const slideTitle = numSlides > 1
+              ? `${section.label} (${slideNum + 1}/${numSlides})`
+              : section.label
+
+            slide.addText(slideTitle, {
+              x: 0.5,
+              y: 0.5,
+              w: 9,
+              h: 0.6,
+              fontSize: 32,
+              bold: true,
+              color: '1F4788'
+            })
+
+            // Items
+            let yPos = 1.3
+            slideItems.forEach((item: FrameworkItem, idx: number) => {
+              if (isQA && isQuestionAnswerItem(item)) {
+                // Q&A format
+                slide.addText(`Q: ${item.question}`, {
+                  x: 0.5,
+                  y: yPos,
+                  w: 9,
+                  h: 0.4,
+                  fontSize: 16,
+                  bold: true,
+                  color: '333333'
+                })
+                yPos += 0.4
+
+                slide.addText(`A: ${item.answer || 'No answer provided'}`, {
+                  x: 0.8,
+                  y: yPos,
+                  w: 8.7,
+                  h: 0.5,
+                  fontSize: 14,
+                  color: '666666',
+                  italic: !item.answer
+                })
+                yPos += 0.7
+              } else {
+                // Text format
+                const text = 'text' in item ? item.text : (item as any).question || ''
+                slide.addText(`${(slideNum * itemsPerSlide) + idx + 1}. ${text}`, {
+                  x: 0.5,
+                  y: yPos,
+                  w: 9,
+                  h: 0.5,
+                  fontSize: 16,
+                  color: '333333',
+                  bullet: false
+                })
+                yPos += 0.6
+              }
+            })
+          }
+        }
+      })
+    }
+
+    // Key Insights Slide
+    if (aiEnhancements?.keyInsights && aiEnhancements.keyInsights.length > 0) {
+      const insightsSlide = pptx.addSlide()
+      insightsSlide.addText('Key Insights', {
+        x: 0.5,
+        y: 0.5,
+        w: 9,
+        h: 0.6,
+        fontSize: 32,
+        bold: true,
+        color: '1F4788'
+      })
+
+      let yPos = 1.3
+      aiEnhancements.keyInsights.forEach((insight, idx) => {
+        insightsSlide.addText(`${idx + 1}. ${insight}`, {
+          x: 0.5,
+          y: yPos,
+          w: 9,
+          h: 0.5,
+          fontSize: 16,
+          color: '333333'
+        })
+        yPos += 0.6
+      })
+    }
+
+    // Recommendations Slide
+    if (aiEnhancements?.recommendations && aiEnhancements.recommendations.length > 0) {
+      const recsSlide = pptx.addSlide()
+      recsSlide.addText('Recommendations', {
+        x: 0.5,
+        y: 0.5,
+        w: 9,
+        h: 0.6,
+        fontSize: 32,
+        bold: true,
+        color: '1F4788'
+      })
+
+      let yPos = 1.3
+      aiEnhancements.recommendations.forEach((rec, idx) => {
+        recsSlide.addText(`${idx + 1}. ${rec}`, {
+          x: 0.5,
+          y: yPos,
+          w: 9,
+          h: 0.5,
+          fontSize: 16,
+          color: '333333'
+        })
+        yPos += 0.6
+      })
+    }
+
+    // Save presentation
+    pptx.writeFile({ fileName: `${data.title || 'report'}.pptx` })
+  }
+
+  /**
+   * Generate CSV export
+   */
+  private static generateCSV(options: ReportOptions): void {
+    const { frameworkType, data } = options
+
+    const rows: any[] = []
+
+    // Add header row
+    rows.push(['Framework Type', frameworkType])
+    rows.push(['Title', data.title || 'Untitled'])
+    rows.push(['Description', data.description || ''])
+    rows.push(['Date', new Date().toLocaleDateString()])
+    if (data.source_url) {
+      rows.push(['Source URL', data.source_url])
+    }
+    rows.push([]) // Empty row
+
+    // Check if this framework uses Q&A format
+    const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
+    const isQA = itemType === 'qa'
+
+    // Add framework-specific data
+    if (frameworkType === 'swot') {
+      rows.push(['Category', 'Item'])
+      data.strengths?.forEach((item: any) => rows.push(['Strength', item.text]))
+      data.weaknesses?.forEach((item: any) => rows.push(['Weakness', item.text]))
+      data.opportunities?.forEach((item: any) => rows.push(['Opportunity', item.text]))
+      data.threats?.forEach((item: any) => rows.push(['Threat', item.text]))
+    } else if (isQA) {
+      // Q&A format export
+      rows.push(['Section', 'Question', 'Answer'])
+      Object.keys(data).forEach(key => {
+        if (Array.isArray(data[key]) && data[key].length > 0) {
+          data[key].forEach((item: FrameworkItem) => {
+            if (isQuestionAnswerItem(item)) {
+              rows.push([key.toUpperCase(), item.question, item.answer || 'No answer provided'])
+            } else {
+              const text = 'text' in item ? item.text : (item as any).question || ''
+              rows.push([key.toUpperCase(), text, ''])
+            }
+          })
+        }
+      })
+    } else {
+      // Generic text export
+      rows.push(['Section', 'Item'])
+      Object.keys(data).forEach(key => {
+        if (Array.isArray(data[key])) {
+          data[key].forEach((item: any) => {
+            rows.push([key.toUpperCase(), item.text || item])
+          })
+        }
+      })
+    }
+
+    // Convert to CSV and download
+    const csv = Papa.unparse(rows)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    this.downloadFile(blob, `${data.title || 'report'}.csv`)
+  }
+
+  /**
+   * Get framework-specific content for Word document
+   */
+  private static getFrameworkContent(options: ReportOptions): Paragraph[] {
+    const { frameworkType, data } = options
+    const paragraphs: Paragraph[] = []
+
+    // Check if this framework uses Q&A format
+    const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
+    const isQA = itemType === 'qa'
+
+    if (frameworkType === 'swot') {
+      const sections = [
+        { key: 'strengths', label: 'Strengths', icon: '💪' },
+        { key: 'weaknesses', label: 'Weaknesses', icon: '⚠️' },
+        { key: 'opportunities', label: 'Opportunities', icon: '🎯' },
+        { key: 'threats', label: 'Threats', icon: '⚡' }
+      ]
+
+      sections.forEach(section => {
+        if (data[section.key] && data[section.key].length > 0) {
+          paragraphs.push(
+            new Paragraph({
+              text: `${section.icon} ${section.label}`,
+              heading: HeadingLevel.HEADING_3,
+              spacing: { before: 300, after: 150 }
+            })
+          )
+
+          data[section.key].forEach((item: any) => {
+            paragraphs.push(
+              new Paragraph({
+                text: `• ${item.text}`,
+                spacing: { after: 100 },
+                indent: { left: 360 }
+              })
+            )
+          })
+        }
+      })
+    } else {
+      // Generic framework content (supports Q&A)
+      const config = frameworkConfigs[frameworkType]
+      if (config?.sections) {
+        config.sections.forEach(section => {
+          if (data[section.key] && data[section.key].length > 0) {
+            paragraphs.push(
+              new Paragraph({
+                text: `${section.icon || ''} ${section.label}`,
+                heading: HeadingLevel.HEADING_3,
+                spacing: { before: 300, after: 150 }
+              })
+            )
+
+            data[section.key].forEach((item: FrameworkItem) => {
+              if (isQA && isQuestionAnswerItem(item)) {
+                // Q&A format
+                paragraphs.push(
+                  new Paragraph({
+                    text: `Q: ${item.question}`,
+                    spacing: { after: 50 },
+                    indent: { left: 360 },
+                    bullet: { level: 0 }
+                  })
+                )
+                paragraphs.push(
+                  new Paragraph({
+                    text: `A: ${item.answer || 'No answer provided'}`,
+                    spacing: { after: 100 },
+                    indent: { left: 720 }
+                  })
+                )
+              } else {
+                // Text format
+                const text = 'text' in item ? item.text : (item as any).question || ''
+                paragraphs.push(
+                  new Paragraph({
+                    text: `• ${text}`,
+                    spacing: { after: 100 },
+                    indent: { left: 360 }
+                  })
+                )
+              }
+            })
+          }
+        })
+      }
+    }
+
+    return paragraphs
+  }
+
+  /**
+   * Download a file
+   */
+  private static downloadFile(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    console.log(`✓ Downloaded: ${filename}`)
+  }
+}
