@@ -34,7 +34,7 @@ interface ScrapedData {
 
 export interface AIUrlScraperProps {
   framework: string
-  onExtract: (data: Record<string, any>) => void
+  onExtract: (data: Record<string, any>, metadata: { url: string; title: string; summary: string }) => void
   disabled?: boolean
   buttonVariant?: 'default' | 'outline' | 'secondary'
 }
@@ -84,7 +84,11 @@ export function AIUrlScraper({
 
   const handleAccept = () => {
     if (scrapedData && scrapedData.extractedData) {
-      onExtract(scrapedData.extractedData)
+      onExtract(scrapedData.extractedData, {
+        url: scrapedData.url,
+        title: scrapedData.title,
+        summary: scrapedData.summary
+      })
       setDialogOpen(false)
       setUrl('')
       setScrapedData(null)

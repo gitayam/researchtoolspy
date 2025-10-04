@@ -62,10 +62,10 @@ export async function onRequest(context: any) {
     // POST - Create new framework
     if (request.method === 'POST') {
       const body = await request.json()
-      
+
       const result = await env.DB.prepare(
-        `INSERT INTO framework_sessions (user_id, title, description, framework_type, data, status, is_public, shared_publicly_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO framework_sessions (user_id, title, description, framework_type, data, status, is_public, shared_publicly_at, source_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         body.user_id || 1,
         body.title,
@@ -74,7 +74,8 @@ export async function onRequest(context: any) {
         JSON.stringify(body.data || {}),
         body.status || 'draft',
         body.is_public ? 1 : 0,
-        body.is_public ? new Date().toISOString() : null
+        body.is_public ? new Date().toISOString() : null,
+        body.data?.source_url || null
       ).run()
 
       return new Response(JSON.stringify({ 
@@ -89,11 +90,11 @@ export async function onRequest(context: any) {
     // PUT - Update framework
     if (request.method === 'PUT') {
       const body = await request.json()
-      
+
       await env.DB.prepare(
         `UPDATE framework_sessions
          SET title = ?, description = ?, data = ?, status = ?, updated_at = datetime('now'),
-             is_public = ?, shared_publicly_at = ?
+             is_public = ?, shared_publicly_at = ?, source_url = ?
          WHERE id = ?`
       ).bind(
         body.title,
@@ -102,6 +103,7 @@ export async function onRequest(context: any) {
         body.status,
         body.is_public ? 1 : 0,
         body.is_public ? new Date().toISOString() : null,
+        body.data?.source_url || null,
         frameworkId
       ).run()
 
