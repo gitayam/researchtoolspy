@@ -280,7 +280,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -326,7 +326,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gpt-5-mini',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
@@ -338,7 +338,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             }
           ],
           max_completion_tokens: 3000
-          // Note: gpt-5-mini only supports temperature=1 (default), so we omit it
+          // Note: gpt-4o-mini only supports temperature=1 (default), so we omit it
         })
       })
 
@@ -347,7 +347,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         console.error(`OpenAI extraction API error for ${framework}:`, errorData)
         extractedData = {
           _error: `Failed to extract ${framework} data: ${JSON.stringify(errorData)}`,
-          _model: 'gpt-5-mini',
+          _model: 'gpt-4o-mini',
           _framework: framework
         }
       } else {
@@ -360,7 +360,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             _error: 'Invalid API response structure',
             _raw: JSON.stringify(extractData),
             _framework: framework,
-            _model: 'gpt-5-mini'
+            _model: 'gpt-4o-mini'
           }
         } else {
           const extractedText = extractData.choices[0].message.content || ''
@@ -386,7 +386,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               _raw: extractedText || '(empty response)',
               _parseError: (e as Error).message,
               _framework: framework,
-              _model: 'gpt-5-mini'
+              _model: 'gpt-4o-mini'
             }
           }
         }
@@ -422,7 +422,7 @@ Article: ${content.substring(0, 10000)}
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gpt-5-mini',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',

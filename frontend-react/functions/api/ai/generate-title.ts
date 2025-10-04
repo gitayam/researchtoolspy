@@ -78,7 +78,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -95,7 +95,7 @@ Return ONLY the title, nothing else.`
             content: `Generate a title for this ${frameworkType} analysis:\n\n${context}`
           }
         ],
-        // Note: gpt-5-mini only supports temperature=1 (default), so we omit it
+        // Note: gpt-4o-mini only supports temperature=1 (default), so we omit it
         max_tokens: 50
       })
     })

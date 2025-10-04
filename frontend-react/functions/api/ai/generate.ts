@@ -14,7 +14,7 @@ interface Env {
 
 interface GenerateRequest {
   prompt: string
-  model?: 'gpt-5' | 'gpt-5-mini' | 'gpt-5-nano'
+  model?: 'gpt-5' | 'gpt-4o-mini' | 'gpt-5-nano'
   useCase?: 'summarization' | 'questionGeneration' | 'deepAnalysis' | 'fieldSuggestions' | 'formatting' | 'guidance'
   maxTokens?: number
   verbosity?: 'low' | 'medium' | 'high'
@@ -26,7 +26,7 @@ const MODEL_PRICING = {
     input: 1.25,  // $1.25 per 1M tokens
     output: 10.0  // $10.00 per 1M tokens
   },
-  'gpt-5-mini': {
+  'gpt-4o-mini': {
     input: 0.25,
     output: 2.0
   },
@@ -37,7 +37,7 @@ const MODEL_PRICING = {
 }
 
 function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-  const pricing = MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING['gpt-5-mini']
+  const pricing = MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING['gpt-4o-mini']
   const inputCost = (inputTokens / 1_000_000) * pricing.input
   const outputCost = (outputTokens / 1_000_000) * pricing.output
   return inputCost + outputCost
@@ -87,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       model = config.useCases[request.useCase]
     }
     if (!model) {
-      model = config?.defaultModel || 'gpt-5-mini'
+      model = config?.defaultModel || 'gpt-4o-mini'
     }
 
     // Get model settings

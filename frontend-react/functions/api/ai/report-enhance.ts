@@ -629,7 +629,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Get model configuration
     const config = await context.env.AI_CONFIG.get('default', { type: 'json' }) as any
-    const model = config?.useCases?.summarization || 'gpt-5-mini'
+    const model = config?.useCases?.summarization || 'gpt-4o-mini'
 
     const enhancement: ReportEnhancement = {}
 
