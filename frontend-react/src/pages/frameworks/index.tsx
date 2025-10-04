@@ -103,16 +103,23 @@ export const SwotPage = () => {
     }
   }
 
-  const handleDelete = async () => {
-    if (!id) return
+  const handleDelete = async (deleteId?: string) => {
+    const targetId = deleteId || id
+    if (!targetId) return
     if (!confirm('Are you sure you want to delete this analysis?')) return
 
     try {
-      const response = await fetch(`/api/frameworks?id=${id}`, {
+      const response = await fetch(`/api/frameworks?id=${targetId}`, {
         method: 'DELETE'
       })
       if (response.ok) {
-        navigate('/dashboard/analysis-frameworks/swot-dashboard')
+        if (deleteId) {
+          // Refresh list after deleting from list view
+          await loadAnalyses()
+        } else {
+          // Navigate back after deleting from view
+          navigate('/dashboard/analysis-frameworks/swot-dashboard')
+        }
       }
     } catch (error) {
       console.error('Failed to delete:', error)
@@ -318,9 +325,18 @@ export const SwotPage = () => {
                     <DropdownMenuItem onClick={() => navigate(`/dashboard/analysis-frameworks/swot-dashboard/${analysis.id}/edit`)}>
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                    <DropdownMenuItem>Export</DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate(`/dashboard/analysis-frameworks/swot-dashboard/${analysis.id}`)}>
+                      Export
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-red-600"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete(analysis.id.toString())
+                      }}
+                    >
+                      Delete
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -431,16 +447,23 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     }
   }
 
-  const handleDelete = async () => {
-    if (!id) return
+  const handleDelete = async (deleteId?: string) => {
+    const targetId = deleteId || id
+    if (!targetId) return
     if (!confirm('Are you sure you want to delete this analysis?')) return
 
     try {
-      const response = await fetch(`/api/frameworks?id=${id}`, {
+      const response = await fetch(`/api/frameworks?id=${targetId}`, {
         method: 'DELETE'
       })
       if (response.ok) {
-        navigate(basePath)
+        if (deleteId) {
+          // Refresh list after deleting from list view
+          await loadAnalyses()
+        } else {
+          // Navigate back after deleting from view
+          navigate(basePath)
+        }
       }
     } catch (error) {
       console.error('Failed to delete:', error)
@@ -639,8 +662,18 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
                       <DropdownMenuItem onClick={() => navigate(`${basePath}/${analysis.id}/edit`)}>
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem>Export</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(`${basePath}/${analysis.id}`)}>
+                        Export
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(analysis.id.toString())
+                        }}
+                      >
+                        Delete
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -823,16 +856,23 @@ export const DeceptionPage = () => {
     }
   }
 
-  const handleDelete = async () => {
-    if (!id) return
+  const handleDelete = async (deleteId?: string) => {
+    const targetId = deleteId || id
+    if (!targetId) return
     if (!confirm('Are you sure you want to delete this analysis?')) return
 
     try {
-      const response = await fetch(`/api/frameworks?id=${id}`, {
+      const response = await fetch(`/api/frameworks?id=${targetId}`, {
         method: 'DELETE'
       })
       if (response.ok) {
-        navigate(basePath)
+        if (deleteId) {
+          // Refresh list after deleting from list view
+          await loadAnalyses()
+        } else {
+          // Navigate back after deleting from view
+          navigate(basePath)
+        }
       }
     } catch (error) {
       console.error('Failed to delete:', error)
@@ -1055,8 +1095,18 @@ export const DeceptionPage = () => {
                       <DropdownMenuItem onClick={() => navigate(`${basePath}/${analysis.id}/edit`)}>
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem>Export</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(`${basePath}/${analysis.id}`)}>
+                        Export
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(analysis.id.toString())
+                        }}
+                      >
+                        Delete
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
