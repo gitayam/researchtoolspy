@@ -261,7 +261,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const summaryData = await summaryResponse.json()
-    const summary = summaryData.choices[0].message.content
+
+    // Validate summary response structure
+    if (!summaryData.choices || !summaryData.choices[0] || !summaryData.choices[0].message) {
+      console.error('Invalid OpenAI summary response structure:', summaryData)
+      throw new Error('Invalid API response structure for summary')
+    }
+
+    const summary = summaryData.choices[0].message.content || 'No summary available'
 
     // Extract framework-specific data if prompt exists
     let extractedData: Record<string, any> = {}
@@ -304,30 +311,42 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
       } else {
         const extractData = await extractResponse.json()
-        const extractedText = extractData.choices[0].message.content
 
-        console.log(`Extracted ${framework} response (first 200 chars):`, extractedText.substring(0, 200))
-
-        // Try to parse JSON
-        try {
-          // Remove markdown code blocks if present
-          const jsonText = extractedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-
-          // Check if response is empty
-          if (!jsonText) {
-            throw new Error('AI returned empty response')
-          }
-
-          extractedData = JSON.parse(jsonText)
-          console.log(`Successfully parsed ${framework} JSON with ${Object.keys(extractedData).length} keys`)
-        } catch (e) {
-          console.error(`Failed to parse extracted JSON for ${framework}:`, e)
-          console.error('Raw extracted text:', extractedText)
+        // Validate response structure
+        if (!extractData.choices || !extractData.choices[0] || !extractData.choices[0].message) {
+          console.error(`Invalid OpenAI response structure for ${framework}:`, extractData)
           extractedData = {
-            _raw: extractedText || '(empty response)',
-            _parseError: (e as Error).message,
+            _error: 'Invalid API response structure',
+            _raw: JSON.stringify(extractData),
             _framework: framework,
             _model: 'gpt-5-mini'
+          }
+        } else {
+          const extractedText = extractData.choices[0].message.content || ''
+
+          console.log(`Extracted ${framework} response (first 200 chars):`, extractedText.substring(0, 200))
+
+          // Try to parse JSON
+          try {
+            // Remove markdown code blocks if present
+            const jsonText = extractedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+
+            // Check if response is empty
+            if (!jsonText) {
+              throw new Error('AI returned empty response')
+            }
+
+            extractedData = JSON.parse(jsonText)
+            console.log(`Successfully parsed ${framework} JSON with ${Object.keys(extractedData).length} keys`)
+          } catch (e) {
+            console.error(`Failed to parse extracted JSON for ${framework}:`, e)
+            console.error('Raw extracted text:', extractedText)
+            extractedData = {
+              _raw: extractedText || '(empty response)',
+              _parseError: (e as Error).message,
+              _framework: framework,
+              _model: 'gpt-5-mini'
+            }
           }
         }
       }
@@ -392,22 +411,28 @@ Return ONLY valid JSON with unanswered questions:
 
       if (unansweredResponse.ok) {
         const unansweredData = await unansweredResponse.json()
-        const unansweredText = unansweredData.choices[0].message.content
 
-        try {
-          const jsonText = unansweredText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+        // Validate response structure
+        if (!unansweredData.choices || !unansweredData.choices[0] || !unansweredData.choices[0].message) {
+          console.error('Invalid OpenAI unanswered questions response structure:', unansweredData)
+        } else {
+          const unansweredText = unansweredData.choices[0].message.content || ''
 
-          // Check if response is empty
-          if (!jsonText) {
-            throw new Error('AI returned empty response for unanswered questions')
+          try {
+            const jsonText = unansweredText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+
+            // Check if response is empty
+            if (!jsonText) {
+              throw new Error('AI returned empty response for unanswered questions')
+            }
+
+            const unansweredQuestions = JSON.parse(jsonText)
+            extractedData._unansweredQuestions = unansweredQuestions
+            console.log(`Generated ${Object.keys(unansweredQuestions).length} categories of unanswered questions`)
+          } catch (e) {
+            console.error('Failed to parse unanswered questions JSON:', e)
+            console.error('Raw unanswered questions text:', unansweredText)
           }
-
-          const unansweredQuestions = JSON.parse(jsonText)
-          extractedData._unansweredQuestions = unansweredQuestions
-          console.log(`Generated ${Object.keys(unansweredQuestions).length} categories of unanswered questions`)
-        } catch (e) {
-          console.error('Failed to parse unanswered questions JSON:', e)
-          console.error('Raw unanswered questions text:', unansweredText)
         }
       } else {
         console.error('Failed to generate unanswered questions')
