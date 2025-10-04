@@ -139,6 +139,36 @@ export function ACHAnalysisPage() {
         }
       }
 
+      // Update evidence links
+      const currentLinks = analysis.evidence?.map(e => e.evidence_id) || []
+      const newLinks = formData.evidence_ids || []
+
+      // Remove evidence that's no longer selected
+      for (const evidenceId of currentLinks) {
+        if (!newLinks.includes(evidenceId)) {
+          const link = analysis.evidence?.find(e => e.evidence_id === evidenceId)
+          if (link?.link_id) {
+            await fetch(`/api/ach/evidence?id=${link.link_id}`, {
+              method: 'DELETE'
+            })
+          }
+        }
+      }
+
+      // Add new evidence links
+      for (const evidenceId of newLinks) {
+        if (!currentLinks.includes(evidenceId)) {
+          await fetch('/api/ach/evidence', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ach_analysis_id: analysis.id,
+              evidence_id: evidenceId
+            })
+          })
+        }
+      }
+
       await loadAnalysis()
       setFormOpen(false)
     } catch (error) {

@@ -40,9 +40,7 @@ const navigation = [
       { name: 'Causeway', href: '/dashboard/analysis-frameworks/causeway' },
       { name: 'DIME Framework', href: '/dashboard/analysis-frameworks/dime' },
       { name: 'PEST Analysis', href: '/dashboard/analysis-frameworks/pest' },
-      { name: 'VRIO Framework', href: '/dashboard/analysis-frameworks/vrio' },
       { name: 'Stakeholder Analysis', href: '/dashboard/analysis-frameworks/stakeholder' },
-      { name: 'Trend Analysis', href: '/dashboard/analysis-frameworks/trend' },
       { name: 'Surveillance Framework', href: '/dashboard/analysis-frameworks/surveillance' },
       { name: 'Fundamental Flow', href: '/dashboard/analysis-frameworks/fundamental-flow' },
     ]
@@ -106,11 +104,13 @@ export function DashboardSidebar() {
       {/* Logo */}
       <div className="flex h-16 shrink-0 items-center px-6">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded bg-blue-600 flex items-center justify-center">
-            <Zap className="h-5 w-5 text-white" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Research Tools Logo"
+            className="h-10 w-10 rounded-md"
+          />
           <span className="text-xl font-bold text-gray-900 dark:text-white">
-            OmniCore
+            Research Tools
           </span>
         </div>
       </div>

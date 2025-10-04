@@ -129,6 +129,37 @@ export function ACHPage() {
             })
           }
         }
+
+        // Update evidence links
+        // First, get current evidence links
+        const currentLinks = editingAnalysis.evidence?.map(e => e.evidence_id) || []
+        const newLinks = formData.evidence_ids || []
+
+        // Remove evidence that's no longer selected
+        for (const evidenceId of currentLinks) {
+          if (!newLinks.includes(evidenceId)) {
+            const link = editingAnalysis.evidence?.find(e => e.evidence_id === evidenceId)
+            if (link?.link_id) {
+              await fetch(`/api/ach/evidence?id=${link.link_id}`, {
+                method: 'DELETE'
+              })
+            }
+          }
+        }
+
+        // Add new evidence links
+        for (const evidenceId of newLinks) {
+          if (!currentLinks.includes(evidenceId)) {
+            await fetch('/api/ach/evidence', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ach_analysis_id: editingAnalysis.id,
+                evidence_id: evidenceId
+              })
+            })
+          }
+        }
       } else {
         // Create new analysis
         const response = await fetch('/api/ach', {
@@ -158,6 +189,20 @@ export function ACHPage() {
               ach_analysis_id: newAnalysis.id
             })
           })
+        }
+
+        // Link evidence
+        if (formData.evidence_ids && formData.evidence_ids.length > 0) {
+          for (const evidenceId of formData.evidence_ids) {
+            await fetch('/api/ach/evidence', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ach_analysis_id: newAnalysis.id,
+                evidence_id: evidenceId
+              })
+            })
+          }
         }
 
         // Navigate to the new analysis
