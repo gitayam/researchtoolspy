@@ -312,15 +312,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         try {
           // Remove markdown code blocks if present
           const jsonText = extractedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+
+          // Check if response is empty
+          if (!jsonText) {
+            throw new Error('AI returned empty response')
+          }
+
           extractedData = JSON.parse(jsonText)
           console.log(`Successfully parsed ${framework} JSON with ${Object.keys(extractedData).length} keys`)
         } catch (e) {
           console.error(`Failed to parse extracted JSON for ${framework}:`, e)
           console.error('Raw extracted text:', extractedText)
           extractedData = {
-            _raw: extractedText,
+            _raw: extractedText || '(empty response)',
             _parseError: (e as Error).message,
-            _framework: framework
+            _framework: framework,
+            _model: 'gpt-5-mini'
           }
         }
       }
@@ -389,11 +396,18 @@ Return ONLY valid JSON with unanswered questions:
 
         try {
           const jsonText = unansweredText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+
+          // Check if response is empty
+          if (!jsonText) {
+            throw new Error('AI returned empty response for unanswered questions')
+          }
+
           const unansweredQuestions = JSON.parse(jsonText)
           extractedData._unansweredQuestions = unansweredQuestions
           console.log(`Generated ${Object.keys(unansweredQuestions).length} categories of unanswered questions`)
         } catch (e) {
           console.error('Failed to parse unanswered questions JSON:', e)
+          console.error('Raw unanswered questions text:', unansweredText)
         }
       } else {
         console.error('Failed to generate unanswered questions')
