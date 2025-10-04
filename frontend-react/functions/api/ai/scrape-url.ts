@@ -59,32 +59,62 @@ function extractTextFromHTML(html: string): { title: string; content: string } {
 
 // Framework-specific extraction prompts
 const extractionPrompts: Record<string, string> = {
-  starbursting: `Analyze this article and extract 5W+How questions:
+  starbursting: `Analyze this article and extract 5W+How questions WITH answers:
 
 Article: {content}
 
-Generate 3-5 specific questions for each category based on the article content. Return ONLY valid JSON:
+Generate 3-5 specific questions for each category based on the article content. For each question, provide an answer extracted from the article. If the answer is not available in the article, set answer to empty string "". Return ONLY valid JSON with question-answer pairs:
 
 {
-  "who": ["Who question 1?", "Who question 2?", ...],
-  "what": ["What question 1?", "What question 2?", ...],
-  "when": ["When question 1?", "When question 2?", ...],
-  "where": ["Where question 1?", "Where question 2?", ...],
-  "why": ["Why question 1?", "Why question 2?", ...],
-  "how": ["How question 1?", "How question 2?", ...]
+  "who": [
+    {"question": "Who question 1?", "answer": "Answer from article or empty string"},
+    {"question": "Who question 2?", "answer": "Answer from article or empty string"}
+  ],
+  "what": [
+    {"question": "What question 1?", "answer": "Answer from article or empty string"},
+    {"question": "What question 2?", "answer": "Answer from article or empty string"}
+  ],
+  "when": [
+    {"question": "When question 1?", "answer": "Answer from article or empty string"},
+    {"question": "When question 2?", "answer": "Answer from article or empty string"}
+  ],
+  "where": [
+    {"question": "Where question 1?", "answer": "Answer from article or empty string"},
+    {"question": "Where question 2?", "answer": "Answer from article or empty string"}
+  ],
+  "why": [
+    {"question": "Why question 1?", "answer": "Answer from article or empty string"},
+    {"question": "Why question 2?", "answer": "Answer from article or empty string"}
+  ],
+  "how": [
+    {"question": "How question 1?", "answer": "Answer from article or empty string"},
+    {"question": "How question 2?", "answer": "Answer from article or empty string"}
+  ]
 }`,
 
   dime: `Analyze this content for DIME framework elements (Diplomatic, Information, Military, Economic):
 
 Article: {content}
 
-Extract specific facts, statements, or observations for each dimension. Return ONLY valid JSON:
+Generate questions AND answers for each DIME dimension based on the article content. For each question, provide an answer extracted from the article. If the answer is not available in the article, set answer to empty string "". Return ONLY valid JSON with question-answer pairs:
 
 {
-  "diplomatic": ["diplomatic fact 1", "diplomatic fact 2", ...],
-  "information": ["information fact 1", "information fact 2", ...],
-  "military": ["military fact 1", "military fact 2", ...],
-  "economic": ["economic fact 1", "economic fact 2", ...]
+  "diplomatic": [
+    {"question": "Question about diplomatic aspects?", "answer": "Answer from article or empty string"},
+    {"question": "Another diplomatic question?", "answer": "Answer from article or empty string"}
+  ],
+  "information": [
+    {"question": "Question about information aspects?", "answer": "Answer from article or empty string"},
+    {"question": "Another information question?", "answer": "Answer from article or empty string"}
+  ],
+  "military": [
+    {"question": "Question about military aspects?", "answer": "Answer from article or empty string"},
+    {"question": "Another military question?", "answer": "Answer from article or empty string"}
+  ],
+  "economic": [
+    {"question": "Question about economic aspects?", "answer": "Answer from article or empty string"},
+    {"question": "Another economic question?", "answer": "Answer from article or empty string"}
+  ]
 }`,
 
   causeway: `Analyze this content using the PUTAR methodology (Problem, Undesired Actor, Target Audience, Remedy, Story):
