@@ -95,7 +95,7 @@ export class ReportGenerator {
    * Generate Word document (.docx)
    */
   private static async generateWord(options: ReportOptions): Promise<void> {
-    const { frameworkTitle, data, aiEnhancements } = options
+    const { frameworkType, frameworkTitle, data, aiEnhancements } = options
 
     const sections: any[] = []
 
@@ -163,6 +163,53 @@ export class ReportGenerator {
           spacing: { after: 400 }
         })
       )
+    }
+
+    // Unanswered Questions Summary (for Q&A frameworks)
+    const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
+    const isQA = itemType === 'qa'
+    if (isQA) {
+      const config = frameworkConfigs[frameworkType]
+      const unansweredBySection: Record<string, number> = {}
+      let totalUnanswered = 0
+
+      if (config?.sections) {
+        config.sections.forEach(section => {
+          if (data[section.key] && data[section.key].length > 0) {
+            const unanswered = data[section.key].filter((item: FrameworkItem) =>
+              isQuestionAnswerItem(item) && (!item.answer || item.answer.trim() === '')
+            ).length
+            if (unanswered > 0) {
+              unansweredBySection[section.label] = unanswered
+              totalUnanswered += unanswered
+            }
+          }
+        })
+      }
+
+      if (totalUnanswered > 0) {
+        sections.push(
+          new Paragraph({
+            text: '⚠️ Unanswered Questions Summary',
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 }
+          }),
+          new Paragraph({
+            text: `Total unanswered questions: ${totalUnanswered}`,
+            spacing: { after: 200 }
+          })
+        )
+        Object.entries(unansweredBySection).forEach(([label, count]) => {
+          sections.push(
+            new Paragraph({
+              text: `• ${label}: ${count} unanswered`,
+              spacing: { after: 100 },
+              indent: { left: 360 }
+            })
+          )
+        })
+        sections.push(new Paragraph({ text: '', spacing: { after: 400 } }))
+      }
     }
 
     // Framework-specific content
@@ -265,6 +312,49 @@ export class ReportGenerator {
 
     yPos += 8
 
+    // Unanswered Questions Summary (for Q&A frameworks)
+    if (isQA) {
+      const config = frameworkConfigs[frameworkType]
+      const unansweredBySection: Record<string, number> = {}
+      let totalUnanswered = 0
+
+      if (config?.sections) {
+        config.sections.forEach(section => {
+          if (data[section.key] && data[section.key].length > 0) {
+            const unanswered = data[section.key].filter((item: FrameworkItem) =>
+              isQuestionAnswerItem(item) && (!item.answer || item.answer.trim() === '')
+            ).length
+            if (unanswered > 0) {
+              unansweredBySection[section.label] = unanswered
+              totalUnanswered += unanswered
+            }
+          }
+        })
+      }
+
+      if (totalUnanswered > 0) {
+        checkPageBreak(30)
+        pdf.setFontSize(14)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setTextColor(200, 50, 50) // Red color
+        pdf.text('⚠️ Unanswered Questions Summary', 20, yPos)
+        yPos += 10
+
+        pdf.setFontSize(11)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setTextColor(0, 0, 0) // Reset to black
+        pdf.text(`Total unanswered questions: ${totalUnanswered}`, 20, yPos)
+        yPos += 8
+
+        Object.entries(unansweredBySection).forEach(([label, count]) => {
+          pdf.text(`• ${label}: ${count} unanswered`, 25, yPos)
+          yPos += 6
+        })
+        yPos += 10
+        pdf.setTextColor(0, 0, 0) // Reset to black
+      }
+    }
+
     // Executive Summary
     if (aiEnhancements?.executiveSummary) {
       checkPageBreak(30)
@@ -296,11 +386,26 @@ export class ReportGenerator {
           pdf.setFontSize(11)
           pdf.setFont('helvetica', 'normal')
 
+          // Sort items: answered questions first for Q&A frameworks
+          let sectionItems = [...data[section.key]]
+          if (isQA) {
+            sectionItems.sort((a: FrameworkItem, b: FrameworkItem) => {
+              if (!isQuestionAnswerItem(a) || !isQuestionAnswerItem(b)) return 0
+              const aAnswered = a.answer && a.answer.trim() !== ''
+              const bAnswered = b.answer && b.answer.trim() !== ''
+              if (aAnswered && !bAnswered) return -1
+              if (!aAnswered && bAnswered) return 1
+              return 0
+            })
+          }
+
           // Section items
-          data[section.key].forEach((item: FrameworkItem, idx: number) => {
+          sectionItems.forEach((item: FrameworkItem, idx: number) => {
             if (isQA && isQuestionAnswerItem(item)) {
               // Q&A format
               checkPageBreak(15)
+
+              const isAnswered = item.answer && item.answer.trim() !== ''
 
               pdf.setFont('helvetica', 'bold')
               const questionText = `Q: ${item.question}`
@@ -308,11 +413,15 @@ export class ReportGenerator {
               pdf.text(questionLines, 25, yPos)
               yPos += questionLines.length * 6
 
-              pdf.setFont('helvetica', 'normal')
-              const answerText = `A: ${item.answer || 'No answer provided'}`
+              pdf.setFont('helvetica', isAnswered ? 'normal' : 'italic')
+              if (!isAnswered) {
+                pdf.setTextColor(150, 150, 150) // Gray for unanswered
+              }
+              const answerText = `   A: ${item.answer || 'No answer provided'}`
               const answerLines = pdf.splitTextToSize(answerText, 160)
               pdf.text(answerLines, 30, yPos)
               yPos += answerLines.length * 6 + 4
+              pdf.setTextColor(0, 0, 0) // Reset to black
             } else {
               // Text format
               checkPageBreak(10)
@@ -446,12 +555,77 @@ export class ReportGenerator {
       })
     }
 
+    // Unanswered Questions Summary Slide (for Q&A frameworks)
+    if (isQA) {
+      const config = frameworkConfigs[frameworkType]
+      const unansweredBySection: Record<string, number> = {}
+      let totalUnanswered = 0
+
+      if (config?.sections) {
+        config.sections.forEach(section => {
+          if (data[section.key] && data[section.key].length > 0) {
+            const unanswered = data[section.key].filter((item: FrameworkItem) =>
+              isQuestionAnswerItem(item) && (!item.answer || item.answer.trim() === '')
+            ).length
+            if (unanswered > 0) {
+              unansweredBySection[section.label] = unanswered
+              totalUnanswered += unanswered
+            }
+          }
+        })
+      }
+
+      if (totalUnanswered > 0) {
+        const summarySlide = pptx.addSlide()
+        summarySlide.addText('⚠️ Unanswered Questions Summary', {
+          x: 0.5,
+          y: 0.5,
+          w: 9,
+          h: 0.75,
+          fontSize: 32,
+          bold: true,
+          color: 'C83232'
+        })
+        summarySlide.addText(`Total unanswered questions: ${totalUnanswered}`, {
+          x: 0.5,
+          y: 1.5,
+          w: 9,
+          h: 0.4,
+          fontSize: 18,
+          bold: true
+        })
+
+        let yPos = 2.1
+        Object.entries(unansweredBySection).forEach(([label, count]) => {
+          summarySlide.addText(`• ${label}: ${count} unanswered`, {
+            x: 0.5,
+            y: yPos,
+            w: 9,
+            h: 0.35,
+            fontSize: 16
+          })
+          yPos += 0.4
+        })
+      }
+    }
+
     // Framework Sections
     const config = frameworkConfigs[frameworkType]
     if (config?.sections) {
       config.sections.forEach(section => {
         if (data[section.key] && data[section.key].length > 0) {
-          const items = data[section.key]
+          // Sort items: answered questions first for Q&A frameworks
+          let items = [...data[section.key]]
+          if (isQA) {
+            items.sort((a: FrameworkItem, b: FrameworkItem) => {
+              if (!isQuestionAnswerItem(a) || !isQuestionAnswerItem(b)) return 0
+              const aAnswered = a.answer && a.answer.trim() !== ''
+              const bAnswered = b.answer && b.answer.trim() !== ''
+              if (aAnswered && !bAnswered) return -1
+              if (!aAnswered && bAnswered) return 1
+              return 0
+            })
+          }
 
           // Split items across multiple slides if needed (max 5-6 items per slide)
           const itemsPerSlide = isQA ? 3 : 6
@@ -481,6 +655,7 @@ export class ReportGenerator {
             slideItems.forEach((item: FrameworkItem, idx: number) => {
               if (isQA && isQuestionAnswerItem(item)) {
                 // Q&A format
+                const isAnswered = item.answer && item.answer.trim() !== ''
                 slide.addText(`Q: ${item.question}`, {
                   x: 0.5,
                   y: yPos,
@@ -498,8 +673,8 @@ export class ReportGenerator {
                   w: 8.7,
                   h: 0.5,
                   fontSize: 14,
-                  color: '666666',
-                  italic: !item.answer
+                  color: isAnswered ? '666666' : '999999',
+                  italic: !isAnswered
                 })
                 yPos += 0.7
               } else {
@@ -611,19 +786,40 @@ export class ReportGenerator {
       data.threats?.forEach((item: any) => rows.push(['Threat', item.text]))
     } else if (isQA) {
       // Q&A format export
-      rows.push(['Section', 'Question', 'Answer'])
-      Object.keys(data).forEach(key => {
-        if (Array.isArray(data[key]) && data[key].length > 0) {
-          data[key].forEach((item: FrameworkItem) => {
-            if (isQuestionAnswerItem(item)) {
-              rows.push([key.toUpperCase(), item.question, item.answer || 'No answer provided'])
-            } else {
-              const text = 'text' in item ? item.text : (item as any).question || ''
-              rows.push([key.toUpperCase(), text, ''])
-            }
-          })
-        }
-      })
+      rows.push(['Section', 'Question', 'Answer', 'Status'])
+
+      const config = frameworkConfigs[frameworkType]
+      if (config?.sections) {
+        config.sections.forEach(section => {
+          if (data[section.key] && data[section.key].length > 0) {
+            // Sort items: answered questions first
+            let items = [...data[section.key]]
+            items.sort((a: FrameworkItem, b: FrameworkItem) => {
+              if (!isQuestionAnswerItem(a) || !isQuestionAnswerItem(b)) return 0
+              const aAnswered = a.answer && a.answer.trim() !== ''
+              const bAnswered = b.answer && b.answer.trim() !== ''
+              if (aAnswered && !bAnswered) return -1
+              if (!aAnswered && bAnswered) return 1
+              return 0
+            })
+
+            items.forEach((item: FrameworkItem) => {
+              if (isQuestionAnswerItem(item)) {
+                const isAnswered = item.answer && item.answer.trim() !== ''
+                rows.push([
+                  section.label,
+                  item.question,
+                  item.answer || 'No answer provided',
+                  isAnswered ? 'Answered' : 'Unanswered'
+                ])
+              } else {
+                const text = 'text' in item ? item.text : (item as any).question || ''
+                rows.push([section.label, text, '', 'N/A'])
+              }
+            })
+          }
+        })
+      }
     } else {
       // Generic text export
       rows.push(['Section', 'Item'])
@@ -872,9 +1068,23 @@ export class ReportGenerator {
               })
             )
 
-            data[section.key].forEach((item: FrameworkItem) => {
+            // Sort items: answered questions first for Q&A frameworks
+            let sectionItems = [...data[section.key]]
+            if (isQA) {
+              sectionItems.sort((a: FrameworkItem, b: FrameworkItem) => {
+                if (!isQuestionAnswerItem(a) || !isQuestionAnswerItem(b)) return 0
+                const aAnswered = a.answer && a.answer.trim() !== ''
+                const bAnswered = b.answer && b.answer.trim() !== ''
+                if (aAnswered && !bAnswered) return -1
+                if (!aAnswered && bAnswered) return 1
+                return 0
+              })
+            }
+
+            sectionItems.forEach((item: FrameworkItem) => {
               if (isQA && isQuestionAnswerItem(item)) {
                 // Q&A format
+                const isAnswered = item.answer && item.answer.trim() !== ''
                 paragraphs.push(
                   new Paragraph({
                     text: `Q: ${item.question}`,
@@ -885,7 +1095,11 @@ export class ReportGenerator {
                 )
                 paragraphs.push(
                   new Paragraph({
-                    text: `A: ${item.answer || 'No answer provided'}`,
+                    children: [new TextRun({
+                      text: `A: ${item.answer || 'No answer provided'}`,
+                      italics: !isAnswered,
+                      color: isAnswered ? '000000' : '999999'
+                    })],
                     spacing: { after: 100 },
                     indent: { left: 720 }
                   })
