@@ -68,15 +68,26 @@ export function AIUrlScraper({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to scrape URL')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || `Server error: ${response.status}`)
       }
 
       const data: ScrapedData = await response.json()
       setScrapedData(data)
     } catch (err) {
       console.error('Scraping error:', err)
-      setError(err instanceof Error ? err.message : 'Failed to scrape URL')
+
+      // Better error messages for common issues
+      let errorMessage = 'Failed to scrape URL'
+      if (err instanceof TypeError && err.message === 'Load failed') {
+        errorMessage = 'Network error: The request timed out or connection was lost. The page may be too slow to load or blocking requests. Try a different URL.'
+      } else if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        errorMessage = 'Network error: Unable to connect to the server. Please check your internet connection and try again.'
+      } else if (err instanceof Error) {
+        errorMessage = err.message
+      }
+
+      setError(errorMessage)
     } finally {
       setScraping(false)
     }
