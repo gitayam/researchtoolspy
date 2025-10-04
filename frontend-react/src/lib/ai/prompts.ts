@@ -349,11 +349,17 @@ export function buildPrompt(
       return questionPrompt ? questionPrompt(context as PromptContext) : questionPrompts.analytical(context as PromptContext)
 
     case 'guidance':
-      const guidancePrompt = guidancePrompts[subtype as keyof typeof guidancePrompts]
       if (subtype === 'frameworkIntro') {
-        return guidancePrompt ? guidancePrompt((context as PromptContext).framework || '') : ''
+        return guidancePrompts.frameworkIntro((context as PromptContext).framework || '')
       }
-      return guidancePrompt ? guidancePrompt() : ''
+      if (subtype === 'evidenceLinking') {
+        return guidancePrompts.evidenceLinking()
+      }
+      if (subtype === 'completionPrompt') {
+        const ctx = context as PromptContext
+        return guidancePrompts.completionPrompt(ctx.framework || '', 0)
+      }
+      return ''
 
     case 'format':
       const formatPrompt = formattingPrompts[subtype as keyof typeof formattingPrompts]
