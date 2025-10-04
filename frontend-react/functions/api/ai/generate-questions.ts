@@ -62,22 +62,42 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       .join('\n')
 
     const prompt = framework === 'starbursting'
-      ? `Based on this Starbursting analysis, generate 2 important follow-up questions for each category that are NOT already asked. Return ONLY JSON:
+      ? `You are analyzing an existing Starbursting analysis. Your task is to generate SPECIFIC, TARGETED follow-up questions that:
+- Build directly upon the existing questions and their context
+- Identify information gaps that need further investigation
+- Are concrete and actionable (not generic or broad)
+- Are NOT duplicates of existing questions
 
-Existing questions:
+Existing Analysis:
 ${existingQuestions}
 
-${analysisContext ? `Context: ${analysisContext}` : ''}
+${analysisContext ? `Analysis Context/Description: ${analysisContext}` : ''}
 
-Format: {"who": ["Q1?", "Q2?"], "what": ["Q1?", "Q2?"], "when": ["Q1?", "Q2?"], "where": ["Q1?", "Q2?"], "why": ["Q1?", "Q2?"], "how": ["Q1?", "Q2?"]}`
-      : `Based on this DIME analysis, generate 2 important follow-up questions for each category that are NOT already asked. Return ONLY JSON:
+Generate exactly 2 specific, contextual follow-up questions for each category. Each question must:
+- Reference specific aspects mentioned in the existing analysis
+- Dig deeper into unanswered details
+- Be precise and actionable
 
-Existing questions:
+Return ONLY valid JSON in this exact format:
+{"who": ["Specific question 1?", "Specific question 2?"], "what": ["Specific question 1?", "Specific question 2?"], "when": ["Specific question 1?", "Specific question 2?"], "where": ["Specific question 1?", "Specific question 2?"], "why": ["Specific question 1?", "Specific question 2?"], "how": ["Specific question 1?", "Specific question 2?"]}`
+      : `You are analyzing an existing DIME framework analysis. Your task is to generate SPECIFIC, TARGETED follow-up questions that:
+- Build directly upon the existing questions and their context
+- Identify information gaps in each DIME dimension
+- Are concrete and actionable (not generic or broad)
+- Are NOT duplicates of existing questions
+
+Existing Analysis:
 ${existingQuestions}
 
-${analysisContext ? `Context: ${analysisContext}` : ''}
+${analysisContext ? `Analysis Context/Description: ${analysisContext}` : ''}
 
-Format: {"diplomatic": ["Q1?", "Q2?"], "information": ["Q1?", "Q2?"], "military": ["Q1?", "Q2?"], "economic": ["Q1?", "Q2?"]}`
+Generate exactly 2 specific, contextual follow-up questions for each DIME dimension. Each question must:
+- Reference specific aspects mentioned in the existing analysis
+- Dig deeper into unanswered details within that dimension
+- Be precise and actionable
+
+Return ONLY valid JSON in this exact format:
+{"diplomatic": ["Specific question 1?", "Specific question 2?"], "information": ["Specific question 1?", "Specific question 2?"], "military": ["Specific question 1?", "Specific question 2?"], "economic": ["Specific question 1?", "Specific question 2?"]}`
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -90,7 +110,7 @@ Format: {"diplomatic": ["Q1?", "Q2?"], "information": ["Q1?", "Q2?"], "military"
         messages: [
           {
             role: 'system',
-            content: 'You are an expert analyst. Generate relevant follow-up questions that identify information gaps. Return ONLY valid JSON.'
+            content: 'You are an expert intelligence analyst specializing in identifying critical information gaps. Generate SPECIFIC, CONTEXTUAL follow-up questions that build upon existing analysis. Your questions must be concrete, actionable, and reference specific details from the analysis - never generic or broad. Return ONLY valid JSON with no other text.'
           },
           {
             role: 'user',
