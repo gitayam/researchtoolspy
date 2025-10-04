@@ -1,6 +1,6 @@
 import { useState, memo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save, Plus, X, Link2 } from 'lucide-react'
+import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -174,6 +174,7 @@ export function GenericFrameworkForm({
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [title, setTitle] = useState(initialData?.title || '')
   const [description, setDescription] = useState(initialData?.description || '')
+  const [sourceUrl, setSourceUrl] = useState<string>((initialData as any)?.source_url || '')
 
   // Initialize state for each section
   const [sectionData, setSectionData] = useState<{ [key: string]: FrameworkItem[] }>(
@@ -199,6 +200,9 @@ export function GenericFrameworkForm({
   )
   const [datasetSelectorOpen, setDatasetSelectorOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<string | null>(null)
+
+  // AI title generation state
+  const [generatingTitle, setGeneratingTitle] = useState(false)
 
   // Load linked datasets if editing
   useEffect(() => {
@@ -378,7 +382,7 @@ export function GenericFrameworkForm({
     }
   }
 
-  const handleUrlExtract = (extractedData: Record<string, any>) => {
+  const handleUrlExtract = (extractedData: Record<string, any>, metadata: { url: string; title: string; summary: string }) => {
     // Populate sections with extracted data
     const newSectionData = { ...sectionData }
 
@@ -393,6 +397,46 @@ export function GenericFrameworkForm({
     })
 
     setSectionData(newSectionData)
+
+    // Store source URL
+    setSourceUrl(metadata.url)
+
+    // Auto-populate title if empty
+    if (!title.trim() && metadata.title) {
+      setTitle(metadata.title)
+    }
+
+    // Optionally populate description with summary if empty
+    if (!description.trim() && metadata.summary) {
+      setDescription(metadata.summary)
+    }
+  }
+
+  const generateTitle = async () => {
+    setGeneratingTitle(true)
+    try {
+      const response = await fetch('/api/ai/generate-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frameworkType,
+          data: sectionData,
+          description
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate title')
+      }
+
+      const { title: generatedTitle } = await response.json()
+      setTitle(generatedTitle)
+    } catch (error) {
+      console.error('Failed to generate title:', error)
+      alert('Failed to generate title. Please try again.')
+    } finally {
+      setGeneratingTitle(false)
+    }
   }
 
   const handleSave = async () => {
@@ -417,6 +461,7 @@ export function GenericFrameworkForm({
       const data: GenericFrameworkData = {
         title: title.trim(),
         description: description.trim(),
+        source_url: sourceUrl || undefined,
         ...sectionData
       }
 
@@ -506,11 +551,27 @@ export function GenericFrameworkForm({
         <CardContent className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2">Title *</label>
-            <Input
-              placeholder={`e.g., Q4 2025 ${frameworkTitle} Analysis`}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+            <div className="flex gap-2">
+              <Input
+                placeholder={`e.g., Q4 2025 ${frameworkTitle} Analysis`}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={generateTitle}
+                disabled={generatingTitle || (Object.values(sectionData).every(items => items.length === 0) && !description)}
+                title="Generate title using AI"
+              >
+                {generatingTitle ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Description</label>

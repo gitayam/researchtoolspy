@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Link2, Plus } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -252,20 +252,36 @@ export function GenericFrameworkView({
       </div>
 
       {/* Metadata */}
-      {(data.created_at || data.updated_at) && (
+      {(data.created_at || data.updated_at || data.source_url) && (
         <Card>
           <CardContent className="pt-6">
-            <div className="flex gap-6 text-sm text-gray-600 dark:text-gray-400">
-              {data.created_at && (
-                <div>
-                  <span className="font-medium">Created:</span>{' '}
-                  {new Date(data.created_at).toLocaleDateString()}
-                </div>
-              )}
-              {data.updated_at && (
-                <div>
-                  <span className="font-medium">Last Updated:</span>{' '}
-                  {new Date(data.updated_at).toLocaleDateString()}
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-6 text-sm text-gray-600 dark:text-gray-400">
+                {data.created_at && (
+                  <div>
+                    <span className="font-medium">Created:</span>{' '}
+                    {new Date(data.created_at).toLocaleDateString()}
+                  </div>
+                )}
+                {data.updated_at && (
+                  <div>
+                    <span className="font-medium">Last Updated:</span>{' '}
+                    {new Date(data.updated_at).toLocaleDateString()}
+                  </div>
+                )}
+              </div>
+              {data.source_url && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-gray-600 dark:text-gray-400">Source:</span>
+                  <a
+                    href={data.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline flex items-center gap-1"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    {data.source_url}
+                  </a>
                 </div>
               )}
             </div>
