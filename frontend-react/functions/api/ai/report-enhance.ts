@@ -210,6 +210,275 @@ Suggest:
 - Risk mitigation steps
 
 Return ONLY a JSON array of recommendation strings.`
+  },
+
+  starbursting: {
+    summary: `Analyze this Starbursting (5W+H) question set and create an executive summary.
+
+Questions and Answers:
+{data}
+
+Provide a 2-3 sentence summary highlighting:
+- Most critical unanswered questions
+- Key knowledge gaps identified
+- Priority areas for investigation
+
+Use BLUF format.`,
+
+    insights: `Identify insights from this Starbursting analysis.
+
+Questions and Answers:
+{data}
+
+Analyze:
+- Critical information gaps
+- Question patterns indicating risk areas
+- Well-answered vs poorly-answered domains
+- Dependencies between questions
+
+Return ONLY a JSON array of insight strings.`,
+
+    recommendations: `Provide recommendations based on this Starbursting analysis.
+
+Questions and Answers:
+{data}
+
+Recommend:
+- Priority questions to answer first
+- Information collection methods
+- Subject matter experts to consult
+- Research directions
+
+Return ONLY a JSON array of recommendation strings.`
+  },
+
+  cog: {
+    summary: `Analyze this Center of Gravity analysis and create an executive summary.
+
+COG Data:
+{data}
+
+Provide a 2-3 sentence summary of:
+- Identified centers of gravity
+- Critical vulnerabilities
+- Priority targeting recommendations
+
+Use BLUF format.`,
+
+    insights: `Identify strategic insights from this COG analysis.
+
+COG Data:
+{data}
+
+Analyze:
+- Dependencies between COG elements
+- Critical capability gaps
+- Vulnerability chains
+- Protection requirements
+
+Return ONLY a JSON array of insight strings.`,
+
+    recommendations: `Provide strategic recommendations based on this COG analysis.
+
+COG Data:
+{data}
+
+Recommend:
+- Priority targeting options
+- Protection measures for friendly COGs
+- Capability development needs
+- Risk mitigation approaches
+
+Return ONLY a JSON array of recommendation strings.`
+  },
+
+  causeway: {
+    summary: `Analyze this CAUSEWAY (PUTAR) analysis and create an executive summary.
+
+CAUSEWAY Data:
+{data}
+
+Provide a 2-3 sentence summary highlighting:
+- Key problem definition
+- Undesired actor capabilities
+- Critical vulnerabilities identified
+
+Use BLUF format.`,
+
+    insights: `Identify insights from this CAUSEWAY analysis.
+
+CAUSEWAY Data:
+{data}
+
+Analyze:
+- Actor-capability-vulnerability chains
+- Critical requirement dependencies
+- Proximate target effectiveness
+- Story/narrative vulnerabilities
+
+Return ONLY a JSON array of insight strings.`,
+
+    recommendations: `Provide recommendations based on this CAUSEWAY analysis.
+
+CAUSEWAY Data:
+{data}
+
+Recommend:
+- Priority targets for influence operations
+- Counter-narrative approaches
+- Capability disruption methods
+- Information operation strategies
+
+Return ONLY a JSON array of recommendation strings.`
+  },
+
+  dotmlpf: {
+    summary: `Analyze this DOTMLPF assessment and create an executive summary.
+
+DOTMLPF Data:
+{data}
+
+Summarize the Doctrine, Organization, Training, Materiel, Leadership, Personnel, and Facilities analysis. Highlight the most critical gaps and strengths.`,
+
+    insights: `Identify key insights from this DOTMLPF analysis.
+
+DOTMLPF Data:
+{data}
+
+Look for:
+- Cross-domain dependencies
+- Capability gaps
+- Integration issues
+- Modernization priorities
+
+Return ONLY a JSON array of insight strings.`,
+
+    recommendations: `Provide recommendations from this DOTMLPF analysis.
+
+DOTMLPF Data:
+{data}
+
+Recommend improvements across relevant domains considering:
+- Resource constraints
+- Timeline requirements
+- Integration needs
+
+Return ONLY a JSON array of recommendation strings.`
+  },
+
+  pest: {
+    summary: `Analyze this PEST analysis and create an executive summary.
+
+PEST Data:
+{data}
+
+Summarize the Political, Economic, Social, and Technological factors. Highlight the most significant environmental factors.`,
+
+    insights: `Identify insights from this PEST analysis.
+
+PEST Data:
+{data}
+
+Analyze:
+- Cross-factor interactions
+- Emerging trends
+- Opportunity and threat indicators
+- Market dynamics
+
+Return ONLY a JSON array of insight strings.`,
+
+    recommendations: `Provide strategic recommendations from this PEST analysis.
+
+PEST Data:
+{data}
+
+Recommend:
+- Strategic positioning adjustments
+- Risk mitigation measures
+- Opportunity exploitation approaches
+- Monitoring priorities
+
+Return ONLY a JSON array of recommendation strings.`
+  },
+
+  stakeholder: {
+    summary: `Analyze this stakeholder analysis and create an executive summary.
+
+Stakeholder Data:
+{data}
+
+Provide a 2-3 sentence summary of:
+- Key stakeholder groups
+- Power/interest dynamics
+- Critical engagement priorities
+
+Use BLUF format.`,
+
+    insights: `Identify insights from this stakeholder analysis.
+
+Stakeholder Data:
+{data}
+
+Analyze:
+- Power and influence patterns
+- Conflicting interests
+- Coalition opportunities
+- Risk stakeholders
+
+Return ONLY a JSON array of insight strings.`,
+
+    recommendations: `Provide stakeholder engagement recommendations.
+
+Stakeholder Data:
+{data}
+
+Recommend:
+- Priority engagement strategies
+- Communication approaches
+- Relationship building tactics
+- Conflict mitigation measures
+
+Return ONLY a JSON array of recommendation strings.`
+  },
+
+  behavior: {
+    summary: `Analyze this behavioral assessment and create an executive summary.
+
+Behavioral Data:
+{data}
+
+Provide a 2-3 sentence summary highlighting:
+- Key behavioral patterns
+- Indicators of change
+- Priority concerns
+
+Use BLUF format.`,
+
+    insights: `Identify insights from this behavioral analysis.
+
+Behavioral Data:
+{data}
+
+Analyze:
+- Behavioral trends
+- Pattern anomalies
+- Causal factors
+- Predictive indicators
+
+Return ONLY a JSON array of insight strings.`,
+
+    recommendations: `Provide recommendations based on this behavioral analysis.
+
+Behavioral Data:
+{data}
+
+Recommend:
+- Intervention strategies
+- Monitoring approaches
+- Engagement tactics
+- Risk mitigation measures
+
+Return ONLY a JSON array of recommendation strings.`
   }
 }
 
