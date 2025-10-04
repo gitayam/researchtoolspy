@@ -257,5 +257,47 @@ export const frameworkDescriptions: Record<string, FrameworkDescription> = {
       'Technical or scientific analysis',
       'Problems without clear adversarial actors'
     ]
+  },
+
+  'surveillance': {
+    title: 'Surveillance Framework (ISR Collection Planning)',
+    context: `The Surveillance Framework, based on RAND's Strategies-to-Tasks methodology, provides a systematic approach to planning and executing Intelligence, Surveillance, and Reconnaissance (ISR) operations. It links collection targets to operational tasks, objectives, and commander's guidance with relative utilities. This framework enables intelligence officers to rapidly analyze costs and benefits of ISR collection strategies, prioritize competing tasks, and allow flexible real-time changes to plans. ISR is the coordinated and integrated acquisition, processing, and provision of timely, accurate, relevant, coherent information to support commanders' conduct of activities.`,
+    wikipediaUrl: 'https://en.wikipedia.org/wiki/Intelligence,_surveillance,_target_acquisition,_and_reconnaissance',
+    goodUseCases: [
+      'Military ISR operations planning and execution',
+      'Collection asset allocation and optimization',
+      'Priority Intelligence Requirements (PIR) management',
+      'Real-time ISR retasking for emerging targets',
+      'Multi-sensor coordination and fusion planning',
+      'Intelligence requirements to collection mapping'
+    ],
+    notIdealFor: [
+      'Strategic policy analysis without operational focus',
+      'Historical intelligence assessment',
+      'Pure analytical problems without collection component',
+      'Situations without defined operational objectives',
+      'Analysis where collection assets are unavailable'
+    ]
+  },
+
+  'fundamental-flow': {
+    title: 'Fundamental Flow Analysis',
+    context: `Fundamental Flow Analysis examines the intelligence cycle and information flow through all stages: Planning & Direction, Collection, Processing, Exploitation & Production, Dissemination, and Feedback. This framework identifies bottlenecks, measures efficiency, and optimizes the flow of information from raw data to finished intelligence. By mapping complete information paths and measuring timeliness, accuracy, and relevance at each stage, organizations can improve intelligence production processes, reduce delays, and enhance the value delivered to consumers. This framework is essential for intelligence process improvement and optimization initiatives.`,
+    wikipediaUrl: 'https://en.wikipedia.org/wiki/Intelligence_cycle_management',
+    goodUseCases: [
+      'Intelligence process optimization and improvement',
+      'Bottleneck identification in intelligence production',
+      'Information flow mapping and analysis',
+      'Intelligence cycle efficiency assessment',
+      'Collection-to-dissemination timeline reduction',
+      'Quality assurance and process maturity evaluation'
+    ],
+    notIdealFor: [
+      'Individual intelligence analysis tasks',
+      'Tactical operational planning',
+      'Content-focused analysis (use ACH, SWOT, etc.)',
+      'Short-term or ad-hoc intelligence requests',
+      'Situations where process improvement is not the focus'
+    ]
   }
 }
