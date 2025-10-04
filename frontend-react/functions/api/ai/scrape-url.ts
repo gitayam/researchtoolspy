@@ -289,8 +289,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               content: extractPrompt
             }
           ],
-          max_completion_tokens: 3000,
-          temperature: 0.3
+          max_completion_tokens: 3000
+          // Note: gpt-5-mini only supports temperature=1 (default), so we omit it
         })
       })
 
