@@ -269,6 +269,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (extractionPrompts[framework]) {
       const extractPrompt = extractionPrompts[framework].replace('{content}', content.substring(0, 15000))
 
+      console.log(`Extracting ${framework} data from URL: ${url}`)
+
       const extractResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -292,20 +294,38 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         })
       })
 
-      if (extractResponse.ok) {
+      if (!extractResponse.ok) {
+        const errorData = await extractResponse.json().catch(() => ({ error: 'Unknown extraction error' }))
+        console.error(`OpenAI extraction API error for ${framework}:`, errorData)
+        extractedData = {
+          _error: `Failed to extract ${framework} data: ${JSON.stringify(errorData)}`,
+          _model: 'gpt-5-mini',
+          _framework: framework
+        }
+      } else {
         const extractData = await extractResponse.json()
         const extractedText = extractData.choices[0].message.content
+
+        console.log(`Extracted ${framework} response (first 200 chars):`, extractedText.substring(0, 200))
 
         // Try to parse JSON
         try {
           // Remove markdown code blocks if present
           const jsonText = extractedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
           extractedData = JSON.parse(jsonText)
+          console.log(`Successfully parsed ${framework} JSON with ${Object.keys(extractedData).length} keys`)
         } catch (e) {
-          console.error('Failed to parse extracted JSON:', e)
-          extractedData = { _raw: extractedText }
+          console.error(`Failed to parse extracted JSON for ${framework}:`, e)
+          console.error('Raw extracted text:', extractedText)
+          extractedData = {
+            _raw: extractedText,
+            _parseError: (e as Error).message,
+            _framework: framework
+          }
         }
       }
+    } else {
+      console.log(`No extraction prompt found for framework: ${framework}`)
     }
 
     // Build response
