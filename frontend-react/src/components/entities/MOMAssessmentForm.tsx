@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AIFieldAssistant } from '@/components/ai'
 import type { MOMAssessment, CreateMOMAssessmentRequest, UpdateMOMAssessmentRequest } from '@/types/entities'
 
 interface MOMAssessmentFormProps {
@@ -198,14 +199,31 @@ export function MOMAssessmentForm({
           {/* Scenario Description */}
           <div className="space-y-2">
             <Label htmlFor="scenario_description">Scenario Description *</Label>
-            <Textarea
-              id="scenario_description"
-              value={formData.scenario_description}
-              onChange={(e) => setFormData({ ...formData, scenario_description: e.target.value })}
-              placeholder="Describe the specific scenario being assessed (e.g., 'Stealing classified documents', 'Sabotaging critical infrastructure')"
-              rows={3}
-              required
-            />
+            <div className="flex gap-2">
+              <Textarea
+                id="scenario_description"
+                value={formData.scenario_description}
+                onChange={(e) => setFormData({ ...formData, scenario_description: e.target.value })}
+                placeholder="Describe the specific scenario being assessed (e.g., 'Stealing classified documents', 'Sabotaging critical infrastructure')"
+                rows={3}
+                required
+              />
+              <AIFieldAssistant
+                fieldName="Scenario Description"
+                currentValue={formData.scenario_description}
+                onAccept={(value) => setFormData({ ...formData, scenario_description: value })}
+                context={{
+                  framework: 'MOM Assessment',
+                  relatedFields: {
+                    motive: formData.motive,
+                    opportunity: formData.opportunity,
+                    means: formData.means,
+                    notes: formData.notes
+                  }
+                }}
+                placeholder="Describe the scenario..."
+              />
+            </div>
             <p className="text-xs text-gray-500">
               What specific deception or action is being assessed?
             </p>
@@ -282,13 +300,30 @@ export function MOMAssessmentForm({
           {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Assessment Notes</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Additional context, rationale, or supporting evidence for this assessment..."
-              rows={4}
-            />
+            <div className="flex gap-2">
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Additional context, rationale, or supporting evidence for this assessment..."
+                rows={4}
+              />
+              <AIFieldAssistant
+                fieldName="Assessment Notes"
+                currentValue={formData.notes}
+                onAccept={(value) => setFormData({ ...formData, notes: value })}
+                context={{
+                  framework: 'MOM Assessment',
+                  relatedFields: {
+                    scenario: formData.scenario_description,
+                    motive: formData.motive,
+                    opportunity: formData.opportunity,
+                    means: formData.means
+                  }
+                }}
+                placeholder="Additional assessment notes..."
+              />
+            </div>
           </div>
 
           {/* Actions */}
