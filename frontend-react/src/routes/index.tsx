@@ -39,6 +39,7 @@ import { EventsPage } from '@/pages/entities/EventsPage'
 import { NetworkGraphPage } from '@/pages/NetworkGraphPage'
 import { ACHPage } from '@/pages/ACHPage'
 import { ACHAnalysisPage } from '@/pages/ACHAnalysisPage'
+import { InviteAcceptPage } from '@/pages/InviteAcceptPage'
 
 export const router = createBrowserRouter([
   {
@@ -52,6 +53,10 @@ export const router = createBrowserRouter([
   {
     path: '/register',
     element: <RegisterPage />,
+  },
+  {
+    path: '/invite/:inviteToken',
+    element: <InviteAcceptPage />,
   },
   {
     path: '/tools',
