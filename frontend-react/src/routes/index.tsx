@@ -38,6 +38,7 @@ import {
 import { ActorsPage } from '@/pages/entities/ActorsPage'
 import { SourcesPage } from '@/pages/entities/SourcesPage'
 import { EventsPage } from '@/pages/entities/EventsPage'
+import { NetworkGraphPage } from '@/pages/NetworkGraphPage'
 
 export const router = createBrowserRouter([
   {
@@ -340,6 +341,11 @@ export const router = createBrowserRouter([
       {
         path: 'entities/events/:id/edit',
         element: <EventsPage />,
+      },
+      // Network Analysis Route
+      {
+        path: 'network',
+        element: <NetworkGraphPage />,
       },
       {
         path: 'reports',

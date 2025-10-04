@@ -16,7 +16,8 @@ import {
   Archive,
   Database,
   Calendar,
-  Shield
+  Shield,
+  Network
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -70,6 +71,7 @@ const navigation = [
       { name: 'Events', href: '/dashboard/entities/events' },
     ]
   },
+  { name: 'Network Analysis', href: '/dashboard/network', icon: Network },
   { name: 'Dataset Library', href: '/dashboard/datasets', icon: Database },
   { name: 'Reports', href: '/dashboard/reports', icon: FileText },
   { name: 'Collaboration', href: '/dashboard/collaboration', icon: Users },
