@@ -187,6 +187,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const request = await context.request.json() as ScrapeRequest
     const { url, framework } = request
 
+    console.log(`[Scrape] Starting scrape for URL: ${url}, framework: ${framework}`)
+
     if (!url || !framework) {
       return new Response(JSON.stringify({ error: 'URL and framework are required' }), {
         status: 400,
@@ -205,22 +207,45 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Fetch the URL
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
+    console.log(`[Scrape] Fetching URL: ${url}`)
+
+    // Fetch the URL with timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+
+    let response
+    try {
+      response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
+        },
+        signal: controller.signal
+      })
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        return new Response(JSON.stringify({ error: 'URL fetch timeout - page took too long to load' }), {
+          status: 504,
+          headers: { 'Content-Type': 'application/json' }
+        })
       }
-    })
+      throw fetchError
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: `Failed to fetch URL: ${response.status}` }), {
+      return new Response(JSON.stringify({ error: `Failed to fetch URL: ${response.status} ${response.statusText}` }), {
         status: response.status,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
     const html = await response.text()
+    console.log(`[Scrape] Fetched ${html.length} characters from URL`)
+
     const { title, content } = extractTextFromHTML(html)
+    console.log(`[Scrape] Extracted title: "${title}", content length: ${content.length} chars`)
 
     // Generate summary with GPT-5-nano
     const apiKey = context.env.OPENAI_API_KEY
