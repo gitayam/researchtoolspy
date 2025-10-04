@@ -231,46 +231,6 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
     ]
   },
 
-  'vrio': {
-    type: 'vrio',
-    title: 'VRIO Framework',
-    description: 'Value, Rarity, Imitability, Organization',
-    sections: [
-      {
-        key: 'value',
-        label: 'Value',
-        description: 'Does it provide value to customers?',
-        color: 'border-green-500',
-        bgColor: 'bg-green-50 dark:bg-green-900/20',
-        icon: '💎'
-      },
-      {
-        key: 'rarity',
-        label: 'Rarity',
-        description: 'Is it rare or unique?',
-        color: 'border-blue-500',
-        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-        icon: '⭐'
-      },
-      {
-        key: 'imitability',
-        label: 'Imitability',
-        description: 'Is it costly to imitate?',
-        color: 'border-orange-500',
-        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-        icon: '🔒'
-      },
-      {
-        key: 'organization',
-        label: 'Organization',
-        description: 'Is the organization organized to exploit it?',
-        color: 'border-purple-500',
-        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-        icon: '🏢'
-      }
-    ]
-  },
-
   'cog': {
     type: 'cog',
     title: 'Center of Gravity Analysis',
@@ -347,46 +307,6 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         color: 'border-gray-500',
         bgColor: 'bg-gray-50 dark:bg-gray-900/20',
         icon: '👥'
-      }
-    ]
-  },
-
-  'trend': {
-    type: 'trend',
-    title: 'Trend Analysis',
-    description: 'Identify and forecast emerging trends',
-    sections: [
-      {
-        key: 'emerging_trends',
-        label: 'Emerging Trends',
-        description: 'New trends just beginning to form',
-        color: 'border-green-500',
-        bgColor: 'bg-green-50 dark:bg-green-900/20',
-        icon: '🌱'
-      },
-      {
-        key: 'growing_trends',
-        label: 'Growing Trends',
-        description: 'Trends gaining momentum',
-        color: 'border-blue-500',
-        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-        icon: '📈'
-      },
-      {
-        key: 'mature_trends',
-        label: 'Mature Trends',
-        description: 'Well-established trends at peak',
-        color: 'border-purple-500',
-        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-        icon: '🎯'
-      },
-      {
-        key: 'declining_trends',
-        label: 'Declining Trends',
-        description: 'Trends losing relevance',
-        color: 'border-orange-500',
-        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-        icon: '📉'
       }
     ]
   },

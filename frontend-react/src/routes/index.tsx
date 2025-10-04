@@ -30,9 +30,7 @@ import {
   CausewayPage,
   DimePage,
   PestPage,
-  VrioPage,
   StakeholderPage,
-  TrendPage,
   SurveillancePage,
   FundamentalFlowPage,
 } from '@/pages/frameworks'
@@ -207,18 +205,6 @@ export const router = createBrowserRouter([
         element: <PestPage />,
       },
       {
-        path: 'analysis-frameworks/vrio',
-        element: <VrioPage />,
-      },
-      {
-        path: 'analysis-frameworks/vrio/:action',
-        element: <VrioPage />,
-      },
-      {
-        path: 'analysis-frameworks/vrio/:id/:action',
-        element: <VrioPage />,
-      },
-      {
         path: 'analysis-frameworks/stakeholder',
         element: <StakeholderPage />,
       },
@@ -229,18 +215,6 @@ export const router = createBrowserRouter([
       {
         path: 'analysis-frameworks/stakeholder/:id/:action',
         element: <StakeholderPage />,
-      },
-      {
-        path: 'analysis-frameworks/trend',
-        element: <TrendPage />,
-      },
-      {
-        path: 'analysis-frameworks/trend/:action',
-        element: <TrendPage />,
-      },
-      {
-        path: 'analysis-frameworks/trend/:id/:action',
-        element: <TrendPage />,
       },
       {
         path: 'analysis-frameworks/surveillance',

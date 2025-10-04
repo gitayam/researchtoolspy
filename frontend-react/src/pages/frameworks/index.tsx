@@ -958,11 +958,7 @@ export const DimePage = () => <GenericFrameworkPage frameworkKey="dime" />
 
 export const PestPage = () => <GenericFrameworkPage frameworkKey="pest" />
 
-export const VrioPage = () => <GenericFrameworkPage frameworkKey="vrio" />
-
 export const StakeholderPage = () => <GenericFrameworkPage frameworkKey="stakeholder" />
-
-export const TrendPage = () => <GenericFrameworkPage frameworkKey="trend" />
 
 export const SurveillancePage = () => (
   <FrameworkListPage
