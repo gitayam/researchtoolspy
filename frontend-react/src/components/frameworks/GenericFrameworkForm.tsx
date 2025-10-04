@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { AIFieldAssistant, AIUrlScraper } from '@/components/ai'
 import { DatasetSelector } from '@/components/datasets/DatasetSelector'
 import { DatasetBadge } from '@/components/datasets/DatasetBadge'
+import { ExportButton } from '@/components/reports/ExportButton'
 import type { Dataset } from '@/types/dataset'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
@@ -739,6 +740,16 @@ export function GenericFrameworkForm({
           <AIUrlScraper
             framework={frameworkType}
             onExtract={handleUrlExtract}
+          />
+          <ExportButton
+            frameworkType={frameworkType}
+            frameworkTitle={frameworkTitle}
+            data={{
+              title,
+              description,
+              ...sectionData
+            }}
+            variant="outline"
           />
           <Button onClick={handleSave} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />

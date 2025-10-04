@@ -379,63 +379,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.log(`No extraction prompt found for framework: ${framework}`)
     }
 
-    // Build initial response with answered questions
-    const result: ScrapeResponse = {
-      url,
-      title,
-      content: content.substring(0, 5000), // Return first 5KB for reference
-      summary,
-      extractedData,
-      metadata: {
-        source: parsedUrl.hostname
-      }
-    }
-
-    console.log(`[Scrape] Returning answered questions (phase 1 complete)`)
-
-    // Skip unanswered questions generation for now to avoid timeouts
-    // This keeps response fast and within Cloudflare Workers limits
-    // TODO: Implement async unanswered questions as separate endpoint
-
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    })
-
-    // DISABLED: Generate unanswered questions (too slow, causes timeouts)
-    // Can be re-enabled as separate async endpoint later
-    /*
+    // Generate unanswered questions for Q&A frameworks (starbursting, dime)
+    // Using reduced count (1-2 per category instead of 2-3) to keep it fast
     if ((framework === 'starbursting' || framework === 'dime') &&
         !extractedData._error &&
         !extractedData._parseError) {
 
-      console.log(`Generating unanswered questions for ${framework}`)
+      console.log(`[Scrape] Generating unanswered questions for ${framework} (fast mode)`)
 
       const unansweredPrompt = framework === 'starbursting'
-        ? `Based on this article, generate 2-3 important questions for each category (Who, What, When, Where, Why, How) that CANNOT be answered from the article content. These should be relevant follow-up questions that a researcher would want to investigate further.
+        ? `Based on this article, generate 1-2 important follow-up questions for each category that CANNOT be answered. Return ONLY JSON:
 
-Article: ${content.substring(0, 15000)}
+Article: ${content.substring(0, 10000)}
 
-Return ONLY valid JSON with unanswered questions:
-{
-  "who": ["Question 1?", "Question 2?"],
-  "what": ["Question 1?", "Question 2?"],
-  "when": ["Question 1?", "Question 2?"],
-  "where": ["Question 1?", "Question 2?"],
-  "why": ["Question 1?", "Question 2?"],
-  "how": ["Question 1?", "Question 2?"]
-}`
-        : `Based on this article, generate 2-3 important questions for each DIME category (Diplomatic, Information, Military, Economic) that CANNOT be answered from the article content. These should be relevant follow-up questions that a researcher would want to investigate further.
+{"who": ["Q1?", "Q2?"], "what": ["Q1?", "Q2?"], "when": ["Q1?", "Q2?"], "where": ["Q1?", "Q2?"], "why": ["Q1?", "Q2?"], "how": ["Q1?", "Q2?"]}`
+        : `Based on this article, generate 1-2 important follow-up questions for each DIME category that CANNOT be answered. Return ONLY JSON:
 
-Article: ${content.substring(0, 15000)}
+Article: ${content.substring(0, 10000)}
 
-Return ONLY valid JSON with unanswered questions:
-{
-  "diplomatic": ["Question 1?", "Question 2?"],
-  "information": ["Question 1?", "Question 2?"],
-  "military": ["Question 1?", "Question 2?"],
-  "economic": ["Question 1?", "Question 2?"]
-}`
+{"diplomatic": ["Q1?", "Q2?"], "information": ["Q1?", "Q2?"], "military": ["Q1?", "Q2?"], "economic": ["Q1?", "Q2?"]}`
 
       const unansweredResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -455,7 +417,7 @@ Return ONLY valid JSON with unanswered questions:
               content: unansweredPrompt
             }
           ],
-          max_completion_tokens: 2000
+          max_completion_tokens: 800  // Reduced from 2000 for faster response
         })
       })
 
@@ -488,9 +450,25 @@ Return ONLY valid JSON with unanswered questions:
         console.error('Failed to generate unanswered questions')
       }
     }
-    */
 
-    // Old duplicate response building code removed - now handled above
+    // Build response with all data
+    const result: ScrapeResponse = {
+      url,
+      title,
+      content: content.substring(0, 5000), // Return first 5KB for reference
+      summary,
+      extractedData,
+      metadata: {
+        source: parsedUrl.hostname
+      }
+    }
+
+    console.log(`[Scrape] Complete - returning response`)
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    })
 
   } catch (error) {
     console.error('Scraping error:', error)
