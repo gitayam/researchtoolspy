@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, Save, Sparkles, AlertTriangle } from 'lucide-react'
-import { AIFieldAssistant } from '@/components/ai'
+import { AIFieldAssistant, AIUrlScraper } from '@/components/ai'
 import { DeceptionScoringForm } from './DeceptionScoringForm'
 import { DeceptionDashboard } from './DeceptionDashboard'
 import type { DeceptionScores } from '@/lib/deception-scoring'
@@ -64,6 +64,30 @@ export function DeceptionForm({
   useEffect(() => {
     checkAIAvailability().then(setAiAvailable)
   }, [])
+
+  const handleUrlExtract = (extractedData: Record<string, any>) => {
+    // Populate fields with extracted data
+    if (extractedData.scenario) {
+      setScenario(extractedData.scenario)
+    }
+    if (extractedData.mom && Array.isArray(extractedData.mom)) {
+      setMom(extractedData.mom.join('\n'))
+    }
+    if (extractedData.pop && Array.isArray(extractedData.pop)) {
+      setPop(extractedData.pop.join('\n'))
+    }
+    if (extractedData.moses && Array.isArray(extractedData.moses)) {
+      setMoses(extractedData.moses.join('\n'))
+    }
+    if (extractedData.eve && Array.isArray(extractedData.eve)) {
+      setEve(extractedData.eve.join('\n'))
+    }
+
+    // Switch to the first populated tab
+    if (extractedData.scenario) {
+      setActiveTab('scenario')
+    }
+  }
 
   const handleRunAI = async () => {
     if (!scenario) {
@@ -159,6 +183,10 @@ export function DeceptionForm({
             </p>
           </div>
           <div className="flex gap-2">
+            <AIUrlScraper
+              framework="deception"
+              onExtract={handleUrlExtract}
+            />
             {aiAvailable && (
               <Button
                 variant="outline"

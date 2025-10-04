@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
-import { AIFieldAssistant } from '@/components/ai'
+import { AIFieldAssistant, AIUrlScraper } from '@/components/ai'
 import { DatasetSelector } from '@/components/datasets/DatasetSelector'
 import { DatasetBadge } from '@/components/datasets/DatasetBadge'
 import type { Dataset } from '@/types/dataset'
@@ -325,6 +325,23 @@ export function GenericFrameworkForm({
     }
   }
 
+  const handleUrlExtract = (extractedData: Record<string, any>) => {
+    // Populate sections with extracted data
+    const newSectionData = { ...sectionData }
+
+    sections.forEach(section => {
+      if (extractedData[section.key] && Array.isArray(extractedData[section.key])) {
+        const items: FrameworkItem[] = extractedData[section.key].map((text: string) => ({
+          id: crypto.randomUUID(),
+          text: text.trim()
+        }))
+        newSectionData[section.key] = [...newSectionData[section.key], ...items]
+      }
+    })
+
+    setSectionData(newSectionData)
+  }
+
   const handleSave = async () => {
     if (!title.trim()) {
       alert(`Please enter a title for your ${frameworkTitle} analysis`)
@@ -366,10 +383,16 @@ export function GenericFrameworkForm({
             </p>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={saving}>
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? 'Saving...' : 'Save Analysis'}
-        </Button>
+        <div className="flex gap-2">
+          <AIUrlScraper
+            framework={frameworkType}
+            onExtract={handleUrlExtract}
+          />
+          <Button onClick={handleSave} disabled={saving}>
+            <Save className="h-4 w-4 mr-2" />
+            {saving ? 'Saving...' : 'Save Analysis'}
+          </Button>
+        </div>
       </div>
 
       {/* Basic Info */}
