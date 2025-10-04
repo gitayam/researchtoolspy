@@ -21,20 +21,17 @@ id = "48afc9fe53a3425b8757e9dc526c359e"
 # KV Namespace for AI configuration
 [[kv_namespaces]]
 binding = "AI_CONFIG"
-id = "TBD"  # Will be created during deployment
-preview_id = "TBD"
+id = "7b7c607eb739402884712b0b033e3e7d"
 
 # R2 Bucket for file uploads
 [[r2_buckets]]
 binding = "UPLOADS"
 bucket_name = "researchtoolspy-uploads"
 
-[env.production]
-vars = {
-  ENVIRONMENT = "production",
-  ENABLE_AI_FEATURES = "true",
-  DEFAULT_AI_MODEL = "gpt-5-mini"
-}
+[env.production.vars]
+ENVIRONMENT = "production"
+ENABLE_AI_FEATURES = "true"
+DEFAULT_AI_MODEL = "gpt-5-mini"
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -51,7 +48,7 @@ id = "48afc9fe53a3425b8757e9dc526c359e"
 
 [[env.production.kv_namespaces]]
 binding = "AI_CONFIG"
-id = "TBD"
+id = "7b7c607eb739402884712b0b033e3e7d"
 
 [[env.production.r2_buckets]]
 binding = "UPLOADS"
