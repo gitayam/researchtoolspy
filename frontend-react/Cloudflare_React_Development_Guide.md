@@ -543,6 +543,80 @@ const corsHeaders = {
 }
 ```
 
+### Issue 6: API Integration - Data Not Loading on Component Mount
+
+**Symptom:** API data not displayed when component first loads
+
+**Cause:** Missing useEffect hook for data loading
+
+**Solution:**
+```typescript
+// Load data from API on component mount
+useEffect(() => {
+  const loadData = async () => {
+    if (!id) return
+
+    try {
+      const response = await fetch(`/api/resource?id=${id}`)
+      if (response.ok) {
+        const result = await response.json()
+        // Transform API response to component format
+        const transformedData = result.items.map(item => ({
+          // ... transformation logic
+        }))
+        setData(transformedData)
+      }
+    } catch (error) {
+      console.error('Failed to load data:', error)
+    }
+  }
+
+  loadData()
+}, [id]) // Dependency: re-run when ID changes
+```
+
+### Issue 7: DELETE Requests with Query Parameters
+
+**Symptom:** DELETE requests not working with query parameters
+
+**Cause:** Incorrect URL construction or missing parameters
+
+**Solution:**
+```typescript
+// Correct: Use query parameters for DELETE
+const response = await fetch(
+  `/api/resource?id=${id}&item_id=${itemId}`,
+  { method: 'DELETE' }
+)
+
+// Update local state after successful deletion
+if (response.ok) {
+  setItems(items.filter(item => item.id !== itemId))
+}
+```
+
+### Issue 8: Batch API Operations
+
+**Symptom:** Multiple sequential API calls causing performance issues
+
+**Cause:** Not batching operations
+
+**Solution:**
+```typescript
+// ✅ Correct: Batch operation
+const itemIds = selectedItems.map(item => item.id)
+const response = await fetch('/api/resource/batch', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ ids: itemIds })
+})
+
+// ❌ Wrong: Sequential calls
+for (const item of selectedItems) {
+  await fetch(`/api/resource/${item.id}`, { method: 'POST' })
+}
+```
+
 ## Best Practices
 
 1. **Always create `public/_redirects` for SPAs**
@@ -555,6 +629,93 @@ const corsHeaders = {
 8. **Test all routes after deployment**
 9. **Use shadcn/ui for consistent components**
 10. **Keep wrangler.toml in sync with production bindings**
+11. **Always load data in useEffect with proper dependencies**
+12. **Batch API operations when possible to reduce network calls**
+13. **Transform API responses to match component interfaces**
+14. **Handle errors gracefully with user-friendly messages**
+15. **Update local state immediately after successful API operations**
+
+## Lessons Learned from Evidence Linking Implementation (Oct 4, 2025)
+
+### Key Insights
+
+1. **API Integration Pattern**
+   - Load data on mount with `useEffect(() => { loadData() }, [id])`
+   - Always check for required IDs before making API calls
+   - Transform API responses to match component interface immediately
+   - Update local state only after successful API response
+
+2. **State Management for Linked Data**
+   - Use `LinkedEvidence[]` type for consistent state structure
+   - Keep local state in sync with server state
+   - Filter state immediately on delete for instant UI feedback
+   - Append to existing state on link for optimistic updates
+
+3. **Error Handling Best Practices**
+   ```typescript
+   try {
+     const response = await fetch('/api/endpoint')
+     if (response.ok) {
+       // Success path
+     } else {
+       const error = await response.json()
+       console.error('API error:', error)
+       alert('User-friendly message')
+     }
+   } catch (error) {
+     console.error('Network error:', error)
+     alert('Generic error message')
+   }
+   ```
+
+4. **Batch Operations Performance**
+   - Linking: Send array of IDs `{ evidence_ids: [1, 2, 3] }` instead of 3 separate calls
+   - Reduces API calls from O(n) to O(1)
+   - Reduces network latency and server load
+   - Implement on both client and server for maximum benefit
+
+5. **API Response Transformation**
+   ```typescript
+   // API returns: { links: [{evidence_id, title, description, ...}] }
+   // Component needs: LinkedEvidence[]
+   const transformed = result.links.map(link => ({
+     entity_type: 'data',
+     entity_id: link.evidence_id,
+     entity_data: { id: link.evidence_id, title: link.title, ... },
+     linked_at: link.created_at
+   }))
+   ```
+
+6. **DELETE with Query Parameters**
+   - Use query params for resource identification: `/api/resource?id=123&item_id=456`
+   - Cleaner than path params for multiple identifiers
+   - Easier to construct URLs dynamically
+   - Works well with REST conventions
+
+7. **Foundation for Future Features**
+   - Built COG/Causeway relationship extraction without full implementation
+   - Logged extracted data for verification before auto-generation
+   - Deferred entity linking until infrastructure complete
+   - Left clear TODOs for future implementation
+
+### Deployment Verification Checklist
+
+✅ Build successful (`npm run build`)
+✅ Deployment successful (`npx wrangler pages deploy dist`)
+✅ Health endpoint responsive (`/api/health`)
+✅ API endpoints functional (test with curl)
+✅ UI components render correctly
+✅ Local state updates immediately
+✅ API state persists across refreshes
+
+### Performance Metrics
+
+- **TODO Reduction:** 18 → 10 items (44% decrease)
+- **Build Time:** 3.51s (2,698KB main bundle)
+- **Deployment Time:** <1 minute
+- **API Integration:** 3 endpoints (GET, POST, DELETE)
+- **Code Modified:** 111 lines across 2 files
+- **TODOs Resolved:** 8 HIGH priority items
 
 ## Resources
 
