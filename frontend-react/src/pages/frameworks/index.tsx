@@ -1,7 +1,7 @@
 import { FrameworkPlaceholder } from './FrameworkPlaceholder'
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Plus, Search, Grid3x3, MoreVertical } from 'lucide-react'
+import { Plus, Search, Grid3x3, MoreVertical, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -18,6 +18,7 @@ import { GenericFrameworkView } from '@/components/frameworks/GenericFrameworkVi
 import { DeceptionForm } from '@/components/frameworks/DeceptionForm'
 import { DeceptionView } from '@/components/frameworks/DeceptionView'
 import { frameworkConfigs } from '@/config/framework-configs'
+import { frameworkDescriptions } from '@/config/framework-descriptions'
 
 export const SwotPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -182,6 +183,8 @@ export const SwotPage = () => {
     }
   }
 
+  const frameworkInfo = frameworkDescriptions['swot']
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
@@ -197,6 +200,52 @@ export const SwotPage = () => {
           New Analysis
         </Button>
       </div>
+
+      {/* Framework Context */}
+      <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <p className="text-gray-700 dark:text-gray-300">{frameworkInfo.context}</p>
+
+            {frameworkInfo.wikipediaUrl && (
+              <a
+                href={frameworkInfo.wikipediaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Learn more on Wikipedia
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Good Use Cases
+                </h4>
+                <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                  {frameworkInfo.goodUseCases.map((useCase, idx) => (
+                    <li key={idx}>{useCase}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Not Ideal For
+                </h4>
+                <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                  {frameworkInfo.notIdealFor.map((useCase, idx) => (
+                    <li key={idx}>{useCase}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="mb-6">
         <div className="relative">
@@ -466,6 +515,8 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     }
   }
 
+  const frameworkInfo = frameworkDescriptions[frameworkKey]
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
@@ -478,6 +529,54 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
           New Analysis
         </Button>
       </div>
+
+      {/* Framework Context */}
+      {frameworkInfo && (
+        <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <p className="text-gray-700 dark:text-gray-300">{frameworkInfo.context}</p>
+
+              {frameworkInfo.wikipediaUrl && (
+                <a
+                  href={frameworkInfo.wikipediaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Learn more on Wikipedia
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
+
+              <div className="grid md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Good Use Cases
+                  </h4>
+                  <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                    {frameworkInfo.goodUseCases.map((useCase, idx) => (
+                      <li key={idx}>{useCase}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                    <XCircle className="h-4 w-4" />
+                    Not Ideal For
+                  </h4>
+                  <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                    {frameworkInfo.notIdealFor.map((useCase, idx) => (
+                      <li key={idx}>{useCase}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="mb-6">
         <div className="relative">
@@ -811,6 +910,8 @@ export const DeceptionPage = () => {
     }
   }
 
+  const frameworkInfo = frameworkDescriptions['deception']
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
@@ -823,6 +924,52 @@ export const DeceptionPage = () => {
           New Analysis
         </Button>
       </div>
+
+      {/* Framework Context */}
+      <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <p className="text-gray-700 dark:text-gray-300">{frameworkInfo.context}</p>
+
+            {frameworkInfo.wikipediaUrl && (
+              <a
+                href={frameworkInfo.wikipediaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Learn more on Wikipedia
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Good Use Cases
+                </h4>
+                <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                  {frameworkInfo.goodUseCases.map((useCase, idx) => (
+                    <li key={idx}>{useCase}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Not Ideal For
+                </h4>
+                <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                  {frameworkInfo.notIdealFor.map((useCase, idx) => (
+                    <li key={idx}>{useCase}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="mb-6">
         <div className="relative">
