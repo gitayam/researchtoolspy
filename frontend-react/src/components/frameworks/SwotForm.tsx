@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react'
+import { useState, useCallback, memo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -120,6 +120,8 @@ const QuadrantCard = memo(({
 export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [title, setTitle] = useState(initialData?.title || '')
   const [description, setDescription] = useState(initialData?.description || '')
   const [strengths, setStrengths] = useState<SwotItem[]>(initialData?.strengths || [])
@@ -131,6 +133,63 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   const [newWeakness, setNewWeakness] = useState('')
   const [newOpportunity, setNewOpportunity] = useState('')
   const [newThreat, setNewThreat] = useState('')
+
+  // Auto-save draft to localStorage every 30 seconds
+  useEffect(() => {
+    const draftKey = `draft_swot_${mode === 'create' ? 'new' : initialData?.title || 'edit'}`
+
+    const interval = setInterval(() => {
+      const draftData = {
+        title,
+        description,
+        strengths,
+        weaknesses,
+        opportunities,
+        threats,
+        timestamp: new Date().toISOString()
+      }
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(draftData))
+        console.log('Auto-saved SWOT draft')
+      } catch (error) {
+        console.error('Failed to auto-save SWOT draft:', error)
+      }
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
+  }, [title, description, strengths, weaknesses, opportunities, threats, mode, initialData])
+
+  // Restore draft on mount if available
+  useEffect(() => {
+    if (mode === 'create' && !initialData) {
+      const draftKey = 'draft_swot_new'
+      const savedDraft = localStorage.getItem(draftKey)
+
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft)
+          const draftAge = Date.now() - new Date(draft.timestamp).getTime()
+
+          // Only restore if draft is less than 24 hours old
+          if (draftAge < 24 * 60 * 60 * 1000) {
+            if (confirm(`Found unsaved SWOT draft from ${new Date(draft.timestamp).toLocaleString()}. Restore it?`)) {
+              setTitle(draft.title || '')
+              setDescription(draft.description || '')
+              setStrengths(draft.strengths || [])
+              setWeaknesses(draft.weaknesses || [])
+              setOpportunities(draft.opportunities || [])
+              setThreats(draft.threats || [])
+            }
+          } else {
+            // Clean up old drafts
+            localStorage.removeItem(draftKey)
+          }
+        } catch (error) {
+          console.error('Failed to restore SWOT draft:', error)
+        }
+      }
+    }
+  }, [mode, initialData])
 
   const addItem = (
     category: 'strengths' | 'weaknesses' | 'opportunities' | 'threats',
@@ -159,24 +218,53 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
 
   const handleSave = async () => {
     if (!title.trim()) {
+      setSaveError('Please enter a title for your analysis')
       alert('Please enter a title for your SWOT analysis')
       return
     }
 
+    // Validate that at least one quadrant has data
+    const hasData = strengths.length > 0 || weaknesses.length > 0 || opportunities.length > 0 || threats.length > 0
+    if (!hasData) {
+      setSaveError('Please add at least one item to any quadrant')
+      alert('Please add at least one strength, weakness, opportunity, or threat before saving')
+      return
+    }
+
     setSaving(true)
+    setSaveError(null)
+
     try {
-      await onSave({
+      const data = {
         title: title.trim(),
         description: description.trim(),
         strengths,
         weaknesses,
         opportunities,
         threats
-      })
-      navigate('/dashboard/analysis-frameworks/swot-dashboard')
+      }
+
+      console.log('Saving SWOT analysis:', data)
+
+      await onSave(data)
+
+      // Clear draft from localStorage after successful save
+      const draftKey = `draft_swot_${mode === 'create' ? 'new' : initialData?.title || 'edit'}`
+      localStorage.removeItem(draftKey)
+
+      setLastSaved(new Date())
+      console.log('Successfully saved SWOT analysis')
+
+      // Navigate back after short delay to show success
+      setTimeout(() => {
+        navigate('/dashboard/analysis-frameworks/swot-dashboard')
+      }, 500)
+
     } catch (error) {
       console.error('Failed to save SWOT analysis:', error)
-      alert('Failed to save SWOT analysis. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      setSaveError(`Failed to save: ${errorMessage}`)
+      alert(`Failed to save SWOT analysis. ${errorMessage}\n\nYour data has been auto-saved locally. Please try again or contact support if the issue persists.`)
     } finally {
       setSaving(false)
     }
@@ -198,6 +286,11 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
             <p className="text-gray-600 dark:text-gray-400">
               Analyze Strengths, Weaknesses, Opportunities, and Threats
             </p>
+            {lastSaved && (
+              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                ✓ Saved at {lastSaved.toLocaleTimeString()}
+              </p>
+            )}
           </div>
         </div>
         <Button onClick={handleSave} disabled={saving}>
@@ -205,6 +298,22 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           {saving ? 'Saving...' : 'Save Analysis'}
         </Button>
       </div>
+
+      {/* Error Alert */}
+      {saveError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="text-red-600 dark:text-red-400 mt-0.5">⚠️</div>
+            <div>
+              <h3 className="font-semibold text-red-800 dark:text-red-200">Save Failed</h3>
+              <p className="text-sm text-red-700 dark:text-red-300 mt-1">{saveError}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                Your data has been auto-saved locally and will be restored if you refresh the page.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Basic Info */}
       <Card>

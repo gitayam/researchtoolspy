@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Download } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ExportButton } from '@/components/reports/ExportButton'
 
 interface SwotItem {
   id: string
@@ -101,10 +102,12 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          <ExportButton
+            frameworkType="swot"
+            frameworkTitle="SWOT Analysis"
+            data={data}
+            analysisId={data.id}
+          />
           <Button variant="outline" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
