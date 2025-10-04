@@ -4,10 +4,11 @@ import { NetworkGraphCanvas } from '@/components/network/NetworkGraphCanvas'
 import { NetworkControls, type NetworkFilters } from '@/components/network/NetworkControls'
 import { NetworkExportDialog } from '@/components/network/NetworkExportDialog'
 import { NetworkMetricsPanel } from '@/components/network/NetworkMetricsPanel'
+import { PathFinderDialog } from '@/components/network/PathFinderDialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Download, RefreshCw, BarChart3 } from 'lucide-react'
+import { ArrowLeft, Download, RefreshCw, BarChart3, Route } from 'lucide-react'
 import type { Relationship, EntityType } from '@/types/entities'
 
 interface NetworkNode {
@@ -40,7 +41,10 @@ export function NetworkGraphPage() {
   const [selectedNode, setSelectedNode] = useState<NetworkNode | null>(null)
   const [containerSize, setContainerSize] = useState({ width: 800, height: 600 })
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [pathFinderOpen, setPathFinderOpen] = useState(false)
   const [showMetrics, setShowMetrics] = useState(true)
+  const [highlightedPath, setHighlightedPath] = useState<string[]>([])
+
 
   const [filters, setFilters] = useState<NetworkFilters>({
     entityTypes: new Set(['ACTOR', 'SOURCE', 'EVENT', 'PLACE', 'BEHAVIOR', 'EVIDENCE']),
@@ -257,6 +261,10 @@ export function NetworkGraphPage() {
               <BarChart3 className="h-4 w-4 mr-2" />
               {showMetrics ? "Hide" : "Show"} Metrics
             </Button>
+            <Button variant="outline" onClick={() => setPathFinderOpen(true)}>
+              <Route className="h-4 w-4 mr-2" />
+              Find Path
+            </Button>
             <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -355,6 +363,19 @@ export function NetworkGraphPage() {
           entity_types: Array.from(filters.entityTypes),
           min_confidence: filters.minConfidence,
           search_query: filters.searchQuery
+        }}
+      />
+
+      {/* Path Finder Dialog */}
+      <PathFinderDialog
+        open={pathFinderOpen}
+        onOpenChange={setPathFinderOpen}
+        nodes={graphData.nodes}
+        links={graphData.links}
+        onPathSelect={(path) => {
+          setHighlightedPath(path)
+          setPathFinderOpen(false)
+          // TODO: Implement path highlighting in graph
         }}
       />
     </div>

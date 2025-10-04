@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TrendingUp, Network, Activity, Target, AlertCircle } from 'lucide-react'
-import { calculateNetworkMetrics, detectPatterns, type NetworkMetrics, type NetworkPattern } from '@/utils/network-metrics'
+import { TrendingUp, Network, Activity, Target, AlertCircle, AlertTriangle, ShieldAlert } from 'lucide-react'
+import { calculateNetworkMetrics, detectPatterns, detectAnomalies, type NetworkMetrics, type NetworkPattern, type NetworkAnomaly } from '@/utils/network-metrics'
 
 interface NetworkMetricsPanelProps {
   nodes: Array<{ id: string; name: string; [key: string]: any }>
@@ -36,6 +36,11 @@ export function NetworkMetricsPanel({ nodes, links, onNodeClick }: NetworkMetric
     return detectPatterns(nodes, links)
   }, [nodes, links])
 
+  const anomalies = useMemo<NetworkAnomaly[]>(() => {
+    if (nodes.length === 0) return []
+    return detectAnomalies(nodes, links)
+  }, [nodes, links])
+
   const getNodeName = (nodeId: string): string => {
     const node = nodes.find(n => n.id === nodeId)
     return node?.name || nodeId.substring(0, 8)
@@ -53,6 +58,29 @@ export function NetworkMetricsPanel({ nodes, links, onNodeClick }: NetworkMetric
     return 'text-red-600'
   }
 
+  const getSeverityColor = (severity: NetworkAnomaly['severity']): string => {
+    const colors = {
+      CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-300',
+      HIGH: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 border-orange-300',
+      MEDIUM: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-300',
+      LOW: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-300'
+    }
+    return colors[severity]
+  }
+
+  const getSeverityIcon = (severity: NetworkAnomaly['severity']) => {
+    switch (severity) {
+      case 'CRITICAL':
+        return <ShieldAlert className="h-4 w-4" />
+      case 'HIGH':
+        return <AlertTriangle className="h-4 w-4" />
+      case 'MEDIUM':
+        return <AlertCircle className="h-4 w-4" />
+      case 'LOW':
+        return <AlertCircle className="h-4 w-4" />
+    }
+  }
+
   return (
     <Card className="h-full overflow-y-auto">
       <CardHeader className="pb-3">
@@ -65,10 +93,11 @@ export function NetworkMetricsPanel({ nodes, links, onNodeClick }: NetworkMetric
 
       <CardContent>
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="centrality">Centrality</TabsTrigger>
             <TabsTrigger value="patterns">Patterns</TabsTrigger>
+            <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -272,6 +301,88 @@ export function NetworkMetricsPanel({ nodes, links, onNodeClick }: NetworkMetric
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Anomalies Tab */}
+          <TabsContent value="anomalies" className="space-y-4 mt-4">
+            <div className="flex items-center justify-between text-sm mb-3">
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                <ShieldAlert className="h-4 w-4" />
+                <span>Detected {anomalies.length} anomalies</span>
+              </div>
+              {anomalies.some(a => a.severity === 'CRITICAL' || a.severity === 'HIGH') && (
+                <Badge variant="destructive" className="text-xs">
+                  Action Required
+                </Badge>
+              )}
+            </div>
+
+            {anomalies.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <ShieldAlert className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No anomalies detected</p>
+                <p className="text-xs mt-1">Network structure appears normal</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {anomalies.slice(0, 15).map((anomaly, i) => (
+                  <div
+                    key={i}
+                    className={`border rounded-lg p-3 ${getSeverityColor(anomaly.severity)}`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getSeverityIcon(anomaly.severity)}
+                        <Badge variant="outline" className="text-xs">
+                          {anomaly.type.replace(/_/g, ' ')}
+                        </Badge>
+                      </div>
+                      <Badge className="text-xs">
+                        {anomaly.severity}
+                      </Badge>
+                    </div>
+
+                    <p className="text-sm font-medium mb-1">
+                      {anomaly.description}
+                    </p>
+
+                    <p className="text-xs opacity-90 mb-2">
+                      💡 {anomaly.recommendation}
+                    </p>
+
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {anomaly.nodeIds.slice(0, 3).map(nodeId => (
+                        <Badge
+                          key={nodeId}
+                          variant="secondary"
+                          className="text-xs cursor-pointer"
+                          onClick={() => onNodeClick?.(nodeId)}
+                        >
+                          {getNodeName(nodeId)}
+                        </Badge>
+                      ))}
+                      {anomaly.nodeIds.length > 3 && (
+                        <Badge variant="secondary" className="text-xs">
+                          +{anomaly.nodeIds.length - 3} more
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="mt-2">
+                      <div className="text-xs opacity-75">
+                        Score: {(anomaly.score * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {anomalies.length > 15 && (
+                  <div className="text-center text-xs text-gray-500 pt-2">
+                    +{anomalies.length - 15} more anomalies
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
