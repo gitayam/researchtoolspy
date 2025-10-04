@@ -40,6 +40,7 @@ import { ActorsPage } from '@/pages/entities/ActorsPage'
 import { SourcesPage } from '@/pages/entities/SourcesPage'
 import { EventsPage } from '@/pages/entities/EventsPage'
 import { NetworkGraphPage } from '@/pages/NetworkGraphPage'
+import { ACHPage } from '@/pages/ACHPage'
 
 export const router = createBrowserRouter([
   {
@@ -292,6 +293,22 @@ export const router = createBrowserRouter([
       {
         path: 'tools/social-media',
         element: <SocialMediaPage />,
+      },
+      {
+        path: 'tools/ach',
+        element: <ACHPage />,
+      },
+      {
+        path: 'tools/ach/new',
+        element: <ACHPage />,
+      },
+      {
+        path: 'tools/ach/:id',
+        element: <ACHPage />,
+      },
+      {
+        path: 'tools/ach/:id/edit',
+        element: <ACHPage />,
       },
       {
         path: 'tools/:toolId',
