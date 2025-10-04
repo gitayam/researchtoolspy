@@ -148,20 +148,25 @@ export async function onRequest(context: any) {
         INSERT INTO evidence_items (
           title, description,
           who, what, when_occurred, where_location, why_purpose, how_method,
+          source_classification, source_name, source_url, source_id,
           evidence_type, evidence_level, category,
           credibility, reliability, confidence_level,
           tags, status, priority,
-          created_by, is_public, shared_by_user_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          created_by, updated_by, is_public, shared_by_user_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         body.title,
-        body.description || null,
+        body.description || '',  // Empty string instead of null (column is NOT NULL)
         body.who || null,
         body.what || null,
         body.when_occurred || null,
         body.where_location || null,
         body.why_purpose || null,
         body.how_method || null,
+        body.source_classification || null,
+        body.source_name || null,
+        body.source_url || null,
+        body.source_id || null,
         body.evidence_type,
         body.evidence_level || 'tactical',
         body.category || null,
@@ -172,6 +177,7 @@ export async function onRequest(context: any) {
         body.status || 'pending',
         body.priority || 'normal',
         body.created_by || 1,
+        body.updated_by || 1,
         body.is_public ? 1 : 0,
         body.shared_by_user_id || null
       ).run()
@@ -234,6 +240,10 @@ export async function onRequest(context: any) {
           where_location = ?,
           why_purpose = ?,
           how_method = ?,
+          source_classification = ?,
+          source_name = ?,
+          source_url = ?,
+          source_id = ?,
           evidence_type = ?,
           evidence_level = ?,
           category = ?,
@@ -250,13 +260,17 @@ export async function onRequest(context: any) {
         WHERE id = ?
       `).bind(
         body.title,
-        body.description || null,
+        body.description || '',  // Empty string instead of null
         body.who || null,
         body.what || null,
         body.when_occurred || null,
         body.where_location || null,
         body.why_purpose || null,
         body.how_method || null,
+        body.source_classification || null,
+        body.source_name || null,
+        body.source_url || null,
+        body.source_id || null,
         body.evidence_type,
         body.evidence_level,
         body.category || null,
