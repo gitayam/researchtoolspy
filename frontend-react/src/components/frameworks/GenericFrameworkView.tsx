@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Download, Link2, Plus } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Link2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type LinkedEvidence, type EvidenceEntityType } from '@/components/evidence'
 import { AutoGenerateButton } from '@/components/network'
 import { generateRelationshipsFromCOG, generateRelationshipsFromCauseway } from '@/utils/framework-relationships'
+import { ExportButton } from '@/components/reports/ExportButton'
 import type { CreateRelationshipRequest } from '@/types/entities'
 
 interface FrameworkItem {
@@ -62,8 +63,20 @@ export function GenericFrameworkView({
   const [generatedRelationships, setGeneratedRelationships] = useState<CreateRelationshipRequest[]>([])
 
   // Determine framework type for relationship generation
-  const frameworkType = frameworkTitle.toLowerCase().includes('cog') ? 'cog' :
+  const frameworkTypeForRelationships = frameworkTitle.toLowerCase().includes('cog') ? 'cog' :
                          frameworkTitle.toLowerCase().includes('causeway') ? 'causeway' : null
+
+  // Determine framework type for export
+  const frameworkType = frameworkTitle.toLowerCase().includes('cog') ? 'cog' :
+                        frameworkTitle.toLowerCase().includes('pmesii') ? 'pmesii-pt' :
+                        frameworkTitle.toLowerCase().includes('dotmlpf') ? 'dotmlpf' :
+                        frameworkTitle.toLowerCase().includes('dime') ? 'dime' :
+                        frameworkTitle.toLowerCase().includes('causeway') ? 'causeway' :
+                        frameworkTitle.toLowerCase().includes('starbursting') ? 'starbursting' :
+                        frameworkTitle.toLowerCase().includes('pest') ? 'pest' :
+                        frameworkTitle.toLowerCase().includes('stakeholder') ? 'stakeholder' :
+                        frameworkTitle.toLowerCase().includes('behavior') ? 'behavior' :
+                        'generic'
 
   // Load linked evidence on mount
   useEffect(() => {
@@ -77,7 +90,7 @@ export function GenericFrameworkView({
     // For COG: Extract dependencies from linked entities
     // For Causeway: Extract actor-action-target relationships
     setGeneratedRelationships([])
-  }, [linkedEvidence, frameworkType])
+  }, [linkedEvidence, frameworkTypeForRelationships])
 
   const handleLinkEvidence = async (selected: LinkedEvidence[]) => {
     // TODO: Save links to API
@@ -207,10 +220,10 @@ export function GenericFrameworkView({
             <Link2 className="h-4 w-4 mr-2" />
             Link Evidence
           </Button>
-          {frameworkType && (
+          {frameworkTypeForRelationships && (
             <AutoGenerateButton
               relationships={generatedRelationships}
-              source={frameworkType === 'cog' ? 'COG' : 'CAUSEWAY'}
+              source={frameworkTypeForRelationships === 'cog' ? 'COG' : 'CAUSEWAY'}
               onComplete={(created, failed) => {
                 console.log(`Created ${created} relationships, ${failed} failed`)
                 // TODO: Refresh network graph or show success message
@@ -221,10 +234,12 @@ export function GenericFrameworkView({
               disabled={generatedRelationships.length === 0}
             />
           )}
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          <ExportButton
+            frameworkType={frameworkType}
+            frameworkTitle={frameworkTitle}
+            data={data}
+            analysisId={data.id.toString()}
+          />
           <Button variant="outline" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
