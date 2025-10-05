@@ -15,7 +15,8 @@ import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
 import { BehaviorSelector } from '@/components/frameworks/BehaviorSelector'
 import { BehaviorBasicInfoForm } from '@/components/frameworks/BehaviorBasicInfoForm'
 import { AITimelineGenerator } from '@/components/frameworks/AITimelineGenerator'
-import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity } from '@/types/behavior'
+import { ConsequencesManager } from '@/components/frameworks/ConsequencesManager'
+import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity, ConsequenceItem } from '@/types/behavior'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
@@ -1103,6 +1104,21 @@ export function GenericFrameworkForm({
                   />
                 </CardContent>
               </Card>
+            )
+          }
+
+          // Special handling for consequences (temporal + valence categorization)
+          if (frameworkType === 'behavior' && section.key === 'consequences') {
+            const consequences: ConsequenceItem[] = (sectionData[section.key] || []) as unknown as ConsequenceItem[]
+            return (
+              <div key={section.key}>
+                <ConsequencesManager
+                  consequences={consequences}
+                  onChange={(updated) => {
+                    setSectionData(prev => ({ ...prev, [section.key]: updated as any[] }))
+                  }}
+                />
+              </div>
             )
           }
 
