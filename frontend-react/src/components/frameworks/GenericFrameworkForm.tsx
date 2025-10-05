@@ -8,8 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { AIFieldAssistant, AIUrlScraper } from '@/components/ai'
-import { DatasetSelector } from '@/components/datasets/DatasetSelector'
-import { DatasetBadge } from '@/components/datasets/DatasetBadge'
+import { EvidenceLinker, EvidenceItemBadge, type LinkedEvidence } from '@/components/evidence'
 import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
 import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
@@ -17,7 +16,6 @@ import { BehaviorSelector } from '@/components/frameworks/BehaviorSelector'
 import { BehaviorBasicInfoForm } from '@/components/frameworks/BehaviorBasicInfoForm'
 import { AITimelineGenerator } from '@/components/frameworks/AITimelineGenerator'
 import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity } from '@/types/behavior'
-import type { Dataset } from '@/types/dataset'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
@@ -61,9 +59,9 @@ const SectionCard = memo(({
   onAdd,
   onRemove,
   onEdit,
-  linkedDataset,
-  onLinkDataset,
-  onRemoveDataset,
+  linkedEvidence,
+  onLinkEvidence,
+  onRemoveEvidence,
   frameworkType,
   allData,
   itemType,
@@ -79,9 +77,9 @@ const SectionCard = memo(({
   onAdd: () => void
   onRemove: (id: string) => void
   onEdit: (id: string, updates: Partial<FrameworkItem>) => void
-  linkedDataset: Dataset[]
-  onLinkDataset: () => void
-  onRemoveDataset: (datasetId: string) => void
+  linkedEvidence: LinkedEvidence[]
+  onLinkEvidence: () => void
+  onRemoveEvidence: (evidence: LinkedEvidence) => void
   frameworkType: string
   allData?: GenericFrameworkData
   itemType?: 'text' | 'qa'
@@ -344,31 +342,31 @@ const SectionCard = memo(({
           )}
         </div>
 
-      {/* Dataset Section */}
+      {/* Evidence Section */}
       <div className="pt-4 border-t">
         <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm font-medium">Linked Dataset ({linkedDataset.length})</Label>
+          <Label className="text-sm font-medium">Linked Evidence ({linkedEvidence.length})</Label>
           <Button
             variant="outline"
             size="sm"
-            onClick={onLinkDataset}
+            onClick={onLinkEvidence}
           >
             <Link2 className="h-3 w-3 mr-2" />
-            Link Dataset
+            Link Evidence
           </Button>
         </div>
         <div className="flex flex-wrap gap-2">
-          {linkedDataset.length === 0 ? (
+          {linkedEvidence.length === 0 ? (
             <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-              No dataset linked to this section
+              No evidence linked to this section
             </p>
           ) : (
-            linkedDataset.map((dataset) => (
-              <DatasetBadge
-                key={dataset.id}
-                dataset={dataset}
-                onRemove={() => onRemoveDataset(dataset.id.toString())}
-                showDetails={false}
+            linkedEvidence.map((evidence) => (
+              <EvidenceItemBadge
+                key={`${evidence.entity_type}-${evidence.entity_id}`}
+                evidence={evidence}
+                onRemove={() => onRemoveEvidence(evidence)}
+                showDetails={true}
               />
             ))
           )}
@@ -440,14 +438,14 @@ export function GenericFrameworkForm({
     }, {} as { [key: string]: string })
   )
 
-  // Dataset linking state
-  const [sectionDataset, setSectionDataset] = useState<{ [key: string]: Dataset[] }>(
+  // Evidence linking state
+  const [sectionEvidence, setSectionEvidence] = useState<{ [key: string]: LinkedEvidence[] }>(
     sections.reduce((acc, section) => {
       acc[section.key] = []
       return acc
-    }, {} as { [key: string]: Dataset[] })
+    }, {} as { [key: string]: LinkedEvidence[] })
   )
-  const [datasetSelectorOpen, setDatasetSelectorOpen] = useState(false)
+  const [evidenceLinkerOpen, setEvidenceLinkerOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<string | null>(null)
 
   // AI title generation state
@@ -473,10 +471,10 @@ export function GenericFrameworkForm({
   // Get item type from config
   const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
 
-  // Load linked datasets if editing
+  // Load linked evidence if editing
   useEffect(() => {
     if (frameworkId && mode === 'edit') {
-      loadLinkedDataset()
+      loadLinkedEvidence()
     }
   }, [frameworkId, mode])
 
@@ -561,26 +559,26 @@ export function GenericFrameworkForm({
     }
   }, [mode, frameworkType, initialData])
 
-  const loadLinkedDataset = async () => {
+  const loadLinkedEvidence = async () => {
     if (!frameworkId) return
     try {
-      const response = await fetch(`/api/framework-datasets?framework_id=${frameworkId}`)
+      const response = await fetch(`/api/framework-evidence?framework_id=${frameworkId}&framework_type=${frameworkType}`)
       if (response.ok) {
         const data = await response.json()
-        // Group datasets by section
-        const grouped: { [key: string]: Dataset[] } = {}
+        // Group evidence by section using framework_item_id
+        const grouped: { [key: string]: LinkedEvidence[] } = {}
         sections.forEach(section => {
           grouped[section.key] = []
         })
-        data.links.forEach((link: any) => {
-          if (link.section_key && grouped[link.section_key]) {
-            grouped[link.section_key].push(link)
+        data.evidence.forEach((link: LinkedEvidence) => {
+          if (link.framework_item_id && grouped[link.framework_item_id]) {
+            grouped[link.framework_item_id].push(link)
           }
         })
-        setSectionDataset(grouped)
+        setSectionEvidence(grouped)
       }
     } catch (error) {
-      console.error('Failed to load linked datasets:', error)
+      console.error('Failed to load linked evidence:', error)
     }
   }
 
@@ -638,57 +636,56 @@ export function GenericFrameworkForm({
     }))
   }
 
-  const openDatasetSelector = (sectionKey: string) => {
+  const openEvidenceLinker = (sectionKey: string) => {
     setActiveSection(sectionKey)
-    setDatasetSelectorOpen(true)
+    setEvidenceLinkerOpen(true)
   }
 
-  const handleDatasetSelect = async (datasetIds: string[]) => {
-    if (!activeSection || !frameworkId) {
+  const handleEvidenceLink = async (selected: LinkedEvidence[]) => {
+    if (!activeSection) return
+
+    if (!frameworkId) {
       // For new frameworks, just store locally until save
-      const selectedDataset: Dataset[] = []
-      try {
-        for (const id of datasetIds) {
-          const response = await fetch(`/api/datasets?id=${id}`)
-          if (response.ok) {
-            const dataset = await response.json()
-            selectedDataset.push(dataset)
-          }
-        }
-        setSectionDataset(prev => ({
-          ...prev,
-          [activeSection]: selectedDataset
-        }))
-      } catch (error) {
-        console.error('Failed to load dataset:', error)
-      }
+      setSectionEvidence(prev => ({
+        ...prev,
+        [activeSection]: [...(prev[activeSection] || []), ...selected]
+      }))
       return
     }
 
     // For existing frameworks, link via API
     try {
-      await fetch('/api/framework-datasets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          framework_id: frameworkId,
-          dataset_ids: datasetIds,
-          section_key: activeSection
+      // Link each evidence item
+      for (const evidence of selected) {
+        await fetch('/api/framework-evidence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            framework_type: frameworkType,
+            framework_id: frameworkId,
+            framework_item_id: activeSection, // Section key
+            entity_type: evidence.entity_type,
+            entity_id: evidence.entity_id,
+            relation: evidence.relation,
+            notes: evidence.notes
+          })
         })
-      })
-      await loadLinkedDataset()
+      }
+      await loadLinkedEvidence()
     } catch (error) {
-      console.error('Failed to link dataset:', error)
-      alert('Failed to link dataset. Please try again.')
+      console.error('Failed to link evidence:', error)
+      alert('Failed to link evidence. Please try again.')
     }
   }
 
-  const handleRemoveDataset = async (sectionKey: string, datasetId: string) => {
+  const handleEvidenceRemove = async (sectionKey: string, evidence: LinkedEvidence) => {
     if (!frameworkId) {
       // Remove from local state only
-      setSectionDataset(prev => ({
+      setSectionEvidence(prev => ({
         ...prev,
-        [sectionKey]: prev[sectionKey].filter(e => e.id.toString() !== datasetId)
+        [sectionKey]: prev[sectionKey].filter(
+          e => !(e.entity_type === evidence.entity_type && e.entity_id === evidence.entity_id)
+        )
       }))
       return
     }
@@ -696,16 +693,18 @@ export function GenericFrameworkForm({
     // Remove via API
     try {
       await fetch(
-        `/api/framework-datasets?framework_id=${frameworkId}&dataset_id=${datasetId}&section_key=${sectionKey}`,
+        `/api/framework-evidence?framework_type=${frameworkType}&framework_id=${frameworkId}&framework_item_id=${sectionKey}&entity_type=${evidence.entity_type}&entity_id=${evidence.entity_id}`,
         { method: 'DELETE' }
       )
-      setSectionDataset(prev => ({
+      setSectionEvidence(prev => ({
         ...prev,
-        [sectionKey]: prev[sectionKey].filter(e => e.id.toString() !== datasetId)
+        [sectionKey]: prev[sectionKey].filter(
+          e => !(e.entity_type === evidence.entity_type && e.entity_id === evidence.entity_id)
+        )
       }))
     } catch (error) {
-      console.error('Failed to unlink dataset:', error)
-      alert('Failed to unlink dataset. Please try again.')
+      console.error('Failed to unlink evidence:', error)
+      alert('Failed to unlink evidence. Please try again.')
     }
   }
 
@@ -1120,9 +1119,9 @@ export function GenericFrameworkForm({
               onAdd={() => addItem(section.key, newItems[section.key])}
               onRemove={(id) => removeItem(section.key, id)}
               onEdit={(id, updates) => editItem(section.key, id, updates)}
-              linkedDataset={sectionDataset[section.key] || []}
-              onLinkDataset={() => openDatasetSelector(section.key)}
-              onRemoveDataset={(datasetId) => handleRemoveDataset(section.key, datasetId)}
+              linkedEvidence={sectionEvidence[section.key] || []}
+              onLinkEvidence={() => openEvidenceLinker(section.key)}
+              onRemoveEvidence={(evidence) => handleEvidenceRemove(section.key, evidence)}
               frameworkType={frameworkType}
               allData={{ title, description, ...sectionData }}
               itemType={itemType}
@@ -1150,17 +1149,15 @@ export function GenericFrameworkForm({
         />
       )}
 
-      {/* Dataset Selector Modal */}
-      <DatasetSelector
-        open={datasetSelectorOpen}
+      {/* Evidence Linker Modal */}
+      <EvidenceLinker
+        open={evidenceLinkerOpen}
         onClose={() => {
-          setDatasetSelectorOpen(false)
+          setEvidenceLinkerOpen(false)
           setActiveSection(null)
         }}
-        onSelect={handleDatasetSelect}
-        selectedIds={activeSection ? sectionDataset[activeSection]?.map(e => e.id.toString()) : []}
-        frameworkId={frameworkId}
-        sectionKey={activeSection || undefined}
+        onLink={handleEvidenceLink}
+        alreadyLinked={activeSection ? sectionEvidence[activeSection] || [] : []}
       />
 
       {/* Summary */}

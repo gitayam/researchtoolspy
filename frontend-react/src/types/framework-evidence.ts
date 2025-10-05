@@ -67,6 +67,7 @@ export interface FrameworkEvidenceLink {
 export interface LinkedEvidence {
   // Link metadata
   link_id?: string
+  framework_item_id?: string     // Section/item within framework (for grouping)
   entity_type: EvidenceEntityType
   entity_id: string | number
   relation?: EvidenceLinkRelation
