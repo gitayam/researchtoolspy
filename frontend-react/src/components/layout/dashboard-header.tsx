@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
@@ -81,6 +82,9 @@ export function DashboardHeader() {
         <div className="flex items-center gap-x-4">
           {/* Theme Toggle */}
           <ThemeToggle />
+
+          {/* Language Switcher */}
+          <LanguageSwitcher />
 
           {/* Authentication Status */}
           {!isAuthenticated ? (
