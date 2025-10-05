@@ -60,6 +60,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
     type: 'pmesii-pt',
     title: 'PMESII-PT Analysis',
     description: 'Political, Military, Economic, Social, Information, Infrastructure, Physical Environment, Time',
+    itemType: 'qa',
     sections: [
       {
         key: 'political',
@@ -237,6 +238,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
     type: 'cog',
     title: 'Center of Gravity Analysis',
     description: 'Critical capabilities, requirements, and vulnerabilities',
+    itemType: 'qa',
     sections: [
       {
         key: 'center_of_gravity',
@@ -583,6 +585,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
     type: 'surveillance',
     title: 'Surveillance Framework (ISR Collection Planning)',
     description: 'Intelligence, Surveillance, and Reconnaissance operations planning based on RAND Strategies-to-Tasks methodology',
+    itemType: 'qa',
     sections: [
       {
         key: 'commanders_guidance',
@@ -655,6 +658,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
     type: 'fundamental-flow',
     title: 'Fundamental Flow Analysis',
     description: 'Intelligence cycle and information flow analysis for process optimization',
+    itemType: 'qa',
     sections: [
       {
         key: 'planning_direction',

@@ -15,6 +15,88 @@ interface QuestionRequest {
   context?: string
 }
 
+// Framework question generation configurations
+const FRAMEWORK_CONFIGS: Record<string, {
+  categories: string[]
+  categoryDescriptions: Record<string, string>
+  frameworkDescription: string
+}> = {
+  starbursting: {
+    categories: ['who', 'what', 'when', 'where', 'why', 'how'],
+    categoryDescriptions: {
+      who: 'people/stakeholders',
+      what: 'actions/things',
+      when: 'timing',
+      where: 'location',
+      why: 'reasons/motivations',
+      how: 'methods/processes'
+    },
+    frameworkDescription: 'Starbursting'
+  },
+  dime: {
+    categories: ['diplomatic', 'information', 'military', 'economic'],
+    categoryDescriptions: {
+      diplomatic: 'relationships/negotiations',
+      information: 'intelligence/communications',
+      military: 'force/capabilities',
+      economic: 'resources/sanctions'
+    },
+    frameworkDescription: 'DIME framework'
+  },
+  'pmesii-pt': {
+    categories: ['political', 'military', 'economic', 'social', 'information', 'infrastructure', 'physical', 'time'],
+    categoryDescriptions: {
+      political: 'political structures/governance',
+      military: 'military capabilities/posture',
+      economic: 'economic systems/resources',
+      social: 'social structures/demographics',
+      information: 'information systems/flow',
+      infrastructure: 'physical/organizational infrastructure',
+      physical: 'geography/terrain/climate',
+      time: 'temporal factors/timing'
+    },
+    frameworkDescription: 'PMESII-PT environmental analysis'
+  },
+  cog: {
+    categories: ['center_of_gravity', 'critical_capabilities', 'critical_requirements', 'critical_vulnerabilities'],
+    categoryDescriptions: {
+      center_of_gravity: 'source of power/strength',
+      critical_capabilities: 'primary abilities',
+      critical_requirements: 'essential conditions/resources',
+      critical_vulnerabilities: 'exploitable weaknesses'
+    },
+    frameworkDescription: 'Center of Gravity analysis'
+  },
+  surveillance: {
+    categories: ['commanders_guidance', 'intelligence_requirements', 'collection_strategies', 'surveillance_targets', 'reconnaissance_tasks', 'collection_assets', 'processing_plan', 'dissemination'],
+    categoryDescriptions: {
+      commanders_guidance: 'strategic objectives/priorities',
+      intelligence_requirements: 'PIRs/EEIs',
+      collection_strategies: 'methods/platforms',
+      surveillance_targets: 'entities/locations to monitor',
+      reconnaissance_tasks: 'information-gathering missions',
+      collection_assets: 'sensors/platforms/resources',
+      processing_plan: 'analysis/fusion procedures',
+      dissemination: 'intelligence sharing procedures'
+    },
+    frameworkDescription: 'ISR collection planning'
+  },
+  'fundamental-flow': {
+    categories: ['planning_direction', 'collection', 'processing', 'exploitation_production', 'dissemination', 'feedback_evaluation', 'information_sources', 'flow_metrics'],
+    categoryDescriptions: {
+      planning_direction: 'requirements definition/priorities',
+      collection: 'information gathering methods',
+      processing: 'data conversion/structuring',
+      exploitation_production: 'analysis/product creation',
+      dissemination: 'distribution to consumers',
+      feedback_evaluation: 'effectiveness assessment',
+      information_sources: 'available feeds/capabilities',
+      flow_metrics: 'timeliness/accuracy/relevance measurements'
+    },
+    frameworkDescription: 'intelligence cycle flow'
+  }
+}
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const request = await context.request.json() as QuestionRequest
@@ -68,11 +150,29 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.log(`[Generate Questions] Has existing questions:`, hasExistingQuestions)
     console.log(`[Generate Questions] Generation mode:`, hasExistingQuestions ? 'follow-up' : 'initial')
 
-    // If no existing questions, generate initial questions from context
-    // If existing questions, generate follow-up questions
-    const prompt = framework === 'starbursting'
-      ? (hasExistingQuestions
-          ? `You are analyzing an existing Starbursting analysis. Your task is to generate SPECIFIC, TARGETED follow-up questions that:
+
+    // Get framework configuration
+    const config = FRAMEWORK_CONFIGS[framework]
+    if (!config) {
+      return new Response(JSON.stringify({ error: `Unsupported framework: ${framework}` }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Build category descriptions string
+    const categoryDescList = config.categories.map(cat =>
+      `${cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ')} = ${config.categoryDescriptions[cat]}`
+    ).join(', ')
+
+    // Build JSON format example
+    const jsonFormat = '{' + config.categories.map(cat =>
+      `"${cat}": [${hasExistingQuestions ? '"Specific question 1?", "Specific question 2?"' : '"Question 1?", "Question 2?", "Question 3?"'}]`
+    ).join(', ') + '}'
+
+    // Build prompt based on whether we have existing questions
+    const prompt = hasExistingQuestions
+      ? `You are analyzing an existing ${config.frameworkDescription} analysis. Your task is to generate SPECIFIC, TARGETED follow-up questions that:
 - Build directly upon the existing questions and their context
 - Identify information gaps that need further investigation
 - Are concrete and actionable (not generic or broad)
@@ -89,59 +189,28 @@ Generate exactly 2 specific, contextual follow-up questions for each category. E
 - Be precise and actionable
 
 Return ONLY valid JSON in this exact format:
-{"who": ["Specific question 1?", "Specific question 2?"], "what": ["Specific question 1?", "Specific question 2?"], "when": ["Specific question 1?", "Specific question 2?"], "where": ["Specific question 1?", "Specific question 2?"], "why": ["Specific question 1?", "Specific question 2?"], "how": ["Specific question 1?", "Specific question 2?"]}`
-          : `You are analyzing a topic for Starbursting analysis. Your task is to generate SPECIFIC, TARGETED questions based on the description provided.
+${jsonFormat}`
+      : `You are analyzing a topic for ${config.frameworkDescription}. Your task is to generate SPECIFIC, TARGETED questions based on the description provided.
 
 Topic/Description:
 ${analysisContext || 'No description provided'}
 
-Generate exactly 3 specific, insightful questions for each category (Who, What, When, Where, Why, How). Each question must:
+Generate exactly 3 specific, insightful questions for each category. Each question must:
 - Be directly related to the topic described
 - Be specific and actionable (not generic)
 - Help uncover critical information about the topic
-- Be appropriate for the category (Who = people/stakeholders, What = actions/things, When = timing, Where = location, Why = reasons/motivations, How = methods/processes)
+- Be appropriate for the category (${categoryDescList})
 
 Return ONLY valid JSON in this exact format:
-{"who": ["Question 1?", "Question 2?", "Question 3?"], "what": ["Question 1?", "Question 2?", "Question 3?"], "when": ["Question 1?", "Question 2?", "Question 3?"], "where": ["Question 1?", "Question 2?", "Question 3?"], "why": ["Question 1?", "Question 2?", "Question 3?"], "how": ["Question 1?", "Question 2?", "Question 3?"]}`)
-      : (hasExistingQuestions
-          ? `You are analyzing an existing DIME framework analysis. Your task is to generate SPECIFIC, TARGETED follow-up questions that:
-- Build directly upon the existing questions and their context
-- Identify information gaps in each DIME dimension
-- Are concrete and actionable (not generic or broad)
-- Are NOT duplicates of existing questions
-
-Existing Analysis:
-${existingQuestions}
-
-${analysisContext ? `Analysis Context/Description: ${analysisContext}` : ''}
-
-Generate exactly 2 specific, contextual follow-up questions for each DIME dimension. Each question must:
-- Reference specific aspects mentioned in the existing analysis
-- Dig deeper into unanswered details within that dimension
-- Be precise and actionable
-
-Return ONLY valid JSON in this exact format:
-{"diplomatic": ["Specific question 1?", "Specific question 2?"], "information": ["Specific question 1?", "Specific question 2?"], "military": ["Specific question 1?", "Specific question 2?"], "economic": ["Specific question 1?", "Specific question 2?"]}`
-          : `You are analyzing a topic for DIME framework analysis. Your task is to generate SPECIFIC, TARGETED questions based on the description provided.
-
-Topic/Description:
-${analysisContext || 'No description provided'}
-
-Generate exactly 3 specific, insightful questions for each DIME dimension (Diplomatic, Information, Military, Economic). Each question must:
-- Be directly related to the topic described
-- Be specific and actionable (not generic)
-- Help analyze the dimension's impact and considerations
-- Be appropriate for the dimension (Diplomatic = relationships/negotiations, Information = intelligence/communications, Military = force/capabilities, Economic = resources/sanctions)
-
-Return ONLY valid JSON in this exact format:
-{"diplomatic": ["Question 1?", "Question 2?", "Question 3?"], "information": ["Question 1?", "Question 2?", "Question 3?"], "military": ["Question 1?", "Question 2?", "Question 3?"], "economic": ["Question 1?", "Question 2?", "Question 3?"]}`)
-
+${jsonFormat}`
     // Calculate appropriate token limit based on mode and framework
     // Initial questions need more tokens than follow-ups
-    // Starbursting (6 categories) needs more than DIME (4 categories)
+    // More categories = more tokens needed
+    const categoryCount = config.categories.length
+    const baseTokens = categoryCount <= 4 ? 900 : (categoryCount <= 6 ? 1100 : 1400)
     const maxTokens = hasExistingQuestions
       ? 800  // Follow-up: 2 questions per category
-      : (framework === 'starbursting' ? 1200 : 900)  // Initial: 3 questions per category
+      : baseTokens  // Initial: 3 questions per category
 
     // Log API call details
     console.log(`[Generate Questions] Calling OpenAI API`)
