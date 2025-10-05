@@ -247,5 +247,313 @@
     "updated": "Actualizado",
     "loading": "Cargando...",
     "confirmDeleteAnalysis": "¿Estás seguro de que deseas eliminar este análisis?"
+  },
+  "frameworkDescriptions": {
+    "swot": {
+      "title": "Análisis FODA",
+      "context": "El Análisis FODA es un marco de planificación estratégica que evalúa Fortalezas, Oportunidades, Debilidades y Amenazas. Desarrollado en la década de 1960 en Stanford Research Institute, FODA ayuda a las organizaciones a comprender sus capacidades internas (fortalezas/debilidades) y su entorno externo (oportunidades/amenazas) para informar la toma de decisiones estratégicas. Esta herramienta versátil se utiliza en los sectores empresarial, sin fines de lucro y gubernamental para la planificación estratégica y el análisis competitivo.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/SWOT_analysis",
+      "goodUseCases": [
+        "Desarrollo de estrategia empresarial y posicionamiento en el mercado",
+        "Planificación de lanzamiento de productos y análisis competitivo",
+        "Planificación de carrera personal y autoevaluación",
+        "Evaluación organizacional antes de iniciativas importantes",
+        "Revisiones estratégicas trimestrales o anuales",
+        "Evaluación de asociaciones u oportunidades de fusiones y adquisiciones"
+      ],
+      "notIdealFor": [
+        "Problemas altamente complejos con múltiples partes interesadas que requieren análisis profundo",
+        "Análisis financiero cuantitativo o cálculos detallados de ROI",
+        "Decisiones urgentes que requieren acción inmediata",
+        "Problemas que requieren experiencia especializada en el dominio más allá de la estrategia básica",
+        "Planificación operativa detallada con cronogramas y recursos específicos"
+      ]
+    },
+    "pest": {
+      "title": "Análisis PEST",
+      "context": "El Análisis PEST examina los factores macroambientales que afectan a las organizaciones a través de cuatro dimensiones clave: factores Políticos, Económicos, Sociales y Tecnológicos. Creado por el profesor de Harvard Francis Aguilar en 1967, PEST proporciona un marco para escanear el entorno externo e identificar oportunidades y amenazas. Las variantes incluyen PESTLE (que agrega factores Legales y Ambientales) y PESTEL. Este marco es esencial para comprender el contexto más amplio en el que operan las organizaciones.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/PEST_analysis",
+      "goodUseCases": [
+        "Estrategia de entrada al mercado para nuevos países o regiones",
+        "Planificación estratégica a largo plazo y construcción de escenarios",
+        "Evaluación de impactos regulatorios y de políticas en los negocios",
+        "Comprensión de tendencias macro que afectan a industrias enteras",
+        "Decisiones de inversión que requieren escaneo ambiental",
+        "Evaluación de riesgos para operaciones internacionales"
+      ],
+      "notIdealFor": [
+        "Problemas organizacionales internos o evaluación de capacidades",
+        "Decisiones tácticas a corto plazo (menos de 6 meses)",
+        "Análisis detallado de competidores o posicionamiento en el mercado",
+        "Planificación a nivel de producto u operativa",
+        "Problemas que requieren análisis técnico o especializado en el dominio"
+      ]
+    },
+    "ach": {
+      "title": "Análisis de Hipótesis Competidoras",
+      "context": "ACH es una metodología estructurada de análisis de inteligencia desarrollada por el analista de la CIA Richards J. Heuer Jr. en la década de 1970. A diferencia del análisis convencional que busca confirmar hipótesis, ACH se enfoca en refutarlas evaluando sistemáticamente la evidencia contra múltiples explicaciones competidoras. Este enfoque ayuda a superar el sesgo de confirmación y proporciona conclusiones más rigurosas y defendibles. ACH ahora se utiliza ampliamente en inteligencia, aplicación de la ley y análisis empresarial.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Analysis_of_competing_hypotheses",
+      "goodUseCases": [
+        "Análisis de inteligencia con múltiples explicaciones posibles",
+        "Investigaciones criminales con teorías competidoras",
+        "Diagnóstico médico con diagnósticos diferenciales",
+        "Análisis de causa raíz de fallas o incidentes complejos",
+        "Evaluación de opciones estratégicas competidoras",
+        "Investigaciones de debida diligencia que requieren análisis riguroso"
+      ],
+      "notIdealFor": [
+        "Problemas con una sola explicación plausible",
+        "Decisiones urgentes que requieren acción inmediata",
+        "Problemas sin suficiente evidencia para la evaluación",
+        "Fases de lluvia de ideas o exploración creativa",
+        "Problemas donde la intuición y la experiencia son factores principales de decisión"
+      ]
+    },
+    "cog": {
+      "title": "Análisis de Centro de Gravedad",
+      "context": "El análisis de Centro de Gravedad (COG) identifica la fuente de poder que proporciona a una entidad su fuerza, libertad de acción y voluntad de actuar. Originalmente un concepto militar de \"De la Guerra\" (1832) de Carl von Clausewitz, el análisis COG examina capacidades críticas, requisitos críticos y vulnerabilidades críticas para comprender qué sostiene el poder de un adversario y cómo puede ser neutralizado. Este marco se utiliza ampliamente en planificación militar, inteligencia competitiva y análisis estratégico.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Center_of_gravity_(military)",
+      "goodUseCases": [
+        "Planificación de campañas militares y desarrollo de estrategias",
+        "Análisis competitivo para identificar vulnerabilidades de rivales",
+        "Comprensión de estructuras de poder de adversarios o competidores",
+        "Planificación estratégica para operaciones de influencia",
+        "Análisis de contraterrorismo y contrainsurgencia",
+        "Estrategia empresarial para identificar ventajas competitivas"
+      ],
+      "notIdealFor": [
+        "Entornos colaborativos que requieren construcción de asociaciones",
+        "Desarrollo organizacional interno o construcción de equipos",
+        "Problemas sin relaciones adversariales claras",
+        "Evaluación de tecnología o planificación de innovación",
+        "Análisis de satisfacción del cliente o experiencia del usuario"
+      ]
+    },
+    "pmesii-pt": {
+      "title": "Análisis PMESII-PT",
+      "context": "PMESII-PT es un marco integral de evaluación del entorno operacional utilizado principalmente por organizaciones militares y de inteligencia. Examina factores Políticos, Militares, Económicos, Sociales, de Información, de Infraestructura, de Entorno Físico y de Tiempo. Desarrollado por el ejército de EE. UU. para la planificación operacional, PMESII-PT proporciona una visión holística de entornos operacionales complejos, permitiendo una mejor comprensión de sistemas interconectados y posibles efectos de segundo orden de las acciones.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/PMESII-PT",
+      "goodUseCases": [
+        "Planificación operacional militar y análisis de misiones",
+        "Operaciones de estabilidad y evaluaciones de construcción de naciones",
+        "Planificación de asistencia humanitaria y respuesta a desastres",
+        "Emergencias complejas que requieren comprensión multidominio",
+        "Planificación y evaluación de misiones de mantenimiento de la paz",
+        "Análisis regional para iniciativas diplomáticas o de desarrollo"
+      ],
+      "notIdealFor": [
+        "Decisiones empresariales simples o aplicaciones comerciales",
+        "Análisis a nivel individual o planificación personal",
+        "Problemas tácticos a corto plazo (horas a días)",
+        "Desarrollo de productos enfocados en tecnología",
+        "Problemas limitados a un solo dominio o sector"
+      ]
+    },
+    "dotmlpf": {
+      "title": "Análisis DOTMLPF",
+      "context": "DOTMLPF examina la capacidad organizacional a través de siete dominios: Doctrina, Organización, Entrenamiento, Material, Liderazgo, Personal e Instalaciones. Desarrollado por el Departamento de Defensa de EE. UU. para la planificación basada en capacidades, DOTMLPF asegura una evaluación integral de lo que se necesita para lograr los objetivos organizacionales. Este marco es particularmente valioso para identificar brechas y planificar mejoras en todos los aspectos de la capacidad organizacional.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/DOTMLPF",
+      "goodUseCases": [
+        "Desarrollo de capacidades militares y análisis de brechas",
+        "Transformación y modernización organizacional",
+        "Evaluaciones de preparación integral",
+        "Definición de requisitos para nuevas capacidades",
+        "Desarrollo y evaluación de programas de entrenamiento",
+        "Asignación de recursos en múltiples dominios"
+      ],
+      "notIdealFor": [
+        "Análisis de mercado externo o de competidores",
+        "Problemas enfocados en el cliente o experiencia del usuario",
+        "Posicionamiento estratégico o innovación de modelo de negocio",
+        "Planificación financiera o análisis de inversiones",
+        "Desarrollo de políticas o cumplimiento normativo"
+      ]
+    },
+    "dime": {
+      "title": "Marco DIME",
+      "context": "DIME analiza los instrumentos del poder nacional a través de cuatro categorías: Diplomático, Informativo, Militar y Económico. Utilizado extensamente en el análisis de seguridad nacional y política exterior, DIME ayuda a evaluar cómo las naciones o actores emplean diferentes formas de poder para lograr objetivos. Este marco es esencial para comprender el arte de gobernar, las operaciones de influencia y la competencia estratégica en el ámbito internacional.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Instruments_of_national_power",
+      "goodUseCases": [
+        "Desarrollo de estrategia de seguridad nacional",
+        "Análisis y planificación de política exterior",
+        "Comprensión de competencia y conflicto a nivel estatal",
+        "Planificación de sanciones y arte de gobernar económico",
+        "Análisis de operaciones de información y campañas de influencia",
+        "Evaluación de intenciones y capacidades de adversarios"
+      ],
+      "notIdealFor": [
+        "Análisis de actores no estatales (corporaciones, ONG)",
+        "Problemas o desarrollo organizacional interno",
+        "Análisis técnico o a nivel de producto",
+        "Análisis de comportamiento individual o de grupos pequeños",
+        "Estrategia empresarial comercial sin contexto geopolítico"
+      ]
+    },
+    "stakeholder": {
+      "title": "Análisis de Partes Interesadas",
+      "context": "El Análisis de Partes Interesadas identifica y evalúa a individuos, grupos u organizaciones que afectan o son afectados por un proyecto, política o decisión. Al mapear a las partes interesadas según su poder e interés, este marco ayuda a priorizar estrategias de participación y gestionar las relaciones de manera efectiva. Originalmente desarrollado en la gestión empresarial, el análisis de partes interesadas ahora se utiliza en gestión de proyectos, desarrollo de políticas e iniciativas de gestión del cambio.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Stakeholder_analysis",
+      "goodUseCases": [
+        "Planificación de proyectos y estrategia de participación de partes interesadas",
+        "Gestión del cambio y transformación organizacional",
+        "Desarrollo de políticas que requieren apoyo de múltiples partes interesadas",
+        "Gestión de crisis y planificación de comunicaciones",
+        "Participación comunitaria para proyectos de desarrollo",
+        "Análisis político y construcción de coaliciones"
+      ],
+      "notIdealFor": [
+        "Problemas técnicos sin dimensiones sociales/políticas",
+        "Toma de decisiones individual sin impacto en partes interesadas",
+        "Trabajo puramente analítico o enfocado en investigación",
+        "Situaciones con muy pocas partes interesadas",
+        "Decisiones urgentes que requieren acción inmediata"
+      ]
+    },
+    "deception": {
+      "title": "Detección de Engaño (CIA SATS)",
+      "context": "Las Técnicas Analíticas Estructuradas de la CIA para la Detección de Engaño, basadas en la metodología de Richards J. Heuer Jr., proporcionan un enfoque sistemático para identificar engaño potencial utilizando cuatro evaluaciones clave: MOM (Motivo, Oportunidad, Medios), POP (Patrones de Práctica), MOSES (Mis Propias Fuentes) y EVE (Evaluación de Evidencia). Este marco ayuda a los analistas a superar sesgos cognitivos y evaluar rigurosamente si la información podría ser deliberadamente engañosa.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Analysis_of_competing_hypotheses",
+      "goodUseCases": [
+        "Análisis de inteligencia de información potencialmente engañosa",
+        "Investigaciones de contrainteligencia y seguridad",
+        "Evaluación de operaciones de información adversarias",
+        "Debida diligencia para transacciones comerciales de alto riesgo",
+        "Detección de fraude y contabilidad forense",
+        "Evaluación de propaganda y campañas de desinformación"
+      ],
+      "notIdealFor": [
+        "Verificación rutinaria de información sin riesgo de engaño",
+        "Entornos colaborativos basados en la confianza",
+        "Fases de análisis creativo o exploratorio",
+        "Decisiones urgentes que requieren acción rápida",
+        "Problemas sin dinámicas adversariales claras"
+      ]
+    },
+    "behavior": {
+      "title": "Análisis de Comportamiento",
+      "context": "El Análisis de Comportamiento proporciona documentación y análisis objetivo de comportamientos en ubicaciones o contextos específicos, basado en el Manual de Campo del Ejército de EE. UU. TM 3-53.11. Este marco se enfoca en QUÉ comportamiento ocurre, DÓNDE, CUÁNDO y CÓMO, sin sesgo hacia ninguna audiencia objetivo específica. Mapea cronologías de comportamiento con secuencias interactivas y bifurcaciones, identifica factores ambientales, documenta barreras y facilitadores objetivos, analiza consecuencias e identifica audiencias objetivo potenciales. Este análisis sirve como base para evaluaciones COM-B específicas de audiencia objetivo posteriores.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Behavior_modification",
+      "goodUseCases": [
+        "Documentación de comportamientos en operaciones militares/de inteligencia",
+        "Mapeo objetivo de comportamientos para campañas de salud pública",
+        "Análisis ambiental y contextual de comportamientos",
+        "Identificación de audiencias objetivo para iniciativas de cambio de comportamiento",
+        "Fundamento para planificación de operaciones de influencia",
+        "Comprensión de patrones de comportamiento en comunidades",
+        "Mapeo de secuencias de comportamiento y caminos alternativos"
+      ],
+      "notIdealFor": [
+        "Evaluación de capacidad específica de audiencia objetivo (usar Análisis COM-B)",
+        "Diseño de intervenciones (usar Análisis COM-B con BCW)",
+        "Terapia o consejería individual",
+        "Análisis financiero o económico",
+        "Sistemas tecnológicos sin comportamiento humano",
+        "Evaluaciones puramente actitudinales"
+      ]
+    },
+    "comb-analysis": {
+      "title": "Análisis COM-B (Behaviour Change Wheel)",
+      "context": "El Análisis COM-B aplica la metodología Behaviour Change Wheel (Michie et al., 2011) para evaluar la Capacidad, Oportunidad y Motivación de una audiencia objetivo ESPECÍFICA para realizar un comportamiento definido. Este marco específico de audiencia objetivo evalúa seis componentes COM-B (Capacidad Física/Psicológica, Oportunidad Física/Social, Motivación Reflexiva/Automática) y genera automáticamente recomendaciones de intervención basadas en evidencia de 9 funciones de intervención y 7 categorías de políticas. Cada análisis se vincula a un Análisis de Comportamiento objetivo y se enfoca en una audiencia objetivo, permitiendo múltiples análisis COM-B para diferentes audiencias que realizan el mismo comportamiento.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Behavior_modification",
+      "goodUseCases": [
+        "Intervenciones de cambio de comportamiento específicas de audiencia objetivo",
+        "Diseño de campañas de salud pública con poblaciones específicas",
+        "Operaciones de influencia militar dirigidas a audiencias definidas",
+        "Marketing social para segmentos demográficos",
+        "Iniciativas de cambio organizacional para grupos de empleados",
+        "Programas de promoción de la salud para comunidades específicas",
+        "Selección de intervenciones basadas en evidencia utilizando metodología BCW",
+        "Desarrollo de políticas para cambio de comportamiento a escala"
+      ],
+      "notIdealFor": [
+        "Documentación objetiva de comportamiento (usar Análisis de Comportamiento)",
+        "Análisis de múltiples audiencias sin segmentación",
+        "Situaciones sin audiencia objetivo definida",
+        "Terapia o consejería clínica individual",
+        "Análisis de tecnología o sistemas",
+        "Decisiones financieras o económicas",
+        "Problemas que no involucran cambio de comportamiento"
+      ]
+    },
+    "starbursting": {
+      "title": "Lluvia de Estrellas",
+      "context": "Lluvia de Estrellas es una técnica de lluvia de ideas creativa que genera preguntas en lugar de respuestas. Al hacer sistemáticamente preguntas de Quién, Qué, Cuándo, Dónde, Por qué y Cómo sobre un tema, la lluvia de estrellas ayuda a descubrir brechas en la comprensión, identificar necesidades de investigación y asegurar un análisis integral. Esta técnica, desarrollada como parte de metodologías de resolución creativa de problemas, es particularmente valiosa en las primeras etapas de planificación y análisis.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Brainstorming#Variations",
+      "goodUseCases": [
+        "Planificación inicial de proyectos y alcance",
+        "Desarrollo de preguntas de investigación",
+        "Recopilación de requisitos para nuevas iniciativas",
+        "Definición y exploración de problemas",
+        "Análisis de brechas y evaluación de necesidades de información",
+        "Ideación creativa y desarrollo de conceptos"
+      ],
+      "notIdealFor": [
+        "Toma de decisiones final o selección de soluciones",
+        "Planificación detallada de implementación",
+        "Problemas donde las preguntas ya están bien definidas",
+        "Análisis cuantitativo o cálculos",
+        "Situaciones que requieren respuestas inmediatas en lugar de preguntas"
+      ]
+    },
+    "causeway": {
+      "title": "Análisis Causeway (PUTAR)",
+      "context": "El Análisis Causeway utiliza la metodología PUTAR (Problema, Actor No Deseado, Audiencia Objetivo, Remedio, Historia) para analizar amenazas y desarrollar estrategias de operaciones de influencia. Este marco identifica sistemáticamente capacidades críticas, requisitos y objetivos próximos que pueden ser influenciados para contrarrestar acciones adversarias. Desarrollado para operaciones de información militar, Causeway proporciona un enfoque estructurado para comprender y interrumpir las capacidades adversarias.",
+      "wikipediaUrl": null,
+      "goodUseCases": [
+        "Operaciones de contraterrorismo y contrainsurgencia",
+        "Operaciones de influencia y comunicaciones estratégicas",
+        "Análisis y disrupción de redes de amenazas",
+        "Comprensión de procesos de toma de decisiones adversarias",
+        "Desarrollo de campañas de mensajería dirigida",
+        "Competencia estratégica y operaciones de zona gris"
+      ],
+      "notIdealFor": [
+        "Iniciativas colaborativas o basadas en asociaciones",
+        "Estrategia empresarial comercial sin adversarios",
+        "Desarrollo organizacional interno",
+        "Análisis técnico o científico",
+        "Problemas sin actores adversariales claros"
+      ]
+    },
+    "surveillance": {
+      "title": "Marco de Vigilancia (Planificación de Recopilación ISR)",
+      "context": "El Marco de Vigilancia, basado en la metodología Strategies-to-Tasks de RAND, proporciona un enfoque sistemático para planificar y ejecutar operaciones de Inteligencia, Vigilancia y Reconocimiento (ISR). Vincula objetivos de recopilación con tareas operacionales, objetivos y orientación del comandante con utilidades relativas. Este marco permite a los oficiales de inteligencia analizar rápidamente costos y beneficios de estrategias de recopilación ISR, priorizar tareas competidoras y permitir cambios flexibles en tiempo real a los planes. ISR es la adquisición, procesamiento y provisión coordinada e integrada de información oportuna, precisa, relevante y coherente para apoyar la conducción de actividades de los comandantes.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Intelligence,_surveillance,_target_acquisition,_and_reconnaissance",
+      "goodUseCases": [
+        "Planificación y ejecución de operaciones ISR militares",
+        "Asignación y optimización de activos de recopilación",
+        "Gestión de Requisitos de Inteligencia Prioritarios (PIR)",
+        "Retarea de ISR en tiempo real para objetivos emergentes",
+        "Coordinación multisensor y planificación de fusión",
+        "Mapeo de requisitos de inteligencia a recopilación"
+      ],
+      "notIdealFor": [
+        "Análisis de políticas estratégicas sin enfoque operacional",
+        "Evaluación histórica de inteligencia",
+        "Problemas analíticos puros sin componente de recopilación",
+        "Situaciones sin objetivos operacionales definidos",
+        "Análisis donde los activos de recopilación no están disponibles"
+      ]
+    },
+    "fundamental-flow": {
+      "title": "Análisis de Flujo Fundamental",
+      "context": "El Análisis de Flujo Fundamental examina el ciclo de inteligencia y el flujo de información a través de todas las etapas: Planificación y Dirección, Recopilación, Procesamiento, Explotación y Producción, Diseminación y Retroalimentación. Este marco identifica cuellos de botella, mide la eficiencia y optimiza el flujo de información desde datos brutos hasta inteligencia terminada. Al mapear rutas completas de información y medir la oportunidad, precisión y relevancia en cada etapa, las organizaciones pueden mejorar los procesos de producción de inteligencia, reducir retrasos y mejorar el valor entregado a los consumidores. Este marco es esencial para iniciativas de mejora y optimización de procesos de inteligencia.",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Intelligence_cycle_management",
+      "goodUseCases": [
+        "Optimización y mejora de procesos de inteligencia",
+        "Identificación de cuellos de botella en la producción de inteligencia",
+        "Mapeo y análisis de flujo de información",
+        "Evaluación de eficiencia del ciclo de inteligencia",
+        "Reducción de cronologías de recopilación a diseminación",
+        "Evaluación de aseguramiento de calidad y madurez de procesos"
+      ],
+      "notIdealFor": [
+        "Tareas de análisis de inteligencia individual",
+        "Planificación operacional táctica",
+        "Análisis enfocado en contenido (usar ACH, SWOT, etc.)",
+        "Solicitudes de inteligencia a corto plazo o ad-hoc",
+        "Situaciones donde la mejora de procesos no es el enfoque"
+      ]
+    }
   }
 }
