@@ -240,7 +240,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
   'cog': {
     type: 'cog',
     title: 'Center of Gravity Analysis',
-    description: 'Critical capabilities, requirements, and vulnerabilities',
+    description: 'Identify critical sources of power, essential capabilities, and vulnerabilities that provide leverage in complex systems',
     itemType: 'qa',
     sections: [
       {
@@ -659,7 +659,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
   'causeway': {
     type: 'causeway',
     title: 'Causeway Analysis',
-    description: 'Strategic threat and influence operations framework using PUTAR methodology',
+    description: '6-stage structured COG methodology: Identify threats, map critical capabilities/requirements, and determine leverage points for influence operations',
     sections: [
       {
         key: 'scenario',
