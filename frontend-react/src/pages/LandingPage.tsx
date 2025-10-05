@@ -1,11 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowRight, Brain, Sparkles, Zap, Users, BarChart3, Target, Unlock, KeyRound } from 'lucide-react'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { useTranslation } from 'react-i18next'
 
 export function LandingPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   // Check if authenticated - placeholder for now
   const isAuthenticated = false
@@ -16,38 +18,38 @@ export function LandingPage() {
     }
   }, [isAuthenticated, navigate])
 
-  const features = [
+  const features = useMemo(() => [
     {
       icon: Brain,
-      title: "13 Analysis Frameworks",
-      description: "SWOT, COG, PMESII-PT, ACH, DOTMLPF, SATS Deception Detection, TM 3-53.11 Behavior Analysis, and more"
+      title: t('landing.analysisFrameworks'),
+      description: t('landing.frameworksDesc')
     },
     {
       icon: Zap,
-      title: "AI-Powered Insights",
-      description: "GPT-5 integration for intelligent suggestions and automated analysis validation"
+      title: t('landing.aiPoweredInsights'),
+      description: t('landing.aiDesc')
     },
     {
       icon: BarChart3,
-      title: "Research Tools",
-      description: "URL processing, web scraping, social media analysis, and citation management"
+      title: t('landing.researchToolsTitle'),
+      description: t('landing.researchToolsDesc')
     },
     {
       icon: Users,
-      title: "Collaboration",
-      description: "Share analyses, work in teams, and maintain version control for all projects"
+      title: t('landing.collaborationTitle'),
+      description: t('landing.collaborationDesc')
     },
     {
       icon: Sparkles,
-      title: "Public & Free",
-      description: "Browse all frameworks without signup • Optional login to save work permanently"
+      title: t('landing.publicAndFree'),
+      description: t('landing.publicDesc')
     },
     {
       icon: Target,
-      title: "Export & Reporting",
-      description: "Generate professional reports in PDF, Word, PowerPoint, and other formats"
+      title: t('landing.exportReporting'),
+      description: t('landing.exportDesc')
     }
-  ]
+  ], [t])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -55,7 +57,7 @@ export function LandingPage() {
       <div className="bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
         <div className="container mx-auto px-4 py-3 text-center">
           <p className="text-green-800 dark:text-green-300 font-medium text-sm sm:text-base">
-            ✨ All frameworks are FREE and publicly accessible • No login required to explore • Optional account to save your work permanently
+            ✨ {t('landing.publicBanner')}
           </p>
         </div>
       </div>
@@ -78,13 +80,13 @@ export function LandingPage() {
               <Link to="/login">
                 <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg shadow-md transition-colors flex items-center gap-2">
                   <Unlock className="h-5 w-5" />
-                  Access Your Work
+                  {t('landing.accessSavedWork')}
                 </button>
               </Link>
               <Link to="/register">
                 <button className="border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium px-6 py-2 rounded-lg transition-colors flex items-center gap-2">
                   <KeyRound className="h-4 w-4" />
-                  Create Bookmark
+                  {t('landing.createAccount')}
                 </button>
               </Link>
             </div>
@@ -97,22 +99,21 @@ export function LandingPage() {
         <div className="container mx-auto text-center">
           <div className="mb-6">
             <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/20 px-4 py-2 text-sm font-medium text-blue-800 dark:text-blue-300">
-              🎉 Free for IrregularChat Community
+              🎉 {t('landing.freeForCommunity')}
             </span>
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
             <span className="text-blue-600">ResearchTools</span>
-            <span className="block text-gray-900 dark:text-white">Advanced Research Analysis Platform</span>
+            <span className="block text-gray-900 dark:text-white">{t('landing.advancedPlatform')}</span>
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-            Streamline your research analysis workflow with 13 specialized frameworks,
-            AI-powered insights, and comprehensive research tools. <strong className="text-green-600 dark:text-green-400">Free and publicly accessible</strong> for the IrregularChat community.
+            {t('landing.tagline')} <strong className="text-green-600 dark:text-green-400">{t('landing.freeAndPublic')}</strong> {t('landing.forCommunity')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link to="/dashboard" className="w-full sm:w-auto">
               <button className="w-full sm:w-auto text-lg px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center justify-center gap-2">
                 <Target className="h-6 w-6" />
-                Browse Frameworks
+                {t('landing.browseFrameworks')}
                 <ArrowRight className="h-6 w-6" />
               </button>
             </Link>
@@ -121,13 +122,13 @@ export function LandingPage() {
             <Link to="/login">
               <button className="text-base px-6 py-2.5 border-2 border-green-600 dark:border-green-500 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 font-semibold rounded-lg transition-colors flex items-center gap-2">
                 <Unlock className="h-5 w-5" />
-                Access Saved Work
+                {t('landing.accessSavedWork')}
               </button>
             </Link>
             <Link to="/register">
               <button className="text-base px-6 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium rounded-lg transition-colors flex items-center gap-2">
                 <KeyRound className="h-4 w-4" />
-                Create Account
+                {t('landing.createAccount')}
               </button>
             </Link>
           </div>

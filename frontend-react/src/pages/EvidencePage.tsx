@@ -12,8 +12,10 @@ import { cn } from '@/lib/utils'
 import { EvidenceItemForm } from '@/components/evidence/EvidenceItemForm'
 import { evidenceToCitation } from '@/utils/evidence-to-citation'
 import { addCitation } from '@/utils/citation-library'
+import { useTranslation } from 'react-i18next'
 
 export function EvidencePage() {
+  const { t } = useTranslation()
   const [evidence, setEvidence] = useState<EvidenceItem[]>([])
   const [filter, setFilter] = useState<EvidenceFilter>({})
   const [searchTerm, setSearchTerm] = useState('')
@@ -65,7 +67,7 @@ export function EvidencePage() {
   }
 
   const handleDeleteEvidence = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this evidence item?')) return
+    if (!confirm(t('evidence.confirmDelete'))) return
 
     try {
       const response = await fetch(`/api/evidence-items?id=${id}`, {
@@ -76,7 +78,7 @@ export function EvidencePage() {
       }
     } catch (error) {
       console.error('Failed to delete evidence:', error)
-      alert('Failed to delete evidence')
+      alert(t('evidence.deleteError'))
     }
   }
 
@@ -96,10 +98,10 @@ export function EvidencePage() {
     try {
       const citation = evidenceToCitation(item, 'apa')
       addCitation(citation)
-      alert(`Citation generated and added to your library!\n\nGo to Citations Generator to view and manage it.`)
+      alert(t('evidence.citationSuccess'))
     } catch (error) {
       console.error('Failed to generate citation:', error)
-      alert('Failed to generate citation. Please try again.')
+      alert(t('evidence.citationError'))
     }
   }
 
@@ -161,14 +163,14 @@ export function EvidencePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Evidence Items</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('evidence.title')}</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Manage analyzed evidence with 5 W's + How framework
+            {t('evidence.subtitle')}
           </p>
         </div>
         <Button onClick={openCreateForm}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Evidence
+          {t('evidence.addEvidence')}
         </Button>
       </div>
 
@@ -178,7 +180,7 @@ export function EvidencePage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Evidence</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('evidence.totalEvidence')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{statistics.total}</p>
               </div>
               <FileText className="h-8 w-8 text-blue-500" />
@@ -189,7 +191,7 @@ export function EvidencePage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Verified</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('evidence.verified')}</p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.verified}</p>
               </div>
               <CheckCircle2 className="h-8 w-8 text-green-500" />
@@ -200,7 +202,7 @@ export function EvidencePage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Pending</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('evidence.pending')}</p>
                 <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.pending}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
@@ -211,7 +213,7 @@ export function EvidencePage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Rejected</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('evidence.rejected')}</p>
                 <p className="text-2xl font-bold text-red-600 dark:text-red-400">{statistics.rejected}</p>
               </div>
               <XCircle className="h-8 w-8 text-red-500" />
@@ -225,7 +227,7 @@ export function EvidencePage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Search evidence..."
+            placeholder={t('evidence.searchPlaceholder')}
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -233,10 +235,10 @@ export function EvidencePage() {
         </div>
         <Select value={filter.level || 'all'} onValueChange={(value) => setFilter({ ...filter, level: value === 'all' ? undefined : value as EvidenceLevel })}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by level" />
+            <SelectValue placeholder={t('evidence.filterByLevel')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Levels</SelectItem>
+            <SelectItem value="all">{t('evidence.allLevels')}</SelectItem>
             {Object.values(EvidenceLevel).map(level => (
               <SelectItem key={level} value={level}>{level.toUpperCase()}</SelectItem>
             ))}
@@ -244,10 +246,10 @@ export function EvidencePage() {
         </Select>
         <Select value={filter.priority || 'all'} onValueChange={(value) => setFilter({ ...filter, priority: value === 'all' ? undefined : value as PriorityLevel })}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by priority" />
+            <SelectValue placeholder={t('evidence.filterByPriority')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Priorities</SelectItem>
+            <SelectItem value="all">{t('evidence.allPriorities')}</SelectItem>
             {Object.values(PriorityLevel).map(priority => (
               <SelectItem key={priority} value={priority}>{priority.toUpperCase()}</SelectItem>
             ))}
@@ -255,10 +257,10 @@ export function EvidencePage() {
         </Select>
         <Select value={filter.status || 'all'} onValueChange={(value) => setFilter({ ...filter, status: value === 'all' ? undefined : value as EvidenceStatus })}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
+            <SelectValue placeholder={t('evidence.filterByStatus')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="all">{t('evidence.allStatuses')}</SelectItem>
             {Object.values(EvidenceStatus).map(status => (
               <SelectItem key={status} value={status}>{status.replace('_', ' ').toUpperCase()}</SelectItem>
             ))}
@@ -272,17 +274,17 @@ export function EvidencePage() {
           <Card className="p-12 text-center">
             <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">
-              No Evidence Found
+              {t('evidence.noEvidenceFound')}
             </h3>
             <p className="text-gray-500 dark:text-gray-500 mb-4">
               {evidence.length === 0
-                ? "Start building your evidence collection by adding your first evidence item."
-                : "Try adjusting your search criteria or filters."
+                ? t('evidence.emptyStateMessage')
+                : t('evidence.emptyFilterMessage')
               }
             </p>
             <Button onClick={openCreateForm}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Your First Evidence
+              {t('evidence.addFirstEvidence')}
             </Button>
           </Card>
         ) : (
@@ -319,12 +321,12 @@ export function EvidencePage() {
                           <p className="text-gray-600 dark:text-gray-400 mb-3">{item.description}</p>
                         )}
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm mb-3">
-                          {item.who && <div><span className="font-medium">Who:</span> {item.who}</div>}
-                          {item.what && <div><span className="font-medium">What:</span> {item.what}</div>}
-                          {item.when_occurred && <div><span className="font-medium">When:</span> {item.when_occurred}</div>}
-                          {item.where_location && <div><span className="font-medium">Where:</span> {item.where_location}</div>}
-                          {item.why_purpose && <div><span className="font-medium">Why:</span> {item.why_purpose}</div>}
-                          {item.how_method && <div><span className="font-medium">How:</span> {item.how_method}</div>}
+                          {item.who && <div><span className="font-medium">{t('evidence.who')}</span> {item.who}</div>}
+                          {item.what && <div><span className="font-medium">{t('evidence.what')}</span> {item.what}</div>}
+                          {item.when_occurred && <div><span className="font-medium">{t('evidence.when')}</span> {item.when_occurred}</div>}
+                          {item.where_location && <div><span className="font-medium">{t('evidence.where')}</span> {item.where_location}</div>}
+                          {item.why_purpose && <div><span className="font-medium">{t('evidence.why')}</span> {item.why_purpose}</div>}
+                          {item.how_method && <div><span className="font-medium">{t('evidence.how')}</span> {item.how_method}</div>}
                         </div>
                         <div className="flex gap-2 flex-wrap">
                           {item.tags.map(tag => (
@@ -345,15 +347,15 @@ export function EvidencePage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => openEditForm(item)}>
                           <Edit className="h-4 w-4 mr-2" />
-                          Edit
+                          {t('evidence.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleGenerateCitation(item)}>
                           <BookOpen className="h-4 w-4 mr-2" />
-                          Generate Citation
+                          {t('evidence.generateCitation')}
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Archive className="h-4 w-4 mr-2" />
-                          Archive
+                          {t('evidence.archive')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -361,7 +363,7 @@ export function EvidencePage() {
                           onClick={() => handleDeleteEvidence(item.id)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
+                          {t('evidence.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
