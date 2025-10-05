@@ -12,6 +12,14 @@ import Papa from 'papaparse'
 import type { FrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
+import type { ComBDeficits, InterventionFunction } from '@/types/behavior-change-wheel'
+import {
+  generateInterventionRecommendations,
+  generatePolicyRecommendations,
+  assessBehaviorChangeFeasibility,
+  INTERVENTION_DESCRIPTIONS,
+  POLICY_DESCRIPTIONS,
+} from '@/utils/behaviour-change-wheel'
 
 export type ExportFormat = 'word' | 'pdf' | 'pptx' | 'csv'
 export type ReportTemplate = 'standard' | 'executive' | 'detailed'
@@ -1054,6 +1062,325 @@ export class ReportGenerator {
           indent: { left: 360 }
         })
       )
+    } else if (frameworkType === 'behavior') {
+      // Behavior Analysis Framework with BCW (Behaviour Change Wheel) recommendations
+
+      // Add COM-B Assessment if available
+      if (data.com_b_deficits) {
+        const deficits = data.com_b_deficits as ComBDeficits
+
+        paragraphs.push(
+          new Paragraph({
+            text: '🎯 COM-B Assessment Summary',
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 }
+          })
+        )
+
+        paragraphs.push(
+          new Paragraph({
+            children: [new TextRun({ text: 'Capability, Opportunity, Motivation → Behavior (Michie et al., 2011)', italics: true })],
+            spacing: { after: 300 }
+          })
+        )
+
+        // Count deficits by severity
+        const deficitCounts = {
+          major_barrier: Object.values(deficits).filter((d) => d === 'major_barrier').length,
+          deficit: Object.values(deficits).filter((d) => d === 'deficit').length,
+          adequate: Object.values(deficits).filter((d) => d === 'adequate').length,
+        }
+
+        paragraphs.push(
+          new Paragraph({
+            text: `✓ Adequate: ${deficitCounts.adequate} components`,
+            spacing: { after: 100 },
+            indent: { left: 360 }
+          })
+        )
+        paragraphs.push(
+          new Paragraph({
+            text: `⚠ Deficit: ${deficitCounts.deficit} components`,
+            spacing: { after: 100 },
+            indent: { left: 360 }
+          })
+        )
+        paragraphs.push(
+          new Paragraph({
+            text: `✖ Major Barrier: ${deficitCounts.major_barrier} components`,
+            spacing: { after: 300 },
+            indent: { left: 360 }
+          })
+        )
+
+        // Component-by-component breakdown
+        paragraphs.push(
+          new Paragraph({
+            text: 'Component Status Breakdown',
+            heading: HeadingLevel.HEADING_3,
+            spacing: { before: 300, after: 150 }
+          })
+        )
+
+        const componentNames: Record<string, { label: string; icon: string }> = {
+          physical_capability: { label: 'Physical Capability', icon: '💪' },
+          psychological_capability: { label: 'Psychological Capability', icon: '🧠' },
+          physical_opportunity: { label: 'Physical Opportunity', icon: '🌍' },
+          social_opportunity: { label: 'Social Opportunity', icon: '👥' },
+          reflective_motivation: { label: 'Reflective Motivation', icon: '🎯' },
+          automatic_motivation: { label: 'Automatic Motivation', icon: '⚡' },
+        }
+
+        Object.entries(deficits).forEach(([component, level]) => {
+          const info = componentNames[component as keyof typeof componentNames]
+          const statusText = level === 'major_barrier' ? '✖ Major Barrier' : level === 'deficit' ? '⚠ Deficit' : '✓ Adequate'
+
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${info.icon} ${info.label}: `, bold: true }),
+                new TextRun({ text: statusText })
+              ],
+              spacing: { after: 100 },
+              indent: { left: 360 }
+            })
+          )
+        })
+
+        // Feasibility Assessment
+        const feasibility = assessBehaviorChangeFeasibility(deficits)
+
+        paragraphs.push(
+          new Paragraph({
+            text: 'Behavior Change Feasibility',
+            heading: HeadingLevel.HEADING_3,
+            spacing: { before: 400, after: 150 }
+          })
+        )
+
+        const feasibilityText = feasibility.feasibility.charAt(0).toUpperCase() + feasibility.feasibility.slice(1)
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Overall Feasibility: ', bold: true }),
+              new TextRun({ text: feasibilityText })
+            ],
+            spacing: { after: 200 },
+            indent: { left: 360 }
+          })
+        )
+
+        if (feasibility.barriers.length > 0) {
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: 'Barriers Identified:', bold: true })],
+              spacing: { after: 100 },
+              indent: { left: 360 }
+            })
+          )
+          feasibility.barriers.forEach((barrier) => {
+            paragraphs.push(
+              new Paragraph({
+                text: `• ${barrier}`,
+                spacing: { after: 80 },
+                indent: { left: 720 }
+              })
+            )
+          })
+        }
+
+        if (feasibility.strengths.length > 0) {
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: 'Strengths:', bold: true })],
+              spacing: { before: 150, after: 100 },
+              indent: { left: 360 }
+            })
+          )
+          feasibility.strengths.forEach((strength) => {
+            paragraphs.push(
+              new Paragraph({
+                text: `• ${strength}`,
+                spacing: { after: 80 },
+                indent: { left: 720 }
+              })
+            )
+          })
+        }
+
+        // Intervention Recommendations
+        const interventionRecs = generateInterventionRecommendations(deficits)
+
+        if (interventionRecs.length > 0) {
+          paragraphs.push(
+            new Paragraph({
+              text: 'Recommended Intervention Functions',
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 400, after: 200 }
+            })
+          )
+
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: 'Based on the Behaviour Change Wheel (Michie et al., 2011)', italics: true })],
+              spacing: { after: 300 }
+            })
+          )
+
+          interventionRecs.forEach((rec) => {
+            paragraphs.push(
+              new Paragraph({
+                text: `${rec.component} (${rec.severity.replace('_', ' ').toUpperCase()})`,
+                heading: HeadingLevel.HEADING_3,
+                spacing: { before: 300, after: 150 }
+              })
+            )
+
+            rec.interventions.forEach((intervention) => {
+              const info = INTERVENTION_DESCRIPTIONS[intervention.name]
+              const priorityText = intervention.priority.toUpperCase()
+
+              paragraphs.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `${intervention.name.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} [${priorityText} PRIORITY]`,
+                      bold: true
+                    })
+                  ],
+                  spacing: { before: 150, after: 100 },
+                  indent: { left: 360 }
+                })
+              )
+
+              paragraphs.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: 'Definition: ', bold: true }),
+                    new TextRun({ text: info.definition })
+                  ],
+                  spacing: { after: 100 },
+                  indent: { left: 720 }
+                })
+              )
+
+              paragraphs.push(
+                new Paragraph({
+                  children: [new TextRun({ text: 'Evidence Base:', bold: true })],
+                  spacing: { after: 80 },
+                  indent: { left: 720 }
+                })
+              )
+
+              paragraphs.push(
+                new Paragraph({
+                  children: [new TextRun({ text: intervention.evidence_base, italics: true })],
+                  spacing: { after: 150 },
+                  indent: { left: 720 }
+                })
+              )
+            })
+          })
+        }
+
+        // Policy Recommendations (if interventions selected)
+        if (data.selected_interventions && data.selected_interventions.length > 0) {
+          const policyRecs = generatePolicyRecommendations(data.selected_interventions as InterventionFunction[])
+
+          if (policyRecs.length > 0) {
+            paragraphs.push(
+              new Paragraph({
+                text: 'Policy Category Recommendations',
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 400, after: 200 }
+              })
+            )
+
+            paragraphs.push(
+              new Paragraph({
+                children: [new TextRun({ text: `${policyRecs.length} policy categories support the selected intervention functions`, italics: true })],
+                spacing: { after: 300 }
+              })
+            )
+
+            policyRecs.forEach((policy) => {
+              paragraphs.push(
+                new Paragraph({
+                  text: policy.name,
+                  heading: HeadingLevel.HEADING_3,
+                  spacing: { before: 300, after: 150 }
+                })
+              )
+
+              paragraphs.push(
+                new Paragraph({
+                  text: policy.description,
+                  spacing: { after: 150 },
+                  indent: { left: 360 }
+                })
+              )
+
+              paragraphs.push(
+                new Paragraph({
+                  children: [new TextRun({ text: 'Examples:', bold: true })],
+                  spacing: { after: 100 },
+                  indent: { left: 360 }
+                })
+              )
+
+              policy.examples.forEach((example) => {
+                paragraphs.push(
+                  new Paragraph({
+                    text: `• ${example}`,
+                    spacing: { after: 80 },
+                    indent: { left: 720 }
+                  })
+                )
+              })
+            })
+          }
+        }
+      }
+
+      // Add regular framework sections (timeline, barriers, etc.)
+      const config = frameworkConfigs[frameworkType]
+      if (config?.sections) {
+        paragraphs.push(
+          new Paragraph({
+            text: 'Detailed Analysis',
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 }
+          })
+        )
+
+        config.sections.forEach(section => {
+          // Skip COM-B component sections as they're already covered in assessment
+          if (section.key.includes('capability') || section.key.includes('opportunity') || section.key.includes('motivation')) {
+            return
+          }
+
+          if (data[section.key] && data[section.key].length > 0) {
+            paragraphs.push(
+              new Paragraph({
+                text: `${section.icon || ''} ${section.label}`,
+                heading: HeadingLevel.HEADING_3,
+                spacing: { before: 300, after: 150 }
+              })
+            )
+
+            data[section.key].forEach((item: any) => {
+              const text = item.text || item.title || JSON.stringify(item)
+              paragraphs.push(
+                new Paragraph({
+                  text: `• ${text}`,
+                  spacing: { after: 100 },
+                  indent: { left: 360 }
+                })
+              )
+            })
+          }
+        })
+      }
     } else {
       // Generic framework content (supports Q&A)
       const config = frameworkConfigs[frameworkType]

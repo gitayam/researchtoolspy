@@ -116,9 +116,26 @@ export function BCWRecommendations({
     }
   }
 
+  // Component icons mapping
+  const componentIcons: Record<string, string> = {
+    Physical_Capability: '💪',
+    Psychological_Capability: '🧠',
+    Physical_Opportunity: '🌍',
+    Social_Opportunity: '👥',
+    Reflective_Motivation: '🎯',
+    Automatic_Motivation: '⚡',
+  }
+
+  // Count deficits by severity
+  const deficitCounts = {
+    major_barrier: Object.values(deficits).filter((d) => d === 'major_barrier').length,
+    deficit: Object.values(deficits).filter((d) => d === 'deficit').length,
+    adequate: Object.values(deficits).filter((d) => d === 'adequate').length,
+  }
+
   if (interventionRecommendations.length === 0) {
     return (
-      <Card>
+      <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-600" />
@@ -135,6 +152,73 @@ export function BCWRecommendations({
 
   return (
     <div className="space-y-6">
+      {/* COM-B Assessment Summary Card */}
+      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span className="text-2xl">🎯</span>
+            COM-B Assessment Summary
+          </CardTitle>
+          <CardDescription className="text-gray-700 dark:text-gray-300">
+            Capability, Opportunity, Motivation → Behavior Model (Michie et al., 2011)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Adequate</span>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </div>
+              <div className="text-3xl font-bold text-green-600">{deficitCounts.adequate}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">components</div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Deficit</span>
+                <AlertCircle className="h-4 w-4 text-orange-600" />
+              </div>
+              <div className="text-3xl font-bold text-orange-600">{deficitCounts.deficit}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">components</div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Major Barrier</span>
+                <AlertCircle className="h-4 w-4 text-red-600" />
+              </div>
+              <div className="text-3xl font-bold text-red-600">{deficitCounts.major_barrier}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">components</div>
+            </div>
+          </div>
+
+          {/* Visual breakdown by component */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold mb-3">Component Status</h4>
+            {Object.entries(deficits).map(([component, level]) => {
+              const displayName = component
+                .split('_')
+                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(' ')
+              const icon = componentIcons[displayName.replace(/ /g, '_')]
+
+              return (
+                <div
+                  key={component}
+                  className="flex items-center justify-between p-2 rounded-lg bg-white/50 dark:bg-gray-800/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{icon}</span>
+                    <span className="text-sm font-medium">{displayName}</span>
+                  </div>
+                  <Badge className={getSeverityColor(level)}>
+                    {level === 'major_barrier' ? '✖ Major Barrier' : level === 'deficit' ? '⚠ Deficit' : '✓ Adequate'}
+                  </Badge>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
       {/* Feasibility Assessment */}
       <Card>
         <CardHeader>
@@ -193,10 +277,20 @@ export function BCWRecommendations({
       {/* Intervention Recommendations */}
       <Card>
         <CardHeader>
-          <CardTitle>Recommended Intervention Functions</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Recommended Intervention Functions</span>
+            <Badge variant="outline" className="text-sm">
+              {interventionRecommendations.reduce((sum, rec) => sum + rec.interventions.length, 0)} interventions
+            </Badge>
+          </CardTitle>
           <CardDescription>
             Based on Michie et al. (2011) Behaviour Change Wheel methodology. Click on interventions
             to view details and {!readOnly && 'select for implementation planning.'}
+            {!readOnly && selectedInterventions.length > 0 && (
+              <span className="block mt-2 text-blue-600 dark:text-blue-400 font-medium">
+                ✓ {selectedInterventions.length} intervention{selectedInterventions.length !== 1 ? 's' : ''} selected
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
