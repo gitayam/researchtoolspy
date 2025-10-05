@@ -42,6 +42,21 @@ export interface EligibilityRequirements {
 
 export type BehaviorComplexity = 'single_action' | 'simple_sequence' | 'complex_process' | 'ongoing_practice'
 
+// Temporal scale for consequences and outcomes
+export type ConsequenceTimeframe = 'immediate' | 'long_term' | 'generational'
+
+// Valence (positive/negative) for consequences
+export type ConsequenceValence = 'positive' | 'negative' | 'neutral' | 'mixed'
+
+export interface ConsequenceItem {
+  id: string
+  consequence: string
+  timeframe: ConsequenceTimeframe
+  valence: ConsequenceValence
+  description?: string
+  who_affected?: string // Who experiences this consequence
+}
+
 // Extended TimelineEvent with sub-steps and forks
 export interface TimelineSubStep {
   label: string
@@ -89,7 +104,7 @@ export interface BehaviorAnalysis {
   // Framework sections (arrays of items)
   environmental_factors?: any[]
   social_context?: any[]
-  consequences?: any[]
+  consequences?: ConsequenceItem[]
   symbols?: any[]
   observed_patterns?: any[]
   potential_audiences?: any[]
