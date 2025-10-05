@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowRight, Brain, Sparkles, Zap, Users, BarChart3, Target, Unlock, KeyRound } from 'lucide-react'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export function LandingPage() {
   const navigate = useNavigate()
@@ -71,6 +73,8 @@ export function LandingPage() {
               </span>
             </div>
             <div className="flex items-center gap-4">
+              <ThemeToggle />
+              <LanguageSwitcher />
               <Link to="/login">
                 <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg shadow-md transition-colors flex items-center gap-2">
                   <Unlock className="h-5 w-5" />

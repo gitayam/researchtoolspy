@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { 
   BarChart3, 
   Brain, 
@@ -17,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { formatRelativeTime } from '@/lib/utils'
 
 export function DashboardPage() {
+  const { t } = useTranslation()
   // Mock data for now - will integrate with real store later
   const isLoading = false
   const recentSessions: any[] = []
@@ -30,82 +32,82 @@ export function DashboardPage() {
     const achCount = allSessions.filter(s => s.framework_type === 'ach').length
 
     return [
-      { 
-        name: 'SWOT Analysis', 
-        count: swotCount, 
-        trend: swotCount > 0 ? `${swotCount} analyses` : 'No analyses yet', 
-        icon: Target, 
-        color: 'bg-blue-500' 
+      {
+        name: t('frameworks.swot'),
+        count: swotCount,
+        trend: swotCount > 0 ? `${swotCount} ${t('dashboard.analyses')}` : t('dashboard.noAnalysesYet'),
+        icon: Target,
+        color: 'bg-blue-500'
       },
-      { 
-        name: 'COG Analysis', 
-        count: cogCount, 
-        trend: cogCount > 0 ? `${cogCount} analyses` : 'No analyses yet', 
-        icon: Brain, 
-        color: 'bg-green-500' 
+      {
+        name: t('frameworks.cog'),
+        count: cogCount,
+        trend: cogCount > 0 ? `${cogCount} ${t('dashboard.analyses')}` : t('dashboard.noAnalysesYet'),
+        icon: Brain,
+        color: 'bg-green-500'
       },
-      { 
-        name: 'PMESII-PT', 
-        count: pmesiiCount, 
-        trend: pmesiiCount > 0 ? `${pmesiiCount} analyses` : 'No analyses yet', 
-        icon: BarChart3, 
-        color: 'bg-purple-500' 
+      {
+        name: t('frameworks.pmesiipt'),
+        count: pmesiiCount,
+        trend: pmesiiCount > 0 ? `${pmesiiCount} ${t('dashboard.analyses')}` : t('dashboard.noAnalysesYet'),
+        icon: BarChart3,
+        color: 'bg-purple-500'
       },
-      { 
-        name: 'ACH Analysis', 
-        count: achCount, 
-        trend: achCount > 0 ? `${achCount} analyses` : 'No analyses yet', 
-        icon: Search, 
-        color: 'bg-orange-500' 
+      {
+        name: t('frameworks.ach'),
+        count: achCount,
+        trend: achCount > 0 ? `${achCount} ${t('dashboard.analyses')}` : t('dashboard.noAnalysesYet'),
+        icon: Search,
+        color: 'bg-orange-500'
       },
     ]
-  }, [allSessions])
+  }, [allSessions, t])
 
   // Calculate overall stats
   const totalAnalyses = allSessions.length
   const activeSessions = allSessions.filter(s => s.status === 'in_progress').length
   const completedAnalyses = allSessions.filter(s => s.status === 'completed').length
 
-  const quickActions = [
+  const quickActions = useMemo(() => [
     {
-      title: 'New SWOT Analysis',
-      description: 'Strategic planning analysis',
+      title: t('dashboard.newSwot'),
+      description: t('dashboard.strategicPlanning'),
       href: '/analysis-frameworks/swot-dashboard',
       icon: Target,
       color: 'bg-blue-500 hover:bg-blue-600'
     },
     {
-      title: 'COG Analysis',
-      description: 'Center of gravity assessment',
+      title: t('dashboard.cogAnalysis'),
+      description: t('dashboard.centerOfGravity'),
       href: '/analysis-frameworks/cog',
       icon: Brain,
       color: 'bg-green-500 hover:bg-green-600'
     },
     {
-      title: 'Research Tools',
-      description: 'URL processing & citations',
+      title: t('dashboard.researchTools'),
+      description: t('dashboard.urlAndCitations'),
       href: '/tools',
       icon: Search,
       color: 'bg-purple-500 hover:bg-purple-600'
     },
     {
-      title: 'View Reports',
-      description: 'Export and share analyses',
+      title: t('dashboard.viewReports'),
+      description: t('dashboard.exportShare'),
       href: '/reports',
       icon: FileText,
       color: 'bg-orange-500 hover:bg-orange-600'
     },
-  ]
+  ], [t])
 
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg p-6 text-white">
         <h1 className="text-2xl font-bold mb-2">
-          Welcome to Research Analysis Tools
+          {t('dashboard.welcome')}
         </h1>
         <p className="text-blue-100">
-          Continue your research analysis work or start a new framework.
+          {t('dashboard.welcomeSubtext')}
         </p>
       </div>
 
@@ -113,7 +115,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Analyses</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.totalAnalyses')}</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -121,14 +123,14 @@ export function DashboardPage() {
               {isLoading ? '...' : totalAnalyses}
             </div>
             <p className="text-xs text-muted-foreground">
-              {totalAnalyses === 0 ? 'Start creating analyses' : 'Total analyses created'}
+              {totalAnalyses === 0 ? t('dashboard.startCreating') : t('dashboard.totalCreated')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.activeSessions')}</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -136,14 +138,14 @@ export function DashboardPage() {
               {isLoading ? '...' : activeSessions}
             </div>
             <p className="text-xs text-muted-foreground">
-              {activeSessions === 0 ? 'No active sessions' : 'In progress analyses'}
+              {activeSessions === 0 ? t('dashboard.noActiveSessions') : t('dashboard.inProgressAnalyses')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.completed')}</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -151,20 +153,20 @@ export function DashboardPage() {
               {isLoading ? '...' : completedAnalyses}
             </div>
             <p className="text-xs text-muted-foreground">
-              {completedAnalyses === 0 ? 'No completed analyses' : 'Completed analyses'}
+              {completedAnalyses === 0 ? t('dashboard.noCompleted') : t('dashboard.completedAnalyses')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Shared</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.shared')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              Coming soon
+              {t('dashboard.comingSoon')}
             </p>
           </CardContent>
         </Card>
@@ -172,7 +174,7 @@ export function DashboardPage() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+        <h2 className="text-lg font-semibold mb-4">{t('dashboard.quickActions')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action) => (
             <Link key={action.title} to={action.href}>
@@ -198,7 +200,7 @@ export function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Recent Activity
+              {t('dashboard.recentActivity')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -210,7 +212,7 @@ export function DashboardPage() {
                       <Brain className="h-4 w-4 text-blue-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <Link 
+                      <Link
                         to={`/analysis-frameworks/${session.framework_type}/${session.id}`}
                         className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600"
                       >
@@ -233,8 +235,8 @@ export function DashboardPage() {
             ) : (
               <div className="text-center py-6">
                 <Brain className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No recent activity</p>
-                <p className="text-xs text-gray-400">Start a new analysis to see it here</p>
+                <p className="text-sm text-gray-500">{t('dashboard.noRecentActivity')}</p>
+                <p className="text-xs text-gray-400">{t('dashboard.startNewAnalysis')}</p>
               </div>
             )}
           </CardContent>
@@ -245,7 +247,7 @@ export function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
-              Framework Usage
+              {t('dashboard.frameworkUsage')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -273,14 +275,14 @@ export function DashboardPage() {
       <Card className="border-dashed border-2 border-gray-300 dark:border-gray-600">
         <CardContent className="flex flex-col items-center justify-center py-8">
           <Plus className="h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Start a New Analysis</h3>
+          <h3 className="text-lg font-semibold mb-2">{t('dashboard.startNewAnalysisTitle')}</h3>
           <p className="text-gray-500 text-center mb-4">
-            Choose from 10 research analysis frameworks to begin your research
+            {t('dashboard.chooseFramework')}
           </p>
           <Link to="/analysis-frameworks/swot-dashboard">
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Create Analysis
+              {t('dashboard.createAnalysis')}
             </Button>
           </Link>
         </CardContent>
