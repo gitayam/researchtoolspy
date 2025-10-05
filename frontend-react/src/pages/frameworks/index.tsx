@@ -2,6 +2,7 @@ import { FrameworkPlaceholder } from './FrameworkPlaceholder'
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Plus, Search, Grid3x3, MoreVertical, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -21,6 +22,7 @@ import { frameworkConfigs } from '@/config/framework-configs'
 import { frameworkDescriptions } from '@/config/framework-descriptions'
 
 export const SwotPage = () => {
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
@@ -106,7 +108,7 @@ export const SwotPage = () => {
   const handleDelete = async (deleteId?: string) => {
     const targetId = deleteId || id
     if (!targetId) return
-    if (!confirm('Are you sure you want to delete this analysis?')) return
+    if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
 
     try {
       const response = await fetch(`/api/frameworks?id=${targetId}`, {
@@ -171,7 +173,7 @@ export const SwotPage = () => {
   if ((isEditMode || isViewMode) && loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+        <div className="text-gray-600 dark:text-gray-400">{t('frameworkPages.loading')}</div>
       </div>
     )
   }
@@ -204,7 +206,7 @@ export const SwotPage = () => {
           navigate('/dashboard/analysis-frameworks/swot-dashboard/create')
         }}>
           <Plus className="h-4 w-4 mr-2" />
-          New Analysis
+          {t('frameworkPages.newAnalysis')}
         </Button>
       </div>
 
@@ -221,7 +223,7 @@ export const SwotPage = () => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
               >
-                Learn more on Wikipedia
+                {t('frameworkPages.learnMoreWikipedia')}
                 <ExternalLink className="h-4 w-4" />
               </a>
             )}
@@ -230,7 +232,7 @@ export const SwotPage = () => {
               <div>
                 <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
                   <CheckCircle className="h-4 w-4" />
-                  Good Use Cases
+                  {t('frameworkPages.goodUseCases')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
                   {frameworkInfo.goodUseCases.map((useCase, idx) => (
@@ -241,7 +243,7 @@ export const SwotPage = () => {
               <div>
                 <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
                   <XCircle className="h-4 w-4" />
-                  Not Ideal For
+                  {t('frameworkPages.notIdealFor')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
                   {frameworkInfo.notIdealFor.map((useCase, idx) => (
@@ -259,7 +261,7 @@ export const SwotPage = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             type="text"
-            placeholder="Search analyses..."
+            placeholder={t('frameworkPages.searchAnalyses')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -308,7 +310,7 @@ export const SwotPage = () => {
                     </div>
 
                     <div className="text-sm text-gray-500 dark:text-gray-500">
-                      Updated {new Date(analysis.updated_at).toLocaleDateString()}
+                      {t('frameworkPages.updated')} {new Date(analysis.updated_at).toLocaleDateString()}
                     </div>
                   </div>
 
@@ -320,13 +322,13 @@ export const SwotPage = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => navigate(`/dashboard/analysis-frameworks/swot-dashboard/${analysis.id}`)}>
-                      View
+                      {t('frameworkPages.view')}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate(`/dashboard/analysis-frameworks/swot-dashboard/${analysis.id}/edit`)}>
-                      Edit
+                      {t('buttons.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate(`/dashboard/analysis-frameworks/swot-dashboard/${analysis.id}`)}>
-                      Export
+                      {t('frameworkPages.export')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-red-600"
@@ -335,7 +337,7 @@ export const SwotPage = () => {
                         handleDelete(analysis.id.toString())
                       }}
                     >
-                      Delete
+                      {t('buttons.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -350,14 +352,14 @@ export const SwotPage = () => {
         <Card>
           <CardContent className="text-center py-12">
             <Grid3x3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No analyses found</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{t('frameworkPages.noAnalysesFound')}</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first SWOT analysis'}
+              {searchTerm ? t('frameworkPages.tryAdjustingSearch') : `${t('frameworkPages.getStartedFirst')} SWOT ${t('frameworkPages.analysis')}`}
             </p>
             {!searchTerm && (
               <Button onClick={() => navigate('/dashboard/analysis-frameworks/swot-dashboard/create')}>
                 <Plus className="h-4 w-4 mr-2" />
-                Create Analysis
+                {t('frameworkPages.createAnalysis')}
               </Button>
             )}
           </CardContent>
@@ -369,6 +371,7 @@ export const SwotPage = () => {
 
 // Generic Framework Page with full CRUD
 const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
+  const { t } = useTranslation()
   const config = frameworkConfigs[frameworkKey]
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
@@ -450,7 +453,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   const handleDelete = async (deleteId?: string) => {
     const targetId = deleteId || id
     if (!targetId) return
-    if (!confirm('Are you sure you want to delete this analysis?')) return
+    if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
 
     try {
       const response = await fetch(`/api/frameworks?id=${targetId}`, {
@@ -519,7 +522,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   if ((isEditMode || isViewMode) && loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+        <div className="text-gray-600 dark:text-gray-400">{t('frameworkPages.loading')}</div>
       </div>
     )
   }
@@ -549,7 +552,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
         </div>
         <Button onClick={() => navigate(`${basePath}/create`)}>
           <Plus className="h-4 w-4 mr-2" />
-          New Analysis
+{t('frameworkPages.newAnalysis')}
         </Button>
       </div>
 
@@ -567,7 +570,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Learn more on Wikipedia
+  {t('frameworkPages.learnMoreWikipedia')}
                   <ExternalLink className="h-4 w-4" />
                 </a>
               )}
@@ -576,7 +579,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
                 <div>
                   <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
                     <CheckCircle className="h-4 w-4" />
-                    Good Use Cases
+  {t('frameworkPages.goodUseCases')}
                   </h4>
                   <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
                     {frameworkInfo.goodUseCases.map((useCase, idx) => (
@@ -587,7 +590,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
                 <div>
                   <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
                     <XCircle className="h-4 w-4" />
-                    Not Ideal For
+  {t('frameworkPages.notIdealFor')}
                   </h4>
                   <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
                     {frameworkInfo.notIdealFor.map((useCase, idx) => (
@@ -606,7 +609,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             type="text"
-            placeholder="Search analyses..."
+            placeholder={t('frameworkPages.searchAnalyses')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -645,7 +648,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
                     </div>
 
                     <div className="text-sm text-gray-500 dark:text-gray-500">
-                      Updated {new Date(analysis.updated_at).toLocaleDateString()}
+                      {t('frameworkPages.updated')} {new Date(analysis.updated_at).toLocaleDateString()}
                     </div>
                   </div>
 
@@ -657,13 +660,13 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => navigate(`${basePath}/${analysis.id}`)}>
-                        View
+                        {t('frameworkPages.view')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate(`${basePath}/${analysis.id}/edit`)}>
-                        Edit
+                        {t('buttons.edit')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate(`${basePath}/${analysis.id}`)}>
-                        Export
+                        {t('frameworkPages.export')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-600"
@@ -672,7 +675,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
                           handleDelete(analysis.id.toString())
                         }}
                       >
-                        Delete
+                        {t('buttons.delete')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -687,14 +690,14 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
         <Card>
           <CardContent className="text-center py-12">
             <Grid3x3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No analyses found</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{t('frameworkPages.noAnalysesFound')}</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              {searchTerm ? 'Try adjusting your search terms' : `Get started by creating your first ${config.title} analysis`}
+              {searchTerm ? t('frameworkPages.tryAdjustingSearch') : `${t('frameworkPages.getStartedFirst')} ${config.title} ${t('frameworkPages.analysis')}`}
             </p>
             {!searchTerm && (
               <Button onClick={() => navigate(`${basePath}/create`)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Create Analysis
+                {t('frameworkPages.createAnalysis')}
               </Button>
             )}
           </CardContent>
@@ -706,6 +709,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
 
 // Generic Framework List Component (for frameworks not yet implemented)
 const FrameworkListPage = ({ title, description, frameworkType }: { title: string; description: string; frameworkType: string }) => {
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
   const navigate = useNavigate()
   const { id, action } = useParams()
@@ -721,7 +725,7 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
   if (isCreateMode || isEditMode || isViewMode) {
     return (
       <FrameworkPlaceholder
-        title={isCreateMode ? `Create ${title}` : isEditMode ? `Edit ${title}` : `View ${title}`}
+        title={isCreateMode ? `${t('frameworkPages.create')} ${title}` : isEditMode ? `${t('buttons.edit')} ${title}` : `${t('frameworkPages.view')} ${title}`}
         description={`${title} form will be implemented here`}
         frameworkType={frameworkType}
       />
@@ -737,7 +741,7 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
         </div>
         <Button onClick={() => navigate(`/dashboard/analysis-frameworks/${frameworkType}/create`)}>
           <Plus className="h-4 w-4 mr-2" />
-          New Analysis
+{t('frameworkPages.newAnalysis')}
         </Button>
       </div>
 
@@ -746,7 +750,7 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             type="text"
-            placeholder="Search analyses..."
+            placeholder={t('frameworkPages.searchAnalyses')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -757,13 +761,13 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
       <Card>
         <CardContent className="text-center py-12">
           <Grid3x3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No analyses found</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{t('frameworkPages.noAnalysesFound')}</h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            Get started by creating your first {title.toLowerCase()} analysis
+            {t('frameworkPages.getStartedFirst')} {title.toLowerCase()} {t('frameworkPages.analysis')}
           </p>
           <Button onClick={() => navigate(`/dashboard/analysis-frameworks/${frameworkType}/create`)}>
             <Plus className="h-4 w-4 mr-2" />
-            Create Analysis
+            {t('frameworkPages.createAnalysis')}
           </Button>
         </CardContent>
       </Card>
@@ -778,6 +782,7 @@ export const PmesiiPtPage = () => <GenericFrameworkPage frameworkKey="pmesii-pt"
 export const DotmlpfPage = () => <GenericFrameworkPage frameworkKey="dotmlpf" />
 
 export const DeceptionPage = () => {
+  const { t } = useTranslation()
   const config = frameworkConfigs['deception']
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
@@ -859,7 +864,7 @@ export const DeceptionPage = () => {
   const handleDelete = async (deleteId?: string) => {
     const targetId = deleteId || id
     if (!targetId) return
-    if (!confirm('Are you sure you want to delete this analysis?')) return
+    if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
 
     try {
       const response = await fetch(`/api/frameworks?id=${targetId}`, {
@@ -923,7 +928,7 @@ export const DeceptionPage = () => {
   if ((isEditMode || isViewMode) && loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+        <div className="text-gray-600 dark:text-gray-400">{t('frameworkPages.loading')}</div>
       </div>
     )
   }
@@ -953,7 +958,7 @@ export const DeceptionPage = () => {
         </div>
         <Button onClick={() => navigate(`${basePath}/create`)}>
           <Plus className="h-4 w-4 mr-2" />
-          New Analysis
+{t('frameworkPages.newAnalysis')}
         </Button>
       </div>
 
@@ -970,7 +975,7 @@ export const DeceptionPage = () => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
               >
-                Learn more on Wikipedia
+                {t('frameworkPages.learnMoreWikipedia')}
                 <ExternalLink className="h-4 w-4" />
               </a>
             )}
@@ -979,7 +984,7 @@ export const DeceptionPage = () => {
               <div>
                 <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
                   <CheckCircle className="h-4 w-4" />
-                  Good Use Cases
+                  {t('frameworkPages.goodUseCases')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
                   {frameworkInfo.goodUseCases.map((useCase, idx) => (
@@ -990,7 +995,7 @@ export const DeceptionPage = () => {
               <div>
                 <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
                   <XCircle className="h-4 w-4" />
-                  Not Ideal For
+                  {t('frameworkPages.notIdealFor')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
                   {frameworkInfo.notIdealFor.map((useCase, idx) => (
@@ -1008,7 +1013,7 @@ export const DeceptionPage = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             type="text"
-            placeholder="Search deception analyses..."
+            placeholder={t('frameworkPages.searchAnalyses')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -1078,7 +1083,7 @@ export const DeceptionPage = () => {
                     )}
 
                     <div className="text-sm text-gray-500 dark:text-gray-500">
-                      Updated {new Date(analysis.updated_at).toLocaleDateString()}
+                      {t('frameworkPages.updated')} {new Date(analysis.updated_at).toLocaleDateString()}
                     </div>
                   </div>
 
@@ -1090,13 +1095,13 @@ export const DeceptionPage = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => navigate(`${basePath}/${analysis.id}`)}>
-                        View
+                        {t('frameworkPages.view')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate(`${basePath}/${analysis.id}/edit`)}>
-                        Edit
+                        {t('buttons.edit')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate(`${basePath}/${analysis.id}`)}>
-                        Export
+                        {t('frameworkPages.export')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-600"
@@ -1105,7 +1110,7 @@ export const DeceptionPage = () => {
                           handleDelete(analysis.id.toString())
                         }}
                       >
-                        Delete
+                        {t('buttons.delete')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -1120,14 +1125,14 @@ export const DeceptionPage = () => {
         <Card>
           <CardContent className="text-center py-12">
             <Grid3x3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No analyses found</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{t('frameworkPages.noAnalysesFound')}</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first deception analysis using CIA SATS methodology'}
+              {searchTerm ? t('frameworkPages.tryAdjustingSearch') : `${t('frameworkPages.getStartedFirst')} deception ${t('frameworkPages.analysis')} using CIA SATS methodology`}
             </p>
             {!searchTerm && (
               <Button onClick={() => navigate(`${basePath}/create`)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Create Analysis
+{t('frameworkPages.createAnalysis')}
               </Button>
             )}
           </CardContent>

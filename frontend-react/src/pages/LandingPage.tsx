@@ -140,11 +140,10 @@ export function LandingPage() {
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Everything You Need for Research Analysis
+              {t('landing.everythingYouNeed')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              From strategic planning to threat assessment, ResearchTools provides the tools
-              and frameworks professional analysts trust.
+              {t('landing.providesTools')}
             </p>
           </div>
 
@@ -171,25 +170,25 @@ export function LandingPage() {
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Professional Analysis Frameworks
+              {t('landing.professionalFrameworks')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300">
-              Industry-standard research analysis methodologies at your fingertips
+              {t('landing.industryStandard')}
             </p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {[
-              "SWOT Analysis",
-              "COG Analysis",
-              "PMESII-PT",
-              "ACH Analysis",
-              "DOTMLPF",
-              "Deception Detection",
-              "Behavioral Analysis",
-              "Starbursting",
-              "Causeway",
-              "DIME Framework"
+              t('frameworks.swot'),
+              t('frameworks.cog'),
+              t('frameworks.pmesiipt'),
+              t('frameworks.ach'),
+              t('frameworks.dotmlpf'),
+              t('frameworks.deception'),
+              t('frameworks.behavior'),
+              t('frameworks.starbursting'),
+              t('frameworks.causeway'),
+              t('frameworks.dime')
             ].map((framework, index) => (
               <div
                 key={index}
@@ -212,23 +211,23 @@ export function LandingPage() {
         <div className="container mx-auto">
           <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-700 dark:to-blue-900 rounded-lg p-8 text-center">
             <h2 className="text-3xl font-bold mb-4 text-white">
-              Ready to Transform Your Analysis Workflow?
+              {t('landing.readyToTransform')}
             </h2>
             <p className="text-blue-100 dark:text-blue-200 mb-6 text-lg">
-              Browse all 13 frameworks for free • No login required • Optional account to save your work
+              {t('landing.browseAllFrameworks')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/dashboard">
                 <button className="text-lg px-8 py-3 bg-white hover:bg-gray-100 text-blue-700 font-bold rounded-lg shadow-md transition-colors flex items-center gap-2">
                   <Target className="h-5 w-5" />
-                  Browse Frameworks Now
+                  {t('landing.browseNow')}
                   <ArrowRight className="h-5 w-5" />
                 </button>
               </Link>
               <Link to="/login">
                 <button className="text-lg px-8 py-3 border-2 border-white text-white hover:bg-white/10 font-semibold rounded-lg transition-colors flex items-center gap-2">
                   <Unlock className="h-5 w-5" />
-                  Access Saved Work
+                  {t('landing.accessSaved')}
                 </button>
               </Link>
             </div>
