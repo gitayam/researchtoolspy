@@ -27,6 +27,7 @@ const PmesiiPtPage = lazy(() => import('@/pages/frameworks').then(m => ({ defaul
 const DotmlpfPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.DotmlpfPage })))
 const DeceptionPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.DeceptionPage })))
 const BehaviorPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.BehaviorPage })))
+const COMBAnalysisPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.COMBAnalysisPage })))
 const StarburstingPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.StarburstingPage })))
 const CausewayPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.CausewayPage })))
 const DimePage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.DimePage })))
@@ -186,6 +187,18 @@ export const router = createBrowserRouter([
       {
         path: 'analysis-frameworks/behavior/:id/:action',
         element: <LazyPage Component={BehaviorPage} />,
+      },
+      {
+        path: 'analysis-frameworks/comb-analysis',
+        element: <LazyPage Component={COMBAnalysisPage} />,
+      },
+      {
+        path: 'analysis-frameworks/comb-analysis/:action',
+        element: <LazyPage Component={COMBAnalysisPage} />,
+      },
+      {
+        path: 'analysis-frameworks/comb-analysis/:id/:action',
+        element: <LazyPage Component={COMBAnalysisPage} />,
       },
       {
         path: 'analysis-frameworks/starbursting',

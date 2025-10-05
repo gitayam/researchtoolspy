@@ -376,13 +376,13 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
 
   'behavior': {
     type: 'behavior',
-    title: 'Behavior Analysis (COM-B Model)',
-    description: 'Based on COM-B Model (Capability, Opportunity, Motivation → Behavior) by Michie, van Stralen, & West, and TM 3-53.11',
+    title: 'Behavior Analysis',
+    description: 'Objective documentation of behaviors in specific locations/contexts (based on U.S. Army FM TM 3-53.11)',
     sections: [
       {
         key: 'basic_info',
         label: 'Basic Information',
-        description: 'Define the target behavior and context being analyzed',
+        description: 'Define the behavior and context being analyzed (WHAT behavior, WHERE, WHEN)',
         color: 'border-blue-500',
         bgColor: 'bg-blue-50 dark:bg-blue-900/20',
         icon: '📋'
@@ -395,82 +395,26 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         bgColor: 'bg-green-50 dark:bg-green-900/20',
         icon: '📅'
       },
-      // COM-B: CAPABILITY
       {
-        key: 'physical_capability',
-        label: 'Physical Capability',
-        description: 'Physical skills, strength, stamina required to perform the behavior',
-        color: 'border-orange-500',
-        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-        icon: '💪',
-        hasDeficitAssessment: true,
-        comBComponent: 'physical_capability'
-      },
-      {
-        key: 'psychological_capability',
-        label: 'Psychological Capability',
-        description: 'Knowledge, cognitive skills, mental capacity, comprehension needed',
-        color: 'border-amber-500',
-        bgColor: 'bg-amber-50 dark:bg-amber-900/20',
-        icon: '🧠',
-        hasDeficitAssessment: true,
-        comBComponent: 'psychological_capability'
-      },
-      // COM-B: OPPORTUNITY
-      {
-        key: 'physical_opportunity',
-        label: 'Physical Opportunity',
-        description: 'Environmental factors: time, resources, locations, accessibility, infrastructure',
+        key: 'environmental_factors',
+        label: 'Environmental Factors',
+        description: 'Objective environmental context: locations, infrastructure, resources, accessibility',
         color: 'border-teal-500',
         bgColor: 'bg-teal-50 dark:bg-teal-900/20',
-        icon: '🌍',
-        hasDeficitAssessment: true,
-        comBComponent: 'physical_opportunity'
+        icon: '🌍'
       },
       {
-        key: 'social_opportunity',
-        label: 'Social Opportunity',
-        description: 'Cultural norms, social cues, peer influence, interpersonal factors',
+        key: 'social_context',
+        label: 'Social and Cultural Context',
+        description: 'Observable cultural norms, social patterns, group dynamics (without target audience bias)',
         color: 'border-cyan-500',
         bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
-        icon: '👥',
-        hasDeficitAssessment: true,
-        comBComponent: 'social_opportunity'
-      },
-      // COM-B: MOTIVATION
-      {
-        key: 'reflective_motivation',
-        label: 'Reflective Motivation',
-        description: 'Beliefs, intentions, goals, identity, conscious decision-making processes',
-        color: 'border-indigo-500',
-        bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
-        icon: '🎯',
-        hasDeficitAssessment: true,
-        comBComponent: 'reflective_motivation'
-      },
-      {
-        key: 'automatic_motivation',
-        label: 'Automatic Motivation',
-        description: 'Emotions, impulses, habits, desires, affective reactions',
-        color: 'border-purple-500',
-        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-        icon: '⚡',
-        hasDeficitAssessment: true,
-        comBComponent: 'automatic_motivation'
-      },
-      // Additional Analysis
-      {
-        key: 'barriers',
-        label: 'Barriers and Facilitators',
-        description: 'What prevents or enables the behavior? Obstacles and supporting factors',
-        color: 'border-red-500',
-        bgColor: 'bg-red-50 dark:bg-red-900/20',
-        icon: '⚠️'
+        icon: '👥'
       },
       {
         key: 'consequences',
         label: 'Consequences and Outcomes',
-        description: 'Rewards, costs, positive/negative outcomes for performing the behavior',
+        description: 'Observable rewards, costs, positive/negative outcomes for performing the behavior',
         color: 'border-pink-500',
         bgColor: 'bg-pink-50 dark:bg-pink-900/20',
         icon: '⚖️'
@@ -484,20 +428,130 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         icon: '🎭'
       },
       {
-        key: 'intervention_strategies',
-        label: 'Intervention Strategies',
-        description: 'Evidence-based strategies to change behavior (based on Behaviour Change Wheel)',
-        color: 'border-lime-500',
-        bgColor: 'bg-lime-50 dark:bg-lime-900/20',
-        icon: '📊'
+        key: 'observed_patterns',
+        label: 'Observed Patterns',
+        description: 'Behavioral sequences, alternative paths, common variations in how the behavior is performed',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '🔄'
       },
       {
-        key: 'target_audiences',
-        label: 'Target Audience Segmentation',
-        description: 'Primary, secondary, enablers, opposers, beneficiaries of behavior change',
+        key: 'potential_audiences',
+        label: 'Potential Target Audiences',
+        description: 'Identify different groups that perform or could perform this behavior (for future COM-B Analysis)',
         color: 'border-violet-500',
         bgColor: 'bg-violet-50 dark:bg-violet-900/20',
-        icon: '🎪'
+        icon: '🎯'
+      }
+    ]
+  },
+
+  'comb-analysis': {
+    type: 'comb-analysis',
+    title: 'COM-B Analysis (Behaviour Change Wheel)',
+    description: 'Target-audience-specific assessment using the COM-B model and Behaviour Change Wheel methodology',
+    sections: [
+      {
+        key: 'setup',
+        label: 'Analysis Setup',
+        description: 'Link to behavior and define target audience',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '🎯'
+      },
+      {
+        key: 'target_audience',
+        label: 'Target Audience Definition',
+        description: 'Demographics, psychographics, current relationship to behavior',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '👥'
+      },
+      // COM-B COMPONENT ASSESSMENTS
+      {
+        key: 'physical_capability',
+        label: 'Physical Capability Assessment',
+        description: 'Does this audience have the physical skills, strength, stamina needed?',
+        color: 'border-orange-500',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        icon: '💪',
+        hasDeficitAssessment: true,
+        comBComponent: 'physical_capability'
+      },
+      {
+        key: 'psychological_capability',
+        label: 'Psychological Capability Assessment',
+        description: 'Does this audience have the knowledge, cognitive skills, comprehension needed?',
+        color: 'border-amber-500',
+        bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+        icon: '🧠',
+        hasDeficitAssessment: true,
+        comBComponent: 'psychological_capability'
+      },
+      {
+        key: 'physical_opportunity',
+        label: 'Physical Opportunity Assessment',
+        description: 'Does this audience have access to environmental factors, time, resources, infrastructure?',
+        color: 'border-teal-500',
+        bgColor: 'bg-teal-50 dark:bg-teal-900/20',
+        icon: '🌍',
+        hasDeficitAssessment: true,
+        comBComponent: 'physical_opportunity'
+      },
+      {
+        key: 'social_opportunity',
+        label: 'Social Opportunity Assessment',
+        description: 'Do cultural norms, social cues, peer influence support this audience?',
+        color: 'border-cyan-500',
+        bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
+        icon: '👥',
+        hasDeficitAssessment: true,
+        comBComponent: 'social_opportunity'
+      },
+      {
+        key: 'reflective_motivation',
+        label: 'Reflective Motivation Assessment',
+        description: 'Do this audience\'s beliefs, intentions, goals, identity align with the behavior?',
+        color: 'border-indigo-500',
+        bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
+        icon: '🎯',
+        hasDeficitAssessment: true,
+        comBComponent: 'reflective_motivation'
+      },
+      {
+        key: 'automatic_motivation',
+        label: 'Automatic Motivation Assessment',
+        description: 'Do this audience\'s emotions, impulses, habits, desires support the behavior?',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '⚡',
+        hasDeficitAssessment: true,
+        comBComponent: 'automatic_motivation'
+      },
+      // ADDITIONAL CONTEXT
+      {
+        key: 'contextual_factors',
+        label: 'Contextual Factors',
+        description: 'Environmental, cultural, or situational factors affecting this audience',
+        color: 'border-slate-500',
+        bgColor: 'bg-slate-50 dark:bg-slate-900/20',
+        icon: '🌐'
+      },
+      {
+        key: 'assumptions',
+        label: 'Assumptions',
+        description: 'What assumptions were made during this assessment?',
+        color: 'border-yellow-500',
+        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+        icon: '⚠️'
+      },
+      {
+        key: 'limitations',
+        label: 'Limitations',
+        description: 'What are the limitations of this analysis?',
+        color: 'border-red-500',
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        icon: '🚫'
       }
     ]
   },

@@ -197,26 +197,50 @@ export const frameworkDescriptions: Record<string, FrameworkDescription> = {
   },
 
   'behavior': {
-    title: 'Behavior Analysis (COM-B Model)',
-    context: `This framework integrates the COM-B Model (Capability, Opportunity, Motivation → Behavior) developed by Susan Michie, Maartje van Stralen, and Robert West with U.S. Army Field Manual TM 3-53.11. The COM-B model, published in Implementation Science (2011), forms the hub of the Behaviour Change Wheel and identifies three essential conditions for behavior: (1) Capability - physical and psychological ability, (2) Opportunity - physical and social environmental factors, and (3) Motivation - reflective and automatic cognitive processes. The framework includes an interactive timeline component for mapping behavior sequences, sub-steps, and alternative paths (forks), making it ideal for systematic behavior analysis in influence operations, public health, and behavior change interventions.`,
+    title: 'Behavior Analysis',
+    context: `Behavior Analysis provides objective documentation and analysis of behaviors in specific locations or contexts, based on U.S. Army Field Manual TM 3-53.11. This framework focuses on WHAT behavior occurs, WHERE, WHEN, and HOW, without bias toward any specific target audience. It maps behavior timelines with interactive sequences and forks, identifies environmental factors, documents objective barriers and facilitators, analyzes consequences, and identifies potential target audiences. This analysis serves as the foundation for subsequent target-audience-specific COM-B assessments.`,
     wikipediaUrl: 'https://en.wikipedia.org/wiki/Behavior_modification',
     goodUseCases: [
-      'Public health behavior change interventions',
-      'Military information operations and influence campaigns',
-      'Social marketing and advocacy campaigns',
-      'Organizational behavior change initiatives',
-      'Community development and social programs',
-      'Health promotion and disease prevention programs',
-      'Understanding barriers and facilitators to behavior change',
-      'Designing evidence-based interventions using Behaviour Change Wheel'
+      'Documenting behaviors in military/intelligence operations',
+      'Objective behavior mapping for public health campaigns',
+      'Environmental and contextual analysis of behaviors',
+      'Identifying target audiences for behavior change initiatives',
+      'Foundation for influence operations planning',
+      'Understanding behavior patterns in communities',
+      'Mapping behavior sequences and alternative paths'
     ],
     notIdealFor: [
-      'Individual clinical psychology or therapy',
-      'Technology or systems analysis without human behavior',
+      'Target-audience-specific capability assessment (use COM-B Analysis)',
+      'Intervention design (use COM-B Analysis with BCW)',
+      'Individual therapy or counseling',
       'Financial or economic analysis',
-      'Problems not involving human behavior change',
-      'Quick tactical decisions without behavior analysis needs',
-      'Purely cognitive or attitudinal assessments without behavioral components'
+      'Technology systems without human behavior',
+      'Purely attitudinal assessments'
+    ]
+  },
+
+  'comb-analysis': {
+    title: 'COM-B Analysis (Behaviour Change Wheel)',
+    context: `COM-B Analysis applies the Behaviour Change Wheel methodology (Michie et al., 2011) to assess a SPECIFIC target audience's Capability, Opportunity, and Motivation to perform a defined behavior. This target-audience-specific framework evaluates six COM-B components (Physical/Psychological Capability, Physical/Social Opportunity, Reflective/Automatic Motivation) and automatically generates evidence-based intervention recommendations from 9 intervention functions and 7 policy categories. Each analysis links to an objective Behavior Analysis and focuses on one target audience, enabling multiple COM-B analyses for different audiences performing the same behavior.`,
+    wikipediaUrl: 'https://en.wikipedia.org/wiki/Behavior_modification',
+    goodUseCases: [
+      'Target-audience-specific behavior change interventions',
+      'Public health campaign design with specific populations',
+      'Military influence operations targeting defined audiences',
+      'Social marketing for segmented demographics',
+      'Organizational change initiatives for employee groups',
+      'Health promotion programs for specific communities',
+      'Evidence-based intervention selection using BCW methodology',
+      'Policy development for behavior change at scale'
+    ],
+    notIdealFor: [
+      'Objective behavior documentation (use Behavior Analysis)',
+      'Multi-audience analysis without segmentation',
+      'Situations without defined target audience',
+      'Individual clinical therapy or counseling',
+      'Technology or systems analysis',
+      'Financial or economic decisions',
+      'Problems not involving behavior change'
     ]
   },
 

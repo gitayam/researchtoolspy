@@ -1139,6 +1139,8 @@ export const DeceptionPage = () => {
 
 export const BehaviorPage = () => <GenericFrameworkPage frameworkKey="behavior" />
 
+export const COMBAnalysisPage = () => <GenericFrameworkPage frameworkKey="comb-analysis" />
+
 export const StarburstingPage = () => <GenericFrameworkPage frameworkKey="starbursting" />
 
 export const CausewayPage = () => <GenericFrameworkPage frameworkKey="causeway" />
