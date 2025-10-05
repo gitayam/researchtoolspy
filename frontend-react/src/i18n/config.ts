@@ -18,7 +18,9 @@ i18n
         common: commonES,
       },
     },
+    lng: 'en', // Force English as default
     fallbackLng: 'en',
+    supportedLngs: ['en', 'es'],
     defaultNS: 'common',
     interpolation: {
       escapeValue: false, // React already escapes
@@ -27,7 +29,7 @@ i18n
       useSuspense: false, // Avoid suspense boundaries for simplicity
     },
     detection: {
-      order: ['localStorage', 'navigator'],
+      order: ['localStorage'], // Only use localStorage, not browser language
       caches: ['localStorage'],
       lookupLocalStorage: 'app-language',
     },

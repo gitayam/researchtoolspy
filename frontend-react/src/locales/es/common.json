@@ -155,7 +155,13 @@
     "publicAndFree": "Público y Gratuito",
     "publicDesc": "Explora todos los marcos sin registrarte • Inicio de sesión opcional para guardar trabajo permanentemente",
     "exportReporting": "Exportación e Informes",
-    "exportDesc": "Genera informes profesionales en PDF, Word, PowerPoint y otros formatos"
+    "exportDesc": "Genera informes profesionales en PDF, Word, PowerPoint y otros formatos",
+    "professionalFrameworks": "Marcos de Análisis Profesionales",
+    "industryStandard": "Metodologías de análisis de investigación estándar de la industria a tu alcance",
+    "readyToTransform": "¿Listo para Transformar tu Flujo de Trabajo de Análisis?",
+    "browseAllFrameworks": "Explora los 13 marcos gratis • No se requiere inicio de sesión • Cuenta opcional para guardar tu trabajo",
+    "browseNow": "Explorar Marcos Ahora",
+    "accessSaved": "Acceder a Trabajo Guardado"
   },
   "dashboard": {
     "welcome": "Bienvenido a Herramientas de Análisis de Investigación",
@@ -223,5 +229,23 @@
     "citationSuccess": "¡Cita generada y agregada a tu biblioteca!\n\nVe al Generador de Citas para verla y gestionarla.",
     "citationError": "Error al generar la cita. Por favor, inténtalo de nuevo.",
     "deleteError": "Error al eliminar la evidencia"
+  },
+  "frameworkPages": {
+    "learnMoreWikipedia": "Más información en Wikipedia",
+    "goodUseCases": "Buenos Casos de Uso",
+    "notIdealFor": "No Ideal Para",
+    "searchAnalyses": "Buscar análisis...",
+    "noAnalysesFound": "No se encontraron análisis",
+    "tryAdjustingSearch": "Intenta ajustar tus términos de búsqueda",
+    "getStartedFirst": "Comienza creando tu primer",
+    "analysis": "análisis",
+    "newAnalysis": "Nuevo Análisis",
+    "createAnalysis": "Crear Análisis",
+    "create": "Crear",
+    "view": "Ver",
+    "export": "Exportar",
+    "updated": "Actualizado",
+    "loading": "Cargando...",
+    "confirmDeleteAnalysis": "¿Estás seguro de que deseas eliminar este análisis?"
   }
 }

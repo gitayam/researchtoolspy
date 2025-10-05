@@ -155,7 +155,13 @@
     "publicAndFree": "Public & Free",
     "publicDesc": "Browse all frameworks without signup • Optional login to save work permanently",
     "exportReporting": "Export & Reporting",
-    "exportDesc": "Generate professional reports in PDF, Word, PowerPoint, and other formats"
+    "exportDesc": "Generate professional reports in PDF, Word, PowerPoint, and other formats",
+    "professionalFrameworks": "Professional Analysis Frameworks",
+    "industryStandard": "Industry-standard research analysis methodologies at your fingertips",
+    "readyToTransform": "Ready to Transform Your Analysis Workflow?",
+    "browseAllFrameworks": "Browse all 13 frameworks for free • No login required • Optional account to save your work",
+    "browseNow": "Browse Frameworks Now",
+    "accessSaved": "Access Saved Work"
   },
   "dashboard": {
     "welcome": "Welcome to Research Analysis Tools",
@@ -223,5 +229,23 @@
     "citationSuccess": "Citation generated and added to your library!\n\nGo to Citations Generator to view and manage it.",
     "citationError": "Failed to generate citation. Please try again.",
     "deleteError": "Failed to delete evidence"
+  },
+  "frameworkPages": {
+    "learnMoreWikipedia": "Learn more on Wikipedia",
+    "goodUseCases": "Good Use Cases",
+    "notIdealFor": "Not Ideal For",
+    "searchAnalyses": "Search analyses...",
+    "noAnalysesFound": "No analyses found",
+    "tryAdjustingSearch": "Try adjusting your search terms",
+    "getStartedFirst": "Get started by creating your first",
+    "analysis": "analysis",
+    "newAnalysis": "New Analysis",
+    "createAnalysis": "Create Analysis",
+    "create": "Create",
+    "view": "View",
+    "export": "Export",
+    "updated": "Updated",
+    "loading": "Loading...",
+    "confirmDeleteAnalysis": "Are you sure you want to delete this analysis?"
   }
 }
