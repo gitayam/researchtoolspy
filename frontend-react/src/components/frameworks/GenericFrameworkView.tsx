@@ -5,7 +5,7 @@ import type { FrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type LinkedEvidence, type EvidenceEntityType } from '@/components/evidence'
@@ -529,6 +529,46 @@ export function GenericFrameworkView({
           selectedInterventions={(data.selected_interventions as InterventionFunction[]) || []}
           readOnly={true}
         />
+      )}
+
+      {/* COM-B Analyses (for Behavior framework) */}
+      {frameworkType === 'behavior' && (
+        <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">🎯</span>
+                  COM-B Analyses
+                </CardTitle>
+                <CardDescription className="mt-2">
+                  Target-audience-specific assessments using the COM-B model (Capability, Opportunity, Motivation → Behavior)
+                </CardDescription>
+              </div>
+              <Button
+                onClick={() => {
+                  const url = `/dashboard/analysis-frameworks/comb-analysis/create?behavior_id=${data.id}&behavior_title=${encodeURIComponent(frameworkTitle)}`
+                  window.open(url, '_blank')
+                }}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create COM-B Analysis
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Create target-audience-specific COM-B analyses for this behavior. Each analysis evaluates one audience's
+              Capability, Opportunity, and Motivation to perform this behavior and generates evidence-based intervention recommendations.
+            </p>
+            <div className="bg-white dark:bg-gray-800 border rounded-lg p-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                COM-B analyses linked to this behavior will appear here once created.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Entity Quick Create Modal */}

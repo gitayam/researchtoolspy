@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Search, Link2, ExternalLink } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -26,10 +27,22 @@ export function BehaviorSelector({
   onSelect,
   onClear
 }: BehaviorSelectorProps) {
+  const [searchParams] = useSearchParams()
   const [behaviors, setBehaviors] = useState<BehaviorOption[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showSelector, setShowSelector] = useState(!selectedBehaviorId)
+
+  // Check for URL parameters on mount
+  useEffect(() => {
+    const urlBehaviorId = searchParams.get('behavior_id')
+    const urlBehaviorTitle = searchParams.get('behavior_title')
+
+    if (urlBehaviorId && urlBehaviorTitle && !selectedBehaviorId) {
+      onSelect(urlBehaviorId, decodeURIComponent(urlBehaviorTitle))
+      setShowSelector(false)
+    }
+  }, [searchParams, selectedBehaviorId, onSelect])
 
   // Load behaviors from API
   useEffect(() => {
