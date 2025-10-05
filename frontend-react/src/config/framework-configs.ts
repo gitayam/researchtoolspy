@@ -7,6 +7,7 @@ export interface FrameworkSection {
   icon: string
   hasDeficitAssessment?: boolean  // For COM-B components in behavior analysis
   comBComponent?: 'physical_capability' | 'psychological_capability' | 'physical_opportunity' | 'social_opportunity' | 'reflective_motivation' | 'automatic_motivation'
+  promptQuestions?: string[]  // Guided questions to help users know what to document
 }
 
 export interface FrameworkConfig {
@@ -398,50 +399,92 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'environmental_factors',
         label: 'Environmental Factors',
-        description: 'Objective environmental context: locations, infrastructure, resources, accessibility',
+        description: 'Physical and environmental context. What infrastructure, resources, and accessibility factors exist?',
         color: 'border-teal-500',
         bgColor: 'bg-teal-50 dark:bg-teal-900/20',
-        icon: '🌍'
+        icon: '🌍',
+        promptQuestions: [
+          'What physical infrastructure exists? (buildings, roads, facilities)',
+          'What resources are available? (equipment, materials, spaces)',
+          'What are the accessibility considerations?',
+          'What physical constraints or enablers exist?',
+          'What environmental conditions affect this? (weather, climate, terrain)'
+        ]
       },
       {
         key: 'social_context',
         label: 'Social and Cultural Context',
-        description: 'Observable cultural norms, social patterns, group dynamics (without target audience bias)',
+        description: 'Cultural norms, social influences, and community dynamics around this behavior.',
         color: 'border-cyan-500',
         bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
-        icon: '👥'
+        icon: '👥',
+        promptQuestions: [
+          'What are the cultural norms around this behavior?',
+          'What social influences exist? (family, peers, community)',
+          'Are there community leaders or influencers?',
+          'What group dynamics or social pressures exist?',
+          'How do people talk about or communicate about this behavior?'
+        ]
       },
       {
         key: 'consequences',
         label: 'Consequences and Outcomes',
-        description: 'Observable rewards, costs, positive/negative outcomes for performing the behavior',
+        description: 'What happens after someone performs this behavior? Rewards, costs, outcomes.',
         color: 'border-pink-500',
         bgColor: 'bg-pink-50 dark:bg-pink-900/20',
-        icon: '⚖️'
+        icon: '⚖️',
+        promptQuestions: [
+          'What are the immediate consequences?',
+          'What are the long-term outcomes?',
+          'What rewards exist? (intrinsic and extrinsic)',
+          'What costs or penalties exist?',
+          'What unintended consequences occur?'
+        ]
       },
       {
         key: 'symbols',
         label: 'Symbols and Signals',
-        description: 'Cultural symbols, gestures, codes, or signals associated with the behavior',
+        description: 'Visual, auditory, or social cues associated with this behavior.',
         color: 'border-yellow-500',
         bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-        icon: '🎭'
+        icon: '🎭',
+        promptQuestions: [
+          'What symbols are associated with this behavior?',
+          'What signals indicate someone is about to do this or has done it?',
+          'Are there visual cues? (clothing, logos, badges)',
+          'Are there auditory cues? (sounds, music, verbal phrases)',
+          'What social status or identity markers exist?'
+        ]
       },
       {
         key: 'observed_patterns',
         label: 'Observed Patterns',
-        description: 'Behavioral sequences, alternative paths, common variations in how the behavior is performed',
+        description: 'Variations and patterns in how different people perform this behavior.',
         color: 'border-purple-500',
         bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-        icon: '🔄'
+        icon: '🔄',
+        promptQuestions: [
+          'What variations exist in how people perform this?',
+          'What are common sequences or typical paths?',
+          'What shortcuts or workarounds do people use?',
+          'How does performance vary by subgroup or demographic?',
+          'What adaptations do people make to constraints?'
+        ]
       },
       {
         key: 'potential_audiences',
         label: 'Potential Target Audiences',
-        description: 'Identify different groups that perform or could perform this behavior (for future COM-B Analysis)',
+        description: 'Who performs this behavior? Who could but doesn\'t? Identify audience segments for COM-B Analysis.',
         color: 'border-violet-500',
         bgColor: 'bg-violet-50 dark:bg-violet-900/20',
-        icon: '🎯'
+        icon: '🎯',
+        promptQuestions: [
+          'Who currently performs this behavior?',
+          'Who could perform it but doesn\'t?',
+          'What are the key demographic segments?',
+          'What psychographic differences exist between groups?',
+          'Who influences whether others perform this?'
+        ]
       }
     ]
   },
