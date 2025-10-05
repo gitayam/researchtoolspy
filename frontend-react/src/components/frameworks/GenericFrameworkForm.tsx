@@ -821,7 +821,7 @@ export function GenericFrameworkForm({
             framework={frameworkType}
             onExtract={handleUrlExtract}
           />
-          {(frameworkType === 'starbursting' || frameworkType === 'dime') && (
+          {frameworkConfigs[frameworkType]?.itemType === 'qa' && (
             <Button
               variant="outline"
               onClick={generateFollowUpQuestions}
