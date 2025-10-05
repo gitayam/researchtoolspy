@@ -13,6 +13,7 @@ import { DatasetBadge } from '@/components/datasets/DatasetBadge'
 import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
 import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
+import { BehaviorSelector } from '@/components/frameworks/BehaviorSelector'
 import type { Dataset } from '@/types/dataset'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
@@ -381,6 +382,10 @@ export function GenericFrameworkForm({
   const [title, setTitle] = useState(initialData?.title || '')
   const [description, setDescription] = useState(initialData?.description || '')
   const [sourceUrl, setSourceUrl] = useState<string>((initialData as any)?.source_url || '')
+
+  // For COM-B Analysis: linked behavior
+  const [linkedBehaviorId, setLinkedBehaviorId] = useState<string | undefined>((initialData as any)?.linked_behavior_id)
+  const [linkedBehaviorTitle, setLinkedBehaviorTitle] = useState<string | undefined>((initialData as any)?.linked_behavior_title)
 
   // Initialize state for each section
   const [sectionData, setSectionData] = useState<{ [key: string]: FrameworkItem[] }>(
@@ -829,6 +834,13 @@ export function GenericFrameworkForm({
           com_b_deficits: comBDeficits,
           selected_interventions: selectedInterventions,
         }),
+        // Add linked behavior for COM-B Analysis
+        ...(frameworkType === 'comb-analysis' && {
+          linked_behavior_id: linkedBehaviorId,
+          linked_behavior_title: linkedBehaviorTitle,
+          com_b_deficits: comBDeficits,
+          selected_interventions: selectedInterventions,
+        }),
       }
 
       console.log(`Saving ${frameworkType} analysis:`, data)
@@ -986,6 +998,25 @@ export function GenericFrameworkForm({
       {/* Framework Sections */}
       <div className={`grid grid-cols-1 ${sections.length === 4 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
         {sections.map(section => {
+          // Special handling for COM-B Analysis setup (behavior linking)
+          if (frameworkType === 'comb-analysis' && section.key === 'setup') {
+            return (
+              <BehaviorSelector
+                key={section.key}
+                selectedBehaviorId={linkedBehaviorId}
+                selectedBehaviorTitle={linkedBehaviorTitle}
+                onSelect={(id, title) => {
+                  setLinkedBehaviorId(id)
+                  setLinkedBehaviorTitle(title)
+                }}
+                onClear={() => {
+                  setLinkedBehaviorId(undefined)
+                  setLinkedBehaviorTitle(undefined)
+                }}
+              />
+            )
+          }
+
           // Special handling for behavior timeline
           if (frameworkType === 'behavior' && section.key === 'timeline') {
             const timelineEvents: TimelineEvent[] = (sectionData[section.key] || []) as any[]
