@@ -13,7 +13,9 @@ import { AutoGenerateButton } from '@/components/network'
 import { generateRelationshipsFromCOG, generateRelationshipsFromCauseway } from '@/utils/framework-relationships'
 import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
+import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
 import type { CreateRelationshipRequest } from '@/types/entities'
+import type { ComBDeficits, InterventionFunction } from '@/types/behavior-change-wheel'
 
 interface FrameworkSection {
   key: string
@@ -518,6 +520,15 @@ export function GenericFrameworkView({
           )
         })}
       </div>
+
+      {/* BCW Recommendations (Behaviour Change Wheel) - Only for behavior framework */}
+      {frameworkType === 'behavior' && data.com_b_deficits && (
+        <BCWRecommendations
+          deficits={data.com_b_deficits as ComBDeficits}
+          selectedInterventions={(data.selected_interventions as InterventionFunction[]) || []}
+          readOnly={true}
+        />
+      )}
 
       {/* Entity Quick Create Modal */}
       <EntityQuickCreate

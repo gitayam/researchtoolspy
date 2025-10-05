@@ -5,6 +5,8 @@ export interface FrameworkSection {
   color: string
   bgColor: string
   icon: string
+  hasDeficitAssessment?: boolean  // For COM-B components in behavior analysis
+  comBComponent?: 'physical_capability' | 'psychological_capability' | 'physical_opportunity' | 'social_opportunity' | 'reflective_motivation' | 'automatic_motivation'
 }
 
 export interface FrameworkConfig {
@@ -400,7 +402,9 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Physical skills, strength, stamina required to perform the behavior',
         color: 'border-orange-500',
         bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-        icon: '💪'
+        icon: '💪',
+        hasDeficitAssessment: true,
+        comBComponent: 'physical_capability'
       },
       {
         key: 'psychological_capability',
@@ -408,7 +412,9 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Knowledge, cognitive skills, mental capacity, comprehension needed',
         color: 'border-amber-500',
         bgColor: 'bg-amber-50 dark:bg-amber-900/20',
-        icon: '🧠'
+        icon: '🧠',
+        hasDeficitAssessment: true,
+        comBComponent: 'psychological_capability'
       },
       // COM-B: OPPORTUNITY
       {
@@ -417,7 +423,9 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Environmental factors: time, resources, locations, accessibility, infrastructure',
         color: 'border-teal-500',
         bgColor: 'bg-teal-50 dark:bg-teal-900/20',
-        icon: '🌍'
+        icon: '🌍',
+        hasDeficitAssessment: true,
+        comBComponent: 'physical_opportunity'
       },
       {
         key: 'social_opportunity',
@@ -425,7 +433,9 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Cultural norms, social cues, peer influence, interpersonal factors',
         color: 'border-cyan-500',
         bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
-        icon: '👥'
+        icon: '👥',
+        hasDeficitAssessment: true,
+        comBComponent: 'social_opportunity'
       },
       // COM-B: MOTIVATION
       {
@@ -434,7 +444,9 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Beliefs, intentions, goals, identity, conscious decision-making processes',
         color: 'border-indigo-500',
         bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
-        icon: '🎯'
+        icon: '🎯',
+        hasDeficitAssessment: true,
+        comBComponent: 'reflective_motivation'
       },
       {
         key: 'automatic_motivation',
@@ -442,7 +454,9 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Emotions, impulses, habits, desires, affective reactions',
         color: 'border-purple-500',
         bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-        icon: '⚡'
+        icon: '⚡',
+        hasDeficitAssessment: true,
+        comBComponent: 'automatic_motivation'
       },
       // Additional Analysis
       {
