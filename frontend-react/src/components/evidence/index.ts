@@ -4,6 +4,7 @@ export { EvidenceItemForm } from './EvidenceItemForm'
 // Framework-Evidence Integration Components (Phase 1)
 export { EvidenceLinker } from './EvidenceLinker'
 export { EvidenceBadge, EvidenceCount } from './EvidenceBadge'
+export { EvidenceItemBadge } from './EvidenceItemBadge'
 export { EvidencePanel } from './EvidencePanel'
 
 // Entity Quick Creation (Phase 2)
