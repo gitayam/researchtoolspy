@@ -1149,18 +1149,6 @@ export const PestPage = () => <GenericFrameworkPage frameworkKey="pest" />
 
 export const StakeholderPage = () => <GenericFrameworkPage frameworkKey="stakeholder" />
 
-export const SurveillancePage = () => (
-  <FrameworkListPage
-    title="Surveillance Framework"
-    description="Surveillance Pattern Analysis"
-    frameworkType="surveillance"
-  />
-)
+export const SurveillancePage = () => <GenericFrameworkPage frameworkKey="surveillance" />
 
-export const FundamentalFlowPage = () => (
-  <FrameworkListPage
-    title="Fundamental Flow Analysis"
-    description="Flow and Process Analysis"
-    frameworkType="fundamental-flow"
-  />
-)
+export const FundamentalFlowPage = () => <GenericFrameworkPage frameworkKey="fundamental-flow" />
