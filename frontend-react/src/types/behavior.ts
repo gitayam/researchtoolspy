@@ -57,6 +57,19 @@ export interface ConsequenceItem {
   who_affected?: string // Who experiences this consequence
 }
 
+// Symbol types for behavior analysis
+export type SymbolType = 'visual' | 'auditory' | 'social' | 'other'
+
+export interface SymbolItem {
+  id: string
+  name: string // What is this symbol? (e.g., "Red baseball cap", "Victory gesture")
+  symbol_type: SymbolType
+  description?: string // What does it represent/signify?
+  context?: string // When/where is it used?
+  image_url?: string // Uploaded image URL (stored)
+  image_data?: string // Base64 image data (temporary, before upload)
+}
+
 // Extended TimelineEvent with sub-steps and forks
 export interface TimelineSubStep {
   label: string
@@ -105,7 +118,7 @@ export interface BehaviorAnalysis {
   environmental_factors?: any[]
   social_context?: any[]
   consequences?: ConsequenceItem[]
-  symbols?: any[]
+  symbols?: SymbolItem[]
   observed_patterns?: any[]
   potential_audiences?: any[]
 
