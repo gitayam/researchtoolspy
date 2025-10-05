@@ -5,23 +5,23 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import type { TimelineEvent as BehaviorTimelineEvent } from '@/types/behavior'
 
-export interface TimelineEvent {
-  id: string
-  title: string
-  description?: string
-  time?: string
-  location?: string
+// Re-export the type from behavior for external use
+export type { TimelineEvent } from '@/types/behavior'
+
+// Internal UI type that extends the base type with editor-specific fields
+interface TimelineEventUI extends BehaviorTimelineEvent {
   duration?: string
   order: number
   parentId?: string
   isFork?: boolean
-  children?: TimelineEvent[]
+  children?: TimelineEventUI[]
 }
 
 interface BehaviorTimelineProps {
-  events: TimelineEvent[]
-  onChange: (events: TimelineEvent[]) => void
+  events: BehaviorTimelineEvent[]
+  onChange: (events: BehaviorTimelineEvent[]) => void
   readOnly?: boolean
 }
 
@@ -29,6 +29,13 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set())
   const [editingEvent, setEditingEvent] = useState<string | null>(null)
   const [draggedEvent, setDraggedEvent] = useState<string | null>(null)
+
+  // Convert to UI format
+  const uiEvents: TimelineEventUI[] = events.map((e, i) => ({ ...e, order: i, children: [] }))
+
+  const toExternal = (uiEvents: TimelineEventUI[]): BehaviorTimelineEvent[] => {
+    return uiEvents.map(({ duration, order, parentId, isFork, children, ...e }) => e)
+  }
 
   const toggleExpanded = (eventId: string) => {
     const newExpanded = new Set(expandedEvents)
@@ -41,10 +48,10 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
   }
 
   const addEvent = (parentId?: string, isFork = false) => {
-    const newEvent: TimelineEvent = {
+    const newEvent: TimelineEventUI = {
       id: `event-${Date.now()}-${Math.random()}`,
-      title: '',
-      order: events.length,
+      label: '',
+      order: uiEvents.length,
       parentId,
       isFork,
       children: []
@@ -52,18 +59,18 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
 
     if (parentId) {
       // Adding as child/fork
-      const updatedEvents = addChildToParent([...events], parentId, newEvent)
-      onChange(updatedEvents)
+      const updatedEvents = addChildToParent([...uiEvents], parentId, newEvent)
+      onChange(toExternal(updatedEvents))
       setEditingEvent(newEvent.id)
       setExpandedEvents(new Set([...expandedEvents, parentId]))
     } else {
       // Adding to root
-      onChange([...events, newEvent])
+      onChange(toExternal([...uiEvents, newEvent]))
       setEditingEvent(newEvent.id)
     }
   }
 
-  const addChildToParent = (eventsList: TimelineEvent[], parentId: string, newChild: TimelineEvent): TimelineEvent[] => {
+  const addChildToParent = (eventsList: TimelineEventUI[], parentId: string, newChild: TimelineEventUI): TimelineEventUI[] => {
     return eventsList.map(event => {
       if (event.id === parentId) {
         return {
@@ -80,8 +87,8 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
     })
   }
 
-  const updateEvent = (eventId: string, updates: Partial<TimelineEvent>) => {
-    const updateInList = (eventsList: TimelineEvent[]): TimelineEvent[] => {
+  const updateEvent = (eventId: string, updates: Partial<TimelineEventUI>) => {
+    const updateInList = (eventsList: TimelineEventUI[]): TimelineEventUI[] => {
       return eventsList.map(event => {
         if (event.id === eventId) {
           return { ...event, ...updates }
@@ -95,11 +102,11 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
       })
     }
 
-    onChange(updateInList([...events]))
+    onChange(toExternal(updateInList([...uiEvents])))
   }
 
   const deleteEvent = (eventId: string) => {
-    const deleteFromList = (eventsList: TimelineEvent[]): TimelineEvent[] => {
+    const deleteFromList = (eventsList: TimelineEventUI[]): TimelineEventUI[] => {
       return eventsList
         .filter(event => event.id !== eventId)
         .map(event => {
@@ -113,13 +120,13 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
         })
     }
 
-    onChange(deleteFromList([...events]))
+    onChange(toExternal(deleteFromList([...uiEvents])))
   }
 
   const moveEvent = (eventId: string, direction: 'up' | 'down' | 'left' | 'right') => {
     if (direction === 'left' || direction === 'right') {
       // Reorder chronologically
-      const reorderList = (eventsList: TimelineEvent[]): TimelineEvent[] => {
+      const reorderList = (eventsList: TimelineEventUI[]): TimelineEventUI[] => {
         const index = eventsList.findIndex(e => e.id === eventId)
         if (index === -1) {
           return eventsList.map(event => {
@@ -145,7 +152,7 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
         return newList.map((event, i) => ({ ...event, order: i }))
       }
 
-      onChange(reorderList([...events]))
+      onChange(toExternal(reorderList([...uiEvents])))
     }
   }
 
@@ -164,27 +171,27 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
     }
 
     // Find positions of dragged and target events
-    const findEventIndex = (eventsList: TimelineEvent[], eventId: string): number => {
+    const findEventIndex = (eventsList: TimelineEventUI[], eventId: string): number => {
       return eventsList.findIndex(e => e.id === eventId)
     }
 
-    const draggedIndex = findEventIndex(events, draggedEvent)
-    const targetIndex = findEventIndex(events, targetEventId)
+    const draggedIndex = findEventIndex(uiEvents, draggedEvent)
+    const targetIndex = findEventIndex(uiEvents, targetEventId)
 
     if (draggedIndex !== -1 && targetIndex !== -1) {
-      const newEvents = [...events]
+      const newEvents = [...uiEvents]
       const temp = newEvents[draggedIndex]
       newEvents.splice(draggedIndex, 1)
       newEvents.splice(targetIndex, 0, temp)
 
       // Update order numbers
-      onChange(newEvents.map((event, i) => ({ ...event, order: i })))
+      onChange(toExternal(newEvents.map((event, i) => ({ ...event, order: i }))))
     }
 
     setDraggedEvent(null)
   }
 
-  const renderEvent = (event: TimelineEvent, level = 0, index = 0, siblingCount = 0) => {
+  const renderEvent = (event: TimelineEventUI, level = 0, index = 0, siblingCount = 0) => {
     const isEditing = editingEvent === event.id
     const isExpanded = expandedEvents.has(event.id)
     const hasChildren = event.children && event.children.length > 0
@@ -245,9 +252,9 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
                   {isEditing ? (
                     <div className="space-y-3">
                       <Input
-                        value={event.title}
-                        onChange={(e) => updateEvent(event.id, { title: e.target.value })}
-                        placeholder="Event title (e.g., 'Individual decides to participate')"
+                        value={event.label}
+                        onChange={(e) => updateEvent(event.id, { label: e.target.value })}
+                        placeholder="Event label (e.g., 'Individual decides to participate')"
                         autoFocus
                       />
                       <Textarea
@@ -277,7 +284,7 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
                         <Button
                           size="sm"
                           onClick={() => setEditingEvent(null)}
-                          disabled={!event.title.trim()}
+                          disabled={!event.label.trim()}
                         >
                           Done
                         </Button>
@@ -299,7 +306,7 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
                               <GitFork className="h-4 w-4 text-purple-600" />
                             )}
                             <h4 className="font-medium text-sm">
-                              {event.title || <span className="text-gray-400 italic">Untitled event</span>}
+                              {event.label || <span className="text-gray-400 italic">Untitled event</span>}
                             </h4>
                           </div>
                           {event.description && (
@@ -422,7 +429,7 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
         )}
       </div>
 
-      {events.length === 0 ? (
+      {uiEvents.length === 0 ? (
         <Card className="p-12 text-center bg-gray-50 dark:bg-gray-800/50">
           <div className="text-gray-400 mb-2">📅</div>
           <p className="text-gray-500 dark:text-gray-400">
@@ -431,7 +438,7 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
         </Card>
       ) : (
         <div className="space-y-2">
-          {events
+          {uiEvents
             .filter(e => !e.parentId)
             .sort((a, b) => a.order - b.order)
             .map((event, idx, arr) => renderEvent(event, 0, idx, arr.length))}

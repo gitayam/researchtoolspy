@@ -14,6 +14,9 @@ import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
 import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
 import { BehaviorSelector } from '@/components/frameworks/BehaviorSelector'
+import { BehaviorBasicInfoForm } from '@/components/frameworks/BehaviorBasicInfoForm'
+import { AITimelineGenerator } from '@/components/frameworks/AITimelineGenerator'
+import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity } from '@/types/behavior'
 import type { Dataset } from '@/types/dataset'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
@@ -28,6 +31,7 @@ interface FrameworkSection {
   icon: string
   hasDeficitAssessment?: boolean
   comBComponent?: ComBComponent
+  promptQuestions?: string[]
 }
 
 interface GenericFrameworkData {
@@ -130,6 +134,18 @@ const SectionCard = memo(({
           {section.label}
         </CardTitle>
         <CardDescription>{section.description}</CardDescription>
+
+        {/* Guided Questions */}
+        {section.promptQuestions && section.promptQuestions.length > 0 && (
+          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">💡 Questions to consider:</p>
+            <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1 ml-4 list-disc">
+              {section.promptQuestions.map((question, idx) => (
+                <li key={idx}>{question}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Deficit Assessment for COM-B sections */}
         {section.hasDeficitAssessment && onDeficitChange && (
@@ -386,6 +402,20 @@ export function GenericFrameworkForm({
   // For COM-B Analysis: linked behavior
   const [linkedBehaviorId, setLinkedBehaviorId] = useState<string | undefined>((initialData as any)?.linked_behavior_id)
   const [linkedBehaviorTitle, setLinkedBehaviorTitle] = useState<string | undefined>((initialData as any)?.linked_behavior_title)
+
+  // For Behavior Analysis: enhanced context fields
+  const [locationContext, setLocationContext] = useState<LocationContext>((initialData as any)?.location_context || {
+    geographic_scope: 'local',
+    specific_locations: []
+  })
+  const [behaviorSettings, setBehaviorSettings] = useState<BehaviorSettings>((initialData as any)?.behavior_settings || {
+    settings: []
+  })
+  const [temporalContext, setTemporalContext] = useState<TemporalContext>((initialData as any)?.temporal_context || {})
+  const [eligibility, setEligibility] = useState<EligibilityRequirements>((initialData as any)?.eligibility || {
+    has_requirements: false
+  })
+  const [complexity, setComplexity] = useState<BehaviorComplexity>((initialData as any)?.complexity || 'simple_sequence')
 
   // Initialize state for each section
   const [sectionData, setSectionData] = useState<{ [key: string]: FrameworkItem[] }>(
@@ -829,8 +859,13 @@ export function GenericFrameworkForm({
         description: description.trim(),
         source_url: sourceUrl || undefined,
         ...sectionData,
-        // Add BCW data for behavior framework
+        // Add enhanced context fields for behavior framework
         ...(frameworkType === 'behavior' && {
+          location_context: locationContext,
+          behavior_settings: behaviorSettings,
+          temporal_context: temporalContext,
+          eligibility,
+          complexity,
           com_b_deficits: comBDeficits,
           selected_interventions: selectedInterventions,
         }),
@@ -953,47 +988,66 @@ export function GenericFrameworkForm({
       )}
 
       {/* Basic Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Basic Information</CardTitle>
-          <CardDescription>Provide a title and description for your analysis</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Title *</label>
-            <div className="flex gap-2">
-              <Input
-                placeholder={`e.g., Q4 2025 ${frameworkTitle} Analysis`}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={generateTitle}
-                disabled={generatingTitle || (Object.values(sectionData).every(items => items.length === 0) && !description)}
-                title="Generate title using AI"
-              >
-                {generatingTitle ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4" />
-                )}
-              </Button>
+      {frameworkType === 'behavior' ? (
+        <BehaviorBasicInfoForm
+          title={title}
+          description={description}
+          locationContext={locationContext}
+          behaviorSettings={behaviorSettings}
+          temporalContext={temporalContext}
+          eligibility={eligibility}
+          complexity={complexity}
+          onTitleChange={setTitle}
+          onDescriptionChange={setDescription}
+          onLocationContextChange={setLocationContext}
+          onBehaviorSettingsChange={setBehaviorSettings}
+          onTemporalContextChange={setTemporalContext}
+          onEligibilityChange={setEligibility}
+          onComplexityChange={setComplexity}
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+            <CardDescription>Provide a title and description for your analysis</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Title *</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder={`e.g., Q4 2025 ${frameworkTitle} Analysis`}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={generateTitle}
+                  disabled={generatingTitle || (Object.values(sectionData).every(items => items.length === 0) && !description)}
+                  title="Generate title using AI"
+                >
+                  {generatingTitle ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Description</label>
-            <Textarea
-              placeholder="Provide context for this analysis..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-            />
-          </div>
-        </CardContent>
-      </Card>
+            <div>
+              <label className="block text-sm font-medium mb-2">Description</label>
+              <Textarea
+                placeholder="Provide context for this analysis..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Framework Sections */}
       <div className={`grid grid-cols-1 ${sections.length === 4 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
@@ -1022,7 +1076,26 @@ export function GenericFrameworkForm({
             const timelineEvents: TimelineEvent[] = (sectionData[section.key] || []) as any[]
             return (
               <Card key={section.key}>
-                <CardContent className="pt-6">
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Behavior Timeline</h3>
+                    <AITimelineGenerator
+                      formData={{
+                        title,
+                        description,
+                        location_context: locationContext,
+                        behavior_settings: behaviorSettings,
+                        temporal_context: temporalContext,
+                        eligibility,
+                        complexity,
+                        timeline: timelineEvents
+                      }}
+                      existingTimeline={timelineEvents}
+                      onTimelineGenerated={(timeline) => {
+                        setSectionData(prev => ({ ...prev, [section.key]: timeline as any[] }))
+                      }}
+                    />
+                  </div>
                   <BehaviorTimeline
                     events={timelineEvents}
                     onChange={(events) => {
