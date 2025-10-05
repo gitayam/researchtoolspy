@@ -30,21 +30,57 @@ const getNavigation = (t: (key: string) => string) => [
     href: '/dashboard/analysis-frameworks',
     icon: Brain,
     children: [
-      { name: t('frameworks.swot'), href: '/dashboard/analysis-frameworks/swot-dashboard' },
-      { name: t('frameworks.cog'), href: '/dashboard/analysis-frameworks/cog' },
-      { name: t('frameworks.pmesiipt'), href: '/dashboard/analysis-frameworks/pmesii-pt' },
-      { name: t('frameworks.ach'), href: '/dashboard/analysis-frameworks/ach-dashboard' },
-      { name: t('frameworks.dotmlpf'), href: '/dashboard/analysis-frameworks/dotmlpf' },
-      { name: t('frameworks.deception'), href: '/dashboard/analysis-frameworks/deception' },
-      { name: t('frameworks.behavior'), href: '/dashboard/analysis-frameworks/behavior' },
-      { name: t('frameworks.comb'), href: '/dashboard/analysis-frameworks/comb-analysis' },
-      { name: t('frameworks.starbursting'), href: '/dashboard/analysis-frameworks/starbursting' },
-      { name: t('frameworks.causeway'), href: '/dashboard/analysis-frameworks/causeway' },
-      { name: t('frameworks.dime'), href: '/dashboard/analysis-frameworks/dime' },
-      { name: t('frameworks.pest'), href: '/dashboard/analysis-frameworks/pest' },
-      { name: t('frameworks.stakeholder'), href: '/dashboard/analysis-frameworks/stakeholder' },
-      { name: t('frameworks.surveillance'), href: '/dashboard/analysis-frameworks/surveillance' },
-      { name: t('frameworks.fundamentalFlow'), href: '/dashboard/analysis-frameworks/fundamental-flow' },
+      {
+        name: t('frameworkCategories.environmental'),
+        isCategory: true,
+        children: [
+          { name: t('frameworks.swot'), href: '/dashboard/analysis-frameworks/swot-dashboard' },
+          { name: t('frameworks.pest'), href: '/dashboard/analysis-frameworks/pest' },
+          { name: t('frameworks.pmesiipt'), href: '/dashboard/analysis-frameworks/pmesii-pt' },
+          { name: t('frameworks.dime'), href: '/dashboard/analysis-frameworks/dime' },
+          { name: t('frameworks.dotmlpf'), href: '/dashboard/analysis-frameworks/dotmlpf' },
+        ]
+      },
+      {
+        name: t('frameworkCategories.nodal'),
+        isCategory: true,
+        children: [
+          { name: t('frameworks.cog'), href: '/dashboard/analysis-frameworks/cog' },
+          { name: t('frameworks.causeway'), href: '/dashboard/analysis-frameworks/causeway' },
+        ]
+      },
+      {
+        name: t('frameworkCategories.hypothesis'),
+        isCategory: true,
+        children: [
+          { name: t('frameworks.ach'), href: '/dashboard/analysis-frameworks/ach-dashboard' },
+          { name: t('frameworks.deception'), href: '/dashboard/analysis-frameworks/deception' },
+        ]
+      },
+      {
+        name: t('frameworkCategories.humanFactors'),
+        isCategory: true,
+        children: [
+          { name: t('frameworks.stakeholder'), href: '/dashboard/analysis-frameworks/stakeholder' },
+          { name: t('frameworks.behavior'), href: '/dashboard/analysis-frameworks/behavior' },
+          { name: t('frameworks.comb'), href: '/dashboard/analysis-frameworks/comb-analysis' },
+        ]
+      },
+      {
+        name: t('frameworkCategories.creative'),
+        isCategory: true,
+        children: [
+          { name: t('frameworks.starbursting'), href: '/dashboard/analysis-frameworks/starbursting' },
+          { name: t('frameworks.fundamentalFlow'), href: '/dashboard/analysis-frameworks/fundamental-flow' },
+        ]
+      },
+      {
+        name: t('frameworkCategories.monitoring'),
+        isCategory: true,
+        children: [
+          { name: t('frameworks.surveillance'), href: '/dashboard/analysis-frameworks/surveillance' },
+        ]
+      },
     ]
   },
   {
@@ -94,7 +130,13 @@ export function DashboardSidebar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([
     t('navigation.analysisFrameworks'),
-    t('navigation.evidenceCollection')
+    t('navigation.evidenceCollection'),
+    t('frameworkCategories.environmental'),
+    t('frameworkCategories.nodal'),
+    t('frameworkCategories.hypothesis'),
+    t('frameworkCategories.humanFactors'),
+    t('frameworkCategories.creative'),
+    t('frameworkCategories.monitoring')
   ])
 
   const navigation = getNavigation(t)
@@ -157,19 +199,49 @@ export function DashboardSidebar() {
                   </button>
                   {expandedItems.includes(item.name) && (
                     <ul className="mt-1 ml-6 space-y-1">
-                      {item.children.map((child) => (
+                      {item.children.map((child: any) => (
                         <li key={child.name}>
-                          <Link
-                            to={child.href}
-                            className={cn(
-                              pathname === child.href
-                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                                : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-gray-800',
-                              'block rounded-md py-1.5 px-3 text-sm leading-6'
-                            )}
-                          >
-                            {child.name}
-                          </Link>
+                          {child.isCategory ? (
+                            <>
+                              <button
+                                onClick={() => toggleExpanded(child.name)}
+                                className="w-full text-left py-1.5 px-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-blue-600 dark:hover:text-blue-400"
+                              >
+                                {child.name}
+                              </button>
+                              {expandedItems.includes(child.name) && (
+                                <ul className="ml-2 mt-1 space-y-1">
+                                  {child.children.map((subChild: any) => (
+                                    <li key={subChild.name}>
+                                      <Link
+                                        to={subChild.href}
+                                        className={cn(
+                                          pathname === subChild.href
+                                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                                            : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-gray-800',
+                                          'block rounded-md py-1.5 px-3 text-sm leading-6'
+                                        )}
+                                      >
+                                        {subChild.name}
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </>
+                          ) : (
+                            <Link
+                              to={child.href}
+                              className={cn(
+                                pathname === child.href
+                                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                                  : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-gray-800',
+                                'block rounded-md py-1.5 px-3 text-sm leading-6'
+                              )}
+                            >
+                              {child.name}
+                            </Link>
+                          )}
                         </li>
                       ))}
                     </ul>
