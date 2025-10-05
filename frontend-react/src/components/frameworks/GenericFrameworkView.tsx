@@ -12,6 +12,7 @@ import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type L
 import { AutoGenerateButton } from '@/components/network'
 import { generateRelationshipsFromCOG, generateRelationshipsFromCauseway } from '@/utils/framework-relationships'
 import { ExportButton } from '@/components/reports/ExportButton'
+import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
 import type { CreateRelationshipRequest } from '@/types/entities'
 
 interface FrameworkSection {
@@ -490,13 +491,32 @@ export function GenericFrameworkView({
 
       {/* Framework Sections */}
       <div className={`grid grid-cols-1 ${sections.length === 4 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
-        {sections.map(section => (
-          <SectionView
-            key={section.key}
-            section={section}
-            items={data[section.key] || []}
-          />
-        ))}
+        {sections.map(section => {
+          // Special handling for behavior timeline in read-only mode
+          if (frameworkType === 'behavior' && section.key === 'timeline') {
+            const timelineEvents: TimelineEvent[] = (data[section.key] || []) as any[]
+            return (
+              <Card key={section.key}>
+                <CardContent className="pt-6">
+                  <BehaviorTimeline
+                    events={timelineEvents}
+                    onChange={() => {}} // Read-only, no changes allowed
+                    readOnly={true}
+                  />
+                </CardContent>
+              </Card>
+            )
+          }
+
+          // Default section rendering
+          return (
+            <SectionView
+              key={section.key}
+              section={section}
+              items={data[section.key] || []}
+            />
+          )
+        })}
       </div>
 
       {/* Entity Quick Create Modal */}

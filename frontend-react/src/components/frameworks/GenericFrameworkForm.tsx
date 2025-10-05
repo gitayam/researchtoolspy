@@ -11,6 +11,7 @@ import { AIFieldAssistant, AIUrlScraper } from '@/components/ai'
 import { DatasetSelector } from '@/components/datasets/DatasetSelector'
 import { DatasetBadge } from '@/components/datasets/DatasetBadge'
 import { ExportButton } from '@/components/reports/ExportButton'
+import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
 import type { Dataset } from '@/types/dataset'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
@@ -921,26 +922,46 @@ export function GenericFrameworkForm({
 
       {/* Framework Sections */}
       <div className={`grid grid-cols-1 ${sections.length === 4 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
-        {sections.map(section => (
-          <SectionCard
-            key={section.key}
-            section={section}
-            items={sectionData[section.key]}
-            newItem={newItems[section.key]}
-            newAnswer={itemType === 'qa' ? newAnswers[section.key] : undefined}
-            setNewItem={(value) => setNewItems(prev => ({ ...prev, [section.key]: value }))}
-            setNewAnswer={itemType === 'qa' ? (value) => setNewAnswers(prev => ({ ...prev, [section.key]: value })) : undefined}
-            onAdd={() => addItem(section.key, newItems[section.key])}
-            onRemove={(id) => removeItem(section.key, id)}
-            onEdit={(id, updates) => editItem(section.key, id, updates)}
-            linkedDataset={sectionDataset[section.key] || []}
-            onLinkDataset={() => openDatasetSelector(section.key)}
-            onRemoveDataset={(datasetId) => handleRemoveDataset(section.key, datasetId)}
-            frameworkType={frameworkType}
-            allData={{ title, description, ...sectionData }}
-            itemType={itemType}
-          />
-        ))}
+        {sections.map(section => {
+          // Special handling for behavior timeline
+          if (frameworkType === 'behavior' && section.key === 'timeline') {
+            const timelineEvents: TimelineEvent[] = (sectionData[section.key] || []) as any[]
+            return (
+              <Card key={section.key}>
+                <CardContent className="pt-6">
+                  <BehaviorTimeline
+                    events={timelineEvents}
+                    onChange={(events) => {
+                      setSectionData(prev => ({ ...prev, [section.key]: events as any[] }))
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            )
+          }
+
+          // Default section rendering
+          return (
+            <SectionCard
+              key={section.key}
+              section={section}
+              items={sectionData[section.key]}
+              newItem={newItems[section.key]}
+              newAnswer={itemType === 'qa' ? newAnswers[section.key] : undefined}
+              setNewItem={(value) => setNewItems(prev => ({ ...prev, [section.key]: value }))}
+              setNewAnswer={itemType === 'qa' ? (value) => setNewAnswers(prev => ({ ...prev, [section.key]: value })) : undefined}
+              onAdd={() => addItem(section.key, newItems[section.key])}
+              onRemove={(id) => removeItem(section.key, id)}
+              onEdit={(id, updates) => editItem(section.key, id, updates)}
+              linkedDataset={sectionDataset[section.key] || []}
+              onLinkDataset={() => openDatasetSelector(section.key)}
+              onRemoveDataset={(datasetId) => handleRemoveDataset(section.key, datasetId)}
+              frameworkType={frameworkType}
+              allData={{ title, description, ...sectionData }}
+              itemType={itemType}
+            />
+          )
+        })}
       </div>
 
       {/* Dataset Selector Modal */}
