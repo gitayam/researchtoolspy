@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   BarChart3,
   Brain,
@@ -22,66 +23,66 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
+const getNavigation = (t: (key: string) => string) => [
+  { name: t('navigation.dashboard'), href: '/dashboard', icon: Home },
   {
-    name: 'Analysis Frameworks',
+    name: t('navigation.analysisFrameworks'),
     href: '/dashboard/analysis-frameworks',
     icon: Brain,
     children: [
-      { name: 'SWOT Analysis', href: '/dashboard/analysis-frameworks/swot-dashboard' },
-      { name: 'COG Analysis', href: '/dashboard/analysis-frameworks/cog' },
-      { name: 'PMESII-PT', href: '/dashboard/analysis-frameworks/pmesii-pt' },
-      { name: 'ACH Analysis', href: '/dashboard/analysis-frameworks/ach-dashboard' },
-      { name: 'DOTMLPF', href: '/dashboard/analysis-frameworks/dotmlpf' },
-      { name: 'Deception Detection', href: '/dashboard/analysis-frameworks/deception' },
-      { name: 'Behavioral Analysis', href: '/dashboard/analysis-frameworks/behavior' },
-      { name: 'COM-B Analysis', href: '/dashboard/analysis-frameworks/comb-analysis' },
-      { name: 'Starbursting', href: '/dashboard/analysis-frameworks/starbursting' },
-      { name: 'Causeway', href: '/dashboard/analysis-frameworks/causeway' },
-      { name: 'DIME Framework', href: '/dashboard/analysis-frameworks/dime' },
-      { name: 'PEST Analysis', href: '/dashboard/analysis-frameworks/pest' },
-      { name: 'Stakeholder Analysis', href: '/dashboard/analysis-frameworks/stakeholder' },
-      { name: 'Surveillance Framework', href: '/dashboard/analysis-frameworks/surveillance' },
-      { name: 'Fundamental Flow', href: '/dashboard/analysis-frameworks/fundamental-flow' },
+      { name: t('frameworks.swot'), href: '/dashboard/analysis-frameworks/swot-dashboard' },
+      { name: t('frameworks.cog'), href: '/dashboard/analysis-frameworks/cog' },
+      { name: t('frameworks.pmesiipt'), href: '/dashboard/analysis-frameworks/pmesii-pt' },
+      { name: t('frameworks.ach'), href: '/dashboard/analysis-frameworks/ach-dashboard' },
+      { name: t('frameworks.dotmlpf'), href: '/dashboard/analysis-frameworks/dotmlpf' },
+      { name: t('frameworks.deception'), href: '/dashboard/analysis-frameworks/deception' },
+      { name: t('frameworks.behavior'), href: '/dashboard/analysis-frameworks/behavior' },
+      { name: t('frameworks.comb'), href: '/dashboard/analysis-frameworks/comb-analysis' },
+      { name: t('frameworks.starbursting'), href: '/dashboard/analysis-frameworks/starbursting' },
+      { name: t('frameworks.causeway'), href: '/dashboard/analysis-frameworks/causeway' },
+      { name: t('frameworks.dime'), href: '/dashboard/analysis-frameworks/dime' },
+      { name: t('frameworks.pest'), href: '/dashboard/analysis-frameworks/pest' },
+      { name: t('frameworks.stakeholder'), href: '/dashboard/analysis-frameworks/stakeholder' },
+      { name: t('frameworks.surveillance'), href: '/dashboard/analysis-frameworks/surveillance' },
+      { name: t('frameworks.fundamentalFlow'), href: '/dashboard/analysis-frameworks/fundamental-flow' },
     ]
   },
   {
-    name: 'Research Tools',
+    name: t('navigation.researchTools'),
     href: '/dashboard/tools',
     icon: Search,
     children: [
-      { name: 'Content Extraction', href: '/dashboard/tools/content-extraction' },
-      { name: 'Batch Processing', href: '/dashboard/tools/batch-processing' },
-      { name: 'URL Processing', href: '/dashboard/tools/url' },
-      { name: 'Citations Generator', href: '/dashboard/tools/citations-generator' },
-      { name: 'Web Scraping', href: '/dashboard/tools/scraping' },
-      { name: 'Social Media', href: '/dashboard/tools/social-media' },
-      { name: 'Documents', href: '/dashboard/tools/documents' },
+      { name: t('tools.contentExtraction'), href: '/dashboard/tools/content-extraction' },
+      { name: t('tools.batchProcessing'), href: '/dashboard/tools/batch-processing' },
+      { name: t('tools.urlProcessing'), href: '/dashboard/tools/url' },
+      { name: t('tools.citationsGenerator'), href: '/dashboard/tools/citations-generator' },
+      { name: t('tools.webScraping'), href: '/dashboard/tools/scraping' },
+      { name: t('tools.socialMedia'), href: '/dashboard/tools/social-media' },
+      { name: t('tools.documents'), href: '/dashboard/tools/documents' },
     ]
   },
   {
-    name: 'Evidence Collection',
+    name: t('navigation.evidenceCollection'),
     href: '/dashboard/evidence',
     icon: Archive,
     children: [
-      { name: 'Data', href: '/dashboard/evidence' },
-      { name: 'Actors', href: '/dashboard/entities/actors' },
-      { name: 'Sources', href: '/dashboard/entities/sources' },
-      { name: 'Events', href: '/dashboard/entities/events' },
+      { name: t('navigation.data'), href: '/dashboard/evidence' },
+      { name: t('navigation.actors'), href: '/dashboard/entities/actors' },
+      { name: t('navigation.sources'), href: '/dashboard/entities/sources' },
+      { name: t('navigation.events'), href: '/dashboard/entities/events' },
     ]
   },
-  { name: 'Network Analysis', href: '/dashboard/network', icon: Network },
-  { name: 'Dataset Library', href: '/dashboard/datasets', icon: Database },
-  { name: 'Reports', href: '/dashboard/reports', icon: FileText },
-  { name: 'Collaboration', href: '/dashboard/collaboration', icon: Users },
+  { name: t('navigation.networkAnalysis'), href: '/dashboard/network', icon: Network },
+  { name: t('navigation.datasetLibrary'), href: '/dashboard/datasets', icon: Database },
+  { name: t('navigation.reports'), href: '/dashboard/reports', icon: FileText },
+  { name: t('navigation.collaboration'), href: '/dashboard/collaboration', icon: Users },
   {
-    name: 'Settings',
+    name: t('navigation.settings'),
     href: '/dashboard/settings',
     icon: Settings,
     children: [
-      { name: 'General', href: '/dashboard/settings' },
-      { name: 'AI Configuration', href: '/dashboard/settings/ai', icon: Sparkles },
+      { name: t('navigation.general'), href: '/dashboard/settings' },
+      { name: t('tools.aiConfiguration'), href: '/dashboard/settings/ai', icon: Sparkles },
     ]
   },
 ]
@@ -89,8 +90,14 @@ const navigation = [
 export function DashboardSidebar() {
   const location = useLocation()
   const pathname = location.pathname
+  const { t } = useTranslation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Analysis Frameworks', 'Evidence Collection'])
+  const [expandedItems, setExpandedItems] = useState<string[]>([
+    t('navigation.analysisFrameworks'),
+    t('navigation.evidenceCollection')
+  ])
+
+  const navigation = getNavigation(t)
 
   const toggleExpanded = (name: string) => {
     setExpandedItems(prev => 
