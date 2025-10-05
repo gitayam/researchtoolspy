@@ -16,7 +16,8 @@ import { BehaviorSelector } from '@/components/frameworks/BehaviorSelector'
 import { BehaviorBasicInfoForm } from '@/components/frameworks/BehaviorBasicInfoForm'
 import { AITimelineGenerator } from '@/components/frameworks/AITimelineGenerator'
 import { ConsequencesManager } from '@/components/frameworks/ConsequencesManager'
-import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity, ConsequenceItem } from '@/types/behavior'
+import { SymbolsManager } from '@/components/frameworks/SymbolsManager'
+import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity, ConsequenceItem, SymbolItem } from '@/types/behavior'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
@@ -1114,6 +1115,21 @@ export function GenericFrameworkForm({
               <div key={section.key}>
                 <ConsequencesManager
                   consequences={consequences}
+                  onChange={(updated) => {
+                    setSectionData(prev => ({ ...prev, [section.key]: updated as any[] }))
+                  }}
+                />
+              </div>
+            )
+          }
+
+          // Special handling for symbols (with image upload)
+          if (frameworkType === 'behavior' && section.key === 'symbols') {
+            const symbolsData: SymbolItem[] = (sectionData[section.key] || []) as unknown as SymbolItem[]
+            return (
+              <div key={section.key}>
+                <SymbolsManager
+                  symbols={symbolsData}
                   onChange={(updated) => {
                     setSectionData(prev => ({ ...prev, [section.key]: updated as any[] }))
                   }}
