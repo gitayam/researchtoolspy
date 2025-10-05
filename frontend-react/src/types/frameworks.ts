@@ -31,6 +31,7 @@ export const FrameworkType = {
   STAKEHOLDER: 'stakeholder',
   CAUSEWAY: 'causeway',
   BEHAVIOR: 'behavior',
+  COMB_ANALYSIS: 'comb-analysis',
   DECEPTION: 'deception',
   SURVEILLANCE: 'surveillance',
   TREND: 'trend',

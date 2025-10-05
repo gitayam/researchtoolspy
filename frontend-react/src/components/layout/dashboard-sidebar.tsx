@@ -36,6 +36,7 @@ const navigation = [
       { name: 'DOTMLPF', href: '/dashboard/analysis-frameworks/dotmlpf' },
       { name: 'Deception Detection', href: '/dashboard/analysis-frameworks/deception' },
       { name: 'Behavioral Analysis', href: '/dashboard/analysis-frameworks/behavior' },
+      { name: 'COM-B Analysis', href: '/dashboard/analysis-frameworks/comb-analysis' },
       { name: 'Starbursting', href: '/dashboard/analysis-frameworks/starbursting' },
       { name: 'Causeway', href: '/dashboard/analysis-frameworks/causeway' },
       { name: 'DIME Framework', href: '/dashboard/analysis-frameworks/dime' },

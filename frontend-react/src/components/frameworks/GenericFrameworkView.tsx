@@ -76,6 +76,7 @@ export function GenericFrameworkView({
                         frameworkTitle.toLowerCase().includes('starbursting') ? 'starbursting' :
                         frameworkTitle.toLowerCase().includes('pest') ? 'pest' :
                         frameworkTitle.toLowerCase().includes('stakeholder') ? 'stakeholder' :
+                        frameworkTitle.toLowerCase().includes('com-b') || frameworkTitle.toLowerCase().includes('comb') ? 'comb-analysis' :
                         frameworkTitle.toLowerCase().includes('behavior') ? 'behavior' :
                         'generic'
 
@@ -521,8 +522,8 @@ export function GenericFrameworkView({
         })}
       </div>
 
-      {/* BCW Recommendations (Behaviour Change Wheel) - Only for behavior framework */}
-      {frameworkType === 'behavior' && data.com_b_deficits && (
+      {/* BCW Recommendations (Behaviour Change Wheel) - Only for COM-B Analysis framework */}
+      {frameworkType === 'comb-analysis' && data.com_b_deficits && (
         <BCWRecommendations
           deficits={data.com_b_deficits as ComBDeficits}
           selectedInterventions={(data.selected_interventions as InterventionFunction[]) || []}
