@@ -90,7 +90,20 @@
     "login": "Iniciar sesión",
     "logout": "Cerrar sesión",
     "login_to_save": "Inicia sesión para guardar tu trabajo",
-    "guest": "Invitado"
+    "guest": "Invitado",
+    "returnToWork": "Volver a Tu Trabajo",
+    "returnToWorkDesc": "Ingresa tu código de marcador para volver a tu trabajo guardado o colaborar",
+    "bookmarkHash": "Código de Marcador",
+    "hashPlaceholder": "1234 5678 9012 3456",
+    "hashHelperText": "Ingresa tu código de marcador de 16 dígitos (los espacios serán ignorados)",
+    "accessWork": "Acceder al Trabajo",
+    "accessing": "Accediendo...",
+    "noHash": "¿No tienes un código?",
+    "generateHash": "Generar uno",
+    "hashRequired": "El código de marcador es obligatorio",
+    "invalidHashFormat": "Formato de código inválido. Por favor, ingresa un número de 16 dígitos o un hash hexadecimal de 32 caracteres.",
+    "invalidHash": "Código de marcador inválido",
+    "loginError": "Ocurrió un error durante el inicio de sesión"
   },
   "frameworks": {
     "swot": "Análisis FODA",

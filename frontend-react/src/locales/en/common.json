@@ -90,7 +90,20 @@
     "login": "Login",
     "logout": "Sign out",
     "login_to_save": "Login to save your work",
-    "guest": "Guest"
+    "guest": "Guest",
+    "returnToWork": "Return to Your Work",
+    "returnToWorkDesc": "Enter your bookmark hash to return to saved work or collaborate",
+    "bookmarkHash": "Bookmark Hash",
+    "hashPlaceholder": "1234 5678 9012 3456",
+    "hashHelperText": "Enter your 16-digit bookmark code (spaces will be ignored)",
+    "accessWork": "Access Work",
+    "accessing": "Accessing...",
+    "noHash": "Don't have a hash?",
+    "generateHash": "Generate one",
+    "hashRequired": "Bookmark hash is required",
+    "invalidHashFormat": "Invalid hash format. Please enter a 16-digit number or 32-character hex hash.",
+    "invalidHash": "Invalid bookmark hash",
+    "loginError": "An error occurred during login"
   },
   "frameworks": {
     "swot": "SWOT Analysis",

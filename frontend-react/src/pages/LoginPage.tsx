@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2, AlertCircle, Key } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,19 +13,8 @@ import { useAuthStore, useAuthLoading, useAuthError } from '@/stores/auth'
 import type { HashLoginRequest } from '@/types/auth'
 import { isValidHash, cleanHashInput, formatHashForDisplay } from '@/lib/hash-auth'
 
-const hashLoginSchema = z.object({
-  account_hash: z.string()
-    .min(1, 'Bookmark hash is required')
-    .refine((value) => {
-      const cleaned = cleanHashInput(value)
-      // Accept both 16-digit numbers and 32-character hex (for migration)
-      return isValidHash(value) || /^[0-9a-f]{32}$/.test(cleaned)
-    }, {
-      message: 'Invalid hash format. Please enter a 16-digit number or 32-character hex hash.',
-    }),
-})
-
 export function LoginPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -32,6 +22,18 @@ export function LoginPage() {
   const { loginWithHash, clearError } = useAuthStore()
   const isLoading = useAuthLoading()
   const error = useAuthError()
+
+  const hashLoginSchema = z.object({
+    account_hash: z.string()
+      .min(1, t('auth.hashRequired'))
+      .refine((value) => {
+        const cleaned = cleanHashInput(value)
+        // Accept both 16-digit numbers and 32-character hex (for migration)
+        return isValidHash(value) || /^[0-9a-f]{32}$/.test(cleaned)
+      }, {
+        message: t('auth.invalidHashFormat'),
+      }),
+  })
 
   const {
     register,
@@ -75,7 +77,7 @@ export function LoginPage() {
       if (error?.status === 401) {
         setError('account_hash', {
           type: 'manual',
-          message: 'Invalid bookmark hash'
+          message: t('auth.invalidHash')
         })
       }
     }
@@ -91,10 +93,10 @@ export function LoginPage() {
       <Card className="w-full max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center text-gray-900 dark:text-gray-100">
-            Return to Your Work
+            {t('auth.returnToWork')}
           </CardTitle>
           <CardDescription className="text-center text-gray-600 dark:text-gray-400">
-            Enter your bookmark hash to return to saved work or collaborate
+            {t('auth.returnToWorkDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -102,7 +104,7 @@ export function LoginPage() {
             {error && (
               <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-md">
                 <AlertCircle className="h-4 w-4" />
-                {typeof error === 'string' ? error : 'An error occurred during login'}
+                {typeof error === 'string' ? error : t('auth.loginError')}
               </div>
             )}
 
@@ -110,13 +112,13 @@ export function LoginPage() {
               <div className="flex items-center justify-between">
                 <label htmlFor="account_hash" className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                   <Key className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                  Bookmark Hash
+                  {t('auth.bookmarkHash')}
                 </label>
               </div>
               <Input
                 id="account_hash"
                 type="text"
-                placeholder="1234 5678 9012 3456"
+                placeholder={t('auth.hashPlaceholder')}
                 {...register('account_hash', {
                   onChange: (e) => {
                     const formatted = formatHashInput(e.target.value)
@@ -133,7 +135,7 @@ export function LoginPage() {
                 <p className="text-sm text-red-600 dark:text-red-400">{errors.account_hash.message}</p>
               )}
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Enter your 16-digit bookmark code (spaces will be ignored)
+                {t('auth.hashHelperText')}
               </p>
             </div>
 
@@ -145,17 +147,17 @@ export function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Accessing...
+                  {t('auth.accessing')}
                 </>
               ) : (
-                'Access Work'
+                t('auth.accessWork')
               )}
             </Button>
 
             <div className="text-center text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Don't have a hash? </span>
+              <span className="text-gray-600 dark:text-gray-400">{t('auth.noHash')} </span>
               <Link to="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
-                Generate one
+                {t('auth.generateHash')}
               </Link>
             </div>
 
