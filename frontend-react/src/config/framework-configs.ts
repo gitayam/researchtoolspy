@@ -374,13 +374,13 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
 
   'behavior': {
     type: 'behavior',
-    title: 'Action or Behavior Analysis',
-    description: 'Based on TM 3-53.11 Influence Process Activity: Target Audience Analysis Chapter 2',
+    title: 'Behavior Analysis (COM-B Model)',
+    description: 'Based on COM-B Model (Capability, Opportunity, Motivation → Behavior) by Michie, van Stralen, & West, and TM 3-53.11',
     sections: [
       {
         key: 'basic_info',
         label: 'Basic Information',
-        description: 'Define the behavior and location being analyzed',
+        description: 'Define the target behavior and context being analyzed',
         color: 'border-blue-500',
         bgColor: 'bg-blue-50 dark:bg-blue-900/20',
         icon: '📋'
@@ -388,87 +388,99 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'timeline',
         label: 'Behavior Timeline',
-        description: 'Document when, where, and how long the behavior occurs',
+        description: 'Document when, where, and how long the behavior occurs (interactive timeline with forks)',
         color: 'border-green-500',
         bgColor: 'bg-green-50 dark:bg-green-900/20',
         icon: '📅'
       },
+      // COM-B: CAPABILITY
       {
-        key: 'supporting_behaviors',
-        label: 'Supporting Behaviors Required',
-        description: 'Chronological steps and intermediate behaviors needed',
-        color: 'border-purple-500',
-        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-        icon: '🔄'
-      },
-      {
-        key: 'obstacles',
-        label: 'Obstacles and Challenges',
-        description: 'Physical, legal, social barriers and resource limitations',
-        color: 'border-red-500',
-        bgColor: 'bg-red-50 dark:bg-red-900/20',
-        icon: '⚠️'
-      },
-      {
-        key: 'symbols',
-        label: 'Associated Symbols and Signals',
-        description: 'Cultural symbols, gestures, codes or signals used',
-        color: 'border-yellow-500',
-        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-        icon: '🎭'
-      },
-      {
-        key: 'capabilities',
-        label: 'Required Capabilities',
-        description: 'Physical, cognitive, social, and economic capabilities needed',
+        key: 'physical_capability',
+        label: 'Physical Capability',
+        description: 'Physical skills, strength, stamina required to perform the behavior',
         color: 'border-orange-500',
         bgColor: 'bg-orange-50 dark:bg-orange-900/20',
         icon: '💪'
       },
       {
-        key: 'social_factors',
-        label: 'Social Norms and Pressures',
-        description: 'Cultural expectations, peer pressure, traditional practices',
-        color: 'border-cyan-500',
-        bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
-        icon: '👥'
+        key: 'psychological_capability',
+        label: 'Psychological Capability',
+        description: 'Knowledge, cognitive skills, mental capacity, comprehension needed',
+        color: 'border-amber-500',
+        bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+        icon: '🧠'
       },
+      // COM-B: OPPORTUNITY
       {
-        key: 'motivations',
-        label: 'Motivations and Drivers',
-        description: 'What motivates individuals to engage in this behavior',
-        color: 'border-indigo-500',
-        bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
-        icon: '🎯'
-      },
-      {
-        key: 'consequences',
-        label: 'Consequences and Outcomes',
-        description: 'Positive outcomes and negative repercussions for actors',
-        color: 'border-pink-500',
-        bgColor: 'bg-pink-50 dark:bg-pink-900/20',
-        icon: '⚖️'
-      },
-      {
-        key: 'environmental',
-        label: 'Environmental Factors',
-        description: 'Political climate, economic conditions, technology',
+        key: 'physical_opportunity',
+        label: 'Physical Opportunity',
+        description: 'Environmental factors: time, resources, locations, accessibility, infrastructure',
         color: 'border-teal-500',
         bgColor: 'bg-teal-50 dark:bg-teal-900/20',
         icon: '🌍'
       },
       {
-        key: 'strategies',
-        label: 'Impact Strategies',
-        description: 'Strategies that have previously affected this behavior',
+        key: 'social_opportunity',
+        label: 'Social Opportunity',
+        description: 'Cultural norms, social cues, peer influence, interpersonal factors',
+        color: 'border-cyan-500',
+        bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
+        icon: '👥'
+      },
+      // COM-B: MOTIVATION
+      {
+        key: 'reflective_motivation',
+        label: 'Reflective Motivation',
+        description: 'Beliefs, intentions, goals, identity, conscious decision-making processes',
+        color: 'border-indigo-500',
+        bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
+        icon: '🎯'
+      },
+      {
+        key: 'automatic_motivation',
+        label: 'Automatic Motivation',
+        description: 'Emotions, impulses, habits, desires, affective reactions',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '⚡'
+      },
+      // Additional Analysis
+      {
+        key: 'barriers',
+        label: 'Barriers and Facilitators',
+        description: 'What prevents or enables the behavior? Obstacles and supporting factors',
+        color: 'border-red-500',
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        icon: '⚠️'
+      },
+      {
+        key: 'consequences',
+        label: 'Consequences and Outcomes',
+        description: 'Rewards, costs, positive/negative outcomes for performing the behavior',
+        color: 'border-pink-500',
+        bgColor: 'bg-pink-50 dark:bg-pink-900/20',
+        icon: '⚖️'
+      },
+      {
+        key: 'symbols',
+        label: 'Symbols and Signals',
+        description: 'Cultural symbols, gestures, codes, or signals associated with the behavior',
+        color: 'border-yellow-500',
+        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+        icon: '🎭'
+      },
+      {
+        key: 'intervention_strategies',
+        label: 'Intervention Strategies',
+        description: 'Evidence-based strategies to change behavior (based on Behaviour Change Wheel)',
         color: 'border-lime-500',
         bgColor: 'bg-lime-50 dark:bg-lime-900/20',
         icon: '📊'
       },
       {
         key: 'target_audiences',
-        label: 'Target Audience Refinement',
-        description: 'Identify primary, secondary, enablers, opposers, beneficiaries',
+        label: 'Target Audience Segmentation',
+        description: 'Primary, secondary, enablers, opposers, beneficiaries of behavior change',
         color: 'border-violet-500',
         bgColor: 'bg-violet-50 dark:bg-violet-900/20',
         icon: '🎪'

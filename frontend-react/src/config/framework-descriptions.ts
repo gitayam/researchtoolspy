@@ -197,23 +197,26 @@ export const frameworkDescriptions: Record<string, FrameworkDescription> = {
   },
 
   'behavior': {
-    title: 'Behavior Analysis (Target Audience Analysis)',
-    context: `Based on U.S. Army Field Manual TM 3-53.11 Chapter 2, this framework provides systematic analysis of behaviors within their social, cultural, and environmental context. It examines what drives behaviors, what obstacles exist, and what capabilities are required. This comprehensive approach helps understand target audiences for influence operations, behavior change campaigns, and cultural analysis.`,
+    title: 'Behavior Analysis (COM-B Model)',
+    context: `This framework integrates the COM-B Model (Capability, Opportunity, Motivation → Behavior) developed by Susan Michie, Maartje van Stralen, and Robert West with U.S. Army Field Manual TM 3-53.11. The COM-B model, published in Implementation Science (2011), forms the hub of the Behaviour Change Wheel and identifies three essential conditions for behavior: (1) Capability - physical and psychological ability, (2) Opportunity - physical and social environmental factors, and (3) Motivation - reflective and automatic cognitive processes. The framework includes an interactive timeline component for mapping behavior sequences, sub-steps, and alternative paths (forks), making it ideal for systematic behavior analysis in influence operations, public health, and behavior change interventions.`,
     wikipediaUrl: 'https://en.wikipedia.org/wiki/Behavior_modification',
     goodUseCases: [
+      'Public health behavior change interventions',
       'Military information operations and influence campaigns',
-      'Public health behavior change programs',
-      'Cultural analysis for foreign engagement',
       'Social marketing and advocacy campaigns',
-      'Understanding adversary or population behaviors',
-      'Community development and social programs'
+      'Organizational behavior change initiatives',
+      'Community development and social programs',
+      'Health promotion and disease prevention programs',
+      'Understanding barriers and facilitators to behavior change',
+      'Designing evidence-based interventions using Behaviour Change Wheel'
     ],
     notIdealFor: [
-      'Individual psychology or clinical assessment',
-      'Technology or systems analysis',
+      'Individual clinical psychology or therapy',
+      'Technology or systems analysis without human behavior',
       'Financial or economic analysis',
       'Problems not involving human behavior change',
-      'Quick tactical decisions without behavior analysis needs'
+      'Quick tactical decisions without behavior analysis needs',
+      'Purely cognitive or attitudinal assessments without behavioral components'
     ]
   },
 
