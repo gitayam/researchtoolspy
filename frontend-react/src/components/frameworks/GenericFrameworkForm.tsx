@@ -12,10 +12,12 @@ import { DatasetSelector } from '@/components/datasets/DatasetSelector'
 import { DatasetBadge } from '@/components/datasets/DatasetBadge'
 import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
+import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
 import type { Dataset } from '@/types/dataset'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
+import type { ComBComponent, ComBDeficits, DeficitLevel, InterventionFunction } from '@/types/behavior-change-wheel'
 
 interface FrameworkSection {
   key: string
@@ -23,6 +25,8 @@ interface FrameworkSection {
   description: string
   color: string
   icon: string
+  hasDeficitAssessment?: boolean
+  comBComponent?: ComBComponent
 }
 
 interface GenericFrameworkData {
@@ -57,7 +61,9 @@ const SectionCard = memo(({
   onRemoveDataset,
   frameworkType,
   allData,
-  itemType
+  itemType,
+  deficitLevel,
+  onDeficitChange
 }: {
   section: FrameworkSection
   items: FrameworkItem[]
@@ -74,6 +80,8 @@ const SectionCard = memo(({
   frameworkType: string
   allData?: GenericFrameworkData
   itemType?: 'text' | 'qa'
+  deficitLevel?: DeficitLevel
+  onDeficitChange?: (level: DeficitLevel) => void
 }) => {
   const isQA = itemType === 'qa'
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -121,6 +129,42 @@ const SectionCard = memo(({
           {section.label}
         </CardTitle>
         <CardDescription>{section.description}</CardDescription>
+
+        {/* Deficit Assessment for COM-B sections */}
+        {section.hasDeficitAssessment && onDeficitChange && (
+          <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+            <Label className="text-sm font-medium mb-2 block">Deficit Assessment</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={deficitLevel === 'adequate' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => onDeficitChange('adequate')}
+                className={deficitLevel === 'adequate' ? 'bg-green-600 hover:bg-green-700' : ''}
+              >
+                ✓ Adequate
+              </Button>
+              <Button
+                type="button"
+                variant={deficitLevel === 'deficit' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => onDeficitChange('deficit')}
+                className={deficitLevel === 'deficit' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+              >
+                ⚠ Deficit
+              </Button>
+              <Button
+                type="button"
+                variant={deficitLevel === 'major_barrier' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => onDeficitChange('major_barrier')}
+                className={deficitLevel === 'major_barrier' ? 'bg-red-600 hover:bg-red-700' : ''}
+              >
+                ✖ Major Barrier
+              </Button>
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -376,6 +420,20 @@ export function GenericFrameworkForm({
 
   // AI follow-up questions generation state
   const [generatingQuestions, setGeneratingQuestions] = useState(false)
+
+  // BCW (Behaviour Change Wheel) state for behavior framework
+  const [comBDeficits, setComBDeficits] = useState<ComBDeficits>({
+    physical_capability: (initialData as any)?.com_b_deficits?.physical_capability || 'adequate',
+    psychological_capability: (initialData as any)?.com_b_deficits?.psychological_capability || 'adequate',
+    physical_opportunity: (initialData as any)?.com_b_deficits?.physical_opportunity || 'adequate',
+    social_opportunity: (initialData as any)?.com_b_deficits?.social_opportunity || 'adequate',
+    reflective_motivation: (initialData as any)?.com_b_deficits?.reflective_motivation || 'adequate',
+    automatic_motivation: (initialData as any)?.com_b_deficits?.automatic_motivation || 'adequate',
+  })
+
+  const [selectedInterventions, setSelectedInterventions] = useState<InterventionFunction[]>(
+    (initialData as any)?.selected_interventions || []
+  )
 
   // Get item type from config
   const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
@@ -765,7 +823,12 @@ export function GenericFrameworkForm({
         title: title.trim(),
         description: description.trim(),
         source_url: sourceUrl || undefined,
-        ...sectionData
+        ...sectionData,
+        // Add BCW data for behavior framework
+        ...(frameworkType === 'behavior' && {
+          com_b_deficits: comBDeficits,
+          selected_interventions: selectedInterventions,
+        }),
       }
 
       console.log(`Saving ${frameworkType} analysis:`, data)
@@ -959,10 +1022,29 @@ export function GenericFrameworkForm({
               frameworkType={frameworkType}
               allData={{ title, description, ...sectionData }}
               itemType={itemType}
+              deficitLevel={section.comBComponent ? comBDeficits[section.comBComponent] : undefined}
+              onDeficitChange={
+                section.comBComponent
+                  ? (level: DeficitLevel) =>
+                      setComBDeficits((prev) => ({
+                        ...prev,
+                        [section.comBComponent!]: level,
+                      }))
+                  : undefined
+              }
             />
           )
         })}
       </div>
+
+      {/* BCW Recommendations (Behaviour Change Wheel) - Only for behavior framework */}
+      {frameworkType === 'behavior' && (
+        <BCWRecommendations
+          deficits={comBDeficits}
+          selectedInterventions={selectedInterventions}
+          onInterventionSelect={setSelectedInterventions}
+        />
+      )}
 
       {/* Dataset Selector Modal */}
       <DatasetSelector
