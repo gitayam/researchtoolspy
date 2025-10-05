@@ -812,7 +812,7 @@
     },
     "causeway": {
       "title": "Análisis Causeway (PUTAR)",
-      "context": "El Análisis Causeway utiliza la metodología PUTAR (Problema, Actor No Deseado, Audiencia Objetivo, Remedio, Historia) para analizar amenazas y desarrollar estrategias de operaciones de influencia. Este marco identifica sistemáticamente capacidades críticas, requisitos y objetivos próximos que pueden ser influenciados para contrarrestar acciones adversarias. Desarrollado para operaciones de información militar, Causeway proporciona un enfoque estructurado para comprender y interrumpir las capacidades adversarias.",
+      "context": "El Análisis Causeway es una metodología estructurada de 6 etapas basada en el Centro de Gravedad (COG) que combina identificación de amenazas, selección de objetivos últimos (PUTAR: Objetivos Últimos Potenciales y Actores de Responsabilidad), análisis de capacidades críticas, identificación de requisitos críticos, mapeo de objetivos próximos y visualización de redes. Este enfoque sistemático mapea la cadena completa desde las fuentes de amenaza a través de sus capacidades y dependencias hasta puntos de apalancamiento accionables. Desarrollado para operaciones de información militar y campañas de influencia, Causeway permite a los analistas comprender redes de amenazas complejas e identificar dónde las intervenciones pueden interrumpir más efectivamente las capacidades adversarias.",
       "wikipediaUrl": null,
       "goodUseCases": [
         "Operaciones de contraterrorismo y contrainsurgencia",

@@ -812,7 +812,7 @@
     },
     "causeway": {
       "title": "Causeway Analysis (PUTAR)",
-      "context": "Causeway Analysis uses the PUTAR methodology (Problem, Undesired Actor, Target Audience, Remedy, Story) to analyze threats and develop influence operations strategies. This framework systematically identifies critical capabilities, requirements, and proximate targets that can be influenced to counter adversary actions. Developed for military information operations, Causeway provides a structured approach to understanding and disrupting adversary capabilities.",
+      "context": "Causeway Analysis is a structured 6-stage Center of Gravity (COG) methodology combining threat identification, ultimate target selection (PUTAR: Potential Ultimate Targets and Actors of Responsibility), critical capabilities analysis, critical requirements identification, proximate targets mapping, and network visualization. This systematic approach maps the complete chain from threat sources through their capabilities and dependencies to actionable leverage points. Developed for military information operations and influence campaigns, Causeway enables analysts to understand complex threat networks and identify where interventions can most effectively disrupt adversary capabilities.",
       "wikipediaUrl": null,
       "goodUseCases": [
         "Counter-terrorism and counter-insurgency operations",
