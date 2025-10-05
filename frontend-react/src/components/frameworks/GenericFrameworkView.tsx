@@ -14,8 +14,10 @@ import { generateRelationshipsFromCOG, generateRelationshipsFromCauseway } from 
 import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
 import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
+import { LocationBadge } from '@/components/behavior/LocationBadge'
 import type { CreateRelationshipRequest } from '@/types/entities'
 import type { ComBDeficits, InterventionFunction } from '@/types/behavior-change-wheel'
+import type { LocationContext } from '@/types/behavior'
 
 interface FrameworkSection {
   key: string
@@ -308,6 +310,10 @@ export function GenericFrameworkView({
                 showBreakdown
                 size="lg"
               />
+              {/* Show location badge for behavior analyses */}
+              {frameworkType === 'behavior' && data.location_context && (
+                <LocationBadge locationContext={data.location_context as LocationContext} />
+              )}
             </div>
             {data.description && (
               <p className="text-gray-600 dark:text-gray-400 mt-1">

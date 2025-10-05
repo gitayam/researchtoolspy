@@ -134,6 +134,29 @@ export function BehaviorBasicInfoForm({
 
   return (
     <div className="space-y-6">
+      {/* Behavior + Location Explainer */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <div className="text-3xl">📍</div>
+          <div className="flex-1">
+            <h3 className="font-bold text-lg text-blue-900 dark:text-blue-100 mb-1">
+              Behavior Analysis = BEHAVIOR + LOCATION
+            </h3>
+            <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+              You're documenting a <strong>specific behavior in a specific place/context</strong>, not behavior in the abstract.
+            </p>
+            <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1 ml-4 list-disc">
+              <li><strong>Example:</strong> "Voting" varies by country, state, and local regulations</li>
+              <li><strong>Example:</strong> "Solar panel adoption" differs by region (incentives, climate, regulations)</li>
+              <li>Even online behaviors vary by platform, language, and culture</li>
+            </ul>
+            <div className="mt-2 text-xs font-semibold text-purple-800 dark:text-purple-200">
+              ⚠️ Location context is REQUIRED - be as specific as possible!
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Title & Description */}
       <Card>
         <CardHeader>
