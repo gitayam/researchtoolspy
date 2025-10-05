@@ -19,7 +19,6 @@ import { GenericFrameworkView } from '@/components/frameworks/GenericFrameworkVi
 import { DeceptionForm } from '@/components/frameworks/DeceptionForm'
 import { DeceptionView } from '@/components/frameworks/DeceptionView'
 import { frameworkConfigs } from '@/config/framework-configs'
-import { frameworkDescriptions } from '@/config/framework-descriptions'
 
 export const SwotPage = () => {
   const { t } = useTranslation()
@@ -192,7 +191,11 @@ export const SwotPage = () => {
     }
   }
 
-  const frameworkInfo = frameworkDescriptions['swot']
+  const frameworkKey = 'swot'
+  const frameworkContext = t(`frameworkDescriptions.${frameworkKey}.context`)
+  const frameworkWikipediaUrl = t(`frameworkDescriptions.${frameworkKey}.wikipediaUrl`, { defaultValue: null })
+  const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true }) as string[]
+  const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true }) as string[]
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -214,11 +217,11 @@ export const SwotPage = () => {
       <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
         <CardContent className="p-6">
           <div className="space-y-4">
-            <p className="text-gray-700 dark:text-gray-300">{frameworkInfo.context}</p>
+            <p className="text-gray-700 dark:text-gray-300">{frameworkContext}</p>
 
-            {frameworkInfo.wikipediaUrl && (
+            {frameworkWikipediaUrl && (
               <a
-                href={frameworkInfo.wikipediaUrl}
+                href={frameworkWikipediaUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
@@ -235,7 +238,7 @@ export const SwotPage = () => {
                   {t('frameworkPages.goodUseCases')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  {frameworkInfo.goodUseCases.map((useCase, idx) => (
+                  {frameworkGoodUseCases.map((useCase, idx) => (
                     <li key={idx}>{useCase}</li>
                   ))}
                 </ul>
@@ -246,7 +249,7 @@ export const SwotPage = () => {
                   {t('frameworkPages.notIdealFor')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  {frameworkInfo.notIdealFor.map((useCase, idx) => (
+                  {frameworkNotIdealFor.map((useCase, idx) => (
                     <li key={idx}>{useCase}</li>
                   ))}
                 </ul>
@@ -541,7 +544,10 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     }
   }
 
-  const frameworkInfo = frameworkDescriptions[frameworkKey]
+  const frameworkContext = t(`frameworkDescriptions.${frameworkKey}.context`, { defaultValue: '' })
+  const frameworkWikipediaUrl = t(`frameworkDescriptions.${frameworkKey}.wikipediaUrl`, { defaultValue: null })
+  const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true, defaultValue: [] }) as string[]
+  const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true, defaultValue: [] }) as string[]
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -557,15 +563,15 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
       </div>
 
       {/* Framework Context */}
-      {frameworkInfo && (
+      {frameworkContext && (
         <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
           <CardContent className="p-6">
             <div className="space-y-4">
-              <p className="text-gray-700 dark:text-gray-300">{frameworkInfo.context}</p>
+              <p className="text-gray-700 dark:text-gray-300">{frameworkContext}</p>
 
-              {frameworkInfo.wikipediaUrl && (
+              {frameworkWikipediaUrl && (
                 <a
-                  href={frameworkInfo.wikipediaUrl}
+                  href={frameworkWikipediaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
@@ -582,7 +588,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   {t('frameworkPages.goodUseCases')}
                   </h4>
                   <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                    {frameworkInfo.goodUseCases.map((useCase, idx) => (
+                    {frameworkGoodUseCases.map((useCase, idx) => (
                       <li key={idx}>{useCase}</li>
                     ))}
                   </ul>
@@ -593,7 +599,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   {t('frameworkPages.notIdealFor')}
                   </h4>
                   <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                    {frameworkInfo.notIdealFor.map((useCase, idx) => (
+                    {frameworkNotIdealFor.map((useCase, idx) => (
                       <li key={idx}>{useCase}</li>
                     ))}
                   </ul>
@@ -947,7 +953,11 @@ export const DeceptionPage = () => {
     }
   }
 
-  const frameworkInfo = frameworkDescriptions['deception']
+  const frameworkKey = 'deception'
+  const frameworkContext = t(`frameworkDescriptions.${frameworkKey}.context`)
+  const frameworkWikipediaUrl = t(`frameworkDescriptions.${frameworkKey}.wikipediaUrl`, { defaultValue: null })
+  const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true }) as string[]
+  const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true }) as string[]
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -966,11 +976,11 @@ export const DeceptionPage = () => {
       <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
         <CardContent className="p-6">
           <div className="space-y-4">
-            <p className="text-gray-700 dark:text-gray-300">{frameworkInfo.context}</p>
+            <p className="text-gray-700 dark:text-gray-300">{frameworkContext}</p>
 
-            {frameworkInfo.wikipediaUrl && (
+            {frameworkWikipediaUrl && (
               <a
-                href={frameworkInfo.wikipediaUrl}
+                href={frameworkWikipediaUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
@@ -987,7 +997,7 @@ export const DeceptionPage = () => {
                   {t('frameworkPages.goodUseCases')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  {frameworkInfo.goodUseCases.map((useCase, idx) => (
+                  {frameworkGoodUseCases.map((useCase, idx) => (
                     <li key={idx}>{useCase}</li>
                   ))}
                 </ul>
@@ -998,7 +1008,7 @@ export const DeceptionPage = () => {
                   {t('frameworkPages.notIdealFor')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  {frameworkInfo.notIdealFor.map((useCase, idx) => (
+                  {frameworkNotIdealFor.map((useCase, idx) => (
                     <li key={idx}>{useCase}</li>
                   ))}
                 </ul>
