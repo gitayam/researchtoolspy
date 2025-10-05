@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Plus, Copy, Check, Trash2, BookOpen, Globe, Loader2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +16,7 @@ import { CitationLibrary } from '@/components/tools/CitationLibrary'
 
 export function CitationsGeneratorPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [citationStyle, setCitationStyle] = useState<CitationStyle>('apa')
   const [sourceType, setSourceType] = useState<SourceType>('website')
   const [authors, setAuthors] = useState<Author[]>([{ firstName: '', lastName: '', middleName: '' }])
@@ -109,12 +111,12 @@ export function CitationsGeneratorPage() {
 
   const saveToLibrary = () => {
     if (!title.trim()) {
-      alert('Please enter a title before saving')
+      alert(t('citationsGeneratorTool.titleRequired'))
       return
     }
 
     if (authors.length === 0 || !authors[0].lastName.trim()) {
-      alert('Please enter at least one author')
+      alert(t('citationsGeneratorTool.authorRequired'))
       return
     }
 
@@ -136,7 +138,7 @@ export function CitationsGeneratorPage() {
 
   const scrapeFromUrl = async () => {
     if (!url.trim()) {
-      alert('Please enter a URL first')
+      alert(t('citationsGeneratorTool.urlRequired'))
       return
     }
 
@@ -219,14 +221,14 @@ export function CitationsGeneratorPage() {
       <div className="flex items-center gap-4">
         <Button variant="outline" onClick={() => navigate('/dashboard/tools')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Tools
+          {t('citationsGeneratorTool.backToTools')}
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <BookOpen className="h-8 w-8 text-blue-600" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Citations Generator</h1>
-              <p className="text-gray-600 dark:text-gray-400">Generate citations in APA, MLA, Chicago, and Harvard formats</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('citationsGeneratorTool.title')}</h1>
+              <p className="text-gray-600 dark:text-gray-400">{t('citationsGeneratorTool.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -238,16 +240,16 @@ export function CitationsGeneratorPage() {
           {/* Citation Style Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>Citation Style</CardTitle>
-              <CardDescription>Select your preferred citation format</CardDescription>
+              <CardTitle>{t('citationsGeneratorTool.citationStyle')}</CardTitle>
+              <CardDescription>{t('citationsGeneratorTool.citationStyleDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs value={citationStyle} onValueChange={(v) => setCitationStyle(v as CitationStyle)}>
                 <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="apa">APA 7th</TabsTrigger>
-                  <TabsTrigger value="mla">MLA 9th</TabsTrigger>
-                  <TabsTrigger value="chicago">Chicago 17th</TabsTrigger>
-                  <TabsTrigger value="harvard">Harvard</TabsTrigger>
+                  <TabsTrigger value="apa">{t('citationsGeneratorTool.apa')}</TabsTrigger>
+                  <TabsTrigger value="mla">{t('citationsGeneratorTool.mla')}</TabsTrigger>
+                  <TabsTrigger value="chicago">{t('citationsGeneratorTool.chicago')}</TabsTrigger>
+                  <TabsTrigger value="harvard">{t('citationsGeneratorTool.harvard')}</TabsTrigger>
                 </TabsList>
               </Tabs>
             </CardContent>
@@ -256,44 +258,44 @@ export function CitationsGeneratorPage() {
           {/* Source Type & Basic Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Source Information</CardTitle>
+              <CardTitle>{t('citationsGeneratorTool.sourceInformation')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Source Type</Label>
+                <Label>{t('citationsGeneratorTool.sourceType')}</Label>
                 <Select value={sourceType} onValueChange={(v) => setSourceType(v as SourceType)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="website">Website</SelectItem>
-                    <SelectItem value="book">Book</SelectItem>
-                    <SelectItem value="journal">Journal Article</SelectItem>
-                    <SelectItem value="report">Report</SelectItem>
-                    <SelectItem value="news">News Article</SelectItem>
+                    <SelectItem value="website">{t('citationsGeneratorTool.website')}</SelectItem>
+                    <SelectItem value="book">{t('citationsGeneratorTool.book')}</SelectItem>
+                    <SelectItem value="journal">{t('citationsGeneratorTool.journal')}</SelectItem>
+                    <SelectItem value="report">{t('citationsGeneratorTool.report')}</SelectItem>
+                    <SelectItem value="news">{t('citationsGeneratorTool.news')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Authors */}
               <div>
-                <Label>Author(s)</Label>
+                <Label>{t('citationsGeneratorTool.authors')}</Label>
                 {authors.map((author, index) => (
                   <div key={index} className="flex gap-2 mt-2">
                     <Input
-                      placeholder="First name"
+                      placeholder={t('citationsGeneratorTool.firstName')}
                       value={author.firstName}
                       onChange={(e) => updateAuthor(index, 'firstName', e.target.value)}
                       className="flex-1"
                     />
                     <Input
-                      placeholder="Middle (optional)"
+                      placeholder={t('citationsGeneratorTool.middleOptional')}
                       value={author.middleName}
                       onChange={(e) => updateAuthor(index, 'middleName', e.target.value)}
                       className="flex-1"
                     />
                     <Input
-                      placeholder="Last name"
+                      placeholder={t('citationsGeneratorTool.lastName')}
                       value={author.lastName}
                       onChange={(e) => updateAuthor(index, 'lastName', e.target.value)}
                       className="flex-1"
@@ -316,24 +318,24 @@ export function CitationsGeneratorPage() {
                   className="mt-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Author
+                  {t('citationsGeneratorTool.addAuthor')}
                 </Button>
               </div>
 
               {/* Title */}
               <div>
-                <Label>Title</Label>
+                <Label>{t('citationsGeneratorTool.title')}</Label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter title"
+                  placeholder={t('citationsGeneratorTool.enterTitle')}
                 />
               </div>
 
               {/* Date */}
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <Label>Year</Label>
+                  <Label>{t('citationsGeneratorTool.year')}</Label>
                   <Input
                     value={year}
                     onChange={(e) => setYear(e.target.value)}
@@ -341,7 +343,7 @@ export function CitationsGeneratorPage() {
                   />
                 </div>
                 <div>
-                  <Label>Month (optional)</Label>
+                  <Label>{t('citationsGeneratorTool.monthOptional')}</Label>
                   <Input
                     value={month}
                     onChange={(e) => setMonth(e.target.value)}
@@ -349,7 +351,7 @@ export function CitationsGeneratorPage() {
                   />
                 </div>
                 <div>
-                  <Label>Day (optional)</Label>
+                  <Label>{t('citationsGeneratorTool.dayOptional')}</Label>
                   <Input
                     value={day}
                     onChange={(e) => setDay(e.target.value)}
@@ -564,7 +566,7 @@ export function CitationsGeneratorPage() {
 
               <div className="flex gap-2 pt-4">
                 <Button variant="outline" onClick={clearForm} className="flex-1">
-                  Clear Form
+                  {t('citationsGeneratorTool.clearForm')}
                 </Button>
               </div>
             </CardContent>
@@ -575,12 +577,12 @@ export function CitationsGeneratorPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Citation Preview</CardTitle>
-              <CardDescription>Your formatted citation</CardDescription>
+              <CardTitle>{t('citationsGeneratorTool.citationPreview')}</CardTitle>
+              <CardDescription>{t('citationsGeneratorTool.citationPreviewDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label className="text-xs text-gray-600 dark:text-gray-400">Full Citation</Label>
+                <Label className="text-xs text-gray-600 dark:text-gray-400">{t('citationsGeneratorTool.fullCitation')}</Label>
                 <Textarea
                   value={citation}
                   readOnly
@@ -593,7 +595,7 @@ export function CitationsGeneratorPage() {
                     onClick={() => copyToClipboard(citation)}
                   >
                     {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                    {copied ? 'Copied!' : 'Copy'}
+                    {copied ? t('citationsGeneratorTool.copied') : t('citationsGeneratorTool.copy')}
                   </Button>
                   <Button
                     variant="outline"
@@ -601,14 +603,14 @@ export function CitationsGeneratorPage() {
                     onClick={saveToLibrary}
                   >
                     {saved ? <Check className="h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                    {saved ? 'Saved!' : 'Save'}
+                    {saved ? t('citationsGeneratorTool.saved') : t('citationsGeneratorTool.save')}
                   </Button>
                 </div>
               </div>
 
               {inTextCitation && (
                 <div>
-                  <Label className="text-xs text-gray-600 dark:text-gray-400">In-Text Citation</Label>
+                  <Label className="text-xs text-gray-600 dark:text-gray-400">{t('citationsGeneratorTool.inTextCitation')}</Label>
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mt-2">
                     <p className="font-mono text-sm">{inTextCitation}</p>
                   </div>
@@ -619,7 +621,7 @@ export function CitationsGeneratorPage() {
                     className="mt-2 w-full"
                   >
                     {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                    Copy In-Text
+                    {t('citationsGeneratorTool.copyInText')}
                   </Button>
                 </div>
               )}
@@ -627,13 +629,13 @@ export function CitationsGeneratorPage() {
               {/* Quick Reference */}
               <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
-                  {citationStyle.toUpperCase()} Format
+                  {citationStyle.toUpperCase()} {t('citationsGeneratorTool.format')}
                 </h4>
                 <p className="text-xs text-blue-800 dark:text-blue-400">
-                  {citationStyle === 'apa' && 'American Psychological Association (7th Edition)'}
-                  {citationStyle === 'mla' && 'Modern Language Association (9th Edition)'}
-                  {citationStyle === 'chicago' && 'Chicago Manual of Style (17th Edition)'}
-                  {citationStyle === 'harvard' && 'Harvard Referencing (Author-Date)'}
+                  {citationStyle === 'apa' && t('citationsGeneratorTool.apaFull')}
+                  {citationStyle === 'mla' && t('citationsGeneratorTool.mlaFull')}
+                  {citationStyle === 'chicago' && t('citationsGeneratorTool.chicagoFull')}
+                  {citationStyle === 'harvard' && t('citationsGeneratorTool.harvardFull')}
                 </p>
               </div>
             </CardContent>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { evidenceToCitation } from '@/utils/evidence-to-citation'
 import { addCitation } from '@/utils/citation-library'
 import type { EvidenceItem } from '@/types/evidence'
@@ -29,6 +30,7 @@ import type { URLAnalysisResult } from '@/types/url-processing'
 
 export function URLProcessingPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [url, setUrl] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState<URLAnalysisResult | null>(null)
@@ -41,7 +43,7 @@ export function URLProcessingPage() {
 
   const analyzeUrl = async () => {
     if (!url.trim()) {
-      setError('Please enter a URL')
+      setError(t('urlProcessingTool.pleaseEnterUrl'))
       return
     }
 
@@ -68,7 +70,7 @@ export function URLProcessingPage() {
         setResult(data)
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to analyze URL')
+      setError(err.message || t('urlProcessingTool.failedToAnalyze'))
     } finally {
       setAnalyzing(false)
     }
@@ -158,30 +160,30 @@ export function URLProcessingPage() {
       <div className="flex items-center gap-4">
         <Button variant="outline" onClick={() => navigate('/dashboard/tools')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Tools
+          {t('urlProcessingTool.backToTools')}
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">URL Processing & Analysis</h1>
-          <p className="text-gray-600 dark:text-gray-400">Analyze URLs for metadata, reliability, and archived versions</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('urlProcessingTool.title')}</h1>
+          <p className="text-gray-600 dark:text-gray-400">{t('urlProcessingTool.subtitle')}</p>
         </div>
       </div>
 
       {/* Input Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Enter URL to Analyze</CardTitle>
+          <CardTitle>{t('urlProcessingTool.enterUrlTitle')}</CardTitle>
           <CardDescription>
-            Analyze any URL for metadata, domain information, reliability scoring, and archive history
+            {t('urlProcessingTool.enterUrlDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="url">URL</Label>
+            <Label htmlFor="url">{t('urlProcessingTool.urlLabel')}</Label>
             <div className="flex gap-2">
               <Input
                 id="url"
                 type="url"
-                placeholder="https://example.com"
+                placeholder={t('urlProcessingTool.urlPlaceholder')}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && analyzeUrl()}
@@ -191,12 +193,12 @@ export function URLProcessingPage() {
                 {analyzing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Analyzing...
+                    {t('urlProcessingTool.analyzing')}
                   </>
                 ) : (
                   <>
                     <Globe className="h-4 w-4 mr-2" />
-                    Analyze
+                    {t('urlProcessingTool.analyze')}
                   </>
                 )}
               </Button>
@@ -204,7 +206,7 @@ export function URLProcessingPage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Analysis Options</Label>
+            <Label>{t('urlProcessingTool.analysisOptions')}</Label>
             <div className="flex gap-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -216,7 +218,7 @@ export function URLProcessingPage() {
                   htmlFor="wayback"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Check Wayback Machine
+                  {t('urlProcessingTool.checkWayback')}
                 </label>
               </div>
               <div className="flex items-center space-x-2">
@@ -229,7 +231,7 @@ export function URLProcessingPage() {
                   htmlFor="seo"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  SEO Analysis
+                  {t('urlProcessingTool.seoAnalysis')}
                 </label>
               </div>
             </div>
@@ -252,10 +254,10 @@ export function URLProcessingPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Link className="h-5 w-5" />
-                Quick Access & Bypass Links
+                {t('urlProcessingTool.quickAccessTitle')}
               </CardTitle>
               <CardDescription>
-                Alternative ways to access this content
+                {t('urlProcessingTool.quickAccessDesc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -266,7 +268,7 @@ export function URLProcessingPage() {
                   onClick={() => window.open(`https://12ft.io/proxy?q=${encodeURIComponent(result.normalizedUrl)}`, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  12ft Ladder (Paywall Bypass)
+                  {t('urlProcessingTool.paywallBypass')}
                 </Button>
                 <Button
                   variant="outline"
@@ -274,7 +276,7 @@ export function URLProcessingPage() {
                   onClick={() => window.open(`https://archive.is/?run=1&url=${encodeURIComponent(result.normalizedUrl)}`, '_blank')}
                 >
                   <Archive className="h-4 w-4 mr-2" />
-                  Archive.is
+                  {t('urlProcessingTool.archiveIs')}
                 </Button>
                 <Button
                   variant="outline"
@@ -282,7 +284,7 @@ export function URLProcessingPage() {
                   onClick={() => window.open(`https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(result.normalizedUrl)}`, '_blank')}
                 >
                   <Globe className="h-4 w-4 mr-2" />
-                  Google Cache
+                  {t('urlProcessingTool.googleCache')}
                 </Button>
                 <Button
                   variant="outline"
@@ -290,7 +292,7 @@ export function URLProcessingPage() {
                   onClick={() => window.open(`https://outline.com/${result.normalizedUrl}`, '_blank')}
                 >
                   <FileText className="h-4 w-4 mr-2" />
-                  Outline (Reader)
+                  {t('urlProcessingTool.outlineReader')}
                 </Button>
               </div>
             </CardContent>
@@ -301,7 +303,7 @@ export function URLProcessingPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Reliability Score
+                {t('urlProcessingTool.reliabilityScore')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -310,9 +312,9 @@ export function URLProcessingPage() {
                   <div className={`text-6xl font-bold ${getRatingColor(result.reliability.rating)}`}>
                     {result.reliability.score}
                   </div>
-                  <div className="text-xl text-gray-600 dark:text-gray-400">out of 100</div>
+                  <div className="text-xl text-gray-600 dark:text-gray-400">{t('urlProcessingTool.outOf100')}</div>
                   <div className={`text-lg font-semibold mt-2 ${getRatingColor(result.reliability.rating)}`}>
-                    {result.reliability.rating}
+                    {t(`urlProcessingTool.${result.reliability.rating.toLowerCase()}`)}
                   </div>
                 </div>
 
@@ -320,19 +322,19 @@ export function URLProcessingPage() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                   <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">SSL/HTTPS</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{t('urlProcessingTool.sslHttps')}</div>
                     <div className="text-lg font-semibold">{result.reliability.breakdown.ssl}/20</div>
                   </div>
                   <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Domain Age</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{t('urlProcessingTool.domainAge')}</div>
                     <div className="text-lg font-semibold">{result.reliability.breakdown.domainAge}/20</div>
                   </div>
                   <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Content</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{t('urlProcessingTool.content')}</div>
                     <div className="text-lg font-semibold">{result.reliability.breakdown.contentQuality}/20</div>
                   </div>
                   <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Archive</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{t('urlProcessingTool.archive')}</div>
                     <div className="text-lg font-semibold">{result.reliability.breakdown.archiveHistory}/15</div>
                   </div>
                 </div>
@@ -355,38 +357,38 @@ export function URLProcessingPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5" />
-                Page Metadata
+                {t('urlProcessingTool.pageMetadata')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="space-y-2">
                 {result.metadata.title && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Title</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.title')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white">{result.metadata.title}</dd>
                   </div>
                 )}
                 {result.metadata.description && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Description</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.description')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white">{result.metadata.description}</dd>
                   </div>
                 )}
                 {result.metadata.author && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Author</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.author')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white">{result.metadata.author}</dd>
                   </div>
                 )}
                 {result.metadata.siteName && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Site Name</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.siteName')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white">{result.metadata.siteName}</dd>
                   </div>
                 )}
                 {result.metadata.type && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Type</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.type')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white">{result.metadata.type}</dd>
                   </div>
                 )}
@@ -398,27 +400,27 @@ export function URLProcessingPage() {
             {/* Domain Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Domain Information</CardTitle>
+                <CardTitle>{t('urlProcessingTool.domainInformation')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="space-y-2">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Domain</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.domain')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white">{result.domain.name}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Protocol</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.protocol')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white">
                       {result.domain.protocol.toUpperCase()}
                       {result.domain.ssl && (
                         <span className="ml-2 text-green-600 dark:text-green-400">
-                          <CheckCircle className="h-4 w-4 inline" /> Secure
+                          <CheckCircle className="h-4 w-4 inline" /> {t('urlProcessingTool.secure')}
                         </span>
                       )}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Path</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.path')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white font-mono">{result.domain.path}</dd>
                   </div>
                 </dl>
@@ -430,13 +432,13 @@ export function URLProcessingPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-5 w-5" />
-                  Status & Performance
+                  {t('urlProcessingTool.statusPerformance')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="space-y-2">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Status Code</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.statusCode')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white">
                       {result.status.code}
                       {result.status.ok ? (
@@ -447,12 +449,12 @@ export function URLProcessingPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Response Time</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.responseTime')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white">{result.status.responseTime}ms</dd>
                   </div>
                   {result.status.redirects.length > 0 && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Redirects</dt>
+                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.redirects')}</dt>
                       <dd className="text-sm text-gray-900 dark:text-white">{result.status.redirects.length}</dd>
                     </div>
                   )}
@@ -467,7 +469,7 @@ export function URLProcessingPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Archive className="h-5 w-5" />
-                  Archive History (Wayback Machine)
+                  {t('urlProcessingTool.archiveHistory')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -482,19 +484,19 @@ export function URLProcessingPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {result.wayback.firstSnapshot && (
                         <div>
-                          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">First Snapshot</dt>
+                          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.firstSnapshot')}</dt>
                           <dd className="text-sm text-gray-900 dark:text-white">{formatDate(result.wayback.firstSnapshot)}</dd>
                         </div>
                       )}
                       {result.wayback.lastSnapshot && (
                         <div>
-                          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Latest Snapshot</dt>
+                          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.latestSnapshot')}</dt>
                           <dd className="text-sm text-gray-900 dark:text-white">{formatDate(result.wayback.lastSnapshot)}</dd>
                         </div>
                       )}
                       {result.wayback.totalSnapshots && (
                         <div>
-                          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Snapshots</dt>
+                          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.totalSnapshots')}</dt>
                           <dd className="text-sm text-gray-900 dark:text-white">{result.wayback.totalSnapshots}</dd>
                         </div>
                       )}
@@ -506,14 +508,14 @@ export function URLProcessingPage() {
                         onClick={() => window.open(result.wayback!.archiveUrl, '_blank')}
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        View in Wayback Machine
+                        {t('urlProcessingTool.viewInWayback')}
                       </Button>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {result.wayback.message || 'This URL has not been archived by the Wayback Machine'}
+                      {result.wayback.message || t('urlProcessingTool.notArchived')}
                     </p>
                     {result.wayback.message && result.wayback.message.includes('Failed') && (
                       <Button
@@ -522,7 +524,7 @@ export function URLProcessingPage() {
                         onClick={() => window.open(`https://web.archive.org/save/${result.normalizedUrl}`, '_blank')}
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Save Manually to Wayback Machine
+                        {t('urlProcessingTool.saveToWayback')}
                       </Button>
                     )}
                   </div>
@@ -534,30 +536,30 @@ export function URLProcessingPage() {
           {/* Export & Citation Options */}
           <Card>
             <CardHeader>
-              <CardTitle>Export & Citation Tools</CardTitle>
+              <CardTitle>{t('urlProcessingTool.exportCitationTools')}</CardTitle>
               <CardDescription>
-                Save this analysis or create a citation for your research
+                {t('urlProcessingTool.exportCitationDesc')}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               <Button onClick={createCitationFromUrl} className="bg-blue-600 hover:bg-blue-700">
                 <FileText className="h-4 w-4 mr-2" />
-                Create Citation
+                {t('urlProcessingTool.createCitation')}
               </Button>
               <Button variant="outline" onClick={exportJSON}>
                 <Download className="h-4 w-4 mr-2" />
-                Export JSON
+                {t('urlProcessingTool.exportJson')}
               </Button>
               <Button variant="outline" onClick={() => copyToClipboard(JSON.stringify(result, null, 2))}>
                 {copied ? (
                   <>
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Copied!
+                    {t('urlProcessingTool.copied')}
                   </>
                 ) : (
                   <>
                     <Copy className="h-4 w-4 mr-2" />
-                    Copy to Clipboard
+                    {t('urlProcessingTool.copyToClipboard')}
                   </>
                 )}
               </Button>
