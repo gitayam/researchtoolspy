@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, FileText, Download, Copy, Save, Check, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +12,7 @@ import type { ExtractionResult, ExtractionProgress } from '@/types/extraction'
 
 export function ContentExtractionPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [progress, setProgress] = useState<ExtractionProgress>({ status: 'idle', progress: 0 })
   const [result, setResult] = useState<ExtractionResult | null>(null)
   const [url, setUrl] = useState('')
@@ -131,14 +133,14 @@ export function ContentExtractionPage() {
       <div className="flex items-center gap-4">
         <Button variant="outline" onClick={() => navigate('/dashboard/tools')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Tools
+          {t('contentExtractionTool.backToTools')}
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <FileText className="h-8 w-8 text-blue-600" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Content Extraction</h1>
-              <p className="text-gray-600 dark:text-gray-400">Extract and analyze content from documents and web pages</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('contentExtractionTool.title')}</h1>
+              <p className="text-gray-600 dark:text-gray-400">{t('contentExtractionTool.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -147,8 +149,8 @@ export function ContentExtractionPage() {
       {/* Input Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Upload or Enter URL</CardTitle>
-          <CardDescription>Choose a file to upload or enter a URL to extract content</CardDescription>
+          <CardTitle>{t('contentExtractionTool.uploadOrEnterUrl')}</CardTitle>
+          <CardDescription>{t('contentExtractionTool.uploadOrEnterUrlDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Mode Toggle */}
@@ -159,7 +161,7 @@ export function ContentExtractionPage() {
               className="flex-1"
             >
               <FileText className="h-4 w-4 mr-2" />
-              File Upload
+              {t('contentExtractionTool.fileUpload')}
             </Button>
             <Button
               variant={extractionMode === 'url' ? 'default' : 'outline'}
@@ -167,7 +169,7 @@ export function ContentExtractionPage() {
               className="flex-1"
             >
               <Globe className="h-4 w-4 mr-2" />
-              URL
+              {t('contentExtractionTool.url')}
             </Button>
           </div>
 
@@ -180,7 +182,7 @@ export function ContentExtractionPage() {
             <div className="space-y-4">
               <Input
                 type="url"
-                placeholder="https://example.com/article"
+                placeholder={t('contentExtractionTool.urlPlaceholder')}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 disabled={progress.status === 'processing'}
@@ -190,7 +192,7 @@ export function ContentExtractionPage() {
                 disabled={!url.trim() || progress.status === 'processing'}
                 className="w-full"
               >
-                Extract from URL
+                {t('contentExtractionTool.extractFromUrl')}
               </Button>
             </div>
           )}
@@ -203,24 +205,24 @@ export function ContentExtractionPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Extraction Results</CardTitle>
+                <CardTitle>{t('contentExtractionTool.extractionResults')}</CardTitle>
                 <CardDescription>
-                  {result.content.wordCount} words • {result.content.charCount} characters
-                  {result.content.pages && ` • ${result.content.pages} pages`}
+                  {result.content.wordCount} {t('contentExtractionTool.words')} • {result.content.charCount} {t('contentExtractionTool.characters')}
+                  {result.content.pages && ` • ${result.content.pages} ${t('contentExtractionTool.pages')}`}
                 </CardDescription>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={copyToClipboard}>
                   {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                  {copied ? 'Copied!' : 'Copy'}
+                  {copied ? t('contentExtractionTool.copied') : t('contentExtractionTool.copy')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={downloadText}>
                   <Download className="h-4 w-4 mr-2" />
-                  TXT
+                  {t('contentExtractionTool.txt')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={downloadJSON}>
                   <Download className="h-4 w-4 mr-2" />
-                  JSON
+                  {t('contentExtractionTool.json')}
                 </Button>
               </div>
             </div>
@@ -228,9 +230,9 @@ export function ContentExtractionPage() {
           <CardContent>
             <Tabs defaultValue="text">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="text">Text</TabsTrigger>
-                <TabsTrigger value="metadata">Metadata</TabsTrigger>
-                <TabsTrigger value="analysis">Analysis</TabsTrigger>
+                <TabsTrigger value="text">{t('contentExtractionTool.text')}</TabsTrigger>
+                <TabsTrigger value="metadata">{t('contentExtractionTool.metadata')}</TabsTrigger>
+                <TabsTrigger value="analysis">{t('contentExtractionTool.analysis')}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="text" className="space-y-4">
@@ -245,31 +247,31 @@ export function ContentExtractionPage() {
                 <div className="grid grid-cols-2 gap-4">
                   {result.metadata.title && (
                     <div>
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('contentExtractionTool.title')}</label>
                       <p className="text-sm text-gray-900 dark:text-gray-100">{result.metadata.title}</p>
                     </div>
                   )}
                   {result.metadata.author && (
                     <div>
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Author</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('contentExtractionTool.author')}</label>
                       <p className="text-sm text-gray-900 dark:text-gray-100">{result.metadata.author}</p>
                     </div>
                   )}
                   {result.metadata.date && (
                     <div>
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('contentExtractionTool.date')}</label>
                       <p className="text-sm text-gray-900 dark:text-gray-100">{result.metadata.date}</p>
                     </div>
                   )}
                   {result.metadata.language && (
                     <div>
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Language</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('contentExtractionTool.language')}</label>
                       <p className="text-sm text-gray-900 dark:text-gray-100">{result.metadata.language}</p>
                     </div>
                   )}
                   {result.metadata.keywords && result.metadata.keywords.length > 0 && (
                     <div className="col-span-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Keywords</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('contentExtractionTool.keywords')}</label>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {result.metadata.keywords.map((keyword, i) => (
                           <span
@@ -290,22 +292,22 @@ export function ContentExtractionPage() {
                   <div className="space-y-4">
                     {result.analysis.readability && (
                       <div>
-                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Readability</h3>
+                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('contentExtractionTool.readability')}</h3>
                         <div className="grid grid-cols-3 gap-4">
                           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Flesch-Kincaid</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">{t('contentExtractionTool.fleschKincaid')}</p>
                             <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                               {result.analysis.readability.fleschKincaid.toFixed(1)}
                             </p>
                           </div>
                           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Grade Level</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">{t('contentExtractionTool.gradeLevel')}</p>
                             <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                               {result.analysis.readability.grade}
                             </p>
                           </div>
                           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Difficulty</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">{t('contentExtractionTool.difficulty')}</p>
                             <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 capitalize">
                               {result.analysis.readability.difficulty.replace('-', ' ')}
                             </p>
@@ -316,7 +318,7 @@ export function ContentExtractionPage() {
 
                     {result.analysis.keywords && result.analysis.keywords.length > 0 && (
                       <div>
-                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Top Keywords</h3>
+                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('contentExtractionTool.topKeywords')}</h3>
                         <div className="space-y-2">
                           {result.analysis.keywords.slice(0, 10).map((kw, i) => (
                             <div key={i} className="flex items-center gap-3">
@@ -339,7 +341,7 @@ export function ContentExtractionPage() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-gray-500 dark:text-gray-400">No analysis data available</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('contentExtractionTool.noAnalysisData')}</p>
                 )}
               </TabsContent>
             </Tabs>

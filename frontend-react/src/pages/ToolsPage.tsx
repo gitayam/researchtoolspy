@@ -1,73 +1,75 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-const tools = [
-  {
-    id: 'content-extraction',
-    name: 'Content Extraction',
-    description: 'Extract and analyze content from documents and web pages',
-    icon: FileText,
-    features: ['PDF parsing', 'HTML extraction', 'Text analysis', 'Metadata extraction']
-  },
-  {
-    id: 'batch-processing',
-    name: 'Batch Processing',
-    description: 'Process multiple documents or URLs simultaneously',
-    icon: FileStack,
-    features: ['Bulk upload', 'Queue management', 'Progress tracking', 'Export results']
-  },
-  {
-    id: 'url',
-    name: 'URL Processing',
-    description: 'Analyze and extract data from web URLs',
-    icon: Globe,
-    features: ['URL validation', 'Content scraping', 'Metadata extraction', 'Link analysis']
-  },
-  {
-    id: 'citations-generator',
-    name: 'Citations Generator',
-    description: 'Generate and manage citations in multiple formats',
-    icon: LinkIcon,
-    features: ['APA 7th Edition', 'MLA 9th Edition', 'Chicago 17th', 'Harvard format']
-  },
-  {
-    id: 'ach',
-    name: 'ACH Analysis',
-    description: 'Analysis of Competing Hypotheses - Structured intelligence methodology',
-    icon: Grid3x3,
-    features: ['Hypothesis matrix', 'Evidence evaluation', 'Logarithmic scoring', 'SATS integration']
-  },
-  {
-    id: 'scraping',
-    name: 'Web Scraping',
-    description: 'Automated web data collection and extraction',
-    icon: Code,
-    features: ['Custom selectors', 'Scheduled scraping', 'Data transformation', 'Export options']
-  },
-  {
-    id: 'social-media',
-    name: 'Social Media Analysis',
-    description: 'Analyze social media content and trends',
-    icon: Share2,
-    features: ['Platform integration', 'Sentiment analysis', 'Trend tracking', 'Export data']
-  },
-  {
-    id: 'documents',
-    name: 'Document Processing',
-    description: 'Advanced document analysis and processing',
-    icon: Database,
-    features: ['Format conversion', 'Text extraction', 'OCR support', 'Batch processing']
-  }
-]
-
 export function ToolsPage() {
   const { toolId } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
+
+  const tools = [
+    {
+      id: 'content-extraction',
+      name: t('toolsPage.contentExtractionName'),
+      description: t('toolsPage.contentExtractionDesc'),
+      icon: FileText,
+      features: t('toolsPage.contentExtractionFeatures', { returnObjects: true }) as string[]
+    },
+    {
+      id: 'batch-processing',
+      name: t('toolsPage.batchProcessingName'),
+      description: t('toolsPage.batchProcessingDesc'),
+      icon: FileStack,
+      features: t('toolsPage.batchProcessingFeatures', { returnObjects: true }) as string[]
+    },
+    {
+      id: 'url',
+      name: t('toolsPage.urlProcessingName'),
+      description: t('toolsPage.urlProcessingDesc'),
+      icon: Globe,
+      features: t('toolsPage.urlProcessingFeatures', { returnObjects: true }) as string[]
+    },
+    {
+      id: 'citations-generator',
+      name: t('toolsPage.citationsGeneratorName'),
+      description: t('toolsPage.citationsGeneratorDesc'),
+      icon: LinkIcon,
+      features: t('toolsPage.citationsGeneratorFeatures', { returnObjects: true }) as string[]
+    },
+    {
+      id: 'ach',
+      name: t('toolsPage.achName'),
+      description: t('toolsPage.achDesc'),
+      icon: Grid3x3,
+      features: t('toolsPage.achFeatures', { returnObjects: true }) as string[]
+    },
+    {
+      id: 'scraping',
+      name: t('toolsPage.webScrapingName'),
+      description: t('toolsPage.webScrapingDesc'),
+      icon: Code,
+      features: t('toolsPage.webScrapingFeatures', { returnObjects: true }) as string[]
+    },
+    {
+      id: 'social-media',
+      name: t('toolsPage.socialMediaName'),
+      description: t('toolsPage.socialMediaDesc'),
+      icon: Share2,
+      features: t('toolsPage.socialMediaFeatures', { returnObjects: true }) as string[]
+    },
+    {
+      id: 'documents',
+      name: t('toolsPage.documentsName'),
+      description: t('toolsPage.documentsDesc'),
+      icon: Database,
+      features: t('toolsPage.documentsFeatures', { returnObjects: true }) as string[]
+    }
+  ]
 
   const filteredTools = tools.filter(tool =>
     tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -80,10 +82,10 @@ export function ToolsPage() {
     if (!tool) {
       return (
         <div className="text-center py-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Tool not found</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('toolsPage.toolNotFound')}</h2>
           <Button onClick={() => navigate('/dashboard/tools')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Tools
+            {t('toolsPage.backToTools')}
           </Button>
         </div>
       )
@@ -96,7 +98,7 @@ export function ToolsPage() {
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={() => navigate('/dashboard/tools')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t('toolsPage.back')}
           </Button>
           <div className="flex-1">
             <div className="flex items-center gap-3">
@@ -111,8 +113,8 @@ export function ToolsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Features</CardTitle>
-            <CardDescription>Key capabilities of this tool</CardDescription>
+            <CardTitle>{t('toolsPage.features')}</CardTitle>
+            <CardDescription>{t('toolsPage.featuresDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
@@ -130,12 +132,12 @@ export function ToolsPage() {
           <CardContent className="p-6">
             <div className="text-center py-8">
               <Icon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Tool Interface Coming Soon</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{t('toolsPage.comingSoon')}</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                The interactive interface for this tool is currently under development.
+                {t('toolsPage.comingSoonDesc')}
               </p>
               <Button disabled>
-                Launch Tool
+                {t('toolsPage.launchTool')}
               </Button>
             </div>
           </CardContent>
@@ -148,14 +150,14 @@ export function ToolsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Research Tools</h1>
-        <p className="text-gray-600 dark:text-gray-400">Powerful tools for research and analysis</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('toolsPage.title')}</h1>
+        <p className="text-gray-600 dark:text-gray-400">{t('toolsPage.subtitle')}</p>
       </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         <Input
-          placeholder="Search tools..."
+          placeholder={t('toolsPage.searchPlaceholder')}
           className="pl-10"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}

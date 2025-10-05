@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
   Play,
@@ -33,6 +34,7 @@ import { useNavigate as useNav } from 'react-router-dom'
 
 export function BatchProcessingPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [operation, setOperation] = useState<BatchOperation>('analyze-url')
   const [inputMethod, setInputMethod] = useState<'paste' | 'csv'>('paste')
   const [urlsText, setUrlsText] = useState('')
@@ -89,12 +91,12 @@ export function BatchProcessingPage() {
     const urls = parseURLs(urlsText)
 
     if (urls.length === 0) {
-      setError('Please enter at least one URL')
+      setError(t('batchProcessingTool.pleaseEnterUrl'))
       return
     }
 
     if (urls.length > 20) {
-      setError('Maximum 20 URLs allowed per batch')
+      setError(t('batchProcessingTool.maxUrlsExceeded'))
       return
     }
 
@@ -432,63 +434,63 @@ export function BatchProcessingPage() {
       <div className="flex items-center gap-4">
         <Button variant="outline" onClick={() => navigate('/dashboard/tools')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Tools
+          {t('batchProcessingTool.backToTools')}
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Batch Processing</h1>
-          <p className="text-gray-600 dark:text-gray-400">Process multiple URLs or files simultaneously</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('batchProcessingTool.title')}</h1>
+          <p className="text-gray-600 dark:text-gray-400">{t('batchProcessingTool.subtitle')}</p>
         </div>
       </div>
 
       {/* Configuration Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Batch Configuration</CardTitle>
+          <CardTitle>{t('batchProcessingTool.configTitle')}</CardTitle>
           <CardDescription>
-            Configure your batch processing job (max 20 items per batch)
+            {t('batchProcessingTool.configDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Operation Selection */}
           <div className="space-y-2">
-            <Label>Operation Type</Label>
+            <Label>{t('batchProcessingTool.operationType')}</Label>
             <Select value={operation} onValueChange={(v) => setOperation(v as BatchOperation)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="analyze-url">URL Analysis (with Wayback Machine)</SelectItem>
-                <SelectItem value="scrape-metadata">Metadata Extraction</SelectItem>
-                <SelectItem value="extract-content">Content Extraction</SelectItem>
+                <SelectItem value="analyze-url">{t('batchProcessingTool.urlAnalysis')}</SelectItem>
+                <SelectItem value="scrape-metadata">{t('batchProcessingTool.metadataExtraction')}</SelectItem>
+                <SelectItem value="extract-content">{t('batchProcessingTool.contentExtraction')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Input Method */}
           <div className="space-y-2">
-            <Label>Input Method</Label>
+            <Label>{t('batchProcessingTool.inputMethod')}</Label>
             <Tabs value={inputMethod} onValueChange={(v) => setInputMethod(v as 'paste' | 'csv')}>
               <TabsList>
-                <TabsTrigger value="paste">Paste URLs</TabsTrigger>
-                <TabsTrigger value="csv">Upload CSV</TabsTrigger>
+                <TabsTrigger value="paste">{t('batchProcessingTool.pasteUrls')}</TabsTrigger>
+                <TabsTrigger value="csv">{t('batchProcessingTool.uploadCsv')}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="paste" className="space-y-2 mt-4">
-                <Label htmlFor="urls">URLs (one per line)</Label>
+                <Label htmlFor="urls">{t('batchProcessingTool.urlsLabel')}</Label>
                 <Textarea
                   id="urls"
-                  placeholder={'https://example.com\nhttps://example.org\nhttps://example.net'}
+                  placeholder={t('batchProcessingTool.urlsPlaceholder')}
                   value={urlsText}
                   onChange={(e) => setUrlsText(e.target.value)}
                   className="min-h-32 font-mono text-sm"
                 />
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {parseURLs(urlsText).length} valid URLs found
+                  {parseURLs(urlsText).length} {t('batchProcessingTool.validUrlsFound')}
                 </p>
               </TabsContent>
 
               <TabsContent value="csv" className="space-y-2 mt-4">
-                <Label htmlFor="csv-upload">Upload CSV File</Label>
+                <Label htmlFor="csv-upload">{t('batchProcessingTool.uploadCsvFile')}</Label>
                 <Input
                   id="csv-upload"
                   type="file"
@@ -496,7 +498,7 @@ export function BatchProcessingPage() {
                   onChange={handleCSVUpload}
                 />
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  CSV should have URLs in the first column (header row will be skipped)
+                  {t('batchProcessingTool.csvHelperText')}
                 </p>
               </TabsContent>
             </Tabs>
@@ -504,21 +506,21 @@ export function BatchProcessingPage() {
 
           {/* Options */}
           <div className="space-y-3 pt-2">
-            <Label>Processing Options</Label>
+            <Label>{t('batchProcessingTool.processingOptions')}</Label>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="workers">Concurrent Workers</Label>
+                <Label htmlFor="workers">{t('batchProcessingTool.concurrentWorkers')}</Label>
                 <Select value={String(maxWorkers)} onValueChange={(v) => setMaxWorkers(Number(v))}>
                   <SelectTrigger id="workers">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1 (Sequential)</SelectItem>
-                    <SelectItem value="2">2 (Slow)</SelectItem>
-                    <SelectItem value="3">3 (Balanced)</SelectItem>
-                    <SelectItem value="4">4 (Fast)</SelectItem>
-                    <SelectItem value="5">5 (Very Fast)</SelectItem>
+                    <SelectItem value="1">{t('batchProcessingTool.sequential')}</SelectItem>
+                    <SelectItem value="2">{t('batchProcessingTool.slow')}</SelectItem>
+                    <SelectItem value="3">{t('batchProcessingTool.balanced')}</SelectItem>
+                    <SelectItem value="4">{t('batchProcessingTool.fast')}</SelectItem>
+                    <SelectItem value="5">{t('batchProcessingTool.veryFast')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -534,7 +536,7 @@ export function BatchProcessingPage() {
                     htmlFor="stop-on-error"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
-                    Stop on first error
+                    {t('batchProcessingTool.stopOnError')}
                   </label>
                 </div>
 
@@ -548,7 +550,7 @@ export function BatchProcessingPage() {
                     htmlFor="retry-failed"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
-                    Retry failed items
+                    {t('batchProcessingTool.retryFailed')}
                   </label>
                 </div>
               </div>
@@ -561,12 +563,12 @@ export function BatchProcessingPage() {
               {processing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
+                  {t('batchProcessingTool.processing')}
                 </>
               ) : (
                 <>
                   <Play className="h-4 w-4 mr-2" />
-                  Start Processing
+                  {t('batchProcessingTool.startProcessing')}
                 </>
               )}
             </Button>
@@ -576,7 +578,7 @@ export function BatchProcessingPage() {
               setError(null)
             }}>
               <Trash2 className="h-4 w-4 mr-2" />
-              Clear
+              {t('batchProcessingTool.clear')}
             </Button>
           </div>
 
@@ -596,13 +598,13 @@ export function BatchProcessingPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Batch Results</span>
+                <span>{t('batchProcessingTool.batchResults')}</span>
                 <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
-                  Job ID: {result.jobId}
+                  {t('batchProcessingTool.jobId')}: {result.jobId}
                 </span>
               </CardTitle>
               <CardDescription>
-                {getOperationName(result.operation)} • Completed in {((result.duration || 0) / 1000).toFixed(1)}s
+                {getOperationName(result.operation)} • {t('batchProcessingTool.completedIn')} {((result.duration || 0) / 1000).toFixed(1)}s
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -610,7 +612,7 @@ export function BatchProcessingPage() {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-600 dark:text-gray-400">
-                    Progress: {result.processed}/{result.total} items
+                    {t('batchProcessingTool.progress')}: {result.processed}/{result.total} {t('batchProcessingTool.items')}
                   </span>
                   <span className="font-medium">
                     {Math.round((result.processed / result.total) * 100)}%
@@ -623,23 +625,23 @@ export function BatchProcessingPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded">
                   <div className="text-2xl font-bold text-green-600 dark:text-green-400">{result.succeeded}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Succeeded</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{t('batchProcessingTool.succeeded')}</div>
                 </div>
                 <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded">
                   <div className="text-2xl font-bold text-red-600 dark:text-red-400">{result.failed}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Failed</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{t('batchProcessingTool.failed')}</div>
                 </div>
                 <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {result.total - result.processed}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Pending</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{t('batchProcessingTool.pending')}</div>
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="space-y-3">
-                <Label>Process Results</Label>
+                <Label>{t('batchProcessingTool.processResults')}</Label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <Button
                     variant="outline"
@@ -648,7 +650,7 @@ export function BatchProcessingPage() {
                     disabled={result.succeeded === 0}
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    Create Citations
+                    {t('batchProcessingTool.createCitations')}
                   </Button>
                   <Button
                     variant="outline"
@@ -657,7 +659,7 @@ export function BatchProcessingPage() {
                     disabled={result.succeeded === 0}
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Save as Dataset
+                    {t('batchProcessingTool.saveAsDataset')}
                   </Button>
                   <Button
                     variant="outline"
@@ -666,7 +668,7 @@ export function BatchProcessingPage() {
                     disabled={result.succeeded === 0}
                   >
                     <Archive className="h-4 w-4 mr-2" />
-                    Add to Evidence
+                    {t('batchProcessingTool.addToEvidence')}
                   </Button>
                   <Button
                     variant="outline"
@@ -675,22 +677,22 @@ export function BatchProcessingPage() {
                     disabled={result.succeeded === 0}
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    Generate Summary
+                    {t('batchProcessingTool.generateSummary')}
                   </Button>
                 </div>
               </div>
 
               {/* Export Buttons */}
               <div className="space-y-2">
-                <Label>Export Results</Label>
+                <Label>{t('batchProcessingTool.exportResults')}</Label>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={exportJSON}>
                     <Download className="h-4 w-4 mr-2" />
-                    Export JSON
+                    {t('batchProcessingTool.exportJson')}
                   </Button>
                   <Button variant="outline" size="sm" onClick={exportCSV}>
                     <FileText className="h-4 w-4 mr-2" />
-                    Export CSV
+                    {t('batchProcessingTool.exportCsv')}
                   </Button>
                 </div>
               </div>
@@ -700,7 +702,7 @@ export function BatchProcessingPage() {
           {/* Results Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Processing Results</CardTitle>
+              <CardTitle>{t('batchProcessingTool.processingResults')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -740,9 +742,9 @@ export function BatchProcessingPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Generated Citations</CardTitle>
+                    <CardTitle>{t('batchProcessingTool.generatedCitations')}</CardTitle>
                     <CardDescription>
-                      {generatedCitations.length} citation(s) created from batch results
+                      {generatedCitations.length} {t('batchProcessingTool.citationsCreated')}
                     </CardDescription>
                   </div>
                   <Button
@@ -750,7 +752,7 @@ export function BatchProcessingPage() {
                     size="sm"
                     onClick={() => setShowCitations(!showCitations)}
                   >
-                    {showCitations ? 'Hide Citations' : 'Show Citations'}
+                    {showCitations ? t('batchProcessingTool.hideCitations') : t('batchProcessingTool.showCitations')}
                   </Button>
                 </div>
               </CardHeader>
@@ -797,12 +799,12 @@ export function BatchProcessingPage() {
                       {copied ? (
                         <>
                           <Check className="h-4 w-4 mr-2" />
-                          Copied!
+                          {t('contentExtractionTool.copied')}
                         </>
                       ) : (
                         <>
                           <Copy className="h-4 w-4 mr-2" />
-                          Copy All
+                          {t('batchProcessingTool.copyAll')}
                         </>
                       )}
                     </Button>
@@ -811,7 +813,7 @@ export function BatchProcessingPage() {
                       onClick={() => navigate('/dashboard/tools/citations-generator')}
                     >
                       <FileText className="h-4 w-4 mr-2" />
-                      View in Citation Library
+                      {t('batchProcessingTool.viewInLibrary')}
                     </Button>
                   </div>
                 </CardContent>
