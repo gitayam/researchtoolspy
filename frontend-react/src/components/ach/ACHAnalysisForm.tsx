@@ -262,14 +262,7 @@ export function ACHAnalysisForm({
             </div>
           </div>
 
-          {/* Evidence Manager */}
-          <ACHEvidenceManager
-            analysisId={initialData?.id}
-            selectedEvidence={formData.evidence_ids || []}
-            onEvidenceChange={(evidenceIds) => setFormData({ ...formData, evidence_ids: evidenceIds })}
-          />
-
-          {/* Hypotheses Manager */}
+          {/* Hypotheses Manager - MUST COME FIRST per ACH methodology */}
           <Card>
             <CardHeader>
               <CardTitle>Competing Hypotheses</CardTitle>
@@ -353,6 +346,13 @@ export function ACHAnalysisForm({
               </div>
             </CardContent>
           </Card>
+
+          {/* Evidence Manager - Comes AFTER hypotheses per ACH methodology */}
+          <ACHEvidenceManager
+            analysisId={initialData?.id}
+            selectedEvidence={formData.evidence_ids || []}
+            onEvidenceChange={(evidenceIds) => setFormData({ ...formData, evidence_ids: evidenceIds })}
+          />
 
           {/* Actions */}
           <div className="flex justify-end gap-2">
