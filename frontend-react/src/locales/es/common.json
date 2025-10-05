@@ -122,6 +122,15 @@
     "surveillance": "Marco de Vigilancia",
     "fundamentalFlow": "Flujo Fundamental"
   },
+  "frameworkCategories": {
+    "environmental": "Evaluación Ambiental y Situacional",
+    "nodal": "Análisis Nodal y de Puntos Críticos",
+    "hypothesis": "Prueba de Hipótesis y Rigor Analítico",
+    "planning": "Planificación y Asignación de Recursos",
+    "humanFactors": "Factores Humanos y Análisis de Partes Interesadas",
+    "creative": "Exploración Creativa e Ideación",
+    "monitoring": "Monitoreo y Vigilancia"
+  },
   "tools": {
     "contentExtraction": "Extracción de Contenido",
     "batchProcessing": "Procesamiento por Lotes",

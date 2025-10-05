@@ -122,6 +122,15 @@
     "surveillance": "Surveillance Framework",
     "fundamentalFlow": "Fundamental Flow"
   },
+  "frameworkCategories": {
+    "environmental": "Environmental & Situational Assessment",
+    "nodal": "Nodal & Critical Point Analysis",
+    "hypothesis": "Hypothesis Testing & Analytical Rigor",
+    "planning": "Planning & Resource Allocation",
+    "humanFactors": "Human Factors & Stakeholder Analysis",
+    "creative": "Creative Exploration & Ideation",
+    "monitoring": "Monitoring & Surveillance"
+  },
   "tools": {
     "contentExtraction": "Content Extraction",
     "batchProcessing": "Batch Processing",
