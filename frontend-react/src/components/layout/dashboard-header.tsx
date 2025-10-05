@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   Bell,
   ChevronDown,
@@ -23,6 +24,7 @@ import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   // Hash-based user info (optional authentication)
   const [userHash, setUserHash] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -35,7 +37,7 @@ export function DashboardHeader() {
   }, [])
 
   const user = {
-    username: userHash ? `Hash: ${userHash.slice(0, 8)}...` : 'Guest',
+    username: userHash ? `Hash: ${userHash.slice(0, 8)}...` : t('auth.guest'),
     role: 'user'
   }
 
@@ -74,7 +76,7 @@ export function DashboardHeader() {
             className="h-8 w-8 rounded-md lg:hidden"
           />
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Research Tools
+            {t('app.name')}
           </h1>
         </div>
 
@@ -92,7 +94,7 @@ export function DashboardHeader() {
             <div className="flex items-center gap-3">
               <div className="hidden md:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                 <Save className="h-4 w-4" />
-                <span>Login to save your work</span>
+                <span>{t('auth.login_to_save')}</span>
               </div>
               <Button
                 variant="outline"
@@ -101,7 +103,7 @@ export function DashboardHeader() {
                 className="flex items-center gap-2"
               >
                 <LogIn className="h-4 w-4" />
-                <span>Login</span>
+                <span>{t('auth.login')}</span>
               </Button>
             </div>
           ) : (
@@ -149,14 +151,14 @@ export function DashboardHeader() {
 
                   <DropdownMenuItem onClick={() => navigate('/dashboard/settings')}>
                     <Settings className="h-4 w-4 mr-2" />
-                    Settings
+                    {t('navigation.settings')}
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="h-4 w-4 mr-2" />
-                    Sign out
+                    {t('auth.logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

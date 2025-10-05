@@ -5,17 +5,23 @@
   },
   "navigation": {
     "dashboard": "Panel",
+    "analysisFrameworks": "Marcos de Análisis",
     "frameworks": "Marcos",
     "evidence": "Evidencia",
+    "evidenceCollection": "Recopilación de Evidencia",
     "data": "Datos",
     "actors": "Actores",
     "sources": "Fuentes",
     "events": "Eventos",
     "network": "Gráfico de Red",
+    "networkAnalysis": "Análisis de Red",
     "tools": "Herramientas",
+    "researchTools": "Herramientas de Investigación",
     "reports": "Informes",
     "settings": "Configuración",
-    "collaboration": "Colaboración"
+    "general": "General",
+    "collaboration": "Colaboración",
+    "datasetLibrary": "Biblioteca de Conjuntos de Datos"
   },
   "buttons": {
     "save": "Guardar",
@@ -79,5 +85,38 @@
     "confirm_delete": "¿Está seguro de que desea eliminar esto?",
     "no_data": "No hay datos disponibles",
     "loading_data": "Cargando datos..."
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "login_to_save": "Inicia sesión para guardar tu trabajo",
+    "guest": "Invitado"
+  },
+  "frameworks": {
+    "swot": "Análisis FODA",
+    "cog": "Análisis COG",
+    "pmesiipt": "PMESII-PT",
+    "ach": "Análisis ACH",
+    "dotmlpf": "DOTMLPF",
+    "deception": "Detección de Engaño",
+    "behavior": "Análisis de Comportamiento",
+    "comb": "Análisis COM-B",
+    "starbursting": "Lluvia de Estrellas",
+    "causeway": "Causeway",
+    "dime": "Marco DIME",
+    "pest": "Análisis PEST",
+    "stakeholder": "Análisis de Partes Interesadas",
+    "surveillance": "Marco de Vigilancia",
+    "fundamentalFlow": "Flujo Fundamental"
+  },
+  "tools": {
+    "contentExtraction": "Extracción de Contenido",
+    "batchProcessing": "Procesamiento por Lotes",
+    "urlProcessing": "Procesamiento de URL",
+    "citationsGenerator": "Generador de Citas",
+    "webScraping": "Extracción Web",
+    "socialMedia": "Redes Sociales",
+    "documents": "Documentos",
+    "aiConfiguration": "Configuración de IA"
   }
 }
