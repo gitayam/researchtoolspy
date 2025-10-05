@@ -1,0 +1,83 @@
+{
+  "app": {
+    "name": "Herramientas de Investigación",
+    "tagline": "Plataforma de Análisis de Inteligencia"
+  },
+  "navigation": {
+    "dashboard": "Panel",
+    "frameworks": "Marcos",
+    "evidence": "Evidencia",
+    "data": "Datos",
+    "actors": "Actores",
+    "sources": "Fuentes",
+    "events": "Eventos",
+    "network": "Gráfico de Red",
+    "tools": "Herramientas",
+    "reports": "Informes",
+    "settings": "Configuración",
+    "collaboration": "Colaboración"
+  },
+  "buttons": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "add": "Agregar",
+    "remove": "Quitar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "upload": "Subir",
+    "download": "Descargar",
+    "export": "Exportar",
+    "import": "Importar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "clear": "Limpiar",
+    "apply": "Aplicar",
+    "reset": "Restablecer"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información",
+    "total": "Total",
+    "new": "Nuevo",
+    "recent": "Reciente",
+    "all": "Todos",
+    "none": "Ninguno",
+    "other": "Otro",
+    "description": "Descripción",
+    "title": "Título",
+    "name": "Nombre",
+    "type": "Tipo",
+    "status": "Estado",
+    "date": "Fecha",
+    "created": "Creado",
+    "updated": "Actualizado",
+    "by": "por",
+    "at": "en",
+    "in": "en"
+  },
+  "actions": {
+    "saveAnalysis": "Guardar Análisis",
+    "linkEvidence": "Vincular Evidencia",
+    "generateAI": "Generar con IA",
+    "viewDetails": "Ver Detalles",
+    "addNew": "Agregar Nuevo"
+  },
+  "messages": {
+    "saved": "Guardado exitosamente",
+    "deleted": "Eliminado exitosamente",
+    "error_occurred": "Ocurrió un error",
+    "confirm_delete": "¿Está seguro de que desea eliminar esto?",
+    "no_data": "No hay datos disponibles",
+    "loading_data": "Cargando datos..."
+  }
+}
