@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
@@ -923,10 +924,57 @@ export default function ContentIntelligencePage() {
           {/* Transcript */}
           {socialMediaData.transcript && (
             <div className="mt-4">
-              <h4 className="font-semibold mb-2">Transcript</h4>
-              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg max-h-64 overflow-y-auto">
-                <p className="text-sm whitespace-pre-wrap">{socialMediaData.transcript}</p>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold">Transcript</h4>
+                <div className="flex gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {socialMediaData.transcript.split(' ').length} words
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(socialMediaData.transcript || '')
+                      toast({ title: 'Copied!', description: 'Transcript copied to clipboard' })
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg max-h-96 overflow-y-auto border">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{socialMediaData.transcript}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Full Content from Analysis */}
+          {analysis?.extracted_text && (
+            <div className="mt-4">
+              <details className="group">
+                <summary className="cursor-pointer font-semibold p-3 bg-blue-50 dark:bg-blue-950 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900 flex items-center justify-between">
+                  <span>📄 View Full Analyzed Content</span>
+                  <Badge variant="outline" className="text-xs">
+                    {analysis.word_count.toLocaleString()} words
+                  </Badge>
+                </summary>
+                <div className="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg max-h-96 overflow-y-auto border">
+                  <div className="flex justify-end mb-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(analysis.extracted_text)
+                        toast({ title: 'Copied!', description: 'Full content copied to clipboard' })
+                      }}
+                    >
+                      <Copy className="h-3 w-3 mr-1" />
+                      Copy
+                    </Button>
+                  </div>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{analysis.extracted_text}</p>
+                </div>
+              </details>
             </div>
           )}
         </Card>
