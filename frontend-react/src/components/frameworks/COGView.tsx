@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { COGVulnerabilityMatrix } from '@/components/frameworks/COGVulnerabilityMatrix'
 import { COGNetworkVisualization } from '@/components/frameworks/COGNetworkVisualization'
+import { COGPowerPointExport } from '@/components/frameworks/COGPowerPointExport'
 import {
   type COGAnalysis,
   type CenterOfGravity,
@@ -574,6 +575,13 @@ ${Object.entries(centralityMeasures.degree_centrality)
                 <CardDescription>Download network data and reports</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
+                <COGPowerPointExport
+                  analysis={data}
+                  vulnerabilities={rankedVulnerabilities}
+                  edges={edgeList}
+                  variant="outline"
+                  className="w-full justify-start"
+                />
                 <Button variant="outline" className="w-full justify-start" onClick={exportEdgeList}>
                   <Table2 className="h-4 w-4 mr-2" />
                   Edge List CSV
