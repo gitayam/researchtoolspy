@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { FilePresentation, Loader2 } from 'lucide-react'
+import { Presentation, Loader2 } from 'lucide-react'
 import pptxgen from 'pptxgenjs'
 import type { COGAnalysis, CenterOfGravity, CriticalVulnerability, NetworkEdge } from '@/types/cog-analysis'
 import { useState } from 'react'
@@ -449,7 +449,7 @@ export function COGPowerPointExport({
         </>
       ) : (
         <>
-          <FilePresentation className="h-4 w-4 mr-2" />
+          <Presentation className="h-4 w-4 mr-2" />
           Export PowerPoint
         </>
       )}
