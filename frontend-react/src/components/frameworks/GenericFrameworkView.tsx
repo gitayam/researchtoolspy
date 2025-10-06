@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink, MoreVertical, BookOpen, Trash } from 'lucide-react'
 import type { FrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type LinkedEvidence, type EvidenceEntityType } from '@/components/evidence'
-import { CitationBadge } from '@/components/citations'
+import { CitationBadge, CitationPicker } from '@/components/citations'
+import type { SavedCitation } from '@/types/citations'
 import { AutoGenerateButton } from '@/components/network'
 import { generateRelationshipsFromCOG, generateRelationshipsFromCauseway } from '@/utils/framework-relationships'
 import { ExportButton } from '@/components/reports/ExportButton'
@@ -62,6 +63,10 @@ export function GenericFrameworkView({
   const [showEvidencePanel, setShowEvidencePanel] = useState(false)
   const [showEntityCreate, setShowEntityCreate] = useState(false)
   const [entityCreateTab, setEntityCreateTab] = useState<EvidenceEntityType>('data')
+
+  // Citation management state
+  const [showCitationPicker, setShowCitationPicker] = useState(false)
+  const [selectedItemForCitation, setSelectedItemForCitation] = useState<{ section: string; itemId: string } | null>(null)
 
   // Relationship generation state
   const [generatedRelationships, setGeneratedRelationships] = useState<CreateRelationshipRequest[]>([])
@@ -234,12 +239,41 @@ export function GenericFrameworkView({
     setShowEntityCreate(true)
   }
 
+  // Citation management handlers
+  const handleAddCitation = (sectionKey: string, itemId: string) => {
+    setSelectedItemForCitation({ section: sectionKey, itemId })
+    setShowCitationPicker(true)
+  }
+
+  const handleSelectCitation = (citation: SavedCitation) => {
+    if (!selectedItemForCitation) return
+
+    // TODO: Update the Q&A item with citation info
+    // This will require either:
+    // 1. API call to update the framework data
+    // 2. Local state management + save button
+    // For now, we'll show an alert
+    alert(`Citation "${citation.fields.title}" will be attached to this item. Implementation pending: need to update framework data persistence.`)
+
+    setShowCitationPicker(false)
+    setSelectedItemForCitation(null)
+  }
+
+  const handleRemoveCitation = (sectionKey: string, itemId: string) => {
+    if (confirm('Remove citation from this item?')) {
+      // TODO: Implement citation removal
+      alert('Citation removal implementation pending: need to update framework data persistence.')
+    }
+  }
+
   const SectionView = ({
     section,
-    items
+    items,
+    sectionKey
   }: {
     section: FrameworkSection
     items: FrameworkItem[]
+    sectionKey: string
   }) => (
     <Card className={`border-l-4 ${section.color}`}>
       <CardHeader>
@@ -274,16 +308,47 @@ export function GenericFrameworkView({
                           A: {item.answer || <span className="italic text-gray-500 dark:text-gray-400">No answer provided</span>}
                         </div>
                       </div>
-                      {item.citationId && (
-                        <CitationBadge
-                          citationId={item.citationId}
-                          sourceTitle={item.sourceTitle}
-                          sourceDate={item.sourceDate}
-                          sourceAuthor={item.sourceAuthor}
-                          sourceUrl={item.sourceUrl}
-                          size="sm"
-                        />
-                      )}
+                      <div className="flex items-center gap-2">
+                        {item.citationId && (
+                          <CitationBadge
+                            citationId={item.citationId}
+                            sourceTitle={item.sourceTitle}
+                            sourceDate={item.sourceDate}
+                            sourceAuthor={item.sourceAuthor}
+                            sourceUrl={item.sourceUrl}
+                            size="sm"
+                          />
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {!item.citationId ? (
+                              <DropdownMenuItem onClick={() => handleAddCitation(sectionKey, item.id)}>
+                                <BookOpen className="h-4 w-4 mr-2" />
+                                Add Citation
+                              </DropdownMenuItem>
+                            ) : (
+                              <>
+                                <DropdownMenuItem onClick={() => handleAddCitation(sectionKey, item.id)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Change Citation
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleRemoveCitation(sectionKey, item.id)}
+                                  className="text-red-600 dark:text-red-400"
+                                >
+                                  <Trash className="h-4 w-4 mr-2" />
+                                  Remove Citation
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -538,6 +603,7 @@ export function GenericFrameworkView({
               key={section.key}
               section={section}
               items={data[section.key] || []}
+              sectionKey={section.key}
             />
           )
         })}
@@ -625,6 +691,20 @@ export function GenericFrameworkView({
           />
         </div>
       )}
+
+      {/* Citation Picker Modal */}
+      <CitationPicker
+        open={showCitationPicker}
+        onClose={() => {
+          setShowCitationPicker(false)
+          setSelectedItemForCitation(null)
+        }}
+        onSelect={handleSelectCitation}
+        onCreateNew={() => {
+          // Navigate to citation generator tool
+          window.open('/dashboard/tools/citations-generator', '_blank')
+        }}
+      />
     </div>
   )
 }
