@@ -9,7 +9,7 @@ import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark
 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab } from '@/types/content-intelligence'
 
 export default function ContentIntelligencePage() {
