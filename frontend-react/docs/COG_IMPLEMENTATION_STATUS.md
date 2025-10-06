@@ -285,6 +285,69 @@ The COG (Center of Gravity) Analysis framework has been successfully implemented
 - [x] Score presets (High/Medium/Low impact profiles)
 - [x] Real-time rank updates
 
+#### 2.4 AI-Powered COG Analysis 🤖 **IN PROGRESS** (2025-10-06)
+**Goal**: Accelerate COG analysis using AI to suggest, validate, and enhance analytical outputs
+
+**AI Features**:
+- [ ] **AI COG Identification Assistant**
+  - Analyze operational context to suggest potential COGs
+  - Validate user-identified COGs against JP 3-0 criteria
+  - Explain reasoning for suggestions
+  - "What makes this a COG?" validation
+
+- [ ] **AI Capability Generator**
+  - Generate critical capabilities from COG description
+  - Ensure verb-focused language (DO vs BE)
+  - Suggest capability relationships and dependencies
+  - Link to operational objectives
+
+- [ ] **AI Requirements Extractor**
+  - Identify critical requirements from capabilities
+  - Classify by type (Personnel, Equipment, Logistics, etc.)
+  - Suggest resource dependencies
+  - Highlight single points of failure
+
+- [ ] **AI Vulnerability Assessment**
+  - Identify potential vulnerabilities from requirements
+  - Classify by type (Physical, Cyber, Human, etc.)
+  - Suggest exploitation methods
+  - Provide initial scoring recommendations
+  - Generate impact analysis ("So What?")
+
+- [ ] **AI Impact Analyzer**
+  - Generate expected effects from vulnerability exploitation
+  - Suggest recommended actions
+  - Estimate confidence levels based on available evidence
+  - Provide cascading effects analysis
+
+**Technical Implementation**:
+- API Endpoint: `/api/ai/cog-analysis` (follows existing pattern)
+- Model: gpt-5-mini (cost optimization)
+- Timeout: 15 seconds with AbortController
+- max_completion_tokens: 800 (per Cloudflare lessons learned)
+- Response validation with comprehensive error handling
+- Progressive disclosure UI (expandable AI suggestions)
+- Accept/reject/edit workflow for all AI outputs
+
+**UX Pattern** (based on existing AI integrations):
+- Sparkles ✨ button next to each section
+- Preview dialog showing AI suggestions
+- Side-by-side comparison (current vs AI-suggested)
+- One-click accept or manual edit
+- Batch generation option for empty analyses
+
+**Integration Points**:
+- COGForm.tsx: Inline AI assistance buttons
+- COGWizard.tsx: Step-by-step AI guidance
+- useAI hook: Leverage existing AI infrastructure
+- Similar to AITimelineGenerator and AIUrlScraper patterns
+
+**Expected Impact**:
+- **60% reduction** in time to complete COG analysis
+- **Higher quality** COGs through AI validation
+- **More comprehensive** vulnerability identification
+- **Consistent analytical rigor** across analyses
+
 ---
 
 ### **Phase 3: Visualization & Export** 📋 **UPCOMING**
