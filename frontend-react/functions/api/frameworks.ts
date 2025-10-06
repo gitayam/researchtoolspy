@@ -131,7 +131,12 @@ export async function onRequest(context: any) {
     })
 
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Framework API error:', error)
+    return new Response(JSON.stringify({
+      error: 'Failed to create',
+      message: error.message,
+      details: error.stack
+    }), {
       status: 500,
       headers: corsHeaders,
     })
