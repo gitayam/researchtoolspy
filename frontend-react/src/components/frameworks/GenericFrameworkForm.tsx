@@ -572,7 +572,9 @@ export function GenericFrameworkForm({
         sections.forEach(section => {
           grouped[section.key] = []
         })
-        data.evidence.forEach((link: LinkedEvidence) => {
+        // Safely iterate evidence with null check
+        const evidenceArray = data.evidence || []
+        evidenceArray.forEach((link: LinkedEvidence) => {
           if (link.framework_item_id && grouped[link.framework_item_id]) {
             grouped[link.framework_item_id].push(link)
           }

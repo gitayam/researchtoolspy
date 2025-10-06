@@ -29,35 +29,48 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
+    console.log('[DEBUG] Starting analyze-url endpoint')
+
     // Parse request
     const body = await request.json() as AnalyzeUrlRequest
     const { url, mode = 'full', save_link = false, link_note, link_tags } = body
 
     if (!url) {
+      console.error('[DEBUG] No URL provided')
       return new Response(JSON.stringify({ error: 'URL is required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    console.log(`[Content Intelligence] Analyzing URL: ${url} (mode: ${mode})`)
+    console.log(`[DEBUG] Analyzing URL: ${url} (mode: ${mode})`)
+    console.log(`[DEBUG] Environment bindings - DB: ${!!env.DB}, OPENAI_API_KEY: ${!!env.OPENAI_API_KEY}`)
 
     const startTime = Date.now()
 
     // Normalize URL
+    console.log('[DEBUG] Normalizing URL...')
     const normalizedUrl = normalizeUrl(url)
+    console.log(`[DEBUG] Normalized URL: ${normalizedUrl}`)
 
     // Detect social media
+    console.log('[DEBUG] Detecting social media...')
     const socialMediaInfo = detectSocialMedia(url)
+    console.log(`[DEBUG] Social media detected: ${JSON.stringify(socialMediaInfo)}`)
 
     // Generate bypass/archive links immediately (no API calls needed)
+    console.log('[DEBUG] Generating bypass/archive URLs...')
     const bypassUrls = generateBypassUrls(normalizedUrl)
     const archiveUrls = generateArchiveUrls(normalizedUrl)
+    console.log('[DEBUG] Bypass/archive URLs generated')
 
     // Extract content with timeout
+    console.log('[DEBUG] Extracting URL content...')
     const contentData = await extractUrlContent(normalizedUrl)
+    console.log(`[DEBUG] Content extraction result: success=${contentData.success}`)
 
     if (!contentData.success) {
+      console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
       return new Response(JSON.stringify({
         error: contentData.error,
         bypass_urls: bypassUrls,
@@ -67,6 +80,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         headers: { 'Content-Type': 'application/json' }
       })
     }
+
+    console.log(`[DEBUG] Content extracted: ${contentData.text.length} characters`)
 
     // Calculate content hash
     const contentHash = await calculateHash(contentData.text)
@@ -102,10 +117,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Full mode: Extract entities and generate summary with GPT
+    console.log('[DEBUG] Calling extractEntities with GPT...')
     const entitiesData = await extractEntities(contentData.text, env.OPENAI_API_KEY)
+    console.log(`[DEBUG] Entities extracted: ${JSON.stringify(entitiesData)}`)
+
+    console.log('[DEBUG] Calling generateSummary with GPT...')
     const summary = await generateSummary(contentData.text, env.OPENAI_API_KEY)
+    console.log(`[DEBUG] Summary generated: ${summary?.substring(0, 100)}...`)
 
     // Save to database
+    console.log('[DEBUG] Saving to database...')
     const analysisId = await saveAnalysis(env.DB, {
       url: normalizedUrl,
       content_hash: contentHash,
@@ -125,8 +146,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       bypass_urls: bypassUrls,
       processing_mode: mode,
       processing_duration_ms: Date.now() - startTime,
-      gpt_model_used: 'gpt-5-mini'
+      gpt_model_used: 'gpt-4o-mini'
     })
+    console.log(`[DEBUG] Saved to database with ID: ${analysisId}`)
 
     // Optionally save link
     let savedLinkId: number | undefined
@@ -175,10 +197,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
   } catch (error) {
-    console.error('[Content Intelligence] Error:', error)
+    console.error('[DEBUG] CRITICAL ERROR in analyze-url:', error)
+    console.error('[DEBUG] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('[DEBUG] Error name:', error instanceof Error ? error.name : 'Unknown')
+    console.error('[DEBUG] Error message:', error instanceof Error ? error.message : String(error))
+
     return new Response(JSON.stringify({
       error: 'Analysis failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      errorName: error instanceof Error ? error.name : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -438,9 +466,11 @@ Return format:
 }`
 
   try {
+    console.log('[DEBUG] extractEntities called, API key present:', !!apiKey)
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 15000)
 
+    console.log('[DEBUG] Calling OpenAI API for entity extraction...')
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -460,14 +490,19 @@ Return format:
     })
 
     clearTimeout(timeoutId)
+    console.log('[DEBUG] OpenAI response status:', response.status)
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`)
+      const errorText = await response.text()
+      console.error('[DEBUG] OpenAI API error response:', errorText)
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
     }
 
     const data = await response.json() as any
+    console.log('[DEBUG] OpenAI response received')
 
     if (!data.choices?.[0]?.message?.content) {
+      console.error('[DEBUG] Invalid API response structure:', JSON.stringify(data))
       throw new Error('Invalid API response')
     }
 
@@ -476,10 +511,14 @@ Return format:
       .replace(/```\n?/g, '')
       .trim()
 
-    return JSON.parse(jsonText)
+    console.log('[DEBUG] Parsing entities JSON...')
+    const result = JSON.parse(jsonText)
+    console.log('[DEBUG] Entities parsed successfully')
+    return result
 
   } catch (error) {
-    console.error('[Entity Extraction] Error:', error)
+    console.error('[DEBUG] Entity Extraction Error:', error)
+    console.error('[DEBUG] Entity Error stack:', error instanceof Error ? error.stack : 'No stack')
     return { people: [], organizations: [], locations: [] }
   }
 }
