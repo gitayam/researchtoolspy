@@ -13,6 +13,7 @@
     "wrangler:deploy": "npm run build && wrangler pages deploy dist --project-name=researchtoolspy"
   },
   "dependencies": {
+    "@aduptive/instagram-scraper": "^1.0.3",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-avatar": "^1.1.10",
@@ -33,6 +34,7 @@
     "@tanstack/react-query": "^5.90.2",
     "@tanstack/react-query-devtools": "^5.90.2",
     "@types/dompurify": "^3.0.5",
+    "@ybd-project/ytdl-core": "^6.0.8",
     "axios": "^1.12.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

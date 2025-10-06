@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
-  Copy, Check
+  Copy, Check, Video, Download, Play, Info
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -52,6 +52,10 @@ export default function ContentIntelligencePage() {
   // Country Origin State
   const [countryInfo, setCountryInfo] = useState<any>(null)
   const [countryLoading, setCountryLoading] = useState(false)
+
+  // Social Media Extraction State
+  const [socialMediaData, setSocialMediaData] = useState<any>(null)
+  const [socialExtractLoading, setSocialExtractLoading] = useState(false)
 
   // Load saved links
   useEffect(() => {
@@ -514,6 +518,80 @@ export default function ContentIntelligencePage() {
     }
   }
 
+  // Social Media Extraction
+  const handleSocialExtract = async (extractMode: 'metadata' | 'download' | 'stream' | 'transcript' | 'full') => {
+    if (!url) {
+      toast({ title: 'Error', description: 'Please enter a URL', variant: 'destructive' })
+      return
+    }
+
+    setSocialExtractLoading(true)
+    setSocialMediaData(null)
+
+    try {
+      toast({
+        title: `Extracting ${extractMode === 'full' ? 'complete data' : extractMode}...`,
+        description: 'This may take a moment'
+      })
+
+      const response = await fetch('/api/content-intelligence/social-media-extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          platform: analysis?.social_platform,
+          mode: extractMode
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Social media extraction failed')
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Extraction failed')
+      }
+
+      setSocialMediaData(data)
+
+      toast({
+        title: 'Extraction Complete!',
+        description: `Successfully extracted ${data.platform} content`
+      })
+
+      // Scroll to results
+      setTimeout(() => {
+        document.getElementById('social-media-results')?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+
+    } catch (error) {
+      console.error('Social media extraction error:', error)
+      toast({
+        title: 'Extraction Failed',
+        description: error instanceof Error ? error.message : 'Failed to extract social media content',
+        variant: 'destructive'
+      })
+    } finally {
+      setSocialExtractLoading(false)
+    }
+  }
+
+  // Get platform features description
+  const getPlatformFeatures = (platform: string): string => {
+    const features: Record<string, string> = {
+      youtube: 'Video downloads (multiple qualities), transcripts, engagement metrics, thumbnails',
+      instagram: 'Post media (images/videos), captions, likes/comments, carousel support',
+      tiktok: 'Video downloads, metadata extraction, engagement metrics',
+      twitter: 'Tweet text, media URLs, embed codes, author information',
+      facebook: 'Post data, media links, engagement metrics',
+      reddit: 'Post content, comments, upvotes, media links'
+    }
+    return features[platform.toLowerCase()] || 'Basic metadata extraction'
+  }
+
   return (
     <div className="container mx-auto py-8 space-y-6">
       {/* Header */}
@@ -629,6 +707,228 @@ export default function ContentIntelligencePage() {
             <Loader2 className="h-4 w-4 animate-spin" />
             Looking up domain country...
           </div>
+        </Card>
+      )}
+
+      {/* Social Media Detection Card */}
+      {url && analysis?.is_social_media && analysis.social_platform && (
+        <Card className="p-6 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-orange-950/30 border-2 border-purple-300">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-purple-600 rounded-full shrink-0">
+              <Video className="h-6 w-6 text-white" />
+            </div>
+
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-purple-900 dark:text-purple-100 mb-1">
+                {analysis.social_platform.toUpperCase()} Content Detected
+              </h3>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                Use specialized extraction tools for videos, images, transcripts, and more.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Button
+                  onClick={() => handleSocialExtract('metadata')}
+                  disabled={socialExtractLoading}
+                  size="sm"
+                  variant="default"
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  {socialExtractLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Info className="h-4 w-4 mr-2" />
+                  )}
+                  Quick Info
+                </Button>
+
+                <Button
+                  onClick={() => handleSocialExtract('download')}
+                  disabled={socialExtractLoading}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Media
+                </Button>
+
+                <Button
+                  onClick={() => handleSocialExtract('stream')}
+                  disabled={socialExtractLoading}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Stream/Embed
+                </Button>
+
+                {analysis.social_platform === 'youtube' && (
+                  <Button
+                    onClick={() => handleSocialExtract('transcript')}
+                    disabled={socialExtractLoading}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Get Transcript
+                  </Button>
+                )}
+
+                <Button
+                  onClick={() => handleSocialExtract('full')}
+                  disabled={socialExtractLoading}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Video className="h-4 w-4 mr-2" />
+                  Full Extract
+                </Button>
+              </div>
+
+              {/* Platform Features Info */}
+              <div className="p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <strong>Available:</strong> {getPlatformFeatures(analysis.social_platform)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Social Media Extraction Results */}
+      {socialMediaData && (
+        <Card id="social-media-results" className="p-6">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Video className="h-5 w-5 text-purple-600" />
+            {socialMediaData.platform.toUpperCase()} Extraction Results
+          </h3>
+
+          {/* Media Preview */}
+          {socialMediaData.mediaUrls?.video && (
+            <div className="mb-4">
+              <video controls className="w-full max-h-96 rounded-lg bg-black">
+                <source src={socialMediaData.mediaUrls.video} />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          )}
+
+          {/* Images Grid */}
+          {socialMediaData.mediaUrls?.images && socialMediaData.mediaUrls.images.length > 0 && (
+            <div className="mb-4 grid grid-cols-2 md:grid-cols-3 gap-2">
+              {socialMediaData.mediaUrls.images.map((imgUrl: string, idx: number) => (
+                <img
+                  key={idx}
+                  src={imgUrl}
+                  alt={`Media ${idx + 1}`}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Download Options */}
+          {socialMediaData.downloadOptions && socialMediaData.downloadOptions.length > 0 && (
+            <div className="mb-4">
+              <h4 className="font-semibold mb-2">Download Options</h4>
+              <div className="grid md:grid-cols-2 gap-2">
+                {socialMediaData.downloadOptions.map((option: any, idx: number) => (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(option.url, '_blank')}
+                    className="justify-start"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {option.quality} ({option.format})
+                    {option.size && ` - ${(option.size / 1024 / 1024).toFixed(1)}MB`}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Stream/Embed */}
+          {socialMediaData.streamUrl && (
+            <div className="mb-4">
+              <h4 className="font-semibold mb-2">Stream URL</h4>
+              <div className="flex gap-2">
+                <Input value={socialMediaData.streamUrl} readOnly />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(socialMediaData.streamUrl, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Embed Code */}
+          {socialMediaData.embedCode && (
+            <div className="mb-4">
+              <h4 className="font-semibold mb-2">Embed Code</h4>
+              <Textarea
+                value={socialMediaData.embedCode}
+                readOnly
+                rows={3}
+                className="font-mono text-xs"
+              />
+            </div>
+          )}
+
+          {/* Metadata */}
+          {socialMediaData.metadata && (
+            <div>
+              <h4 className="font-semibold mb-2">Metadata</h4>
+              <div className="grid md:grid-cols-3 gap-4 text-sm">
+                {socialMediaData.metadata.title && (
+                  <div>
+                    <p className="text-muted-foreground">Title</p>
+                    <p className="font-semibold">{socialMediaData.metadata.title}</p>
+                  </div>
+                )}
+                {socialMediaData.metadata.author && (
+                  <div>
+                    <p className="text-muted-foreground">Author</p>
+                    <p className="font-semibold">{socialMediaData.metadata.author}</p>
+                  </div>
+                )}
+                {socialMediaData.metadata.viewCount !== undefined && (
+                  <div>
+                    <p className="text-muted-foreground">Views</p>
+                    <p className="font-semibold">{socialMediaData.metadata.viewCount.toLocaleString()}</p>
+                  </div>
+                )}
+                {socialMediaData.metadata.likeCount !== undefined && (
+                  <div>
+                    <p className="text-muted-foreground">Likes</p>
+                    <p className="font-semibold">{socialMediaData.metadata.likeCount.toLocaleString()}</p>
+                  </div>
+                )}
+                {socialMediaData.metadata.commentCount !== undefined && (
+                  <div>
+                    <p className="text-muted-foreground">Comments</p>
+                    <p className="font-semibold">{socialMediaData.metadata.commentCount.toLocaleString()}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Transcript */}
+          {socialMediaData.transcript && (
+            <div className="mt-4">
+              <h4 className="font-semibold mb-2">Transcript</h4>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg max-h-64 overflow-y-auto">
+                <p className="text-sm whitespace-pre-wrap">{socialMediaData.transcript}</p>
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
