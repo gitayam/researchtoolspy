@@ -245,24 +245,104 @@ export function GenericFrameworkView({
     setShowCitationPicker(true)
   }
 
-  const handleSelectCitation = (citation: SavedCitation) => {
-    if (!selectedItemForCitation) return
+  const handleSelectCitation = async (citation: SavedCitation) => {
+    if (!selectedItemForCitation || !data.id) return
 
-    // TODO: Update the Q&A item with citation info
-    // This will require either:
-    // 1. API call to update the framework data
-    // 2. Local state management + save button
-    // For now, we'll show an alert
-    alert(`Citation "${citation.fields.title}" will be attached to this item. Implementation pending: need to update framework data persistence.`)
+    const { section: sectionKey, itemId } = selectedItemForCitation
 
-    setShowCitationPicker(false)
-    setSelectedItemForCitation(null)
+    try {
+      // Clone the framework data
+      const updatedData = { ...data }
+
+      // Find and update the Q&A item
+      if (updatedData[sectionKey] && Array.isArray(updatedData[sectionKey])) {
+        updatedData[sectionKey] = updatedData[sectionKey].map((item: any) => {
+          if (item.id === itemId && isQuestionAnswerItem(item)) {
+            // Attach citation metadata
+            return {
+              ...item,
+              citationId: citation.id,
+              sourceUrl: citation.fields.url,
+              sourceTitle: citation.fields.title,
+              sourceDate: `${citation.fields.year}-${citation.fields.month?.padStart(2, '0') || '01'}-${citation.fields.day?.padStart(2, '0') || '01'}`,
+              sourceAuthor: citation.fields.authors?.[0]?.lastName || 'Unknown'
+            }
+          }
+          return item
+        })
+      }
+
+      // Save to API
+      const response = await fetch(`/api/frameworks?id=${data.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          data: updatedData,
+          status: data.status || 'draft',
+          is_public: data.is_public || false
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save citation')
+      }
+
+      // Reload the page to show updated data
+      window.location.reload()
+
+    } catch (error) {
+      console.error('Error saving citation:', error)
+      alert('Failed to save citation. Please try again.')
+    } finally {
+      setShowCitationPicker(false)
+      setSelectedItemForCitation(null)
+    }
   }
 
-  const handleRemoveCitation = (sectionKey: string, itemId: string) => {
-    if (confirm('Remove citation from this item?')) {
-      // TODO: Implement citation removal
-      alert('Citation removal implementation pending: need to update framework data persistence.')
+  const handleRemoveCitation = async (sectionKey: string, itemId: string) => {
+    if (!confirm('Remove citation from this item?') || !data.id) return
+
+    try {
+      // Clone the framework data
+      const updatedData = { ...data }
+
+      // Find and update the Q&A item
+      if (updatedData[sectionKey] && Array.isArray(updatedData[sectionKey])) {
+        updatedData[sectionKey] = updatedData[sectionKey].map((item: any) => {
+          if (item.id === itemId && isQuestionAnswerItem(item)) {
+            // Remove citation fields
+            const { citationId, sourceUrl, sourceTitle, sourceDate, sourceAuthor, ...rest } = item
+            return rest
+          }
+          return item
+        })
+      }
+
+      // Save to API
+      const response = await fetch(`/api/frameworks?id=${data.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          data: updatedData,
+          status: data.status || 'draft',
+          is_public: data.is_public || false
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to remove citation')
+      }
+
+      // Reload the page to show updated data
+      window.location.reload()
+
+    } catch (error) {
+      console.error('Error removing citation:', error)
+      alert('Failed to remove citation. Please try again.')
     }
   }
 
