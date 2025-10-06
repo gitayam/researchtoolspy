@@ -89,12 +89,7 @@ const getNavigation = (t: (key: string) => string) => [
     icon: Search,
     children: [
       { name: 'Content Intelligence', href: '/dashboard/tools/content-intelligence', icon: Sparkles },
-      { name: t('tools.contentExtraction'), href: '/dashboard/tools/content-extraction' },
-      { name: t('tools.batchProcessing'), href: '/dashboard/tools/batch-processing' },
-      { name: t('tools.urlProcessing'), href: '/dashboard/tools/url' },
       { name: t('tools.citationsGenerator'), href: '/dashboard/tools/citations-generator' },
-      { name: t('tools.webScraping'), href: '/dashboard/tools/scraping' },
-      { name: t('tools.socialMedia'), href: '/dashboard/tools/social-media' },
       { name: t('tools.documents'), href: '/dashboard/tools/documents' },
     ]
   },
