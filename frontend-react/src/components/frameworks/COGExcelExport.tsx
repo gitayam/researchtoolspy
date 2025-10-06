@@ -165,6 +165,7 @@ export function COGExcelExport({
             type: 'cellIs',
             operator: 'greaterThan',
             formulae: [3],
+            priority: 1,
             style: {
               fill: {
                 type: 'pattern',
@@ -183,6 +184,7 @@ export function COGExcelExport({
             type: 'cellIs',
             operator: 'greaterThan',
             formulae: [3],
+            priority: 1,
             style: {
               fill: {
                 type: 'pattern',
@@ -201,6 +203,7 @@ export function COGExcelExport({
             type: 'cellIs',
             operator: 'greaterThan',
             formulae: [3],
+            priority: 1,
             style: {
               fill: {
                 type: 'pattern',

@@ -57,7 +57,7 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
   const applyPreset = (vulnId: string, preset: ScorePreset) => {
     if (preset === 'custom') return
 
-    const presetScores = SCORE_PRESETS[preset].scores.linear
+    const presetScores = SCORE_PRESETS[preset].scores.linear as any
     const updated = workingVulns.map((v) => {
       if (v.id === vulnId && scoringSystem !== 'custom') {
         const newVuln = {
@@ -69,7 +69,7 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
       }
       return v
     })
-    setWorkingVulns(updated)
+    setWorkingVulns(updated as any)
   }
 
   const updateScore = (vulnId: string, field: 'impact_on_cog' | 'attainability' | 'follow_up_potential', value: number) => {

@@ -296,8 +296,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
       cog_id: cogId,
       capability: suggestion.description,
       description: suggestion.how_it_works,
-      how_it_works: suggestion.how_it_works,
-      support_to_objectives: suggestion.support_to_objectives,
+      strategic_contribution: suggestion.support_to_objectives,
       linked_evidence: [],
     }))
     setCapabilities([...capabilities, ...newCaps])
@@ -335,8 +334,8 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
       description: suggestion.description,
       exploitation_method: suggestion.exploitation_method,
       expected_effect: suggestion.expected_effect,
-      recommended_actions: suggestion.recommended_actions,
-      confidence_level: 'medium',
+      recommended_actions: suggestion.recommended_actions.split(',').map(a => a.trim()),
+      confidence: 'medium',
       ...(scoringSystem === 'custom'
         ? {
             custom_scoring: customCriteria.reduce((acc, criterion) => ({ ...acc, [criterion.id]: 3 }), {}),
@@ -1248,10 +1247,10 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                     </div>
                                                                                     <div className="flex items-center gap-2">
                                                                                       <Slider
-                                                                                        value={[vuln.custom_scoring[criterion.id] || 1]}
+                                                                                        value={[vuln.custom_scoring?.[criterion.id] || 1]}
                                                                                         onValueChange={([v]) =>
                                                                                           updateVulnerability(vuln.id, {
-                                                                                            custom_scoring: { ...vuln.custom_scoring, [criterion.id]: v },
+                                                                                            custom_scoring: { ...vuln.custom_scoring, [criterion.id]: v as any },
                                                                                           })
                                                                                         }
                                                                                         min={1}

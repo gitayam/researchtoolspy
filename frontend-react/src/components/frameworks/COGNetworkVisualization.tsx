@@ -46,7 +46,7 @@ const NODE_SIZES = {
 }
 
 export function COGNetworkVisualization({ analysis, edges, onNodeClick }: COGNetworkVisualizationProps) {
-  const graphRef = useRef<ForceGraphMethods | undefined>()
+  const graphRef = useRef<ForceGraphMethods | undefined>(undefined)
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
   const [simulationMode, setSimulationMode] = useState(false)
   const [removedNodes, setRemovedNodes] = useState<Set<string>>(new Set())
@@ -149,8 +149,13 @@ export function COGNetworkVisualization({ analysis, edges, onNodeClick }: COGNet
     const connectedLinkIds = new Set<string>()
 
     allLinks.forEach(link => {
-      const sourceId = typeof link.source === 'object' ? link.source.id : link.source
-      const targetId = typeof link.target === 'object' ? link.target.id : link.target
+      const linkSource = link.source
+      const linkTarget = link.target
+
+      if (!linkSource || !linkTarget) return
+
+      const sourceId = typeof linkSource === 'object' ? (linkSource as GraphNode).id : (linkSource as string)
+      const targetId = typeof linkTarget === 'object' ? (linkTarget as GraphNode).id : (linkTarget as string)
 
       if (sourceId && targetId && (sourceId === node.id || targetId === node.id)) {
         connectedNodeIds.add(sourceId)
