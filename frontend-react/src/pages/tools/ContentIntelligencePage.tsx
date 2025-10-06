@@ -75,17 +75,7 @@ export default function ContentIntelligencePage() {
 
       toast({
         title: 'Success',
-        description: (
-          <div className="space-y-1">
-            <p>Link saved to library</p>
-            <a
-              href={`#saved-links`}
-              className="text-xs underline hover:text-blue-600"
-            >
-              View in Saved Links section below
-            </a>
-          </div>
-        )
+        description: 'Link saved to library. Scroll down to see Recently Saved Links section.'
       })
       setSaveNote('')
       setSaveTags('')
@@ -358,15 +348,15 @@ export default function ContentIntelligencePage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground">People</p>
-                    <p className="font-semibold">{analysis.entities.people.length}</p>
+                    <p className="font-semibold">{analysis.entities?.people?.length || 0}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Organizations</p>
-                    <p className="font-semibold">{analysis.entities.organizations.length}</p>
+                    <p className="font-semibold">{analysis.entities?.organizations?.length || 0}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Locations</p>
-                    <p className="font-semibold">{analysis.entities.locations.length}</p>
+                    <p className="font-semibold">{analysis.entities?.locations?.length || 0}</p>
                   </div>
                 </div>
               </div>
@@ -398,38 +388,47 @@ export default function ContentIntelligencePage() {
           <TabsContent value="entities" className="mt-4">
             <div className="grid md:grid-cols-3 gap-4">
               <Card className="p-4">
-                <h3 className="font-semibold mb-3">👥 People ({analysis.entities.people.length})</h3>
+                <h3 className="font-semibold mb-3">👥 People ({analysis.entities?.people?.length || 0})</h3>
                 <div className="space-y-2">
-                  {analysis.entities.people.slice(0, 10).map((person, i) => (
+                  {(analysis.entities?.people || []).slice(0, 10).map((person, i) => (
                     <div key={i} className="text-sm">
                       <span className="font-medium">{person.name}</span>
                       <span className="text-muted-foreground ml-2">({person.count}×)</span>
                     </div>
                   ))}
+                  {(!analysis.entities?.people || analysis.entities.people.length === 0) && (
+                    <p className="text-sm text-muted-foreground">No people found</p>
+                  )}
                 </div>
               </Card>
 
               <Card className="p-4">
-                <h3 className="font-semibold mb-3">🏢 Organizations ({analysis.entities.organizations.length})</h3>
+                <h3 className="font-semibold mb-3">🏢 Organizations ({analysis.entities?.organizations?.length || 0})</h3>
                 <div className="space-y-2">
-                  {analysis.entities.organizations.slice(0, 10).map((org, i) => (
+                  {(analysis.entities?.organizations || []).slice(0, 10).map((org, i) => (
                     <div key={i} className="text-sm">
                       <span className="font-medium">{org.name}</span>
                       <span className="text-muted-foreground ml-2">({org.count}×)</span>
                     </div>
                   ))}
+                  {(!analysis.entities?.organizations || analysis.entities.organizations.length === 0) && (
+                    <p className="text-sm text-muted-foreground">No organizations found</p>
+                  )}
                 </div>
               </Card>
 
               <Card className="p-4">
-                <h3 className="font-semibold mb-3">📍 Locations ({analysis.entities.locations.length})</h3>
+                <h3 className="font-semibold mb-3">📍 Locations ({analysis.entities?.locations?.length || 0})</h3>
                 <div className="space-y-2">
-                  {analysis.entities.locations.slice(0, 10).map((loc, i) => (
+                  {(analysis.entities?.locations || []).slice(0, 10).map((loc, i) => (
                     <div key={i} className="text-sm">
                       <span className="font-medium">{loc.name}</span>
                       <span className="text-muted-foreground ml-2">({loc.count}×)</span>
                     </div>
                   ))}
+                  {(!analysis.entities?.locations || analysis.entities.locations.length === 0) && (
+                    <p className="text-sm text-muted-foreground">No locations found</p>
+                  )}
                 </div>
               </Card>
             </div>

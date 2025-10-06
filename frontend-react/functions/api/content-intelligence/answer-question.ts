@@ -219,7 +219,7 @@ Return ONLY valid JSON:
       },
       signal: controller.signal,
       body: JSON.stringify({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
         messages: [
           {
             role: 'system',
@@ -227,7 +227,8 @@ Return ONLY valid JSON:
           },
           { role: 'user', content: prompt }
         ],
-        max_completion_tokens: 600
+        max_completion_tokens: 600,
+        temperature: 0.7
       })
     })
 

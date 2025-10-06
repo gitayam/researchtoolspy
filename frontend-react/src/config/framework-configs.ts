@@ -240,13 +240,21 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
   'cog': {
     type: 'cog',
     title: 'Center of Gravity Analysis',
-    description: 'Identify critical sources of power, essential capabilities, and vulnerabilities that provide leverage in complex systems',
-    itemType: 'qa',
+    description: 'Systematic COG analysis across DIMEFIL domains with vulnerability scoring and network visualization (JP 3-0 methodology)',
+    itemType: 'custom' as 'text' | 'qa',  // Custom COG implementation with specialized UI
     sections: [
       {
-        key: 'center_of_gravity',
-        label: 'Center of Gravity',
-        description: 'Source of power that provides strength',
+        key: 'operational_context',
+        label: 'Operational Context',
+        description: 'Define objectives, operating environment, and constraints',
+        color: 'border-gray-500',
+        bgColor: 'bg-gray-50 dark:bg-gray-900/20',
+        icon: '📋'
+      },
+      {
+        key: 'centers_of_gravity',
+        label: 'Centers of Gravity',
+        description: 'Identify COGs across DIMEFIL domains (Friendly, Adversary, Host Nation)',
         color: 'border-red-500',
         bgColor: 'bg-red-50 dark:bg-red-900/20',
         icon: '🎯'
@@ -254,7 +262,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'critical_capabilities',
         label: 'Critical Capabilities',
-        description: 'Primary abilities of the center of gravity',
+        description: 'Primary abilities (verbs) that enable the COG to function',
         color: 'border-blue-500',
         bgColor: 'bg-blue-50 dark:bg-blue-900/20',
         icon: '⚡'
@@ -262,7 +270,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'critical_requirements',
         label: 'Critical Requirements',
-        description: 'Essential conditions and resources needed',
+        description: 'Essential conditions and resources (nouns) needed for capabilities',
         color: 'border-yellow-500',
         bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
         icon: '📋'
@@ -270,10 +278,18 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'critical_vulnerabilities',
         label: 'Critical Vulnerabilities',
-        description: 'Weaknesses that can be exploited',
+        description: 'Weaknesses that can be exploited with Impact/Attainability/Follow-up scoring',
         color: 'border-orange-500',
         bgColor: 'bg-orange-50 dark:bg-orange-900/20',
         icon: '⚠️'
+      },
+      {
+        key: 'network_analysis',
+        label: 'Network Analysis',
+        description: 'Visualize relationships and calculate centrality measures',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '🕸️'
       }
     ]
   },

@@ -160,6 +160,21 @@ GET    /api/content-intelligence/starbursting?analysis_id=123
 3. **User Authentication**: Currently hardcoded user_id=1 (TODO: integrate with auth)
 4. **Social Media Extraction**: Detection only, not full extraction yet
 
+## ✅ **Recent Updates** (October 6, 2025)
+
+### **v2.1.1 - Saved Links UX Improvements**
+- ✅ Added "Recently Saved Links" section to Content Intelligence page
+- ✅ Toast notification now includes clickable link to saved links section
+- ✅ Auto-load saved links on page mount
+- ✅ "Analyze Now" button for unprocessed links (auto-fills URL)
+- ✅ "View Analysis" button for processed links
+- ✅ Show link metadata: domain, social platform, save date
+- ✅ Fixed UX issue where users didn't know where saved links went
+
+**Commits:**
+- `da72b8ce` - feat(content-intelligence): add saved links library display and improved UX
+- `953ba8f9` - feat(sidebar): add Content Intelligence to Research Tools navigation
+
 ---
 
 ## 📝 **Next Steps**
