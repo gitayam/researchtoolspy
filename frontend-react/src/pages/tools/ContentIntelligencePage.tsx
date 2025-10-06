@@ -9,7 +9,8 @@ import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
-  Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield
+  Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
+  Copy, Check
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -43,6 +44,14 @@ export default function ContentIntelligencePage() {
   const [vtLoading, setVtLoading] = useState(false)
   const [vtData, setVtData] = useState<any>(null)
   const [showVtModal, setShowVtModal] = useState(false)
+
+  // Citation State
+  const [generatedCitation, setGeneratedCitation] = useState<string>('')
+  const [showCitationCopied, setShowCitationCopied] = useState(false)
+
+  // Country Origin State
+  const [countryInfo, setCountryInfo] = useState<any>(null)
+  const [countryLoading, setCountryLoading] = useState(false)
 
   // Load saved links
   useEffect(() => {
@@ -136,7 +145,7 @@ export default function ContentIntelligencePage() {
         body: JSON.stringify({
           url,
           mode,
-          save_link: saveNote || saveTags ? true : false,
+          save_link: true, // Always auto-save analyzed URLs
           link_note: saveNote || undefined,
           link_tags: saveTags ? saveTags.split(',').map(t => t.trim()) : []
         })
@@ -194,16 +203,26 @@ export default function ContentIntelligencePage() {
     }
   }
 
-  // Create citation from analysis
+  // Auto-generate citation inline
   const handleCreateCitation = (analysisData: ContentAnalysis) => {
     try {
-      const citationData = extractCitationData(analysisData)
-      const params = createCitationParams(citationData)
-      navigate(`/dashboard/tools/citations-generator?${params.toString()}`)
+      const citationData = extractCitationData(analysisData, url)
+      const { generateCitation } = require('@/utils/citation-formatters')
+
+      // Generate APA citation by default
+      const { citation } = generateCitation(citationData.fields, citationData.sourceType, 'apa')
+
+      setGeneratedCitation(citation)
+
       toast({
-        title: 'Opening Citation Generator',
-        description: 'Citation fields pre-populated from analysis'
+        title: 'Citation Generated',
+        description: 'APA citation created and ready to copy'
       })
+
+      // Scroll to citation section
+      setTimeout(() => {
+        document.getElementById('citation-section')?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
     } catch (error) {
       console.error('Citation creation error:', error)
       toast({
@@ -213,6 +232,126 @@ export default function ContentIntelligencePage() {
       })
     }
   }
+
+  // Copy citation to clipboard
+  const copyCitation = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedCitation)
+      setShowCitationCopied(true)
+      toast({
+        title: 'Copied!',
+        description: 'Citation copied to clipboard'
+      })
+      setTimeout(() => setShowCitationCopied(false), 2000)
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to copy citation',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  // Save entity to evidence
+  const saveEntityToEvidence = async (entityName: string, entityType: 'person' | 'organization' | 'location') => {
+    try {
+      const response = await fetch('/api/actors', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({
+          name: entityName,
+          actor_type: entityType === 'person' ? 'INDIVIDUAL' :
+                     entityType === 'organization' ? 'ORGANIZATION' : 'OTHER',
+          description: `Auto-extracted from: ${analysis?.title || url}`,
+          tags: [`content-intelligence`, entityType],
+          source_url: url
+        })
+      })
+
+      if (response.ok) {
+        toast({
+          title: 'Saved to Evidence',
+          description: `${entityName} added to ${entityType === 'person' ? 'Actors' : entityType === 'location' ? 'Places' : 'Evidence'}`
+        })
+      } else {
+        throw new Error('Failed to save')
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `Failed to save ${entityName}`,
+        variant: 'destructive'
+      })
+    }
+  }
+
+  // Save all entities to evidence
+  const saveAllEntities = async () => {
+    if (!analysis?.entities) return
+
+    let saved = 0
+    const allEntities = [
+      ...(analysis.entities.people || []).map(p => ({ name: p.name, type: 'person' as const })),
+      ...(analysis.entities.organizations || []).map(o => ({ name: o.name, type: 'organization' as const })),
+      ...(analysis.entities.locations || []).map(l => ({ name: l.name, type: 'location' as const }))
+    ]
+
+    for (const entity of allEntities) {
+      try {
+        await saveEntityToEvidence(entity.name, entity.type)
+        saved++
+      } catch (error) {
+        console.error(`Failed to save ${entity.name}:`, error)
+      }
+    }
+
+    toast({
+      title: 'Bulk Save Complete',
+      description: `Saved ${saved} of ${allEntities.length} entities to evidence`
+    })
+  }
+
+  // Country origin lookup
+  const lookupCountryOrigin = async (urlToLookup: string) => {
+    if (!urlToLookup) return
+
+    setCountryLoading(true)
+    try {
+      const response = await fetch('/api/content-intelligence/domain-country', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlToLookup })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setCountryInfo(data)
+      } else {
+        setCountryInfo(null)
+      }
+    } catch (error) {
+      console.error('Country lookup error:', error)
+      setCountryInfo(null)
+    } finally {
+      setCountryLoading(false)
+    }
+  }
+
+  // Auto-lookup country when URL is entered
+  useEffect(() => {
+    if (url && url.startsWith('http')) {
+      const timer = setTimeout(() => {
+        lookupCountryOrigin(url)
+      }, 500) // Debounce
+      return () => clearTimeout(timer)
+    } else {
+      setCountryInfo(null)
+    }
+  }, [url])
 
   // VirusTotal security lookup
   const handleVirusTotalLookup = async () => {
@@ -402,6 +541,37 @@ export default function ContentIntelligencePage() {
         </div>
       </Card>
 
+      {/* Country Origin Info - Auto-detected */}
+      {countryInfo && (
+        <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-300">
+          <div className="flex items-center gap-3">
+            <div className="text-3xl">{countryInfo.flag}</div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                Hosted in {countryInfo.country}
+              </h3>
+              <div className="text-sm text-blue-700 dark:text-blue-300 space-y-0.5">
+                <p>Domain: {countryInfo.domain}</p>
+                {countryInfo.ip && <p>IP: {countryInfo.ip}</p>}
+                {countryInfo.city && countryInfo.region && (
+                  <p>Location: {countryInfo.city}, {countryInfo.region}</p>
+                )}
+                {countryInfo.org && <p>Organization: {countryInfo.org}</p>}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {countryLoading && (
+        <Card className="p-4 bg-gray-50 dark:bg-gray-900">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Looking up domain country...
+          </div>
+        </Card>
+      )}
+
       {/* Quick Actions - Appear immediately when URL entered */}
       {(url && bypassUrls['12ft']) && (
         <Card className="p-4">
@@ -524,6 +694,34 @@ export default function ContentIntelligencePage() {
                 </div>
               )}
 
+              {/* Citation Section */}
+              {generatedCitation && (
+                <div id="citation-section" className="border-t pt-4">
+                  <h3 className="font-semibold mb-2">Citation (APA)</h3>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                    <p className="text-sm font-serif">{generatedCitation}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyCitation}
+                    className="mt-2"
+                  >
+                    {showCitationCopied ? (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Citation
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
               <div>
                 <h3 className="font-semibold mb-2">Quick Stats</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -571,14 +769,32 @@ export default function ContentIntelligencePage() {
           </TabsContent>
 
           <TabsContent value="entities" className="mt-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold">Extracted Entities</h3>
+              <Button onClick={saveAllEntities} variant="outline" size="sm">
+                <Save className="h-4 w-4 mr-2" />
+                Save All to Evidence
+              </Button>
+            </div>
+
             <div className="grid md:grid-cols-3 gap-4">
               <Card className="p-4">
                 <h3 className="font-semibold mb-3">👥 People ({analysis.entities?.people?.length || 0})</h3>
                 <div className="space-y-2">
                   {(analysis.entities?.people || []).slice(0, 10).map((person, i) => (
-                    <div key={i} className="text-sm">
-                      <span className="font-medium">{person.name}</span>
-                      <span className="text-muted-foreground ml-2">({person.count}×)</span>
+                    <div key={i} className="text-sm flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">{person.name}</span>
+                        <span className="text-muted-foreground ml-2">({person.count}×)</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => saveEntityToEvidence(person.name, 'person')}
+                        className="h-7 px-2"
+                      >
+                        <Save className="h-3 w-3" />
+                      </Button>
                     </div>
                   ))}
                   {(!analysis.entities?.people || analysis.entities.people.length === 0) && (
@@ -591,9 +807,19 @@ export default function ContentIntelligencePage() {
                 <h3 className="font-semibold mb-3">🏢 Organizations ({analysis.entities?.organizations?.length || 0})</h3>
                 <div className="space-y-2">
                   {(analysis.entities?.organizations || []).slice(0, 10).map((org, i) => (
-                    <div key={i} className="text-sm">
-                      <span className="font-medium">{org.name}</span>
-                      <span className="text-muted-foreground ml-2">({org.count}×)</span>
+                    <div key={i} className="text-sm flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">{org.name}</span>
+                        <span className="text-muted-foreground ml-2">({org.count}×)</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => saveEntityToEvidence(org.name, 'organization')}
+                        className="h-7 px-2"
+                      >
+                        <Save className="h-3 w-3" />
+                      </Button>
                     </div>
                   ))}
                   {(!analysis.entities?.organizations || analysis.entities.organizations.length === 0) && (
@@ -606,9 +832,19 @@ export default function ContentIntelligencePage() {
                 <h3 className="font-semibold mb-3">📍 Locations ({analysis.entities?.locations?.length || 0})</h3>
                 <div className="space-y-2">
                   {(analysis.entities?.locations || []).slice(0, 10).map((loc, i) => (
-                    <div key={i} className="text-sm">
-                      <span className="font-medium">{loc.name}</span>
-                      <span className="text-muted-foreground ml-2">({loc.count}×)</span>
+                    <div key={i} className="text-sm flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">{loc.name}</span>
+                        <span className="text-muted-foreground ml-2">({loc.count}×)</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => saveEntityToEvidence(loc.name, 'location')}
+                        className="h-7 px-2"
+                      >
+                        <Save className="h-3 w-3" />
+                      </Button>
                     </div>
                   ))}
                   {(!analysis.entities?.locations || analysis.entities.locations.length === 0) && (
