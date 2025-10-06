@@ -4,8 +4,112 @@
 
 This plan enhances the Behavior Analysis (COM-B Model) framework to implement the **complete Behaviour Change Wheel (BCW)** methodology, including automated intervention recommendations based on COM-B deficits identified during analysis.
 
-**Current State:** Framework has COM-B assessment sections (6 components)
+**Current State:**
+- ✅ COM-B assessment sections (6 components) - IMPLEMENTED
+- ✅ Objective report generation (requirements, process, audiences) - IMPLEMENTED
+- ✅ Timeline/flow chart support - IMPLEMENTED
+- ✅ Conditional BCW interventions (only when deficits marked) - IMPLEMENTED
+- ⏳ Policy recommendations - PARTIAL
+- ❌ Decision tree guided workflow - NOT IMPLEMENTED
+- ❌ Visual BCW wheel diagram - NOT IMPLEMENTED
+
 **Target State:** Full BCW implementation with intervention recommendations, decision trees, and enhanced exports
+
+---
+
+## 📁 Key File Paths
+
+**Report Generation:**
+- `/Users/sac/Git/researchtoolspy/frontend-react/src/lib/report-generator.ts` - Main report generator (markdown, Word, PDF, PPT, CSV)
+- `/Users/sac/Git/researchtoolspy/frontend-react/src/components/reports/ExportButton.tsx` - Export UI component
+
+**BCW Types & Logic:**
+- `/Users/sac/Git/researchtoolspy/frontend-react/src/types/behavior-change-wheel.ts` - TypeScript interfaces for BCW
+- `/Users/sac/Git/researchtoolspy/frontend-react/src/utils/behaviour-change-wheel.ts` - BCW recommendation logic
+
+**Documentation:**
+- `/Users/sac/Git/researchtoolspy/frontend-react/BEHAVIOR_REPORT_REQUIREMENTS.md` - Report structure & requirements
+- `/Users/sac/Git/researchtoolspy/frontend-react/BEHAVIOR_ANALYSIS_BCW_ENHANCEMENT_PLAN.md` - This file
+- `/Users/sac/Git/researchtoolspy/frontend-react/lessonslearned-gpt-cloudflare-workers.md` - GPT-5 integration lessons
+- `/Users/sac/Git/researchtoolspy/Lessons_Learned.md` - General development lessons
+
+---
+
+## 🎯 Behavior Analysis Report - Core Principles
+
+### Objective vs. Intervention-Focused Reporting
+
+The Behavior Analysis framework generates **two types of content** depending on user input:
+
+#### Type 1: Objective Analysis Report (Default)
+
+**When:** User has NOT marked any COM-B deficits (or all marked "adequate")
+
+**Purpose:** Provide neutral, analytical documentation of the behavior
+
+**Includes:**
+- 📋 Behavior Process Overview
+- ✅ Requirements for Behavior Completion (Capability, Opportunity, Motivation)
+- 👥 Potential Target Audiences (objective identification)
+- 📅 Behavior Process Flow & Timeline
+- ❌ **NO intervention strategies**
+- ❌ **NO target audience recommendations**
+- ❌ **NO normative judgments**
+
+**Example Output:**
+```
+## Requirements for Behavior Completion
+
+### Capability Requirements
+
+**💪 Physical Capability**
+Physical skills, strength, stamina required
+Status: ✓ Generally Adequate
+
+**🧠 Psychological Capability**
+Knowledge, cognitive skills, comprehension needed
+Status: ⚠ Some Limitations
+```
+
+#### Type 2: Behaviour Change Wheel Report (Conditional)
+
+**When:** User has explicitly marked COM-B deficits (deficit or major_barrier)
+
+**Purpose:** Provide evidence-based intervention recommendations using BCW methodology
+
+**Includes:**
+- All content from Type 1 (objective analysis)
+- **PLUS:** 🔧 Recommended Intervention Functions
+- **PLUS:** 📜 Policy Category Recommendations
+- **PLUS:** Priority ratings and implementation guidance
+
+**Example Output:**
+```
+## 🔧 Behaviour Change Wheel - Intervention Recommendations
+
+*Note: These recommendations are generated because COM-B deficits were identified.*
+
+### Psychological Capability (DEFICIT)
+
+#### Education [HIGH PRIORITY]
+**Definition:** Increasing knowledge or understanding
+**Evidence Base:** Effective for capability deficits (Michie et al., 2011)
+```
+
+### Implementation Logic
+
+```typescript
+// In report-generator.ts line 280-320
+const hasMarkedDeficits = Object.values(deficits).some(
+  d => d === 'deficit' || d === 'major_barrier'
+)
+
+if (hasMarkedDeficits) {
+  // Generate BCW interventions
+  const interventionRecs = generateInterventionRecommendations(deficits)
+  // Add to report
+}
+```
 
 ---
 
