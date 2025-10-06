@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { COGIdentification, CriticalCapability, CriticalRequirement, CriticalVulnerability, OperationalContext } from '@/types/cog-analysis'
+import type { CriticalCapability, CriticalRequirement, CriticalVulnerability, OperationalContext } from '@/types/cog-analysis'
 
 type AssistMode = 'cog' | 'capabilities' | 'requirements' | 'vulnerabilities'
 

@@ -35,11 +35,11 @@ export function COGPDFExport({
 
       // Define colors and styles
       const colors = {
-        primary: [30, 58, 138], // Navy blue
-        secondary: [100, 116, 139], // Slate
-        accent: [239, 68, 68], // Red
-        text: [31, 41, 55], // Gray-800
-        light: [249, 250, 251], // Gray-50
+        primary: [30, 58, 138] as [number, number, number], // Navy blue
+        secondary: [100, 116, 139] as [number, number, number], // Slate
+        accent: [239, 68, 68] as [number, number, number], // Red
+        text: [31, 41, 55] as [number, number, number], // Gray-800
+        light: [249, 250, 251] as [number, number, number], // Gray-50
       }
 
       let currentY = 20
@@ -425,7 +425,7 @@ export function COGPDFExport({
         pdf.setFont('helvetica', 'normal')
         pdf.setFontSize(9)
         pdf.setTextColor(100, 116, 139)
-        pdf.text(`Composite Score: ${vuln.composite_score} | Confidence: ${vuln.confidence_level || 'N/A'}`, margin + 5, currentY)
+        pdf.text(`Composite Score: ${vuln.composite_score} | Confidence: ${vuln.confidence || 'N/A'}`, margin + 5, currentY)
         currentY += 8
         pdf.setFontSize(11)
         pdf.setTextColor(...colors.text)

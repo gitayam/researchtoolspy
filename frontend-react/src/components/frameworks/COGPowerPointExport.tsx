@@ -269,7 +269,7 @@ export function COGPowerPointExport({
         colW: [0.5, 6, 1.5, 1],
         fontSize: 11,
         border: { pt: 1, color: 'D1D5DB' },
-        fill: 'FFFFFF',
+        fill: { color: 'FFFFFF' },
       })
 
       // ===== SLIDE: Network Statistics =====
@@ -368,7 +368,11 @@ export function COGPowerPointExport({
           color: colors.text,
         })
 
-        slideRec.addText(vuln.recommended_actions || 'No specific actions recommended', {
+        const actionsText = Array.isArray(vuln.recommended_actions)
+          ? vuln.recommended_actions.join(', ')
+          : (vuln.recommended_actions || 'No specific actions recommended')
+
+        slideRec.addText(actionsText, {
           x: 1.0,
           y: yPos + 0.45,
           w: 8.3,

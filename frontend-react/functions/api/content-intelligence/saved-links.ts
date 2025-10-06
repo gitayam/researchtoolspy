@@ -39,6 +39,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     let query = `
       SELECT
         sl.*,
+        COALESCE(sl.title, ca.title, sl.domain) as title,
         ca.id as analysis_id,
         ca.title as analysis_title,
         ca.summary as analysis_summary
@@ -140,6 +141,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Detect social media
     const socialInfo = detectSocialMedia(url)
 
+    // If no title provided, try to fetch it from the URL
+    let finalTitle = title
+    if (!finalTitle) {
+      try {
+        finalTitle = await fetchUrlTitle(url)
+      } catch (error) {
+        console.warn('[Saved Links] Failed to fetch title:', error)
+        finalTitle = domain // Fallback to domain name
+      }
+    }
+
     // Check if link already saved
     const existing = await env.DB.prepare(`
       SELECT id FROM saved_links WHERE user_id = ? AND url = ?
@@ -164,7 +176,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(
       1, // TODO: Get actual user_id
       url,
-      title || null,
+      finalTitle || null,
       note || null,
       JSON.stringify(tags),
       reminder_date || null,
@@ -372,6 +384,7 @@ async function getSingleLink(db: D1Database, id: number) {
     const link = await db.prepare(`
       SELECT
         sl.*,
+        COALESCE(sl.title, ca.title, sl.domain) as title,
         ca.id as analysis_id,
         ca.title as analysis_title,
         ca.summary as analysis_summary,
@@ -442,4 +455,55 @@ function detectSocialMedia(url: string): { platform: string } | null {
   }
 
   return null
+}
+
+// ========================================
+// Helper: Fetch URL title from HTML
+// ========================================
+async function fetchUrlTitle(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)',
+      },
+      // Limit response size to avoid downloading large files
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    // Only process HTML responses
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('text/html')) {
+      return null
+    }
+
+    const html = await response.text()
+
+    // Try to extract title from <title> tag
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+    if (titleMatch && titleMatch[1]) {
+      return titleMatch[1].trim()
+    }
+
+    // Try Open Graph title
+    const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
+    if (ogTitleMatch && ogTitleMatch[1]) {
+      return ogTitleMatch[1].trim()
+    }
+
+    // Try Twitter title
+    const twitterTitleMatch = html.match(/<meta[^>]*name=["']twitter:title["'][^>]*content=["']([^"']+)["']/i)
+    if (twitterTitleMatch && twitterTitleMatch[1]) {
+      return twitterTitleMatch[1].trim()
+    }
+
+    return null
+  } catch (error) {
+    console.error('[fetchUrlTitle] Error:', error)
+    return null
+  }
 }
