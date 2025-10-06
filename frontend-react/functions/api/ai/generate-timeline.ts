@@ -220,15 +220,32 @@ Generate the timeline now:`
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error?.message || 'AI request failed')
+      const errorText = await response.text()
+      console.error('OpenAI API error:', errorText)
+      try {
+        const errorData = JSON.parse(errorText)
+        throw new Error(errorData.error?.message || 'AI request failed')
+      } catch {
+        throw new Error(`AI request failed: ${response.status} ${response.statusText}`)
+      }
     }
 
     const data = await response.json()
-    const content = data.choices[0].message.content
+    const content = data.choices[0]?.message?.content
 
-    // Parse JSON response
-    const parsed = JSON.parse(content) as TimelineGenerationResponse
+    if (!content) {
+      throw new Error('No content returned from AI')
+    }
+
+    // Parse JSON response with error handling
+    let parsed: TimelineGenerationResponse
+    try {
+      parsed = JSON.parse(content) as TimelineGenerationResponse
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', content)
+      throw new Error('Invalid JSON response from AI: ' + (parseError instanceof Error ? parseError.message : 'Unknown error'))
+    }
+
     const timeline: TimelineEvent[] = parsed.events || []
 
     // Generate IDs if missing
