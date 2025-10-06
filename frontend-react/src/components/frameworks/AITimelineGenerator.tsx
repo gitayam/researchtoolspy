@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import type { TimelineEvent, BehaviorAnalysis } from '@/types/behavior'
-import { getBehaviorFormContext } from '@/utils/ai-context'
 
 interface AITimelineGeneratorProps {
   formData: Partial<BehaviorAnalysis>
@@ -32,129 +31,33 @@ export function AITimelineGenerator({
     setGeneratedTimeline(null)
 
     try {
-      const context = getBehaviorFormContext(formData)
-
-      const prompt = `You are a behavior analysis expert creating a detailed timeline of how a behavior unfolds.
-
-${context}
-
-TASK: Create a comprehensive, step-by-step timeline for this behavior.
-
-REQUIREMENTS:
-1. Main sequence: List all major steps in chronological order
-2. Time estimates: Provide realistic time for each step (HH:MM or relative)
-3. Locations: Note where each step occurs if it changes
-4. Sub-steps: Break down complex steps into sub-steps
-5. Decision points: Mark steps where choices are made
-6. Forks: For decision points, provide alternative paths people might take
-7. Be specific to the location(s) and context provided
-
-${existingTimeline.length > 0 ? `EXISTING TIMELINE TO ENHANCE:\n${JSON.stringify(existingTimeline, null, 2)}\n\nEnhance this timeline with more detail, sub-steps, and forks.` : 'Create a new detailed timeline from scratch.'}
-
-OUTPUT FORMAT (strict JSON):
-{
-  "events": [
-    {
-      "id": "unique-id",
-      "label": "Step name (concise)",
-      "time": "HH:MM or T+Xmin or relative",
-      "description": "What happens in this step",
-      "location": "Where this occurs (if changes)",
-      "is_decision_point": false,
-      "sub_steps": [
-        {
-          "label": "Sub-step name",
-          "description": "Sub-step detail",
-          "duration": "optional time"
-        }
-      ],
-      "forks": [
-        {
-          "condition": "If X happens / Alternative path",
-          "label": "Fork name",
-          "path": [
-            {
-              "id": "fork-step-id",
-              "label": "Alternative step",
-              "time": "timing",
-              "description": "what happens"
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-
-Generate the timeline now:`
-
-      const apiKey = localStorage.getItem('openai_api_key') || localStorage.getItem('anthropic_api_key')
-      const provider = localStorage.getItem('ai_provider') || 'openai'
-
-      if (!apiKey) {
-        throw new Error('No API key configured. Please configure AI settings.')
+      // Prepare request payload
+      const requestPayload = {
+        behavior_title: formData.title || '',
+        behavior_description: formData.description || '',
+        location_context: formData.location_context,
+        behavior_settings: formData.behavior_settings,
+        temporal_context: formData.temporal_context,
+        complexity: formData.complexity,
+        existing_timeline: existingTimeline.length > 0 ? existingTimeline : undefined
       }
 
-      let response
-      if (provider === 'openai') {
-        response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: localStorage.getItem('openai_model') || 'gpt-4o-mini',
-            messages: [
-              { role: 'system', content: 'You are a behavior analysis expert. Always respond with valid JSON only.' },
-              { role: 'user', content: prompt }
-            ],
-            temperature: 0.7,
-            response_format: { type: "json_object" }
-          })
-        })
-      } else {
-        response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: localStorage.getItem('anthropic_model') || 'claude-3-5-sonnet-20241022',
-            max_tokens: 4096,
-            messages: [
-              { role: 'user', content: prompt }
-            ]
-          })
-        })
-      }
+      // Call backend API endpoint
+      const response = await fetch('/api/ai/generate-timeline', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestPayload)
+      })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error?.message || 'AI request failed')
+        throw new Error(errorData.message || errorData.error || 'AI request failed')
       }
 
       const data = await response.json()
-
-      let content
-      if (provider === 'openai') {
-        content = data.choices[0].message.content
-      } else {
-        content = data.content[0].text
-      }
-
-      // Parse JSON response
-      const parsed = JSON.parse(content)
-      const timeline: TimelineEvent[] = parsed.events || []
-
-      // Generate IDs if missing
-      timeline.forEach((event, index) => {
-        if (!event.id) {
-          event.id = `event-${Date.now()}-${index}`
-        }
-      })
+      const timeline: TimelineEvent[] = data.events || []
 
       setGeneratedTimeline(timeline)
 
