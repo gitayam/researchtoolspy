@@ -160,10 +160,8 @@ export default function ContentIntelligencePage() {
       const encoded = encodeURIComponent(url)
       setBypassUrls({
         '12ft': `https://12ft.io/proxy?q=${encoded}`,
-        'outline': `https://outline.com/${url}`,
         'wayback': `https://web.archive.org/web/*/${url}`,
-        'archive_is': `https://archive.is/${url}`,
-        'google_cache': `https://webcache.googleusercontent.com/search?q=cache:${encoded}`
+        'archive_is': `https://archive.is/${url}`
       })
 
       setProgress(30)
@@ -234,10 +232,8 @@ export default function ContentIntelligencePage() {
         const encoded = encodeURIComponent(url)
         setBypassUrls({
           '12ft': `https://12ft.io/proxy?q=${encoded}`,
-          'outline': `https://outline.com/${url}`,
           'wayback': `https://web.archive.org/web/*/${url}`,
-          'archive_is': `https://archive.is/${url}`,
-          'google_cache': `https://webcache.googleusercontent.com/search?q=cache:${encoded}`
+          'archive_is': `https://archive.is/${url}`
         })
       }
     } finally {
@@ -671,18 +667,6 @@ export default function ContentIntelligencePage() {
               <a href={bypassUrls.wayback} target="_blank" rel="noopener noreferrer">
                 <Clock className="h-3 w-3 mr-1" />
                 Wayback Machine
-              </a>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <a href={bypassUrls.outline} target="_blank" rel="noopener noreferrer">
-                <FileText className="h-3 w-3 mr-1" />
-                Outline
-              </a>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <a href={bypassUrls.google_cache} target="_blank" rel="noopener noreferrer">
-                <Bookmark className="h-3 w-3 mr-1" />
-                Google Cache
               </a>
             </Button>
           </div>
@@ -1153,9 +1137,7 @@ export default function ContentIntelligencePage() {
                                 entities: { people: [], organizations: [], locations: [] },
                                 archive_urls: {},
                                 bypass_urls: {
-                                  '12ft': '',
-                                  'outline': '',
-                                  'google_cache': ''
+                                  '12ft': ''
                                 },
                                 processing_mode: 'full',
                                 processing_duration_ms: 0,
