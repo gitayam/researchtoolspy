@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, AlertCircle, Lightbulb, FileEdit } from 'lucide-react'
+import { AICOGAssistant } from '@/components/ai/AICOGAssistant'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -580,6 +581,57 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                     />
                   </div>
 
+                  {/* AI Assistance Buttons */}
+                  <div className="flex gap-2 flex-wrap">
+                    <AICOGAssistant
+                      mode="suggest-cog"
+                      context={{
+                        objective: operationalContext.objective,
+                        impactGoal: operationalContext.desired_impact,
+                        friendlyForces: operationalContext.our_identity,
+                        operatingEnvironment: operationalContext.operating_environment,
+                        constraints: operationalContext.constraints?.join(', '),
+                        timeframe: operationalContext.timeframe,
+                        strategicLevel: operationalContext.strategic_level,
+                      }}
+                      onAccept={(suggestion) => {
+                        setCogDescription(suggestion.description)
+                        setCogActor(suggestion.actor as ActorCategory)
+                        setCogDomain(suggestion.domain as DIMEFILDomain)
+                        setCogRationale(suggestion.rationale)
+                      }}
+                      buttonText="✨ Suggest COG"
+                    />
+
+                    {cogDescription && (
+                      <AICOGAssistant
+                        mode="validate-cog"
+                        context={{
+                          objective: operationalContext.objective,
+                          impactGoal: operationalContext.desired_impact,
+                          friendlyForces: operationalContext.our_identity,
+                          operatingEnvironment: operationalContext.operating_environment,
+                        }}
+                        cog={{
+                          description: cogDescription,
+                          actor: cogActor,
+                          domain: cogDomain,
+                          rationale: cogRationale,
+                        }}
+                        onAccept={(validation) => {
+                          // Update validation checkboxes based on AI validation
+                          setCogValidation({
+                            criticallyDegrades: validation.criteria.criticalDegradation.passes,
+                            sourceOfPower: validation.criteria.sourceOfPower.passes,
+                            rightLevel: validation.criteria.appropriateLevel.passes,
+                            canBeExploited: validation.criteria.exploitable.passes,
+                          })
+                        }}
+                        buttonText="🔍 Validate COG"
+                      />
+                    )}
+                  </div>
+
                   <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
                     <Label className="text-sm font-semibold mb-3 block">✅ COG Validation Checklist</Label>
                     <div className="space-y-2">
@@ -689,12 +741,41 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                       </CardContent>
                     </Card>
                   ))}
-                  <Button
-                    variant="outline"
-                    onClick={() => setCapabilities([...capabilities, { id: crypto.randomUUID(), capability: '', description: '' }])}
-                  >
-                    + Add Another Capability
-                  </Button>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCapabilities([...capabilities, { id: crypto.randomUUID(), capability: '', description: '' }])}
+                    >
+                      + Add Another Capability
+                    </Button>
+
+                    {cogDescription && (
+                      <AICOGAssistant
+                        mode="generate-capabilities"
+                        context={{
+                          objective: operationalContext.objective,
+                          impactGoal: operationalContext.desired_impact,
+                          friendlyForces: operationalContext.our_identity,
+                          operatingEnvironment: operationalContext.operating_environment,
+                        }}
+                        cog={{
+                          description: cogDescription,
+                          actor: cogActor,
+                          domain: cogDomain,
+                          rationale: cogRationale,
+                        }}
+                        onAccept={(generatedCapabilities) => {
+                          const newCapabilities = generatedCapabilities.map((cap: any) => ({
+                            id: crypto.randomUUID(),
+                            capability: cap.capability,
+                            description: cap.description,
+                          }))
+                          setCapabilities([...capabilities.filter(c => c.capability), ...newCapabilities])
+                        }}
+                        buttonText="✨ Generate Capabilities"
+                      />
+                    )}
+                  </div>
 
                   {!canProceed() && (
                     <Alert variant="destructive">
@@ -796,12 +877,45 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                       </CardContent>
                     </Card>
                   ))}
-                  <Button
-                    variant="outline"
-                    onClick={() => setRequirements([...requirements, { id: crypto.randomUUID(), requirement: '', type: 'other', capability_id: '' }])}
-                  >
-                    + Add Another Requirement
-                  </Button>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      onClick={() => setRequirements([...requirements, { id: crypto.randomUUID(), requirement: '', type: 'other', capability_id: '' }])}
+                    >
+                      + Add Another Requirement
+                    </Button>
+
+                    {/* Generate requirements for first capability with data */}
+                    {capabilities.filter(c => c.capability).length > 0 && (
+                      <AICOGAssistant
+                        mode="generate-requirements"
+                        context={{
+                          objective: operationalContext.objective,
+                          impactGoal: operationalContext.desired_impact,
+                        }}
+                        cog={{
+                          description: cogDescription,
+                          actor: cogActor,
+                          domain: cogDomain,
+                        }}
+                        capability={{
+                          capability: capabilities.filter(c => c.capability)[0].capability,
+                          description: capabilities.filter(c => c.capability)[0].description,
+                        }}
+                        onAccept={(generatedRequirements) => {
+                          const firstCapabilityId = capabilities.filter(c => c.capability)[0].id
+                          const newRequirements = generatedRequirements.map((req: any) => ({
+                            id: crypto.randomUUID(),
+                            requirement: req.requirement,
+                            type: req.type || 'other',
+                            capability_id: firstCapabilityId,
+                          }))
+                          setRequirements([...requirements.filter(r => r.requirement), ...newRequirements])
+                        }}
+                        buttonText="✨ Generate Requirements"
+                      />
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -941,17 +1055,57 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                       </CardContent>
                     </Card>
                   ))}
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      setVulnerabilities([
-                        ...vulnerabilities,
-                        { id: crypto.randomUUID(), vulnerability: '', description: '', type: 'other', expectedEffect: '', recommendedActions: '', requirement_ids: [] },
-                      ])
-                    }
-                  >
-                    + Add Another Vulnerability
-                  </Button>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setVulnerabilities([
+                          ...vulnerabilities,
+                          { id: crypto.randomUUID(), vulnerability: '', description: '', type: 'other', expectedEffect: '', recommendedActions: '', requirement_ids: [] },
+                        ])
+                      }
+                    >
+                      + Add Another Vulnerability
+                    </Button>
+
+                    {/* Generate vulnerabilities for first requirement with data */}
+                    {requirements.filter(r => r.requirement).length > 0 && capabilities.filter(c => c.capability).length > 0 && (
+                      <AICOGAssistant
+                        mode="generate-vulnerabilities"
+                        context={{
+                          objective: operationalContext.objective,
+                          impactGoal: operationalContext.desired_impact,
+                        }}
+                        cog={{
+                          description: cogDescription,
+                          actor: cogActor,
+                          domain: cogDomain,
+                        }}
+                        capability={{
+                          capability: capabilities.filter(c => c.capability)[0].capability,
+                          description: capabilities.filter(c => c.capability)[0].description,
+                        }}
+                        requirement={{
+                          requirement: requirements.filter(r => r.requirement)[0].requirement,
+                          type: requirements.filter(r => r.requirement)[0].type,
+                        }}
+                        onAccept={(generatedVulnerabilities) => {
+                          const firstRequirementId = requirements.filter(r => r.requirement)[0].id
+                          const newVulnerabilities = generatedVulnerabilities.map((vuln: any) => ({
+                            id: crypto.randomUUID(),
+                            vulnerability: vuln.vulnerability,
+                            description: vuln.description,
+                            type: vuln.type || 'other',
+                            expectedEffect: vuln.expectedEffect || '',
+                            recommendedActions: vuln.recommendedActions?.join(', ') || '',
+                            requirement_ids: [firstRequirementId],
+                          }))
+                          setVulnerabilities([...vulnerabilities.filter(v => v.vulnerability), ...newVulnerabilities])
+                        }}
+                        buttonText="✨ Generate Vulnerabilities"
+                      />
+                    )}
+                  </div>
                 </div>
               </>
             )}
