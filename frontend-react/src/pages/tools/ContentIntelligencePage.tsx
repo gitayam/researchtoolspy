@@ -73,7 +73,7 @@ export default function ContentIntelligencePage() {
     }
   }
 
-  // Quick save link (without processing)
+  // Quick save link (fetches title first, then saves without full analysis)
   const handleQuickSave = async () => {
     if (!url) {
       toast({ title: 'Error', description: 'Please enter a URL', variant: 'destructive' })
@@ -81,40 +81,58 @@ export default function ContentIntelligencePage() {
     }
 
     try {
-      const response = await fetch('/api/content-intelligence/saved-links', {
+      // First, do a quick analysis to fetch the title
+      toast({ title: 'Fetching page title...', description: 'Please wait', variant: 'default' })
+
+      const analyzeResponse = await fetch('/api/content-intelligence/analyze-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url,
-          note: saveNote || undefined,
-          tags: saveTags ? saveTags.split(',').map(t => t.trim()) : [],
-          auto_analyze: false
+          mode: 'quick',
+          save_link: true,
+          link_note: saveNote || undefined,
+          link_tags: saveTags ? saveTags.split(',').map(t => t.trim()) : []
         })
       })
 
-      if (!response.ok) {
-        // Handle 409 Conflict (link already saved)
-        if (response.status === 409) {
-          const errorData = await response.json()
-          toast({
-            title: 'Link Already Saved',
-            description: 'This link has already been saved to your library.',
-            variant: 'default'
-          })
-          loadSavedLinks() // Refresh to show the existing link
-          return
-        }
-        throw new Error('Failed to save link')
-      }
+      if (!analyzeResponse.ok) {
+        // If quick analysis fails, fallback to saving without title
+        console.warn('Quick analysis failed, saving without title')
 
-      const savedData = await response.json()
+        const response = await fetch('/api/content-intelligence/saved-links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url,
+            note: saveNote || undefined,
+            tags: saveTags ? saveTags.split(',').map(t => t.trim()) : [],
+            auto_analyze: false
+          })
+        })
+
+        if (!response.ok) {
+          // Handle 409 Conflict (link already saved)
+          if (response.status === 409) {
+            toast({
+              title: 'Link Already Saved',
+              description: 'This link has already been saved to your library.',
+              variant: 'default'
+            })
+            loadSavedLinks() // Refresh to show the existing link
+            return
+          }
+          throw new Error('Failed to save link')
+        }
+      }
 
       toast({
         title: 'Success',
-        description: 'Link saved to library. Scroll down to see Recently Saved Links section.'
+        description: 'Link saved with title to library. Scroll down to see Recently Saved Links section.'
       })
       setSaveNote('')
       setSaveTags('')
+      setUrl('') // Clear the URL input
       loadSavedLinks() // Refresh saved links
     } catch (error) {
       console.error('Save error:', error)
@@ -184,11 +202,44 @@ export default function ContentIntelligencePage() {
     } catch (error) {
       console.error('Analysis error:', error)
       setStatus('error')
+
+      // Show user-friendly error message
+      let errorMessage = 'Unknown error'
+      let errorDescription = ''
+
+      if (error instanceof Error) {
+        if (error.message.includes('blocked access')) {
+          errorMessage = 'Website Blocked Access'
+          errorDescription = 'The website blocked automated access. Scroll down to see Bypass URLs that may help.'
+        } else if (error.message.includes('timeout') || error.message.includes('took too long')) {
+          errorMessage = 'Request Timeout'
+          errorDescription = 'The website took too long to respond. Try a bypass URL or try again later.'
+        } else if (error.message.includes('not found')) {
+          errorMessage = 'Page Not Found'
+          errorDescription = 'The URL may be incorrect or the page may have been removed.'
+        } else {
+          errorMessage = 'Analysis Failed'
+          errorDescription = error.message
+        }
+      }
+
       toast({
-        title: 'Analysis Failed',
-        description: error instanceof Error ? error.message : 'Unknown error',
+        title: errorMessage,
+        description: errorDescription,
         variant: 'destructive'
       })
+
+      // Even on error, show bypass URLs if they were generated
+      if (!bypassUrls || Object.keys(bypassUrls).length === 0) {
+        const encoded = encodeURIComponent(url)
+        setBypassUrls({
+          '12ft': `https://12ft.io/proxy?q=${encoded}`,
+          'outline': `https://outline.com/${url}`,
+          'wayback': `https://web.archive.org/web/*/${url}`,
+          'archive_is': `https://archive.is/${url}`,
+          'google_cache': `https://webcache.googleusercontent.com/search?q=cache:${encoded}`
+        })
+      }
     } finally {
       setProcessing(false)
     }
