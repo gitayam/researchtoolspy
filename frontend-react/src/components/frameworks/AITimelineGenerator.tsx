@@ -23,7 +23,8 @@ export function AITimelineGenerator({
   const [error, setError] = useState<string | null>(null)
   const [generatedTimeline, setGeneratedTimeline] = useState<TimelineEvent[] | null>(null)
 
-  const missingContext = !formData.title || !formData.location_context?.specific_locations?.length
+  // Only require title - AI can work with partial location context
+  const missingContext = !formData.title
 
   const generateTimeline = async () => {
     setGenerating(true)
@@ -213,7 +214,7 @@ Generate the timeline now:`
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Please fill in the behavior title and add at least one specific location before generating a timeline.
+                  Please fill in the behavior title before generating a timeline.
                 </AlertDescription>
               </Alert>
             )}
