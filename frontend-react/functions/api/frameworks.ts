@@ -39,7 +39,10 @@ export async function onRequest(context: any) {
           try {
             framework.data = JSON.parse(framework.data)
           } catch (e) {
-            console.error('Failed to parse framework data:', e)
+            console.error('Failed to parse framework data for ID:', frameworkId, e)
+            console.error('Corrupted data value:', framework.data)
+            // Return empty object if data is corrupted
+            framework.data = {}
           }
         }
 
@@ -68,7 +71,10 @@ export async function onRequest(context: any) {
           try {
             framework.data = JSON.parse(framework.data)
           } catch (e) {
-            console.error('Failed to parse framework data:', e)
+            console.error('Failed to parse framework data for ID:', framework.id, e)
+            console.error('Corrupted data value:', framework.data)
+            // Return empty object if data is corrupted
+            framework.data = {}
           }
         }
         return framework
