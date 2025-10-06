@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Sparkles, Loader2, Plus, AlertCircle } from 'lucide-react'
+import { Sparkles, Loader2, Plus, AlertCircle, RotateCcw, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -220,19 +220,33 @@ export function AITimelineGenerator({
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button onClick={acceptTimeline} className="flex-1">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Use This Timeline
-                  </Button>
-                  {existingTimeline.length > 0 && (
-                    <Button onClick={mergeWithExisting} variant="outline" className="flex-1">
-                      Merge with Existing
-                    </Button>
-                  )}
-                  <Button onClick={() => setGeneratedTimeline(null)} variant="outline">
+                <div className="flex gap-2 justify-between">
+                  <Button
+                    onClick={() => setGeneratedTimeline(null)}
+                    variant="outline"
+                    size="default"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
                     Regenerate
                   </Button>
+
+                  <div className="flex gap-2">
+                    {existingTimeline.length > 0 && (
+                      <Button onClick={mergeWithExisting} variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Merge with Existing
+                      </Button>
+                    )}
+                    <Button
+                      onClick={acceptTimeline}
+                      variant="default"
+                      size="default"
+                      className="min-w-[180px]"
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Use This Timeline
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
