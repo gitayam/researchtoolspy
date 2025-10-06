@@ -281,9 +281,7 @@ function detectSocialMedia(url: string): { platform: string } | null {
 function generateBypassUrls(url: string): Record<string, string> {
   const encoded = encodeURIComponent(url)
   return {
-    '12ft': `https://12ft.io/proxy?q=${encoded}`,
-    'outline': `https://outline.com/${url}`,
-    'google_cache': `https://webcache.googleusercontent.com/search?q=cache:${encoded}`
+    '12ft': `https://12ft.io/proxy?q=${encoded}`
   }
 }
 

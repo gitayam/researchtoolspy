@@ -71,13 +71,12 @@ export interface ArchiveUrls {
   wayback?: string
   archive_is?: string
   screenshot?: string
-  google_cache?: string
 }
 
 export interface BypassUrls {
   '12ft': string
-  outline: string
-  google_cache: string
+  wayback?: string
+  archive_is?: string
 }
 
 export interface ContentAnalysis {
