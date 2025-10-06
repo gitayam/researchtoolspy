@@ -660,27 +660,60 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
     type: 'causeway',
     title: 'Causeway Analysis',
     description: '6-stage structured COG methodology: Identify threats, map critical capabilities/requirements, and determine leverage points for influence operations',
+    itemType: 'qa',
     sections: [
       {
-        key: 'scenario',
-        label: 'Scenario Development',
-        description: 'Define Issue, Location, and Threat being analyzed',
+        key: 'threat_id',
+        label: 'Threat Identification',
+        description: 'Define the issue and location being analyzed',
         color: 'border-gray-500',
         bgColor: 'bg-gray-50 dark:bg-gray-900/20',
         icon: '📋'
       },
       {
-        key: 'putars',
-        label: 'PUTAR Identification',
-        description: 'Problem, Undesired Actor, Target Audience, Remedy, Story',
+        key: 'problem',
+        label: 'Problem (P)',
+        description: 'What is the specific problem or threat behavior?',
         color: 'border-red-500',
         bgColor: 'bg-red-50 dark:bg-red-900/20',
+        icon: '⚠️'
+      },
+      {
+        key: 'undesired_actor',
+        label: 'Undesired Actor (U)',
+        description: 'Who is the adversary or actor of responsibility causing this problem?',
+        color: 'border-orange-500',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        icon: '👤'
+      },
+      {
+        key: 'target_audience',
+        label: 'Target Audience (TA)',
+        description: 'What audiences can be influenced to counter this threat?',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
         icon: '🎯'
+      },
+      {
+        key: 'remedy',
+        label: 'Remedy (R)',
+        description: 'What is the desired end state or solution?',
+        color: 'border-green-500',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        icon: '✅'
+      },
+      {
+        key: 'story',
+        label: 'Story (S)',
+        description: 'What narrative or messaging supports the remedy?',
+        color: 'border-cyan-500',
+        bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
+        icon: '📖'
       },
       {
         key: 'critical_capabilities',
         label: 'Critical Capabilities',
-        description: 'Capabilities needed by actors to execute threats',
+        description: 'What capabilities enable the undesired actor to execute the threat?',
         color: 'border-blue-500',
         bgColor: 'bg-blue-50 dark:bg-blue-900/20',
         icon: '⚡'
@@ -688,7 +721,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'critical_requirements',
         label: 'Critical Requirements',
-        description: 'Requirements needed for each capability',
+        description: 'What essential conditions, resources, or dependencies support these capabilities?',
         color: 'border-yellow-500',
         bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
         icon: '📋'
@@ -696,9 +729,9 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'proximate_targets',
         label: 'Proximate Targets',
-        description: 'Tangible targets that can be influenced or attacked',
-        color: 'border-orange-500',
-        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        description: 'What tangible entities can be influenced or targeted to disrupt critical requirements?',
+        color: 'border-pink-500',
+        bgColor: 'bg-pink-50 dark:bg-pink-900/20',
         icon: '🎪'
       }
     ]
