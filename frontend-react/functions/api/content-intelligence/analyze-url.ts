@@ -573,6 +573,9 @@ ${truncated}`
 }
 
 async function saveAnalysis(db: D1Database, data: any): Promise<number> {
+  // D1 doesn't accept undefined, convert to null
+  const toNullable = (val: any) => val === undefined ? null : val
+
   const result = await db.prepare(`
     INSERT INTO content_analysis (
       user_id, url, url_normalized, content_hash, title, author, publish_date,
@@ -585,23 +588,23 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     data.url,
     data.url,
     data.content_hash,
-    data.title,
-    data.author,
-    data.publish_date,
+    toNullable(data.title),
+    toNullable(data.author),
+    toNullable(data.publish_date),
     data.domain,
     data.is_social_media ? 1 : 0,
-    data.social_platform,
+    toNullable(data.social_platform),
     data.extracted_text,
-    data.summary,
+    toNullable(data.summary),
     data.word_count,
-    JSON.stringify(data.word_frequency),
-    JSON.stringify(data.top_phrases),
-    JSON.stringify(data.entities),
-    JSON.stringify(data.archive_urls),
-    JSON.stringify(data.bypass_urls),
+    JSON.stringify(data.word_frequency || {}),
+    JSON.stringify(data.top_phrases || []),
+    JSON.stringify(data.entities || {}),
+    JSON.stringify(data.archive_urls || {}),
+    JSON.stringify(data.bypass_urls || {}),
     data.processing_mode,
     data.processing_duration_ms,
-    data.gpt_model_used
+    toNullable(data.gpt_model_used)
   ).run()
 
   return result.meta.last_row_id as number
