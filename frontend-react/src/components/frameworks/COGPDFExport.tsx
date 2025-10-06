@@ -178,7 +178,7 @@ export function COGPDFExport({
 
       pdf.setFont('helvetica', 'normal')
       top5.forEach((vuln, idx) => {
-        const scoreColor = vuln.composite_score >= 12 ? colors.accent :
+        const scoreColor: [number, number, number] = vuln.composite_score >= 12 ? colors.accent :
                           vuln.composite_score >= 9 ? [245, 158, 11] :
                           [16, 185, 129]
 
