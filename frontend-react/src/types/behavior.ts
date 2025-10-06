@@ -21,11 +21,14 @@ export interface BehaviorSettings {
   setting_details?: string
 }
 
-export type FrequencyPattern = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | 'biennial' | 'seasonal' | 'one_time' | 'irregular' | 'as_needed'
+export type FrequencyPattern = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | 'biennial' | 'seasonal' | 'one_time' | 'irregular' | 'as_needed' | 'custom'
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night' | 'any_time'
+export type FrequencyTimeUnit = 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
 
 export interface TemporalContext {
   frequency_pattern?: FrequencyPattern
+  custom_frequency_number?: number
+  custom_frequency_unit?: FrequencyTimeUnit
   time_of_day?: TimeOfDay[]
   duration_typical?: string // Free text: "5 minutes", "1 hour", "ongoing"
   timing_notes?: string
@@ -33,11 +36,11 @@ export interface TemporalContext {
 
 export interface EligibilityRequirements {
   has_requirements: boolean
-  age_requirements?: string
-  legal_requirements?: string // Citizenship, licenses, permits
-  skill_requirements?: string // Technical skills, literacy level
-  resource_requirements?: string // Money, equipment, transportation
-  other_requirements?: string
+  age_requirements?: string[] // Array of age requirements
+  legal_requirements?: string[] // Citizenship, licenses, permits (individual items)
+  skill_requirements?: string[] // Technical skills, literacy level (individual items)
+  resource_requirements?: string[] // Money, equipment, transportation (individual items)
+  other_requirements?: string[] // Other requirements (individual items)
 }
 
 export type BehaviorComplexity = 'single_action' | 'simple_sequence' | 'complex_process' | 'ongoing_practice'

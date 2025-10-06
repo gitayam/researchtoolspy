@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { X, MapPin, Globe, Clock, Users, AlertCircle } from 'lucide-react'
+import { X, MapPin, Globe, Clock, Users, AlertCircle, Plus } from 'lucide-react'
 import type {
   LocationContext,
   BehaviorSettings,
@@ -15,7 +15,8 @@ import type {
   GeographicScope,
   BehaviorSettingType,
   FrequencyPattern,
-  TimeOfDay
+  TimeOfDay,
+  FrequencyTimeUnit
 } from '@/types/behavior'
 
 interface BehaviorBasicInfoFormProps {
@@ -52,6 +53,11 @@ export function BehaviorBasicInfoForm({
   onComplexityChange
 }: BehaviorBasicInfoFormProps) {
   const [newLocation, setNewLocation] = useState('')
+  const [newAgeReq, setNewAgeReq] = useState('')
+  const [newLegalReq, setNewLegalReq] = useState('')
+  const [newSkillReq, setNewSkillReq] = useState('')
+  const [newResourceReq, setNewResourceReq] = useState('')
+  const [newOtherReq, setNewOtherReq] = useState('')
 
   const geographicScopes: { value: GeographicScope; label: string; example: string }[] = [
     { value: 'local', label: 'Local', example: 'City or neighborhood level' },
@@ -81,7 +87,17 @@ export function BehaviorBasicInfoForm({
     { value: 'seasonal', label: 'Seasonal' },
     { value: 'one_time', label: 'One-Time' },
     { value: 'irregular', label: 'Irregular' },
-    { value: 'as_needed', label: 'As Needed' }
+    { value: 'as_needed', label: 'As Needed' },
+    { value: 'custom', label: 'Custom...' }
+  ]
+
+  const timeUnits: { value: FrequencyTimeUnit; label: string }[] = [
+    { value: 'minutes', label: 'Minutes' },
+    { value: 'hours', label: 'Hours' },
+    { value: 'days', label: 'Days' },
+    { value: 'weeks', label: 'Weeks' },
+    { value: 'months', label: 'Months' },
+    { value: 'years', label: 'Years' }
   ]
 
   const timesOfDay: { value: TimeOfDay; label: string; icon: string }[] = [
@@ -113,6 +129,92 @@ export function BehaviorBasicInfoForm({
     onLocationContextChange({
       ...locationContext,
       specific_locations: locationContext.specific_locations?.filter((_, i) => i !== index) || []
+    })
+  }
+
+  // Helper functions for eligibility requirements
+  const addAgeReq = () => {
+    if (newAgeReq.trim()) {
+      onEligibilityChange({
+        ...eligibility,
+        age_requirements: [...(eligibility.age_requirements || []), newAgeReq.trim()]
+      })
+      setNewAgeReq('')
+    }
+  }
+
+  const removeAgeReq = (index: number) => {
+    onEligibilityChange({
+      ...eligibility,
+      age_requirements: eligibility.age_requirements?.filter((_, i) => i !== index) || []
+    })
+  }
+
+  const addLegalReq = () => {
+    if (newLegalReq.trim()) {
+      onEligibilityChange({
+        ...eligibility,
+        legal_requirements: [...(eligibility.legal_requirements || []), newLegalReq.trim()]
+      })
+      setNewLegalReq('')
+    }
+  }
+
+  const removeLegalReq = (index: number) => {
+    onEligibilityChange({
+      ...eligibility,
+      legal_requirements: eligibility.legal_requirements?.filter((_, i) => i !== index) || []
+    })
+  }
+
+  const addSkillReq = () => {
+    if (newSkillReq.trim()) {
+      onEligibilityChange({
+        ...eligibility,
+        skill_requirements: [...(eligibility.skill_requirements || []), newSkillReq.trim()]
+      })
+      setNewSkillReq('')
+    }
+  }
+
+  const removeSkillReq = (index: number) => {
+    onEligibilityChange({
+      ...eligibility,
+      skill_requirements: eligibility.skill_requirements?.filter((_, i) => i !== index) || []
+    })
+  }
+
+  const addResourceReq = () => {
+    if (newResourceReq.trim()) {
+      onEligibilityChange({
+        ...eligibility,
+        resource_requirements: [...(eligibility.resource_requirements || []), newResourceReq.trim()]
+      })
+      setNewResourceReq('')
+    }
+  }
+
+  const removeResourceReq = (index: number) => {
+    onEligibilityChange({
+      ...eligibility,
+      resource_requirements: eligibility.resource_requirements?.filter((_, i) => i !== index) || []
+    })
+  }
+
+  const addOtherReq = () => {
+    if (newOtherReq.trim()) {
+      onEligibilityChange({
+        ...eligibility,
+        other_requirements: [...(eligibility.other_requirements || []), newOtherReq.trim()]
+      })
+      setNewOtherReq('')
+    }
+  }
+
+  const removeOtherReq = (index: number) => {
+    onEligibilityChange({
+      ...eligibility,
+      other_requirements: eligibility.other_requirements?.filter((_, i) => i !== index) || []
     })
   }
 
@@ -343,6 +445,44 @@ export function BehaviorBasicInfoForm({
             </select>
           </div>
 
+          {/* Custom Frequency Inputs */}
+          {temporalContext.frequency_pattern === 'custom' && (
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <Label htmlFor="custom_number">Every</Label>
+                <Input
+                  id="custom_number"
+                  type="number"
+                  min="1"
+                  value={temporalContext.custom_frequency_number || ''}
+                  onChange={(e) => onTemporalContextChange({
+                    ...temporalContext,
+                    custom_frequency_number: parseInt(e.target.value) || undefined
+                  })}
+                  placeholder="1"
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="custom_unit">Time Unit</Label>
+                <select
+                  id="custom_unit"
+                  value={temporalContext.custom_frequency_unit || ''}
+                  onChange={(e) => onTemporalContextChange({
+                    ...temporalContext,
+                    custom_frequency_unit: e.target.value as FrequencyTimeUnit
+                  })}
+                  className="w-full mt-1 p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+                >
+                  <option value="">Select unit...</option>
+                  {timeUnits.map(unit => (
+                    <option key={unit.value} value={unit.value}>{unit.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           <div>
             <Label>Time of Day (Select all that apply)</Label>
             <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mt-2">
@@ -413,61 +553,155 @@ export function BehaviorBasicInfoForm({
           </div>
 
           {eligibility.has_requirements && (
-            <div className="space-y-3 ml-6 mt-3">
+            <div className="space-y-4 ml-6 mt-3">
+              {/* Age Requirements */}
               <div>
-                <Label htmlFor="age_req">Age Requirements</Label>
-                <Input
-                  id="age_req"
-                  value={eligibility.age_requirements || ''}
-                  onChange={(e) => onEligibilityChange({ ...eligibility, age_requirements: e.target.value })}
-                  placeholder="e.g., Must be 18 or older"
-                  className="mt-1"
-                />
+                <Label>Age Requirements</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={newAgeReq}
+                    onChange={(e) => setNewAgeReq(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAgeReq())}
+                    placeholder="e.g., Must be 18"
+                  />
+                  <Button type="button" onClick={addAgeReq} size="icon">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {eligibility.age_requirements?.map((req, index) => (
+                    <Badge key={index} variant="secondary" className="gap-1">
+                      {req}
+                      <button
+                        type="button"
+                        onClick={() => removeAgeReq(index)}
+                        className="ml-1 hover:text-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
 
+              {/* Legal Requirements */}
               <div>
-                <Label htmlFor="legal_req">Legal Requirements</Label>
-                <Input
-                  id="legal_req"
-                  value={eligibility.legal_requirements || ''}
-                  onChange={(e) => onEligibilityChange({ ...eligibility, legal_requirements: e.target.value })}
-                  placeholder="e.g., Must be a citizen, need permit/license"
-                  className="mt-1"
-                />
+                <Label>Legal Requirements</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={newLegalReq}
+                    onChange={(e) => setNewLegalReq(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLegalReq())}
+                    placeholder="e.g., US Citizen"
+                  />
+                  <Button type="button" onClick={addLegalReq} size="icon">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {eligibility.legal_requirements?.map((req, index) => (
+                    <Badge key={index} variant="secondary" className="gap-1">
+                      {req}
+                      <button
+                        type="button"
+                        onClick={() => removeLegalReq(index)}
+                        className="ml-1 hover:text-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
 
+              {/* Skill Requirements */}
               <div>
-                <Label htmlFor="skill_req">Skill Requirements</Label>
-                <Input
-                  id="skill_req"
-                  value={eligibility.skill_requirements || ''}
-                  onChange={(e) => onEligibilityChange({ ...eligibility, skill_requirements: e.target.value })}
-                  placeholder="e.g., Computer literacy, technical skills"
-                  className="mt-1"
-                />
+                <Label>Skill Requirements</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={newSkillReq}
+                    onChange={(e) => setNewSkillReq(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkillReq())}
+                    placeholder="e.g., Computer literacy"
+                  />
+                  <Button type="button" onClick={addSkillReq} size="icon">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {eligibility.skill_requirements?.map((req, index) => (
+                    <Badge key={index} variant="secondary" className="gap-1">
+                      {req}
+                      <button
+                        type="button"
+                        onClick={() => removeSkillReq(index)}
+                        className="ml-1 hover:text-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
 
+              {/* Resource Requirements */}
               <div>
-                <Label htmlFor="resource_req">Resource Requirements</Label>
-                <Input
-                  id="resource_req"
-                  value={eligibility.resource_requirements || ''}
-                  onChange={(e) => onEligibilityChange({ ...eligibility, resource_requirements: e.target.value })}
-                  placeholder="e.g., Internet access, $50, transportation"
-                  className="mt-1"
-                />
+                <Label>Resource Requirements</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={newResourceReq}
+                    onChange={(e) => setNewResourceReq(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addResourceReq())}
+                    placeholder="e.g., Internet access"
+                  />
+                  <Button type="button" onClick={addResourceReq} size="icon">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {eligibility.resource_requirements?.map((req, index) => (
+                    <Badge key={index} variant="secondary" className="gap-1">
+                      {req}
+                      <button
+                        type="button"
+                        onClick={() => removeResourceReq(index)}
+                        className="ml-1 hover:text-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
 
+              {/* Other Requirements */}
               <div>
-                <Label htmlFor="other_req">Other Requirements</Label>
-                <Textarea
-                  id="other_req"
-                  value={eligibility.other_requirements || ''}
-                  onChange={(e) => onEligibilityChange({ ...eligibility, other_requirements: e.target.value })}
-                  placeholder="Any other prerequisites or requirements?"
-                  rows={2}
-                  className="mt-1"
-                />
+                <Label>Other Requirements</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={newOtherReq}
+                    onChange={(e) => setNewOtherReq(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addOtherReq())}
+                    placeholder="Any other prerequisites"
+                  />
+                  <Button type="button" onClick={addOtherReq} size="icon">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {eligibility.other_requirements?.map((req, index) => (
+                    <Badge key={index} variant="secondary" className="gap-1">
+                      {req}
+                      <button
+                        type="button"
+                        onClick={() => removeOtherReq(index)}
+                        className="ml-1 hover:text-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
           )}

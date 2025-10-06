@@ -139,123 +139,89 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return Response.json({ error: 'Missing behavior_title' }, { status: 400 })
     }
 
-    // Get model configuration
-    const config = await context.env.AI_CONFIG.get('default', { type: 'json' }) as any
-    const model = config?.useCases?.generation || 'gpt-5-mini'
+    // Use gpt-5-mini for timeline generation (balance of speed and quality)
+    const model = 'gpt-5-mini'
 
     const behaviorContext = getBehaviorFormContext(request)
 
-    const prompt = `You are a behavior analysis expert creating a detailed timeline of how a behavior unfolds.
+    const prompt = `Create 5-8 timeline steps for: ${request.behavior_title}
 
-${behaviorContext}
+JSON format:
+{"events":[{"id":"1","label":"Step","time":"T+0min","description":"...","location":"..."}]}
 
-TASK: Create a comprehensive, step-by-step timeline for this behavior.
+Keep it brief.`
 
-REQUIREMENTS:
-1. Main sequence: List all major steps in chronological order
-2. Time estimates: Provide realistic time for each step (HH:MM or relative)
-3. Locations: Note where each step occurs if it changes
-4. Sub-steps: Break down complex steps into sub-steps
-5. Decision points: Mark steps where choices are made
-6. Forks: For decision points, provide alternative paths people might take
-7. Be specific to the location(s) and context provided
+    // Add timeout handling per lessons learned
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout
 
-${request.existing_timeline && request.existing_timeline.length > 0 ? `EXISTING TIMELINE TO ENHANCE:\n${JSON.stringify(request.existing_timeline, null, 2)}\n\nEnhance this timeline with more detail, sub-steps, and forks.` : 'Create a new detailed timeline from scratch.'}
-
-OUTPUT FORMAT (strict JSON):
-{
-  "events": [
-    {
-      "id": "unique-id",
-      "label": "Step name (concise)",
-      "time": "HH:MM or T+Xmin or relative",
-      "description": "What happens in this step",
-      "location": "Where this occurs (if changes)",
-      "is_decision_point": false,
-      "sub_steps": [
-        {
-          "label": "Sub-step name",
-          "description": "Sub-step detail",
-          "duration": "optional time"
-        }
-      ],
-      "forks": [
-        {
-          "condition": "If X happens / Alternative path",
-          "label": "Fork name",
-          "path": [
-            {
-              "id": "fork-step-id",
-              "label": "Alternative step",
-              "time": "timing",
-              "description": "what happens"
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-
-Generate the timeline now:`
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        ...(context.env.OPENAI_ORGANIZATION && { 'OpenAI-Organization': context.env.OPENAI_ORGANIZATION })
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: 'You are a behavior analysis expert. Always respond with valid JSON only.' },
-          { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 4000,
-        verbosity: 'medium',
-        reasoning_effort: 'medium',
-        response_format: { type: "json_object" }
-      })
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('OpenAI API error:', errorText)
-      try {
-        const errorData = JSON.parse(errorText)
-        throw new Error(errorData.error?.message || 'AI request failed')
-      } catch {
-        throw new Error(`AI request failed: ${response.status} ${response.statusText}`)
-      }
-    }
-
-    const data = await response.json()
-    const content = data.choices[0]?.message?.content
-
-    if (!content) {
-      throw new Error('No content returned from AI')
-    }
-
-    // Parse JSON response with error handling
-    let parsed: TimelineGenerationResponse
     try {
-      parsed = JSON.parse(content) as TimelineGenerationResponse
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', content)
-      throw new Error('Invalid JSON response from AI: ' + (parseError instanceof Error ? parseError.message : 'Unknown error'))
-    }
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          ...(context.env.OPENAI_ORGANIZATION && { 'OpenAI-Organization': context.env.OPENAI_ORGANIZATION })
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: 'Respond with valid JSON only.' },
+            { role: 'user', content: prompt }
+          ],
+          max_completion_tokens: 800,
+          response_format: { type: "json_object" }
+        })
+      })
 
-    const timeline: TimelineEvent[] = parsed.events || []
-
-    // Generate IDs if missing
-    timeline.forEach((event, index) => {
-      if (!event.id) {
-        event.id = `event-${Date.now()}-${index}`
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('OpenAI API error:', errorText)
+        try {
+          const errorData = JSON.parse(errorText)
+          throw new Error(errorData.error?.message || 'AI request failed')
+        } catch {
+          throw new Error(`AI request failed: ${response.status} ${response.statusText}`)
+        }
       }
-    })
 
-    return Response.json({ events: timeline })
+      const data = await response.json()
+      const content = data.choices[0]?.message?.content
+
+      if (!content) {
+        console.error('No content in AI response:', { hasChoices: !!data.choices, choicesLength: data.choices?.length })
+        throw new Error('No content returned from AI')
+      }
+
+      // Parse JSON response with error handling
+      let parsed: TimelineGenerationResponse
+      try {
+        parsed = JSON.parse(content) as TimelineGenerationResponse
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', content)
+        throw new Error('Invalid JSON response from AI: ' + (parseError instanceof Error ? parseError.message : 'Unknown error'))
+      }
+
+      const timeline: TimelineEvent[] = parsed.events || []
+
+      // Generate IDs if missing
+      timeline.forEach((event, index) => {
+        if (!event.id) {
+          event.id = `event-${Date.now()}-${index}`
+        }
+      })
+
+      return Response.json({ events: timeline })
+
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out after 25 seconds')
+      }
+      throw error
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
   } catch (error) {
     console.error('Timeline generation error:', error)
