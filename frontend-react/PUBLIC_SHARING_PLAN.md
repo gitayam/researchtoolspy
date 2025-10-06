@@ -428,14 +428,19 @@ const handleGenerateReportLink = async () => {
 
 ---
 
-## 🔐 Access Control Matrix
+## 🔐 Access Control Matrix (REVISED)
 
 | User Type | View Public | Clone Public | Edit Public | View Private | Edit Private |
 |-----------|-------------|--------------|-------------|--------------|--------------|
-| **Non-User** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Logged In** | ✅ | ✅ | ❌ | ❌ (unless owner) | ❌ |
+| **Non-User (Guest)** | ✅ | ✅ (to local) | ❌ | ❌ | ❌ |
+| **Logged In** | ✅ | ✅ (to workspace) | ❌ | ❌ (unless owner) | ❌ |
 | **Owner** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Workspace Member** | ✅ | ✅ | ❌ | ✅ (if shared) | ✅ (if shared) |
+
+**Key Changes:**
+- ✅ Non-users CAN clone public frameworks (saved to localStorage, 7-day guest mode)
+- ✅ Logged-in users clone to their workspace (permanent save)
+- ✅ This enables true open sharing - anyone can use and adapt public analyses
 
 ---
 
