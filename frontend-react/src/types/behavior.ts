@@ -21,7 +21,7 @@ export interface BehaviorSettings {
   setting_details?: string
 }
 
-export type FrequencyPattern = 'daily' | 'weekly' | 'monthly' | 'seasonal' | 'one_time' | 'irregular' | 'as_needed'
+export type FrequencyPattern = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | 'biennial' | 'seasonal' | 'one_time' | 'irregular' | 'as_needed'
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night' | 'any_time'
 
 export interface TemporalContext {
