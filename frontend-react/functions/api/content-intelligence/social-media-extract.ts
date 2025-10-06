@@ -9,7 +9,6 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { YtdlCore } from '@ybd-project/ytdl-core/serverless'
 import { InstagramScraper } from '@aduptive/instagram-scraper'
 
 interface Env {
@@ -177,74 +176,119 @@ function detectPlatform(url: string): string | null {
 
 async function extractYouTube(url: string, mode: string): Promise<SocialMediaExtractionResult> {
   try {
-    const ytdl = new YtdlCore()
+    console.log('[YouTube] Starting extraction, mode:', mode, 'url:', url)
 
-    // Get video info
-    const info = await ytdl.getBasicInfo(url)
-
-    if (!info || !info.videoDetails) {
+    // Extract video ID
+    const videoId = extractYouTubeVideoId(url)
+    if (!videoId) {
       return {
         success: false,
         platform: 'youtube',
-        error: 'Failed to fetch YouTube video information'
+        error: 'Could not extract video ID from URL'
       }
     }
 
-    const { videoDetails } = info
+    console.log('[YouTube] Video ID:', videoId)
 
-    // Extract video ID for embed
-    const videoId = videoDetails.videoId
+    // Use YouTube oEmbed API for reliable metadata
+    const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+    const oembedResponse = await fetch(oembedUrl)
+
+    if (!oembedResponse.ok) {
+      throw new Error('YouTube oEmbed API failed')
+    }
+
+    const oembedData = await oembedResponse.json() as any
+
+    // Build embed URLs
     const embedUrl = `https://www.youtube.com/embed/${videoId}`
     const embedCode = `<iframe width="560" height="315" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
 
-    // Get download options if requested
+    // Build download options using external service (cobalt.tools)
     let downloadOptions: DownloadOption[] = []
     let mediaUrls: MediaUrls = {
-      thumbnail: videoDetails.thumbnails?.[videoDetails.thumbnails.length - 1]?.url
+      thumbnail: oembedData.thumbnail_url
     }
 
     if (mode === 'download' || mode === 'full') {
       try {
-        const formats = info.formats || []
+        console.log('[YouTube] Fetching download URLs via cobalt.tools...')
 
-        // Get best video + audio combined formats
-        const videoFormats = formats
-          .filter((f: any) => f.hasVideo && f.hasAudio)
-          .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))
+        const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            url: `https://www.youtube.com/watch?v=${videoId}`,
+            vCodec: 'h264',
+            vQuality: '1080',
+            aFormat: 'mp3',
+            isAudioOnly: false,
+            isTTFullAudio: false
+          })
+        })
 
-        downloadOptions = videoFormats.slice(0, 5).map((format: any) => ({
-          quality: format.qualityLabel || format.quality || 'unknown',
-          format: format.container || 'mp4',
-          url: format.url,
-          size: format.contentLength ? parseInt(format.contentLength) : undefined,
-          hasAudio: format.hasAudio,
-          hasVideo: format.hasVideo
-        }))
+        if (cobaltResponse.ok) {
+          const cobaltData = await cobaltResponse.json() as any
+          console.log('[YouTube] Cobalt response status:', cobaltData.status)
 
-        // Set best video URL
-        if (downloadOptions.length > 0) {
-          mediaUrls.video = downloadOptions[0].url
+          if (cobaltData.status === 'redirect' || cobaltData.status === 'stream') {
+            mediaUrls.video = cobaltData.url
+            downloadOptions.push({
+              quality: '1080p (via cobalt)',
+              format: 'mp4',
+              url: cobaltData.url,
+              hasAudio: true,
+              hasVideo: true
+            })
+          }
+        } else {
+          console.warn('[YouTube] Cobalt API failed, providing direct YouTube link')
         }
 
-        // Get audio-only format
-        const audioFormats = formats
-          .filter((f: any) => f.hasAudio && !f.hasVideo)
-          .sort((a: any, b: any) => (b.audioBitrate || 0) - (a.audioBitrate || 0))
+        // Always provide the YouTube watch link as fallback
+        downloadOptions.push({
+          quality: 'Watch on YouTube',
+          format: 'web',
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+          hasAudio: true,
+          hasVideo: true
+        })
 
-        if (audioFormats.length > 0) {
-          mediaUrls.audio = audioFormats[0].url
-        }
-      } catch (formatError) {
-        console.error('[YouTube] Format extraction failed:', formatError)
+        // Add yt-dlp service link as option
+        downloadOptions.push({
+          quality: 'Use yt-dlp (external)',
+          format: 'various',
+          url: `https://yt-dlp.org/`,
+          hasAudio: true,
+          hasVideo: true
+        })
+      } catch (downloadError) {
+        console.error('[YouTube] Download extraction failed:', downloadError)
+        // Provide YouTube link as fallback
+        downloadOptions.push({
+          quality: 'Watch on YouTube',
+          format: 'web',
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+          hasAudio: true,
+          hasVideo: true
+        })
       }
     }
 
     // Get transcript if requested
     let transcript: string | undefined
     if (mode === 'transcript' || mode === 'full') {
-      // Transcript extraction would require additional API calls
-      // Placeholder for now
-      transcript = '(Transcript extraction coming soon - requires subtitles API)'
+      try {
+        console.log('[YouTube] Attempting to fetch transcript...')
+        transcript = await fetchYouTubeTranscript(videoId)
+        console.log('[YouTube] Transcript length:', transcript?.length || 0)
+      } catch (transcriptError) {
+        console.error('[YouTube] Transcript extraction failed:', transcriptError)
+        transcript = 'Transcript not available for this video. Try using YouTube\'s built-in transcript feature.'
+      }
     }
 
     return {
@@ -256,17 +300,12 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
       streamUrl: embedUrl,
       embedCode,
       metadata: {
-        title: videoDetails.title,
-        author: videoDetails.author?.name,
-        channelId: videoDetails.author?.id,
-        channelUrl: videoDetails.author?.channel_url,
-        description: videoDetails.description,
-        viewCount: parseInt(videoDetails.viewCount || '0'),
-        lengthSeconds: videoDetails.lengthSeconds,
-        publishDate: videoDetails.publishDate,
-        category: videoDetails.category,
-        isLiveContent: videoDetails.isLiveContent,
-        keywords: videoDetails.keywords
+        title: oembedData.title,
+        author: oembedData.author_name,
+        channelUrl: oembedData.author_url,
+        thumbnail: oembedData.thumbnail_url,
+        videoId: videoId,
+        watchUrl: `https://www.youtube.com/watch?v=${videoId}`
       },
       transcript
     }
@@ -278,6 +317,70 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
       platform: 'youtube',
       error: error instanceof Error ? error.message : 'YouTube extraction failed'
     }
+  }
+}
+
+// Helper: Extract YouTube video ID from various URL formats
+function extractYouTubeVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/
+  ]
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match && match[1]) {
+      return match[1]
+    }
+  }
+
+  return null
+}
+
+// Helper: Fetch YouTube transcript using YouTube's timedtext API
+async function fetchYouTubeTranscript(videoId: string): Promise<string> {
+  try {
+    // Try to get English transcript
+    const transcriptUrl = `https://www.youtube.com/api/timedtext?lang=en&v=${videoId}`
+
+    const response = await fetch(transcriptUrl)
+
+    if (!response.ok) {
+      throw new Error('Transcript API returned error')
+    }
+
+    const text = await response.text()
+
+    // Parse XML transcript
+    // Extract text from <text> tags
+    const textMatches = text.match(/<text[^>]*>(.*?)<\/text>/g)
+
+    if (!textMatches || textMatches.length === 0) {
+      throw new Error('No transcript text found')
+    }
+
+    // Clean up the text
+    const transcript = textMatches
+      .map(match => {
+        // Extract text content
+        const content = match.replace(/<text[^>]*>/, '').replace(/<\/text>/, '')
+        // Decode HTML entities
+        return content
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .trim()
+      })
+      .filter(line => line.length > 0)
+      .join(' ')
+
+    return transcript || 'Transcript fetched but appears to be empty.'
+
+  } catch (error) {
+    console.error('[YouTube Transcript] Error:', error)
+    throw new Error('Could not fetch transcript. Video may not have captions available.')
   }
 }
 
