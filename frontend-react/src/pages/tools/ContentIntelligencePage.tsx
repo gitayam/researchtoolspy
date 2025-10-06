@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
-  Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen
+  Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -37,6 +38,11 @@ export default function ContentIntelligencePage() {
   const [question, setQuestion] = useState('')
   const [qaHistory, setQaHistory] = useState<QuestionAnswer[]>([])
   const [askingQuestion, setAskingQuestion] = useState(false)
+
+  // VirusTotal State
+  const [vtLoading, setVtLoading] = useState(false)
+  const [vtData, setVtData] = useState<any>(null)
+  const [showVtModal, setShowVtModal] = useState(false)
 
   // Load saved links
   useEffect(() => {
@@ -208,6 +214,62 @@ export default function ContentIntelligencePage() {
     }
   }
 
+  // VirusTotal security lookup
+  const handleVirusTotalLookup = async () => {
+    if (!url) {
+      toast({ title: 'Error', description: 'Please enter a URL first', variant: 'destructive' })
+      return
+    }
+
+    setVtLoading(true)
+    try {
+      const response = await fetch('/api/content-intelligence/virustotal-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok && !data.directLink) {
+        throw new Error(data.error || 'VirusTotal lookup failed')
+      }
+
+      // If we have data, show modal; otherwise open direct link
+      if (data.stats || data.reputation !== undefined) {
+        setVtData(data)
+        setShowVtModal(true)
+      } else {
+        // Open VirusTotal directly if API fails
+        window.open(data.directLink, '_blank', 'noopener,noreferrer')
+        toast({
+          title: 'Opening VirusTotal',
+          description: data.message || 'View domain security report on VirusTotal'
+        })
+      }
+    } catch (error) {
+      console.error('VirusTotal lookup error:', error)
+
+      // Fallback: open VirusTotal directly
+      try {
+        const domain = new URL(url).hostname
+        window.open(`https://www.virustotal.com/gui/domain/${domain}`, '_blank', 'noopener,noreferrer')
+        toast({
+          title: 'Opening VirusTotal',
+          description: 'API unavailable, opening direct link'
+        })
+      } catch {
+        toast({
+          title: 'Error',
+          description: 'Invalid URL or VirusTotal unavailable',
+          variant: 'destructive'
+        })
+      }
+    } finally {
+      setVtLoading(false)
+    }
+  }
+
   // Ask a question about the content
   const handleAskQuestion = async () => {
     if (!question.trim() || !analysis?.id) {
@@ -345,6 +407,20 @@ export default function ContentIntelligencePage() {
         <Card className="p-4">
           <h3 className="text-sm font-semibold mb-3">Quick Actions (Click while processing)</h3>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleVirusTotalLookup}
+              disabled={vtLoading}
+              className="bg-blue-50 dark:bg-blue-950 border-blue-300 hover:bg-blue-100"
+            >
+              {vtLoading ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <Shield className="h-3 w-3 mr-1" />
+              )}
+              VirusTotal Security
+            </Button>
             <Button variant="outline" size="sm" asChild>
               <a href={bypassUrls['12ft']} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-3 w-3 mr-1" />
@@ -776,7 +852,11 @@ export default function ContentIntelligencePage() {
                                 top_phrases: [],
                                 entities: { people: [], organizations: [], locations: [] },
                                 archive_urls: {},
-                                bypass_urls: {},
+                                bypass_urls: {
+                                  '12ft': '',
+                                  'outline': '',
+                                  'google_cache': ''
+                                },
                                 processing_mode: 'full',
                                 processing_duration_ms: 0,
                                 created_at: link.created_at,
@@ -800,6 +880,133 @@ export default function ContentIntelligencePage() {
           )}
         </Card>
       </div>
+
+      {/* VirusTotal Security Modal */}
+      <Dialog open={showVtModal} onOpenChange={setShowVtModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-600" />
+              VirusTotal Security Report
+            </DialogTitle>
+            <DialogDescription>
+              Domain security analysis powered by VirusTotal
+            </DialogDescription>
+          </DialogHeader>
+
+          {vtData && (
+            <div className="space-y-6">
+              {/* Domain Info */}
+              <div>
+                <h3 className="font-semibold text-lg mb-2">{vtData.domain}</h3>
+                <p className="text-sm text-muted-foreground">
+                  Last analyzed: {new Date(vtData.lastAnalysisDate).toLocaleString()}
+                </p>
+              </div>
+
+              {/* Summary */}
+              <div className={`p-4 rounded-lg ${
+                vtData.riskLevel === 'safe' ? 'bg-green-50 dark:bg-green-950 border border-green-300' :
+                vtData.riskLevel === 'low' ? 'bg-blue-50 dark:bg-blue-950 border border-blue-300' :
+                vtData.riskLevel === 'medium' ? 'bg-yellow-50 dark:bg-yellow-950 border border-yellow-300' :
+                vtData.riskLevel === 'high' ? 'bg-orange-50 dark:bg-orange-950 border border-orange-300' :
+                'bg-red-50 dark:bg-red-950 border border-red-300'
+              }`}>
+                <p className="text-sm font-medium">{vtData.summary}</p>
+              </div>
+
+              {/* Safety Score */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold">Safety Score</span>
+                  <span className="text-2xl font-bold">{vtData.safetyScore}/100</span>
+                </div>
+                <Progress value={vtData.safetyScore} className="h-3" />
+              </div>
+
+              {/* Detection Stats */}
+              <div>
+                <h4 className="font-semibold mb-3">Security Vendor Analysis</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Harmless</p>
+                    <p className="text-2xl font-bold text-green-600">{vtData.stats.harmless}</p>
+                  </div>
+                  <div className="p-3 bg-red-50 dark:bg-red-950 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Malicious</p>
+                    <p className="text-2xl font-bold text-red-600">{vtData.stats.malicious}</p>
+                  </div>
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Suspicious</p>
+                    <p className="text-2xl font-bold text-yellow-600">{vtData.stats.suspicious}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Undetected</p>
+                    <p className="text-2xl font-bold">{vtData.stats.undetected}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Community Votes */}
+              {vtData.votes && (vtData.votes.harmless > 0 || vtData.votes.malicious > 0) && (
+                <div>
+                  <h4 className="font-semibold mb-3">Community Votes</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span className="text-sm">Harmless: {vtData.votes.harmless}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                      <span className="text-sm">Malicious: {vtData.votes.malicious}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Reputation */}
+              {vtData.reputation !== 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Reputation Score</h4>
+                  <p className="text-sm">
+                    {vtData.reputation > 0 ? (
+                      <span className="text-green-600 font-medium">+{vtData.reputation} (Positive)</span>
+                    ) : (
+                      <span className="text-red-600 font-medium">{vtData.reputation} (Negative)</span>
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {/* Categories */}
+              {vtData.categories && Object.keys(vtData.categories).length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Categories</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(vtData.categories).slice(0, 5).map(([vendor, category]: [string, any]) => (
+                      <span key={vendor} className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
+                        {category}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* View Full Report */}
+              <div className="pt-4 border-t">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => window.open(vtData.directLink, '_blank', 'noopener,noreferrer')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View Full Report on VirusTotal
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
