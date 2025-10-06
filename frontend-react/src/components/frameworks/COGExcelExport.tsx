@@ -4,6 +4,7 @@ import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
 import type { COGAnalysis, CriticalVulnerability, NetworkEdge } from '@/types/cog-analysis'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface COGExcelExportProps {
   analysis: COGAnalysis
@@ -23,6 +24,7 @@ export function COGExcelExport({
   className
 }: COGExcelExportProps) {
   const [exporting, setExporting] = useState(false)
+  const { t } = useTranslation(['cog', 'common'])
 
   const handleExport = async () => {
     setExporting(true)
@@ -34,28 +36,28 @@ export function COGExcelExport({
       workbook.properties.date1904 = false
 
       // ===== SHEET 1: Targeting Matrix =====
-      const targetingSheet = workbook.addWorksheet('Targeting Matrix', {
+      const targetingSheet = workbook.addWorksheet(t('cog:export.excel.sheets.targetingMatrix'), {
         views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
       })
 
       // Define columns
       targetingSheet.columns = [
-        { header: 'Priority', key: 'priority', width: 10 },
-        { header: 'Vulnerability', key: 'vulnerability', width: 40 },
-        { header: 'COG', key: 'cog', width: 35 },
-        { header: 'Actor', key: 'actor', width: 15 },
-        { header: 'Domain', key: 'domain', width: 15 },
-        { header: 'Capability', key: 'capability', width: 35 },
-        { header: 'Requirement', key: 'requirement', width: 35 },
-        { header: 'Type', key: 'type', width: 15 },
-        { header: 'Impact', key: 'impact', width: 10 },
-        { header: 'Attainability', key: 'attainability', width: 13 },
-        { header: 'Follow-up', key: 'followup', width: 11 },
-        { header: 'Composite Score', key: 'composite', width: 15 },
-        { header: 'Recommended Actions', key: 'actions', width: 45 },
+        { header: t('cog:export.excel.headers.priority'), key: 'priority', width: 10 },
+        { header: t('cog:export.excel.headers.vulnerability'), key: 'vulnerability', width: 40 },
+        { header: t('cog:export.excel.headers.cog'), key: 'cog', width: 35 },
+        { header: t('cog:export.excel.headers.actor'), key: 'actor', width: 15 },
+        { header: t('cog:export.excel.headers.domain'), key: 'domain', width: 15 },
+        { header: t('cog:export.excel.headers.capability'), key: 'capability', width: 35 },
+        { header: t('cog:export.excel.headers.requirement'), key: 'requirement', width: 35 },
+        { header: t('cog:export.excel.headers.type'), key: 'type', width: 15 },
+        { header: t('cog:export.excel.headers.impact'), key: 'impact', width: 10 },
+        { header: t('cog:export.excel.headers.attainability'), key: 'attainability', width: 13 },
+        { header: t('cog:export.excel.headers.followUp'), key: 'followup', width: 11 },
+        { header: t('cog:export.excel.headers.composite'), key: 'composite', width: 15 },
+        { header: t('cog:export.excel.headers.actions'), key: 'actions', width: 45 },
         { header: 'Expected Effect', key: 'effect', width: 40 },
-        { header: 'Confidence', key: 'confidence', width: 12 },
-        { header: 'Status', key: 'status', width: 12 },
+        { header: t('cog:export.excel.headers.confidence'), key: 'confidence', width: 12 },
+        { header: t('cog:export.excel.headers.status'), key: 'status', width: 12 },
       ]
 
       // Style header row
@@ -216,18 +218,18 @@ export function COGExcelExport({
       })
 
       // ===== SHEET 2: COG Summary =====
-      const cogSheet = workbook.addWorksheet('COG Summary', {
+      const cogSheet = workbook.addWorksheet(t('cog:export.excel.sheets.cogSummary'), {
         views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
       })
 
       cogSheet.columns = [
-        { header: 'COG', key: 'cog', width: 40 },
-        { header: 'Actor', key: 'actor', width: 15 },
-        { header: 'Domain', key: 'domain', width: 15 },
-        { header: 'Rationale', key: 'rationale', width: 50 },
-        { header: 'Capabilities', key: 'capabilities', width: 12 },
-        { header: 'Requirements', key: 'requirements', width: 13 },
-        { header: 'Vulnerabilities', key: 'vulnerabilities', width: 14 },
+        { header: t('cog:export.excel.headers.cog'), key: 'cog', width: 40 },
+        { header: t('cog:export.excel.headers.actor'), key: 'actor', width: 15 },
+        { header: t('cog:export.excel.headers.domain'), key: 'domain', width: 15 },
+        { header: t('cog:export.excel.headers.rationale'), key: 'rationale', width: 50 },
+        { header: t('cog:capabilities.title'), key: 'capabilities', width: 12 },
+        { header: t('cog:requirements.title'), key: 'requirements', width: 13 },
+        { header: t('cog:vulnerabilities.title'), key: 'vulnerabilities', width: 14 },
         { header: 'Avg Score', key: 'avg_score', width: 12 },
       ]
 
@@ -371,12 +373,12 @@ export function COGExcelExport({
       {exporting ? (
         <>
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          Generating...
+          {t('cog:export.excel.generating')}
         </>
       ) : (
         <>
           <FileSpreadsheet className="h-4 w-4 mr-2" />
-          Export Excel
+          {t('cog:export.excel.button')}
         </>
       )}
     </Button>

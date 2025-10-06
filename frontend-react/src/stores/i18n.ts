@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import i18n from '@/lib/i18n'
 
 export type SupportedLanguage = 'en' | 'es'
 
@@ -12,7 +13,11 @@ export const useI18nStore = create<I18nState>()(
   persist(
     (set) => ({
       language: 'en',
-      setLanguage: (language) => set({ language }),
+      setLanguage: (language) => {
+        set({ language })
+        // Sync with i18next
+        i18n.changeLanguage(language)
+      },
     }),
     {
       name: 'app-language', // localStorage key
