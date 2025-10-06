@@ -420,14 +420,25 @@ export default function ContentIntelligencePage() {
 
           <TabsContent value="overview" className="mt-4">
             <Card className="p-6 space-y-4">
-              <div>
-                <h2 className="text-2xl font-bold">{analysis.title || 'Untitled'}</h2>
-                {analysis.author && (
-                  <p className="text-sm text-muted-foreground">By {analysis.author}</p>
-                )}
-                {analysis.publish_date && (
-                  <p className="text-sm text-muted-foreground">Published: {analysis.publish_date}</p>
-                )}
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold">{analysis.title || 'Untitled'}</h2>
+                  {analysis.author && (
+                    <p className="text-sm text-muted-foreground">By {analysis.author}</p>
+                  )}
+                  {analysis.publish_date && (
+                    <p className="text-sm text-muted-foreground">Published: {analysis.publish_date}</p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCreateCitation(analysis)}
+                  className="ml-4"
+                >
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Create Citation
+                </Button>
               </div>
 
               {analysis.summary && (
@@ -740,6 +751,47 @@ export default function ContentIntelligencePage() {
                       >
                         {link.is_processed ? 'Re-analyze' : 'Analyze Now'}
                       </Button>
+                      {link.is_processed && link.analysis_id && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              // Fetch the full analysis to create citation
+                              const response = await fetch(`/api/content-intelligence/analyze-url`)
+                              // For now, use the link data directly
+                              const mockAnalysis: ContentAnalysis = {
+                                id: link.analysis_id!,
+                                user_id: 1,
+                                url: link.url,
+                                url_normalized: link.url,
+                                content_hash: '',
+                                title: link.title,
+                                domain: link.domain || new URL(link.url).hostname,
+                                is_social_media: link.is_social_media,
+                                social_platform: link.social_platform,
+                                extracted_text: '',
+                                word_count: 0,
+                                word_frequency: {},
+                                top_phrases: [],
+                                entities: { people: [], organizations: [], locations: [] },
+                                archive_urls: {},
+                                bypass_urls: {},
+                                processing_mode: 'full',
+                                processing_duration_ms: 0,
+                                created_at: link.created_at,
+                                updated_at: link.updated_at
+                              }
+                              handleCreateCitation(mockAnalysis)
+                            } catch (error) {
+                              toast({ title: 'Error', description: 'Failed to create citation', variant: 'destructive' })
+                            }
+                          }}
+                          title="Create citation from this link"
+                        >
+                          <BookOpen className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
