@@ -139,8 +139,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return Response.json({ error: 'Missing behavior_title' }, { status: 400 })
     }
 
-    // Use gpt-5-mini for timeline generation (balance of speed and quality)
-    const model = 'gpt-5-mini'
+    // Use gpt-4o-mini for timeline generation (balance of speed and quality)
+    // Note: gpt-5-mini not yet available as of 2025-10-06
+    const model = context.env.DEFAULT_AI_MODEL || 'gpt-4o-mini'
 
     const behaviorContext = getBehaviorFormContext(request)
 
@@ -170,6 +171,7 @@ Keep it brief.`
             { role: 'system', content: 'Respond with valid JSON only.' },
             { role: 'user', content: prompt }
           ],
+          temperature: 0.7,
           max_completion_tokens: 800,
           response_format: { type: "json_object" }
         })
