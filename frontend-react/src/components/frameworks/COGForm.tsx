@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, X, ExternalLink, Link2, Trash2, HelpCircle, ChevronDown, ChevronRight, Zap } from 'lucide-react'
 import { COGQuickScore } from './COGQuickScore'
-import { AICOGAssistant } from './AICOGAssistant'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -715,11 +714,6 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                         Quick-Score
                       </Button>
                     )}
-                    <AICOGAssistant
-                      mode="cog"
-                      operationalContext={operationalContext}
-                      onAcceptCOGs={handleAICOGsSuggestions}
-                    />
                     <Button onClick={addCOG}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add COG
@@ -894,13 +888,6 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                     </TooltipProvider>
                                   </div>
                                   <div className="flex gap-2">
-                                    <AICOGAssistant
-                                      mode="capabilities"
-                                      operationalContext={operationalContext}
-                                      cogDescription={cog.description}
-                                      cogRationale={cog.rationale}
-                                      onAcceptCapabilities={(caps) => handleAICapabilities(cog.id, caps)}
-                                    />
                                     <Button variant="outline" size="sm" onClick={() => addCapability(cog.id)}>
                                       <Plus className="h-3 w-3 mr-1" />
                                       Add
@@ -981,12 +968,6 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                     </TooltipProvider>
                                                   </div>
                                                   <div className="flex gap-2">
-                                                    <AICOGAssistant
-                                                      mode="requirements"
-                                                      operationalContext={operationalContext}
-                                                      existingCapabilities={[cap]}
-                                                      onAcceptRequirements={(reqs) => handleAIRequirements(cap.id, reqs)}
-                                                    />
                                                     <Button variant="outline" size="sm" onClick={() => addRequirement(cap.id)}>
                                                       <Plus className="h-3 w-3 mr-1" />
                                                       Add
@@ -1068,12 +1049,6 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                     </TooltipProvider>
                                                                   </div>
                                                                   <div className="flex gap-2">
-                                                                    <AICOGAssistant
-                                                                      mode="vulnerabilities"
-                                                                      operationalContext={operationalContext}
-                                                                      existingRequirements={[req]}
-                                                                      onAcceptVulnerabilities={(vulns) => handleAIVulnerabilities(req.id, vulns)}
-                                                                    />
                                                                     <Button variant="outline" size="sm" onClick={() => addVulnerability(req.id)}>
                                                                       <Plus className="h-3 w-3 mr-1" />
                                                                       Add
