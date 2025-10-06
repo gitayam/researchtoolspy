@@ -350,15 +350,49 @@ The COG (Center of Gravity) Analysis framework has been successfully implemented
 
 ---
 
-### **Phase 3: Visualization & Export** 📋 **UPCOMING**
+### **Phase 3: Visualization & Export** 🔄 **IN PROGRESS**
 
-#### 3.1 Network Visualization (Est: 3-5 days)
-- [ ] Force-directed graph visualization
-- [ ] Interactive node exploration
-- [ ] Path highlighting
-- [ ] "What if?" simulation (remove node, see cascading effects)
-- [ ] Export as PNG/SVG for briefings
-- [ ] Integration with existing Network tab placeholder
+#### 3.1 Network Visualization ✅ **COMPLETE** (2025-10-06)
+- [x] Force-directed graph visualization (react-force-graph-2d)
+- [x] Interactive node exploration (zoom, pan, click selection)
+- [x] Connected nodes highlighting on selection
+- [x] "What if?" simulation mode (remove node, see cascading effects)
+- [x] Export as PNG for briefings
+- [x] Integration with existing Network tab
+- [x] Color-coded nodes by type (COG/Capability/Requirement/Vulnerability)
+- [x] Node labels toggle
+- [x] Network statistics overlay (nodes/edges/removed count)
+- [x] Selected node info panel
+
+**Features**:
+- **Force-Directed Layout**: Automatic node positioning using physics simulation
+- **Color Coding**:
+  - COG nodes: Red
+  - Capability nodes: Blue
+  - Requirement nodes: Orange
+  - Vulnerability nodes: Green
+- **Interactive Controls**:
+  - Zoom in/out buttons
+  - Fit to view
+  - Toggle node labels
+  - Drag nodes (when not in simulation mode)
+- **"What If?" Simulation**:
+  - Click any node to remove it
+  - See cascading effects (connected nodes disappear)
+  - Track removed count
+  - Reset button to restore all nodes
+- **Node Selection**:
+  - Click to select and highlight connected nodes
+  - Info panel shows node details and connection count
+  - Yellow highlight for selected node and connections
+- **Export**: One-click PNG export with analysis title
+
+**Technical Implementation**:
+- Component: `COGNetworkVisualization.tsx` (450+ lines)
+- Library: `react-force-graph-2d@1.29.0` (already installed)
+- Custom node/link rendering for better visuals
+- Real-time graph updates when nodes removed
+- Responsive canvas sizing (600px height)
 
 #### 3.2 PowerPoint Export (Est: 2-3 days)
 - [ ] Title slide with analysis metadata
