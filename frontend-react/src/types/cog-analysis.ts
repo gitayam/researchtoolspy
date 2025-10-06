@@ -106,6 +106,12 @@ export interface CriticalVulnerability {
   vulnerability_type: 'physical' | 'cyber' | 'human' | 'logistical' | 'informational' | 'other'
   description: string
   exploitation_method?: string  // How can this be exploited?
+
+  // Enhanced staff planner fields
+  expected_effect?: string      // "So what?" - What happens if exploited
+  recommended_actions?: string[] // List of recommended actions
+  confidence?: 'low' | 'medium' | 'high' | 'confirmed' // Confidence in assessment
+
   scoring: ScoringCriteria      // Required scoring for prioritization
   composite_score: number       // Calculated composite score
   priority_rank?: number        // Calculated rank based on score

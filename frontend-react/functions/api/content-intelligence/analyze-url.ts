@@ -434,16 +434,19 @@ function getTopPhrases(frequency: Record<string, number>, limit: number): Array<
   count: number
   percentage: number
 }> {
-  const totalCount = Object.values(frequency).reduce((sum, count) => sum + count, 0)
-
-  return Object.entries(frequency)
+  // Get top phrases sorted by frequency
+  const sorted = Object.entries(frequency)
     .sort(([, a], [, b]) => b - a)
     .slice(0, limit)
-    .map(([phrase, count]) => ({
-      phrase,
-      count,
-      percentage: Math.round((count / totalCount) * 10000) / 100
-    }))
+
+  // Calculate percentage relative to the maximum count (so top item = 100%)
+  const maxCount = sorted[0]?.[1] || 1
+
+  return sorted.map(([phrase, count]) => ({
+    phrase,
+    count,
+    percentage: Math.round((count / maxCount) * 100)
+  }))
 }
 
 async function extractEntities(text: string, apiKey: string): Promise<{
