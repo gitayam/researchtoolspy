@@ -954,8 +954,11 @@ export const CogPage = () => {
   }
 
   if (isCreateMode) {
+    // Check for wizard data first, then template data
+    const wizardData = location.state?.wizardData
     const templateData = location.state?.template?.template_data
-    return <COGForm mode="create" onSave={handleSave} backPath={basePath} initialData={templateData} />
+    const initialData = wizardData || templateData
+    return <COGForm mode="create" onSave={handleSave} backPath={basePath} initialData={initialData} />
   }
 
   if (isEditMode && currentAnalysis) {

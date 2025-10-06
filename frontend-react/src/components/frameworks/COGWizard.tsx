@@ -247,15 +247,86 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
   }
 
   const switchToAdvancedMode = () => {
-    if (confirm('Switch to advanced mode? Your progress will be saved.')) {
-      // Build partial data and navigate to form
+    if (confirm('Switch to advanced mode? Your current progress will be transferred to the advanced form.')) {
+      // Build COG data from wizard state
+      const cogId = crypto.randomUUID()
+      const capId = crypto.randomUUID()
+      const reqId = crypto.randomUUID()
+
+      // Only include completed COG if step 2 is done
+      const cog: CenterOfGravity | undefined = cogDescription && cogRationale ? {
+        id: cogId,
+        actor_category: cogActor,
+        domain: cogDomain,
+        description: cogDescription,
+        rationale: cogRationale,
+        validated: Object.values(cogValidation).every((v) => v),
+        confidence: Object.values(cogValidation).every((v) => v) ? 'high' : 'medium',
+        priority: 1,
+        linked_evidence: [],
+      } : undefined
+
+      // Only include capabilities that have data
+      const caps: CriticalCapability[] = capabilities
+        .filter((c) => c.capability)
+        .map((c, i) => ({
+          id: i === 0 ? capId : crypto.randomUUID(),
+          cog_id: cog?.id || cogId,
+          capability: c.capability,
+          description: c.description,
+          strategic_contribution: c.description,
+          linked_evidence: [],
+        }))
+
+      // Only include requirements that have data
+      const reqs: CriticalRequirement[] = requirements
+        .filter((r) => r.requirement)
+        .map((r, i) => ({
+          id: i === 0 ? reqId : crypto.randomUUID(),
+          capability_id: caps[0]?.id || capId,
+          requirement: r.requirement,
+          requirement_type: r.type as any,
+          description: r.requirement,
+          linked_evidence: [],
+        }))
+
+      // Only include vulnerabilities that have data
+      const vulns: CriticalVulnerability[] = vulnerabilities
+        .filter((v) => v.vulnerability)
+        .map((v) => ({
+          id: crypto.randomUUID(),
+          requirement_id: reqs[0]?.id || reqId,
+          vulnerability: v.vulnerability,
+          vulnerability_type: v.type as any,
+          description: v.description,
+          expected_effect: v.expectedEffect,
+          recommended_actions: v.recommendedActions ? v.recommendedActions.split(',').map((a) => a.trim()) : [],
+          confidence: 'medium',
+          scoring: {
+            impact_on_cog: 3,
+            attainability: 3,
+            follow_up_potential: 3,
+          },
+          composite_score: 9,
+          linked_evidence: [],
+        }))
+
+      // Build partial analysis with all completed data
+      const wizardData = {
+        title,
+        description,
+        operational_context: operationalContext,
+        scoring_system: scoringSystem,
+        centers_of_gravity: cog ? [cog] : [],
+        critical_capabilities: caps,
+        critical_requirements: reqs,
+        critical_vulnerabilities: vulns,
+      }
+
+      // Navigate to form with wizard data
       navigate(`${backPath}/create`, {
         state: {
-          wizardData: {
-            title,
-            description,
-            operational_context: operationalContext,
-          },
+          wizardData,
         },
       })
     }
@@ -617,6 +688,15 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                   >
                     + Add Another Capability
                   </Button>
+
+                  {!canProceed() && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Please complete at least one capability with both the capability name and description before proceeding.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               </>
             )}
