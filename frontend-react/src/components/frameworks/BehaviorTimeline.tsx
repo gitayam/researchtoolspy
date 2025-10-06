@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Plus, Trash2, ChevronDown, ChevronRight, GitFork, GripVertical } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronRight, GitFork, GripVertical, Link as LinkIcon, ExternalLink, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import type { TimelineEvent as BehaviorTimelineEvent } from '@/types/behavior'
+import type { TimelineEvent as BehaviorTimelineEvent, BehaviorMetadata } from '@/types/behavior'
+import { BehaviorSearchDialog } from './BehaviorSearchDialog'
 
 // Re-export the type from behavior for external use
 export type { TimelineEvent } from '@/types/behavior'
@@ -25,6 +27,8 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set())
   const [editingEvent, setEditingEvent] = useState<string | null>(null)
   const [draggedEvent, setDraggedEvent] = useState<string | null>(null)
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false)
+  const [linkingEventId, setLinkingEventId] = useState<string | null>(null)
 
   // Convert to UI format
   const uiEvents: TimelineEventUI[] = events.map((e, i) => ({ ...e, order: i }))
@@ -166,6 +170,27 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
     setDraggedEvent(null)
   }
 
+  const handleLinkBehavior = (behavior: BehaviorMetadata) => {
+    if (!linkingEventId) return
+
+    updateEvent(linkingEventId, {
+      linked_behavior_id: behavior.id,
+      linked_behavior_title: behavior.title,
+      linked_behavior_type: behavior.complexity
+    })
+
+    setSearchDialogOpen(false)
+    setLinkingEventId(null)
+  }
+
+  const unlinkBehavior = (eventId: string) => {
+    updateEvent(eventId, {
+      linked_behavior_id: undefined,
+      linked_behavior_title: undefined,
+      linked_behavior_type: undefined
+    })
+  }
+
   const renderEvent = (event: TimelineEventUI) => {
     const isEditing = editingEvent === event.id
 
@@ -279,6 +304,32 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
                               ))}
                             </div>
                           )}
+                          {/* Show linked behavior if any */}
+                          {event.linked_behavior_id && (
+                            <div className="mt-3 flex items-center gap-2">
+                              <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 flex items-center gap-1">
+                                <Layers className="h-3 w-3" />
+                                <LinkIcon className="h-3 w-3" />
+                                Linked: {event.linked_behavior_title}
+                                {event.linked_behavior_type && (
+                                  <span className="text-xs opacity-70">({event.linked_behavior_type.replace('_', ' ')})</span>
+                                )}
+                              </Badge>
+                              {!readOnly && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    unlinkBehavior(event.id)
+                                  }}
+                                  className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                                >
+                                  Unlink
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Action buttons */}
@@ -327,9 +378,9 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
                 </div>
               </div>
 
-              {/* Add sub-step and fork buttons */}
+              {/* Add sub-step, link behavior, and fork buttons */}
               {!readOnly && !isEditing && (
-                <div className="flex gap-2 mt-3 ml-8">
+                <div className="flex gap-2 mt-3 ml-8 flex-wrap">
                   <Button
                     size="sm"
                     variant="outline"
@@ -347,9 +398,22 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
                     variant="outline"
                     onClick={(e) => {
                       e.stopPropagation()
+                      setLinkingEventId(event.id)
+                      setSearchDialogOpen(true)
+                    }}
+                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  >
+                    <LinkIcon className="h-3 w-3 mr-1" />
+                    Link Behavior
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation()
                       addFork(event.id)
                     }}
-                    className="text-xs text-purple-600 border-purple-300 hover:bg-purple-50"
+                    className="text-xs text-purple-600 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
                   >
                     <GitFork className="h-3 w-3 mr-1" />
                     Add Fork (Alternative)
@@ -401,11 +465,19 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
           <ul className="list-disc list-inside space-y-1 text-blue-800 dark:text-blue-200">
             <li>Drag events to reorder or use ← → buttons to move chronologically</li>
             <li><strong>Sub-steps</strong>: Break down complex events into detailed steps</li>
+            <li><strong>Link Behavior</strong>: Connect timeline events to existing behavior analyses for composable workflows</li>
             <li><strong>Forks</strong>: Show alternative paths or parallel possibilities (marked with purple border)</li>
             <li>Click any event to edit time, location, and duration details</li>
           </ul>
         </div>
       )}
+
+      {/* Behavior Search Dialog */}
+      <BehaviorSearchDialog
+        open={searchDialogOpen}
+        onOpenChange={setSearchDialogOpen}
+        onSelect={handleLinkBehavior}
+      />
     </div>
   )
 }
