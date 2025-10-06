@@ -66,6 +66,9 @@ const EventsPage = lazy(() => import('@/pages/entities/EventsPage').then(m => ({
 const ACHPage = lazy(() => import('@/pages/ACHPage').then(m => ({ default: m.ACHPage })))
 const ACHAnalysisPage = lazy(() => import('@/pages/ACHAnalysisPage').then(m => ({ default: m.ACHAnalysisPage })))
 
+// Public pages (lazy loaded - no auth required)
+const PublicFrameworkPage = lazy(() => import('@/pages/PublicFrameworkPage').then(m => ({ default: m.PublicFrameworkPage })))
+
 // Wrapper component for Suspense
 const LazyPage = ({ Component }: { Component: React.LazyExoticComponent<React.ComponentType> }) => (
   <Suspense fallback={<PageLoader />}>
@@ -89,6 +92,10 @@ export const router = createBrowserRouter([
   {
     path: '/invite/:inviteToken',
     element: <LazyPage Component={InviteAcceptPage} />,
+  },
+  {
+    path: '/public/framework/:token',
+    element: <LazyPage Component={PublicFrameworkPage} />,
   },
   {
     path: '/tools',
