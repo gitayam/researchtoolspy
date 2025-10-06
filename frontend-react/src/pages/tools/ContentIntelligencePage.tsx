@@ -1,0 +1,423 @@
+import { useState } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Progress } from '@/components/ui/progress'
+import {
+  Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
+  Star, Save, ExternalLink, Archive, Clock, Bookmark
+} from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import type { ContentAnalysis, ProcessingStatus, AnalysisTab } from '@/types/content-intelligence'
+
+export default function ContentIntelligencePage() {
+  const { toast } = useToast()
+
+  // State
+  const [url, setUrl] = useState('')
+  const [mode, setMode] = useState<'quick' | 'full' | 'forensic'>('full')
+  const [processing, setProcessing] = useState(false)
+  const [status, setStatus] = useState<ProcessingStatus>('idle')
+  const [progress, setProgress] = useState(0)
+  const [currentStep, setCurrentStep] = useState('')
+  const [analysis, setAnalysis] = useState<ContentAnalysis | null>(null)
+  const [activeTab, setActiveTab] = useState<AnalysisTab>('overview')
+  const [bypassUrls, setBypassUrls] = useState<Record<string, string>>({})
+  const [saveNote, setSaveNote] = useState('')
+  const [saveTags, setSaveTags] = useState('')
+
+  // Quick save link (without processing)
+  const handleQuickSave = async () => {
+    if (!url) {
+      toast({ title: 'Error', description: 'Please enter a URL', variant: 'destructive' })
+      return
+    }
+
+    try {
+      const response = await fetch('/api/content-intelligence/saved-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          note: saveNote || undefined,
+          tags: saveTags ? saveTags.split(',').map(t => t.trim()) : [],
+          auto_analyze: false
+        })
+      })
+
+      if (!response.ok) throw new Error('Failed to save link')
+
+      toast({ title: 'Success', description: 'Link saved to library' })
+      setSaveNote('')
+      setSaveTags('')
+    } catch (error) {
+      console.error('Save error:', error)
+      toast({ title: 'Error', description: 'Failed to save link', variant: 'destructive' })
+    }
+  }
+
+  // Analyze URL
+  const handleAnalyze = async () => {
+    if (!url) {
+      toast({ title: 'Error', description: 'Please enter a URL', variant: 'destructive' })
+      return
+    }
+
+    setProcessing(true)
+    setStatus('extracting')
+    setProgress(10)
+    setCurrentStep('Extracting content...')
+
+    try {
+      // Generate bypass/archive URLs immediately
+      const encoded = encodeURIComponent(url)
+      setBypassUrls({
+        '12ft': `https://12ft.io/proxy?q=${encoded}`,
+        'outline': `https://outline.com/${url}`,
+        'wayback': `https://web.archive.org/web/*/${url}`,
+        'archive_is': `https://archive.is/${url}`,
+        'google_cache': `https://webcache.googleusercontent.com/search?q=cache:${encoded}`
+      })
+
+      setProgress(30)
+      setStatus('analyzing_words')
+      setCurrentStep('Analyzing word frequency...')
+
+      const response = await fetch('/api/content-intelligence/analyze-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          mode,
+          save_link: saveNote || saveTags ? true : false,
+          link_note: saveNote || undefined,
+          link_tags: saveTags ? saveTags.split(',').map(t => t.trim()) : []
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Analysis failed')
+      }
+
+      setProgress(70)
+      setStatus('extracting_entities')
+      setCurrentStep('Extracting entities...')
+
+      const data = await response.json()
+
+      setProgress(100)
+      setStatus('complete')
+      setCurrentStep('Complete!')
+      setAnalysis(data)
+
+      toast({ title: 'Success', description: 'Analysis complete!' })
+    } catch (error) {
+      console.error('Analysis error:', error)
+      setStatus('error')
+      toast({
+        title: 'Analysis Failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive'
+      })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  return (
+    <div className="container mx-auto py-8 space-y-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <FileText className="h-8 w-8" />
+          Content Intelligence & Link Analysis
+        </h1>
+        <p className="text-muted-foreground">
+          Analyze URLs, extract insights, preserve evidence, and ask questions
+        </p>
+      </div>
+
+      {/* Input Section */}
+      <Card className="p-6 space-y-4">
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter URL to analyze..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+              className="flex-1"
+            />
+            <Button onClick={handleQuickSave} variant="outline" disabled={processing}>
+              <Save className="h-4 w-4 mr-2" />
+              Quick Save
+            </Button>
+          </div>
+
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add note (optional)..."
+              value={saveNote}
+              onChange={(e) => setSaveNote(e.target.value)}
+              className="flex-1"
+            />
+            <Input
+              placeholder="Tags (comma-separated)..."
+              value={saveTags}
+              onChange={(e) => setSaveTags(e.target.value)}
+              className="flex-1"
+            />
+          </div>
+
+          <div className="flex gap-2 items-center">
+            <div className="flex gap-2">
+              <Button
+                variant={mode === 'quick' ? 'default' : 'outline'}
+                onClick={() => setMode('quick')}
+                size="sm"
+              >
+                Quick
+              </Button>
+              <Button
+                variant={mode === 'full' ? 'default' : 'outline'}
+                onClick={() => setMode('full')}
+                size="sm"
+              >
+                Full
+              </Button>
+              <Button
+                variant={mode === 'forensic' ? 'default' : 'outline'}
+                onClick={() => setMode('forensic')}
+                size="sm"
+              >
+                Forensic
+              </Button>
+            </div>
+
+            <Button onClick={handleAnalyze} disabled={processing} className="ml-auto">
+              {processing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Analyze Content
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Quick Actions - Appear immediately when URL entered */}
+      {(url && bypassUrls['12ft']) && (
+        <Card className="p-4">
+          <h3 className="text-sm font-semibold mb-3">Quick Actions (Click while processing)</h3>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <a href={bypassUrls['12ft']} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-3 w-3 mr-1" />
+                12ft.io Bypass
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href={bypassUrls.archive_is} target="_blank" rel="noopener noreferrer">
+                <Archive className="h-3 w-3 mr-1" />
+                Archive.is
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href={bypassUrls.wayback} target="_blank" rel="noopener noreferrer">
+                <Clock className="h-3 w-3 mr-1" />
+                Wayback Machine
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href={bypassUrls.outline} target="_blank" rel="noopener noreferrer">
+                <FileText className="h-3 w-3 mr-1" />
+                Outline
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href={bypassUrls.google_cache} target="_blank" rel="noopener noreferrer">
+                <Bookmark className="h-3 w-3 mr-1" />
+                Google Cache
+              </a>
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Processing Status */}
+      {processing && (
+        <Card className="p-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span>{currentStep}</span>
+              <span>{progress}%</span>
+            </div>
+            <Progress value={progress} />
+          </div>
+        </Card>
+      )}
+
+      {/* Results */}
+      {analysis && (
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AnalysisTab)}>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">
+              <FileText className="h-4 w-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="word-analysis">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Word Analysis
+            </TabsTrigger>
+            <TabsTrigger value="entities">
+              <Users className="h-4 w-4 mr-2" />
+              Entities
+            </TabsTrigger>
+            <TabsTrigger value="qa">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Q&A
+            </TabsTrigger>
+            <TabsTrigger value="starbursting">
+              <Star className="h-4 w-4 mr-2" />
+              Starbursting
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="mt-4">
+            <Card className="p-6 space-y-4">
+              <div>
+                <h2 className="text-2xl font-bold">{analysis.title || 'Untitled'}</h2>
+                {analysis.author && (
+                  <p className="text-sm text-muted-foreground">By {analysis.author}</p>
+                )}
+                {analysis.publish_date && (
+                  <p className="text-sm text-muted-foreground">Published: {analysis.publish_date}</p>
+                )}
+              </div>
+
+              {analysis.summary && (
+                <div>
+                  <h3 className="font-semibold mb-2">Summary</h3>
+                  <p className="text-sm">{analysis.summary}</p>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Quick Stats</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Word Count</p>
+                    <p className="font-semibold">{analysis.word_count.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">People</p>
+                    <p className="font-semibold">{analysis.entities.people.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Organizations</p>
+                    <p className="font-semibold">{analysis.entities.organizations.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Locations</p>
+                    <p className="font-semibold">{analysis.entities.locations.length}</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="word-analysis" className="mt-4">
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4">Top Phrases (2-10 words)</h3>
+              <div className="space-y-2">
+                {analysis.top_phrases.slice(0, 10).map((item, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <span className="text-sm font-mono text-muted-foreground w-8">
+                      {index + 1}.
+                    </span>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm">{item.phrase}</span>
+                        <span className="text-sm font-semibold">{item.count}×</span>
+                      </div>
+                      <Progress value={item.percentage} className="h-2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="entities" className="mt-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3">👥 People ({analysis.entities.people.length})</h3>
+                <div className="space-y-2">
+                  {analysis.entities.people.slice(0, 10).map((person, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-medium">{person.name}</span>
+                      <span className="text-muted-foreground ml-2">({person.count}×)</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3">🏢 Organizations ({analysis.entities.organizations.length})</h3>
+                <div className="space-y-2">
+                  {analysis.entities.organizations.slice(0, 10).map((org, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-medium">{org.name}</span>
+                      <span className="text-muted-foreground ml-2">({org.count}×)</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3">📍 Locations ({analysis.entities.locations.length})</h3>
+                <div className="space-y-2">
+                  {analysis.entities.locations.slice(0, 10).map((loc, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-medium">{loc.name}</span>
+                      <span className="text-muted-foreground ml-2">({loc.count}×)</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="qa" className="mt-4">
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4">Ask Questions About This Content</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Coming soon: Ask questions and get AI-powered answers with source citations
+              </p>
+              {/* TODO: Implement Q&A component */}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="starbursting" className="mt-4">
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4">🌟 Starbursting Analysis</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Launch deep-dive question analysis using the Starbursting framework
+              </p>
+              {/* TODO: Implement Starbursting launcher */}
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
+    </div>
+  )
+}
