@@ -449,12 +449,13 @@ Return format:
       },
       signal: controller.signal,
       body: JSON.stringify({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
         messages: [
           { role: 'system', content: 'You are a named entity recognition expert. Extract people, organizations, and locations from text. Return ONLY valid JSON.' },
           { role: 'user', content: prompt }
         ],
-        max_completion_tokens: 800
+        max_completion_tokens: 800,
+        temperature: 0.7
       })
     })
 
@@ -502,12 +503,13 @@ ${truncated}`
       },
       signal: controller.signal,
       body: JSON.stringify({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
         messages: [
           { role: 'system', content: 'You are a professional summarizer.' },
           { role: 'user', content: prompt }
         ],
-        max_completion_tokens: 500
+        max_completion_tokens: 500,
+        temperature: 0.7
       })
     })
 

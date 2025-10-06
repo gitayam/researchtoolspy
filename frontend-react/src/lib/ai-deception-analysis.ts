@@ -93,7 +93,14 @@ Your analysis must be:
       throw new Error('No response from AI service')
     }
 
-    const aiResult = JSON.parse(content)
+    let aiResult
+    try {
+      aiResult = JSON.parse(content)
+    } catch (parseError) {
+      console.error('Failed to parse AI deception analysis response:', parseError)
+      console.error('AI response content:', content?.substring(0, 200))
+      throw new Error('Invalid JSON response from AI deception analysis')
+    }
 
     // Calculate assessment from AI-generated scores
     const assessment = calculateDeceptionLikelihood(aiResult.scores)
