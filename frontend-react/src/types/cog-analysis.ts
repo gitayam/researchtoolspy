@@ -30,6 +30,7 @@ export type ActorCategory = typeof ActorCategory[keyof typeof ActorCategory]
 export const ScoringSystem = {
   LINEAR: 'linear',        // 1-5 linear scale
   LOGARITHMIC: 'logarithmic', // 1, 3, 5, 8, 12 scale for exponential impact
+  CUSTOM: 'custom',        // Custom criteria defined by user
 } as const
 
 export type ScoringSystem = typeof ScoringSystem[keyof typeof ScoringSystem]
@@ -45,12 +46,22 @@ export type LogarithmicScore = typeof LogarithmicScoreValues[number]
 // Score type (union of both)
 export type Score = LinearScore | LogarithmicScore
 
-// Scoring Criteria
+// Custom Scoring Criterion Definition
+export interface CustomCriterion {
+  id: string                     // Unique ID for this criterion
+  name: string                   // Short name (e.g., "Impact", "Risk")
+  definition: string             // Full definition/description
+}
+
+// Default Scoring Criteria (backward compatible)
 export interface ScoringCriteria {
   impact_on_cog: Score          // How significantly would this affect the COG?
   attainability: Score          // How feasible is addressing this?
   follow_up_potential: Score    // What strategic advantages does this enable?
 }
+
+// Custom Scoring Criteria (flexible)
+export type CustomScoringCriteria = Record<string, Score> // { criterion_id: score }
 
 // Operational Context (Guided Questions)
 export interface OperationalContext {
@@ -73,6 +84,12 @@ export interface CenterOfGravity {
   domain: DIMEFILDomain
   description: string
   rationale: string             // Why is this a COG?
+
+  // Enhanced staff planner fields (all optional for backward compatibility)
+  confidence?: 'low' | 'medium' | 'high' | 'confirmed' // Confidence in COG identification
+  priority?: 1 | 2 | 3 | 4 | 5  // COG priority (1=highest)
+  validated?: boolean           // Passed validation checklist
+
   linked_evidence: string[]     // Evidence IDs supporting this COG
 }
 
@@ -112,7 +129,9 @@ export interface CriticalVulnerability {
   recommended_actions?: string[] // List of recommended actions
   confidence?: 'low' | 'medium' | 'high' | 'confirmed' // Confidence in assessment
 
-  scoring: ScoringCriteria      // Required scoring for prioritization
+  // Scoring (supports both default and custom)
+  scoring?: ScoringCriteria      // Default scoring (if using default mode)
+  custom_scoring?: CustomScoringCriteria // Custom scoring (if using custom mode)
   composite_score: number       // Calculated composite score
   priority_rank?: number        // Calculated rank based on score
   linked_evidence: string[]
@@ -129,6 +148,7 @@ export interface COGAnalysis {
 
   // Scoring Configuration
   scoring_system: ScoringSystem
+  custom_criteria?: CustomCriterion[]  // Custom criteria definitions (if scoring_system === 'custom')
 
   // COG Entities and their breakdown
   centers_of_gravity: CenterOfGravity[]
@@ -241,6 +261,19 @@ export const ScoringDescriptions = {
 // Helper functions
 export function calculateCompositeScore(scoring: ScoringCriteria): number {
   return scoring.impact_on_cog + scoring.attainability + scoring.follow_up_potential
+}
+
+export function calculateCustomCompositeScore(customScoring: CustomScoringCriteria): number {
+  return Object.values(customScoring).reduce((sum, score) => sum + score, 0)
+}
+
+export function calculateVulnerabilityCompositeScore(vuln: CriticalVulnerability): number {
+  if (vuln.scoring) {
+    return calculateCompositeScore(vuln.scoring)
+  } else if (vuln.custom_scoring) {
+    return calculateCustomCompositeScore(vuln.custom_scoring)
+  }
+  return 0
 }
 
 export function rankVulnerabilitiesByScore(vulnerabilities: CriticalVulnerability[]): CriticalVulnerability[] {
