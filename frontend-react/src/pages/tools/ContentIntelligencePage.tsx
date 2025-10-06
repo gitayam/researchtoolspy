@@ -92,7 +92,20 @@ export default function ContentIntelligencePage() {
         })
       })
 
-      if (!response.ok) throw new Error('Failed to save link')
+      if (!response.ok) {
+        // Handle 409 Conflict (link already saved)
+        if (response.status === 409) {
+          const errorData = await response.json()
+          toast({
+            title: 'Link Already Saved',
+            description: 'This link has already been saved to your library.',
+            variant: 'default'
+          })
+          loadSavedLinks() // Refresh to show the existing link
+          return
+        }
+        throw new Error('Failed to save link')
+      }
 
       const savedData = await response.json()
 
