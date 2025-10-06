@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
@@ -87,6 +88,9 @@ export function DashboardHeader() {
 
           {/* Language Switcher */}
           <LanguageSwitcher />
+
+          {/* Feedback Button */}
+          <FeedbackDialog />
 
           {/* Authentication Status - Better mobile touch targets */}
           {!isAuthenticated ? (
