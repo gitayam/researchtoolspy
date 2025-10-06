@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save, Plus, X, ExternalLink, Link2, Trash2, HelpCircle, ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Save, Plus, X, ExternalLink, Link2, Trash2, HelpCircle, ChevronDown, ChevronRight, Zap } from 'lucide-react'
+import { COGQuickScore } from './COGQuickScore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -110,6 +111,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
   const [expandedReqs, setExpandedReqs] = useState<Set<string>>(new Set())
   const [expandedSoWhat, setExpandedSoWhat] = useState<Set<string>>(new Set()) // Track "So What?" sections
   const [evidenceLinkerOpen, setEvidenceLinkerOpen] = useState(false)
+  const [quickScoreOpen, setQuickScoreOpen] = useState(false)
   const [activeEvidenceTarget, setActiveEvidenceTarget] = useState<{
     type: 'cog' | 'capability' | 'requirement' | 'vulnerability'
     id: string
@@ -625,10 +627,18 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                     <CardTitle>Centers of Gravity</CardTitle>
                     <CardDescription>Identify COGs across DIMEFIL domains for each actor</CardDescription>
                   </div>
-                  <Button onClick={addCOG}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add COG
-                  </Button>
+                  <div className="flex gap-2">
+                    {vulnerabilities.length > 0 && (
+                      <Button variant="outline" onClick={() => setQuickScoreOpen(true)}>
+                        <Zap className="h-4 w-4 mr-2" />
+                        Quick-Score
+                      </Button>
+                    )}
+                    <Button onClick={addCOG}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add COG
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1390,6 +1400,15 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
           }}
           onLink={handleEvidenceLink}
           alreadyLinked={[]}
+        />
+
+        {/* Quick-Score Modal */}
+        <COGQuickScore
+          open={quickScoreOpen}
+          onClose={() => setQuickScoreOpen(false)}
+          vulnerabilities={vulnerabilities}
+          onUpdate={(updated) => setVulnerabilities(updated)}
+          scoringSystem={scoringSystem}
         />
       </div>
     </TooltipProvider>

@@ -21,6 +21,7 @@ import { DeceptionForm } from '@/components/frameworks/DeceptionForm'
 import { DeceptionView } from '@/components/frameworks/DeceptionView'
 import { COGForm } from '@/components/frameworks/COGForm'
 import { COGView } from '@/components/frameworks/COGView'
+import { COGWizard } from '@/components/frameworks/COGWizard'
 import { frameworkConfigs } from '@/config/framework-configs'
 import { COG_TEMPLATES, createAnalysisFromTemplate, type COGTemplate } from '@/data/cog-templates'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -801,8 +802,9 @@ export const CogPage = () => {
   const location = useLocation()
 
   const isCreateMode = location.pathname.includes('/create')
+  const isWizardMode = location.pathname.includes('/wizard')
   const isEditMode = location.pathname.includes('/edit')
-  const isViewMode = id && !isEditMode && !isCreateMode
+  const isViewMode = id && !isEditMode && !isCreateMode && !isWizardMode
   const basePath = '/dashboard/analysis-frameworks/cog'
 
   useEffect(() => {
@@ -939,10 +941,16 @@ export const CogPage = () => {
     }
   }
 
-  const handleTemplateSelect = (template: COGTemplate | null) => {
+  const handleTemplateSelect = (template: COGTemplate | null, mode: 'wizard' | 'advanced') => {
     setSelectedTemplate(template)
     setTemplateDialogOpen(false)
-    navigate(`${basePath}/create`, { state: { template } })
+    const targetPath = mode === 'wizard' ? `${basePath}/wizard` : `${basePath}/create`
+    navigate(targetPath, { state: { template } })
+  }
+
+  if (isWizardMode) {
+    const templateData = location.state?.template?.template_data
+    return <COGWizard onSave={handleSave} backPath={basePath} initialData={templateData} />
   }
 
   if (isCreateMode) {
@@ -1153,21 +1161,29 @@ export const CogPage = () => {
           <DialogHeader>
             <DialogTitle>Start New COG Analysis</DialogTitle>
             <DialogDescription>
-              Choose a template to start with, or create a blank analysis from scratch.
+              Choose how to create your analysis: guided wizard or advanced mode. You can also start from a template or blank.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
             {/* Blank Template Option */}
-            <Card className="cursor-pointer hover:border-blue-500 transition-colors" onClick={() => handleTemplateSelect(null)}>
+            <Card className="border-2">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="text-4xl">📄</div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg mb-1">Blank Analysis</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                       Start from scratch with an empty COG analysis framework
                     </p>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => handleTemplateSelect(null, 'wizard')}>
+                        🧙 Start with Wizard
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleTemplateSelect(null, 'advanced')}>
+                        ⚡ Advanced Mode
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -1177,11 +1193,7 @@ export const CogPage = () => {
               <h4 className="font-semibold mb-3 text-gray-700 dark:text-gray-300">Or start from a template:</h4>
               <div className="grid gap-3">
                 {COG_TEMPLATES.map((template) => (
-                  <Card
-                    key={template.id}
-                    className="cursor-pointer hover:border-blue-500 transition-colors"
-                    onClick={() => handleTemplateSelect(template)}
-                  >
+                  <Card key={template.id} className="border">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <div className="text-3xl">{template.icon}</div>
@@ -1192,13 +1204,21 @@ export const CogPage = () => {
                               {template.category.replace('_', ' ')}
                             </Badge>
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
                             {template.description}
                           </p>
-                          <div className="mt-2 flex gap-4 text-xs text-gray-500">
+                          <div className="flex gap-4 text-xs text-gray-500 mb-3">
                             <span>• {template.template_data.centers_of_gravity.length} COG(s)</span>
                             <span>• {template.template_data.critical_capabilities.length} Capability(s)</span>
                             <span>• {template.template_data.critical_vulnerabilities.length} Vulnerability(s)</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="default" onClick={() => handleTemplateSelect(template, 'wizard')}>
+                              🧙 Wizard
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleTemplateSelect(template, 'advanced')}>
+                              ⚡ Advanced
+                            </Button>
                           </div>
                         </div>
                       </div>
