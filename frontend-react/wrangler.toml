@@ -28,6 +28,11 @@ id = "7b7c607eb739402884712b0b033e3e7d"
 binding = "UPLOADS"
 bucket_name = "researchtoolspy-uploads"
 
+# Environment Variables
+# Note: Secrets (OPENAI_API_KEY, VIRUSTOTAL_API_KEY) should be added via:
+# wrangler secret put OPENAI_API_KEY
+# wrangler secret put VIRUSTOTAL_API_KEY
+
 [env.production.vars]
 ENVIRONMENT = "production"
 ENABLE_AI_FEATURES = "true"

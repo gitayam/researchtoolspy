@@ -22,7 +22,7 @@ const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ defa
 
 // Framework pages (lazy loaded)
 const SwotPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.SwotPage })))
-const CogPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.CogPage }))) // Shows "Coming Soon" placeholder
+const CogPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.CogPage })))
 const PmesiiPtPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.PmesiiPtPage })))
 const DotmlpfPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.DotmlpfPage })))
 const DeceptionPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.DeceptionPage })))
