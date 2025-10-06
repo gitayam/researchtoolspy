@@ -1,5 +1,5 @@
 import { useState, useRef, type ChangeEvent } from 'react'
-import { Plus, X, Eye, Volume2, Users, HelpCircle, Upload, Edit2, Check, Image as ImageIcon } from 'lucide-react'
+import { Plus, X, Eye, Volume2, Users, HelpCircle, Upload, Edit2, Check, Image as ImageIcon, Link as LinkIcon, Music } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { SymbolItem, SymbolType } from '@/types/behavior'
 
 interface SymbolsManagerProps {
@@ -48,7 +49,12 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
   const [newDescription, setNewDescription] = useState('')
   const [newContext, setNewContext] = useState('')
   const [newImageData, setNewImageData] = useState<string>('')
+  const [newAudioData, setNewAudioData] = useState<string>('')
+  const [newMediaMode, setNewMediaMode] = useState<'upload' | 'link'>('upload')
+  const [newImageUrl, setNewImageUrl] = useState<string>('')
+  const [newAudioUrl, setNewAudioUrl] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const audioFileInputRef = useRef<HTMLInputElement>(null)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -56,7 +62,12 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
   const [editDescription, setEditDescription] = useState('')
   const [editContext, setEditContext] = useState('')
   const [editImageData, setEditImageData] = useState<string>('')
+  const [editAudioData, setEditAudioData] = useState<string>('')
+  const [editMediaMode, setEditMediaMode] = useState<'upload' | 'link'>('upload')
+  const [editImageUrl, setEditImageUrl] = useState<string>('')
+  const [editAudioUrl, setEditAudioUrl] = useState<string>('')
   const editFileInputRef = useRef<HTMLInputElement>(null)
+  const editAudioFileInputRef = useRef<HTMLInputElement>(null)
 
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
     const file = e.target.files?.[0]
@@ -87,6 +98,49 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
     reader.readAsDataURL(file)
   }
 
+  const handleAudioUpload = async (e: ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('audio/')) {
+      alert('Please upload an audio file')
+      return
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Audio must be less than 10MB')
+      return
+    }
+
+    // Convert to base64
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string
+      if (isEdit) {
+        setEditAudioData(base64)
+      } else {
+        setNewAudioData(base64)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const validateMediaUrl = (url: string, type: 'image' | 'audio'): boolean => {
+    if (!url.trim()) return false
+    try {
+      const urlObj = new URL(url)
+      if (type === 'image') {
+        return /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(urlObj.pathname) || url.includes('imgur') || url.includes('cloudinary')
+      } else {
+        return /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(urlObj.pathname) || url.includes('soundcloud') || url.includes('audio')
+      }
+    } catch {
+      return false
+    }
+  }
+
   const handleAdd = () => {
     if (!newName.trim()) {
       alert('Please enter a symbol name')
@@ -99,7 +153,23 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
       symbol_type: newType,
       description: newDescription.trim() || undefined,
       context: newContext.trim() || undefined,
-      image_data: newImageData || undefined
+      media_source: newMediaMode,
+    }
+
+    // Add media based on mode and type
+    if (newMediaMode === 'upload') {
+      if (newType === 'auditory') {
+        symbolItem.audio_data = newAudioData || undefined
+      } else {
+        symbolItem.image_data = newImageData || undefined
+      }
+    } else {
+      // Link mode
+      if (newType === 'auditory') {
+        symbolItem.audio_url = newAudioUrl.trim() || undefined
+      } else {
+        symbolItem.image_url = newImageUrl.trim() || undefined
+      }
     }
 
     onChange([...symbols, symbolItem])
@@ -110,8 +180,15 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
     setNewDescription('')
     setNewContext('')
     setNewImageData('')
+    setNewAudioData('')
+    setNewImageUrl('')
+    setNewAudioUrl('')
+    setNewMediaMode('upload')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
+    }
+    if (audioFileInputRef.current) {
+      audioFileInputRef.current.value = ''
     }
   }
 
@@ -125,24 +202,47 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
     setEditType(item.symbol_type)
     setEditDescription(item.description || '')
     setEditContext(item.context || '')
-    setEditImageData(item.image_data || item.image_url || '')
+    setEditImageData(item.image_data || '')
+    setEditAudioData(item.audio_data || '')
+    setEditImageUrl(item.image_url || '')
+    setEditAudioUrl(item.audio_url || '')
+    setEditMediaMode(item.media_source || 'upload')
   }
 
   const saveEdit = () => {
     if (!editingId) return
 
+    const updates: Partial<SymbolItem> = {
+      name: editName.trim(),
+      symbol_type: editType,
+      description: editDescription.trim() || undefined,
+      context: editContext.trim() || undefined,
+      media_source: editMediaMode,
+    }
+
+    // Update media based on mode and type
+    if (editMediaMode === 'upload') {
+      if (editType === 'auditory') {
+        updates.audio_data = editAudioData || undefined
+        updates.audio_url = undefined
+      } else {
+        updates.image_data = editImageData || undefined
+        updates.image_url = undefined
+      }
+    } else {
+      // Link mode
+      if (editType === 'auditory') {
+        updates.audio_url = editAudioUrl.trim() || undefined
+        updates.audio_data = undefined
+      } else {
+        updates.image_url = editImageUrl.trim() || undefined
+        updates.image_data = undefined
+      }
+    }
+
     onChange(
       symbols.map(s =>
-        s.id === editingId
-          ? {
-              ...s,
-              name: editName.trim(),
-              symbol_type: editType,
-              description: editDescription.trim() || undefined,
-              context: editContext.trim() || undefined,
-              image_data: editImageData || undefined
-            }
-          : s
+        s.id === editingId ? { ...s, ...updates } : s
       )
     )
 
@@ -156,8 +256,15 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
     setEditDescription('')
     setEditContext('')
     setEditImageData('')
+    setEditAudioData('')
+    setEditImageUrl('')
+    setEditAudioUrl('')
+    setEditMediaMode('upload')
     if (editFileInputRef.current) {
       editFileInputRef.current.value = ''
+    }
+    if (editAudioFileInputRef.current) {
+      editAudioFileInputRef.current.value = ''
     }
   }
 
@@ -177,7 +284,8 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
       social: symbols.filter(s => s.symbol_type === 'social').length,
       other: symbols.filter(s => s.symbol_type === 'other').length
     },
-    withImages: symbols.filter(s => s.image_data || s.image_url).length
+    withImages: symbols.filter(s => s.image_data || s.image_url).length,
+    withAudio: symbols.filter(s => s.audio_data || s.audio_url).length
   }
 
   return (
@@ -217,47 +325,139 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Upload Image (Optional)</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex-1"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {newImageData ? 'Change Image' : 'Upload Image'}
-                </Button>
-                {newImageData && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setNewImageData('')
-                      if (fileInputRef.current) fileInputRef.current.value = ''
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e, false)}
-                className="hidden"
-              />
-              {newImageData && (
-                <div className="mt-2">
-                  <img
-                    src={newImageData}
-                    alt="Preview"
-                    className="max-w-full h-32 object-contain rounded border"
-                  />
-                </div>
-              )}
+              <Label>{newType === 'auditory' ? 'Audio' : 'Image'} (Optional)</Label>
+              <Tabs value={newMediaMode} onValueChange={(v) => setNewMediaMode(v as 'upload' | 'link')}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="upload">
+                    <Upload className="h-3 w-3 mr-1" />
+                    Upload
+                  </TabsTrigger>
+                  <TabsTrigger value="link">
+                    <LinkIcon className="h-3 w-3 mr-1" />
+                    Link URL
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="upload" className="space-y-2">
+                  {newType === 'auditory' ? (
+                    <>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => audioFileInputRef.current?.click()}
+                          className="flex-1"
+                        >
+                          <Music className="h-4 w-4 mr-2" />
+                          {newAudioData ? 'Change Audio' : 'Upload Audio'}
+                        </Button>
+                        {newAudioData && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setNewAudioData('')
+                              if (audioFileInputRef.current) audioFileInputRef.current.value = ''
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <input
+                        ref={audioFileInputRef}
+                        type="file"
+                        accept="audio/*"
+                        onChange={(e) => handleAudioUpload(e, false)}
+                        className="hidden"
+                      />
+                      <p className="text-xs text-muted-foreground">Max 10MB. MP3, WAV, OGG, M4A</p>
+                      {newAudioData && (
+                        <audio controls className="w-full mt-2">
+                          <source src={newAudioData} />
+                        </audio>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex-1"
+                        >
+                          <ImageIcon className="h-4 w-4 mr-2" />
+                          {newImageData ? 'Change Image' : 'Upload Image'}
+                        </Button>
+                        {newImageData && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setNewImageData('')
+                              if (fileInputRef.current) fileInputRef.current.value = ''
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, false)}
+                        className="hidden"
+                      />
+                      <p className="text-xs text-muted-foreground">Max 5MB. JPG, PNG, GIF, WEBP</p>
+                      {newImageData && (
+                        <img
+                          src={newImageData}
+                          alt="Preview"
+                          className="max-w-full h-32 object-contain rounded border mt-2"
+                        />
+                      )}
+                    </>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="link" className="space-y-2">
+                  {newType === 'auditory' ? (
+                    <>
+                      <Input
+                        placeholder="https://example.com/sound.mp3"
+                        value={newAudioUrl}
+                        onChange={(e) => setNewAudioUrl(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">Paste URL to audio file</p>
+                      {newAudioUrl && validateMediaUrl(newAudioUrl, 'audio') && (
+                        <audio controls className="w-full mt-2">
+                          <source src={newAudioUrl} />
+                        </audio>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Input
+                        placeholder="https://example.com/image.jpg"
+                        value={newImageUrl}
+                        onChange={(e) => setNewImageUrl(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">Paste URL to image</p>
+                      {newImageUrl && validateMediaUrl(newImageUrl, 'image') && (
+                        <img
+                          src={newImageUrl}
+                          alt="Preview"
+                          className="max-w-full h-32 object-contain rounded border mt-2"
+                        />
+                      )}
+                    </>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
 
@@ -303,7 +503,7 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
             <CardTitle className="text-lg">Overview</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold">{stats.total}</div>
                 <div className="text-sm text-muted-foreground">Total</div>
@@ -323,6 +523,10 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
               <div className="text-center">
                 <div className="text-2xl font-bold text-indigo-600">{stats.withImages}</div>
                 <div className="text-sm text-muted-foreground">With Images</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">{stats.withAudio}</div>
+                <div className="text-sm text-muted-foreground">With Audio</div>
               </div>
             </div>
           </CardContent>
@@ -357,61 +561,141 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
                   >
                     {isEditing ? (
                       <div className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <Select value={editType} onValueChange={(v) => setEditType(v as SymbolType)}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(symbolTypeLabels).map(([value, label]) => (
-                                <SelectItem key={value} value={value}>{label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                        <Select value={editType} onValueChange={(v) => setEditType(v as SymbolType)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(symbolTypeLabels).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
 
-                          <div className="space-y-2">
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => editFileInputRef.current?.click()}
-                                className="flex-1"
-                              >
-                                <Upload className="h-4 w-4 mr-2" />
-                                {editImageData ? 'Change' : 'Upload'}
-                              </Button>
-                              {editImageData && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditImageData('')
-                                    if (editFileInputRef.current) editFileInputRef.current.value = ''
-                                  }}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                            <input
-                              ref={editFileInputRef}
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => handleImageUpload(e, true)}
-                              className="hidden"
-                            />
-                          </div>
-                        </div>
+                        <Tabs value={editMediaMode} onValueChange={(v) => setEditMediaMode(v as 'upload' | 'link')}>
+                          <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="upload">Upload</TabsTrigger>
+                            <TabsTrigger value="link">Link URL</TabsTrigger>
+                          </TabsList>
 
-                        {editImageData && (
-                          <img
-                            src={editImageData}
-                            alt="Preview"
-                            className="max-w-full h-32 object-contain rounded border"
-                          />
-                        )}
+                          <TabsContent value="upload" className="space-y-2">
+                            {editType === 'auditory' ? (
+                              <>
+                                <div className="flex gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => editAudioFileInputRef.current?.click()}
+                                    className="flex-1"
+                                  >
+                                    <Music className="h-4 w-4 mr-2" />
+                                    {editAudioData ? 'Change' : 'Upload'}
+                                  </Button>
+                                  {editAudioData && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditAudioData('')
+                                        if (editAudioFileInputRef.current) editAudioFileInputRef.current.value = ''
+                                      }}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                                <input
+                                  ref={editAudioFileInputRef}
+                                  type="file"
+                                  accept="audio/*"
+                                  onChange={(e) => handleAudioUpload(e, true)}
+                                  className="hidden"
+                                />
+                                {editAudioData && (
+                                  <audio controls className="w-full">
+                                    <source src={editAudioData} />
+                                  </audio>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => editFileInputRef.current?.click()}
+                                    className="flex-1"
+                                  >
+                                    <ImageIcon className="h-4 w-4 mr-2" />
+                                    {editImageData ? 'Change' : 'Upload'}
+                                  </Button>
+                                  {editImageData && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditImageData('')
+                                        if (editFileInputRef.current) editFileInputRef.current.value = ''
+                                      }}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                                <input
+                                  ref={editFileInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => handleImageUpload(e, true)}
+                                  className="hidden"
+                                />
+                                {editImageData && (
+                                  <img
+                                    src={editImageData}
+                                    alt="Preview"
+                                    className="max-w-full h-32 object-contain rounded border"
+                                  />
+                                )}
+                              </>
+                            )}
+                          </TabsContent>
+
+                          <TabsContent value="link" className="space-y-2">
+                            {editType === 'auditory' ? (
+                              <>
+                                <Input
+                                  placeholder="https://example.com/sound.mp3"
+                                  value={editAudioUrl}
+                                  onChange={(e) => setEditAudioUrl(e.target.value)}
+                                />
+                                {editAudioUrl && validateMediaUrl(editAudioUrl, 'audio') && (
+                                  <audio controls className="w-full">
+                                    <source src={editAudioUrl} />
+                                  </audio>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                <Input
+                                  placeholder="https://example.com/image.jpg"
+                                  value={editImageUrl}
+                                  onChange={(e) => setEditImageUrl(e.target.value)}
+                                />
+                                {editImageUrl && validateMediaUrl(editImageUrl, 'image') && (
+                                  <img
+                                    src={editImageUrl}
+                                    alt="Preview"
+                                    className="max-w-full h-32 object-contain rounded border"
+                                  />
+                                )}
+                              </>
+                            )}
+                          </TabsContent>
+                        </Tabs>
 
                         <Input
                           placeholder="Symbol name..."
@@ -445,7 +729,7 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
                       </div>
                     ) : (
                       <div className="flex gap-4">
-                        {imageSource && (
+                        {imageSource && item.symbol_type !== 'auditory' && (
                           <div className="flex-shrink-0">
                             <img
                               src={imageSource}
@@ -476,6 +760,15 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
                                 <p className="text-xs mt-1 opacity-75">
                                   <span className="font-medium">Context:</span> {item.context}
                                 </p>
+                              )}
+                              {/* Show audio player for auditory symbols */}
+                              {item.symbol_type === 'auditory' && (item.audio_data || item.audio_url) && (
+                                <div className="mt-2">
+                                  <audio controls className="w-full max-w-sm">
+                                    <source src={item.audio_data || item.audio_url} />
+                                    Your browser does not support audio playback.
+                                  </audio>
+                                </div>
                               )}
                             </div>
                             <div className="flex gap-1">
