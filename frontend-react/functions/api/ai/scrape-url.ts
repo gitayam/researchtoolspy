@@ -26,6 +26,14 @@ interface ScrapeResponse {
     author?: string
     source: string
   }
+  citation?: {
+    id: string
+    sourceType: 'website' | 'news'
+    citationStyle: 'apa'
+    fields: any
+    citation: string
+    inTextCitation: string
+  }
 }
 
 // Simple HTML to text extraction
@@ -295,6 +303,58 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const { title, content } = extractTextFromHTML(html)
     console.log(`[Scrape] Extracted title: "${title}", content length: ${content.length} chars`)
 
+    // Generate citation from URL metadata
+    const citationId = `cit-${Date.now()}-${Math.random().toString(36).substring(7)}`
+    const today = new Date()
+    const sourceType: 'website' | 'news' = parsedUrl.hostname.includes('news') ||
+      title.toLowerCase().includes('news') ? 'news' : 'website'
+
+    const citationFields = {
+      authors: [{ firstName: '', lastName: 'Unknown', middleName: '' }],
+      title: title,
+      year: today.getFullYear().toString(),
+      month: (today.getMonth() + 1).toString().padStart(2, '0'),
+      day: today.getDate().toString().padStart(2, '0'),
+      url: url,
+      accessDate: today.toISOString().split('T')[0],
+      siteName: parsedUrl.hostname.replace('www.', ''),
+      publisher: undefined
+    }
+
+    // Try to extract publish date and author from content if available
+    // This is a simple extraction - could be enhanced with better metadata parsing
+    const publishDateMatch = content.match(/published[:\s]+(\w+\s+\d+,?\s+\d{4})/i)
+    if (publishDateMatch) {
+      const dateStr = publishDateMatch[1]
+      try {
+        const pubDate = new Date(dateStr)
+        if (!isNaN(pubDate.getTime())) {
+          citationFields.year = pubDate.getFullYear().toString()
+          citationFields.month = (pubDate.getMonth() + 1).toString().padStart(2, '0')
+          citationFields.day = pubDate.getDate().toString().padStart(2, '0')
+        }
+      } catch (e) {
+        // Keep default date
+      }
+    }
+
+    // Generate APA citation
+    const authors = citationFields.authors
+    const year = citationFields.year
+    const formattedDate = `${citationFields.year}, ${citationFields.month} ${citationFields.day}`
+    const siteName = citationFields.siteName
+    const fullCitation = `${authors[0].lastName}. (${formattedDate}). ${title}. ${siteName}. ${url}`
+    const inTextCitation = `(${authors[0].lastName}, ${year})`
+
+    const generatedCitation = {
+      id: citationId,
+      sourceType,
+      citationStyle: 'apa' as const,
+      fields: citationFields,
+      citation: fullCitation,
+      inTextCitation: inTextCitation
+    }
+
     // Generate summary with GPT-5-nano
     const apiKey = context.env.OPENAI_API_KEY
     if (!apiKey) {
@@ -414,6 +474,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
             extractedData = JSON.parse(jsonText)
             console.log(`Successfully parsed ${framework} JSON with ${Object.keys(extractedData).length} keys`)
+
+            // Attach citation info to each Q&A item
+            if (framework === 'starbursting' || framework === 'dime') {
+              Object.keys(extractedData).forEach(category => {
+                if (Array.isArray(extractedData[category])) {
+                  extractedData[category] = extractedData[category].map((item: any) => {
+                    if (typeof item === 'object' && 'question' in item) {
+                      return {
+                        ...item,
+                        citationId: citationId,
+                        sourceUrl: url,
+                        sourceTitle: title,
+                        sourceDate: `${citationFields.year}-${citationFields.month}-${citationFields.day}`,
+                        sourceAuthor: citationFields.authors[0].lastName
+                      }
+                    }
+                    return item
+                  })
+                }
+              })
+              console.log(`Attached citation ${citationId} to all Q&A items`)
+            }
           } catch (e) {
             console.error(`Failed to parse extracted JSON for ${framework}:`, e)
             console.error('Raw extracted text:', extractedText)
@@ -537,7 +619,8 @@ Return ONLY JSON:
       extractedData,
       metadata: {
         source: parsedUrl.hostname
-      }
+      },
+      citation: generatedCitation
     }
 
     console.log(`[Scrape] Complete - returning response`)
