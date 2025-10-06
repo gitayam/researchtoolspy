@@ -272,21 +272,24 @@ in a References section at the end."
 5. ✅ Build CitationPicker dialog
 6. ✅ Add citation indicators to Q&A displays
 7. ✅ Implement manual citation addition flow
+8. ✅ Implement data persistence for citation management
 
-### Sprint 3: Bulk Operations (Week 3)
-8. ✅ Build CitationManager for analysis
-9. ✅ Implement bulk citation operations
-10. ✅ Add citation search/filter
+**STATUS: PHASE 2 COMPLETE** ✅
 
-### Sprint 4: Reporting (Week 4)
-11. ✅ Update report templates with citations section
-12. ✅ Add citation style selector to export
-13. ✅ Implement in-text citation formatting
+### Sprint 3: Bulk Operations (Week 3) - PENDING
+8. ⏸️ Build CitationManager for analysis (view all citations in one place)
+9. ⏸️ Implement bulk citation operations (edit, remove, export all)
+10. ⏸️ Add citation search/filter within analysis
 
-### Sprint 5: AI Integration (Week 5)
-14. ✅ Enhance AI summary with citation support
-15. ✅ Add citation hover/tooltip in summaries
-16. ✅ Test and refine citation workflow
+### Sprint 4: Reporting (Week 4) - PENDING
+11. ⏸️ Update report templates with citations section
+12. ⏸️ Add citation style selector to export
+13. ⏸️ Implement in-text citation formatting ([1], [2] references)
+
+### Sprint 5: AI Integration (Week 5) - PENDING
+14. ⏸️ Enhance AI summary with citation support
+15. ⏸️ Add citation hover/tooltip in summaries
+16. ⏸️ Test and refine citation workflow
 
 ## Technical Considerations
 

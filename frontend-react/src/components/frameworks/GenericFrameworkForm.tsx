@@ -1192,6 +1192,88 @@ export function GenericFrameworkForm({
         alreadyLinked={activeSection ? sectionEvidence[activeSection] || [] : []}
       />
 
+      {/* Behavior Analysis Usage Guide */}
+      {frameworkType === 'behavior' && (
+        <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              Using Your Behavior Analysis
+            </CardTitle>
+            <CardDescription>
+              Understand what happens next with your completed analysis
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">📚 Standalone Reference Database</h4>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                Your behavior analysis serves as a <strong>reference database</strong> documenting when, where, and how a behavior occurs.
+                Use it to:
+              </p>
+              <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 mt-2 space-y-1 ml-4">
+                <li>Build a library of documented behaviors for your organization</li>
+                <li>Share contextual understanding across teams</li>
+                <li>Reference environmental factors and social context</li>
+                <li>Track behavioral patterns and sequences</li>
+              </ul>
+            </div>
+
+            <div className="border-t border-purple-200 dark:border-purple-700 pt-4">
+              <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">🎯 Target-Audience Analysis with COM-B</h4>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                For <strong>behavior change interventions</strong>, create a <strong>COM-B Analysis</strong> linked to this behavior:
+              </p>
+              <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 mt-2 space-y-1 ml-4">
+                <li>Assess a specific target audience's Capability, Opportunity, and Motivation</li>
+                <li>Identify barriers preventing the behavior</li>
+                <li>Get AI-powered intervention recommendations</li>
+                <li>Design evidence-based behavior change strategies</li>
+              </ul>
+              <p className="text-sm text-purple-800 dark:text-purple-200 mt-3 bg-purple-100 dark:bg-purple-900/50 p-3 rounded">
+                <strong>💡 Pro Tip:</strong> After saving this analysis, click "Create COM-B Analysis" from the view page to design interventions for specific target audiences.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Save Analysis Button */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {mode === 'create' ? '✅ Save Your Analysis' : '💾 Save Changes'}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {mode === 'create'
+                  ? 'Create your analysis to access it later and create target-audience assessments'
+                  : 'Your changes are auto-saved locally. Click to sync with the server.'}
+              </p>
+            </div>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              size="lg"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-5 w-5 mr-2" />
+                  {mode === 'create' ? 'Save Analysis' : 'Save Changes'}
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary */}
       <Card>
         <CardHeader>
