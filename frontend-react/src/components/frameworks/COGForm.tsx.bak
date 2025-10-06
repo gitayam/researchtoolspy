@@ -716,26 +716,9 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                       </Button>
                     )}
                     <AICOGAssistant
-                      mode="suggest-cog"
-                      context={{
-                        objective: operationalContext.objective,
-                        impactGoal: operationalContext.desired_impact,
-                        friendlyForces: operationalContext.our_identity,
-                        operatingEnvironment: operationalContext.operating_environment,
-                      }}
-                      onAccept={(suggestion: any) => {
-                        const newCOG: CenterOfGravity = {
-                          id: crypto.randomUUID(),
-                          description: suggestion.description || '',
-                          actor_category: suggestion.actor || 'Adversary',
-                          domain: suggestion.domain || 'Military',
-                          rationale: suggestion.rationale || '',
-                          linked_evidence: [],
-                        }
-                        setCogs([...cogs, newCOG])
-                      }}
-                      buttonText="✨ Suggest COG"
-                      buttonVariant="outline"
+                      mode="cog"
+                      operationalContext={operationalContext}
+                      onAcceptCOGs={handleAICOGsSuggestions}
                     />
                     <Button onClick={addCOG}>
                       <Plus className="h-4 w-4 mr-2" />
@@ -912,33 +895,11 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                   </div>
                                   <div className="flex gap-2">
                                     <AICOGAssistant
-                                      mode="generate-capabilities"
-                                      context={{
-                                        objective: operationalContext.objective,
-                                        impactGoal: operationalContext.desired_impact,
-                                        friendlyForces: operationalContext.our_identity,
-                                        operatingEnvironment: operationalContext.operating_environment,
-                                      }}
-                                      cog={{
-                                        description: cog.description,
-                                        actor: cog.actor_category,
-                                        domain: cog.domain,
-                                        rationale: cog.rationale,
-                                      }}
-                                      onAccept={(generatedCapabilities: any[]) => {
-                                        const newCapabilities = generatedCapabilities.map((cap: any) => ({
-                                          id: crypto.randomUUID(),
-                                          cog_id: cog.id,
-                                          capability: cap.capability || '',
-                                          description: cap.description || '',
-                                          strategic_contribution: cap.strategic_contribution || '',
-                                          linked_evidence: [],
-                                        }))
-                                        setCapabilities([...capabilities, ...newCapabilities])
-                                      }}
-                                      buttonText="✨ Generate"
-                                      buttonVariant="outline"
-                                      buttonSize="sm"
+                                      mode="capabilities"
+                                      operationalContext={operationalContext}
+                                      cogDescription={cog.description}
+                                      cogRationale={cog.rationale}
+                                      onAcceptCapabilities={(caps) => handleAICapabilities(cog.id, caps)}
                                     />
                                     <Button variant="outline" size="sm" onClick={() => addCapability(cog.id)}>
                                       <Plus className="h-3 w-3 mr-1" />
@@ -1021,37 +982,10 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                   </div>
                                                   <div className="flex gap-2">
                                                     <AICOGAssistant
-                                                      mode="generate-requirements"
-                                                      context={{
-                                                        objective: operationalContext.objective,
-                                                        impactGoal: operationalContext.desired_impact,
-                                                        friendlyForces: operationalContext.our_identity,
-                                                        operatingEnvironment: operationalContext.operating_environment,
-                                                      }}
-                                                      cog={{
-                                                        description: cog.description,
-                                                        actor: cog.actor_category,
-                                                        domain: cog.domain,
-                                                        rationale: cog.rationale,
-                                                      }}
-                                                      capability={{
-                                                        capability: cap.capability,
-                                                        description: cap.description,
-                                                      }}
-                                                      onAccept={(generatedRequirements: any[]) => {
-                                                        const newRequirements = generatedRequirements.map((req: any) => ({
-                                                          id: crypto.randomUUID(),
-                                                          capability_id: cap.id,
-                                                          requirement: req.requirement || '',
-                                                          requirement_type: req.type || 'other',
-                                                          description: req.description || '',
-                                                          linked_evidence: [],
-                                                        }))
-                                                        setRequirements([...requirements, ...newRequirements])
-                                                      }}
-                                                      buttonText="✨ Generate"
-                                                      buttonVariant="outline"
-                                                      buttonSize="sm"
+                                                      mode="requirements"
+                                                      operationalContext={operationalContext}
+                                                      existingCapabilities={[cap]}
+                                                      onAcceptRequirements={(reqs) => handleAIRequirements(cap.id, reqs)}
                                                     />
                                                     <Button variant="outline" size="sm" onClick={() => addRequirement(cap.id)}>
                                                       <Plus className="h-3 w-3 mr-1" />
@@ -1135,44 +1069,10 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                   </div>
                                                                   <div className="flex gap-2">
                                                                     <AICOGAssistant
-                                                                      mode="generate-vulnerabilities"
-                                                                      context={{
-                                                                        objective: operationalContext.objective,
-                                                                        impactGoal: operationalContext.desired_impact,
-                                                                        friendlyForces: operationalContext.our_identity,
-                                                                        operatingEnvironment: operationalContext.operating_environment,
-                                                                      }}
-                                                                      cog={{
-                                                                        description: cog.description,
-                                                                        actor: cog.actor_category,
-                                                                        domain: cog.domain,
-                                                                        rationale: cog.rationale,
-                                                                      }}
-                                                                      capability={{
-                                                                        capability: cap.capability,
-                                                                        description: cap.description,
-                                                                      }}
-                                                                      requirement={{
-                                                                        requirement: req.requirement,
-                                                                        type: req.requirement_type,
-                                                                      }}
-                                                                      onAccept={(generatedVulnerabilities: any[]) => {
-                                                                        const newVulnerabilities = generatedVulnerabilities.map((vuln: any) => ({
-                                                                          id: crypto.randomUUID(),
-                                                                          requirement_id: req.id,
-                                                                          vulnerability: vuln.vulnerability || '',
-                                                                          vulnerability_type: vuln.type || 'other',
-                                                                          description: vuln.description || '',
-                                                                          feasibility_score: vuln.feasibility || 3,
-                                                                          impact_score: vuln.impact || 3,
-                                                                          composite_score: ((vuln.feasibility || 3) * (vuln.impact || 3)),
-                                                                          linked_evidence: [],
-                                                                        }))
-                                                                        setVulnerabilities([...vulnerabilities, ...newVulnerabilities])
-                                                                      }}
-                                                                      buttonText="✨ Generate"
-                                                                      buttonVariant="outline"
-                                                                      buttonSize="sm"
+                                                                      mode="vulnerabilities"
+                                                                      operationalContext={operationalContext}
+                                                                      existingRequirements={[req]}
+                                                                      onAcceptVulnerabilities={(vulns) => handleAIVulnerabilities(req.id, vulns)}
                                                                     />
                                                                     <Button variant="outline" size="sm" onClick={() => addVulnerability(req.id)}>
                                                                       <Plus className="h-3 w-3 mr-1" />
