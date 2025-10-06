@@ -394,14 +394,42 @@ The COG (Center of Gravity) Analysis framework has been successfully implemented
 - Real-time graph updates when nodes removed
 - Responsive canvas sizing (600px height)
 
-#### 3.2 PowerPoint Export (Est: 2-3 days)
-- [ ] Title slide with analysis metadata
-- [ ] Operational context slide
-- [ ] COG summary by actor
-- [ ] Vulnerability matrix (table format)
-- [ ] Network diagram slide
-- [ ] Recommendations slide
-- [ ] Customizable template
+#### 3.2 PowerPoint Export ✅ **COMPLETE** (2025-10-06)
+- [x] Title slide with analysis metadata
+- [x] Operational context slide
+- [x] COG summary by actor (color-coded slides per actor category)
+- [x] Vulnerability matrix (table format with top 10)
+- [x] Network statistics slide
+- [x] Recommendations slide (top 5 with actions)
+- [x] Professional DoD-style template
+
+**Features**:
+- **Professional Presentation**: 8-10 slides with DoD-style design
+- **Title Slide**: Analysis title, creation date, scoring system
+- **Operational Context**: All context fields formatted in table
+- **COG Slides by Actor**:
+  - Separate color-coded slide per actor category (Friendly/Adversary/Host Nation/Third Party)
+  - Each COG shown with description, domain badge, capability count, rationale
+  - Actor-specific colors (Green/Red/Blue/Gray)
+- **Vulnerability Matrix**: Top 10 vulnerabilities sorted by score
+  - Rank, vulnerability description, type, composite score
+  - Score-based color coding (Red/Orange/Green)
+- **Network Statistics**: Total counts for all node types and edges
+- **Recommendations**: Top 5 vulnerabilities with recommended actions
+- **Final Slide**: Summary with call-to-action for interactive tool
+
+**Technical Implementation**:
+- Component: `COGPowerPointExport.tsx` (430+ lines)
+- Library: `pptxgenjs@4.0.1` (already installed)
+- Professional color scheme matching DoD standards
+- Automatic slide generation based on analysis content
+- Smart truncation for long text
+- Export button in Network tab Export Options card
+
+**Output**:
+- Format: .pptx (Microsoft PowerPoint)
+- Filename: `{analysis-title}-COG-Analysis.pptx`
+- Ready for briefings and presentations
 
 #### 3.3 Excel Targeting Matrix (Est: 1-2 days)
 - [ ] Structured Excel export:
