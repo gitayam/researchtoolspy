@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { COGVulnerabilityMatrix } from '@/components/frameworks/COGVulnerabilityMatrix'
 import { COGNetworkVisualization } from '@/components/frameworks/COGNetworkVisualization'
 import { COGPowerPointExport } from '@/components/frameworks/COGPowerPointExport'
+import { COGExcelExport } from '@/components/frameworks/COGExcelExport'
 import {
   type COGAnalysis,
   type CenterOfGravity,
@@ -576,6 +577,13 @@ ${Object.entries(centralityMeasures.degree_centrality)
               </CardHeader>
               <CardContent className="space-y-2">
                 <COGPowerPointExport
+                  analysis={data}
+                  vulnerabilities={rankedVulnerabilities}
+                  edges={edgeList}
+                  variant="outline"
+                  className="w-full justify-start"
+                />
+                <COGExcelExport
                   analysis={data}
                   vulnerabilities={rankedVulnerabilities}
                   edges={edgeList}
