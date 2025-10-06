@@ -4,6 +4,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { COGAnalysis, CriticalVulnerability, NetworkEdge } from '@/types/cog-analysis'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface COGPDFExportProps {
   analysis: COGAnalysis
@@ -23,6 +24,7 @@ export function COGPDFExport({
   className
 }: COGPDFExportProps) {
   const [exporting, setExporting] = useState(false)
+  const { t } = useTranslation(['cog', 'common'])
 
   const handleExport = async () => {
     setExporting(true)
@@ -80,8 +82,8 @@ export function COGPDFExport({
       pdf.setFontSize(24)
       pdf.setTextColor(255, 255, 255)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('CENTER OF GRAVITY', pageWidth / 2, 35, { align: 'center' })
-      pdf.text('ANALYSIS REPORT', pageWidth / 2, 50, { align: 'center' })
+      pdf.text(t('cog:export.pdf.cover.title'), pageWidth / 2, 35, { align: 'center' })
+      pdf.text(t('cog:export.pdf.cover.subtitle'), pageWidth / 2, 50, { align: 'center' })
 
       pdf.setFontSize(14)
       pdf.setFont('helvetica', 'normal')
@@ -92,19 +94,19 @@ export function COGPDFExport({
       pdf.setFontSize(12)
       pdf.setTextColor(...colors.text)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('CLASSIFICATION:', margin, currentY)
+      pdf.text(t('cog:export.pdf.cover.classification'), margin, currentY)
       pdf.setFont('helvetica', 'normal')
-      pdf.text('UNCLASSIFIED', margin + 50, currentY)
+      pdf.text(t('cog:export.pdf.cover.unclassified'), margin + 50, currentY)
 
       currentY += 10
       pdf.setFont('helvetica', 'bold')
-      pdf.text('DATE:', margin, currentY)
+      pdf.text(t('cog:export.pdf.cover.date'), margin, currentY)
       pdf.setFont('helvetica', 'normal')
       pdf.text(new Date(analysis.created_at).toLocaleDateString(), margin + 50, currentY)
 
       currentY += 10
       pdf.setFont('helvetica', 'bold')
-      pdf.text('SCORING SYSTEM:', margin, currentY)
+      pdf.text(t('cog:export.pdf.cover.scoringSystem'), margin, currentY)
       pdf.setFont('helvetica', 'normal')
       pdf.text(analysis.scoring_system.toUpperCase(), margin + 50, currentY)
 
@@ -128,7 +130,7 @@ export function COGPDFExport({
       pdf.setFontSize(18)
       pdf.setTextColor(...colors.primary)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('EXECUTIVE SUMMARY', margin, currentY)
+      pdf.text(t('cog:export.pdf.sections.executiveSummary'), margin, currentY)
       currentY += 12
 
       pdf.setFontSize(11)
@@ -208,7 +210,7 @@ export function COGPDFExport({
       pdf.setFontSize(18)
       pdf.setTextColor(...colors.primary)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('1. OPERATIONAL CONTEXT', margin, currentY)
+      pdf.text(t('cog:export.pdf.sections.operationalContext'), margin, currentY)
       currentY += 12
 
       pdf.setFontSize(11)
@@ -244,15 +246,15 @@ export function COGPDFExport({
       pdf.setFontSize(18)
       pdf.setTextColor(...colors.primary)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('2. CENTER OF GRAVITY ANALYSIS', margin, currentY)
+      pdf.text(t('cog:export.pdf.sections.cogAnalysis'), margin, currentY)
       currentY += 12
 
       const actorCategories = ['friendly', 'adversary', 'host_nation', 'third_party'] as const
       const actorLabels = {
-        friendly: 'Friendly Forces',
-        adversary: 'Adversary',
-        host_nation: 'Host Nation',
-        third_party: 'Third Party',
+        friendly: t('cog:actorCategories.friendly'),
+        adversary: t('cog:actorCategories.adversary'),
+        host_nation: t('cog:actorCategories.hostNation'),
+        third_party: t('cog:actorCategories.thirdParty'),
       }
 
       actorCategories.forEach(actor => {
@@ -278,12 +280,12 @@ export function COGPDFExport({
 
           pdf.setFontSize(10)
           pdf.setFont('helvetica', 'normal')
-          pdf.text(`Domain: ${cog.domain}`, margin + 10, currentY)
+          pdf.text(`${t('cog:export.pdf.cogLabels.domain')} ${cog.domain}`, margin + 10, currentY)
           currentY += 6
 
           if (cog.rationale) {
             pdf.setFont('helvetica', 'italic')
-            const rationaleText = pdf.splitTextToSize(`Rationale: ${cog.rationale}`, pageWidth - 2 * margin - 15)
+            const rationaleText = pdf.splitTextToSize(`${t('cog:export.pdf.cogLabels.rationale')} ${cog.rationale}`, pageWidth - 2 * margin - 15)
             pdf.text(rationaleText, margin + 10, currentY)
             currentY += (rationaleText.length * 5) + 5
           }
@@ -294,7 +296,7 @@ export function COGPDFExport({
             checkNewPage(30)
 
             pdf.setFont('helvetica', 'bold')
-            pdf.text('Critical Capabilities:', margin + 10, currentY)
+            pdf.text(`${t('cog:export.pdf.cogLabels.capabilities')}`, margin + 10, currentY)
             currentY += 6
 
             relatedCaps.forEach((cap, capIdx) => {
@@ -320,7 +322,7 @@ export function COGPDFExport({
       pdf.setFontSize(18)
       pdf.setTextColor(...colors.primary)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('3. VULNERABILITY ASSESSMENT', margin, currentY)
+      pdf.text(t('cog:export.pdf.sections.vulnerabilityAssessment'), margin, currentY)
       currentY += 12
 
       pdf.setFontSize(11)
@@ -349,7 +351,13 @@ export function COGPDFExport({
 
       autoTable(pdf, {
         startY: currentY,
-        head: [['#', 'Vulnerability', 'COG', 'Score', 'Type']],
+        head: [[
+          t('cog:export.pdf.vulnerabilityLabels.rank'),
+          t('cog:export.pdf.vulnerabilityLabels.vulnerability'),
+          t('cog:export.pdf.vulnerabilityLabels.cog'),
+          t('cog:export.pdf.vulnerabilityLabels.score'),
+          'Type'
+        ]],
         body: vulnTableData,
         theme: 'grid',
         headStyles: {
@@ -392,7 +400,7 @@ export function COGPDFExport({
       pdf.setFontSize(18)
       pdf.setTextColor(...colors.primary)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('4. RECOMMENDATIONS', margin, currentY)
+      pdf.text(t('cog:export.pdf.sections.recommendations'), margin, currentY)
       currentY += 12
 
       pdf.setFontSize(11)
@@ -438,7 +446,7 @@ export function COGPDFExport({
       pdf.setFontSize(18)
       pdf.setTextColor(...colors.primary)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('APPENDIX A - OPORD INTEGRATION', margin, currentY)
+      pdf.text(t('cog:export.pdf.sections.opordIntegration'), margin, currentY)
       currentY += 12
 
       pdf.setFontSize(11)
@@ -509,12 +517,12 @@ export function COGPDFExport({
       {exporting ? (
         <>
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          Generating...
+          {t('cog:export.pdf.generating')}
         </>
       ) : (
         <>
           <FileText className="h-4 w-4 mr-2" />
-          Export PDF Report
+          {t('cog:export.pdf.button')}
         </>
       )}
     </Button>

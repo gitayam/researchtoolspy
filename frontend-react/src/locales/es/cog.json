@@ -1,0 +1,314 @@
+{
+  "title": "Análisis de Centro de Gravedad",
+  "subtitle": "Planificación Estratégica y Focalización",
+
+  "operationalContext": {
+    "title": "Contexto Operacional",
+    "objective": "Objetivo del Análisis",
+    "desiredImpact": "Impacto Deseado",
+    "ourIdentity": "Nuestra Identidad",
+    "environment": "Entorno Operativo",
+    "constraints": "Restricciones/Limitaciones",
+    "timeframe": "Marco Temporal Operacional",
+    "strategicLevel": "Nivel Estratégico"
+  },
+
+  "cog": {
+    "title": "Centro de Gravedad",
+    "titlePlural": "Centros de Gravedad",
+    "description": "Descripción del COG",
+    "rationale": "Justificación del COG",
+    "validation": "Notas de Validación",
+    "actorCategory": "Categoría de Actor",
+    "domain": "Dominio"
+  },
+
+  "capabilities": {
+    "title": "Capacidades Críticas",
+    "singular": "Capacidad Crítica",
+    "description": "Descripción de la Capacidad",
+    "strategicContribution": "Contribución Estratégica",
+    "howItWorks": "Cómo Funciona"
+  },
+
+  "requirements": {
+    "title": "Requisitos Críticos",
+    "singular": "Requisito Crítico",
+    "description": "Descripción del Requisito",
+    "whyNeeded": "Por Qué Es Necesario",
+    "linkToCapability": "Enlaces a Capacidad"
+  },
+
+  "vulnerabilities": {
+    "title": "Vulnerabilidades Críticas",
+    "singular": "Vulnerabilidad Crítica",
+    "description": "Descripción de la Vulnerabilidad",
+    "rationale": "Justificación de la Vulnerabilidad",
+    "confidence": "Nivel de Confianza",
+    "recommendedActions": "Acciones Recomendadas",
+    "top10": "LAS 10 PRINCIPALES VULNERABILIDADES",
+    "assessment": "EVALUACIÓN DE VULNERABILIDADES",
+    "matrix": "MATRIZ DE VULNERABILIDADES"
+  },
+
+  "actorCategories": {
+    "friendly": "Fuerzas Amigas",
+    "adversary": "Adversario",
+    "hostNation": "Nación Anfitriona",
+    "thirdParty": "Terceros"
+  },
+
+  "domains": {
+    "diplomatic": "Diplomático",
+    "information": "Información",
+    "military": "Militar",
+    "economic": "Económico",
+    "financial": "Financiero",
+    "intelligence": "Inteligencia",
+    "lawEnforcement": "Aplicación de la Ley",
+    "cyber": "Cibernético",
+    "space": "Espacial"
+  },
+
+  "scoring": {
+    "impact": "Impacto en el COG",
+    "attainability": "Alcanzabilidad",
+    "followUp": "Potencial de Seguimiento",
+    "composite": "Puntuación Compuesta",
+    "priority": "Prioridad",
+    "system": "Sistema de Puntuación",
+    "linear": "Lineal (1-5)",
+    "logarithmic": "Logarítmico (1,3,5,8,12)",
+    "custom": "Personalizado"
+  },
+
+  "export": {
+    "title": "Exportar Análisis",
+    "selectFormat": "Seleccionar Formato de Exportación",
+
+    "powerpoint": {
+      "button": "Exportar a PowerPoint",
+      "generating": "Generando PowerPoint...",
+      "filename": "Análisis_COG_{{date}}.pptx",
+
+      "slides": {
+        "title": "ANÁLISIS DE CENTRO DE GRAVEDAD",
+        "subtitle": "Planificación Estratégica y Focalización",
+        "executiveSummary": "RESUMEN EJECUTIVO",
+        "operationalContext": "CONTEXTO OPERACIONAL",
+        "cogAnalysis": "ANÁLISIS DE CENTRO DE GRAVEDAD",
+        "cogByActor": "ANÁLISIS COG POR ACTOR",
+        "vulnerabilityMatrix": "MATRIZ DE VULNERABILIDADES",
+        "networkAnalysis": "ANÁLISIS DE RED",
+        "recommendations": "RECOMENDACIONES",
+        "nextSteps": "PRÓXIMOS PASOS"
+      },
+
+      "labels": {
+        "classification": "CLASIFICACIÓN:",
+        "unclassified": "NO CLASIFICADO",
+        "date": "FECHA:",
+        "scoringSystem": "SISTEMA DE PUNTUACIÓN:",
+        "totalCOGs": "Total de COGs:",
+        "totalVulnerabilities": "Total de Vulnerabilidades:",
+        "highPriority": "Objetivos de Alta Prioridad:",
+        "cog": "COG:",
+        "capabilities": "Capacidades:",
+        "requirements": "Requisitos:",
+        "vulnerabilities": "Vulnerabilidades:",
+        "score": "Puntuación:",
+        "actions": "Acciones Recomendadas:"
+      }
+    },
+
+    "excel": {
+      "button": "Exportar a Excel",
+      "generating": "Generando libro de Excel...",
+      "filename": "Matriz_Focalización_COG_{{date}}.xlsx",
+
+      "sheets": {
+        "targetingMatrix": "Matriz de Focalización",
+        "cogSummary": "Resumen COG",
+        "analysisSummary": "Resumen del Análisis"
+      },
+
+      "headers": {
+        "priority": "Prioridad",
+        "vulnerability": "Vulnerabilidad",
+        "cog": "COG",
+        "actor": "Actor",
+        "domain": "Dominio",
+        "type": "Tipo",
+        "impact": "Impacto",
+        "attainability": "Alcanzabilidad",
+        "followUp": "Seguimiento",
+        "composite": "Punt. Compuesta",
+        "confidence": "Confianza",
+        "actions": "Acciones Recomendadas",
+        "capability": "Capacidad",
+        "requirement": "Requisito",
+        "status": "Estado",
+        "description": "Descripción",
+        "rationale": "Justificación"
+      },
+
+      "sections": {
+        "operationalContext": "CONTEXTO OPERACIONAL",
+        "statistics": "ESTADÍSTICAS",
+        "topVulnerabilities": "LAS 10 PRINCIPALES VULNERABILIDADES",
+        "allCOGs": "TODOS LOS CENTROS DE GRAVEDAD"
+      }
+    },
+
+    "pdf": {
+      "button": "Exportar Informe PDF",
+      "generating": "Generando informe PDF...",
+      "filename": "Informe_Análisis_COG_{{date}}.pdf",
+
+      "cover": {
+        "title": "CENTRO DE GRAVEDAD",
+        "subtitle": "INFORME DE ANÁLISIS",
+        "classification": "CLASIFICACIÓN:",
+        "unclassified": "NO CLASIFICADO",
+        "date": "FECHA:",
+        "scoringSystem": "SISTEMA DE PUNTUACIÓN:",
+        "preparedBy": "PREPARADO POR:",
+        "toolName": "Herramienta de Análisis COG"
+      },
+
+      "sections": {
+        "executiveSummary": "RESUMEN EJECUTIVO",
+        "operationalContext": "1. CONTEXTO OPERACIONAL",
+        "cogAnalysis": "2. ANÁLISIS DE CENTRO DE GRAVEDAD",
+        "vulnerabilityAssessment": "3. EVALUACIÓN DE VULNERABILIDADES",
+        "recommendations": "4. RECOMENDACIONES",
+        "conclusion": "5. CONCLUSIÓN",
+        "opordIntegration": "APÉNDICE A - INTEGRACIÓN OPORD"
+      },
+
+      "summaryLabels": {
+        "totalCOGs": "Total de Centros de Gravedad:",
+        "totalVulnerabilities": "Total de Vulnerabilidades Identificadas:",
+        "criticalVulnerabilities": "Críticas (Puntuación ≥12):",
+        "highPriority": "Alta Prioridad (Puntuación ≥9):",
+        "mediumPriority": "Prioridad Media (Puntuación ≥6):",
+        "topVulnerabilities": "Las 5 Principales Vulnerabilidades para Focalizar:"
+      },
+
+      "contextLabels": {
+        "objective": "Objetivo:",
+        "impact": "Impacto Deseado:",
+        "identity": "Nuestra Identidad:",
+        "environment": "Entorno:",
+        "constraints": "Restricciones:",
+        "timeframe": "Marco Temporal:",
+        "level": "Nivel Estratégico:"
+      },
+
+      "cogLabels": {
+        "actor": "Actor:",
+        "domain": "Dominio:",
+        "description": "Descripción:",
+        "rationale": "Justificación:",
+        "validation": "Validación:",
+        "capabilities": "Capacidades Críticas:",
+        "requirements": "Requisitos Críticos:",
+        "vulnerabilities": "Vulnerabilidades Críticas:"
+      },
+
+      "vulnerabilityLabels": {
+        "rank": "Rango",
+        "vulnerability": "Vulnerabilidad",
+        "cog": "COG Asociado",
+        "score": "Puntuación",
+        "confidence": "Confianza",
+        "actions": "Acciones Recomendadas",
+        "high": "Alta",
+        "medium": "Media",
+        "low": "Baja"
+      },
+
+      "opord": {
+        "title": "Orientación para Integración OPORD",
+        "targetingSection": "Orientación de Focalización (Párrafo 3)",
+        "targetingText": "Las siguientes vulnerabilidades están priorizadas para el compromiso basado en puntuación compuesta:",
+        "tasksSection": "Tareas a Unidades Subordinadas (Párrafo 3)",
+        "tasksText": "Las unidades deben planificar operaciones para explotar vulnerabilidades identificadas en orden de prioridad.",
+        "coordinatingSection": "Instrucciones de Coordinación (Párrafo 3)",
+        "coordinatingText": "Se requiere evaluación continua de vulnerabilidades COG durante toda la operación.",
+        "annexD": "Anexo D (Fuegos)",
+        "annexDText": "Matriz de focalización incluida como adjunto al Anexo de Fuegos."
+      }
+    },
+
+    "network": {
+      "title": "Visualización de Red",
+      "controls": {
+        "zoomIn": "Acercar",
+        "zoomOut": "Alejar",
+        "fitView": "Ajustar Vista",
+        "reset": "Restablecer",
+        "toggleLabels": "Alternar Etiquetas",
+        "exportPNG": "Exportar como PNG"
+      },
+
+      "simulation": {
+        "title": "Modo de Simulación '¿Qué Pasaría Si?'",
+        "enable": "Habilitar Simulación",
+        "disable": "Deshabilitar Simulación",
+        "instructions": "Haga clic en los nodos para eliminar y ver efectos en cascada",
+        "reset": "Restablecer Simulación"
+      },
+
+      "statistics": {
+        "title": "Estadísticas de Red",
+        "totalNodes": "Total de Nodos:",
+        "totalEdges": "Total de Enlaces:",
+        "cogs": "COGs:",
+        "capabilities": "Capacidades:",
+        "requirements": "Requisitos:",
+        "vulnerabilities": "Vulnerabilidades:",
+        "removedNodes": "Nodos Eliminados:"
+      },
+
+      "nodeInfo": {
+        "selectedNode": "Nodo Seleccionado",
+        "type": "Tipo:",
+        "connections": "Conexiones:",
+        "details": "Detalles"
+      },
+
+      "legend": {
+        "title": "Leyenda",
+        "cog": "Centro de Gravedad",
+        "capability": "Capacidad Crítica",
+        "requirement": "Requisito Crítico",
+        "vulnerability": "Vulnerabilidad Crítica"
+      },
+
+      "tooltips": {
+        "clickToSelect": "Haga clic para seleccionar",
+        "clickToRemove": "Haga clic para eliminar (modo simulación)",
+        "dragToPan": "Arrastre para desplazar, desplácese para hacer zoom",
+        "doubleClickReset": "Doble clic para restablecer vista"
+      }
+    }
+  },
+
+  "common": {
+    "loading": "Cargando...",
+    "generating": "Generando...",
+    "success": "¡Éxito!",
+    "error": "Error",
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "export": "Exportar",
+    "download": "Descargar",
+    "date": "Fecha",
+    "status": "Estado",
+    "none": "Ninguno",
+    "notAvailable": "N/D",
+    "total": "Total"
+  }
+}

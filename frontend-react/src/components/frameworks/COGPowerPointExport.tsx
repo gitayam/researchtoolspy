@@ -3,6 +3,7 @@ import { Presentation, Loader2 } from 'lucide-react'
 import pptxgen from 'pptxgenjs'
 import type { COGAnalysis, CenterOfGravity, CriticalVulnerability, NetworkEdge } from '@/types/cog-analysis'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface COGPowerPointExportProps {
   analysis: COGAnalysis
@@ -22,6 +23,7 @@ export function COGPowerPointExport({
   className
 }: COGPowerPointExportProps) {
   const [exporting, setExporting] = useState(false)
+  const { t } = useTranslation(['cog', 'common'])
 
   const handleExport = async () => {
     setExporting(true)
@@ -47,7 +49,7 @@ export function COGPowerPointExport({
       const slide1 = pptx.addSlide()
       slide1.background = { color: colors.primary }
 
-      slide1.addText('CENTER OF GRAVITY ANALYSIS', {
+      slide1.addText(t('cog:export.powerpoint.slides.title'), {
         x: 0.5,
         y: 1.5,
         w: 9,
@@ -92,7 +94,7 @@ export function COGPowerPointExport({
 
       // ===== SLIDE 2: Operational Context =====
       const slide2 = pptx.addSlide()
-      slide2.addText('OPERATIONAL CONTEXT', {
+      slide2.addText(t('cog:export.powerpoint.slides.operationalContext'), {
         x: 0.5,
         y: 0.3,
         w: 9,
@@ -136,10 +138,10 @@ export function COGPowerPointExport({
       // ===== SLIDES 3-6: COGs by Actor Category =====
       const actorCategories = ['friendly', 'adversary', 'host_nation', 'third_party'] as const
       const actorLabels = {
-        friendly: 'FRIENDLY FORCES',
-        adversary: 'ADVERSARY',
-        host_nation: 'HOST NATION',
-        third_party: 'THIRD PARTY',
+        friendly: t('cog:actorCategories.friendly').toUpperCase(),
+        adversary: t('cog:actorCategories.adversary').toUpperCase(),
+        host_nation: t('cog:actorCategories.hostNation').toUpperCase(),
+        third_party: t('cog:actorCategories.thirdParty').toUpperCase(),
       }
       const actorColors = {
         friendly: '10B981', // green
@@ -449,12 +451,12 @@ export function COGPowerPointExport({
       {exporting ? (
         <>
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          Generating...
+          {t('cog:export.powerpoint.generating')}
         </>
       ) : (
         <>
           <Presentation className="h-4 w-4 mr-2" />
-          Export PowerPoint
+          {t('cog:export.powerpoint.button')}
         </>
       )}
     </Button>

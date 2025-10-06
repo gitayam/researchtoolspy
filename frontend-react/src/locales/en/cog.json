@@ -1,0 +1,314 @@
+{
+  "title": "Center of Gravity Analysis",
+  "subtitle": "Strategic Planning & Targeting",
+
+  "operationalContext": {
+    "title": "Operational Context",
+    "objective": "Analysis Objective",
+    "desiredImpact": "Desired Impact",
+    "ourIdentity": "Our Identity",
+    "environment": "Operating Environment",
+    "constraints": "Constraints/Restraints",
+    "timeframe": "Operational Timeframe",
+    "strategicLevel": "Strategic Level"
+  },
+
+  "cog": {
+    "title": "Center of Gravity",
+    "titlePlural": "Centers of Gravity",
+    "description": "COG Description",
+    "rationale": "COG Rationale",
+    "validation": "Validation Notes",
+    "actorCategory": "Actor Category",
+    "domain": "Domain"
+  },
+
+  "capabilities": {
+    "title": "Critical Capabilities",
+    "singular": "Critical Capability",
+    "description": "Capability Description",
+    "strategicContribution": "Strategic Contribution",
+    "howItWorks": "How It Works"
+  },
+
+  "requirements": {
+    "title": "Critical Requirements",
+    "singular": "Critical Requirement",
+    "description": "Requirement Description",
+    "whyNeeded": "Why Needed",
+    "linkToCapability": "Links to Capability"
+  },
+
+  "vulnerabilities": {
+    "title": "Critical Vulnerabilities",
+    "singular": "Critical Vulnerability",
+    "description": "Vulnerability Description",
+    "rationale": "Vulnerability Rationale",
+    "confidence": "Confidence Level",
+    "recommendedActions": "Recommended Actions",
+    "top10": "TOP 10 VULNERABILITIES",
+    "assessment": "VULNERABILITY ASSESSMENT",
+    "matrix": "VULNERABILITY MATRIX"
+  },
+
+  "actorCategories": {
+    "friendly": "Friendly Forces",
+    "adversary": "Adversary",
+    "hostNation": "Host Nation",
+    "thirdParty": "Third Party"
+  },
+
+  "domains": {
+    "diplomatic": "Diplomatic",
+    "information": "Information",
+    "military": "Military",
+    "economic": "Economic",
+    "financial": "Financial",
+    "intelligence": "Intelligence",
+    "lawEnforcement": "Law Enforcement",
+    "cyber": "Cyber",
+    "space": "Space"
+  },
+
+  "scoring": {
+    "impact": "Impact on COG",
+    "attainability": "Attainability",
+    "followUp": "Follow-Up Potential",
+    "composite": "Composite Score",
+    "priority": "Priority",
+    "system": "Scoring System",
+    "linear": "Linear (1-5)",
+    "logarithmic": "Logarithmic (1,3,5,8,12)",
+    "custom": "Custom"
+  },
+
+  "export": {
+    "title": "Export Analysis",
+    "selectFormat": "Select Export Format",
+
+    "powerpoint": {
+      "button": "Export to PowerPoint",
+      "generating": "Generating PowerPoint...",
+      "filename": "COG_Analysis_{{date}}.pptx",
+
+      "slides": {
+        "title": "CENTER OF GRAVITY ANALYSIS",
+        "subtitle": "Strategic Planning & Targeting",
+        "executiveSummary": "EXECUTIVE SUMMARY",
+        "operationalContext": "OPERATIONAL CONTEXT",
+        "cogAnalysis": "CENTER OF GRAVITY ANALYSIS",
+        "cogByActor": "COG ANALYSIS BY ACTOR",
+        "vulnerabilityMatrix": "VULNERABILITY MATRIX",
+        "networkAnalysis": "NETWORK ANALYSIS",
+        "recommendations": "RECOMMENDATIONS",
+        "nextSteps": "NEXT STEPS"
+      },
+
+      "labels": {
+        "classification": "CLASSIFICATION:",
+        "unclassified": "UNCLASSIFIED",
+        "date": "DATE:",
+        "scoringSystem": "SCORING SYSTEM:",
+        "totalCOGs": "Total COGs:",
+        "totalVulnerabilities": "Total Vulnerabilities:",
+        "highPriority": "High Priority Targets:",
+        "cog": "COG:",
+        "capabilities": "Capabilities:",
+        "requirements": "Requirements:",
+        "vulnerabilities": "Vulnerabilities:",
+        "score": "Score:",
+        "actions": "Recommended Actions:"
+      }
+    },
+
+    "excel": {
+      "button": "Export to Excel",
+      "generating": "Generating Excel workbook...",
+      "filename": "COG_Targeting_Matrix_{{date}}.xlsx",
+
+      "sheets": {
+        "targetingMatrix": "Targeting Matrix",
+        "cogSummary": "COG Summary",
+        "analysisSummary": "Analysis Summary"
+      },
+
+      "headers": {
+        "priority": "Priority",
+        "vulnerability": "Vulnerability",
+        "cog": "COG",
+        "actor": "Actor",
+        "domain": "Domain",
+        "type": "Type",
+        "impact": "Impact",
+        "attainability": "Attainability",
+        "followUp": "Follow-Up",
+        "composite": "Composite Score",
+        "confidence": "Confidence",
+        "actions": "Recommended Actions",
+        "capability": "Capability",
+        "requirement": "Requirement",
+        "status": "Status",
+        "description": "Description",
+        "rationale": "Rationale"
+      },
+
+      "sections": {
+        "operationalContext": "OPERATIONAL CONTEXT",
+        "statistics": "STATISTICS",
+        "topVulnerabilities": "TOP 10 VULNERABILITIES",
+        "allCOGs": "ALL CENTERS OF GRAVITY"
+      }
+    },
+
+    "pdf": {
+      "button": "Export PDF Report",
+      "generating": "Generating PDF report...",
+      "filename": "COG_Analysis_Report_{{date}}.pdf",
+
+      "cover": {
+        "title": "CENTER OF GRAVITY",
+        "subtitle": "ANALYSIS REPORT",
+        "classification": "CLASSIFICATION:",
+        "unclassified": "UNCLASSIFIED",
+        "date": "DATE:",
+        "scoringSystem": "SCORING SYSTEM:",
+        "preparedBy": "PREPARED BY:",
+        "toolName": "COG Analysis Tool"
+      },
+
+      "sections": {
+        "executiveSummary": "EXECUTIVE SUMMARY",
+        "operationalContext": "1. OPERATIONAL CONTEXT",
+        "cogAnalysis": "2. CENTER OF GRAVITY ANALYSIS",
+        "vulnerabilityAssessment": "3. VULNERABILITY ASSESSMENT",
+        "recommendations": "4. RECOMMENDATIONS",
+        "conclusion": "5. CONCLUSION",
+        "opordIntegration": "APPENDIX A - OPORD INTEGRATION"
+      },
+
+      "summaryLabels": {
+        "totalCOGs": "Total Centers of Gravity:",
+        "totalVulnerabilities": "Total Vulnerabilities Identified:",
+        "criticalVulnerabilities": "Critical (Score ≥12):",
+        "highPriority": "High Priority (Score ≥9):",
+        "mediumPriority": "Medium Priority (Score ≥6):",
+        "topVulnerabilities": "Top 5 Vulnerabilities for Targeting:"
+      },
+
+      "contextLabels": {
+        "objective": "Objective:",
+        "impact": "Desired Impact:",
+        "identity": "Our Identity:",
+        "environment": "Environment:",
+        "constraints": "Constraints:",
+        "timeframe": "Timeframe:",
+        "level": "Strategic Level:"
+      },
+
+      "cogLabels": {
+        "actor": "Actor:",
+        "domain": "Domain:",
+        "description": "Description:",
+        "rationale": "Rationale:",
+        "validation": "Validation:",
+        "capabilities": "Critical Capabilities:",
+        "requirements": "Critical Requirements:",
+        "vulnerabilities": "Critical Vulnerabilities:"
+      },
+
+      "vulnerabilityLabels": {
+        "rank": "Rank",
+        "vulnerability": "Vulnerability",
+        "cog": "Associated COG",
+        "score": "Score",
+        "confidence": "Confidence",
+        "actions": "Recommended Actions",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+
+      "opord": {
+        "title": "OPORD Integration Guidance",
+        "targetingSection": "Targeting Guidance (Paragraph 3)",
+        "targetingText": "The following vulnerabilities are prioritized for engagement based on composite scoring:",
+        "tasksSection": "Tasks to Subordinate Units (Paragraph 3)",
+        "tasksText": "Units should plan operations to exploit identified vulnerabilities in priority order.",
+        "coordinatingSection": "Coordinating Instructions (Paragraph 3)",
+        "coordinatingText": "Continuous assessment of COG vulnerabilities required throughout operation.",
+        "annexD": "Annex D (Fires)",
+        "annexDText": "Targeting matrix included as attachment to Fires Annex."
+      }
+    },
+
+    "network": {
+      "title": "Network Visualization",
+      "controls": {
+        "zoomIn": "Zoom In",
+        "zoomOut": "Zoom Out",
+        "fitView": "Fit View",
+        "reset": "Reset",
+        "toggleLabels": "Toggle Labels",
+        "exportPNG": "Export as PNG"
+      },
+
+      "simulation": {
+        "title": "What If? Simulation Mode",
+        "enable": "Enable Simulation",
+        "disable": "Disable Simulation",
+        "instructions": "Click nodes to remove and see cascade effects",
+        "reset": "Reset Simulation"
+      },
+
+      "statistics": {
+        "title": "Network Statistics",
+        "totalNodes": "Total Nodes:",
+        "totalEdges": "Total Edges:",
+        "cogs": "COGs:",
+        "capabilities": "Capabilities:",
+        "requirements": "Requirements:",
+        "vulnerabilities": "Vulnerabilities:",
+        "removedNodes": "Removed Nodes:"
+      },
+
+      "nodeInfo": {
+        "selectedNode": "Selected Node",
+        "type": "Type:",
+        "connections": "Connections:",
+        "details": "Details"
+      },
+
+      "legend": {
+        "title": "Legend",
+        "cog": "Center of Gravity",
+        "capability": "Critical Capability",
+        "requirement": "Critical Requirement",
+        "vulnerability": "Critical Vulnerability"
+      },
+
+      "tooltips": {
+        "clickToSelect": "Click to select",
+        "clickToRemove": "Click to remove (simulation mode)",
+        "dragToPan": "Drag to pan, scroll to zoom",
+        "doubleClickReset": "Double-click to reset view"
+      }
+    }
+  },
+
+  "common": {
+    "loading": "Loading...",
+    "generating": "Generating...",
+    "success": "Success!",
+    "error": "Error",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "export": "Export",
+    "download": "Download",
+    "date": "Date",
+    "status": "Status",
+    "none": "None",
+    "notAvailable": "N/A",
+    "total": "Total"
+  }
+}
