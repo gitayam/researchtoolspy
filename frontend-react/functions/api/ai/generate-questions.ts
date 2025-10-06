@@ -177,6 +177,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 - Identify information gaps that need further investigation
 - Are concrete and actionable (not generic or broad)
 - Are NOT duplicates of existing questions
+- Include specific names, dates, entities, and events (NEVER use "this", "it", "the topic", etc.)
+- Are self-contained and understandable without additional context
 
 Existing Analysis:
 ${existingQuestions}
@@ -184,9 +186,14 @@ ${existingQuestions}
 ${analysisContext ? `Analysis Context/Description: ${analysisContext}` : ''}
 
 Generate exactly 2 specific, contextual follow-up questions for each category. Each question must:
-- Reference specific aspects mentioned in the existing analysis
+- Reference specific aspects mentioned in the existing analysis by name
+- Include specific entities, dates, events, or topics (avoid all pronouns)
 - Dig deeper into unanswered details
 - Be precise and actionable
+- Stand alone without requiring the reader to see the original analysis
+
+Example GOOD question: "What economic sanctions did the European Union impose on Russian energy exports following the February 2022 invasion of Ukraine?"
+Example BAD question: "What sanctions were imposed?" (too vague, missing context)
 
 Return ONLY valid JSON in this exact format:
 ${jsonFormat}`
@@ -197,9 +204,14 @@ ${analysisContext || 'No description provided'}
 
 Generate exactly 3 specific, insightful questions for each category. Each question must:
 - Be directly related to the topic described
+- Include specific names, dates, entities, and events from the topic (NEVER use "this topic", "it", "the subject", etc.)
+- Be self-contained and understandable without seeing the topic description
 - Be specific and actionable (not generic)
 - Help uncover critical information about the topic
 - Be appropriate for the category (${categoryDescList})
+
+Example GOOD question: "What military capabilities did China deploy in the South China Sea between 2020-2023 according to U.S. Department of Defense assessments?"
+Example BAD question: "What capabilities were deployed?" (too vague, missing context)
 
 Return ONLY valid JSON in this exact format:
 ${jsonFormat}`
@@ -230,8 +242,8 @@ ${jsonFormat}`
           {
             role: 'system',
             content: hasExistingQuestions
-              ? 'You are an expert intelligence analyst specializing in identifying critical information gaps. Generate SPECIFIC, CONTEXTUAL follow-up questions that build upon existing analysis. Your questions must be concrete, actionable, and reference specific details from the analysis - never generic or broad. Return ONLY valid JSON with no other text.'
-              : 'You are an expert intelligence analyst specializing in generating insightful questions for analysis. Generate SPECIFIC, TARGETED initial questions based on the topic description. Your questions must be concrete, actionable, and directly related to the topic - never generic or broad. Return ONLY valid JSON with no other text.'
+              ? 'You are an expert intelligence analyst specializing in identifying critical information gaps. Generate SPECIFIC, CONTEXTUAL follow-up questions that build upon existing analysis. CRITICAL: Your questions must include specific names, dates, entities, and events - NEVER use pronouns like "this", "it", "the topic". Questions must be self-contained and understandable without seeing the original analysis. Be concrete, actionable, and reference specific details by name. Return ONLY valid JSON with no other text.'
+              : 'You are an expert intelligence analyst specializing in generating insightful questions for analysis. Generate SPECIFIC, TARGETED initial questions based on the topic description. CRITICAL: Your questions must include specific names, dates, entities, and events from the topic - NEVER use pronouns like "this", "it", "the subject". Questions must be self-contained and understandable without seeing the topic description. Be concrete, actionable, and directly related to the topic. Return ONLY valid JSON with no other text.'
           },
           {
             role: 'user',
