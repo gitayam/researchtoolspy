@@ -13,7 +13,6 @@
     "wrangler:deploy": "npm run build && wrangler pages deploy dist --project-name=researchtoolspy"
   },
   "dependencies": {
-    "@aduptive/instagram-scraper": "^1.0.3",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-avatar": "^1.1.10",

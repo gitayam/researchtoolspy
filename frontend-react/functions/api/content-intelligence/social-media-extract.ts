@@ -9,11 +9,11 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { InstagramScraper } from '@aduptive/instagram-scraper'
 
 interface Env {
   DB: D1Database
   OPENAI_API_KEY: string
+  CACHE: KVNamespace
 }
 
 interface SocialMediaExtractRequest {
@@ -51,6 +51,93 @@ interface SocialMediaExtractionResult {
   error?: string
 }
 
+// ========================================
+// Helper Functions
+// ========================================
+
+/**
+ * Fetch with retry and exponential backoff
+ */
+async function fetchWithRetry<T>(
+  fetcher: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fetcher()
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+
+      const delay = baseDelay * Math.pow(2, attempt)
+      console.log(`[Retry] Attempt ${attempt + 1} failed, retrying in ${delay}ms`)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+
+  throw new Error('Max retries exceeded')
+}
+
+/**
+ * Get cached result or fetch fresh
+ */
+async function getCached<T>(
+  cache: KVNamespace | undefined,
+  key: string,
+  ttl: number,
+  fetcher: () => Promise<T>
+): Promise<T> {
+  // If no cache available, just fetch
+  if (!cache) {
+    return await fetcher()
+  }
+
+  // Try cache first
+  try {
+    const cached = await cache.get(key)
+    if (cached) {
+      console.log(`[Cache HIT] ${key}`)
+      return JSON.parse(cached) as T
+    }
+  } catch (cacheError) {
+    console.warn('[Cache] Read error:', cacheError)
+  }
+
+  // Cache miss - fetch fresh
+  console.log(`[Cache MISS] ${key}`)
+  const result = await fetcher()
+
+  // Store in cache
+  try {
+    await cache.put(key, JSON.stringify(result), {
+      expirationTtl: ttl
+    })
+  } catch (cacheError) {
+    console.warn('[Cache] Write error:', cacheError)
+  }
+
+  return result
+}
+
+/**
+ * Create user-friendly error result
+ */
+function createUserFriendlyError(
+  platform: string,
+  technicalError: string,
+  userMessage: string
+): SocialMediaExtractionResult {
+  return {
+    success: false,
+    platform,
+    error: userMessage,
+    metadata: {
+      technicalDetails: technicalError,
+      timestamp: new Date().toISOString()
+    }
+  }
+}
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
@@ -77,30 +164,34 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     console.log(`[Social Extract] Platform: ${platform}, Mode: ${mode}, URL: ${url}`)
 
-    // Route to platform-specific extraction
-    let result: SocialMediaExtractionResult
+    // Create cache key
+    const cacheKey = `social:${platform}:${mode}:${encodeURIComponent(url)}`
 
-    switch (platform) {
-      case 'youtube':
-        result = await extractYouTube(url, mode)
-        break
-      case 'instagram':
-        result = await extractInstagram(url, mode)
-        break
-      case 'tiktok':
-        result = await extractTikTok(url, mode)
-        break
-      case 'twitter':
-      case 'x':
-        result = await extractTwitter(url, mode)
-        break
-      default:
-        result = {
-          success: false,
-          platform,
-          error: `Platform '${platform}' extraction not yet implemented`
+    // Route to platform-specific extraction with caching
+    const result = await getCached<SocialMediaExtractionResult>(
+      env.CACHE,
+      cacheKey,
+      3600, // 1 hour TTL
+      async () => {
+        switch (platform) {
+          case 'youtube':
+            return await extractYouTube(url, mode)
+          case 'instagram':
+            return await extractInstagram(url, mode)
+          case 'tiktok':
+            return await extractTikTok(url, mode)
+          case 'twitter':
+          case 'x':
+            return await extractTwitter(url, mode)
+          default:
+            return createUserFriendlyError(
+              platform,
+              `Platform '${platform}' not supported`,
+              `Sorry, ${platform} extraction is not yet available. Supported platforms: YouTube, Instagram, TikTok, Twitter/X.`
+            )
         }
-    }
+      }
+    )
 
     // Save to database if successful
     if (result.success && env.DB) {
@@ -181,24 +272,26 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
     // Extract video ID
     const videoId = extractYouTubeVideoId(url)
     if (!videoId) {
-      return {
-        success: false,
-        platform: 'youtube',
-        error: 'Could not extract video ID from URL'
-      }
+      return createUserFriendlyError(
+        'youtube',
+        'Invalid URL format',
+        'Could not find a valid YouTube video ID in the URL. Please use a standard YouTube link (e.g., youtube.com/watch?v=... or youtu.be/...).'
+      )
     }
 
     console.log('[YouTube] Video ID:', videoId)
 
-    // Use YouTube oEmbed API for reliable metadata
-    const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
-    const oembedResponse = await fetch(oembedUrl)
+    // Use YouTube oEmbed API for reliable metadata with retry
+    const oembedData = await fetchWithRetry(async () => {
+      const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+      const oembedResponse = await fetch(oembedUrl)
 
-    if (!oembedResponse.ok) {
-      throw new Error('YouTube oEmbed API failed')
-    }
+      if (!oembedResponse.ok) {
+        throw new Error(`YouTube oEmbed API failed with status ${oembedResponse.status}`)
+      }
 
-    const oembedData = await oembedResponse.json() as any
+      return await oembedResponse.json() as any
+    })
 
     // Build embed URLs
     const embedUrl = `https://www.youtube.com/embed/${videoId}`
@@ -214,38 +307,44 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
       try {
         console.log('[YouTube] Fetching download URLs via cobalt.tools...')
 
-        const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            url: `https://www.youtube.com/watch?v=${videoId}`,
-            vCodec: 'h264',
-            vQuality: '1080',
-            aFormat: 'mp3',
-            isAudioOnly: false,
-            isTTFullAudio: false
-          })
-        })
-
-        if (cobaltResponse.ok) {
-          const cobaltData = await cobaltResponse.json() as any
-          console.log('[YouTube] Cobalt response status:', cobaltData.status)
-
-          if (cobaltData.status === 'redirect' || cobaltData.status === 'stream') {
-            mediaUrls.video = cobaltData.url
-            downloadOptions.push({
-              quality: '1080p (via cobalt)',
-              format: 'mp4',
-              url: cobaltData.url,
-              hasAudio: true,
-              hasVideo: true
+        // Use retry logic for cobalt.tools API
+        const cobaltData = await fetchWithRetry(async () => {
+          const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              url: `https://www.youtube.com/watch?v=${videoId}`,
+              vCodec: 'h264',
+              vQuality: '1080',
+              aFormat: 'mp3',
+              isAudioOnly: false,
+              isTTFullAudio: false
             })
+          })
+
+          if (!cobaltResponse.ok) {
+            throw new Error(`Cobalt API returned status ${cobaltResponse.status}`)
           }
+
+          return await cobaltResponse.json() as any
+        }, 2, 1000) // 2 retries with 1s base delay
+
+        console.log('[YouTube] Cobalt response status:', cobaltData.status)
+
+        if (cobaltData.status === 'redirect' || cobaltData.status === 'stream') {
+          mediaUrls.video = cobaltData.url
+          downloadOptions.push({
+            quality: '1080p (via cobalt)',
+            format: 'mp4',
+            url: cobaltData.url,
+            hasAudio: true,
+            hasVideo: true
+          })
         } else {
-          console.warn('[YouTube] Cobalt API failed, providing direct YouTube link')
+          console.warn('[YouTube] Cobalt returned unexpected status:', cobaltData.status)
         }
 
         // Always provide the YouTube watch link as fallback
@@ -312,11 +411,11 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
 
   } catch (error) {
     console.error('[YouTube] Extraction failed:', error)
-    return {
-      success: false,
-      platform: 'youtube',
-      error: error instanceof Error ? error.message : 'YouTube extraction failed'
-    }
+    return createUserFriendlyError(
+      'youtube',
+      error instanceof Error ? error.message : 'Unknown error',
+      'YouTube video could not be extracted. The video may be private, age-restricted, or unavailable in your region.'
+    )
   }
 }
 
@@ -390,117 +489,115 @@ async function fetchYouTubeTranscript(videoId: string): Promise<string> {
 
 async function extractInstagram(url: string, mode: string): Promise<SocialMediaExtractionResult> {
   try {
-    const scraper = new InstagramScraper()
+    console.log('[Instagram] Starting extraction via cobalt.tools, mode:', mode, 'url:', url)
 
-    // Extract shortcode from URL
+    // Extract shortcode for metadata
     const shortcode = extractInstagramShortcode(url)
     if (!shortcode) {
-      return {
-        success: false,
-        platform: 'instagram',
-        error: 'Could not extract Instagram post shortcode from URL'
-      }
+      return createUserFriendlyError(
+        'instagram',
+        'Invalid URL format',
+        'Could not find a valid Instagram post ID in the URL. Please use a standard Instagram link (e.g., instagram.com/p/...).'
+      )
     }
 
-    // Fetch post data
-    const postData = await scraper.getPost(shortcode)
-
-    if (!postData) {
-      return {
-        success: false,
-        platform: 'instagram',
-        error: 'Failed to fetch Instagram post data. Post may be private or deleted.'
-      }
-    }
-
-    // Extract media URLs
-    const mediaUrls: MediaUrls = {}
-    const images: string[] = []
-
-    if (postData.display_url) {
-      mediaUrls.thumbnail = postData.display_url
-      images.push(postData.display_url)
-    }
-
-    if (postData.video_url) {
-      mediaUrls.video = postData.video_url
-    }
-
-    // Check for carousel (multiple images)
-    if (postData.edge_sidecar_to_children?.edges) {
-      postData.edge_sidecar_to_children.edges.forEach((edge: any) => {
-        if (edge.node?.display_url) {
-          images.push(edge.node.display_url)
-        }
-        if (edge.node?.video_url && !mediaUrls.video) {
-          mediaUrls.video = edge.node.video_url
-        }
+    // Use cobalt.tools for reliable extraction (works without auth)
+    const cobaltData = await fetchWithRetry(async () => {
+      const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          url,
+          vCodec: 'h264',
+          vQuality: '1080',
+          aFormat: 'mp3',
+          isAudioOnly: false
+        })
       })
-    }
 
-    mediaUrls.images = images
+      if (!cobaltResponse.ok) {
+        throw new Error(`Cobalt API returned status ${cobaltResponse.status}`)
+      }
 
-    // Create download options
-    const downloadOptions: DownloadOption[] = []
+      return await cobaltResponse.json() as any
+    }, 2, 1000)
 
-    if (mediaUrls.video) {
-      downloadOptions.push({
+    console.log('[Instagram] Cobalt response status:', cobaltData.status)
+
+    // Handle different response types
+    if (cobaltData.status === 'picker') {
+      // Instagram carousel - multiple images/videos
+      const downloadOptions: DownloadOption[] = cobaltData.picker.map((item: any, idx: number) => ({
         quality: 'Original',
-        format: 'mp4',
-        url: mediaUrls.video,
-        hasAudio: true,
-        hasVideo: true
-      })
-    }
+        format: item.type === 'video' ? 'mp4' : 'jpg',
+        url: item.url,
+        hasAudio: item.type === 'video',
+        hasVideo: item.type === 'video'
+      }))
 
-    images.forEach((imgUrl, index) => {
-      downloadOptions.push({
-        quality: 'Original',
-        format: 'jpg',
-        url: imgUrl,
-        hasVideo: false,
-        hasAudio: false
-      })
-    })
+      const images = cobaltData.picker
+        .filter((item: any) => item.type === 'photo')
+        .map((item: any) => item.url)
 
-    // oEmbed for embed code
-    let embedCode: string | undefined
-    try {
-      const oembedUrl = `https://graph.facebook.com/v8.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=YOUR_TOKEN`
-      // Placeholder - would need Instagram Graph API token
-      embedCode = `<!-- Instagram embed requires Graph API token -->`
-    } catch {}
+      const videos = cobaltData.picker
+        .filter((item: any) => item.type === 'video')
+        .map((item: any) => item.url)
 
-    return {
-      success: true,
-      platform: 'instagram',
-      postType: mediaUrls.video ? 'video' : (images.length > 1 ? 'carousel' : 'image'),
-      mediaUrls,
-      downloadOptions,
-      embedCode,
-      metadata: {
-        shortcode,
-        caption: postData.edge_media_to_caption?.edges?.[0]?.node?.text,
-        likeCount: postData.edge_media_preview_like?.count || 0,
-        commentCount: postData.edge_media_to_comment?.count || 0,
-        timestamp: postData.taken_at_timestamp,
-        owner: postData.owner?.username,
-        ownerId: postData.owner?.id,
-        isVideo: !!postData.video_url,
-        dimensions: {
-          height: postData.dimensions?.height,
-          width: postData.dimensions?.width
+      return {
+        success: true,
+        platform: 'instagram',
+        postType: 'carousel',
+        mediaUrls: {
+          images,
+          video: videos[0],
+          thumbnail: images[0] || videos[0]
+        },
+        downloadOptions,
+        metadata: {
+          shortcode,
+          itemCount: cobaltData.picker.length,
+          extractedVia: 'cobalt.tools'
         }
       }
+    } else if (cobaltData.status === 'redirect' || cobaltData.status === 'stream') {
+      // Single image or video
+      const isVideo = cobaltData.url?.includes('.mp4') || mode === 'download'
+
+      return {
+        success: true,
+        platform: 'instagram',
+        postType: isVideo ? 'video' : 'image',
+        mediaUrls: {
+          [isVideo ? 'video' : 'thumbnail']: cobaltData.url
+        },
+        downloadOptions: [{
+          quality: 'Original',
+          format: isVideo ? 'mp4' : 'jpg',
+          url: cobaltData.url,
+          hasAudio: isVideo,
+          hasVideo: isVideo
+        }],
+        metadata: {
+          shortcode,
+          extractedVia: 'cobalt.tools'
+        }
+      }
+    } else if (cobaltData.status === 'error') {
+      throw new Error(cobaltData.text || 'Instagram extraction failed')
+    } else {
+      throw new Error(`Unexpected cobalt.tools response status: ${cobaltData.status}`)
     }
 
   } catch (error) {
     console.error('[Instagram] Extraction failed:', error)
-    return {
-      success: false,
-      platform: 'instagram',
-      error: error instanceof Error ? error.message : 'Instagram extraction failed. Post may be private or require login.'
-    }
+    return createUserFriendlyError(
+      'instagram',
+      error instanceof Error ? error.message : 'Unknown error',
+      'Instagram post could not be extracted. The post may be private, deleted, or you may need to try again later.'
+    )
   }
 }
 
@@ -518,33 +615,40 @@ function extractInstagramShortcode(url: string): string | null {
 
 async function extractTikTok(url: string, mode: string): Promise<SocialMediaExtractionResult> {
   try {
-    // TikTok extraction requires external service (cobalt.tools API)
-    // or complex scraping due to anti-bot measures
+    console.log('[TikTok] Starting extraction via cobalt.tools, mode:', mode, 'url:', url)
 
-    // Attempt to use cobalt.tools API (free, open-source)
-    const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        url,
-        vCodec: 'h264',
-        vQuality: '720',
-        aFormat: 'mp3',
-        isAudioOnly: false
+    // TikTok extraction via cobalt.tools with retry logic
+    const cobaltData = await fetchWithRetry(async () => {
+      const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          url,
+          vCodec: 'h264',
+          vQuality: '720',
+          aFormat: 'mp3',
+          isAudioOnly: false
+        })
       })
-    })
 
-    if (!cobaltResponse.ok) {
-      throw new Error('Cobalt API request failed')
+      if (!cobaltResponse.ok) {
+        throw new Error(`Cobalt API returned status ${cobaltResponse.status}`)
+      }
+
+      return await cobaltResponse.json() as any
+    }, 2, 1000)
+
+    console.log('[TikTok] Cobalt response status:', cobaltData.status)
+
+    if (cobaltData.status === 'error') {
+      throw new Error(cobaltData.text || 'TikTok extraction failed')
     }
 
-    const cobaltData = await cobaltResponse.json() as any
-
-    if (cobaltData.status !== 'success' && cobaltData.status !== 'redirect') {
-      throw new Error(cobaltData.text || 'TikTok extraction failed')
+    if (cobaltData.status !== 'redirect' && cobaltData.status !== 'stream') {
+      throw new Error(`Unexpected response status: ${cobaltData.status}`)
     }
 
     const videoUrl = cobaltData.url
@@ -569,17 +673,17 @@ async function extractTikTok(url: string, mode: string): Promise<SocialMediaExtr
       ],
       metadata: {
         extractedVia: 'cobalt.tools',
-        note: 'TikTok metadata requires additional API calls'
+        note: 'TikTok metadata limited due to anti-bot measures'
       }
     }
 
   } catch (error) {
     console.error('[TikTok] Extraction failed:', error)
-    return {
-      success: false,
-      platform: 'tiktok',
-      error: error instanceof Error ? error.message : 'TikTok extraction failed. Try using an external downloader.'
-    }
+    return createUserFriendlyError(
+      'tiktok',
+      error instanceof Error ? error.message : 'Unknown error',
+      'TikTok video could not be extracted. The video may be private, deleted, or temporarily unavailable. Please try again later.'
+    )
   }
 }
 
@@ -589,16 +693,19 @@ async function extractTikTok(url: string, mode: string): Promise<SocialMediaExtr
 
 async function extractTwitter(url: string, mode: string): Promise<SocialMediaExtractionResult> {
   try {
-    // Twitter oEmbed API
-    const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
+    console.log('[Twitter] Starting extraction via oEmbed API, mode:', mode, 'url:', url)
 
-    const response = await fetch(oembedUrl)
+    // Twitter oEmbed API with retry logic
+    const data = await fetchWithRetry(async () => {
+      const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
+      const response = await fetch(oembedUrl)
 
-    if (!response.ok) {
-      throw new Error('Twitter oEmbed API failed')
-    }
+      if (!response.ok) {
+        throw new Error(`Twitter oEmbed API returned status ${response.status}`)
+      }
 
-    const data = await response.json() as any
+      return await response.json() as any
+    }, 2, 1000)
 
     return {
       success: true,
@@ -612,17 +719,18 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
         width: data.width,
         height: data.height,
         providerName: data.provider_name,
-        providerUrl: data.provider_url
+        providerUrl: data.provider_url,
+        note: 'Download not available via official API - embed only'
       }
     }
 
   } catch (error) {
     console.error('[Twitter] Extraction failed:', error)
-    return {
-      success: false,
-      platform: 'twitter',
-      error: error instanceof Error ? error.message : 'Twitter extraction failed'
-    }
+    return createUserFriendlyError(
+      'twitter',
+      error instanceof Error ? error.message : 'Unknown error',
+      'Tweet could not be extracted. The tweet may be from a protected account, deleted, or temporarily unavailable. Note: Direct downloads are not available for Twitter - embed code only.'
+    )
   }
 }
 
