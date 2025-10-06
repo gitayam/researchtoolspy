@@ -100,6 +100,246 @@ export class ReportGenerator {
   }
 
   /**
+   * Generate Markdown content for preview
+   */
+  static generateMarkdown(options: ReportOptions): string {
+    const { frameworkType, frameworkTitle, data, aiEnhancements } = options
+    let markdown = ''
+
+    // Title
+    markdown += `# ${frameworkTitle} Analysis Report\n\n`
+
+    // Metadata
+    markdown += `**Title:** ${data.title || 'Untitled Analysis'}  \n`
+    markdown += `**Date:** ${new Date().toLocaleDateString()}  \n`
+    markdown += `**Framework:** ${frameworkTitle}  \n`
+    if (data.source_url) {
+      markdown += `**Source:** ${data.source_url}  \n`
+    }
+    markdown += '\n---\n\n'
+
+    // Executive Summary (if AI enhanced)
+    if (aiEnhancements?.executiveSummary) {
+      markdown += `## 📝 Executive Summary\n\n`
+      markdown += `${aiEnhancements.executiveSummary}\n\n`
+    }
+
+    // Key Insights (if AI enhanced)
+    if (aiEnhancements?.keyInsights && aiEnhancements.keyInsights.length > 0) {
+      markdown += `## 💡 Key Insights\n\n`
+      aiEnhancements.keyInsights.forEach((insight, index) => {
+        markdown += `${index + 1}. ${insight}\n`
+      })
+      markdown += '\n'
+    }
+
+    // Framework-specific content
+    if (frameworkType === 'behavior') {
+      markdown += this.generateBehaviorMarkdown(data, aiEnhancements)
+    } else {
+      markdown += this.generateGenericMarkdown(frameworkType, frameworkTitle, data)
+    }
+
+    // Recommendations (if AI enhanced)
+    if (aiEnhancements?.recommendations && aiEnhancements.recommendations.length > 0) {
+      markdown += `## 🎯 Recommendations\n\n`
+      aiEnhancements.recommendations.forEach((rec, index) => {
+        markdown += `${index + 1}. ${rec}\n`
+      })
+      markdown += '\n'
+    }
+
+    // Comprehensive Analysis (if AI enhanced)
+    if (aiEnhancements?.comprehensiveAnalysis) {
+      markdown += `## 📊 Comprehensive Analysis\n\n`
+      markdown += `${aiEnhancements.comprehensiveAnalysis}\n\n`
+    }
+
+    return markdown
+  }
+
+  /**
+   * Generate markdown for behavior analysis framework
+   */
+  private static generateBehaviorMarkdown(data: any, aiEnhancements?: AIEnhancements): string {
+    let markdown = ''
+
+    // COM-B Assessment
+    if (data.com_b_deficits) {
+      const deficits = data.com_b_deficits as ComBDeficits
+      markdown += `## 🎯 COM-B Assessment Summary\n\n`
+      markdown += `*Capability, Opportunity, Motivation → Behavior (Michie et al., 2011)*\n\n`
+
+      // Count deficits by severity
+      const deficitCounts = {
+        major_barrier: Object.values(deficits).filter((d) => d === 'major_barrier').length,
+        deficit: Object.values(deficits).filter((d) => d === 'deficit').length,
+        adequate: Object.values(deficits).filter((d) => d === 'adequate').length,
+      }
+
+      markdown += `- ✓ Adequate: ${deficitCounts.adequate} components\n`
+      markdown += `- ⚠ Deficit: ${deficitCounts.deficit} components\n`
+      markdown += `- ✖ Major Barrier: ${deficitCounts.major_barrier} components\n\n`
+
+      // Component breakdown
+      markdown += `### Component Status Breakdown\n\n`
+      const componentNames: Record<string, { label: string; icon: string }> = {
+        physical_capability: { label: 'Physical Capability', icon: '💪' },
+        psychological_capability: { label: 'Psychological Capability', icon: '🧠' },
+        physical_opportunity: { label: 'Physical Opportunity', icon: '🌍' },
+        social_opportunity: { label: 'Social Opportunity', icon: '👥' },
+        reflective_motivation: { label: 'Reflective Motivation', icon: '🎯' },
+        automatic_motivation: { label: 'Automatic Motivation', icon: '⚡' },
+      }
+
+      Object.entries(deficits).forEach(([component, level]) => {
+        const info = componentNames[component as keyof typeof componentNames]
+        const statusText = level === 'major_barrier' ? '✖ Major Barrier' : level === 'deficit' ? '⚠ Deficit' : '✓ Adequate'
+        markdown += `- **${info.icon} ${info.label}:** ${statusText}\n`
+      })
+      markdown += '\n'
+
+      // Feasibility
+      const feasibility = assessBehaviorChangeFeasibility(deficits)
+      markdown += `### Behavior Change Feasibility\n\n`
+      const feasibilityText = feasibility.feasibility.charAt(0).toUpperCase() + feasibility.feasibility.slice(1)
+      markdown += `**Overall Feasibility:** ${feasibilityText}\n\n`
+
+      if (feasibility.barriers.length > 0) {
+        markdown += `**Barriers Identified:**\n\n`
+        feasibility.barriers.forEach((barrier) => {
+          markdown += `- ${barrier}\n`
+        })
+        markdown += '\n'
+      }
+
+      if (feasibility.strengths.length > 0) {
+        markdown += `**Strengths:**\n\n`
+        feasibility.strengths.forEach((strength) => {
+          markdown += `- ${strength}\n`
+        })
+        markdown += '\n'
+      }
+
+      // Intervention recommendations (if data has them)
+      const interventionRecs = generateInterventionRecommendations(deficits)
+      if (interventionRecs.length > 0) {
+        markdown += `## 🔧 Recommended Intervention Functions\n\n`
+        markdown += `*Based on Behaviour Change Wheel (Michie et al., 2011)*\n\n`
+
+        interventionRecs.forEach((rec) => {
+          markdown += `### ${rec.component} (${rec.severity.replace('_', ' ').toUpperCase()})\n\n`
+
+          rec.interventions.forEach((intervention) => {
+            const info = INTERVENTION_DESCRIPTIONS[intervention.name]
+            const priorityText = intervention.priority.toUpperCase()
+            const namePretty = intervention.name.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+
+            markdown += `#### ${namePretty} [${priorityText} PRIORITY]\n\n`
+            markdown += `**Definition:** ${info.definition}\n\n`
+            markdown += `**Evidence Base:** *${intervention.evidence_base}*\n\n`
+          })
+        })
+      }
+
+      // Policy recommendations
+      if (data.selected_interventions && data.selected_interventions.length > 0) {
+        const policyRecs = generatePolicyRecommendations(data.selected_interventions as InterventionFunction[])
+        if (policyRecs.length > 0) {
+          markdown += `## 📜 Policy Category Recommendations\n\n`
+          policyRecs.forEach((policy) => {
+            const policyPretty = policy.name.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+            markdown += `### ${policyPretty}\n\n`
+            markdown += `${POLICY_DESCRIPTIONS[policy.policy]}\n\n`
+            markdown += `**Suitable For Interventions:** ${policy.suitable_for_interventions.map(i =>
+              i.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+            ).join(', ')}\n\n`
+          })
+        }
+      }
+    }
+
+    // Timeline
+    if (data.timeline && data.timeline.length > 0) {
+      markdown += `## 📅 Behavior Timeline\n\n`
+      data.timeline.forEach((event: any, index: number) => {
+        markdown += `### ${index + 1}. ${event.label}\n\n`
+        if (event.description) {
+          markdown += `${event.description}\n\n`
+        }
+        if (event.time || event.location) {
+          markdown += `- `
+          if (event.time) markdown += `⏰ **Time:** ${event.time}  `
+          if (event.location) markdown += `📍 **Location:** ${event.location}`
+          markdown += '\n\n'
+        }
+        if (event.sub_steps && event.sub_steps.length > 0) {
+          markdown += `**Sub-steps:**\n\n`
+          event.sub_steps.forEach((step: any, idx: number) => {
+            markdown += `${idx + 1}. ${step.label}`
+            if (step.duration) markdown += ` (${step.duration})`
+            markdown += '\n'
+          })
+          markdown += '\n'
+        }
+      })
+    }
+
+    // Other sections
+    const config = frameworkConfigs['behavior']
+    if (config?.sections) {
+      config.sections.forEach(section => {
+        if (section.key.includes('capability') || section.key.includes('opportunity') || section.key.includes('motivation') || section.key === 'timeline') {
+          return
+        }
+        if (data[section.key] && data[section.key].length > 0) {
+          markdown += `## ${section.label}\n\n`
+          data[section.key].forEach((item: any, index: number) => {
+            if (isQuestionAnswerItem(item)) {
+              markdown += `**Q:** ${item.question}  \n`
+              markdown += `**A:** ${item.answer || 'No answer provided'}\n\n`
+            } else if (typeof item === 'string') {
+              markdown += `- ${item}\n`
+            }
+          })
+          markdown += '\n'
+        }
+      })
+    }
+
+    return markdown
+  }
+
+  /**
+   * Generate markdown for generic frameworks
+   */
+  private static generateGenericMarkdown(frameworkType: string, frameworkTitle: string, data: any): string {
+    let markdown = ''
+
+    const config = frameworkConfigs[frameworkType]
+    if (config?.sections) {
+      config.sections.forEach(section => {
+        if (data[section.key] && data[section.key].length > 0) {
+          markdown += `## ${section.label}\n\n`
+          data[section.key].forEach((item: FrameworkItem, index: number) => {
+            if (isQuestionAnswerItem(item)) {
+              markdown += `**Q${index + 1}:** ${item.question}  \n`
+              markdown += `**A:** ${item.answer || 'No answer provided'}\n\n`
+            } else if (typeof item === 'string') {
+              markdown += `${index + 1}. ${item}\n`
+            } else if (typeof item === 'object') {
+              markdown += `${index + 1}. ${JSON.stringify(item)}\n`
+            }
+          })
+          markdown += '\n'
+        }
+      })
+    }
+
+    return markdown
+  }
+
+  /**
    * Generate Word document (.docx)
    */
   private static async generateWord(options: ReportOptions): Promise<void> {

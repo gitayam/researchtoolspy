@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react'
-import { FileDown, FileText, FileSpreadsheet, Presentation, Loader2 } from 'lucide-react'
+import { FileDown, FileText, FileSpreadsheet, Presentation, Loader2, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ import {
   DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu'
 import type { ExportFormat } from '@/lib/report-generator'
+import { ReportPreviewDialog } from './ReportPreviewDialog'
 
 export interface ExportButtonProps {
   frameworkType: string
@@ -37,8 +38,48 @@ export function ExportButton({
   size = 'default'
 }: ExportButtonProps) {
   const [exporting, setExporting] = useState(false)
-  const [includeAI, setIncludeAI] = useState(false)
+  const [includeAI, setIncludeAI] = useState(true)
   const [currentFormat, setCurrentFormat] = useState<ExportFormat | null>(null)
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewContent, setPreviewContent] = useState('')
+  const [generating, setGenerating] = useState(false)
+
+  const handleViewReport = async () => {
+    setGenerating(true)
+
+    try {
+      // Dynamically import ReportGenerator
+      console.log('Loading report generator...')
+      const { ReportGenerator } = await import('@/lib/report-generator')
+
+      // Get AI enhancements if requested
+      let aiEnhancements
+      if (includeAI) {
+        console.log('Generating AI enhancements...')
+        aiEnhancements = await ReportGenerator.enhanceReport(frameworkType, data, 'standard')
+      }
+
+      // Generate markdown content
+      const markdown = ReportGenerator.generateMarkdown({
+        frameworkType,
+        frameworkTitle,
+        data,
+        format: 'word', // Format doesn't matter for markdown
+        template: 'standard',
+        includeAI,
+        aiEnhancements
+      })
+
+      setPreviewContent(markdown)
+      setShowPreview(true)
+      console.log('✓ Report preview generated')
+    } catch (error) {
+      console.error('Failed to generate preview:', error)
+      alert(`Failed to generate report preview: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   const handleExport = async (format: ExportFormat) => {
     setExporting(true)
@@ -85,25 +126,42 @@ export function ExportButton({
   ]
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant={variant} size={size} disabled={exporting}>
-          {exporting ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Exporting...
-            </>
-          ) : (
-            <>
-              <FileDown className="h-4 w-4 mr-2" />
-              Export
-            </>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Export Format</DropdownMenuLabel>
-        <DropdownMenuSeparator />
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant={variant} size={size} disabled={exporting || generating}>
+            {exporting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : generating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileDown className="h-4 w-4 mr-2" />
+                Export
+              </>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          {/* View Report Option */}
+          <DropdownMenuItem
+            onClick={handleViewReport}
+            disabled={exporting || generating}
+            className="font-medium"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            View Report
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Download As</DropdownMenuLabel>
+          <DropdownMenuSeparator />
 
         {formatOptions.map(({ format, label, icon: Icon, ext }) => (
           <DropdownMenuItem
@@ -142,5 +200,13 @@ export function ExportButton({
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
+
+    <ReportPreviewDialog
+      open={showPreview}
+      onOpenChange={setShowPreview}
+      title={`${frameworkTitle} Analysis Report`}
+      content={previewContent}
+    />
+  </>
   )
 }
