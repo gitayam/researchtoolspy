@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { COGVulnerabilityMatrix } from '@/components/frameworks/COGVulnerabilityMatrix'
+import { COGNetworkVisualization } from '@/components/frameworks/COGNetworkVisualization'
 import {
   type COGAnalysis,
   type CenterOfGravity,
@@ -589,23 +590,11 @@ ${Object.entries(centralityMeasures.degree_centrality)
             </Card>
           </div>
 
-          {/* Network Visualization Placeholder */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Network className="h-5 w-5" />
-                Network Visualization
-              </CardTitle>
-              <CardDescription>Interactive network graph showing COG relationships</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 text-center">
-                <Network className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 dark:text-gray-400 mb-4">Network visualization requires integration with NetworkGraphCanvas component</p>
-                <p className="text-sm text-gray-500">Edge list and centrality measures are available for export</p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Network Visualization */}
+          <COGNetworkVisualization
+            analysis={data}
+            edges={edgeList}
+          />
         </TabsContent>
       </Tabs>
     </div>
