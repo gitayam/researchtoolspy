@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
-import ForceGraph2D, { ForceGraphMethods, NodeObject, LinkObject } from 'react-force-graph-2d'
+import ForceGraph2D, { type ForceGraphMethods, type NodeObject, type LinkObject } from 'react-force-graph-2d'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -46,7 +46,7 @@ const NODE_SIZES = {
 }
 
 export function COGNetworkVisualization({ analysis, edges, onNodeClick }: COGNetworkVisualizationProps) {
-  const graphRef = useRef<ForceGraphMethods>()
+  const graphRef = useRef<ForceGraphMethods | undefined>()
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
   const [simulationMode, setSimulationMode] = useState(false)
   const [removedNodes, setRemovedNodes] = useState<Set<string>>(new Set())
@@ -152,9 +152,9 @@ export function COGNetworkVisualization({ analysis, edges, onNodeClick }: COGNet
       const sourceId = typeof link.source === 'object' ? link.source.id : link.source
       const targetId = typeof link.target === 'object' ? link.target.id : link.target
 
-      if (sourceId === node.id || targetId === node.id) {
-        connectedNodeIds.add(sourceId!)
-        connectedNodeIds.add(targetId!)
+      if (sourceId && targetId && (sourceId === node.id || targetId === node.id)) {
+        connectedNodeIds.add(sourceId)
+        connectedNodeIds.add(targetId)
         connectedLinkIds.add(`${sourceId}-${targetId}`)
       }
     })

@@ -92,13 +92,13 @@ export function COGExcelExport({
           capability: capability?.capability || 'N/A',
           requirement: requirement?.requirement || 'N/A',
           type: vuln.vulnerability_type || 'N/A',
-          impact: vuln.impact_score || 0,
-          attainability: vuln.attainability_score || 0,
-          followup: vuln.followup_potential_score || 0,
+          impact: vuln.scoring?.impact_on_cog || vuln.custom_scoring?.impact || 0,
+          attainability: vuln.scoring?.attainability || vuln.custom_scoring?.attainability || 0,
+          followup: vuln.scoring?.follow_up_potential || vuln.custom_scoring?.follow_up || 0,
           composite: vuln.composite_score,
-          actions: vuln.recommended_actions || 'N/A',
+          actions: Array.isArray(vuln.recommended_actions) ? vuln.recommended_actions.join(', ') : (vuln.recommended_actions || 'N/A'),
           effect: vuln.expected_effect || 'N/A',
-          confidence: vuln.confidence_level || 'N/A',
+          confidence: vuln.confidence || 'N/A',
           status: 'Open', // Default status
         })
 
@@ -163,8 +163,8 @@ export function COGExcelExport({
         rules: [
           {
             type: 'cellIs',
-            operator: 'greaterThanOrEqual',
-            formulae: [4],
+            operator: 'greaterThan',
+            formulae: [3],
             style: {
               fill: {
                 type: 'pattern',
@@ -181,8 +181,8 @@ export function COGExcelExport({
         rules: [
           {
             type: 'cellIs',
-            operator: 'greaterThanOrEqual',
-            formulae: [4],
+            operator: 'greaterThan',
+            formulae: [3],
             style: {
               fill: {
                 type: 'pattern',
@@ -199,8 +199,8 @@ export function COGExcelExport({
         rules: [
           {
             type: 'cellIs',
-            operator: 'greaterThanOrEqual',
-            formulae: [4],
+            operator: 'greaterThan',
+            formulae: [3],
             style: {
               fill: {
                 type: 'pattern',
