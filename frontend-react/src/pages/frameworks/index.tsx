@@ -19,9 +19,8 @@ import { GenericFrameworkForm } from '@/components/frameworks/GenericFrameworkFo
 import { GenericFrameworkView } from '@/components/frameworks/GenericFrameworkView'
 import { DeceptionForm } from '@/components/frameworks/DeceptionForm'
 import { DeceptionView } from '@/components/frameworks/DeceptionView'
-// Temporarily commented out due to build errors - need to fix type imports
-// import { COGForm } from '@/components/frameworks/COGForm'
-// import { COGView } from '@/components/frameworks/COGView'
+import { COGForm } from '@/components/frameworks/COGForm'
+import { COGView } from '@/components/frameworks/COGView'
 import { frameworkConfigs } from '@/config/framework-configs'
 
 export const SwotPage = () => {
@@ -785,8 +784,7 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
   )
 }
 
-// Temporarily commented out due to build errors with COGForm/COGView type imports
-/* export const CogPage = () => {
+export const CogPage = () => {
   const { t } = useTranslation()
   const config = frameworkConfigs['cog']
   const [analyses, setAnalyses] = useState<any[]>([])
@@ -819,10 +817,16 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
         const data = await response.json()
         const filtered = (data.frameworks || []).filter((f: any) => f.framework_type === 'cog')
         setAnalyses(filtered)
+        return
       }
     } catch (error) {
-      console.error('Failed to load analyses:', error)
+      console.log('API not available, loading from localStorage')
     }
+
+    // Fallback to localStorage
+    const storageKey = 'cog_analyses'
+    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    setAnalyses(stored)
   }
 
   const loadAnalysis = async (analysisId: string) => {
@@ -832,37 +836,67 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
       if (response.ok) {
         const data = await response.json()
         setCurrentAnalysis(data)
+        setLoading(false)
+        return
       }
     } catch (error) {
-      console.error('Failed to load analysis:', error)
-    } finally {
-      setLoading(false)
+      console.log('API not available, loading from localStorage')
     }
+
+    // Fallback to localStorage
+    const storageKey = 'cog_analyses'
+    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const analysis = stored.find((item: any) => item.id === analysisId)
+    if (analysis) {
+      setCurrentAnalysis(analysis)
+    }
+    setLoading(false)
   }
 
   const handleSave = async (data: any) => {
     const payload = {
+      id: data.id || crypto.randomUUID(),
       framework_type: 'cog',
       title: data.title,
       description: data.description,
       data: data,
-      status: 'active'
+      status: 'active',
+      created_at: data.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
 
-    if (isEditMode && id) {
-      const response = await fetch(`/api/frameworks?id=${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      if (!response.ok) throw new Error('Failed to update')
-    } else {
-      const response = await fetch('/api/frameworks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      if (!response.ok) throw new Error('Failed to create')
+    try {
+      if (isEditMode && id) {
+        const response = await fetch(`/api/frameworks?id=${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) throw new Error('API not available')
+      } else {
+        const response = await fetch('/api/frameworks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) throw new Error('API not available')
+      }
+    } catch (error) {
+      // Fallback to localStorage if API is not available
+      console.log('API not available, using localStorage fallback')
+      const storageKey = 'cog_analyses'
+      const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
+
+      if (isEditMode && id) {
+        const index = existing.findIndex((item: any) => item.id === id)
+        if (index !== -1) {
+          existing[index] = payload
+        }
+      } else {
+        existing.push(payload)
+      }
+
+      localStorage.setItem(storageKey, JSON.stringify(existing))
     }
   }
 
@@ -881,10 +915,22 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
         } else {
           navigate(basePath)
         }
+        return
       }
     } catch (error) {
-      console.error('Failed to delete:', error)
-      alert('Failed to delete analysis')
+      console.log('API not available, using localStorage')
+    }
+
+    // Fallback to localStorage
+    const storageKey = 'cog_analyses'
+    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const filtered = stored.filter((item: any) => item.id !== targetId)
+    localStorage.setItem(storageKey, JSON.stringify(filtered))
+
+    if (deleteId) {
+      await loadAnalyses()
+    } else {
+      navigate(basePath)
     }
   }
 
@@ -1091,21 +1137,6 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
     </div>
   )
 }
-*/
-
-// Placeholder export for COG page until full implementation is ready
-export const CogPage = () => (
-  <div className="container mx-auto py-8 px-4 max-w-7xl">
-    <div className="text-center py-12">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-        COG Analysis - Coming Soon
-      </h1>
-      <p className="text-gray-600 dark:text-gray-400">
-        Center of Gravity analysis feature is currently under development.
-      </p>
-    </div>
-  </div>
-)
 
 export const PmesiiPtPage = () => <GenericFrameworkPage frameworkKey="pmesii-pt" />
 
