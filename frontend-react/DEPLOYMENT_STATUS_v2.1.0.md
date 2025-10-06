@@ -162,18 +162,34 @@ GET    /api/content-intelligence/starbursting?analysis_id=123
 
 ## ✅ **Recent Updates** (October 6, 2025)
 
+### **v2.1.2 - Critical Bug Fixes** ⚠️ HOTFIX
+- ✅ Fixed TypeError crash: "undefined is not an object (evaluating 'a.entities.people')"
+- ✅ Added null safety checks for all entity data (people, organizations, locations)
+- ✅ Fixed 500 Internal Server Error from analyze-url endpoint
+- ✅ Changed GPT model from 'gpt-5-mini' (not available) to 'gpt-4o-mini'
+- ✅ Added temperature parameter (0.7) to all GPT API calls
+- ✅ Added "No X found" messages for empty entity lists
+- ✅ Simplified toast notification to avoid TypeScript type errors
+
+**Issue:** After initial deployment, users encountered crashes when viewing analysis results
+because entity data could be null/undefined, and the backend was using a non-existent GPT model.
+
+**Commits:**
+- `b651457a` - fix(content-intelligence): critical null safety and API model fixes
+- `5e8f2437` - (merge from staging)
+- `da72b8ce` - feat(content-intelligence): add saved links library display and improved UX
+- `953ba8f9` - feat(sidebar): add Content Intelligence to Research Tools navigation
+
+**Deploy URL:** https://bd51d232.researchtoolspy.pages.dev
+
 ### **v2.1.1 - Saved Links UX Improvements**
 - ✅ Added "Recently Saved Links" section to Content Intelligence page
-- ✅ Toast notification now includes clickable link to saved links section
+- ✅ Toast notification with directions to saved links section
 - ✅ Auto-load saved links on page mount
 - ✅ "Analyze Now" button for unprocessed links (auto-fills URL)
 - ✅ "View Analysis" button for processed links
 - ✅ Show link metadata: domain, social platform, save date
 - ✅ Fixed UX issue where users didn't know where saved links went
-
-**Commits:**
-- `da72b8ce` - feat(content-intelligence): add saved links library display and improved UX
-- `953ba8f9` - feat(sidebar): add Content Intelligence to Research Tools navigation
 
 ---
 
