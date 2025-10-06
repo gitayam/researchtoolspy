@@ -142,6 +142,31 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // For quick mode, return basic results immediately
     if (mode === 'quick') {
+      console.log('[DEBUG] Quick mode - saving link if requested...')
+
+      // Optionally save link for quick mode
+      let savedLinkId: number | undefined
+      if (save_link) {
+        try {
+          console.log('[DEBUG] Saving link with title:', contentData.title)
+          savedLinkId = await saveLinkToLibrary(env.DB, {
+            url: normalizedUrl,
+            title: contentData.title || new URL(normalizedUrl).hostname,
+            note: link_note,
+            tags: link_tags,
+            domain: new URL(normalizedUrl).hostname,
+            is_social_media: !!socialMediaInfo,
+            social_platform: socialMediaInfo?.platform,
+            is_processed: false, // Quick mode doesn't do full processing
+            analysis_id: undefined
+          })
+          console.log(`[DEBUG] Quick mode link saved with ID: ${savedLinkId}`)
+        } catch (error) {
+          console.error('[DEBUG] Quick mode link save failed (non-fatal):', error)
+          // Don't fail the whole request if link save fails
+        }
+      }
+
       const quickResult = {
         url: normalizedUrl,
         title: contentData.title,
@@ -157,9 +182,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         is_social_media: !!socialMediaInfo,
         social_platform: socialMediaInfo?.platform,
         processing_mode: mode,
-        processing_duration_ms: Date.now() - startTime
+        processing_duration_ms: Date.now() - startTime,
+        saved_link_id: savedLinkId
       }
 
+      console.log('[DEBUG] Quick mode complete, returning result')
       return new Response(JSON.stringify(quickResult), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
