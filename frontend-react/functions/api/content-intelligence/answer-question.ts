@@ -105,6 +105,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       id: qaId,
       content_analysis_id: analysis_id,
+      user_id: 1, // TODO: Get actual user_id from auth
       question,
       answer: combinedAnswer.answer,
       confidence_score: combinedAnswer.confidence,
@@ -113,7 +114,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       missing_data_notes: missingData,
       search_method: 'hybrid',
       regex_matches: regexResults.matches.length,
-      semantic_confidence: semanticResults.confidence
+      semantic_confidence: semanticResults.confidence,
+      created_at: new Date().toISOString()
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
@@ -439,7 +441,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       has_complete_answer: Boolean(row.has_complete_answer)
     })) || []
 
-    return new Response(JSON.stringify({ qa_history: qaHistory }), {
+    return new Response(JSON.stringify({ history: qaHistory }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })

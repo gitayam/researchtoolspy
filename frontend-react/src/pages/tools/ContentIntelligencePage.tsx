@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -7,13 +8,15 @@ import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
-  Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle
+  Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
+import { extractCitationData, createCitationParams } from '@/utils/content-to-citation'
 
 export default function ContentIntelligencePage() {
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   // State
   const [url, setUrl] = useState('')
@@ -98,6 +101,9 @@ export default function ContentIntelligencePage() {
       return
     }
 
+    // Clear previous analysis and bypass URLs
+    setAnalysis(null)
+    setQaHistory([])
     setProcessing(true)
     setStatus('extracting')
     setProgress(10)
@@ -165,6 +171,7 @@ export default function ContentIntelligencePage() {
     if (analysis?.id) {
       loadQAHistory()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysis?.id])
 
   const loadQAHistory = async () => {
@@ -178,6 +185,26 @@ export default function ContentIntelligencePage() {
       }
     } catch (error) {
       console.error('Failed to load Q&A history:', error)
+    }
+  }
+
+  // Create citation from analysis
+  const handleCreateCitation = (analysisData: ContentAnalysis) => {
+    try {
+      const citationData = extractCitationData(analysisData)
+      const params = createCitationParams(citationData)
+      navigate(`/dashboard/tools/citations-generator?${params.toString()}`)
+      toast({
+        title: 'Opening Citation Generator',
+        description: 'Citation fields pre-populated from analysis'
+      })
+    } catch (error) {
+      console.error('Citation creation error:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to create citation',
+        variant: 'destructive'
+      })
     }
   }
 
@@ -646,7 +673,7 @@ export default function ContentIntelligencePage() {
               <FolderOpen className="h-5 w-5" />
               Recently Saved Links
             </h2>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled title="Full library view coming soon">
               View All
             </Button>
           </div>
@@ -701,22 +728,18 @@ export default function ContentIntelligencePage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      {link.is_processed ? (
-                        <Button variant="outline" size="sm">
-                          View Analysis
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setUrl(link.url)
-                            window.scrollTo({ top: 0, behavior: 'smooth' })
-                          }}
-                        >
-                          Analyze Now
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setUrl(link.url)
+                          if (link.note) setSaveNote(link.note)
+                          if (link.tags?.length) setSaveTags(link.tags.join(', '))
+                          window.scrollTo({ top: 0, behavior: 'smooth' })
+                        }}
+                      >
+                        {link.is_processed ? 'Re-analyze' : 'Analyze Now'}
+                      </Button>
                     </div>
                   </div>
                 </div>
