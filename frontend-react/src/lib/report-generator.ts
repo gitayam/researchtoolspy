@@ -160,128 +160,214 @@ export class ReportGenerator {
 
   /**
    * Generate markdown for behavior analysis framework
+   *
+   * IMPORTANT: This generates an OBJECTIVE analysis report.
+   * NO intervention strategies or recommendations unless user has marked COM-B deficits.
+   * Focus: Process, requirements, capabilities, opportunities, potential audiences.
    */
   private static generateBehaviorMarkdown(data: any, aiEnhancements?: AIEnhancements): string {
     let markdown = ''
 
-    // COM-B Assessment
+    // Behavior Process Overview
+    markdown += `## 📋 Behavior Process Overview\n\n`
+    if (data.description) {
+      markdown += `${data.description}\n\n`
+    }
+
+    // Requirements for Completing the Behavior
+    markdown += `## ✅ Requirements for Behavior Completion\n\n`
+    markdown += `This section outlines the capabilities and opportunities necessary to perform the analyzed behavior.\n\n`
+
+    // COM-B Component Analysis (OBJECTIVE - no interventions)
     if (data.com_b_deficits) {
       const deficits = data.com_b_deficits as ComBDeficits
-      markdown += `## 🎯 COM-B Assessment Summary\n\n`
-      markdown += `*Capability, Opportunity, Motivation → Behavior (Michie et al., 2011)*\n\n`
 
-      // Count deficits by severity
-      const deficitCounts = {
-        major_barrier: Object.values(deficits).filter((d) => d === 'major_barrier').length,
-        deficit: Object.values(deficits).filter((d) => d === 'deficit').length,
-        adequate: Object.values(deficits).filter((d) => d === 'adequate').length,
+      const componentNames: Record<string, { label: string; icon: string; desc: string }> = {
+        physical_capability: {
+          label: 'Physical Capability',
+          icon: '💪',
+          desc: 'Physical skills, strength, stamina required'
+        },
+        psychological_capability: {
+          label: 'Psychological Capability',
+          icon: '🧠',
+          desc: 'Knowledge, cognitive skills, comprehension needed'
+        },
+        physical_opportunity: {
+          label: 'Physical Opportunity',
+          icon: '🌍',
+          desc: 'Environmental factors, time, resources, infrastructure'
+        },
+        social_opportunity: {
+          label: 'Social Opportunity',
+          icon: '👥',
+          desc: 'Cultural norms, social cues, peer influence'
+        },
+        reflective_motivation: {
+          label: 'Reflective Motivation',
+          icon: '🎯',
+          desc: 'Beliefs, intentions, goals, identity alignment'
+        },
+        automatic_motivation: {
+          label: 'Automatic Motivation',
+          icon: '⚡',
+          desc: 'Emotions, impulses, habits, desires'
+        },
       }
 
-      markdown += `- ✓ Adequate: ${deficitCounts.adequate} components\n`
-      markdown += `- ⚠ Deficit: ${deficitCounts.deficit} components\n`
-      markdown += `- ✖ Major Barrier: ${deficitCounts.major_barrier} components\n\n`
-
-      // Component breakdown
-      markdown += `### Component Status Breakdown\n\n`
-      const componentNames: Record<string, { label: string; icon: string }> = {
-        physical_capability: { label: 'Physical Capability', icon: '💪' },
-        psychological_capability: { label: 'Psychological Capability', icon: '🧠' },
-        physical_opportunity: { label: 'Physical Opportunity', icon: '🌍' },
-        social_opportunity: { label: 'Social Opportunity', icon: '👥' },
-        reflective_motivation: { label: 'Reflective Motivation', icon: '🎯' },
-        automatic_motivation: { label: 'Automatic Motivation', icon: '⚡' },
-      }
-
+      markdown += `### Capability Requirements\n\n`
       Object.entries(deficits).forEach(([component, level]) => {
-        const info = componentNames[component as keyof typeof componentNames]
-        const statusText = level === 'major_barrier' ? '✖ Major Barrier' : level === 'deficit' ? '⚠ Deficit' : '✓ Adequate'
-        markdown += `- **${info.icon} ${info.label}:** ${statusText}\n`
+        if (component.includes('capability')) {
+          const info = componentNames[component as keyof typeof componentNames]
+          markdown += `**${info.icon} ${info.label}**\n\n`
+          markdown += `*${info.desc}*\n\n`
+          markdown += `Status: ${level === 'adequate' ? '✓ Generally Adequate' : level === 'deficit' ? '⚠ Some Limitations' : '✖ Significant Barriers'}\n\n`
+        }
       })
+
+      markdown += `### Opportunity Requirements\n\n`
+      Object.entries(deficits).forEach(([component, level]) => {
+        if (component.includes('opportunity')) {
+          const info = componentNames[component as keyof typeof componentNames]
+          markdown += `**${info.icon} ${info.label}**\n\n`
+          markdown += `*${info.desc}*\n\n`
+          markdown += `Status: ${level === 'adequate' ? '✓ Generally Available' : level === 'deficit' ? '⚠ Limited Availability' : '✖ Significant Constraints'}\n\n`
+        }
+      })
+
+      markdown += `### Motivation Factors\n\n`
+      Object.entries(deficits).forEach(([component, level]) => {
+        if (component.includes('motivation')) {
+          const info = componentNames[component as keyof typeof componentNames]
+          markdown += `**${info.icon} ${info.label}**\n\n`
+          markdown += `*${info.desc}*\n\n`
+          markdown += `Status: ${level === 'adequate' ? '✓ Generally Present' : level === 'deficit' ? '⚠ Variable' : '✖ Often Absent'}\n\n`
+        }
+      })
+
+      // Potential Target Audiences (OBJECTIVE analysis)
+      markdown += `## 👥 Potential Target Audiences\n\n`
+      markdown += `*Based on capability, opportunity, and motivation analysis*\n\n`
+
+      const hasDeficits = Object.values(deficits).some(d => d !== 'adequate')
+
+      if (hasDeficits) {
+        markdown += `### To Increase Behavior\n\n`
+        markdown += `Target audiences that currently have barriers but could perform the behavior with appropriate support:\n\n`
+
+        Object.entries(deficits).forEach(([component, level]) => {
+          if (level !== 'adequate') {
+            const info = componentNames[component as keyof typeof componentNames]
+            markdown += `- Individuals lacking ${info.label.toLowerCase()} (${info.desc.toLowerCase()})\n`
+          }
+        })
+        markdown += '\n'
+      }
+
+      markdown += `### To Decrease Behavior\n\n`
+      markdown += `Target audiences currently performing the behavior:\n\n`
+      const adequateComponents = Object.entries(deficits)
+        .filter(([, level]) => level === 'adequate')
+        .map(([component]) => componentNames[component as keyof typeof componentNames])
+
+      if (adequateComponents.length > 0) {
+        markdown += `- Individuals with adequate ${adequateComponents.map(c => c.label.toLowerCase()).join(', ')}\n`
+      } else {
+        markdown += `- General population (no significant enabling factors identified)\n`
+      }
       markdown += '\n'
 
-      // Feasibility
-      const feasibility = assessBehaviorChangeFeasibility(deficits)
-      markdown += `### Behavior Change Feasibility\n\n`
-      const feasibilityText = feasibility.feasibility.charAt(0).toUpperCase() + feasibility.feasibility.slice(1)
-      markdown += `**Overall Feasibility:** ${feasibilityText}\n\n`
+      // ONLY show interventions if there are actual deficits AND user has marked them
+      const hasMarkedDeficits = Object.values(deficits).some(d => d === 'deficit' || d === 'major_barrier')
 
-      if (feasibility.barriers.length > 0) {
-        markdown += `**Barriers Identified:**\n\n`
-        feasibility.barriers.forEach((barrier) => {
-          markdown += `- ${barrier}\n`
-        })
-        markdown += '\n'
-      }
+      if (hasMarkedDeficits) {
+        const interventionRecs = generateInterventionRecommendations(deficits)
+        if (interventionRecs.length > 0) {
+          markdown += `## 🔧 Behaviour Change Wheel - Intervention Recommendations\n\n`
+          markdown += `*Note: These recommendations are generated because COM-B deficits were identified.*\n\n`
+          markdown += `*Based on Behaviour Change Wheel (Michie et al., 2011)*\n\n`
 
-      if (feasibility.strengths.length > 0) {
-        markdown += `**Strengths:**\n\n`
-        feasibility.strengths.forEach((strength) => {
-          markdown += `- ${strength}\n`
-        })
-        markdown += '\n'
-      }
+          interventionRecs.forEach((rec) => {
+            markdown += `### ${rec.component} (${rec.severity.replace('_', ' ').toUpperCase()})\n\n`
 
-      // Intervention recommendations (if data has them)
-      const interventionRecs = generateInterventionRecommendations(deficits)
-      if (interventionRecs.length > 0) {
-        markdown += `## 🔧 Recommended Intervention Functions\n\n`
-        markdown += `*Based on Behaviour Change Wheel (Michie et al., 2011)*\n\n`
+            rec.interventions.forEach((intervention) => {
+              const info = INTERVENTION_DESCRIPTIONS[intervention.name]
+              const priorityText = intervention.priority.toUpperCase()
+              const namePretty = intervention.name.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 
-        interventionRecs.forEach((rec) => {
-          markdown += `### ${rec.component} (${rec.severity.replace('_', ' ').toUpperCase()})\n\n`
-
-          rec.interventions.forEach((intervention) => {
-            const info = INTERVENTION_DESCRIPTIONS[intervention.name]
-            const priorityText = intervention.priority.toUpperCase()
-            const namePretty = intervention.name.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-
-            markdown += `#### ${namePretty} [${priorityText} PRIORITY]\n\n`
-            markdown += `**Definition:** ${info.definition}\n\n`
-            markdown += `**Evidence Base:** *${intervention.evidence_base}*\n\n`
+              markdown += `#### ${namePretty} [${priorityText} PRIORITY]\n\n`
+              markdown += `**Definition:** ${info.definition}\n\n`
+              markdown += `**Evidence Base:** *${intervention.evidence_base}*\n\n`
+            })
           })
-        })
-      }
+        }
 
-      // Policy recommendations
-      if (data.selected_interventions && data.selected_interventions.length > 0) {
-        const policyRecs = generatePolicyRecommendations(data.selected_interventions as InterventionFunction[])
-        if (policyRecs.length > 0) {
-          markdown += `## 📜 Policy Category Recommendations\n\n`
-          policyRecs.forEach((policy) => {
-            const policyPretty = policy.name.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-            markdown += `### ${policyPretty}\n\n`
-            markdown += `${POLICY_DESCRIPTIONS[policy.policy]}\n\n`
-            markdown += `**Suitable For Interventions:** ${policy.suitable_for_interventions.map(i =>
-              i.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-            ).join(', ')}\n\n`
-          })
+        // Policy recommendations (only if interventions were selected)
+        if (data.selected_interventions && data.selected_interventions.length > 0) {
+          const policyRecs = generatePolicyRecommendations(data.selected_interventions as InterventionFunction[])
+          if (policyRecs.length > 0) {
+            markdown += `## 📜 Policy Category Recommendations\n\n`
+            policyRecs.forEach((policy) => {
+              const policyPretty = policy.name.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+              markdown += `### ${policyPretty}\n\n`
+              markdown += `${POLICY_DESCRIPTIONS[policy.policy]}\n\n`
+              markdown += `**Suitable For Interventions:** ${policy.suitable_for_interventions.map(i =>
+                i.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+              ).join(', ')}\n\n`
+            })
+          }
         }
       }
     }
 
-    // Timeline
+    // Timeline / Flow Chart
     if (data.timeline && data.timeline.length > 0) {
-      markdown += `## 📅 Behavior Timeline\n\n`
+      markdown += `## 📅 Behavior Process Flow & Timeline\n\n`
+      markdown += `This section documents the step-by-step process to complete the behavior, including decision points, sub-steps, and requirements.\n\n`
+
       data.timeline.forEach((event: any, index: number) => {
-        markdown += `### ${index + 1}. ${event.label}\n\n`
+        markdown += `### Step ${index + 1}: ${event.label}\n\n`
+
         if (event.description) {
-          markdown += `${event.description}\n\n`
+          markdown += `**Description:** ${event.description}\n\n`
         }
-        if (event.time || event.location) {
-          markdown += `- `
-          if (event.time) markdown += `⏰ **Time:** ${event.time}  `
-          if (event.location) markdown += `📍 **Location:** ${event.location}`
-          markdown += '\n\n'
+
+        // Contextual information
+        const contextItems = []
+        if (event.time) contextItems.push(`⏰ Time: ${event.time}`)
+        if (event.location) contextItems.push(`📍 Location: ${event.location}`)
+        if (event.duration) contextItems.push(`⏱️ Duration: ${event.duration}`)
+        if (event.resources) contextItems.push(`🔧 Resources: ${event.resources}`)
+
+        if (contextItems.length > 0) {
+          markdown += contextItems.map(item => `- ${item}`).join('\n') + '\n\n'
         }
+
+        // Sub-steps
         if (event.sub_steps && event.sub_steps.length > 0) {
           markdown += `**Sub-steps:**\n\n`
           event.sub_steps.forEach((step: any, idx: number) => {
-            markdown += `${idx + 1}. ${step.label}`
-            if (step.duration) markdown += ` (${step.duration})`
+            markdown += `  ${idx + 1}. ${step.label}`
+            if (step.duration) markdown += ` (Duration: ${step.duration})`
+            if (step.description) markdown += `\n     *${step.description}*`
             markdown += '\n'
           })
           markdown += '\n'
         }
+
+        // Decision points / forks
+        if (event.decision_point) {
+          markdown += `**Decision Point:** ${event.decision_point}\n\n`
+        }
+        if (event.alternatives && event.alternatives.length > 0) {
+          markdown += `**Alternative Paths:**\n\n`
+          event.alternatives.forEach((alt: any) => {
+            markdown += `- ${alt}\n`
+          })
+          markdown += '\n'
+        }
+
+        markdown += '---\n\n'
       })
     }
 
