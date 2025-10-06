@@ -88,6 +88,7 @@ const getNavigation = (t: (key: string) => string) => [
     href: '/dashboard/tools',
     icon: Search,
     children: [
+      { name: 'Content Intelligence', href: '/dashboard/tools/content-intelligence', icon: Sparkles },
       { name: t('tools.contentExtraction'), href: '/dashboard/tools/content-extraction' },
       { name: t('tools.batchProcessing'), href: '/dashboard/tools/batch-processing' },
       { name: t('tools.urlProcessing'), href: '/dashboard/tools/url' },
@@ -130,6 +131,7 @@ export function DashboardSidebar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([
     t('navigation.analysisFrameworks'),
+    t('navigation.researchTools'),
     t('navigation.evidenceCollection'),
     t('frameworkCategories.environmental'),
     t('frameworkCategories.nodal'),
@@ -236,9 +238,10 @@ export function DashboardSidebar() {
                                 pathname === child.href
                                   ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                                   : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-gray-800',
-                                'block rounded-md py-1.5 px-3 text-sm leading-6'
+                                'flex items-center gap-x-2 rounded-md py-1.5 px-3 text-sm leading-6'
                               )}
                             >
+                              {child.icon && <child.icon className="h-4 w-4 shrink-0" />}
                               {child.name}
                             </Link>
                           )}
