@@ -15,29 +15,26 @@ interface Env {
 }
 
 const DEFAULT_CONFIG = {
-  defaultModel: 'gpt-4o-mini',
+  defaultModel: 'gpt-5-mini',
   models: {
     'gpt-5': {
-      verbosity: 'high',
       maxTokens: 4096,
       systemPrompt: 'You are an expert intelligence analyst assistant. Provide detailed, structured analysis following intelligence community standards. Focus on analytical rigor, evidence-based reasoning, and clear communication. Always consider alternative hypotheses and indicate confidence levels.'
     },
-    'gpt-4o-mini': {
-      verbosity: 'medium',
+    'gpt-5-mini': {
       maxTokens: 2048,
       systemPrompt: 'You are an intelligence analyst assistant. Provide clear, concise analysis based on the provided evidence. Use structured formats (bullet points, numbered lists) when appropriate. Be objective and highlight key findings.'
     },
     'gpt-5-nano': {
-      verbosity: 'low',
-      reasoningEffort: 'minimal',
       maxTokens: 1024,
       systemPrompt: 'You are a research assistant. Provide brief, focused responses. Use bullet points for clarity. Be concise and actionable.'
     }
   },
   useCases: {
-    summarization: 'gpt-4o-mini',
+    summarization: 'gpt-5-mini',
     questionGeneration: 'gpt-5-nano',
     deepAnalysis: 'gpt-5',
+    generation: 'gpt-5-mini',
     fieldSuggestions: 'gpt-5-nano',
     formatting: 'gpt-5-nano',
     guidance: 'gpt-5-nano'
@@ -125,10 +122,10 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const newConfig = await context.request.json()
 
     // Validate configuration
-    if (!newConfig.defaultModel || !['gpt-5', 'gpt-4o-mini', 'gpt-5-nano'].includes(newConfig.defaultModel)) {
+    if (!newConfig.defaultModel || !['gpt-5', 'gpt-5-mini', 'gpt-5-nano'].includes(newConfig.defaultModel)) {
       return Response.json({
         error: 'Invalid configuration',
-        message: 'defaultModel must be one of: gpt-5, gpt-4o-mini, gpt-5-nano'
+        message: 'defaultModel must be one of: gpt-5, gpt-5-mini, gpt-5-nano'
       }, { status: 400 })
     }
 

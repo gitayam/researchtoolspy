@@ -34,6 +34,15 @@ export async function onRequest(context: any) {
           })
         }
 
+        // Parse the data field (stored as JSON string) back into an object
+        if (framework.data && typeof framework.data === 'string') {
+          try {
+            framework.data = JSON.parse(framework.data)
+          } catch (e) {
+            console.error('Failed to parse framework data:', e)
+          }
+        }
+
         return new Response(JSON.stringify(framework), {
           status: 200,
           headers: corsHeaders,
@@ -53,7 +62,19 @@ export async function onRequest(context: any) {
 
       const frameworks = await env.DB.prepare(query).all()
 
-      return new Response(JSON.stringify({ frameworks: frameworks.results }), {
+      // Parse the data field for each framework
+      const parsedFrameworks = (frameworks.results || []).map((framework: any) => {
+        if (framework.data && typeof framework.data === 'string') {
+          try {
+            framework.data = JSON.parse(framework.data)
+          } catch (e) {
+            console.error('Failed to parse framework data:', e)
+          }
+        }
+        return framework
+      })
+
+      return new Response(JSON.stringify({ frameworks: parsedFrameworks }), {
         status: 200,
         headers: corsHeaders,
       })
@@ -63,24 +84,53 @@ export async function onRequest(context: any) {
     if (request.method === 'POST') {
       const body = await request.json()
 
+      // Validate required fields
+      if (!body.title) {
+        return new Response(JSON.stringify({ error: 'Title is required' }), {
+          status: 400,
+          headers: corsHeaders,
+        })
+      }
+
+      if (!body.framework_type) {
+        return new Response(JSON.stringify({ error: 'Framework type is required' }), {
+          status: 400,
+          headers: corsHeaders,
+        })
+      }
+
+      // Validate and sanitize data field
+      let dataJson
+      try {
+        dataJson = JSON.stringify(body.data || {})
+      } catch (jsonError) {
+        console.error('JSON stringify error:', jsonError)
+        return new Response(JSON.stringify({
+          error: 'Invalid data format',
+          message: jsonError instanceof Error ? jsonError.message : 'Could not serialize data'
+        }), {
+          status: 400,
+          headers: corsHeaders,
+        })
+      }
+
       const result = await env.DB.prepare(
-        `INSERT INTO framework_sessions (user_id, title, description, framework_type, data, status, is_public, shared_publicly_at, source_url)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO framework_sessions (user_id, title, description, framework_type, data, status, is_public, shared_publicly_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         body.user_id || 1,
         body.title,
         body.description || '',
         body.framework_type,
-        JSON.stringify(body.data || {}),
+        dataJson,
         body.status || 'draft',
         body.is_public ? 1 : 0,
-        body.is_public ? new Date().toISOString() : null,
-        body.data?.source_url || null
+        body.is_public ? new Date().toISOString() : null
       ).run()
 
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         id: result.meta.last_row_id,
-        message: 'Framework created successfully' 
+        message: 'Framework created successfully'
       }), {
         status: 201,
         headers: corsHeaders,
@@ -94,7 +144,7 @@ export async function onRequest(context: any) {
       await env.DB.prepare(
         `UPDATE framework_sessions
          SET title = ?, description = ?, data = ?, status = ?, updated_at = datetime('now'),
-             is_public = ?, shared_publicly_at = ?, source_url = ?
+             is_public = ?, shared_publicly_at = ?
          WHERE id = ?`
       ).bind(
         body.title,
@@ -103,7 +153,6 @@ export async function onRequest(context: any) {
         body.status,
         body.is_public ? 1 : 0,
         body.is_public ? new Date().toISOString() : null,
-        body.data?.source_url || null,
         frameworkId
       ).run()
 
@@ -132,10 +181,18 @@ export async function onRequest(context: any) {
 
   } catch (error: any) {
     console.error('Framework API error:', error)
-    return new Response(JSON.stringify({
-      error: 'Failed to create',
+    console.error('Error stack:', error.stack)
+    console.error('Error details:', {
       message: error.message,
-      details: error.stack
+      cause: error.cause,
+      name: error.name
+    })
+
+    return new Response(JSON.stringify({
+      error: 'Framework operation failed',
+      message: error.message || 'Unknown error occurred',
+      details: error.stack,
+      operation: request.method
     }), {
       status: 500,
       headers: corsHeaders,

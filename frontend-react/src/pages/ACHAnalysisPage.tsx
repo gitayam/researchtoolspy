@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import type { ACHAnalysis } from '@/types/ach'
 import { ACHMatrix } from '@/components/ach/ACHMatrix'
 import { ACHAnalysisForm, type ACHFormData } from '@/components/ach/ACHAnalysisForm'
+import { ACHShareButton } from '@/components/ach/ACHShareButton'
 
 export function ACHAnalysisPage() {
   const { id } = useParams<{ id: string }>()
@@ -224,10 +225,20 @@ export function ACHAnalysisPage() {
             )}
           </div>
         </div>
-        <Button onClick={handleEditAnalysis}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit Analysis
-        </Button>
+        <div className="flex gap-2">
+          <ACHShareButton
+            analysisId={analysis.id}
+            isPublic={analysis.is_public || false}
+            shareToken={analysis.share_token}
+            domain={analysis.domain}
+            tags={analysis.tags}
+            onUpdate={() => loadAnalysis()}
+          />
+          <Button onClick={handleEditAnalysis}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Analysis
+          </Button>
+        </div>
       </div>
 
       {/* Metadata */}

@@ -1,6 +1,6 @@
 import { useState, memo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check } from 'lucide-react'
+import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check, Download, FileJson } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -836,6 +836,95 @@ export function GenericFrameworkForm({
     }
   }
 
+  // Export functions for saving data when server save fails
+  const exportAsJSON = () => {
+    const data: GenericFrameworkData = {
+      title: title.trim(),
+      description: description.trim(),
+      source_url: sourceUrl || undefined,
+      ...sectionData,
+      ...(frameworkType === 'behavior' && {
+        location_context: locationContext,
+        behavior_settings: behaviorSettings,
+        temporal_context: temporalContext,
+        eligibility,
+        complexity,
+        com_b_deficits: comBDeficits,
+        selected_interventions: selectedInterventions,
+      }),
+      ...(frameworkType === 'comb-analysis' && {
+        linked_behavior_id: linkedBehaviorId,
+        linked_behavior_title: linkedBehaviorTitle,
+        com_b_deficits: comBDeficits,
+        selected_interventions: selectedInterventions,
+      }),
+    }
+
+    const jsonString = JSON.stringify(data, null, 2)
+    const blob = new Blob([jsonString], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${frameworkType}_${title.trim() || 'untitled'}_${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const exportAsCSV = () => {
+    const rows: string[][] = []
+
+    // Header row
+    rows.push(['Section', 'Item Type', 'Content', 'Additional Info'])
+
+    // Basic info
+    rows.push(['Title', 'text', title, ''])
+    rows.push(['Description', 'text', description, ''])
+    if (sourceUrl) rows.push(['Source URL', 'text', sourceUrl, ''])
+
+    // For behavior framework - add context fields
+    if (frameworkType === 'behavior') {
+      if (locationContext?.specific_locations?.length) {
+        rows.push(['Location', 'list', locationContext.specific_locations.join('; '), `Scope: ${locationContext.geographic_scope}`])
+      }
+      if (behaviorSettings?.settings?.length) {
+        rows.push(['Settings', 'list', behaviorSettings.settings.join(', '), behaviorSettings.setting_details || ''])
+      }
+      if (temporalContext?.frequency_pattern) {
+        rows.push(['Frequency', 'text', temporalContext.frequency_pattern, temporalContext.timing_notes || ''])
+      }
+      rows.push(['Complexity', 'text', complexity, ''])
+    }
+
+    // Section items
+    sections.forEach(section => {
+      const items = sectionData[section.key] || []
+      items.forEach(item => {
+        if (isQuestionAnswerItem(item)) {
+          rows.push([section.label, 'Q&A', item.question, item.answer || ''])
+        } else if ('text' in item) {
+          rows.push([section.label, 'text', item.text, ''])
+        }
+      })
+    })
+
+    // Convert to CSV
+    const csvContent = rows.map(row =>
+      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+    ).join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${frameworkType}_${title.trim() || 'untitled'}_${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   const handleSave = async () => {
     if (!title.trim()) {
       setSaveError('Please enter a title for your analysis')
@@ -998,12 +1087,32 @@ export function GenericFrameworkForm({
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <div className="text-red-600 dark:text-red-400 mt-0.5">⚠️</div>
-            <div>
+            <div className="flex-1">
               <h3 className="font-semibold text-red-800 dark:text-red-200">Save Failed</h3>
               <p className="text-sm text-red-700 dark:text-red-300 mt-1">{saveError}</p>
               <p className="text-xs text-red-600 dark:text-red-400 mt-2">
                 Your data has been auto-saved locally and will be restored if you refresh the page.
               </p>
+              <div className="mt-3 flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportAsCSV}
+                  className="border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/40"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download as CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportAsJSON}
+                  className="border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/40"
+                >
+                  <FileJson className="h-4 w-4 mr-2" />
+                  Download as JSON
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -1073,7 +1182,9 @@ export function GenericFrameworkForm({
 
       {/* Framework Sections */}
       <div className={`grid grid-cols-1 ${sections.length === 4 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
-        {sections.map(section => {
+        {sections
+          .filter(section => section.key !== 'basic_info') // Exclude basic_info for behavior framework (handled above)
+          .map(section => {
           // Special handling for COM-B Analysis setup (behavior linking)
           if (frameworkType === 'comb-analysis' && section.key === 'setup') {
             return (
@@ -1301,8 +1412,10 @@ export function GenericFrameworkForm({
           <CardTitle>Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={`grid grid-cols-${sections.length} gap-4 text-center`}>
-            {sections.map(section => (
+          <div className={`grid grid-cols-${sections.filter(s => s.key !== 'basic_info').length} gap-4 text-center`}>
+            {sections
+              .filter(section => section.key !== 'basic_info')
+              .map(section => (
               <div key={section.key}>
                 <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                   {sectionData[section.key].length}

@@ -5,6 +5,8 @@
 export type ScaleType = 'logarithmic' | 'linear'
 export type AnalysisStatus = 'draft' | 'in_progress' | 'completed'
 
+export type ACHDomain = 'intelligence' | 'security' | 'business' | 'research' | 'medical' | 'legal' | 'other'
+
 export interface ACHAnalysis {
   id: string
   user_id: string
@@ -20,6 +22,15 @@ export interface ACHAnalysis {
   hypotheses?: ACHHypothesis[]
   evidence?: ACHEvidenceLink[]
   scores?: ACHScore[]
+
+  // Public sharing fields
+  is_public?: boolean
+  share_token?: string
+  view_count?: number
+  clone_count?: number
+  domain?: ACHDomain
+  tags?: string[]
+  shared_publicly_at?: string
 }
 
 export interface ACHHypothesis {

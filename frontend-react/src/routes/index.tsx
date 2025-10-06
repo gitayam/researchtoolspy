@@ -68,6 +68,8 @@ const ACHAnalysisPage = lazy(() => import('@/pages/ACHAnalysisPage').then(m => (
 
 // Public pages (lazy loaded - no auth required)
 const PublicFrameworkPage = lazy(() => import('@/pages/PublicFrameworkPage').then(m => ({ default: m.PublicFrameworkPage })))
+const PublicACHPage = lazy(() => import('@/pages/PublicACHPage').then(m => ({ default: m.PublicACHPage })))
+const PublicACHLibraryPage = lazy(() => import('@/pages/PublicACHLibraryPage').then(m => ({ default: m.PublicACHLibraryPage })))
 
 // Wrapper component for Suspense
 const LazyPage = ({ Component }: { Component: React.LazyExoticComponent<React.ComponentType> }) => (
@@ -96,6 +98,14 @@ export const router = createBrowserRouter([
   {
     path: '/public/framework/:token',
     element: <LazyPage Component={PublicFrameworkPage} />,
+  },
+  {
+    path: '/public/ach',
+    element: <LazyPage Component={PublicACHLibraryPage} />,
+  },
+  {
+    path: '/public/ach/:token',
+    element: <LazyPage Component={PublicACHPage} />,
   },
   {
     path: '/tools',
