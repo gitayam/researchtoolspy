@@ -71,12 +71,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!contentData.success) {
       console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
+
+      // Provide user-friendly error message
+      let userMessage = contentData.error || 'Failed to extract content'
+      if (userMessage.includes('timeout')) {
+        userMessage = 'The website took too long to respond. Try using one of the bypass URLs below.'
+      } else if (userMessage.includes('403') || userMessage.includes('401')) {
+        userMessage = 'The website blocked access. Try using one of the bypass URLs below.'
+      } else if (userMessage.includes('404')) {
+        userMessage = 'The page was not found. Please check the URL.'
+      } else if (userMessage.includes('500') || userMessage.includes('502') || userMessage.includes('503')) {
+        userMessage = 'The website is experiencing issues. Try again later or use a bypass URL.'
+      }
+
       return new Response(JSON.stringify({
-        error: contentData.error,
+        error: userMessage,
+        technical_error: contentData.error,
+        suggestion: 'Try using one of the bypass or archive URLs to access the content',
         bypass_urls: bypassUrls,
         archive_urls: archiveUrls
       }), {
-        status: 500,
+        status: 422, // Use 422 instead of 500 for content extraction failures
         headers: { 'Content-Type': 'application/json' }
       })
     }
