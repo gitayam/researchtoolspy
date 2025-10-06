@@ -67,8 +67,8 @@ export function BehaviorSearchDialog({
   })
 
   const handleSelect = (behavior: any) => {
-    let behaviorData = {}
-    let tags = []
+    let behaviorData: any = {}
+    let tags: any[] = []
 
     try {
       behaviorData = behavior.data ? JSON.parse(behavior.data) : {}
@@ -138,7 +138,7 @@ export function BehaviorSearchDialog({
           ) : (
             <div className="space-y-3 py-2">
               {filteredBehaviors.map((behavior) => {
-                let data = {}
+                let data: any = {}
                 try {
                   data = behavior.data ? JSON.parse(behavior.data) : {}
                 } catch (e) {
