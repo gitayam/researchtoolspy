@@ -30,9 +30,45 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     console.log('[DEBUG] Starting analyze-url endpoint')
+    console.log(`[DEBUG] Request method: ${request.method}`)
+    console.log(`[DEBUG] Request URL: ${request.url}`)
+
+    // Check environment bindings
+    console.log(`[DEBUG] Environment check:`)
+    console.log(`[DEBUG]   - DB: ${!!env.DB}`)
+    console.log(`[DEBUG]   - OPENAI_API_KEY: ${!!env.OPENAI_API_KEY}`)
+
+    if (!env.DB) {
+      console.error('[DEBUG] CRITICAL: Database binding not available!')
+      return new Response(JSON.stringify({
+        error: 'Database not configured',
+        details: 'Database binding is not available in environment'
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (!env.OPENAI_API_KEY) {
+      console.error('[DEBUG] WARNING: OpenAI API key not available!')
+    }
 
     // Parse request
-    const body = await request.json() as AnalyzeUrlRequest
+    let body: AnalyzeUrlRequest
+    try {
+      body = await request.json() as AnalyzeUrlRequest
+      console.log(`[DEBUG] Request body parsed: ${JSON.stringify({ url: body.url, mode: body.mode })}`)
+    } catch (error) {
+      console.error('[DEBUG] Failed to parse request body:', error)
+      return new Response(JSON.stringify({
+        error: 'Invalid request body',
+        details: error instanceof Error ? error.message : 'Failed to parse JSON'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
     const { url, mode = 'full', save_link = false, link_note, link_tags } = body
 
     if (!url) {
@@ -43,8 +79,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[DEBUG] Analyzing URL: ${url} (mode: ${mode})`)
-    console.log(`[DEBUG] Environment bindings - DB: ${!!env.DB}, OPENAI_API_KEY: ${!!env.OPENAI_API_KEY}`)
+    console.log(`[DEBUG] Analyzing URL: ${url} (mode: ${mode}, save_link: ${save_link})`)
 
     const startTime = Date.now()
 
@@ -132,17 +167,37 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Full mode: Extract entities and generate summary with GPT
-    console.log('[DEBUG] Calling extractEntities with GPT...')
-    const entitiesData = await extractEntities(contentData.text, env.OPENAI_API_KEY)
-    console.log(`[DEBUG] Entities extracted: ${JSON.stringify(entitiesData)}`)
+    let entitiesData = { people: [], organizations: [], locations: [] }
+    let summary = ''
 
-    console.log('[DEBUG] Calling generateSummary with GPT...')
-    const summary = await generateSummary(contentData.text, env.OPENAI_API_KEY)
-    console.log(`[DEBUG] Summary generated: ${summary?.substring(0, 100)}...`)
+    try {
+      console.log('[DEBUG] Calling extractEntities with GPT...')
+      console.log(`[DEBUG] API Key available: ${!!env.OPENAI_API_KEY}`)
+      console.log(`[DEBUG] Text length: ${contentData.text.length}`)
+
+      entitiesData = await extractEntities(contentData.text, env.OPENAI_API_KEY)
+      console.log(`[DEBUG] Entities extracted: ${JSON.stringify(entitiesData)}`)
+    } catch (error) {
+      console.error('[DEBUG] Entity extraction failed:', error)
+      console.error('[DEBUG] Continuing with empty entities...')
+      // Continue with empty entities rather than failing
+    }
+
+    try {
+      console.log('[DEBUG] Calling generateSummary with GPT...')
+      summary = await generateSummary(contentData.text, env.OPENAI_API_KEY)
+      console.log(`[DEBUG] Summary generated: ${summary?.substring(0, 100)}...`)
+    } catch (error) {
+      console.error('[DEBUG] Summary generation failed:', error)
+      console.error('[DEBUG] Continuing without summary...')
+      // Continue without summary rather than failing
+    }
 
     // Save to database
     console.log('[DEBUG] Saving to database...')
-    const analysisId = await saveAnalysis(env.DB, {
+    let analysisId: number
+    try {
+      analysisId = await saveAnalysis(env.DB, {
       url: normalizedUrl,
       content_hash: contentHash,
       title: contentData.title,
@@ -163,22 +218,34 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       processing_duration_ms: Date.now() - startTime,
       gpt_model_used: 'gpt-4o-mini'
     })
-    console.log(`[DEBUG] Saved to database with ID: ${analysisId}`)
+      console.log(`[DEBUG] Saved to database with ID: ${analysisId}`)
+    } catch (error) {
+      console.error('[DEBUG] Database save failed:', error)
+      console.error('[DEBUG] Error details:', error instanceof Error ? error.message : String(error))
+      throw new Error(`Database save failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
 
     // Optionally save link
     let savedLinkId: number | undefined
     if (save_link) {
-      savedLinkId = await saveLinkToLibrary(env.DB, {
-        url: normalizedUrl,
-        title: contentData.title,
-        note: link_note,
-        tags: link_tags,
-        domain: new URL(normalizedUrl).hostname,
-        is_social_media: !!socialMediaInfo,
-        social_platform: socialMediaInfo?.platform,
-        is_processed: true,
-        analysis_id: analysisId
-      })
+      try {
+        console.log('[DEBUG] Saving link to library...')
+        savedLinkId = await saveLinkToLibrary(env.DB, {
+          url: normalizedUrl,
+          title: contentData.title,
+          note: link_note,
+          tags: link_tags,
+          domain: new URL(normalizedUrl).hostname,
+          is_social_media: !!socialMediaInfo,
+          social_platform: socialMediaInfo?.platform,
+          is_processed: true,
+          analysis_id: analysisId
+        })
+        console.log(`[DEBUG] Link saved with ID: ${savedLinkId}`)
+      } catch (error) {
+        console.error('[DEBUG] Link save failed (non-fatal):', error)
+        // Don't fail the whole request if link save fails
+      }
     }
 
     const result = {
