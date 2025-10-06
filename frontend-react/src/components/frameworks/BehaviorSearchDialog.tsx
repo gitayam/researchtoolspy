@@ -67,7 +67,22 @@ export function BehaviorSearchDialog({
   })
 
   const handleSelect = (behavior: any) => {
-    const behaviorData = behavior.data ? JSON.parse(behavior.data) : {}
+    let behaviorData = {}
+    let tags = []
+
+    try {
+      behaviorData = behavior.data ? JSON.parse(behavior.data) : {}
+    } catch (e) {
+      console.error('Failed to parse behavior data:', e, behavior.data)
+      behaviorData = {}
+    }
+
+    try {
+      tags = behavior.tags ? JSON.parse(behavior.tags) : []
+    } catch (e) {
+      console.error('Failed to parse behavior tags:', e, behavior.tags)
+      tags = []
+    }
 
     onSelect({
       id: behavior.id,
@@ -77,7 +92,7 @@ export function BehaviorSearchDialog({
       settings: behaviorData.behavior_settings?.settings || [],
       complexity: behaviorData.complexity,
       category: behaviorData.category,
-      tags: behavior.tags ? JSON.parse(behavior.tags) : [],
+      tags,
       created_at: behavior.created_at,
       upvotes: 0,
       usage_count: 0
@@ -123,7 +138,13 @@ export function BehaviorSearchDialog({
           ) : (
             <div className="space-y-3 py-2">
               {filteredBehaviors.map((behavior) => {
-                const data = behavior.data ? JSON.parse(behavior.data) : {}
+                let data = {}
+                try {
+                  data = behavior.data ? JSON.parse(behavior.data) : {}
+                } catch (e) {
+                  console.error('Failed to parse behavior data:', e, behavior.data)
+                  data = {}
+                }
                 const complexity = data.complexity
                 const locations = data.location_context?.specific_locations || []
                 const settings = data.behavior_settings?.settings || []
