@@ -90,6 +90,12 @@ export interface TimelineEvent {
   description?: string
   location?: string // Where this step occurs
   is_decision_point?: boolean
+
+  // Nested behavior support - link to existing behavior analysis
+  linked_behavior_id?: string        // Link to existing behavior analysis
+  linked_behavior_title?: string     // Cache for display
+  linked_behavior_type?: BehaviorComplexity  // Cache: complexity level
+
   sub_steps?: TimelineSubStep[]
   forks?: TimelineFork[]
 }
