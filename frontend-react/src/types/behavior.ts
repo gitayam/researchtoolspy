@@ -66,8 +66,17 @@ export interface SymbolItem {
   symbol_type: SymbolType
   description?: string // What does it represent/signify?
   context?: string // When/where is it used?
-  image_url?: string // Uploaded image URL (stored)
+
+  // Media support (visual symbols)
+  image_url?: string // Uploaded image URL (stored) or external link
   image_data?: string // Base64 image data (temporary, before upload)
+
+  // Media support (auditory symbols) - NEW
+  audio_url?: string // Uploaded audio URL (stored) or external link
+  audio_data?: string // Base64 audio data (temporary, before upload)
+
+  // Media source mode - NEW
+  media_source?: 'upload' | 'link' // How media was provided
 }
 
 // Extended TimelineEvent with sub-steps and forks
