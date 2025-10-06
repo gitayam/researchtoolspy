@@ -843,12 +843,33 @@ export function GenericFrameworkForm({
       return
     }
 
-    // Validate that at least one section has data
-    const hasData = sections.some(section => sectionData[section.key]?.length > 0)
-    if (!hasData) {
-      setSaveError('Please add at least one item to any section')
-      alert('Please add at least one item before saving')
-      return
+    // Validate that framework has meaningful content
+    let hasData = false
+
+    if (frameworkType === 'behavior') {
+      // For behavior framework - allow save with basic info OR section items
+      const hasBasicInfo = !!description.trim() ||
+        (locationContext?.specific_locations?.length ?? 0) > 0 ||
+        (behaviorSettings?.settings?.length ?? 0) > 0 ||
+        !!temporalContext?.frequency_pattern ||
+        !!complexity
+
+      hasData = hasBasicInfo || sections.some(section => sectionData[section.key]?.length > 0)
+
+      if (!hasData) {
+        setSaveError('Please add a description or fill in basic behavior information')
+        alert('Please add a description or fill in at least one field (location, settings, frequency, etc.)')
+        return
+      }
+    } else {
+      // For other frameworks - description OR section items
+      hasData = !!description.trim() || sections.some(section => sectionData[section.key]?.length > 0)
+
+      if (!hasData) {
+        setSaveError('Please add a description or at least one item to any section')
+        alert('Please add a description or at least one item before saving')
+        return
+      }
     }
 
     setSaving(true)
