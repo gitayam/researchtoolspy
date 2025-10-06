@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Plus, Copy, Check, Trash2, BookOpen, Globe, Loader2, Save } from 'lucide-react'
@@ -55,6 +55,36 @@ export function CitationsGeneratorPage() {
 
   // News fields
   const [publication, setPublication] = useState('')
+
+  // Load data from URL parameters (for Content Intelligence integration)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+
+    // Load all parameters
+    if (params.has('sourceType')) setSourceType(params.get('sourceType') as SourceType)
+    if (params.has('title')) setTitle(params.get('title')!)
+    if (params.has('url')) setUrl(params.get('url')!)
+    if (params.has('siteName')) setSiteName(params.get('siteName')!)
+    if (params.has('year')) setYear(params.get('year')!)
+    if (params.has('month')) setMonth(params.get('month')!)
+    if (params.has('day')) setDay(params.get('day')!)
+    if (params.has('accessDate')) setAccessDate(params.get('accessDate')!)
+    if (params.has('publication')) setPublication(params.get('publication')!)
+    if (params.has('publisher')) setPublisher(params.get('publisher')!)
+
+    // Load author data
+    const firstName = params.get('firstName')
+    const lastName = params.get('lastName')
+    const middleName = params.get('middleName')
+
+    if (firstName || lastName) {
+      setAuthors([{
+        firstName: firstName || '',
+        lastName: lastName || '',
+        middleName: middleName || ''
+      }])
+    }
+  }, [])
 
   const addAuthor = () => {
     setAuthors([...authors, { firstName: '', lastName: '', middleName: '' }])
