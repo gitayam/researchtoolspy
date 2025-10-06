@@ -148,44 +148,44 @@ export function ToolsPage() {
 
   // Show tools list
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('toolsPage.title')}</h1>
-        <p className="text-gray-600 dark:text-gray-400">{t('toolsPage.subtitle')}</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t('toolsPage.title')}</h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">{t('toolsPage.subtitle')}</p>
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
         <Input
           placeholder={t('toolsPage.searchPlaceholder')}
-          className="pl-10"
+          className="pl-10 sm:pl-11 h-11 sm:h-12 text-base"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {filteredTools.map((tool) => {
           const Icon = tool.icon
           return (
             <Card
               key={tool.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer"
+              className="hover:shadow-lg active:shadow-md transition-shadow cursor-pointer"
               onClick={() => navigate(`/dashboard/tools/${tool.id}`)}
             >
-              <CardHeader>
+              <CardHeader className="pb-3 sm:pb-4">
                 <div className="flex items-start justify-between">
-                  <Icon className="h-8 w-8 text-blue-600" />
+                  <Icon className="h-8 w-8 sm:h-9 sm:w-9 text-blue-600 dark:text-blue-500" />
                 </div>
-                <CardTitle className="mt-4">{tool.name}</CardTitle>
-                <CardDescription>{tool.description}</CardDescription>
+                <CardTitle className="mt-3 sm:mt-4 text-base sm:text-lg">{tool.name}</CardTitle>
+                <CardDescription className="text-sm">{tool.description}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ul className="space-y-1 text-sm">
+              <CardContent className="pt-0">
+                <ul className="space-y-1.5 text-sm">
                   {tool.features.slice(0, 3).map((feature, index) => (
                     <li key={index} className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                      <div className="h-1 w-1 rounded-full bg-blue-600" />
-                      {feature}
+                      <div className="h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-blue-500 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm">{feature}</span>
                     </li>
                   ))}
                 </ul>

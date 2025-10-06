@@ -255,26 +255,28 @@ export function DashboardSidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
+      {/* Mobile menu button - Improved touch target and visibility */}
       <div className="lg:hidden">
         <button
           type="button"
-          className="fixed top-4 left-4 z-50 rounded-md bg-white dark:bg-gray-800 p-2 text-gray-400 dark:text-gray-300 shadow-sm lg:hidden"
+          className="fixed top-3 left-3 z-50 rounded-lg bg-white dark:bg-gray-800 p-3 text-gray-700 dark:text-gray-200 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors lg:hidden border border-gray-200 dark:border-gray-700"
           onClick={() => setMobileMenuOpen(true)}
+          aria-label="Open navigation menu"
         >
-          <Menu className="h-6 w-6" />
+          <Menu className="h-7 w-7" />
         </button>
       </div>
 
-      {/* Mobile menu overlay */}
+      {/* Mobile menu overlay - Improved drawer and close button */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="fixed inset-0 bg-gray-900/80" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 shadow-xl">
+          <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+          <div className="fixed inset-y-0 left-0 z-50 w-72 sm:w-80 bg-white dark:bg-gray-900 shadow-xl overflow-y-auto">
             <button
               type="button"
-              className="absolute top-4 right-4 rounded-md p-2 text-gray-400 hover:text-gray-500"
+              className="absolute top-4 right-4 rounded-lg p-3 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close navigation menu"
             >
               <X className="h-6 w-6" />
             </button>

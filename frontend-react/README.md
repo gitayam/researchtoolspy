@@ -1,73 +1,83 @@
-# React + TypeScript + Vite
+# Research Tools Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A comprehensive intelligence analysis and research platform built with React, TypeScript, and Cloudflare Pages.
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+This application provides military intelligence analysts and researchers with a suite of analytical tools and frameworks including:
 
-## React Compiler
+- **Analysis Frameworks**: COG Analysis, ACH, BCW, Deception Detection, Starbursting
+- **Content Intelligence**: URL analysis, entity extraction, Q&A system, citation generation
+- **Intelligence Management**: Evidence tracking, actor/entity management, investigation teams
+- **Report Generation**: PDF, PowerPoint, Excel exports with professional formatting
+- **Multi-language Support**: English and Spanish interfaces
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+- **Frontend**: React 18 + TypeScript + Vite
+- **UI Components**: shadcn/ui (Radix UI + Tailwind CSS)
+- **Backend**: Cloudflare Pages Functions (Workers)
+- **Database**: Cloudflare D1 (SQLite at the edge)
+- **AI Integration**: OpenAI GPT-4o-mini for analysis
+- **i18n**: react-i18next for multi-language support
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Development
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+```bash
+# Install dependencies
+npm install
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# Run development server
+npm run dev
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Deploy to Cloudflare Pages
+npx wrangler pages deploy dist
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Documentation
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- **Development Guide**: `Cloudflare_React_Development_Guide.md` - Best practices for Cloudflare Workers development
+- **Lessons Learned**: `lessonslearned-gpt-cloudflare-workers.md` - GPT + Cloudflare Workers integration notes
+- **Implementation Status**: `docs/COG_IMPLEMENTATION_STATUS.md` - Current roadmap and feature status
+- **Archive**: `archive/` - Historical planning documents, implementation summaries, and old status updates
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Archive Structure
+
+Historical documentation has been organized into the `archive/` directory:
+
+- `archive/planning/` - Feature planning documents and roadmaps
+- `archive/implementations/` - Completed implementation summaries
+- `archive/status-updates/` - Historical status reports and progress updates
+
+## Environment Variables
+
+See `.dev.vars.example` for required environment variables:
+- `OPENAI_API_KEY` - OpenAI API key for GPT features
+- `VIRUSTOTAL_API_KEY` - Optional, for security lookups
+
+## Database
+
+Database schema and migrations are in `schema/migrations/`. The application uses Cloudflare D1 for edge database functionality.
+
+## Deployment
+
+The application is deployed to Cloudflare Pages with automatic deployments on push to main branch.
+
+```bash
+# Deploy to production
+npm run build
+npx wrangler pages deploy dist
+
+# Watch deployment logs
+npx wrangler pages deployment tail --project-name=researchtoolspy
 ```
+
+## License
+
+Proprietary - All Rights Reserved
