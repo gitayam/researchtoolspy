@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -7,10 +7,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
-  Star, Save, ExternalLink, Archive, Clock, Bookmark
+  Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import type { ContentAnalysis, ProcessingStatus, AnalysisTab } from '@/types/content-intelligence'
+import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink } from '@/types/content-intelligence'
 
 export default function ContentIntelligencePage() {
   const { toast } = useToast()
@@ -27,6 +27,28 @@ export default function ContentIntelligencePage() {
   const [bypassUrls, setBypassUrls] = useState<Record<string, string>>({})
   const [saveNote, setSaveNote] = useState('')
   const [saveTags, setSaveTags] = useState('')
+  const [savedLinks, setSavedLinks] = useState<SavedLink[]>([])
+  const [loadingSavedLinks, setLoadingSavedLinks] = useState(false)
+
+  // Load saved links
+  useEffect(() => {
+    loadSavedLinks()
+  }, [])
+
+  const loadSavedLinks = async () => {
+    setLoadingSavedLinks(true)
+    try {
+      const response = await fetch('/api/content-intelligence/saved-links?limit=5')
+      if (response.ok) {
+        const data = await response.json()
+        setSavedLinks(data.links || [])
+      }
+    } catch (error) {
+      console.error('Failed to load saved links:', error)
+    } finally {
+      setLoadingSavedLinks(false)
+    }
+  }
 
   // Quick save link (without processing)
   const handleQuickSave = async () => {
@@ -49,9 +71,25 @@ export default function ContentIntelligencePage() {
 
       if (!response.ok) throw new Error('Failed to save link')
 
-      toast({ title: 'Success', description: 'Link saved to library' })
+      const savedData = await response.json()
+
+      toast({
+        title: 'Success',
+        description: (
+          <div className="space-y-1">
+            <p>Link saved to library</p>
+            <a
+              href={`#saved-links`}
+              className="text-xs underline hover:text-blue-600"
+            >
+              View in Saved Links section below
+            </a>
+          </div>
+        )
+      })
       setSaveNote('')
       setSaveTags('')
+      loadSavedLinks() // Refresh saved links
     } catch (error) {
       console.error('Save error:', error)
       toast({ title: 'Error', description: 'Failed to save link', variant: 'destructive' })
@@ -418,6 +456,94 @@ export default function ContentIntelligencePage() {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Saved Links Library */}
+      <div id="saved-links" className="mt-8">
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <FolderOpen className="h-5 w-5" />
+              Recently Saved Links
+            </h2>
+            <Button variant="outline" size="sm">
+              View All
+            </Button>
+          </div>
+
+          {loadingSavedLinks ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+              Loading saved links...
+            </div>
+          ) : savedLinks.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No saved links yet.</p>
+              <p className="text-sm mt-1">Use "Quick Save" above to save links for later analysis.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {savedLinks.map((link) => (
+                <div
+                  key={link.id}
+                  className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium truncate">{link.title || 'Untitled'}</h3>
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline truncate block"
+                      >
+                        {link.url}
+                      </a>
+                      {link.note && (
+                        <p className="text-sm text-muted-foreground mt-1">{link.note}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2">
+                        {link.tags && link.tags.length > 0 && (
+                          <div className="flex gap-1 flex-wrap">
+                            {link.tags.map((tag, i) => (
+                              <span
+                                key={i}
+                                className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(link.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {link.is_processed ? (
+                        <Button variant="outline" size="sm">
+                          View Analysis
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setUrl(link.url)
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                          }}
+                        >
+                          Analyze Now
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
   )
 }

@@ -170,7 +170,13 @@ export class AIClient {
       }
 
       const data = await response.json()
-      const results = JSON.parse(data.choices[0].message.content)
+      let results
+      try {
+        results = JSON.parse(data.choices[0].message.content)
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError)
+        throw new Error('Invalid JSON response from AI')
+      }
 
       return {
         results,
