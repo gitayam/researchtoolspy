@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, X, ExternalLink, Link2, Trash2, HelpCircle, ChevronDown, ChevronRight, Zap } from 'lucide-react'
 import { COGQuickScore } from './COGQuickScore'
+import { AICOGAssistant } from './AICOGAssistant'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -271,6 +272,87 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
   const removeVulnerability = (id: string) => {
     if (!confirm('Remove this vulnerability?')) return
     setVulnerabilities(vulnerabilities.filter(vuln => vuln.id !== id))
+  }
+
+  // AI Handler Functions
+  const handleAICOGsSuggestions = (cogSuggestions: Array<{ description: string; rationale: string; validation: string }>) => {
+    const newCOGs: CenterOfGravity[] = cogSuggestions.map(suggestion => ({
+      id: crypto.randomUUID(),
+      actor_category: 'friendly',
+      domain: 'military',
+      description: suggestion.description,
+      rationale: suggestion.rationale,
+      validation_notes: suggestion.validation,
+      linked_evidence: [],
+    }))
+    setCogs([...cogs, ...newCOGs])
+    // Expand all new COGs
+    setExpandedCogs(new Set([...expandedCogs, ...newCOGs.map(c => c.id)]))
+  }
+
+  const handleAICapabilities = (cogId: string, capSuggestions: Array<{ description: string; how_it_works: string; support_to_objectives: string }>) => {
+    const newCaps: CriticalCapability[] = capSuggestions.map(suggestion => ({
+      id: crypto.randomUUID(),
+      cog_id: cogId,
+      capability: suggestion.description,
+      description: suggestion.how_it_works,
+      how_it_works: suggestion.how_it_works,
+      support_to_objectives: suggestion.support_to_objectives,
+      linked_evidence: [],
+    }))
+    setCapabilities([...capabilities, ...newCaps])
+    // Expand all new capabilities
+    setExpandedCaps(new Set([...expandedCaps, ...newCaps.map(c => c.id)]))
+  }
+
+  const handleAIRequirements = (capabilityId: string, reqSuggestions: Array<{ description: string; type: string; justification: string }>) => {
+    const newReqs: CriticalRequirement[] = reqSuggestions.map(suggestion => ({
+      id: crypto.randomUUID(),
+      capability_id: capabilityId,
+      requirement: suggestion.description,
+      requirement_type: suggestion.type as any || 'other',
+      description: suggestion.justification,
+      linked_evidence: [],
+    }))
+    setRequirements([...requirements, ...newReqs])
+    // Expand all new requirements
+    setExpandedReqs(new Set([...expandedReqs, ...newReqs.map(r => r.id)]))
+  }
+
+  const handleAIVulnerabilities = (requirementId: string, vulnSuggestions: Array<{
+    vulnerability: string
+    type: string
+    description: string
+    exploitation_method: string
+    expected_effect: string
+    recommended_actions: string
+  }>) => {
+    const newVulns: CriticalVulnerability[] = vulnSuggestions.map(suggestion => ({
+      id: crypto.randomUUID(),
+      requirement_id: requirementId,
+      vulnerability: suggestion.vulnerability,
+      vulnerability_type: suggestion.type as any || 'other',
+      description: suggestion.description,
+      exploitation_method: suggestion.exploitation_method,
+      expected_effect: suggestion.expected_effect,
+      recommended_actions: suggestion.recommended_actions,
+      confidence_level: 'medium',
+      ...(scoringSystem === 'custom'
+        ? {
+            custom_scoring: customCriteria.reduce((acc, criterion) => ({ ...acc, [criterion.id]: 3 }), {}),
+            composite_score: customCriteria.length * 3,
+          }
+        : {
+            scoring: {
+              impact_on_cog: 3,
+              attainability: 3,
+              follow_up_potential: 3,
+            },
+            composite_score: 9,
+          }),
+      linked_evidence: [],
+    }))
+    setVulnerabilities([...vulnerabilities, ...newVulns])
   }
 
   const openEvidenceLinker = (type: 'cog' | 'capability' | 'requirement' | 'vulnerability', id: string) => {
@@ -634,6 +716,11 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                         Quick-Score
                       </Button>
                     )}
+                    <AICOGAssistant
+                      mode="cog"
+                      operationalContext={operationalContext}
+                      onAcceptCOGs={handleAICOGsSuggestions}
+                    />
                     <Button onClick={addCOG}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add COG
@@ -807,10 +894,19 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                       </Tooltip>
                                     </TooltipProvider>
                                   </div>
-                                  <Button variant="outline" size="sm" onClick={() => addCapability(cog.id)}>
-                                    <Plus className="h-3 w-3 mr-1" />
-                                    Add
-                                  </Button>
+                                  <div className="flex gap-2">
+                                    <AICOGAssistant
+                                      mode="capabilities"
+                                      operationalContext={operationalContext}
+                                      cogDescription={cog.description}
+                                      cogRationale={cog.rationale}
+                                      onAcceptCapabilities={(caps) => handleAICapabilities(cog.id, caps)}
+                                    />
+                                    <Button variant="outline" size="sm" onClick={() => addCapability(cog.id)}>
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Add
+                                    </Button>
+                                  </div>
                                 </div>
                                 {capabilities
                                   .filter(cap => cap.cog_id === cog.id)
@@ -885,10 +981,18 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                       </Tooltip>
                                                     </TooltipProvider>
                                                   </div>
-                                                  <Button variant="outline" size="sm" onClick={() => addRequirement(cap.id)}>
-                                                    <Plus className="h-3 w-3 mr-1" />
-                                                    Add
-                                                  </Button>
+                                                  <div className="flex gap-2">
+                                                    <AICOGAssistant
+                                                      mode="requirements"
+                                                      operationalContext={operationalContext}
+                                                      existingCapabilities={[cap]}
+                                                      onAcceptRequirements={(reqs) => handleAIRequirements(cap.id, reqs)}
+                                                    />
+                                                    <Button variant="outline" size="sm" onClick={() => addRequirement(cap.id)}>
+                                                      <Plus className="h-3 w-3 mr-1" />
+                                                      Add
+                                                    </Button>
+                                                  </div>
                                                 </div>
                                                 {requirements
                                                   .filter(req => req.capability_id === cap.id)
@@ -964,10 +1068,18 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                       </Tooltip>
                                                                     </TooltipProvider>
                                                                   </div>
-                                                                  <Button variant="outline" size="sm" onClick={() => addVulnerability(req.id)}>
-                                                                    <Plus className="h-3 w-3 mr-1" />
-                                                                    Add
-                                                                  </Button>
+                                                                  <div className="flex gap-2">
+                                                                    <AICOGAssistant
+                                                                      mode="vulnerabilities"
+                                                                      operationalContext={operationalContext}
+                                                                      existingRequirements={[req]}
+                                                                      onAcceptVulnerabilities={(vulns) => handleAIVulnerabilities(req.id, vulns)}
+                                                                    />
+                                                                    <Button variant="outline" size="sm" onClick={() => addVulnerability(req.id)}>
+                                                                      <Plus className="h-3 w-3 mr-1" />
+                                                                      Add
+                                                                    </Button>
+                                                                  </div>
                                                                 </div>
                                                                 {vulnerabilities
                                                                   .filter(vuln => vuln.requirement_id === req.id)
