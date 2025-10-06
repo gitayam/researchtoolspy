@@ -1112,47 +1112,90 @@ export default function ContentIntelligencePage() {
                         {link.is_processed ? 'Re-analyze' : 'Analyze Now'}
                       </Button>
                       {link.is_processed && link.analysis_id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={async () => {
-                            try {
-                              // Fetch the full analysis to create citation
-                              const response = await fetch(`/api/content-intelligence/analyze-url`)
-                              // For now, use the link data directly
-                              const mockAnalysis: ContentAnalysis = {
-                                id: link.analysis_id!,
-                                user_id: 1,
-                                url: link.url,
-                                url_normalized: link.url,
-                                content_hash: '',
-                                title: link.title,
-                                domain: link.domain || new URL(link.url).hostname,
-                                is_social_media: link.is_social_media,
-                                social_platform: link.social_platform,
-                                extracted_text: '',
-                                word_count: 0,
-                                word_frequency: {},
-                                top_phrases: [],
-                                entities: { people: [], organizations: [], locations: [] },
-                                archive_urls: {},
-                                bypass_urls: {
-                                  '12ft': ''
-                                },
-                                processing_mode: 'full',
-                                processing_duration_ms: 0,
-                                created_at: link.created_at,
-                                updated_at: link.updated_at
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                // Launch Starbursting analysis with this content
+                                toast({ title: 'Creating Starbursting session...', variant: 'default' })
+
+                                const response = await fetch('/api/content-intelligence/starbursting', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    analysis_ids: [link.analysis_id],
+                                    title: link.title || 'Content Analysis'
+                                  })
+                                })
+
+                                if (!response.ok) {
+                                  throw new Error('Failed to create Starbursting session')
+                                }
+
+                                const data = await response.json()
+
+                                toast({ title: 'Success', description: 'Launching Starbursting analysis...' })
+
+                                // Navigate to Starbursting page with the session
+                                navigate(`/dashboard/analysis-frameworks/starbursting/${data.session_id}/view`)
+                              } catch (error) {
+                                console.error('Starbursting launch error:', error)
+                                toast({
+                                  title: 'Error',
+                                  description: 'Failed to launch Starbursting analysis',
+                                  variant: 'destructive'
+                                })
                               }
-                              handleCreateCitation(mockAnalysis)
-                            } catch (error) {
-                              toast({ title: 'Error', description: 'Failed to create citation', variant: 'destructive' })
-                            }
-                          }}
-                          title="Create citation from this link"
-                        >
-                          <BookOpen className="h-4 w-4" />
-                        </Button>
+                            }}
+                            title="Launch Starbursting deep-dive analysis"
+                          >
+                            <Star className="h-3 w-3 mr-1" />
+                            Starbursting
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                // Fetch the full analysis to create citation
+                                const response = await fetch(`/api/content-intelligence/analyze-url`)
+                                // For now, use the link data directly
+                                const mockAnalysis: ContentAnalysis = {
+                                  id: link.analysis_id!,
+                                  user_id: 1,
+                                  url: link.url,
+                                  url_normalized: link.url,
+                                  content_hash: '',
+                                  title: link.title,
+                                  domain: link.domain || new URL(link.url).hostname,
+                                  is_social_media: link.is_social_media,
+                                  social_platform: link.social_platform,
+                                  extracted_text: '',
+                                  word_count: 0,
+                                  word_frequency: {},
+                                  top_phrases: [],
+                                  entities: { people: [], organizations: [], locations: [] },
+                                  archive_urls: {},
+                                  bypass_urls: {
+                                    '12ft': ''
+                                  },
+                                  processing_mode: 'full',
+                                  processing_duration_ms: 0,
+                                  created_at: link.created_at,
+                                  updated_at: link.updated_at
+                                }
+                                handleCreateCitation(mockAnalysis)
+                              } catch (error) {
+                                toast({ title: 'Error', description: 'Failed to create citation', variant: 'destructive' })
+                              }
+                            }}
+                            title="Create citation from this link"
+                          >
+                            <BookOpen className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
