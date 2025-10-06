@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Download, RefreshCw, ZoomIn, ZoomOut, Maximize2, Info, Eye, EyeOff } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { useTranslation } from 'react-i18next'
 import type { NetworkEdge, COGAnalysis, CenterOfGravity, CriticalCapability, CriticalRequirement, CriticalVulnerability } from '@/types/cog-analysis'
 
 interface GraphNode extends NodeObject {
@@ -46,6 +47,7 @@ const NODE_SIZES = {
 }
 
 export function COGNetworkVisualization({ analysis, edges, onNodeClick }: COGNetworkVisualizationProps) {
+  const { t } = useTranslation(['cog', 'common'])
   const graphRef = useRef<ForceGraphMethods | undefined>(undefined)
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
   const [simulationMode, setSimulationMode] = useState(false)
@@ -309,22 +311,22 @@ export function COGNetworkVisualization({ analysis, edges, onNodeClick }: COGNet
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Network Controls</CardTitle>
-              <CardDescription>Interact with the network graph</CardDescription>
+              <CardTitle>{t('cog:export.network.title')}</CardTitle>
+              <CardDescription>{t('cog:export.network.tooltips.dragToPan')}</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleZoomIn}>
+              <Button variant="outline" size="sm" onClick={handleZoomIn} title={t('cog:export.network.controls.zoomIn')}>
                 <ZoomIn className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={handleZoomOut}>
+              <Button variant="outline" size="sm" onClick={handleZoomOut} title={t('cog:export.network.controls.zoomOut')}>
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={handleFitView}>
+              <Button variant="outline" size="sm" onClick={handleFitView} title={t('cog:export.network.controls.fitView')}>
                 <Maximize2 className="h-4 w-4" />
               </Button>
               <Button variant="outline" size="sm" onClick={exportAsPNG}>
                 <Download className="h-4 w-4 mr-2" />
-                Export PNG
+                {t('cog:export.network.controls.exportPNG')}
               </Button>
             </div>
           </div>
@@ -340,7 +342,7 @@ export function COGNetworkVisualization({ analysis, edges, onNodeClick }: COGNet
               />
               <Label htmlFor="show-labels" className="flex items-center gap-1">
                 {showLabels ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                Node Labels
+                {t('cog:export.network.controls.toggleLabels')}
               </Label>
             </div>
 
@@ -353,7 +355,7 @@ export function COGNetworkVisualization({ analysis, edges, onNodeClick }: COGNet
               />
               <Label htmlFor="simulation-mode" className="flex items-center gap-1">
                 <Info className="h-4 w-4" />
-                "What If?" Simulation
+                {t('cog:export.network.simulation.title')}
               </Label>
             </div>
 
@@ -361,23 +363,23 @@ export function COGNetworkVisualization({ analysis, edges, onNodeClick }: COGNet
             {removedNodes.size > 0 && (
               <Button variant="outline" size="sm" onClick={resetSimulation}>
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Reset ({removedNodes.size} removed)
+                {t('cog:export.network.controls.reset')} ({removedNodes.size})
               </Button>
             )}
 
             {/* Legend */}
             <div className="flex gap-3 ml-auto">
-              <Badge style={{ backgroundColor: NODE_COLORS.cog }} className="text-white">COG</Badge>
-              <Badge style={{ backgroundColor: NODE_COLORS.capability }} className="text-white">Capability</Badge>
-              <Badge style={{ backgroundColor: NODE_COLORS.requirement }} className="text-white">Requirement</Badge>
-              <Badge style={{ backgroundColor: NODE_COLORS.vulnerability }} className="text-white">Vulnerability</Badge>
+              <Badge style={{ backgroundColor: NODE_COLORS.cog }} className="text-white">{t('cog:export.network.legend.cog')}</Badge>
+              <Badge style={{ backgroundColor: NODE_COLORS.capability }} className="text-white">{t('cog:export.network.legend.capability')}</Badge>
+              <Badge style={{ backgroundColor: NODE_COLORS.requirement }} className="text-white">{t('cog:export.network.legend.requirement')}</Badge>
+              <Badge style={{ backgroundColor: NODE_COLORS.vulnerability }} className="text-white">{t('cog:export.network.legend.vulnerability')}</Badge>
             </div>
           </div>
 
           {simulationMode && (
             <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800 text-sm">
-              <p className="font-semibold text-yellow-900 dark:text-yellow-100 mb-1">Simulation Mode Active</p>
-              <p className="text-yellow-800 dark:text-yellow-200">Click any node to remove it and see the cascading effects on the network. Click "Reset" to restore all nodes.</p>
+              <p className="font-semibold text-yellow-900 dark:text-yellow-100 mb-1">{t('cog:export.network.simulation.enable')}</p>
+              <p className="text-yellow-800 dark:text-yellow-200">{t('cog:export.network.simulation.instructions')}</p>
             </div>
           )}
         </CardContent>
@@ -429,22 +431,22 @@ export function COGNetworkVisualization({ analysis, edges, onNodeClick }: COGNet
                   </Button>
                 </div>
                 <Badge className="mb-2" style={{ backgroundColor: selectedNode.color }}>
-                  {selectedNode.type}
+                  {t(`cog:export.network.legend.${selectedNode.type}`)}
                 </Badge>
                 {selectedNode.type === 'vulnerability' && (
                   <div className="text-sm space-y-1">
                     <div>
-                      <span className="font-medium">Type:</span>{' '}
+                      <span className="font-medium">{t('cog:export.network.nodeInfo.type')}:</span>{' '}
                       {(selectedNode.data as CriticalVulnerability).vulnerability_type}
                     </div>
                     <div>
-                      <span className="font-medium">Score:</span>{' '}
+                      <span className="font-medium">{t('cog:scoring.composite')}:</span>{' '}
                       {(selectedNode.data as CriticalVulnerability).composite_score}
                     </div>
                   </div>
                 )}
                 <div className="mt-2 text-xs text-gray-600">
-                  Connected to {highlightNodes.size - 1} other nodes
+                  {t('cog:export.network.nodeInfo.connections')}: {highlightNodes.size - 1}
                 </div>
               </div>
             )}
@@ -452,10 +454,10 @@ export function COGNetworkVisualization({ analysis, edges, onNodeClick }: COGNet
             {/* Network Stats Overlay */}
             <div className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 p-3 rounded-lg shadow border text-sm">
               <div className="space-y-1">
-                <div><span className="font-medium">Nodes:</span> {allNodes.length}</div>
-                <div><span className="font-medium">Edges:</span> {allLinks.length}</div>
+                <div><span className="font-medium">{t('cog:export.network.statistics.totalNodes')}:</span> {allNodes.length}</div>
+                <div><span className="font-medium">{t('cog:export.network.statistics.totalEdges')}:</span> {allLinks.length}</div>
                 {removedNodes.size > 0 && (
-                  <div className="text-red-600"><span className="font-medium">Removed:</span> {removedNodes.size}</div>
+                  <div className="text-red-600"><span className="font-medium">{t('cog:export.network.statistics.removedNodes')}:</span> {removedNodes.size}</div>
                 )}
               </div>
             </div>
