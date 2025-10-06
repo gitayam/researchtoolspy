@@ -7,10 +7,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
-  Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen
+  Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink } from '@/types/content-intelligence'
+import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
 
 export default function ContentIntelligencePage() {
   const { toast } = useToast()
@@ -29,6 +29,11 @@ export default function ContentIntelligencePage() {
   const [saveTags, setSaveTags] = useState('')
   const [savedLinks, setSavedLinks] = useState<SavedLink[]>([])
   const [loadingSavedLinks, setLoadingSavedLinks] = useState(false)
+
+  // Q&A State
+  const [question, setQuestion] = useState('')
+  const [qaHistory, setQaHistory] = useState<QuestionAnswer[]>([])
+  const [askingQuestion, setAskingQuestion] = useState(false)
 
   // Load saved links
   useEffect(() => {
@@ -152,6 +157,72 @@ export default function ContentIntelligencePage() {
       })
     } finally {
       setProcessing(false)
+    }
+  }
+
+  // Load Q&A history when analysis is available
+  useEffect(() => {
+    if (analysis?.id) {
+      loadQAHistory()
+    }
+  }, [analysis?.id])
+
+  const loadQAHistory = async () => {
+    if (!analysis?.id) return
+
+    try {
+      const response = await fetch(`/api/content-intelligence/answer-question?analysis_id=${analysis.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setQaHistory(data.history || [])
+      }
+    } catch (error) {
+      console.error('Failed to load Q&A history:', error)
+    }
+  }
+
+  // Ask a question about the content
+  const handleAskQuestion = async () => {
+    if (!question.trim() || !analysis?.id) {
+      toast({ title: 'Error', description: 'Please enter a question', variant: 'destructive' })
+      return
+    }
+
+    setAskingQuestion(true)
+    try {
+      const response = await fetch('/api/content-intelligence/answer-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysis_id: analysis.id,
+          question: question.trim()
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to answer question')
+      }
+
+      const data = await response.json()
+      setQaHistory(prev => [data, ...prev])
+      setQuestion('')
+
+      toast({
+        title: 'Question answered',
+        description: data.has_complete_answer
+          ? 'Answer found with high confidence'
+          : 'Partial answer found - some information may be missing'
+      })
+    } catch (error) {
+      console.error('Q&A error:', error)
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to answer question',
+        variant: 'destructive'
+      })
+    } finally {
+      setAskingQuestion(false)
     }
   }
 
@@ -434,14 +505,125 @@ export default function ContentIntelligencePage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="qa" className="mt-4">
+          <TabsContent value="qa" className="mt-4 space-y-4">
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Ask Questions About This Content</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Coming soon: Ask questions and get AI-powered answers with source citations
+                Ask questions and get AI-powered answers with source citations from the analyzed content
               </p>
-              {/* TODO: Implement Q&A component */}
+
+              {/* Question Input */}
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="What would you like to know about this content?"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  className="min-h-[60px]"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleAskQuestion()
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleAskQuestion}
+                  disabled={askingQuestion || !question.trim()}
+                  className="shrink-0"
+                >
+                  {askingQuestion ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </Card>
+
+            {/* Q&A History */}
+            {qaHistory.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="font-semibold">Q&A History</h3>
+                {qaHistory.map((qa) => (
+                  <Card key={qa.id} className="p-6">
+                    {/* Question */}
+                    <div className="mb-4">
+                      <div className="flex items-start gap-2">
+                        <MessageSquare className="h-5 w-5 text-blue-600 shrink-0 mt-1" />
+                        <div className="flex-1">
+                          <p className="font-medium text-lg">{qa.question}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(qa.created_at).toLocaleString()} • {qa.search_method} search
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Answer */}
+                    {qa.answer && (
+                      <div className="ml-7 mb-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <p className="text-sm whitespace-pre-wrap">{qa.answer}</p>
+                        {qa.confidence_score !== undefined && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Confidence:</span>
+                            <Progress value={qa.confidence_score * 100} className="w-24 h-2" />
+                            <span className="text-xs font-medium">{Math.round(qa.confidence_score * 100)}%</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Source Excerpts */}
+                    {qa.source_excerpts && qa.source_excerpts.length > 0 && (
+                      <div className="ml-7 space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase">Source Excerpts:</p>
+                        {qa.source_excerpts.map((excerpt, i) => (
+                          <div
+                            key={i}
+                            className="p-3 bg-gray-50 dark:bg-gray-800 rounded border-l-2 border-blue-500"
+                          >
+                            <p className="text-sm italic">"{excerpt.text}"</p>
+                            <div className="flex items-center gap-3 mt-2">
+                              <span className="text-xs text-muted-foreground">
+                                Paragraph {excerpt.paragraph}
+                              </span>
+                              <span className="text-xs text-muted-foreground">•</span>
+                              <span className="text-xs text-muted-foreground">
+                                Relevance: {Math.round(excerpt.relevance * 100)}%
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Missing Data Warning */}
+                    {!qa.has_complete_answer && qa.missing_data_notes && (
+                      <div className="ml-7 mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-yellow-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                            Incomplete Answer
+                          </p>
+                          <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                            {qa.missing_data_notes}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Empty State */}
+            {qaHistory.length === 0 && !askingQuestion && (
+              <Card className="p-8 text-center text-muted-foreground">
+                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No questions asked yet.</p>
+                <p className="text-sm mt-1">Ask a question above to get started.</p>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="starbursting" className="mt-4">

@@ -22,7 +22,7 @@ const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ defa
 
 // Framework pages (lazy loaded)
 const SwotPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.SwotPage })))
-const CogPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.CogPage })))
+// const CogPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.CogPage }))) // Temporarily disabled due to build errors
 const PmesiiPtPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.PmesiiPtPage })))
 const DotmlpfPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.DotmlpfPage })))
 const DeceptionPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.DeceptionPage })))
@@ -146,18 +146,19 @@ export const router = createBrowserRouter([
         path: 'analysis-frameworks/ach-dashboard/:id',
         element: <LazyPage Component={ACHAnalysisPage} />,
       },
-      {
-        path: 'analysis-frameworks/cog',
-        element: <LazyPage Component={CogPage} />,
-      },
-      {
-        path: 'analysis-frameworks/cog/:action',
-        element: <LazyPage Component={CogPage} />,
-      },
-      {
-        path: 'analysis-frameworks/cog/:id/:action',
-        element: <LazyPage Component={CogPage} />,
-      },
+      // Temporarily disabled due to build errors
+      // {
+      //   path: 'analysis-frameworks/cog',
+      //   element: <LazyPage Component={CogPage} />,
+      // },
+      // {
+      //   path: 'analysis-frameworks/cog/:action',
+      //   element: <LazyPage Component={CogPage} />,
+      // },
+      // {
+      //   path: 'analysis-frameworks/cog/:id/:action',
+      //   element: <LazyPage Component={CogPage} />,
+      // },
       {
         path: 'analysis-frameworks/pmesii-pt',
         element: <LazyPage Component={PmesiiPtPage} />,
