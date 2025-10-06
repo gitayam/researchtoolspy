@@ -10,6 +10,7 @@ import { COGVulnerabilityMatrix } from '@/components/frameworks/COGVulnerability
 import { COGNetworkVisualization } from '@/components/frameworks/COGNetworkVisualization'
 import { COGPowerPointExport } from '@/components/frameworks/COGPowerPointExport'
 import { COGExcelExport } from '@/components/frameworks/COGExcelExport'
+import { COGPDFExport } from '@/components/frameworks/COGPDFExport'
 import {
   type COGAnalysis,
   type CenterOfGravity,
@@ -584,6 +585,13 @@ ${Object.entries(centralityMeasures.degree_centrality)
                   className="w-full justify-start"
                 />
                 <COGExcelExport
+                  analysis={data}
+                  vulnerabilities={rankedVulnerabilities}
+                  edges={edgeList}
+                  variant="outline"
+                  className="w-full justify-start"
+                />
+                <COGPDFExport
                   analysis={data}
                   vulnerabilities={rankedVulnerabilities}
                   edges={edgeList}
