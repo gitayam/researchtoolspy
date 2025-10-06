@@ -92,25 +92,27 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
   })
 
   // Capabilities (simplified for wizard)
-  const [capabilities, setCapabilities] = useState<Array<{ capability: string; description: string }>>([
-    { capability: '', description: '' },
+  const [capabilities, setCapabilities] = useState<Array<{ id: string; capability: string; description: string }>>([
+    { id: crypto.randomUUID(), capability: '', description: '' },
   ])
 
-  // Requirements (simplified)
-  const [requirements, setRequirements] = useState<Array<{ requirement: string; type: string }>>([
-    { requirement: '', type: 'other' },
+  // Requirements (simplified) - NOW WITH CAPABILITY LINK
+  const [requirements, setRequirements] = useState<Array<{ id: string; requirement: string; type: string; capability_id: string }>>([
+    { id: crypto.randomUUID(), requirement: '', type: 'other', capability_id: '' },
   ])
 
-  // Vulnerabilities (simplified)
+  // Vulnerabilities (simplified) - NOW WITH REQUIREMENT LINKS (MULTIPLE)
   const [vulnerabilities, setVulnerabilities] = useState<
     Array<{
+      id: string
       vulnerability: string
       description: string
       type: string
       expectedEffect: string
       recommendedActions: string
+      requirement_ids: string[]
     }>
-  >([{ vulnerability: '', description: '', type: 'other', expectedEffect: '', recommendedActions: '' }])
+  >([{ id: crypto.randomUUID(), vulnerability: '', description: '', type: 'other', expectedEffect: '', recommendedActions: '', requirement_ids: [] }])
 
   const [scoringSystem, setScoringSystem] = useState<ScoringSystem>('linear')
 
@@ -182,7 +184,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
       const caps: CriticalCapability[] = capabilities
         .filter((c) => c.capability)
         .map((c, i) => ({
-          id: i === 0 ? capId : crypto.randomUUID(),
+          id: c.id || (i === 0 ? capId : crypto.randomUUID()),
           cog_id: cogId,
           capability: c.capability,
           description: c.description,
@@ -191,35 +193,38 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
         }))
 
       const reqs: CriticalRequirement[] = requirements
-        .filter((r) => r.requirement)
+        .filter((r) => r.requirement && r.capability_id)
         .map((r, i) => ({
-          id: i === 0 ? reqId : crypto.randomUUID(),
-          capability_id: caps[0]?.id || capId,
+          id: r.id || (i === 0 ? reqId : crypto.randomUUID()),
+          capability_id: r.capability_id, // ✅ Use selected capability
           requirement: r.requirement,
           requirement_type: r.type as any,
           description: r.requirement,
           linked_evidence: [],
         }))
 
+      // ✅ Create a vulnerability for EACH selected requirement
       const vulns: CriticalVulnerability[] = vulnerabilities
-        .filter((v) => v.vulnerability)
-        .map((v) => ({
-          id: crypto.randomUUID(),
-          requirement_id: reqs[0]?.id || reqId,
-          vulnerability: v.vulnerability,
-          vulnerability_type: v.type as any,
-          description: v.description,
-          expected_effect: v.expectedEffect,
-          recommended_actions: v.recommendedActions.split(',').map((a) => a.trim()),
-          confidence: 'medium',
-          scoring: {
-            impact_on_cog: 3,
-            attainability: 3,
-            follow_up_potential: 3,
-          },
-          composite_score: 9,
-          linked_evidence: [],
-        }))
+        .filter((v) => v.vulnerability && v.requirement_ids.length > 0)
+        .flatMap((v) =>
+          v.requirement_ids.map((reqId) => ({
+            id: crypto.randomUUID(),
+            requirement_id: reqId, // ✅ Use each selected requirement
+            vulnerability: v.vulnerability,
+            vulnerability_type: v.type as any,
+            description: v.description,
+            expected_effect: v.expectedEffect,
+            recommended_actions: v.recommendedActions ? v.recommendedActions.split(',').map((a) => a.trim()) : [],
+            confidence: 'medium' as const,
+            scoring: {
+              impact_on_cog: 3,
+              attainability: 3,
+              follow_up_potential: 3,
+            },
+            composite_score: 9,
+            linked_evidence: [],
+          }))
+        )
 
       const analysis: COGAnalysis = {
         id: initialData?.id || crypto.randomUUID(),
@@ -270,7 +275,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
       const caps: CriticalCapability[] = capabilities
         .filter((c) => c.capability)
         .map((c, i) => ({
-          id: i === 0 ? capId : crypto.randomUUID(),
+          id: c.id || (i === 0 ? capId : crypto.randomUUID()),
           cog_id: cog?.id || cogId,
           capability: c.capability,
           description: c.description,
@@ -280,36 +285,38 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
 
       // Only include requirements that have data
       const reqs: CriticalRequirement[] = requirements
-        .filter((r) => r.requirement)
+        .filter((r) => r.requirement && r.capability_id)
         .map((r, i) => ({
-          id: i === 0 ? reqId : crypto.randomUUID(),
-          capability_id: caps[0]?.id || capId,
+          id: r.id || (i === 0 ? reqId : crypto.randomUUID()),
+          capability_id: r.capability_id, // ✅ Use selected capability
           requirement: r.requirement,
           requirement_type: r.type as any,
           description: r.requirement,
           linked_evidence: [],
         }))
 
-      // Only include vulnerabilities that have data
+      // Only include vulnerabilities that have data - Create one for each requirement
       const vulns: CriticalVulnerability[] = vulnerabilities
-        .filter((v) => v.vulnerability)
-        .map((v) => ({
-          id: crypto.randomUUID(),
-          requirement_id: reqs[0]?.id || reqId,
-          vulnerability: v.vulnerability,
-          vulnerability_type: v.type as any,
-          description: v.description,
-          expected_effect: v.expectedEffect,
-          recommended_actions: v.recommendedActions ? v.recommendedActions.split(',').map((a) => a.trim()) : [],
-          confidence: 'medium',
-          scoring: {
-            impact_on_cog: 3,
-            attainability: 3,
-            follow_up_potential: 3,
-          },
-          composite_score: 9,
-          linked_evidence: [],
-        }))
+        .filter((v) => v.vulnerability && v.requirement_ids.length > 0)
+        .flatMap((v) =>
+          v.requirement_ids.map((reqId) => ({
+            id: crypto.randomUUID(),
+            requirement_id: reqId, // ✅ Use each selected requirement
+            vulnerability: v.vulnerability,
+            vulnerability_type: v.type as any,
+            description: v.description,
+            expected_effect: v.expectedEffect,
+            recommended_actions: v.recommendedActions ? v.recommendedActions.split(',').map((a) => a.trim()) : [],
+            confidence: 'medium' as const,
+            scoring: {
+              impact_on_cog: 3,
+              attainability: 3,
+              follow_up_potential: 3,
+            },
+            composite_score: 9,
+            linked_evidence: [],
+          }))
+        )
 
       // Build partial analysis with all completed data
       const wizardData = {
@@ -684,7 +691,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                   ))}
                   <Button
                     variant="outline"
-                    onClick={() => setCapabilities([...capabilities, { capability: '', description: '' }])}
+                    onClick={() => setCapabilities([...capabilities, { id: crypto.randomUUID(), capability: '', description: '' }])}
                   >
                     + Add Another Capability
                   </Button>
@@ -750,6 +757,33 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                             </SelectContent>
                           </Select>
                         </div>
+                        <div>
+                          <Label>🔗 Supports Which Capability? *</Label>
+                          <Select
+                            value={req.capability_id}
+                            onValueChange={(value) => {
+                              const updated = [...requirements]
+                              updated[index].capability_id = value
+                              setRequirements(updated)
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select capability..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {capabilities
+                                .filter(c => c.capability)
+                                .map((cap) => (
+                                  <SelectItem key={cap.id} value={cap.id}>
+                                    {cap.capability || `Capability ${capabilities.indexOf(cap) + 1}`}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          {!req.capability_id && (
+                            <p className="text-xs text-red-600 mt-1">⚠️ Must select a capability</p>
+                          )}
+                        </div>
                         {index > 0 && (
                           <Button
                             variant="ghost"
@@ -764,7 +798,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                   ))}
                   <Button
                     variant="outline"
-                    onClick={() => setRequirements([...requirements, { requirement: '', type: 'other' }])}
+                    onClick={() => setRequirements([...requirements, { id: crypto.randomUUID(), requirement: '', type: 'other', capability_id: '' }])}
                   >
                     + Add Another Requirement
                   </Button>
@@ -859,6 +893,42 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                             placeholder="Conduct detailed target analysis, Develop strike options, Coordinate with cyber command"
                           />
                         </div>
+                        <div>
+                          <Label>🔗 Exploits Which Requirements? * (Select at least one)</Label>
+                          <div className="space-y-2 p-3 border rounded-lg bg-white dark:bg-gray-950 max-h-48 overflow-y-auto">
+                            {requirements
+                              .filter(r => r.requirement)
+                              .map((req) => (
+                                <div key={req.id} className="flex items-start gap-2">
+                                  <Checkbox
+                                    checked={vuln.requirement_ids.includes(req.id)}
+                                    onCheckedChange={(checked) => {
+                                      const updated = [...vulnerabilities]
+                                      if (checked) {
+                                        updated[index].requirement_ids.push(req.id)
+                                      } else {
+                                        updated[index].requirement_ids = updated[index].requirement_ids
+                                          .filter(id => id !== req.id)
+                                      }
+                                      setVulnerabilities(updated)
+                                    }}
+                                  />
+                                  <label className="text-sm flex-1 cursor-pointer">
+                                    {req.requirement}
+                                    <Badge variant="outline" className="ml-2 text-xs">
+                                      {capabilities.find(c => c.id === req.capability_id)?.capability || 'Unknown Cap'}
+                                    </Badge>
+                                  </label>
+                                </div>
+                              ))}
+                            {requirements.filter(r => r.requirement).length === 0 && (
+                              <p className="text-sm text-muted-foreground">No requirements defined yet. Go back to Step 4 to add requirements.</p>
+                            )}
+                          </div>
+                          {vuln.requirement_ids.length === 0 && (
+                            <p className="text-xs text-red-600 mt-1">⚠️ Must select at least one requirement</p>
+                          )}
+                        </div>
                         {index > 0 && (
                           <Button
                             variant="ghost"
@@ -876,7 +946,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                     onClick={() =>
                       setVulnerabilities([
                         ...vulnerabilities,
-                        { vulnerability: '', description: '', type: 'other', expectedEffect: '', recommendedActions: '' },
+                        { id: crypto.randomUUID(), vulnerability: '', description: '', type: 'other', expectedEffect: '', recommendedActions: '', requirement_ids: [] },
                       ])
                     }
                   >
