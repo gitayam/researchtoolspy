@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type LinkedEvidence, type EvidenceEntityType } from '@/components/evidence'
+import { CitationBadge } from '@/components/citations'
 import { AutoGenerateButton } from '@/components/network'
 import { generateRelationshipsFromCOG, generateRelationshipsFromCauseway } from '@/utils/framework-relationships'
 import { ExportButton } from '@/components/reports/ExportButton'
@@ -264,11 +265,25 @@ export function GenericFrameworkView({
               >
                 {itemType === 'qa' && isQuestionAnswerItem(item) ? (
                   <div className="space-y-1">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
-                      <span className="text-gray-600 dark:text-gray-400">{index + 1}.</span> Q: {item.question}
-                    </div>
-                    <div className="text-gray-700 dark:text-gray-300 ml-5">
-                      A: {item.answer || <span className="italic text-gray-500 dark:text-gray-400">No answer provided</span>}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                          <span className="text-gray-600 dark:text-gray-400">{index + 1}.</span> Q: {item.question}
+                        </div>
+                        <div className="text-gray-700 dark:text-gray-300 ml-5">
+                          A: {item.answer || <span className="italic text-gray-500 dark:text-gray-400">No answer provided</span>}
+                        </div>
+                      </div>
+                      {item.citationId && (
+                        <CitationBadge
+                          citationId={item.citationId}
+                          sourceTitle={item.sourceTitle}
+                          sourceDate={item.sourceDate}
+                          sourceAuthor={item.sourceAuthor}
+                          sourceUrl={item.sourceUrl}
+                          size="sm"
+                        />
+                      )}
                     </div>
                   </div>
                 ) : (
