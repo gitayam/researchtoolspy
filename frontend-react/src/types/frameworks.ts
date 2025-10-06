@@ -63,6 +63,12 @@ export interface QuestionAnswerItem {
   question: string
   answer: string
   needsAnswer?: boolean // Flag for questions that need answers (red highlight)
+  // Citation support
+  citationId?: string  // Reference to citation in library
+  sourceUrl?: string   // Original URL if auto-generated
+  sourceTitle?: string // For display without full citation
+  sourceDate?: string  // Publication date for display
+  sourceAuthor?: string // Author(s) for quick display
 }
 
 // Stakeholder item with rich metadata
