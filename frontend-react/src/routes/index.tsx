@@ -46,6 +46,7 @@ const ContentExtractionPage = lazy(() => import('@/pages/tools/ContentExtraction
 const CitationsGeneratorPage = lazy(() => import('@/pages/tools/CitationsGeneratorPage').then(m => ({ default: m.CitationsGeneratorPage })))
 const URLProcessingPage = lazy(() => import('@/pages/tools/URLProcessingPage').then(m => ({ default: m.URLProcessingPage })))
 const BatchProcessingPage = lazy(() => import('@/pages/tools/BatchProcessingPage').then(m => ({ default: m.BatchProcessingPage })))
+const ContentIntelligencePage = lazy(() => import('@/pages/tools/ContentIntelligencePage'))
 
 // Heavy pages (lazy loaded - only when needed)
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then(m => ({ default: m.ReportsPage })))
@@ -309,6 +310,10 @@ export const router = createBrowserRouter([
       {
         path: 'tools/scraping',
         element: <LazyPage Component={WebScraperPage} />,
+      },
+      {
+        path: 'tools/content-intelligence',
+        element: <LazyPage Component={ContentIntelligencePage} />,
       },
       {
         path: 'tools/content-extraction',
