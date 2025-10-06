@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { safeJSONParse, safeJSONStringify } from '@/utils/safe-json'
 
 export type UserMode = 'guest' | 'authenticated'
 
@@ -87,7 +88,7 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
         if (key && key.startsWith(GUEST_DATA_PREFIX)) {
           const value = localStorage.getItem(key)
           if (value) {
-            guestData[key] = JSON.parse(value)
+            guestData[key] = safeJSONParse(value)
           }
         }
       }
@@ -124,14 +125,14 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
 
   const saveToLocalStorage = (key: string, data: any) => {
     const storageKey = getStorageKey(key)
-    localStorage.setItem(storageKey, JSON.stringify(data))
+    localStorage.setItem(storageKey, safeJSONStringify(data))
     localStorage.setItem(`${storageKey}_timestamp`, Date.now().toString())
   }
 
   const loadFromLocalStorage = (key: string): any => {
     const storageKey = getStorageKey(key)
     const data = localStorage.getItem(storageKey)
-    return data ? JSON.parse(data) : null
+    return data ? safeJSONParse(data, null) : null
   }
 
   const clearGuestData = () => {

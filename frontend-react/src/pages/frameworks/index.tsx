@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Plus, Search, Grid3x3, MoreVertical, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { safeJSONParse } from '@/utils/safe-json'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -135,7 +136,7 @@ export const SwotPage = () => {
 
   // Show form for edit mode
   if (isEditMode && currentAnalysis) {
-    const parsedData = JSON.parse(currentAnalysis.data || '{}')
+    const parsedData = safeJSONParse(currentAnalysis.data, {})
     return (
       <SwotForm
         mode="edit"
@@ -151,7 +152,7 @@ export const SwotPage = () => {
 
   // Show view for view mode
   if (isViewMode && currentAnalysis) {
-    const parsedData = JSON.parse(currentAnalysis.data || '{}')
+    const parsedData = safeJSONParse(currentAnalysis.data, {})
     return (
       <SwotView
         data={{
@@ -274,7 +275,7 @@ export const SwotPage = () => {
 
       <div className="grid gap-4">
         {filteredAnalyses.map((analysis) => {
-          const parsedData = JSON.parse(analysis.data || '{}')
+          const parsedData = safeJSONParse(analysis.data, {})
           return (
             <Card key={analysis.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
@@ -482,7 +483,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   }
 
   if (isEditMode && currentAnalysis) {
-    const parsedData = JSON.parse(currentAnalysis.data || '{}')
+    const parsedData = safeJSONParse(currentAnalysis.data, {})
     return (
       <GenericFrameworkForm
         mode="edit"
@@ -502,7 +503,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   }
 
   if (isViewMode && currentAnalysis) {
-    const parsedData = JSON.parse(currentAnalysis.data || '{}')
+    const parsedData = safeJSONParse(currentAnalysis.data, {})
     return (
       <GenericFrameworkView
         data={{
@@ -625,7 +626,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
 
       <div className="grid gap-4">
         {filteredAnalyses.map((analysis) => {
-          const parsedData = JSON.parse(analysis.data || '{}')
+          const parsedData = safeJSONParse(analysis.data, {})
           return (
             <Card key={analysis.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
@@ -896,7 +897,7 @@ export const DeceptionPage = () => {
   }
 
   if (isEditMode && currentAnalysis) {
-    const parsedData = JSON.parse(currentAnalysis.data || '{}')
+    const parsedData = safeJSONParse(currentAnalysis.data, {})
     return (
       <DeceptionForm
         mode="edit"
@@ -913,7 +914,7 @@ export const DeceptionPage = () => {
   }
 
   if (isViewMode && currentAnalysis) {
-    const parsedData = JSON.parse(currentAnalysis.data || '{}')
+    const parsedData = safeJSONParse(currentAnalysis.data, {})
     return (
       <DeceptionView
         data={{
@@ -1033,7 +1034,7 @@ export const DeceptionPage = () => {
 
       <div className="grid gap-4">
         {filteredAnalyses.map((analysis) => {
-          const parsedData = JSON.parse(analysis.data || '{}')
+          const parsedData = safeJSONParse(analysis.data, {})
           const assessment = parsedData.calculatedAssessment
           return (
             <Card key={analysis.id} className="hover:shadow-lg transition-shadow">
