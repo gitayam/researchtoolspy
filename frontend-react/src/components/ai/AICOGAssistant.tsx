@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -48,6 +49,7 @@ export function AICOGAssistant({
   buttonVariant = 'outline',
   buttonSize = 'sm'
 }: AICOGAssistantProps) {
+  const { t } = useTranslation('cog')
   const [open, setOpen] = useState(false)
   const [result, setResult] = useState<any | null>(null)
   const [expandedItem, setExpandedItem] = useState<number | null>(null)
@@ -79,7 +81,7 @@ export function AICOGAssistant({
 
         case 'validate-cog':
           if (!cog) {
-            toast({ title: 'Error', description: 'COG data required for validation', variant: 'destructive' })
+            toast({ title: t('common.error'), description: t('aiAssistant.errors.cogRequired'), variant: 'destructive' })
             return
           }
           data = await validateCOG(cog, context)
@@ -87,7 +89,7 @@ export function AICOGAssistant({
 
         case 'generate-capabilities':
           if (!cog) {
-            toast({ title: 'Error', description: 'COG data required for capability generation', variant: 'destructive' })
+            toast({ title: t('common.error'), description: t('aiAssistant.errors.cogRequiredForCapabilities'), variant: 'destructive' })
             return
           }
           data = await generateCapabilities(cog, context)
@@ -95,7 +97,7 @@ export function AICOGAssistant({
 
         case 'generate-requirements':
           if (!capability) {
-            toast({ title: 'Error', description: 'Capability data required for requirements generation', variant: 'destructive' })
+            toast({ title: t('common.error'), description: t('aiAssistant.errors.capabilityRequired'), variant: 'destructive' })
             return
           }
           data = await generateRequirements(capability, cog, context)
@@ -103,7 +105,7 @@ export function AICOGAssistant({
 
         case 'generate-vulnerabilities':
           if (!requirement) {
-            toast({ title: 'Error', description: 'Requirement data required for vulnerability generation', variant: 'destructive' })
+            toast({ title: t('common.error'), description: t('aiAssistant.errors.requirementRequired'), variant: 'destructive' })
             return
           }
           data = await generateVulnerabilities(requirement, capability, cog, context)
@@ -111,7 +113,7 @@ export function AICOGAssistant({
 
         case 'generate-impact':
           if (!requirement || !capabilities || capabilities.length === 0) {
-            toast({ title: 'Error', description: 'Vulnerability and capabilities data required', variant: 'destructive' })
+            toast({ title: t('common.error'), description: t('aiAssistant.errors.vulnerabilityAndCapabilitiesRequired'), variant: 'destructive' })
             return
           }
           data = await generateImpact(requirement, capabilities, requirements, cog, context)
@@ -122,8 +124,8 @@ export function AICOGAssistant({
 
       if (!data) {
         toast({
-          title: 'No Results',
-          description: 'AI did not return any suggestions. Please try again.',
+          title: t('aiAssistant.noResults.title'),
+          description: t('aiAssistant.noResults.description'),
           variant: 'destructive'
         })
       }
@@ -144,8 +146,8 @@ export function AICOGAssistant({
     onAccept(dataToAccept)
     setOpen(false)
     toast({
-      title: 'AI Suggestion Accepted',
-      description: 'The AI-generated content has been applied.',
+      title: t('aiAssistant.acceptToast.title'),
+      description: t('aiAssistant.acceptToast.description'),
     })
   }
 
@@ -155,37 +157,37 @@ export function AICOGAssistant({
 
   const getModeTitle = (): string => {
     switch (mode) {
-      case 'suggest-cog': return 'AI COG Suggestions'
-      case 'validate-cog': return 'AI COG Validation'
-      case 'generate-capabilities': return 'AI Capability Suggestions'
-      case 'generate-requirements': return 'AI Requirements Suggestions'
-      case 'generate-vulnerabilities': return 'AI Vulnerability Suggestions'
-      case 'generate-impact': return 'AI Impact Analysis'
-      default: return 'AI Assistant'
+      case 'suggest-cog': return t('aiAssistant.modes.suggestCog.title')
+      case 'validate-cog': return t('aiAssistant.modes.validateCog.title')
+      case 'generate-capabilities': return t('aiAssistant.modes.generateCapabilities.title')
+      case 'generate-requirements': return t('aiAssistant.modes.generateRequirements.title')
+      case 'generate-vulnerabilities': return t('aiAssistant.modes.generateVulnerabilities.title')
+      case 'generate-impact': return t('aiAssistant.modes.generateImpact.title')
+      default: return t('aiAssistant.modes.default.title')
     }
   }
 
   const getModeDescription = (): string => {
     switch (mode) {
-      case 'suggest-cog': return 'AI will suggest potential Centers of Gravity based on your operational context'
-      case 'validate-cog': return 'AI will validate your COG against JP 3-0 doctrine criteria'
-      case 'generate-capabilities': return 'AI will suggest critical capabilities for this COG'
-      case 'generate-requirements': return 'AI will suggest critical requirements for this capability'
-      case 'generate-vulnerabilities': return 'AI will suggest critical vulnerabilities for this requirement'
-      case 'generate-impact': return 'AI will analyze the impact of exploiting this vulnerability'
-      default: return 'AI-powered analysis assistance'
+      case 'suggest-cog': return t('aiAssistant.modes.suggestCog.description')
+      case 'validate-cog': return t('aiAssistant.modes.validateCog.description')
+      case 'generate-capabilities': return t('aiAssistant.modes.generateCapabilities.description')
+      case 'generate-requirements': return t('aiAssistant.modes.generateRequirements.description')
+      case 'generate-vulnerabilities': return t('aiAssistant.modes.generateVulnerabilities.description')
+      case 'generate-impact': return t('aiAssistant.modes.generateImpact.description')
+      default: return t('aiAssistant.modes.default.description')
     }
   }
 
   const getDefaultButtonText = (): string => {
     switch (mode) {
-      case 'suggest-cog': return 'Suggest COGs'
-      case 'validate-cog': return 'Validate COG'
-      case 'generate-capabilities': return 'Suggest Capabilities'
-      case 'generate-requirements': return 'Suggest Requirements'
-      case 'generate-vulnerabilities': return 'Suggest Vulnerabilities'
-      case 'generate-impact': return 'Analyze Impact'
-      default: return 'AI Assist'
+      case 'suggest-cog': return t('aiAssistant.modes.suggestCog.button')
+      case 'validate-cog': return t('aiAssistant.modes.validateCog.button')
+      case 'generate-capabilities': return t('aiAssistant.modes.generateCapabilities.button')
+      case 'generate-requirements': return t('aiAssistant.modes.generateRequirements.button')
+      case 'generate-vulnerabilities': return t('aiAssistant.modes.generateVulnerabilities.button')
+      case 'generate-impact': return t('aiAssistant.modes.generateImpact.button')
+      default: return t('aiAssistant.modes.default.button')
     }
   }
 
@@ -218,7 +220,7 @@ export function AICOGAssistant({
             {analyzing && (
               <div className="flex flex-col items-center justify-center py-8 space-y-3">
                 <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
-                <p className="text-sm text-muted-foreground">AI is analyzing...</p>
+                <p className="text-sm text-muted-foreground">{t('aiAssistant.analyzing')}</p>
               </div>
             )}
 
@@ -228,7 +230,7 @@ export function AICOGAssistant({
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <h4 className="font-semibold text-red-900 dark:text-red-100">Analysis Failed</h4>
+                    <h4 className="font-semibold text-red-900 dark:text-red-100">{t('aiAssistant.analysisFailed')}</h4>
                     <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
                     <Button
                       variant="outline"
@@ -236,7 +238,7 @@ export function AICOGAssistant({
                       onClick={handleGenerate}
                       className="mt-3"
                     >
-                      Try Again
+                      {t('aiAssistant.tryAgain')}
                     </Button>
                   </div>
                 </div>
@@ -265,7 +267,7 @@ export function AICOGAssistant({
                             onClick={() => handleAccept(cog)}
                           >
                             <Check className="h-4 w-4 mr-1" />
-                            Use This
+                            {t('aiAssistant.useThis')}
                           </Button>
                         </div>
                       </div>
@@ -284,7 +286,7 @@ export function AICOGAssistant({
                           <AlertCircle className="h-5 w-5 text-yellow-600" />
                         )}
                         <h4 className="font-semibold">
-                          {result.isValid ? 'Valid COG ✓' : 'Needs Refinement'}
+                          {result.isValid ? t('aiAssistant.validation.validCog') : t('aiAssistant.validation.needsRefinement')}
                         </h4>
                       </div>
                       <p className="text-sm">{result.overallAssessment}</p>
@@ -292,7 +294,7 @@ export function AICOGAssistant({
 
                     {/* Criteria */}
                     <div className="space-y-2">
-                      <h5 className="font-semibold text-sm">Validation Criteria:</h5>
+                      <h5 className="font-semibold text-sm">{t('aiAssistant.validation.criteria')}</h5>
                       {Object.entries(result.criteria).map(([key, criterion]: [string, any]) => (
                         <div key={key} className="flex items-start gap-2 text-sm">
                           {criterion.passes ? (
@@ -311,7 +313,7 @@ export function AICOGAssistant({
                     {/* Recommendations */}
                     {result.recommendations && result.recommendations.length > 0 && (
                       <div className="space-y-2">
-                        <h5 className="font-semibold text-sm">Recommendations:</h5>
+                        <h5 className="font-semibold text-sm">{t('aiAssistant.validation.recommendations')}</h5>
                         <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                           {result.recommendations.map((rec: string, idx: number) => (
                             <li key={idx}>{rec}</li>
@@ -323,10 +325,10 @@ export function AICOGAssistant({
                     <div className="flex gap-2">
                       <Button onClick={() => handleAccept()} disabled={!result.isValid}>
                         <Check className="h-4 w-4 mr-1" />
-                        Accept Validation
+                        {t('aiAssistant.validation.acceptValidation')}
                       </Button>
                       <Button variant="outline" onClick={handleGenerate}>
-                        Re-validate
+                        {t('aiAssistant.validation.revalidate')}
                       </Button>
                     </div>
                   </div>
@@ -374,19 +376,19 @@ export function AICOGAssistant({
                               <div className="mt-4 space-y-3 text-sm">
                                 {item.description && (
                                   <div>
-                                    <span className="font-medium">Description: </span>
+                                    <span className="font-medium">{t('aiAssistant.details.description')}: </span>
                                     <span className="text-muted-foreground">{item.description}</span>
                                   </div>
                                 )}
                                 {item.expectedEffect && (
                                   <div>
-                                    <span className="font-medium">Expected Effect: </span>
+                                    <span className="font-medium">{t('aiAssistant.details.expectedEffect')}: </span>
                                     <span className="text-muted-foreground">{item.expectedEffect}</span>
                                   </div>
                                 )}
                                 {item.recommendedActions && (
                                   <div>
-                                    <span className="font-medium">Recommended Actions:</span>
+                                    <span className="font-medium">{t('aiAssistant.details.recommendedActions')}:</span>
                                     <ul className="list-disc list-inside mt-1 text-muted-foreground">
                                       {item.recommendedActions.map((action: string, idx: number) => (
                                         <li key={idx}>{action}</li>
@@ -397,15 +399,15 @@ export function AICOGAssistant({
                                 {item.scoring && (
                                   <div className="grid grid-cols-3 gap-2 mt-2">
                                     <div className="text-center p-2 bg-blue-50 dark:bg-blue-950 rounded">
-                                      <div className="text-xs text-muted-foreground">Impact</div>
+                                      <div className="text-xs text-muted-foreground">{t('scoring.impact')}</div>
                                       <div className="font-semibold">{item.scoring.impact_on_cog}/5</div>
                                     </div>
                                     <div className="text-center p-2 bg-green-50 dark:bg-green-950 rounded">
-                                      <div className="text-xs text-muted-foreground">Attainability</div>
+                                      <div className="text-xs text-muted-foreground">{t('scoring.attainability')}</div>
                                       <div className="font-semibold">{item.scoring.attainability}/5</div>
                                     </div>
                                     <div className="text-center p-2 bg-purple-50 dark:bg-purple-950 rounded">
-                                      <div className="text-xs text-muted-foreground">Follow-up</div>
+                                      <div className="text-xs text-muted-foreground">{t('scoring.followUp')}</div>
                                       <div className="font-semibold">{item.scoring.follow_up_potential}/5</div>
                                     </div>
                                   </div>
@@ -420,10 +422,10 @@ export function AICOGAssistant({
                     <div className="flex gap-2">
                       <Button onClick={() => handleAccept(result)}>
                         <Check className="h-4 w-4 mr-1" />
-                        Accept All ({result.length})
+                        {t('aiAssistant.acceptAll', { count: result.length })}
                       </Button>
                       <Button variant="outline" onClick={handleGenerate}>
-                        Regenerate
+                        {t('aiAssistant.regenerate')}
                       </Button>
                     </div>
                   </div>
@@ -434,13 +436,13 @@ export function AICOGAssistant({
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <div>
-                        <h5 className="font-semibold text-sm mb-2">Expected Effect:</h5>
+                        <h5 className="font-semibold text-sm mb-2">{t('aiAssistant.impact.expectedEffect')}:</h5>
                         <p className="text-sm">{result.expectedEffect}</p>
                       </div>
 
                       {result.cascadingEffects && (
                         <div>
-                          <h5 className="font-semibold text-sm mb-2">Cascading Effects:</h5>
+                          <h5 className="font-semibold text-sm mb-2">{t('aiAssistant.impact.cascadingEffects')}:</h5>
                           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                             {result.cascadingEffects.map((effect: string, idx: number) => (
                               <li key={idx}>{effect}</li>
@@ -451,7 +453,7 @@ export function AICOGAssistant({
 
                       {result.recommendedActions && (
                         <div>
-                          <h5 className="font-semibold text-sm mb-2">Recommended Actions:</h5>
+                          <h5 className="font-semibold text-sm mb-2">{t('aiAssistant.impact.recommendedActions')}:</h5>
                           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                             {result.recommendedActions.map((action: string, idx: number) => (
                               <li key={idx}>{action}</li>
@@ -462,29 +464,29 @@ export function AICOGAssistant({
 
                       <div className="grid grid-cols-2 gap-4 mt-4">
                         <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                          <div className="text-xs text-muted-foreground">Confidence</div>
+                          <div className="text-xs text-muted-foreground">{t('aiAssistant.impact.confidence')}</div>
                           <div className="font-semibold capitalize">{result.confidence}</div>
                           {result.confidenceRationale && (
                             <div className="text-xs text-muted-foreground mt-1">{result.confidenceRationale}</div>
                           )}
                         </div>
                         <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                          <div className="text-xs text-muted-foreground">Time to Effect</div>
+                          <div className="text-xs text-muted-foreground">{t('aiAssistant.impact.timeToEffect')}</div>
                           <div className="font-semibold capitalize">{result.timeToEffect}</div>
                         </div>
                         <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                          <div className="text-xs text-muted-foreground">Reversibility</div>
+                          <div className="text-xs text-muted-foreground">{t('aiAssistant.impact.reversibility')}</div>
                           <div className="font-semibold capitalize">{result.reversibility}</div>
                         </div>
                         <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                          <div className="text-xs text-muted-foreground">Risk to Friendly Forces</div>
+                          <div className="text-xs text-muted-foreground">{t('aiAssistant.impact.riskToFriendlyForces')}</div>
                           <div className="font-semibold capitalize">{result.riskToFriendlyForces}</div>
                         </div>
                       </div>
 
                       {result.considerations && (
                         <div>
-                          <h5 className="font-semibold text-sm mb-2">Considerations:</h5>
+                          <h5 className="font-semibold text-sm mb-2">{t('aiAssistant.impact.considerations')}:</h5>
                           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                             {result.considerations.map((consideration: string, idx: number) => (
                               <li key={idx}>{consideration}</li>
@@ -497,10 +499,10 @@ export function AICOGAssistant({
                     <div className="flex gap-2">
                       <Button onClick={() => handleAccept()}>
                         <Check className="h-4 w-4 mr-1" />
-                        Accept Analysis
+                        {t('aiAssistant.impact.acceptAnalysis')}
                       </Button>
                       <Button variant="outline" onClick={handleGenerate}>
-                        Regenerate
+                        {t('aiAssistant.regenerate')}
                       </Button>
                     </div>
                   </div>

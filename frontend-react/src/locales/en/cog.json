@@ -417,6 +417,98 @@
     "emptyState": "No vulnerabilities match the current filters"
   },
 
+  "aiAssistant": {
+    "analyzing": "AI is analyzing...",
+    "analysisFailed": "Analysis Failed",
+    "tryAgain": "Try Again",
+    "useThis": "Use This",
+    "regenerate": "Regenerate",
+    "acceptAll": "Accept All ({{count}})",
+
+    "modes": {
+      "suggestCog": {
+        "title": "AI COG Suggestions",
+        "description": "AI will suggest potential Centers of Gravity based on your operational context",
+        "button": "Suggest COGs"
+      },
+      "validateCog": {
+        "title": "AI COG Validation",
+        "description": "AI will validate your COG against JP 3-0 doctrine criteria",
+        "button": "Validate COG"
+      },
+      "generateCapabilities": {
+        "title": "AI Capability Suggestions",
+        "description": "AI will suggest critical capabilities for this COG",
+        "button": "Suggest Capabilities"
+      },
+      "generateRequirements": {
+        "title": "AI Requirements Suggestions",
+        "description": "AI will suggest critical requirements for this capability",
+        "button": "Suggest Requirements"
+      },
+      "generateVulnerabilities": {
+        "title": "AI Vulnerability Suggestions",
+        "description": "AI will suggest critical vulnerabilities for this requirement",
+        "button": "Suggest Vulnerabilities"
+      },
+      "generateImpact": {
+        "title": "AI Impact Analysis",
+        "description": "AI will analyze the impact of exploiting this vulnerability",
+        "button": "Analyze Impact"
+      },
+      "default": {
+        "title": "AI Assistant",
+        "description": "AI-powered analysis assistance",
+        "button": "AI Assist"
+      }
+    },
+
+    "errors": {
+      "cogRequired": "COG data required for validation",
+      "cogRequiredForCapabilities": "COG data required for capability generation",
+      "capabilityRequired": "Capability data required for requirements generation",
+      "requirementRequired": "Requirement data required for vulnerability generation",
+      "vulnerabilityAndCapabilitiesRequired": "Vulnerability and capabilities data required"
+    },
+
+    "noResults": {
+      "title": "No Results",
+      "description": "AI did not return any suggestions. Please try again."
+    },
+
+    "acceptToast": {
+      "title": "AI Suggestion Accepted",
+      "description": "The AI-generated content has been applied."
+    },
+
+    "validation": {
+      "validCog": "Valid COG ✓",
+      "needsRefinement": "Needs Refinement",
+      "criteria": "Validation Criteria:",
+      "recommendations": "Recommendations:",
+      "acceptValidation": "Accept Validation",
+      "revalidate": "Re-validate"
+    },
+
+    "details": {
+      "description": "Description",
+      "expectedEffect": "Expected Effect",
+      "recommendedActions": "Recommended Actions"
+    },
+
+    "impact": {
+      "expectedEffect": "Expected Effect",
+      "cascadingEffects": "Cascading Effects",
+      "recommendedActions": "Recommended Actions",
+      "confidence": "Confidence",
+      "timeToEffect": "Time to Effect",
+      "reversibility": "Reversibility",
+      "riskToFriendlyForces": "Risk to Friendly Forces",
+      "considerations": "Considerations",
+      "acceptAnalysis": "Accept Analysis"
+    }
+  },
+
   "wizard": {
     "title": "COG Analysis Wizard",
     "subtitle": "Step-by-step guided analysis",
