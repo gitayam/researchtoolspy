@@ -888,14 +888,65 @@ export default function ContentIntelligencePage() {
           {socialMediaData.metadata && (
             <div>
               <h4 className="font-semibold mb-2">Metadata</h4>
+
+              {/* Twitter-specific: Show tweet text prominently if available */}
+              {socialMediaData.platform === 'twitter' && socialMediaData.metadata.text && (
+                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start justify-between mb-2">
+                    <h5 className="font-semibold text-blue-900 dark:text-blue-100">Tweet Text</h5>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(socialMediaData.metadata.text)
+                        toast({ title: 'Copied!', description: 'Tweet text copied to clipboard' })
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+                    {socialMediaData.metadata.text}
+                  </p>
+                </div>
+              )}
+
               <div className="grid md:grid-cols-3 gap-4 text-sm">
-                {socialMediaData.metadata.title && (
+                {/* Twitter-specific fields */}
+                {socialMediaData.metadata.authorName && (
+                  <div>
+                    <p className="text-muted-foreground">Author</p>
+                    <p className="font-semibold">{socialMediaData.metadata.authorName}</p>
+                    {socialMediaData.metadata.authorHandle && (
+                      <p className="text-xs text-blue-600">{socialMediaData.metadata.authorHandle}</p>
+                    )}
+                  </div>
+                )}
+                {socialMediaData.metadata.tweetId && (
+                  <div>
+                    <p className="text-muted-foreground">Tweet ID</p>
+                    <p className="font-mono text-xs">{socialMediaData.metadata.tweetId}</p>
+                  </div>
+                )}
+                {socialMediaData.metadata.hasMedia !== undefined && (
+                  <div>
+                    <p className="text-muted-foreground">Has Media</p>
+                    <p className="font-semibold">
+                      {socialMediaData.metadata.hasMedia ?
+                        `Yes (${socialMediaData.metadata.mediaCount || 1} item${socialMediaData.metadata.mediaCount > 1 ? 's' : ''})` :
+                        'No'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Generic fields */}
+                {socialMediaData.metadata.title && !socialMediaData.metadata.tweetId && (
                   <div>
                     <p className="text-muted-foreground">Title</p>
                     <p className="font-semibold">{socialMediaData.metadata.title}</p>
                   </div>
                 )}
-                {socialMediaData.metadata.author && (
+                {socialMediaData.metadata.author && !socialMediaData.metadata.authorName && (
                   <div>
                     <p className="text-muted-foreground">Author</p>
                     <p className="font-semibold">{socialMediaData.metadata.author}</p>
@@ -913,10 +964,28 @@ export default function ContentIntelligencePage() {
                     <p className="font-semibold">{socialMediaData.metadata.likeCount.toLocaleString()}</p>
                   </div>
                 )}
+                {socialMediaData.metadata.replyCount !== undefined && (
+                  <div>
+                    <p className="text-muted-foreground">Replies</p>
+                    <p className="font-semibold">{socialMediaData.metadata.replyCount.toLocaleString()}</p>
+                  </div>
+                )}
+                {socialMediaData.metadata.repostCount !== undefined && (
+                  <div>
+                    <p className="text-muted-foreground">Reposts</p>
+                    <p className="font-semibold">{socialMediaData.metadata.repostCount.toLocaleString()}</p>
+                  </div>
+                )}
                 {socialMediaData.metadata.commentCount !== undefined && (
                   <div>
                     <p className="text-muted-foreground">Comments</p>
                     <p className="font-semibold">{socialMediaData.metadata.commentCount.toLocaleString()}</p>
+                  </div>
+                )}
+                {socialMediaData.metadata.extractedVia && (
+                  <div className="md:col-span-3">
+                    <p className="text-muted-foreground text-xs">Extracted via</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{socialMediaData.metadata.extractedVia}</p>
                   </div>
                 )}
               </div>
