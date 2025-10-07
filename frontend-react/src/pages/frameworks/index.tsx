@@ -89,7 +89,8 @@ export const SwotPage = () => {
       title: data.title,
       description: data.description,
       data: data,
-      status: 'active'
+      status: 'active',
+      is_public: false // CRITICAL: Default to private for privacy
     }
 
     if (isEditMode && id) {
@@ -440,7 +441,8 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
       title: data.title,
       description: data.description,
       data: data,
-      status: 'active'
+      status: 'active',
+      is_public: false // CRITICAL: Default to private for privacy
     }
 
     if (isEditMode && id) {
@@ -868,6 +870,7 @@ export const CogPage = () => {
       description: data.description,
       data: data,
       status: 'active',
+      is_public: false, // CRITICAL: Default to private for privacy
       created_at: data.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
@@ -1301,7 +1304,8 @@ export const DeceptionPage = () => {
       title: data.title,
       description: data.description,
       data: data,
-      status: 'active'
+      status: 'active',
+      is_public: false // CRITICAL: Default to private for privacy
     }
 
     if (isEditMode && id) {

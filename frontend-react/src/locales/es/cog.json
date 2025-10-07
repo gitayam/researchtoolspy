@@ -356,6 +356,67 @@
     }
   },
 
+  "vulnerabilityMatrix": {
+    "title": "Matriz de Comparación de Vulnerabilidades",
+    "description": "Comparar y priorizar vulnerabilidades a través de todos los Centros de Gravedad",
+    "exportButton": "Exportar CSV",
+
+    "filters": {
+      "search": "Buscar",
+      "searchPlaceholder": "Buscar vulnerabilidades...",
+      "actor": "Actor",
+      "allActors": "Todos los Actores",
+      "domain": "Dominio",
+      "allDomains": "Todos los Dominios",
+      "cog": "COG",
+      "allCOGs": "Todos los COGs",
+      "minScore": "Punt. Mínima",
+      "minScorePlaceholder": "Mín",
+      "maxScore": "Punt. Máxima",
+      "maxScorePlaceholder": "Máx",
+      "clearFilters": "Limpiar Filtros",
+      "showing": "Mostrando {{shown}} de {{total}} vulnerabilidades"
+    },
+
+    "table": {
+      "rank": "Rango",
+      "score": "Punt.",
+      "cog": "COG",
+      "capability": "Capacidad",
+      "requirement": "Requisito",
+      "vulnerability": "Vulnerabilidad",
+      "impactShort": "I",
+      "attainabilityShort": "A",
+      "followUpShort": "S",
+      "type": "Tipo",
+      "confidence": "Confianza"
+    },
+
+    "export": {
+      "filename": "matriz-vulnerabilidades-{{title}}-{{date}}.csv",
+      "headers": {
+        "rank": "Rango",
+        "cog": "COG",
+        "actor": "Actor",
+        "domain": "Dominio",
+        "capability": "Capacidad",
+        "requirement": "Requisito",
+        "vulnerability": "Vulnerabilidad",
+        "type": "Tipo",
+        "description": "Descripción",
+        "compositeScore": "Puntuación Compuesta",
+        "impact": "Impacto",
+        "attainability": "Alcanzabilidad",
+        "followUp": "Seguimiento",
+        "expectedEffect": "Efecto Esperado",
+        "recommendedActions": "Acciones Recomendadas",
+        "confidence": "Confianza"
+      }
+    },
+
+    "emptyState": "No hay vulnerabilidades que coincidan con los filtros actuales"
+  },
+
   "wizard": {
     "title": "Asistente de Análisis COG",
     "subtitle": "Análisis guiado paso a paso",
