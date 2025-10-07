@@ -282,13 +282,73 @@
 
 ---
 
+## 🐛 Known Issues & Bugs
+
+### Instagram Extraction Failures (ACTIVE)
+**Reported**: 2025-10-06
+**Priority**: MEDIUM
+**Status**: Investigating
+
+**Symptom**: "Instagram post could not be extracted. The post may be private, deleted, or you may need to try again later."
+
+**Current Implementation**:
+- Uses cobalt.tools API for extraction (external service)
+- Has retry logic (2 attempts, 1s delay)
+- Caching enabled (1 hour TTL)
+- Code: `functions/api/content-intelligence/social-media-extract.ts:490-602`
+
+**Potential Causes**:
+1. **Instagram API Changes**: Instagram frequently updates anti-scraping measures
+2. **cobalt.tools Rate Limiting**: External service may be rate-limited
+3. **Private/Deleted Posts**: Legitimate failures for inaccessible content
+4. **Cloudflare Workers IP Blocking**: Instagram may block CF edge IPs
+
+**Recommended Fixes** (in priority order):
+
+**Option 1: Multiple Fallback Services** ⭐ (1-2 days)
+- Add fallback to alternative services when cobalt.tools fails
+- Services to try: instaloader, instadp, snapinsta
+- Sequential fallback chain with timeout
+- **Impact**: 80%+ success rate via service diversity
+
+**Option 2: Instagram oEmbed API** (1 day)
+- Use official Instagram oEmbed API for metadata
+- Doesn't provide download URLs but gets post info
+- Limitation: embed-only, no media download
+- **Impact**: Reliable for public posts, limited functionality
+
+**Option 3: User Upload Workflow** (2-3 days)
+- When extraction fails, offer "Upload Manually" option
+- User downloads via Instagram app → uploads to tool
+- Store in R2 with post metadata
+- **Impact**: Always works, requires user action
+
+**Option 4: Browser Extension** (1-2 weeks)
+- Create browser extension for one-click extraction
+- Extension has user's Instagram cookies/auth
+- Bypasses IP blocking issues
+- **Impact**: Best user experience, more complex deployment
+
+**Quick Fix** (TODAY): Improve error messages
+- Show specific failure reason (rate limit vs private vs blocked)
+- Provide "Try again in X minutes" countdown
+- Add "Report Issue" button with URL for debugging
+- Suggest manual download + upload workflow
+
+**Related Files**:
+- `functions/api/content-intelligence/social-media-extract.ts` (main extraction)
+- `src/pages/tools/ContentIntelligencePage.tsx` (UI)
+
+---
+
 ## 💡 What Should We Work On Next?
 
 Based on the roadmap, the highest-value next steps are:
 
 1. **Phase 3.6: Complete i18n** - Finish what we started
 2. **Phase 4.1: Comments System** - Enable collaboration
-3. **Phase 2.5: COG Form AI** - Complete AI integration
-4. **Other priorities** - Based on user feedback
+3. **Instagram Extraction Fix** - Address active user-reported bug
+4. **Network Integration** - Bridge COG/Causeway to entity network (see NETWORK_INTEGRATION_PLAN.md)
+5. **Other priorities** - Based on user feedback
 
 **What would you like to focus on?**
