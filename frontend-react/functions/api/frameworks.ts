@@ -22,6 +22,10 @@ export async function onRequest(context: any) {
     // GET - List frameworks or get single framework
     if (request.method === 'GET') {
       if (frameworkId) {
+        // Get user_id from auth (for now, default to user 1)
+        // TODO: Implement proper authentication
+        const userId = 1 // Placeholder - should come from auth
+
         // Get single framework from D1
         const framework = await env.DB.prepare(
           'SELECT * FROM framework_sessions WHERE id = ?'
@@ -30,6 +34,14 @@ export async function onRequest(context: any) {
         if (!framework) {
           return new Response(JSON.stringify({ error: 'Framework not found' }), {
             status: 404,
+            headers: corsHeaders,
+          })
+        }
+
+        // CRITICAL FIX: Verify user owns this framework OR it's public
+        if (framework.user_id !== userId && !framework.is_public) {
+          return new Response(JSON.stringify({ error: 'Unauthorized access to private framework' }), {
+            status: 403,
             headers: corsHeaders,
           })
         }
@@ -55,10 +67,18 @@ export async function onRequest(context: any) {
       // List all frameworks with optional public filter
       const publicOnly = url.searchParams.get('public') === 'true'
 
+      // Get user_id from auth header or cookie (for now, default to user 1 for logged-in users)
+      // TODO: Implement proper authentication
+      const userId = 1 // Placeholder - should come from auth
+
       let query = 'SELECT * FROM framework_sessions WHERE 1=1'
 
       if (publicOnly) {
+        // Only return public frameworks
         query += ' AND is_public = 1'
+      } else {
+        // CRITICAL FIX: Only return frameworks owned by this user OR public frameworks
+        query += ` AND (user_id = ${userId} OR is_public = 1)`
       }
 
       query += ' ORDER BY created_at DESC LIMIT 50'
