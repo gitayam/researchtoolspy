@@ -6,6 +6,7 @@
  * - Instagram: Post media, captions, engagement metrics
  * - TikTok: Video URLs, metadata (via external API)
  * - Twitter/X: Tweet data, media URLs
+ * - Bluesky: Post media, text, author info, engagement metrics (via AT Protocol API)
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
@@ -183,11 +184,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           case 'twitter':
           case 'x':
             return await extractTwitter(url, mode)
+          case 'bluesky':
+            return await extractBluesky(url, mode)
           default:
             return createUserFriendlyError(
               platform,
               `Platform '${platform}' not supported`,
-              `Sorry, ${platform} extraction is not yet available. Supported platforms: YouTube, Instagram, TikTok, Twitter/X.`
+              `Sorry, ${platform} extraction is not yet available. Supported platforms: YouTube, Instagram, TikTok, Twitter/X, Bluesky.`
             )
         }
       }
@@ -250,6 +253,9 @@ function detectPlatform(url: string): string | null {
   }
   if (urlLower.includes('twitter.com') || urlLower.includes('x.com')) {
     return 'twitter'
+  }
+  if (urlLower.includes('bsky.app') || urlLower.startsWith('at://')) {
+    return 'bluesky'
   }
   if (urlLower.includes('facebook.com')) {
     return 'facebook'
@@ -867,6 +873,167 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
       'twitter',
       error instanceof Error ? error.message : 'Unknown error',
       'Tweet could not be extracted. The tweet may be from a protected account, deleted, or temporarily unavailable. Note: Direct downloads are not available for Twitter - embed code only.'
+    )
+  }
+}
+
+// ========================================
+// Bluesky (AT Protocol) Extraction
+// ========================================
+
+async function extractBluesky(url: string, mode: string): Promise<SocialMediaExtractionResult> {
+  try {
+    console.log('[Bluesky] Starting extraction, mode:', mode, 'url:', url)
+
+    // Parse Bluesky URL to extract handle and post ID
+    // Format: https://bsky.app/profile/{handle}/post/{rkey}
+    // Or AT URI: at://{did}/app.bsky.feed.post/{rkey}
+
+    let handle: string
+    let rkey: string
+
+    if (url.startsWith('at://')) {
+      // AT Protocol URI format
+      const match = url.match(/at:\/\/([^/]+)\/app\.bsky\.feed\.post\/(.+)/)
+      if (!match) {
+        return createUserFriendlyError(
+          'bluesky',
+          'Invalid AT URI format',
+          'Could not parse AT Protocol URI. Expected format: at://{did}/app.bsky.feed.post/{rkey}'
+        )
+      }
+      handle = match[1] // This is actually a DID, but we'll resolve it
+      rkey = match[2]
+    } else {
+      // Web URL format
+      const match = url.match(/bsky\.app\/profile\/([^/]+)\/post\/([^/?#]+)/)
+      if (!match) {
+        return createUserFriendlyError(
+          'bluesky',
+          'Invalid Bluesky URL format',
+          'Could not parse Bluesky URL. Expected format: https://bsky.app/profile/{handle}/post/{rkey}'
+        )
+      }
+      handle = match[1]
+      rkey = match[2]
+    }
+
+    console.log('[Bluesky] Extracted - handle:', handle, 'rkey:', rkey)
+
+    // Fetch post using Bluesky public API
+    const postData = await fetchWithRetry(async () => {
+      // First resolve the handle to DID if needed
+      let did = handle
+      if (!handle.startsWith('did:')) {
+        const resolveUrl = `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`
+        const resolveResponse = await fetch(resolveUrl)
+        if (!resolveResponse.ok) {
+          throw new Error(`Failed to resolve handle: ${resolveResponse.status}`)
+        }
+        const resolveData = await resolveResponse.json() as any
+        did = resolveData.did
+        console.log('[Bluesky] Resolved handle to DID:', did)
+      }
+
+      // Now fetch the post
+      const postUrl = `https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=at://${did}/app.bsky.feed.post/${rkey}&depth=0`
+      const postResponse = await fetch(postUrl)
+
+      if (!postResponse.ok) {
+        throw new Error(`Bluesky API returned status ${postResponse.status}`)
+      }
+
+      return await postResponse.json() as any
+    }, 2, 1000)
+
+    const post = postData.thread?.post
+    if (!post) {
+      throw new Error('Post data not found in response')
+    }
+
+    // Extract media URLs from embeds
+    const mediaUrls: MediaUrls = {}
+    const images: string[] = []
+
+    if (post.embed) {
+      // Handle images
+      if (post.embed.$type === 'app.bsky.embed.images#view') {
+        for (const img of post.embed.images || []) {
+          if (img.fullsize) {
+            images.push(img.fullsize)
+          }
+        }
+      }
+
+      // Handle videos
+      if (post.embed.$type === 'app.bsky.embed.video#view') {
+        mediaUrls.video = post.embed.playlist || post.embed.thumbnail
+        mediaUrls.thumbnail = post.embed.thumbnail
+      }
+
+      // Handle external links with thumbnails
+      if (post.embed.$type === 'app.bsky.embed.external#view') {
+        if (post.embed.external?.thumb) {
+          mediaUrls.thumbnail = post.embed.external.thumb
+        }
+      }
+
+      // Handle record with media (quote posts with images)
+      if (post.embed.$type === 'app.bsky.embed.recordWithMedia#view') {
+        if (post.embed.media?.$type === 'app.bsky.embed.images#view') {
+          for (const img of post.embed.media.images || []) {
+            if (img.fullsize) {
+              images.push(img.fullsize)
+            }
+          }
+        }
+      }
+    }
+
+    if (images.length > 0) {
+      mediaUrls.images = images
+    }
+
+    // Build metadata
+    const metadata = {
+      author: post.author?.displayName || post.author?.handle,
+      authorHandle: post.author?.handle,
+      authorDid: post.author?.did,
+      authorAvatar: post.author?.avatar,
+      text: post.record?.text || '',
+      createdAt: post.record?.createdAt,
+      replyCount: post.replyCount || 0,
+      repostCount: post.repostCount || 0,
+      likeCount: post.likeCount || 0,
+      quoteCount: post.quoteCount || 0,
+      uri: post.uri,
+      cid: post.cid,
+      hasMedia: !!(mediaUrls.images?.length || mediaUrls.video),
+      mediaCount: (mediaUrls.images?.length || 0) + (mediaUrls.video ? 1 : 0)
+    }
+
+    // Determine post type
+    let postType = 'post'
+    if (post.record?.reply) {
+      postType = 'reply'
+    } else if (post.embed?.$type?.includes('recordWithMedia') || post.embed?.$type?.includes('record')) {
+      postType = 'quote'
+    }
+
+    return {
+      success: true,
+      platform: 'bluesky',
+      postType,
+      mediaUrls,
+      metadata
+    }
+
+  } catch (error) {
+    console.error('[Bluesky] Extraction failed:', error)
+    return createUserFriendlyError(
+      'bluesky',
+      error instanceof Error ? error.message : 'Unknown error',
+      'Bluesky post could not be extracted. The post may be from a private account, deleted, or the Bluesky API may be temporarily unavailable. Please verify the URL is correct and try again.'
     )
   }
 }
