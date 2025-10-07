@@ -179,33 +179,128 @@
 
 ---
 
-### Phase 4: Collaboration & Advanced Features (FUTURE)
-**Priority**: LOW (Nice to have)
+### ✅ Phase 4.1: Comments System (MOSTLY COMPLETE)
+**Status**: 80% Complete (2025-10-07)
+**Time Spent**: 1 day
+**Remaining**: Minor integration work
+
+#### Completed
+- ✅ Threaded comments with unlimited nesting
+- ✅ @mentions with extraction and highlighting
+- ✅ Resolve/unresolve workflow
+- ✅ Edit/delete with ownership checks
+- ✅ Markdown support with HTML rendering
+- ✅ Guest mode support (hash-based users)
+- ✅ API endpoints (GET, POST, PATCH, DELETE)
+- ✅ CommentThread UI component
+
+#### Remaining
+- [ ] Translation strings (en/es locales)
+- [ ] Integration into COGView and other views
+- [ ] Notification delivery (leverages existing infrastructure)
+
+---
+
+### Phase 5: Collaboration & Public Library System (NEW)
+**Priority**: HIGH (Core collaboration feature)
+**Estimated Time**: 9-13 days (2-3 weeks)
+**Status**: Design complete, ready for implementation
+
+#### 5.1 Workspace Resource Isolation (Est: 2-3 days)
+- [ ] Add workspace_id to all frameworks
+- [ ] Enforce workspace filtering in all APIs
+- [ ] Update framework creation to select workspace
+- [ ] Add workspace selector to CollaborationPage
+- [ ] Show shared resources in workspace view
+- [ ] Test multi-workspace isolation
+- **Impact**: Proper multi-tenancy, prevent data leakage
+
+#### 5.2 Public Library Discovery (Est: 3-4 days)
+- [ ] Voting system (upvote/downvote)
+  - [ ] API: POST /api/frameworks/:id/vote
+  - [ ] Component: VoteButton with real-time counts
+  - [ ] Database: framework_votes table
+- [ ] Rating system (5-star with reviews)
+  - [ ] API: POST /api/frameworks/:id/rate
+  - [ ] Component: StarRating with review dialog
+  - [ ] Database: framework_ratings table
+- [ ] Public library UI
+  - [ ] Page: PublicLibraryPage
+  - [ ] Component: LibraryBrowser (grid/list view)
+  - [ ] Component: LibraryFilters (category, type, sort)
+  - [ ] Component: FrameworkCard (preview with stats)
+- [ ] "Publish to Library" workflow
+  - [ ] Dialog: Set category, tags, license
+  - [ ] API: POST /api/frameworks/:id/publish
+  - [ ] Update: is_public + published_to_library flags
+- **Impact**: Community knowledge sharing, framework discovery
+
+#### 5.3 Subscriptions & Notifications (Est: 2-3 days)
+- [ ] Subscription system
+  - [ ] API: POST /api/frameworks/:id/subscribe
+  - [ ] API: GET /api/subscriptions (user's subscriptions)
+  - [ ] Component: SubscribeButton
+  - [ ] Database: framework_subscriptions table
+  - [ ] Granular preferences (updates, comments, forks)
+- [ ] Notification system
+  - [ ] API: GET /api/notifications
+  - [ ] API: PATCH /api/notifications/:id/read
+  - [ ] Component: NotificationBell (header icon with count)
+  - [ ] Component: NotificationList (dropdown)
+  - [ ] Database: user_notifications table
+  - [ ] Notification generation on framework updates
+- **Impact**: Keep users engaged, awareness of framework changes
+
+#### 5.4 Activity Feed & Analytics (Est: 2-3 days)
+- [ ] Activity feed
+  - [ ] Database: activity_feed table
+  - [ ] API: GET /api/workspaces/:id/activity
+  - [ ] Component: ActivityFeed (recent team actions)
+  - [ ] Integration: Log all actions (create, edit, comment, vote)
+- [ ] Analytics
+  - [ ] View counts, vote counts, clone counts
+  - [ ] Component: FrameworkAnalytics (charts)
+  - [ ] Page: DashboardPage with activity feed
+  - [ ] Most popular frameworks widget
+- **Impact**: Team awareness, usage insights
+
+#### 5.5 Framework Cloning (Est: 1-2 days)
+- [ ] Clone public frameworks to workspace
+  - [ ] API: POST /api/library/:id/clone
+  - [ ] Button: "Clone to My Workspace" on library pages
+  - [ ] Track: fork_parent_id and clone_count
+  - [ ] Attribution: Link to original workspace
+- **Impact**: Easy framework reuse, attribution tracking
+
+---
+
+### Phase 6: Advanced Collaboration Features (FUTURE)
+**Priority**: MEDIUM (Nice to have after Phase 5)
 **Estimated Time**: 2-3 weeks total
 
-#### 4.1 Comments System (Est: 2-3 days)
-- [ ] Threaded comments on any entity
-- [ ] @mentions for team members
-- [ ] Resolve/unresolve workflow
-- [ ] Comment notifications
-
-#### 4.2 Assignment & Ownership (Est: 2-3 days)
-- [ ] Assign COGs to team members (J2, J3, J5, etc.)
-- [ ] Task tracking
-- [ ] Team view dashboard
+#### 6.1 Assignment & Ownership (Est: 2-3 days)
+- [ ] Assign frameworks to team members (J2, J3, J5, etc.)
+- [ ] Task tracking per framework
+- [ ] Team workload dashboard
 - [ ] Workload visualization
 
-#### 4.3 Approval Workflow (Est: 3-4 days)
-- [ ] Draft → Review → Approve → Published states
+#### 6.2 Approval Workflow (Est: 3-4 days)
+- [ ] Framework states: Draft → Review → Approve → Published
 - [ ] Reviewer assignment
-- [ ] Change tracking
-- [ ] Version history
+- [ ] Change tracking and version comparison
+- [ ] Version history with rollback
 
-#### 4.4 Time-Phased Analysis (Est: 2-3 days)
+#### 6.3 Time-Phased Analysis (Est: 2-3 days)
 - [ ] Multiple snapshots over time
 - [ ] COG evolution tracking
 - [ ] Timeline visualization
 - [ ] Comparison across time periods
+
+#### 6.4 Real-Time Collaboration (Est: 5-7 days)
+- [ ] WebSocket integration
+- [ ] Live co-editing indicators
+- [ ] Real-time comment updates
+- [ ] Presence indicators (who's viewing)
 
 ---
 
@@ -662,6 +757,13 @@ Based on the roadmap, the highest-value next steps are:
      - ARIA labels and landmarks
      - Keyboard navigation support
      - Documentation: docs/ACCESSIBILITY.md
-10. **Other priorities** - Based on user feedback
+10. **🆕 Phase 5: Collaboration & Public Library** 📋 **DESIGN COMPLETE** (2025-10-07)
+    - ✅ Complete system design document (docs/COLLABORATION_SYSTEM_DESIGN.md)
+    - ✅ Database migrations (4 new migration files)
+    - ✅ API endpoint specifications
+    - ✅ Architecture and data flow diagrams
+    - 🔲 Implementation (Phases 1-4, see below)
+    - **Estimated Time**: 9-13 days (2-3 weeks)
+    - **Impact**: Team collaboration + community knowledge sharing
 
 **What would you like to focus on?**
