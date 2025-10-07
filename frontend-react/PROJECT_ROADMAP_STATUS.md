@@ -104,7 +104,7 @@
 
 ---
 
-### ✅ Phase 3.5: Multi-Language Support (PARTIAL COMPLETE)
+### ✅ Phase 3.5: Multi-Language Support (COMPLETE)
 
 **Completed**:
 - ✅ i18next infrastructure setup
@@ -112,12 +112,15 @@
 - ✅ Export components fully internationalized
 - ✅ Network visualization i18n
 - ✅ Language switcher in UI
+- ✅ COGWizard.tsx internationalization (138 strings)
+- ✅ COGQuickScore.tsx internationalization (19 strings)
+- ✅ COGVulnerabilityMatrix.tsx internationalization (41 strings)
+- ✅ AICOGAssistant.tsx internationalization (52 strings)
+- ✅ COGView.tsx internationalization (100 strings)
+- ✅ COGForm.tsx internationalization (150+ strings)
 
-**Deferred to Phase 3.6**:
-- [ ] COGForm.tsx internationalization
-- [ ] COGView.tsx internationalization
-- [ ] COGWizard.tsx internationalization
-- [ ] AI components language support
+**Git Tag**: `cog-i18n-complete`
+**Total Strings**: 500+ across all COG components
 
 ---
 
@@ -141,38 +144,38 @@
 
 ## 📋 Remaining Work
 
-### Phase 3.6: Complete Form/View i18n (DEFERRED)
-**Priority**: MEDIUM
-**Estimated Time**: 5-7 days (systematic multi-session work)
-**Complexity**: HIGH - ~4,000 lines of code across 6 components
+### ✅ Phase 3.6: Complete COG i18n (COMPLETE) 🎉
+**Completed**: 2025-10-06 (this session)
+**Total Time**: 1 session (parallel agent work)
+**Complexity**: HIGH - 6 components, 500+ strings
 
-**Components to Internationalize**:
-- [ ] COGForm.tsx (~1,150 lines) - Primary analysis form
-- [ ] COGView.tsx (~700 lines) - Analysis detail view
-- [ ] COGWizard.tsx (~1,100 lines) - Step-by-step wizard
-- [ ] COGVulnerabilityMatrix.tsx (~450 lines) - Vulnerability comparison
-- [ ] COGQuickScore.tsx (~280 lines) - Rapid scoring dialog
-- [ ] AICOGAssistant.tsx (~670 lines) - AI assistance UI
+**Components Internationalized**:
+- ✅ COGWizard.tsx (1,202 lines) - Step-by-step wizard - 138 strings
+- ✅ COGQuickScore.tsx (280 lines) - Rapid scoring dialog - 19 strings
+- ✅ COGVulnerabilityMatrix.tsx (450 lines) - Vulnerability comparison - 41 strings
+- ✅ AICOGAssistant.tsx (670 lines) - AI assistance UI - 52 strings
+- ✅ COGView.tsx (627 lines) - Analysis detail view - 100 strings
+- ✅ COGForm.tsx (1,651 lines) - Primary analysis form - 150+ strings
 
-**Estimated Extraction**:
-- ~800-1,000 unique English strings
-- ~200-300 translation keys needed
-- Forms have nested structures with tooltips, help text, validation messages
+**Total Extracted**:
+- 500+ unique English strings
+- Hierarchical translation keys (wizard.*, quickScore.*, vulnerabilityMatrix.*, aiAssistant.*, view.*, form.*)
+- Professional Spanish military terminology throughout
+- Complex tooltips, validation messages, export headers
 
-**Systematic Approach**:
-1. **Day 1-2**: COGForm.tsx + COGView.tsx (largest components)
-2. **Day 3**: COGWizard.tsx
-3. **Day 4**: COGVulnerabilityMatrix.tsx + COGQuickScore.tsx
-4. **Day 5**: AICOGAssistant.tsx
-5. **Day 6-7**: Testing, QA, Spanish review
+**Files Modified**:
+- All 6 COG components updated with useTranslation hook
+- src/locales/en/cog.json - Comprehensive English translations
+- src/locales/es/cog.json - Professional Spanish military translations
 
-**Why Defer**:
-- Phase 2.5 AI integration provides higher immediate value
-- Export components (PowerPoint, Excel, PDF) already internationalized
-- Coalition operations can use English UI with Spanish exports
-- Best done systematically over multiple focused sessions
+**Impact**:
+- 🌐 Full bilingual COG Analysis tool (English/Spanish)
+- 🎖️ Coalition operations support with professional military Spanish
+- 📊 All exports (PowerPoint, Excel, PDF, CSV, Markdown) translated
+- 🤖 AI assistance fully translated
+- ✅ Complete UI coverage - no hardcoded English strings remaining
 
-**Alternative Quick Win**: Internationalize only the most-used component (COGWizard.tsx) first - Est: 1-2 days
+**Git Tag**: `cog-i18n-complete`
 
 ---
 
@@ -345,10 +348,17 @@
 
 Based on the roadmap, the highest-value next steps are:
 
-1. **Phase 3.6: Complete i18n** - Finish what we started
-2. **Phase 4.1: Comments System** - Enable collaboration
-3. **Instagram Extraction Fix** - Address active user-reported bug
-4. **Network Integration** - Bridge COG/Causeway to entity network (see NETWORK_INTEGRATION_PLAN.md)
+1. **✅ Phase 3.6: Complete COG i18n** - DONE! 🎉
+2. **Network Integration (Quick Win)** - Add "View in Network" buttons (1-2 days)
+   - See NETWORK_INTEGRATION_PLAN.md for details
+   - Immediate UX improvement
+   - Bridges COG/Causeway to entity network
+3. **Instagram Extraction Fix** - Address active user-reported bug (1-2 days)
+   - Add fallback services for reliability
+   - Improve error messages
+4. **Phase 4.1: Comments System** - Enable collaboration (2-3 days)
+   - Threaded comments on COG/capabilities/requirements/vulnerabilities
+   - @mentions and resolve/unresolve workflow
 5. **Other priorities** - Based on user feedback
 
 **What would you like to focus on?**
