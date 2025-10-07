@@ -164,6 +164,98 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
     }
   }
 
+  const handleSaveDraft = async () => {
+    setSaving(true)
+    try {
+      // Build COG analysis from wizard data (allowing partial data for drafts)
+      const cogId = crypto.randomUUID()
+      const capId = crypto.randomUUID()
+      const reqId = crypto.randomUUID()
+
+      // Only create COG if we have at least description
+      const cogs: CenterOfGravity[] = cogDescription ? [{
+        id: cogId,
+        actor_category: cogActor || 'adversary',
+        domain: cogDomain || 'military',
+        description: cogDescription,
+        rationale: cogRationale || '',
+        validated: Object.values(cogValidation).every((v) => v),
+        confidence: Object.values(cogValidation).every((v) => v) ? 'high' : 'medium',
+        priority: 1,
+        linked_evidence: [],
+      }] : []
+
+      const caps: CriticalCapability[] = capabilities
+        .filter((c) => c.capability)
+        .map((c, i) => ({
+          id: c.id || (i === 0 ? capId : crypto.randomUUID()),
+          cog_id: cogId,
+          capability: c.capability,
+          description: c.description || '',
+          strategic_contribution: c.description || '',
+          linked_evidence: [],
+        }))
+
+      const reqs: CriticalRequirement[] = requirements
+        .filter((r) => r.requirement && r.capability_id)
+        .map((r, i) => ({
+          id: r.id || (i === 0 ? reqId : crypto.randomUUID()),
+          capability_id: r.capability_id,
+          requirement: r.requirement,
+          requirement_type: r.type as any,
+          description: r.requirement,
+          linked_evidence: [],
+        }))
+
+      const vulns: CriticalVulnerability[] = vulnerabilities
+        .filter((v) => v.vulnerability && v.requirement_ids.length > 0)
+        .flatMap((v) =>
+          v.requirement_ids.map((reqId) => ({
+            id: crypto.randomUUID(),
+            requirement_id: reqId,
+            vulnerability: v.vulnerability,
+            vulnerability_type: v.type as any,
+            description: v.description || '',
+            expected_effect: v.expectedEffect || '',
+            recommended_actions: v.recommendedActions ? v.recommendedActions.split(',').map((a) => a.trim()) : [],
+            confidence: 'medium' as const,
+            scoring: {
+              impact_on_cog: 3,
+              attainability: 3,
+              follow_up_potential: 3,
+            },
+            composite_score: 9,
+            linked_evidence: [],
+          }))
+        )
+
+      const analysis: COGAnalysis = {
+        id: initialData?.id || crypto.randomUUID(),
+        title: title || `Draft - ${new Date().toLocaleDateString()}`,
+        description: description || '',
+        operational_context: operationalContext,
+        scoring_system: scoringSystem,
+        centers_of_gravity: cogs,
+        critical_capabilities: caps,
+        critical_requirements: reqs,
+        critical_vulnerabilities: vulns,
+        created_at: initialData?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_by: initialData?.created_by || 1,
+        status: 'draft', // Mark as draft instead of active
+      }
+
+      await onSave(analysis)
+      // Don't navigate away after saving draft - stay in wizard
+      alert('✅ Draft saved successfully! You can continue working or come back later.')
+    } catch (error) {
+      console.error('Failed to save draft:', error)
+      alert('❌ Failed to save draft. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleSave = async () => {
     setSaving(true)
     try {
@@ -1181,22 +1273,33 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
         </Card>
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <Button variant="outline" onClick={handlePrevious} disabled={currentStep === 1}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             {t('wizard.buttons.previous')}
           </Button>
 
-          {currentStep < STEPS.length ? (
-            <Button onClick={handleNext} disabled={!canProceed()}>
-              {t('wizard.buttons.next')}
-              <ArrowRight className="h-4 w-4 ml-2" />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleSaveDraft}
+              disabled={saving || !title}
+              title="Save your progress and continue later"
+            >
+              {saving ? t('wizard.buttons.saving') : 'Save Draft'}
             </Button>
-          ) : (
-            <Button onClick={handleSave} disabled={!canProceed() || saving}>
-              {saving ? t('wizard.buttons.saving') : t('wizard.buttons.save')}
-            </Button>
-          )}
+
+            {currentStep < STEPS.length ? (
+              <Button onClick={handleNext} disabled={!canProceed()}>
+                {t('wizard.buttons.next')}
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              <Button onClick={handleSave} disabled={!canProceed() || saving}>
+                {saving ? t('wizard.buttons.saving') : t('wizard.buttons.save')}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </TooltipProvider>
