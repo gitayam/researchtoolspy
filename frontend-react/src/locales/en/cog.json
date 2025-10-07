@@ -509,6 +509,148 @@
     }
   },
 
+  "view": {
+    "header": {
+      "back": "Back",
+      "cogAnalysis": "COG Analysis",
+      "linearScoring": "Linear Scoring",
+      "logarithmicScoring": "Logarithmic Scoring",
+      "reference": "Reference",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+
+    "tabs": {
+      "overview": "Overview",
+      "hierarchy": "Hierarchy",
+      "vulnerabilities": "Vulnerabilities",
+      "network": "Network"
+    },
+
+    "operationalContext": {
+      "title": "Operational Context",
+      "objective": "Objective",
+      "desiredImpact": "Desired Impact",
+      "ourIdentity": "Our Identity",
+      "operatingEnvironment": "Operating Environment",
+      "timeframe": "Timeframe",
+      "strategicLevel": "Strategic Level",
+      "constraints": "Constraints",
+      "restraints": "Restraints",
+      "notSpecified": "Not specified"
+    },
+
+    "cogsByActor": {
+      "count": "{{count}} COG",
+      "count_plural": "{{count}} COGs"
+    },
+
+    "statistics": {
+      "cogs": "COGs",
+      "capabilities": "Capabilities",
+      "requirements": "Requirements",
+      "vulnerabilities": "Vulnerabilities"
+    },
+
+    "hierarchy": {
+      "title": "COG Hierarchy",
+      "clickToExpandCollapse": "Click to expand/collapse",
+      "expandIcon": "▶",
+      "collapseIcon": "▼"
+    },
+
+    "vulnerabilitiesTab": {
+      "title": "Critical Vulnerabilities",
+      "description": "Ranked by composite score (Impact + Attainability + Follow-up)",
+      "exportCSV": "Export CSV",
+      "tableHeaders": {
+        "rank": "Rank",
+        "vulnerability": "Vulnerability",
+        "type": "Type",
+        "impact": "I",
+        "attainability": "A",
+        "followUp": "F",
+        "score": "Score"
+      }
+    },
+
+    "network": {
+      "title": "Network Metrics",
+      "description": "Centrality measures for key nodes",
+      "topNodesDegree": "Top Nodes by Degree Centrality",
+      "connections": "connections",
+      "statistics": "Network Statistics",
+      "totalNodes": "Total Nodes",
+      "totalEdges": "Total Edges",
+      "exportOptions": "Export Options",
+      "exportDescription": "Download network data and reports",
+      "edgeListCSV": "Edge List CSV",
+      "fullReportMarkdown": "Full Report (Markdown)"
+    },
+
+    "export": {
+      "edgeListFilename": "cog_edge_list_{{title}}.csv",
+      "reportFilename": "cog_report_{{title}}.md",
+      "vulnerabilitiesFilename": "cog_vulnerabilities_{{title}}.csv",
+      "csvHeaders": {
+        "source": "Source",
+        "sourceType": "Source Type",
+        "target": "Target",
+        "targetType": "Target Type",
+        "weight": "Weight",
+        "relationship": "Relationship",
+        "rank": "Rank",
+        "vulnerability": "Vulnerability",
+        "type": "Type",
+        "impact": "Impact",
+        "attainability": "Attainability",
+        "followUp": "Follow-up",
+        "compositeScore": "Composite Score",
+        "description": "Description"
+      }
+    },
+
+    "markdown": {
+      "title": "COG Analysis: {{title}}",
+      "operationalContextTitle": "Operational Context",
+      "objective": "Objective",
+      "desiredImpact": "Desired Impact",
+      "ourIdentity": "Our Identity",
+      "operatingEnvironment": "Operating Environment",
+      "constraints": "Constraints",
+      "restraints": "Restraints",
+      "timeframe": "Timeframe",
+      "strategicLevel": "Strategic Level",
+      "centersOfGravity": "Centers of Gravity",
+      "rationale": "Rationale",
+      "criticalCapabilities": "Critical Capabilities",
+      "strategicContribution": "Strategic Contribution",
+      "requirements": "Requirements",
+      "criticalVulnerabilitiesPrioritized": "Critical Vulnerabilities (Prioritized)",
+      "type": "Type",
+      "descriptionLabel": "Description",
+      "impactOnCOG": "Impact on COG",
+      "attainability": "Attainability",
+      "followUpPotential": "Follow-up Potential",
+      "exploitationMethod": "Exploitation Method",
+      "networkAnalysis": "Network Analysis",
+      "topNodesByDegreeCentrality": "Top Nodes by Degree Centrality",
+      "generatedFrom": "Generated from COG Analysis Tool",
+      "referenceLink": "Reference: [Irregularpedia COG Analysis Guide](https://irregularpedia.org/index.php/Center_of_Gravity_Analysis_Guide)",
+      "notAvailable": "N/A"
+    },
+
+    "alerts": {
+      "confirmDelete": "Are you sure you want to delete \"{{title}}\"?"
+    },
+
+    "metrics": {
+      "capabilitiesCount": "{{count}} Capabilities",
+      "requirementsCount": "{{count}} Requirements",
+      "vulnerabilitiesCount": "{{count}} Vulnerabilities"
+    }
+  },
+
   "wizard": {
     "title": "COG Analysis Wizard",
     "subtitle": "Step-by-step guided analysis",
