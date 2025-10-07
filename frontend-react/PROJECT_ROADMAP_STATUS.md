@@ -373,20 +373,64 @@
 
 ## 📋 External Tools Integration Plan (COMPLETE)
 **Added**: 2025-10-06 (this session)
-**Status**: Planning complete, implementation pending
+**Status**: Planning complete ✅ | Week 1 implementation complete ✅
 
 **Plan Created**: `EXTERNAL_TOOLS_INTEGRATION_PLAN.md` (959 lines)
 
 **Tools Covered**:
-- Gephi (network visualization) - GEXF, GraphML, CSV
-- RStudio (statistical analysis) - R CSV, RData, sample scripts
-- i2 Analyst's Notebook - Entity/link CSV
-- Palantir Gotham - JSON, Parquet
-- Maltego - Transform CSV
-- Neo4j - Cypher scripts
-- NetworkX - GraphML, JSON
+- ✅ Gephi (network visualization) - GEXF, GraphML, CSV - **DONE!**
+- 🔜 RStudio (statistical analysis) - R CSV, RData, sample scripts - **NEXT**
+- 🔜 i2 Analyst's Notebook - Entity/link CSV
+- 🔜 Palantir Gotham - JSON, Parquet
+- 🔜 Maltego - Transform CSV
+- 🔜 Neo4j - Cypher scripts
+- 🔜 NetworkX - GraphML, JSON
 
-**Next Steps**: Implement Gephi GEXF export (Week 1 quick win)
+**Next Steps**: RStudio integration (Week 2) or Instagram fix
+
+---
+
+## 🆕 Gephi Export Integration (COMPLETE)
+**Added**: 2025-10-06 (this session)
+**Completed**: 2025-10-06
+
+**Enhancements to NetworkExportDialog**:
+- ✅ GEXF 1.3 with viz namespace for visual properties
+- ✅ Color-coded nodes by entity type:
+  - ACTOR (blue), SOURCE (purple), EVENT (red)
+  - PLACE (green), BEHAVIOR (orange), EVIDENCE (indigo)
+- ✅ Node sizes scaled by connection count (5-50 range)
+- ✅ Edge thickness by confidence:
+  - CONFIRMED=3, PROBABLE=2, POSSIBLE/SUSPECTED=1
+- ✅ Export date metadata attribute
+- ✅ Professional creator/description metadata
+
+**Documentation**:
+- Created `docs/GEPHI_IMPORT_GUIDE.md` (461 lines)
+- Quick start (5 minutes from export to visualization)
+- Layout algorithm recommendations (ForceAtlas2, Fruchterman-Reingold)
+- Network analysis workflows (community detection, centrality)
+- Advanced use cases (path finding, temporal analysis)
+- Troubleshooting common issues
+
+**Files Modified**:
+- `src/components/network/NetworkExportDialog.tsx` (+43 lines visual properties)
+- `docs/GEPHI_IMPORT_GUIDE.md` (NEW - 461 lines)
+
+**Git Tag**: `gephi-export-v1.0.0`
+**Deployment**: https://1eb651cc.researchtoolspy.pages.dev
+
+**Impact**:
+- ✅ Professional network visualizations in Gephi with zero manual styling
+- ✅ Nodes pre-colored by entity type for immediate insights
+- ✅ Ready for community detection, centrality analysis, path finding
+- ✅ Comprehensive documentation for analyst onboarding
+
+**Export Formats Available** (all working):
+- ✅ **GEXF** - Gephi native with rich visual metadata
+- ✅ **GraphML** - Universal XML format (Gephi, Cytoscape, yEd)
+- ✅ **CSV** - Edge/node lists (R, Python, Excel)
+- ✅ **JSON** - Full structured export with metadata
 
 ---
 
@@ -396,17 +440,18 @@ Based on the roadmap, the highest-value next steps are:
 
 1. **✅ Phase 3.6: Complete COG i18n** - DONE! 🎉
 2. **✅ Network Integration (Quick Win)** - DONE! 🎉
-3. **External Tools Integration - Gephi Export** ⭐ **RECOMMENDED** (1 week)
-   - GEXF export from NetworkGraphPage
-   - CSV edge/node list export
-   - Gephi import guide
-   - See EXTERNAL_TOOLS_INTEGRATION_PLAN.md
-4. **Instagram Extraction Fix** - Address active user-reported bug (1-2 days)
+3. **✅ Gephi Export Integration** - DONE! 🎉
+4. **RStudio Integration** ⭐ **RECOMMENDED** (3-5 days)
+   - R-optimized CSV export (proper data types, snake_case)
+   - Sample R analysis scripts (network analysis, time-series)
+   - RData format export (preserve factors, dates)
+   - Documentation for statistical workflows
+5. **Instagram Extraction Fix** - Address active user-reported bug (1-2 days)
    - Add fallback services for reliability
    - Improve error messages
-5. **Phase 4.1: Comments System** - Enable collaboration (2-3 days)
+6. **Phase 4.1: Comments System** - Enable collaboration (2-3 days)
    - Threaded comments on COG/capabilities/requirements/vulnerabilities
    - @mentions and resolve/unresolve workflow
-6. **Other priorities** - Based on user feedback
+7. **Other priorities** - Based on user feedback
 
 **What would you like to focus on?**
