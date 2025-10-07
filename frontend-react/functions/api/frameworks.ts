@@ -19,6 +19,9 @@ export async function onRequest(context: any) {
     const url = new URL(request.url)
     const frameworkId = url.searchParams.get('id')
 
+    // Get workspace_id from query params or default to '1'
+    const workspaceId = url.searchParams.get('workspace_id') || '1'
+
     // GET - List frameworks or get single framework
     if (request.method === 'GET') {
       if (frameworkId) {
@@ -26,10 +29,10 @@ export async function onRequest(context: any) {
         // TODO: Implement proper authentication
         const userId = 1 // Placeholder - should come from auth
 
-        // Get single framework from D1
+        // Get single framework from D1 - WORKSPACE ISOLATION
         const framework = await env.DB.prepare(
-          'SELECT * FROM framework_sessions WHERE id = ?'
-        ).bind(frameworkId).first()
+          'SELECT * FROM framework_sessions WHERE id = ? AND (workspace_id = ? OR is_public = 1)'
+        ).bind(frameworkId, workspaceId).first()
 
         if (!framework) {
           return new Response(JSON.stringify({ error: 'Framework not found' }), {
@@ -74,16 +77,18 @@ export async function onRequest(context: any) {
       let query = 'SELECT * FROM framework_sessions WHERE 1=1'
 
       if (publicOnly) {
-        // Only return public frameworks
+        // Only return public frameworks (from any workspace)
         query += ' AND is_public = 1'
       } else {
-        // CRITICAL FIX: Only return frameworks owned by this user OR public frameworks
-        query += ` AND (user_id = ${userId} OR is_public = 1)`
+        // WORKSPACE ISOLATION: Only return frameworks in this workspace OR public frameworks
+        query += ` AND (workspace_id = ? OR is_public = 1)`
       }
 
       query += ' ORDER BY created_at DESC LIMIT 50'
 
-      const frameworks = await env.DB.prepare(query).all()
+      const frameworks = publicOnly
+        ? await env.DB.prepare(query).all()
+        : await env.DB.prepare(query).bind(workspaceId).all()
 
       // Parse the data field for each framework
       const parsedFrameworks = (frameworks.results || []).map((framework: any) => {
@@ -141,8 +146,8 @@ export async function onRequest(context: any) {
       }
 
       const result = await env.DB.prepare(
-        `INSERT INTO framework_sessions (user_id, title, description, framework_type, data, status, is_public, shared_publicly_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO framework_sessions (user_id, title, description, framework_type, data, status, is_public, shared_publicly_at, workspace_id, original_workspace_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         body.user_id || 1,
         body.title,
@@ -151,7 +156,9 @@ export async function onRequest(context: any) {
         dataJson,
         body.status || 'draft',
         body.is_public ? 1 : 0,
-        body.is_public ? new Date().toISOString() : null
+        body.is_public ? new Date().toISOString() : null,
+        body.workspace_id || workspaceId,
+        body.workspace_id || workspaceId  // original_workspace_id same as workspace_id on creation
       ).run()
 
       return new Response(JSON.stringify({
@@ -167,11 +174,12 @@ export async function onRequest(context: any) {
     if (request.method === 'PUT') {
       const body = await request.json()
 
-      await env.DB.prepare(
+      // WORKSPACE ISOLATION: Only allow updating frameworks in current workspace
+      const result = await env.DB.prepare(
         `UPDATE framework_sessions
          SET title = ?, description = ?, data = ?, status = ?, updated_at = datetime('now'),
              is_public = ?, shared_publicly_at = ?
-         WHERE id = ?`
+         WHERE id = ? AND workspace_id = ?`
       ).bind(
         body.title,
         body.description,
@@ -179,8 +187,16 @@ export async function onRequest(context: any) {
         body.status,
         body.is_public ? 1 : 0,
         body.is_public ? new Date().toISOString() : null,
-        frameworkId
+        frameworkId,
+        workspaceId
       ).run()
+
+      if (result.meta.changes === 0) {
+        return new Response(JSON.stringify({ error: 'Framework not found in workspace or unauthorized' }), {
+          status: 404,
+          headers: corsHeaders,
+        })
+      }
 
       return new Response(JSON.stringify({ message: 'Framework updated successfully' }), {
         status: 200,
@@ -190,9 +206,17 @@ export async function onRequest(context: any) {
 
     // DELETE - Delete framework
     if (request.method === 'DELETE') {
-      await env.DB.prepare(
-        'DELETE FROM framework_sessions WHERE id = ?'
-      ).bind(frameworkId).run()
+      // WORKSPACE ISOLATION: Only allow deleting frameworks in current workspace
+      const result = await env.DB.prepare(
+        'DELETE FROM framework_sessions WHERE id = ? AND workspace_id = ?'
+      ).bind(frameworkId, workspaceId).run()
+
+      if (result.meta.changes === 0) {
+        return new Response(JSON.stringify({ error: 'Framework not found in workspace or unauthorized' }), {
+          status: 404,
+          headers: corsHeaders,
+        })
+      }
 
       return new Response(JSON.stringify({ message: 'Framework deleted successfully' }), {
         status: 200,
