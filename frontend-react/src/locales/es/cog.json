@@ -509,6 +509,148 @@
     }
   },
 
+  "view": {
+    "header": {
+      "back": "Atrás",
+      "cogAnalysis": "Análisis COG",
+      "linearScoring": "Puntuación Lineal",
+      "logarithmicScoring": "Puntuación Logarítmica",
+      "reference": "Referencia",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+
+    "tabs": {
+      "overview": "Resumen",
+      "hierarchy": "Jerarquía",
+      "vulnerabilities": "Vulnerabilidades",
+      "network": "Red"
+    },
+
+    "operationalContext": {
+      "title": "Contexto Operacional",
+      "objective": "Objetivo",
+      "desiredImpact": "Impacto Deseado",
+      "ourIdentity": "Nuestra Identidad",
+      "operatingEnvironment": "Entorno Operativo",
+      "timeframe": "Marco Temporal",
+      "strategicLevel": "Nivel Estratégico",
+      "constraints": "Restricciones",
+      "restraints": "Limitaciones",
+      "notSpecified": "No especificado"
+    },
+
+    "cogsByActor": {
+      "count": "{{count}} COG",
+      "count_plural": "{{count}} COGs"
+    },
+
+    "statistics": {
+      "cogs": "COGs",
+      "capabilities": "Capacidades",
+      "requirements": "Requisitos",
+      "vulnerabilities": "Vulnerabilidades"
+    },
+
+    "hierarchy": {
+      "title": "Jerarquía COG",
+      "clickToExpandCollapse": "Haga clic para expandir/contraer",
+      "expandIcon": "▶",
+      "collapseIcon": "▼"
+    },
+
+    "vulnerabilitiesTab": {
+      "title": "Vulnerabilidades Críticas",
+      "description": "Clasificadas por puntuación compuesta (Impacto + Alcanzabilidad + Seguimiento)",
+      "exportCSV": "Exportar CSV",
+      "tableHeaders": {
+        "rank": "Rango",
+        "vulnerability": "Vulnerabilidad",
+        "type": "Tipo",
+        "impact": "I",
+        "attainability": "A",
+        "followUp": "S",
+        "score": "Punt."
+      }
+    },
+
+    "network": {
+      "title": "Métricas de Red",
+      "description": "Medidas de centralidad para nodos clave",
+      "topNodesDegree": "Nodos Principales por Centralidad de Grado",
+      "connections": "conexiones",
+      "statistics": "Estadísticas de Red",
+      "totalNodes": "Total de Nodos",
+      "totalEdges": "Total de Enlaces",
+      "exportOptions": "Opciones de Exportación",
+      "exportDescription": "Descargar datos de red e informes",
+      "edgeListCSV": "Lista de Enlaces CSV",
+      "fullReportMarkdown": "Informe Completo (Markdown)"
+    },
+
+    "export": {
+      "edgeListFilename": "lista_enlaces_cog_{{title}}.csv",
+      "reportFilename": "informe_cog_{{title}}.md",
+      "vulnerabilitiesFilename": "vulnerabilidades_cog_{{title}}.csv",
+      "csvHeaders": {
+        "source": "Origen",
+        "sourceType": "Tipo de Origen",
+        "target": "Destino",
+        "targetType": "Tipo de Destino",
+        "weight": "Peso",
+        "relationship": "Relación",
+        "rank": "Rango",
+        "vulnerability": "Vulnerabilidad",
+        "type": "Tipo",
+        "impact": "Impacto",
+        "attainability": "Alcanzabilidad",
+        "followUp": "Seguimiento",
+        "compositeScore": "Punt. Compuesta",
+        "description": "Descripción"
+      }
+    },
+
+    "markdown": {
+      "title": "Análisis COG: {{title}}",
+      "operationalContextTitle": "Contexto Operacional",
+      "objective": "Objetivo",
+      "desiredImpact": "Impacto Deseado",
+      "ourIdentity": "Nuestra Identidad",
+      "operatingEnvironment": "Entorno Operativo",
+      "constraints": "Restricciones",
+      "restraints": "Limitaciones",
+      "timeframe": "Marco Temporal",
+      "strategicLevel": "Nivel Estratégico",
+      "centersOfGravity": "Centros de Gravedad",
+      "rationale": "Justificación",
+      "criticalCapabilities": "Capacidades Críticas",
+      "strategicContribution": "Contribución Estratégica",
+      "requirements": "Requisitos",
+      "criticalVulnerabilitiesPrioritized": "Vulnerabilidades Críticas (Priorizadas)",
+      "type": "Tipo",
+      "descriptionLabel": "Descripción",
+      "impactOnCOG": "Impacto en COG",
+      "attainability": "Alcanzabilidad",
+      "followUpPotential": "Potencial de Seguimiento",
+      "exploitationMethod": "Método de Explotación",
+      "networkAnalysis": "Análisis de Red",
+      "topNodesByDegreeCentrality": "Nodos Principales por Centralidad de Grado",
+      "generatedFrom": "Generado desde Herramienta de Análisis COG",
+      "referenceLink": "Referencia: [Guía de Análisis COG de Irregularpedia](https://irregularpedia.org/index.php/Center_of_Gravity_Analysis_Guide)",
+      "notAvailable": "N/D"
+    },
+
+    "alerts": {
+      "confirmDelete": "¿Está seguro de que desea eliminar \"{{title}}\"?"
+    },
+
+    "metrics": {
+      "capabilitiesCount": "{{count}} Capacidades",
+      "requirementsCount": "{{count}} Requisitos",
+      "vulnerabilitiesCount": "{{count}} Vulnerabilidades"
+    }
+  },
+
   "wizard": {
     "title": "Asistente de Análisis COG",
     "subtitle": "Análisis guiado paso a paso",

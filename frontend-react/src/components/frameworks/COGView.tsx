@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Edit, Trash2, Download, Network, FileText, Table2, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,6 +50,7 @@ const DOMAIN_ICONS = {
 }
 
 export function COGView({ data, onEdit, onDelete, backPath }: COGViewProps) {
+  const { t } = useTranslation(['cog'])
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('overview')
   const [expandedCogs, setExpandedCogs] = useState<Set<string>>(new Set())
@@ -112,7 +114,7 @@ export function COGView({ data, onEdit, onDelete, backPath }: COGViewProps) {
 
   const exportEdgeList = () => {
     const csv = [
-      'Source,Source Type,Target,Target Type,Weight,Relationship',
+      `${t('view.export.csvHeaders.source')},${t('view.export.csvHeaders.sourceType')},${t('view.export.csvHeaders.target')},${t('view.export.csvHeaders.targetType')},${t('view.export.csvHeaders.weight')},${t('view.export.csvHeaders.relationship')}`,
       ...edgeList.map(e => `${e.source},${e.source_type},${e.target},${e.target_type},${e.weight},${e.relationship}`),
     ].join('\n')
 
@@ -120,7 +122,7 @@ export function COGView({ data, onEdit, onDelete, backPath }: COGViewProps) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `cog_edge_list_${data.title.replace(/\s+/g, '_')}.csv`
+    a.download = t('view.export.edgeListFilename', { title: data.title.replace(/\s+/g, '_') })
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -128,22 +130,22 @@ export function COGView({ data, onEdit, onDelete, backPath }: COGViewProps) {
   const exportReport = () => {
     const ranked = rankVulnerabilitiesByScore(data.critical_vulnerabilities)
 
-    const md = `# COG Analysis: ${data.title}
+    const md = `# ${t('view.markdown.title', { title: data.title })}
 
 ${data.description}
 
-## Operational Context
+## ${t('view.markdown.operationalContextTitle')}
 
-- **Objective:** ${data.operational_context.objective}
-- **Desired Impact:** ${data.operational_context.desired_impact}
-- **Our Identity:** ${data.operational_context.our_identity}
-- **Operating Environment:** ${data.operational_context.operating_environment}
-- **Constraints:** ${data.operational_context.constraints.join(', ')}
-- **Restraints:** ${data.operational_context.restraints.join(', ')}
-- **Timeframe:** ${data.operational_context.timeframe}
-- **Strategic Level:** ${data.operational_context.strategic_level.toUpperCase()}
+- **${t('view.markdown.objective')}:** ${data.operational_context.objective}
+- **${t('view.markdown.desiredImpact')}:** ${data.operational_context.desired_impact}
+- **${t('view.markdown.ourIdentity')}:** ${data.operational_context.our_identity}
+- **${t('view.markdown.operatingEnvironment')}:** ${data.operational_context.operating_environment}
+- **${t('view.markdown.constraints')}:** ${data.operational_context.constraints.join(', ')}
+- **${t('view.markdown.restraints')}:** ${data.operational_context.restraints.join(', ')}
+- **${t('view.markdown.timeframe')}:** ${data.operational_context.timeframe}
+- **${t('view.markdown.strategicLevel')}:** ${data.operational_context.strategic_level.toUpperCase()}
 
-## Centers of Gravity
+## ${t('view.markdown.centersOfGravity')}
 
 ${data.centers_of_gravity
   .map(
@@ -152,16 +154,16 @@ ${data.centers_of_gravity
 
 ${cog.description}
 
-**Rationale:** ${cog.rationale}
+**${t('view.markdown.rationale')}:** ${cog.rationale}
 
-**Critical Capabilities:**
+**${t('view.markdown.criticalCapabilities')}:**
 ${getCogCapabilities(cog.id)
   .map(
     cap => `
 - **${cap.capability}**
   - ${cap.description}
-  - Strategic Contribution: ${cap.strategic_contribution}
-  - Requirements:
+  - ${t('view.markdown.strategicContribution')}: ${cap.strategic_contribution}
+  - ${t('view.markdown.requirements')}:
 ${getCapabilityRequirements(cap.id)
   .map(
     req => `    - ${req.requirement} (${req.requirement_type})
@@ -179,44 +181,44 @@ ${getRequirementVulnerabilities(req.id)
   )
   .join('\n')}
 
-## Critical Vulnerabilities (Prioritized)
+## ${t('view.markdown.criticalVulnerabilitiesPrioritized')}
 
 ${ranked
   .map(
     (v, i) => `
 ### ${i + 1}. ${v.vulnerability} (Score: ${v.composite_score})
 
-- **Type:** ${v.vulnerability_type}
-- **Description:** ${v.description || 'N/A'}
-- **Impact on COG:** ${v.scoring.impact_on_cog}
-- **Attainability:** ${v.scoring.attainability}
-- **Follow-up Potential:** ${v.scoring.follow_up_potential}
-${v.exploitation_method ? `- **Exploitation Method:** ${v.exploitation_method}` : ''}
+- **${t('view.markdown.type')}:** ${v.vulnerability_type}
+- **${t('view.markdown.descriptionLabel')}:** ${v.description || t('view.markdown.notAvailable')}
+- **${t('view.markdown.impactOnCOG')}:** ${v.scoring.impact_on_cog}
+- **${t('view.markdown.attainability')}:** ${v.scoring.attainability}
+- **${t('view.markdown.followUpPotential')}:** ${v.scoring.follow_up_potential}
+${v.exploitation_method ? `- **${t('view.markdown.exploitationMethod')}:** ${v.exploitation_method}` : ''}
 `
   )
   .join('\n')}
 
-## Network Analysis
+## ${t('view.markdown.networkAnalysis')}
 
-### Top Nodes by Degree Centrality
+### ${t('view.markdown.topNodesByDegreeCentrality')}
 
 ${Object.entries(centralityMeasures.degree_centrality)
   .sort(([, a], [, b]) => b - a)
   .slice(0, 10)
-  .map(([node, score], i) => `${i + 1}. ${node.substring(0, 8)} (${score} connections)`)
+  .map(([node, score], i) => `${i + 1}. ${node.substring(0, 8)} (${score} ${t('view.network.connections')})`)
   .join('\n')}
 
 ---
 
-*Generated from COG Analysis Tool*
-*Reference: [Irregularpedia COG Analysis Guide](https://irregularpedia.org/index.php/Center_of_Gravity_Analysis_Guide)*
+*${t('view.markdown.generatedFrom')}*
+*${t('view.markdown.referenceLink')}*
 `
 
     const blob = new Blob([md], { type: 'text/markdown' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `cog_report_${data.title.replace(/\s+/g, '_')}.md`
+    a.download = t('view.export.reportFilename', { title: data.title.replace(/\s+/g, '_') })
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -224,7 +226,7 @@ ${Object.entries(centralityMeasures.degree_centrality)
   const exportVulnerabilitiesCSV = () => {
     const ranked = rankVulnerabilitiesByScore(data.critical_vulnerabilities)
     const csv = [
-      'Rank,Vulnerability,Type,Impact,Attainability,Follow-up,Composite Score,Description',
+      `${t('view.export.csvHeaders.rank')},${t('view.export.csvHeaders.vulnerability')},${t('view.export.csvHeaders.type')},${t('view.export.csvHeaders.impact')},${t('view.export.csvHeaders.attainability')},${t('view.export.csvHeaders.followUp')},${t('view.export.csvHeaders.compositeScore')},${t('view.export.csvHeaders.description')}`,
       ...ranked.map(
         (v, i) =>
           `${i + 1},"${v.vulnerability}","${v.vulnerability_type}",${v.scoring.impact_on_cog},${v.scoring.attainability},${v.scoring.follow_up_potential},${v.composite_score},"${v.description || ''}"`
@@ -235,13 +237,13 @@ ${Object.entries(centralityMeasures.degree_centrality)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `cog_vulnerabilities_${data.title.replace(/\s+/g, '_')}.csv`
+    a.download = t('view.export.vulnerabilitiesFilename', { title: data.title.replace(/\s+/g, '_') })
     a.click()
     URL.revokeObjectURL(url)
   }
 
   const handleDelete = () => {
-    if (confirm(`Are you sure you want to delete "${data.title}"?`)) {
+    if (confirm(t('view.alerts.confirmDelete', { title: data.title }))) {
       onDelete()
     }
   }
@@ -253,25 +255,25 @@ ${Object.entries(centralityMeasures.degree_centrality)
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={() => navigate(backPath)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t('view.header.back')}
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{data.title}</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">COG Analysis • {data.scoring_system === 'linear' ? 'Linear Scoring' : 'Logarithmic Scoring'}</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">{t('view.header.cogAnalysis')} • {data.scoring_system === 'linear' ? t('view.header.linearScoring') : t('view.header.logarithmicScoring')}</p>
           </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => window.open('https://irregularpedia.org/index.php/Center_of_Gravity_Analysis_Guide', '_blank')}>
             <ExternalLink className="h-4 w-4 mr-2" />
-            Reference
+            {t('view.header.reference')}
           </Button>
           <Button variant="outline" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
-            Edit
+            {t('view.header.edit')}
           </Button>
           <Button variant="outline" onClick={handleDelete} className="text-red-600">
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete
+            {t('view.header.delete')}
           </Button>
         </div>
       </div>
@@ -288,10 +290,10 @@ ${Object.entries(centralityMeasures.degree_centrality)
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="hierarchy">Hierarchy</TabsTrigger>
-          <TabsTrigger value="vulnerabilities">Vulnerabilities</TabsTrigger>
-          <TabsTrigger value="network">Network</TabsTrigger>
+          <TabsTrigger value="overview">{t('view.tabs.overview')}</TabsTrigger>
+          <TabsTrigger value="hierarchy">{t('view.tabs.hierarchy')}</TabsTrigger>
+          <TabsTrigger value="vulnerabilities">{t('view.tabs.vulnerabilities')}</TabsTrigger>
+          <TabsTrigger value="network">{t('view.tabs.network')}</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -299,38 +301,38 @@ ${Object.entries(centralityMeasures.degree_centrality)
           {/* Operational Context */}
           <Card>
             <CardHeader>
-              <CardTitle>Operational Context</CardTitle>
+              <CardTitle>{t('view.operationalContext.title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">Objective</div>
-                  <div className="text-gray-900 dark:text-white">{data.operational_context.objective || 'Not specified'}</div>
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">{t('view.operationalContext.objective')}</div>
+                  <div className="text-gray-900 dark:text-white">{data.operational_context.objective || t('view.operationalContext.notSpecified')}</div>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">Desired Impact</div>
-                  <div className="text-gray-900 dark:text-white">{data.operational_context.desired_impact || 'Not specified'}</div>
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">{t('view.operationalContext.desiredImpact')}</div>
+                  <div className="text-gray-900 dark:text-white">{data.operational_context.desired_impact || t('view.operationalContext.notSpecified')}</div>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">Our Identity</div>
-                  <div className="text-gray-900 dark:text-white">{data.operational_context.our_identity || 'Not specified'}</div>
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">{t('view.operationalContext.ourIdentity')}</div>
+                  <div className="text-gray-900 dark:text-white">{data.operational_context.our_identity || t('view.operationalContext.notSpecified')}</div>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">Operating Environment</div>
-                  <div className="text-gray-900 dark:text-white">{data.operational_context.operating_environment || 'Not specified'}</div>
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">{t('view.operationalContext.operatingEnvironment')}</div>
+                  <div className="text-gray-900 dark:text-white">{data.operational_context.operating_environment || t('view.operationalContext.notSpecified')}</div>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">Timeframe</div>
-                  <div className="text-gray-900 dark:text-white">{data.operational_context.timeframe || 'Not specified'}</div>
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">{t('view.operationalContext.timeframe')}</div>
+                  <div className="text-gray-900 dark:text-white">{data.operational_context.timeframe || t('view.operationalContext.notSpecified')}</div>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">Strategic Level</div>
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">{t('view.operationalContext.strategicLevel')}</div>
                   <Badge variant="outline">{data.operational_context.strategic_level.toUpperCase()}</Badge>
                 </div>
               </div>
               {data.operational_context.constraints.length > 0 && (
                 <div>
-                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">Constraints</div>
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('view.operationalContext.constraints')}</div>
                   <div className="flex flex-wrap gap-2">
                     {data.operational_context.constraints.map((c, i) => (
                       <Badge key={i} variant="secondary">
@@ -342,7 +344,7 @@ ${Object.entries(centralityMeasures.degree_centrality)
               )}
               {data.operational_context.restraints.length > 0 && (
                 <div>
-                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">Restraints</div>
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('view.operationalContext.restraints')}</div>
                   <div className="flex flex-wrap gap-2">
                     {data.operational_context.restraints.map((r, i) => (
                       <Badge key={i} variant="secondary">
@@ -362,7 +364,7 @@ ${Object.entries(centralityMeasures.degree_centrality)
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Badge className={ACTOR_COLOR_MAP[actor as keyof typeof ACTOR_COLOR_MAP]}>{actor.replace('_', ' ').toUpperCase()}</Badge>
-                    <span className="text-gray-500 text-sm font-normal">({cogs.length} COG{cogs.length > 1 ? 's' : ''})</span>
+                    <span className="text-gray-500 text-sm font-normal">({t('view.cogsByActor.count', { count: cogs.length })})</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -375,13 +377,12 @@ ${Object.entries(centralityMeasures.degree_centrality)
                           <p className="text-gray-700 dark:text-gray-300 mt-1">{cog.description}</p>
                           {cog.rationale && (
                             <div className="mt-2 text-sm">
-                              <span className="font-semibold text-gray-600">Rationale:</span> {cog.rationale}
+                              <span className="font-semibold text-gray-600">{t('view.markdown.rationale')}:</span> {cog.rationale}
                             </div>
                           )}
                           <div className="mt-2 text-sm text-gray-500">
-                            {getCogCapabilities(cog.id).length} Capabilities • {data.critical_requirements.filter(req => getCogCapabilities(cog.id).some(cap => cap.id === req.capability_id)).length} Requirements •{' '}
-                            {data.critical_vulnerabilities.filter(vuln => data.critical_requirements.filter(req => getCogCapabilities(cog.id).some(cap => cap.id === req.capability_id)).some(req => req.id === vuln.requirement_id)).length}{' '}
-                            Vulnerabilities
+                            {t('view.metrics.capabilitiesCount', { count: getCogCapabilities(cog.id).length })} • {t('view.metrics.requirementsCount', { count: data.critical_requirements.filter(req => getCogCapabilities(cog.id).some(cap => cap.id === req.capability_id)).length })} •{' '}
+                            {t('view.metrics.vulnerabilitiesCount', { count: data.critical_vulnerabilities.filter(vuln => data.critical_requirements.filter(req => getCogCapabilities(cog.id).some(cap => cap.id === req.capability_id)).some(req => req.id === vuln.requirement_id)).length })}
                           </div>
                         </div>
                       </div>
@@ -397,25 +398,25 @@ ${Object.entries(centralityMeasures.degree_centrality)
             <Card>
               <CardContent className="pt-6 text-center">
                 <div className="text-3xl font-bold text-blue-600">{data.centers_of_gravity.length}</div>
-                <div className="text-sm text-gray-600">COGs</div>
+                <div className="text-sm text-gray-600">{t('view.statistics.cogs')}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
                 <div className="text-3xl font-bold text-green-600">{data.critical_capabilities.length}</div>
-                <div className="text-sm text-gray-600">Capabilities</div>
+                <div className="text-sm text-gray-600">{t('view.statistics.capabilities')}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
                 <div className="text-3xl font-bold text-yellow-600">{data.critical_requirements.length}</div>
-                <div className="text-sm text-gray-600">Requirements</div>
+                <div className="text-sm text-gray-600">{t('view.statistics.requirements')}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
                 <div className="text-3xl font-bold text-orange-600">{data.critical_vulnerabilities.length}</div>
-                <div className="text-sm text-gray-600">Vulnerabilities</div>
+                <div className="text-sm text-gray-600">{t('view.statistics.vulnerabilities')}</div>
               </CardContent>
             </Card>
           </div>
@@ -426,8 +427,8 @@ ${Object.entries(centralityMeasures.degree_centrality)
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>COG Hierarchy</CardTitle>
-                <div className="text-sm text-gray-500">Click to expand/collapse</div>
+                <CardTitle>{t('view.hierarchy.title')}</CardTitle>
+                <div className="text-sm text-gray-500">{t('view.hierarchy.clickToExpandCollapse')}</div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -442,7 +443,7 @@ ${Object.entries(centralityMeasures.degree_centrality)
                         </div>
                         <div className="text-sm text-gray-600">{cog.description}</div>
                       </div>
-                      <Badge variant="outline">{expandedCogs.has(cog.id) ? '▼' : '▶'}</Badge>
+                      <Badge variant="outline">{expandedCogs.has(cog.id) ? t('view.hierarchy.collapseIcon') : t('view.hierarchy.expandIcon')}</Badge>
                     </div>
                   </div>
 
@@ -489,12 +490,12 @@ ${Object.entries(centralityMeasures.degree_centrality)
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Critical Vulnerabilities</CardTitle>
-                  <CardDescription>Ranked by composite score (Impact + Attainability + Follow-up)</CardDescription>
+                  <CardTitle>{t('view.vulnerabilitiesTab.title')}</CardTitle>
+                  <CardDescription>{t('view.vulnerabilitiesTab.description')}</CardDescription>
                 </div>
                 <Button variant="outline" onClick={exportVulnerabilitiesCSV}>
                   <Download className="h-4 w-4 mr-2" />
-                  Export CSV
+                  {t('view.vulnerabilitiesTab.exportCSV')}
                 </Button>
               </div>
             </CardHeader>
@@ -502,13 +503,13 @@ ${Object.entries(centralityMeasures.degree_centrality)
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12">Rank</TableHead>
-                    <TableHead>Vulnerability</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-center">I</TableHead>
-                    <TableHead className="text-center">A</TableHead>
-                    <TableHead className="text-center">F</TableHead>
-                    <TableHead className="text-center">Score</TableHead>
+                    <TableHead className="w-12">{t('view.vulnerabilitiesTab.tableHeaders.rank')}</TableHead>
+                    <TableHead>{t('view.vulnerabilitiesTab.tableHeaders.vulnerability')}</TableHead>
+                    <TableHead>{t('view.vulnerabilitiesTab.tableHeaders.type')}</TableHead>
+                    <TableHead className="text-center">{t('view.vulnerabilitiesTab.tableHeaders.impact')}</TableHead>
+                    <TableHead className="text-center">{t('view.vulnerabilitiesTab.tableHeaders.attainability')}</TableHead>
+                    <TableHead className="text-center">{t('view.vulnerabilitiesTab.tableHeaders.followUp')}</TableHead>
+                    <TableHead className="text-center">{t('view.vulnerabilitiesTab.tableHeaders.score')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -541,13 +542,13 @@ ${Object.entries(centralityMeasures.degree_centrality)
           <div className="grid grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Network Metrics</CardTitle>
-                <CardDescription>Centrality measures for key nodes</CardDescription>
+                <CardTitle>{t('view.network.title')}</CardTitle>
+                <CardDescription>{t('view.network.description')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div>
-                    <div className="text-sm font-semibold text-gray-600 mb-2">Top Nodes by Degree Centrality</div>
+                    <div className="text-sm font-semibold text-gray-600 mb-2">{t('view.network.topNodesDegree')}</div>
                     <div className="space-y-1">
                       {Object.entries(centralityMeasures.degree_centrality)
                         .sort(([, a], [, b]) => b - a)
@@ -555,16 +556,16 @@ ${Object.entries(centralityMeasures.degree_centrality)
                         .map(([node, score]) => (
                           <div key={node} className="flex items-center justify-between text-sm">
                             <span className="font-mono text-xs">{node.substring(0, 12)}...</span>
-                            <Badge variant="secondary">{score} connections</Badge>
+                            <Badge variant="secondary">{score} {t('view.network.connections')}</Badge>
                           </div>
                         ))}
                     </div>
                   </div>
                   <div className="pt-3 border-t">
-                    <div className="text-sm font-semibold text-gray-600 mb-1">Network Statistics</div>
+                    <div className="text-sm font-semibold text-gray-600 mb-1">{t('view.network.statistics')}</div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>Total Nodes: {Object.keys(centralityMeasures.degree_centrality).length}</div>
-                      <div>Total Edges: {edgeList.length}</div>
+                      <div>{t('view.network.totalNodes')}: {Object.keys(centralityMeasures.degree_centrality).length}</div>
+                      <div>{t('view.network.totalEdges')}: {edgeList.length}</div>
                     </div>
                   </div>
                 </div>
@@ -573,8 +574,8 @@ ${Object.entries(centralityMeasures.degree_centrality)
 
             <Card>
               <CardHeader>
-                <CardTitle>Export Options</CardTitle>
-                <CardDescription>Download network data and reports</CardDescription>
+                <CardTitle>{t('view.network.exportOptions')}</CardTitle>
+                <CardDescription>{t('view.network.exportDescription')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
                 <COGPowerPointExport
@@ -600,15 +601,15 @@ ${Object.entries(centralityMeasures.degree_centrality)
                 />
                 <Button variant="outline" className="w-full justify-start" onClick={exportEdgeList}>
                   <Table2 className="h-4 w-4 mr-2" />
-                  Edge List CSV
+                  {t('view.network.edgeListCSV')}
                 </Button>
                 <Button variant="outline" className="w-full justify-start" onClick={exportReport}>
                   <FileText className="h-4 w-4 mr-2" />
-                  Full Report (Markdown)
+                  {t('view.network.fullReportMarkdown')}
                 </Button>
                 <Button variant="outline" className="w-full justify-start" onClick={exportVulnerabilitiesCSV}>
                   <Download className="h-4 w-4 mr-2" />
-                  Vulnerabilities CSV
+                  {t('view.vulnerabilitiesTab.exportCSV')}
                 </Button>
               </CardContent>
             </Card>
