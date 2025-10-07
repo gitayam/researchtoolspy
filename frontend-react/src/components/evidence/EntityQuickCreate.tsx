@@ -90,7 +90,10 @@ export function EntityQuickCreate({
     try {
       const response = await fetch('/api/evidence', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+        },
         body: JSON.stringify({
           ...dataForm,
           workspace_id: 1,
@@ -124,7 +127,10 @@ export function EntityQuickCreate({
     try {
       const response = await fetch('/api/actors', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+        },
         body: JSON.stringify({
           ...actorForm,
           workspace_id: 1
@@ -157,7 +163,10 @@ export function EntityQuickCreate({
     try {
       const response = await fetch('/api/sources', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+        },
         body: JSON.stringify({
           ...sourceForm,
           workspace_id: 1
@@ -190,7 +199,10 @@ export function EntityQuickCreate({
     try {
       const response = await fetch('/api/events', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+        },
         body: JSON.stringify({
           ...eventForm,
           workspace_id: 1
