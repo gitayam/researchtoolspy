@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, ArrowRight, Check, AlertCircle, Lightbulb, FileEdit } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, AlertCircle, Lightbulb, FileEdit, Network } from 'lucide-react'
 import { AICOGAssistant } from '@/components/ai/AICOGAssistant'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -44,6 +44,11 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
     { id: 5, name: t('wizard.steps.vulnerabilities.name'), description: t('wizard.steps.vulnerabilities.description') },
     { id: 6, name: t('wizard.steps.review.name'), description: t('wizard.steps.review.description') },
   ]
+
+  // Entity generation state
+  const [generatingEntities, setGeneratingEntities] = useState(false)
+  const [entitiesGenerated, setEntitiesGenerated] = useState(false)
+  const [savedFrameworkId, setSavedFrameworkId] = useState<string | number | null>(initialData?.id || null)
 
   const ACTOR_CATEGORIES: { value: ActorCategory; label: string }[] = [
     { value: 'friendly', label: t('actorCategories.friendly') },
@@ -164,6 +169,49 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
     }
   }
 
+  const handleGenerateEntities = async () => {
+    if (!savedFrameworkId) {
+      alert('❌ Please save the COG analysis first before generating entities.')
+      return
+    }
+
+    if (entitiesGenerated) {
+      if (!confirm('Entities have already been generated. Generate again? This will create duplicate entities.')) {
+        return
+      }
+    }
+
+    setGeneratingEntities(true)
+    try {
+      const response = await fetch(`/api/frameworks/${savedFrameworkId}/generate-entities`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Entity generation failed')
+      }
+
+      const result = await response.json()
+      setEntitiesGenerated(true)
+
+      const message = `✅ Successfully generated ${result.summary.actors} actors, ${result.summary.behaviors} behaviors, and ${result.summary.relationships} relationships!\n\nView them in the Network Graph.`
+
+      if (confirm(message + '\n\nGo to Network Graph now?')) {
+        navigate('/network')
+      }
+    } catch (error) {
+      console.error('Failed to generate entities:', error)
+      alert(`❌ Entity generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setGeneratingEntities(false)
+    }
+  }
+
   const handleSaveDraft = async () => {
     setSaving(true)
     try {
@@ -246,6 +294,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
       }
 
       await onSave(analysis)
+      setSavedFrameworkId(analysis.id) // Store the framework ID for entity generation
       // Don't navigate away after saving draft - stay in wizard
       alert('✅ Draft saved successfully! You can continue working or come back later.')
     } catch (error) {
@@ -338,6 +387,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
       }
 
       await onSave(analysis)
+      setSavedFrameworkId(analysis.id) // Store the framework ID for entity generation
       navigate(backPath)
     } catch (error) {
       console.error('Failed to save:', error)
@@ -1288,6 +1338,18 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
             >
               {saving ? t('wizard.buttons.saving') : 'Save Draft'}
             </Button>
+
+            {currentStep === STEPS.length && savedFrameworkId && (
+              <Button
+                variant="outline"
+                onClick={handleGenerateEntities}
+                disabled={generatingEntities || saving}
+                title="Automatically generate actors and behaviors from this COG analysis"
+              >
+                <Network className="h-4 w-4 mr-2" />
+                {generatingEntities ? 'Generating...' : entitiesGenerated ? 'Regenerate Entities' : 'Generate Entities'}
+              </Button>
+            )}
 
             {currentStep < STEPS.length ? (
               <Button onClick={handleNext} disabled={!canProceed()}>
