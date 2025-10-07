@@ -371,22 +371,22 @@
 
 ---
 
-## 📋 External Tools Integration Plan (COMPLETE)
+## 📋 External Tools Integration Plan (IN PROGRESS)
 **Added**: 2025-10-06 (this session)
-**Status**: Planning complete ✅ | Week 1 implementation complete ✅
+**Status**: Planning complete ✅ | Week 1 complete ✅ | Week 2 complete ✅
 
 **Plan Created**: `EXTERNAL_TOOLS_INTEGRATION_PLAN.md` (959 lines)
 
 **Tools Covered**:
 - ✅ Gephi (network visualization) - GEXF, GraphML, CSV - **DONE!**
-- 🔜 RStudio (statistical analysis) - R CSV, RData, sample scripts - **NEXT**
+- ✅ RStudio (statistical analysis) - R CSV, sample scripts, comprehensive guide - **DONE!**
 - 🔜 i2 Analyst's Notebook - Entity/link CSV
 - 🔜 Palantir Gotham - JSON, Parquet
 - 🔜 Maltego - Transform CSV
 - 🔜 Neo4j - Cypher scripts
 - 🔜 NetworkX - GraphML, JSON
 
-**Next Steps**: RStudio integration (Week 2) or Instagram fix
+**Next Steps**: Additional tool integrations or Instagram fix
 
 ---
 
@@ -434,6 +434,70 @@
 
 ---
 
+## 🆕 RStudio Integration (COMPLETE)
+**Added**: 2025-10-06 (this session)
+**Completed**: 2025-10-06
+
+**R Analysis Scripts Created**:
+- `docs/r-scripts/network_analysis.R` (350 lines)
+  - Load CSV exports from Research Tools
+  - Calculate centrality metrics (degree, betweenness, PageRank)
+  - Community detection (Louvain, Walktrap, Infomap)
+  - Network visualizations (8+ plots)
+  - Export enriched data with metrics
+
+- `docs/r-scripts/time_series_analysis.R` (399 lines)
+  - Time-series trend analysis and forecasting
+  - Anomaly detection (>2 SD from rolling mean)
+  - Entity correlation analysis
+  - Time-series decomposition (trend/seasonal/random)
+  - ARIMA forecasting (30-day predictions)
+
+**Documentation**:
+- Created `docs/RSTUDIO_INTEGRATION_GUIDE.md` (726 lines)
+- Quick start guide (10 minutes from export to results)
+- Package installation instructions
+- Step-by-step network analysis workflow
+- 5 common analysis tasks with code examples
+- Time-series analysis workflows
+- Troubleshooting guide
+- Tips & best practices
+
+**Git Tag**: `rstudio-integration-v1.0.0`
+
+**Impact**:
+- ✅ Statistical analysis of network data in R
+- ✅ Copy-paste ready scripts for immediate use
+- ✅ Professional visualizations (plots, heatmaps, forecasts)
+- ✅ Advanced analytics (forecasting, anomaly detection, correlation)
+- ✅ Reproducible research workflows
+
+**Analysis Capabilities** (via R scripts):
+- **Centrality**: degree, betweenness, closeness, eigenvector, PageRank
+- **Communities**: Louvain, Walktrap, Infomap algorithms
+- **Paths**: shortest path finding between entities
+- **Forecasting**: ARIMA model with confidence intervals
+- **Anomalies**: statistical outlier detection
+- **Correlation**: identify related entities
+- **Visualization**: 15+ plot types
+
+**Use Cases**:
+- Identify key actors (PageRank, degree centrality)
+- Find information brokers (betweenness centrality)
+- Detect operational cells (community detection)
+- Forecast entity activity trends (ARIMA forecasting)
+- Detect unusual events (anomaly detection)
+- Statistical hypothesis testing
+- Reproducible research workflows
+
+**Existing CSV Export Works Perfectly**:
+- UTF-8 encoding ✅
+- Proper column names (snake_case) ✅
+- Numeric data unquoted ✅
+- Two-file format (nodes + edges) ✅
+
+---
+
 ## 💡 What Should We Work On Next?
 
 Based on the roadmap, the highest-value next steps are:
@@ -441,17 +505,30 @@ Based on the roadmap, the highest-value next steps are:
 1. **✅ Phase 3.6: Complete COG i18n** - DONE! 🎉
 2. **✅ Network Integration (Quick Win)** - DONE! 🎉
 3. **✅ Gephi Export Integration** - DONE! 🎉
-4. **RStudio Integration** ⭐ **RECOMMENDED** (3-5 days)
-   - R-optimized CSV export (proper data types, snake_case)
-   - Sample R analysis scripts (network analysis, time-series)
-   - RData format export (preserve factors, dates)
-   - Documentation for statistical workflows
-5. **Instagram Extraction Fix** - Address active user-reported bug (1-2 days)
-   - Add fallback services for reliability
-   - Improve error messages
-6. **Phase 4.1: Comments System** - Enable collaboration (2-3 days)
+4. **✅ RStudio Integration** - DONE! 🎉
+5. **Instagram Extraction Fix** ⭐ **RECOMMENDED** (1-2 days)
+   - Add fallback services when cobalt.tools fails
+   - Improve error messages with specific failure reasons
+   - Manual upload workflow option
+   - Address active user-reported bug
+6. **Additional Tool Integrations** (1-2 weeks)
+   - Neo4j Cypher export for graph database queries
+   - Maltego CSV format for OSINT workflows
+   - i2 Analyst's Notebook entity/link CSV
+   - NetworkX Python integration
+7. **Phase 4.1: Comments System** - Enable collaboration (2-3 days)
    - Threaded comments on COG/capabilities/requirements/vulnerabilities
    - @mentions and resolve/unresolve workflow
-7. **Other priorities** - Based on user feedback
+8. **Network Auto-Entity Generation** (1-2 weeks)
+   - Auto-create entities from COG analyses
+   - Auto-create entities from Causeway analyses
+   - Relationship generation with confidence scoring
+   - See NETWORK_INTEGRATION_PLAN.md Phase 1-2
+9. **Performance Optimization** (2-3 days)
+   - Code splitting to reduce bundle size (currently 2.7MB)
+   - Mobile responsiveness improvements
+   - Accessibility audit (WCAG 2.1 AA)
+   - Loading state improvements
+10. **Other priorities** - Based on user feedback
 
 **What would you like to focus on?**
