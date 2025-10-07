@@ -178,7 +178,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           case 'youtube':
             return await extractYouTube(url, mode)
           case 'instagram':
-            return await extractInstagram(url, mode)
+            return await extractInstagram(url, mode, env)
           case 'tiktok':
             return await extractTikTok(url, mode)
           case 'twitter':
@@ -493,7 +493,7 @@ async function fetchYouTubeTranscript(videoId: string): Promise<string> {
 // Instagram Extraction
 // ========================================
 
-async function extractInstagram(url: string, mode: string): Promise<SocialMediaExtractionResult> {
+async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNamespace }): Promise<SocialMediaExtractionResult> {
   // Extract shortcode for metadata
   const shortcode = extractInstagramShortcode(url)
   if (!shortcode) {
@@ -504,59 +504,143 @@ async function extractInstagram(url: string, mode: string): Promise<SocialMediaE
     )
   }
 
+  // Try cache first to reduce API calls (24-hour TTL)
+  if (env?.CACHE) {
+    try {
+      const cacheKey = `instagram:${shortcode}:${mode}`
+      const cached = await env.CACHE.get(cacheKey, 'json')
+      if (cached) {
+        console.log('[Instagram] Cache hit for shortcode:', shortcode)
+        return cached as SocialMediaExtractionResult
+      }
+    } catch (error) {
+      console.warn('[Instagram] Cache read failed:', error)
+      // Continue with extraction if cache fails
+    }
+  }
+
   const errors: string[] = []
+
+  // Helper to cache and return successful result
+  const cacheAndReturn = async (result: SocialMediaExtractionResult): Promise<SocialMediaExtractionResult> => {
+    if (env?.CACHE && result.success) {
+      try {
+        const cacheKey = `instagram:${shortcode}:${mode}`
+        await env.CACHE.put(cacheKey, JSON.stringify(result), {
+          expirationTtl: 86400 // 24 hours
+        })
+        console.log('[Instagram] Cached result for shortcode:', shortcode)
+      } catch (error) {
+        console.warn('[Instagram] Cache write failed:', error)
+        // Don't fail if caching fails
+      }
+    }
+    return result
+  }
 
   // Strategy 1: Try cobalt.tools (primary method)
   try {
     console.log('[Instagram] Attempting extraction via cobalt.tools, mode:', mode, 'url:', url)
-    return await extractInstagramViaCobalt(url, shortcode, mode)
+    const result = await extractInstagramViaCobalt(url, shortcode, mode)
+    return await cacheAndReturn(result)
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error'
     console.warn('[Instagram] Cobalt.tools failed:', errorMsg)
     errors.push(`cobalt.tools: ${errorMsg}`)
   }
 
-  // Strategy 2: Try InstaDP API (fallback)
+  // Strategy 2: Try SnapInsta API (fallback)
+  try {
+    console.log('[Instagram] Attempting fallback extraction via SnapInsta')
+    const result = await extractInstagramViaSnapInsta(url, shortcode)
+    return await cacheAndReturn(result)
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    console.warn('[Instagram] SnapInsta failed:', errorMsg)
+    errors.push(`SnapInsta: ${errorMsg}`)
+  }
+
+  // Strategy 3: Try InstaDP API (fallback)
   try {
     console.log('[Instagram] Attempting fallback extraction via InstaDP')
-    return await extractInstagramViaInstaDP(url, shortcode)
+    const result = await extractInstagramViaInstaDP(url, shortcode)
+    return await cacheAndReturn(result)
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error'
     console.warn('[Instagram] InstaDP failed:', errorMsg)
     errors.push(`InstaDP: ${errorMsg}`)
   }
 
-  // Strategy 3: Try oEmbed API (metadata only)
+  // Strategy 4: Try SaveInsta API (fallback)
+  try {
+    console.log('[Instagram] Attempting fallback extraction via SaveInsta')
+    const result = await extractInstagramViaSaveInsta(url, shortcode)
+    return await cacheAndReturn(result)
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    console.warn('[Instagram] SaveInsta failed:', errorMsg)
+    errors.push(`SaveInsta: ${errorMsg}`)
+  }
+
+  // Strategy 5: Try oEmbed API (metadata only)
   try {
     console.log('[Instagram] Attempting fallback via Instagram oEmbed API')
-    return await extractInstagramViaOEmbed(url, shortcode)
+    const result = await extractInstagramViaOEmbed(url, shortcode)
+    return await cacheAndReturn(result)
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error'
     console.warn('[Instagram] oEmbed failed:', errorMsg)
     errors.push(`oEmbed: ${errorMsg}`)
   }
 
-  // All strategies failed - return comprehensive error
-  console.error('[Instagram] All extraction methods failed:', errors)
+  // All strategies failed - return comprehensive error with specific diagnostics
+  console.error('[Instagram] All 5 extraction methods failed:', errors)
 
-  // Determine likely failure reason based on error patterns
-  let friendlyMessage = 'Instagram post could not be extracted.'
-  let diagnostics = errors.join('; ')
+  // Count how many services failed
+  const totalStrategies = 5
+  const failedStrategies = errors.length
 
-  if (errors.some(e => e.includes('429') || e.includes('rate limit'))) {
-    friendlyMessage += ' The service is temporarily rate-limited. Please try again in a few minutes.'
-  } else if (errors.some(e => e.includes('404') || e.includes('not found'))) {
-    friendlyMessage += ' The post may have been deleted or the URL is incorrect.'
-  } else if (errors.some(e => e.includes('403') || e.includes('private'))) {
-    friendlyMessage += ' The post may be private or require authentication.'
+  // Determine specific failure reason based on error patterns
+  let friendlyMessage = `Instagram extraction failed after trying ${failedStrategies} different methods. `
+  let diagnostics = errors.join(' | ')
+  let suggestions: string[] = []
+
+  // Analyze error patterns for specific guidance
+  if (errors.some(e => e.includes('429') || e.toLowerCase().includes('rate limit'))) {
+    friendlyMessage += 'Rate limiting detected. '
+    suggestions.push('Wait 5-10 minutes before retrying')
+    suggestions.push('Try a different network or VPN')
+  } else if (errors.some(e => e.includes('404') || e.toLowerCase().includes('not found'))) {
+    friendlyMessage += 'Post not found. '
+    suggestions.push('Verify the Instagram URL is correct')
+    suggestions.push('Check if the post was deleted')
+    suggestions.push('Try accessing the post in a browser first')
+  } else if (errors.some(e => e.includes('403') || e.toLowerCase().includes('forbidden') || e.toLowerCase().includes('private'))) {
+    friendlyMessage += 'Access forbidden. '
+    suggestions.push('The post may be from a private account')
+    suggestions.push('Try logging into Instagram first and sharing the post URL')
+  } else if (errors.every(e => e.toLowerCase().includes('http 5') || e.toLowerCase().includes('timeout'))) {
+    friendlyMessage += 'External services are experiencing issues. '
+    suggestions.push('Wait a few minutes and try again')
+    suggestions.push('The extraction services may be temporarily down')
   } else {
-    friendlyMessage += ' The post may be private, deleted, or Instagram may be blocking automated access. You can try: (1) Waiting a few minutes and trying again, (2) Downloading manually from Instagram and uploading the media, (3) Using the Instagram embed URL instead.'
+    friendlyMessage += 'Instagram is blocking automated access. '
+    suggestions.push('Instagram frequently updates their anti-bot measures')
+    suggestions.push('Wait 10-15 minutes and try again')
+    suggestions.push('Try a different Instagram post first')
+    suggestions.push('Download manually from Instagram app/website')
   }
+
+  // Always add manual workaround suggestion
+  suggestions.push('Manual workaround: Download from Instagram → Upload to Content Intelligence')
+
+  // Build final user-friendly message
+  const finalMessage = friendlyMessage + '\n\n📋 Suggestions:\n' + suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n')
 
   return createUserFriendlyError(
     'instagram',
-    diagnostics,
-    friendlyMessage
+    `[Diagnostics] ${diagnostics}`,
+    finalMessage
   )
 }
 
@@ -655,6 +739,69 @@ async function extractInstagramViaCobalt(url: string, shortcode: string, mode: s
 }
 
 /**
+ * Extract Instagram content via SnapInsta API (fallback)
+ */
+async function extractInstagramViaSnapInsta(url: string, shortcode: string): Promise<SocialMediaExtractionResult> {
+  // SnapInsta provides Instagram media extraction via their API
+  const response = await fetchWithRetry(async () => {
+    return await fetch('https://snapinsta.app/api/ajaxSearch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      body: `q=${encodeURIComponent(url)}&t=media&lang=en`
+    })
+  }, 2, 1000)
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+
+  const data = await response.json() as any
+
+  if (!data.data || data.status !== 'ok') {
+    throw new Error(data.mess || 'No media found')
+  }
+
+  // Parse HTML response to extract media URLs
+  // SnapInsta returns HTML with download links
+  const html = data.data
+  const videoMatch = html.match(/href="([^"]+)"[^>]*>Download Video/)
+  const imageMatch = html.match(/href="([^"]+)"[^>]*>Download Image/)
+
+  const videoUrl = videoMatch ? videoMatch[1] : null
+  const imageUrl = imageMatch ? imageMatch[1] : null
+
+  if (!videoUrl && !imageUrl) {
+    throw new Error('No downloadable media found in response')
+  }
+
+  const isVideo = !!videoUrl
+
+  return {
+    success: true,
+    platform: 'instagram',
+    postType: isVideo ? 'video' : 'image',
+    mediaUrls: {
+      [isVideo ? 'video' : 'thumbnail']: isVideo ? videoUrl : imageUrl
+    },
+    downloadOptions: [{
+      quality: 'Original',
+      format: isVideo ? 'mp4' : 'jpg',
+      url: isVideo ? videoUrl : imageUrl,
+      hasAudio: isVideo,
+      hasVideo: isVideo
+    }],
+    metadata: {
+      shortcode,
+      extractedVia: 'SnapInsta'
+    }
+  }
+}
+
+/**
  * Extract Instagram content via InstaDP API (fallback)
  */
 async function extractInstagramViaInstaDP(url: string, shortcode: string): Promise<SocialMediaExtractionResult> {
@@ -696,6 +843,68 @@ async function extractInstagramViaInstaDP(url: string, shortcode: string): Promi
     metadata: {
       shortcode,
       extractedVia: 'InstaDP'
+    }
+  }
+}
+
+/**
+ * Extract Instagram content via SaveInsta API (fallback)
+ */
+async function extractInstagramViaSaveInsta(url: string, shortcode: string): Promise<SocialMediaExtractionResult> {
+  // SaveInsta provides Instagram download services
+  const response = await fetchWithRetry(async () => {
+    return await fetch('https://v3.saveinsta.app/api/ajaxSearch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': '*/*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      body: `q=${encodeURIComponent(url)}&t=media&lang=en`
+    })
+  }, 2, 1000)
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+
+  const data = await response.json() as any
+
+  if (!data.data || data.status !== 'ok') {
+    throw new Error('No media found')
+  }
+
+  // Parse HTML response similar to SnapInsta
+  const html = data.data
+  const videoMatch = html.match(/<a[^>]+href="([^"]+)"[^>]*class="[^"]*download-media[^"]*"[^>]*>[\s\S]*?Video/)
+  const imageMatch = html.match(/<a[^>]+href="([^"]+)"[^>]*class="[^"]*download-media[^"]*"[^>]*>[\s\S]*?Photo/)
+
+  const videoUrl = videoMatch ? videoMatch[1].replace(/&amp;/g, '&') : null
+  const imageUrl = imageMatch ? imageMatch[1].replace(/&amp;/g, '&') : null
+
+  if (!videoUrl && !imageUrl) {
+    throw new Error('No downloadable media found in response')
+  }
+
+  const isVideo = !!videoUrl
+
+  return {
+    success: true,
+    platform: 'instagram',
+    postType: isVideo ? 'video' : 'image',
+    mediaUrls: {
+      [isVideo ? 'video' : 'thumbnail']: isVideo ? videoUrl : imageUrl
+    },
+    downloadOptions: [{
+      quality: 'Original',
+      format: isVideo ? 'mp4' : 'jpg',
+      url: isVideo ? videoUrl : imageUrl,
+      hasAudio: isVideo,
+      hasVideo: isVideo
+    }],
+    metadata: {
+      shortcode,
+      extractedVia: 'SaveInsta'
     }
   }
 }
