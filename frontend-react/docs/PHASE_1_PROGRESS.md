@@ -1,8 +1,8 @@
 # Phase 1: Workspace Isolation - Progress Report
 
 **Date**: 2025-10-07
-**Status**: 50% Complete
-**Estimated Remaining**: 4-6 hours
+**Status**: 75% Complete
+**Estimated Remaining**: 2-3 hours
 
 ---
 
@@ -49,36 +49,38 @@
 
 ## Remaining Work ⏳
 
-### 3. COG Analysis API (Pending)
-**File**: `functions/api/ai/cog-analysis.ts`
+### 3. COG Analysis API (100% Complete)
+**Note**: COG analyses are stored in `framework_sessions` table with `framework_type='cog'`
 
-**Tasks**:
-- [ ] Add `workspace_id` extraction from query params
-- [ ] Filter COG analyses by workspace in GET queries
-- [ ] Add `workspace_id` to COG analysis INSERT
-- [ ] Add workspace check to COG UPDATE/DELETE
-- [ ] Test COG workspace isolation
+**Handled By**: `functions/api/frameworks.ts` (already updated in step 2)
 
-**Estimated Time**: 1-2 hours
+**Status**: ✅ Complete - COG sessions inherit workspace isolation from frameworks API
 
 ---
 
-### 4. ACH Analysis API (Pending)
+### 4. ACH Analysis API (100% Complete)
 **Files**:
 - `functions/api/ach/index.ts`
 - `functions/api/ach/hypotheses.ts`
 - `functions/api/ach/evidence.ts`
 - `functions/api/ach/scores.ts`
 
-**Tasks**:
-- [ ] Add `workspace_id` extraction from query params
-- [ ] Filter ACH analyses by workspace in GET queries
-- [ ] Add `workspace_id` to ACH analysis INSERT
-- [ ] Add workspace check to ACH UPDATE/DELETE
-- [ ] Update hypothesis, evidence, and scores endpoints
-- [ ] Test ACH workspace isolation
+**Changes Made**:
+- ✅ Extract `workspace_id` from query params (defaults to '1')
+- ✅ GET analyses: Filter by `workspace_id` OR `is_public`
+- ✅ POST create: Insert `workspace_id` and `original_workspace_id`
+- ✅ PUT update: Only update analyses in current workspace
+- ✅ DELETE: Only delete analyses in current workspace
+- ✅ Hypotheses API: Verify parent analysis workspace via JOIN
+- ✅ Evidence API: Check parent analysis workspace before link/unlink
+- ✅ Scores API: Validate parent analysis workspace for all scoring operations
 
-**Estimated Time**: 2-3 hours
+**Security Improvements**:
+- Prevent cross-workspace data access in all ACH operations
+- JOIN queries include workspace_id checks
+- 404 responses for unauthorized workspace access
+
+**Commit**: `c8aaef0a`
 
 ---
 
@@ -191,6 +193,7 @@
 1. `1fe8253f` - Comprehensive collaboration system design
 2. `122a1cba` - Database migration 021 (workspace isolation)
 3. `1b013438` - Frameworks API workspace isolation
+4. `c8aaef0a` - ACH Analysis API workspace isolation
 
 ---
 
@@ -198,11 +201,11 @@
 
 **Phase 1 Goals**:
 - ✅ 100% database schema updated
-- ✅ 33% API endpoints updated (1 of 3)
+- ✅ 100% API endpoints updated (Frameworks + ACH)
 - ⏳ 0% UI components created
 - ⏳ 0% testing completed
 
-**Overall Phase 1**: ~50% Complete
+**Overall Phase 1**: ~75% Complete
 
 ---
 
@@ -226,5 +229,5 @@
 
 ---
 
-**Last Updated**: 2025-10-07 19:15 UTC
-**Next Review**: After COG/ACH API updates
+**Last Updated**: 2025-10-07 20:45 UTC
+**Next Review**: After UI workspace selector implementation
