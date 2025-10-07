@@ -344,21 +344,69 @@
 
 ---
 
+## 🆕 Network Integration Quick Win (COMPLETE)
+**Added**: 2025-10-06 (this session)
+**Completed**: 2025-10-06
+
+- Deep linking in NetworkGraphPage (URL params + location state)
+- Golden highlighting for entities from frameworks
+- "View in Network" button in COGView
+- Source info alert banner
+- Bi-directional navigation foundation
+
+**Files Modified**:
+- `src/pages/NetworkGraphPage.tsx` (+50 lines deep linking)
+- `src/components/network/NetworkGraphCanvas.tsx` (+15 lines highlighting)
+- `src/components/frameworks/COGView.tsx` (+15 lines button)
+- `src/locales/en/cog.json` (+1 translation)
+- `src/locales/es/cog.json` (+1 translation)
+
+**Git Tag**: `network-integration-v1.0.0`
+**Deployment**: https://92ab6031.researchtoolspy.pages.dev
+
+**Impact**:
+- ✅ Users can jump from COG analysis to network visualization
+- ✅ Golden highlighting shows framework entities in network context
+- ✅ Foundation for auto-entity generation (Phase 2 of network plan)
+
+---
+
+## 📋 External Tools Integration Plan (COMPLETE)
+**Added**: 2025-10-06 (this session)
+**Status**: Planning complete, implementation pending
+
+**Plan Created**: `EXTERNAL_TOOLS_INTEGRATION_PLAN.md` (959 lines)
+
+**Tools Covered**:
+- Gephi (network visualization) - GEXF, GraphML, CSV
+- RStudio (statistical analysis) - R CSV, RData, sample scripts
+- i2 Analyst's Notebook - Entity/link CSV
+- Palantir Gotham - JSON, Parquet
+- Maltego - Transform CSV
+- Neo4j - Cypher scripts
+- NetworkX - GraphML, JSON
+
+**Next Steps**: Implement Gephi GEXF export (Week 1 quick win)
+
+---
+
 ## 💡 What Should We Work On Next?
 
 Based on the roadmap, the highest-value next steps are:
 
 1. **✅ Phase 3.6: Complete COG i18n** - DONE! 🎉
-2. **Network Integration (Quick Win)** - Add "View in Network" buttons (1-2 days)
-   - See NETWORK_INTEGRATION_PLAN.md for details
-   - Immediate UX improvement
-   - Bridges COG/Causeway to entity network
-3. **Instagram Extraction Fix** - Address active user-reported bug (1-2 days)
+2. **✅ Network Integration (Quick Win)** - DONE! 🎉
+3. **External Tools Integration - Gephi Export** ⭐ **RECOMMENDED** (1 week)
+   - GEXF export from NetworkGraphPage
+   - CSV edge/node list export
+   - Gephi import guide
+   - See EXTERNAL_TOOLS_INTEGRATION_PLAN.md
+4. **Instagram Extraction Fix** - Address active user-reported bug (1-2 days)
    - Add fallback services for reliability
    - Improve error messages
-4. **Phase 4.1: Comments System** - Enable collaboration (2-3 days)
+5. **Phase 4.1: Comments System** - Enable collaboration (2-3 days)
    - Threaded comments on COG/capabilities/requirements/vulnerabilities
    - @mentions and resolve/unresolve workflow
-5. **Other priorities** - Based on user feedback
+6. **Other priorities** - Based on user feedback
 
 **What would you like to focus on?**
