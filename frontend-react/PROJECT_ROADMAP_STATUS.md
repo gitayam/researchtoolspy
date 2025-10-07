@@ -614,12 +614,16 @@ Based on the roadmap, the highest-value next steps are:
 7. **Phase 4.1: Comments System** - Enable collaboration (2-3 days)
    - Threaded comments on COG/capabilities/requirements/vulnerabilities
    - @mentions and resolve/unresolve workflow
-8. **Network Auto-Entity Generation** (1-2 weeks)
-   - Auto-create entities from COG analyses
-   - Auto-create entities from Causeway analyses
-   - Relationship generation with confidence scoring
-   - See NETWORK_INTEGRATION_PLAN.md Phase 1-2
-9. **Performance Optimization** (2-3 days)
+8. **Network Auto-Entity Generation** ✅ **COMPLETED**
+   - ✅ Auto-create entities from COG analyses
+   - 🔲 Auto-create entities from Causeway analyses (future)
+   - ✅ Relationship generation with confidence scoring
+   - API endpoint: POST /api/frameworks/{id}/generate-entities
+   - Wizard integration: "Generate Entities" button on review step
+   - Creates actors, behaviors, and relationships from COG data
+   - All entities linked to source framework via cog_analysis_id
+   - **Git Tag**: `auto-entity-generation-v1.0.0`
+9. **Performance Optimization** (2-3 days) **IN PROGRESS**
    - Code splitting to reduce bundle size (currently 2.7MB)
    - Mobile responsiveness improvements
    - Accessibility audit (WCAG 2.1 AA)
