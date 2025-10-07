@@ -18,8 +18,12 @@ interface EvidenceLink {
 // POST /api/ach/evidence - Link evidence to analysis
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const url = new URL(context.request.url)
     const data = await context.request.json() as Partial<EvidenceLink>
     const userId = 'demo-user' // TODO: Get from auth
+
+    // Get workspace_id from query params or default to '1'
+    const workspaceId = url.searchParams.get('workspace_id') || '1'
 
     if (!data.ach_analysis_id || !data.evidence_id) {
       return new Response(JSON.stringify({
@@ -30,13 +34,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Verify ownership of analysis
+    // WORKSPACE ISOLATION: Verify ownership of analysis AND workspace
     const analysis = await context.env.DB.prepare(
-      'SELECT id FROM ach_analyses WHERE id = ? AND user_id = ?'
-    ).bind(data.ach_analysis_id, userId).first()
+      'SELECT id FROM ach_analyses WHERE id = ? AND user_id = ? AND workspace_id = ?'
+    ).bind(data.ach_analysis_id, userId, workspaceId).first()
 
     if (!analysis) {
-      return new Response(JSON.stringify({ error: 'Analysis not found' }), {
+      return new Response(JSON.stringify({ error: 'Analysis not found in workspace' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       })
@@ -112,6 +116,9 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const id = url.searchParams.get('id')
     const userId = 'demo-user' // TODO: Get from auth
 
+    // Get workspace_id from query params or default to '1'
+    const workspaceId = url.searchParams.get('workspace_id') || '1'
+
     if (!id) {
       return new Response(JSON.stringify({ error: 'Link ID is required' }), {
         status: 400,
@@ -119,16 +126,16 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Verify ownership through analysis
+    // WORKSPACE ISOLATION: Verify ownership through analysis AND workspace
     const existing = await context.env.DB.prepare(`
       SELECT l.id
       FROM ach_evidence_links l
       JOIN ach_analyses a ON l.ach_analysis_id = a.id
-      WHERE l.id = ? AND a.user_id = ?
-    `).bind(id, userId).first()
+      WHERE l.id = ? AND a.user_id = ? AND a.workspace_id = ?
+    `).bind(id, userId, workspaceId).first()
 
     if (!existing) {
-      return new Response(JSON.stringify({ error: 'Evidence link not found' }), {
+      return new Response(JSON.stringify({ error: 'Evidence link not found in workspace' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       })
