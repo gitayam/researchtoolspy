@@ -34,6 +34,11 @@ bucket_name = "researchtoolspy-uploads"
 # wrangler secret put OPENAI_API_KEY
 # wrangler secret put VIRUSTOTAL_API_KEY
 
+[vars]
+ENVIRONMENT = "development"
+ENABLE_AI_FEATURES = "true"
+DEFAULT_AI_MODEL = "gpt-4o-mini"
+
 [env.production.vars]
 ENVIRONMENT = "production"
 ENABLE_AI_FEATURES = "true"
