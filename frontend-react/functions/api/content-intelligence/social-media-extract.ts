@@ -1045,10 +1045,57 @@ async function extractTikTok(url: string, mode: string): Promise<SocialMediaExtr
 
 async function extractTwitter(url: string, mode: string): Promise<SocialMediaExtractionResult> {
   try {
-    console.log('[Twitter] Starting extraction via oEmbed API, mode:', mode, 'url:', url)
+    console.log('[Twitter] Starting enhanced extraction, mode:', mode, 'url:', url)
 
-    // Twitter oEmbed API with retry logic
-    const data = await fetchWithRetry(async () => {
+    // Extract tweet ID from URL
+    const tweetId = extractTweetId(url)
+    if (!tweetId) {
+      return createUserFriendlyError(
+        'twitter',
+        'Invalid URL format',
+        'Could not find a valid tweet ID in the URL. Please use a standard Twitter/X link (e.g., twitter.com/user/status/123... or x.com/user/status/123...)'
+      )
+    }
+
+    console.log('[Twitter] Extracted tweet ID:', tweetId)
+
+    // Strategy 1: Try cobalt.tools for media downloads (if download mode)
+    let cobaltData: any = null
+    if (mode === 'download' || mode === 'full') {
+      try {
+        console.log('[Twitter] Attempting media extraction via cobalt.tools...')
+        cobaltData = await fetchWithRetry(async () => {
+          const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              url,
+              vCodec: 'h264',
+              vQuality: '720',
+              aFormat: 'mp3',
+              isAudioOnly: false
+            })
+          })
+
+          if (!cobaltResponse.ok) {
+            throw new Error(`Cobalt API returned status ${cobaltResponse.status}`)
+          }
+
+          return await cobaltResponse.json() as any
+        }, 2, 1000)
+
+        console.log('[Twitter] Cobalt response status:', cobaltData?.status)
+      } catch (cobaltError) {
+        console.warn('[Twitter] Cobalt extraction failed:', cobaltError)
+        // Continue with oEmbed even if cobalt fails
+      }
+    }
+
+    // Strategy 2: Get metadata via Twitter oEmbed API
+    const oembedData = await fetchWithRetry(async () => {
       const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
       const response = await fetch(oembedUrl)
 
@@ -1059,21 +1106,98 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
       return await response.json() as any
     }, 2, 1000)
 
+    // Parse tweet text from embed HTML
+    const embedHtml = oembedData.html
+    const tweetText = extractTweetTextFromHTML(embedHtml)
+    const authorHandle = extractAuthorHandleFromHTML(embedHtml)
+
+    console.log('[Twitter] Extracted text length:', tweetText?.length || 0)
+
+    // Build media URLs from cobalt if available
+    const mediaUrls: MediaUrls = {}
+    const downloadOptions: DownloadOption[] = []
+
+    if (cobaltData && (cobaltData.status === 'redirect' || cobaltData.status === 'stream' || cobaltData.status === 'picker')) {
+      if (cobaltData.status === 'picker') {
+        // Multiple media items (carousel)
+        const images: string[] = []
+        const videos: string[] = []
+
+        for (const item of cobaltData.picker || []) {
+          if (item.type === 'photo') {
+            images.push(item.url)
+            downloadOptions.push({
+              quality: 'Original',
+              format: 'jpg',
+              url: item.url,
+              hasAudio: false,
+              hasVideo: false
+            })
+          } else if (item.type === 'video') {
+            videos.push(item.url)
+            downloadOptions.push({
+              quality: 'Original',
+              format: 'mp4',
+              url: item.url,
+              hasAudio: true,
+              hasVideo: true
+            })
+          }
+        }
+
+        if (images.length > 0) mediaUrls.images = images
+        if (videos.length > 0) mediaUrls.video = videos[0]
+      } else if (cobaltData.url) {
+        // Single media item
+        const isVideo = cobaltData.url.includes('.mp4') || cobaltData.url.includes('video')
+
+        if (isVideo) {
+          mediaUrls.video = cobaltData.url
+        } else {
+          mediaUrls.images = [cobaltData.url]
+        }
+
+        downloadOptions.push({
+          quality: isVideo ? 'Original' : 'High quality',
+          format: isVideo ? 'mp4' : 'jpg',
+          url: cobaltData.url,
+          hasAudio: isVideo,
+          hasVideo: isVideo
+        })
+      }
+    }
+
+    // Build enhanced metadata
+    const metadata: Record<string, any> = {
+      tweetId,
+      authorName: oembedData.author_name,
+      authorHandle: authorHandle || oembedData.author_name,
+      authorUrl: oembedData.author_url,
+      text: tweetText || 'Unable to extract tweet text',
+      tweetUrl: url,
+      hasMedia: !!(mediaUrls.video || mediaUrls.images?.length),
+      mediaCount: (mediaUrls.images?.length || 0) + (mediaUrls.video ? 1 : 0),
+      width: oembedData.width,
+      height: oembedData.height,
+      extractedVia: downloadOptions.length > 0 ? 'cobalt.tools + oEmbed' : 'oEmbed only'
+    }
+
+    // Determine post type
+    let postType = 'tweet'
+    if (tweetText?.includes('RT @') || tweetText?.toLowerCase().includes('retweet')) {
+      postType = 'retweet'
+    } else if (url.includes('/status/') && url.split('/').length > 6) {
+      postType = 'reply'
+    }
+
     return {
       success: true,
       platform: 'twitter',
-      postType: 'tweet',
-      embedCode: data.html,
-      metadata: {
-        authorName: data.author_name,
-        authorUrl: data.author_url,
-        html: data.html,
-        width: data.width,
-        height: data.height,
-        providerName: data.provider_name,
-        providerUrl: data.provider_url,
-        note: 'Download not available via official API - embed only'
-      }
+      postType,
+      mediaUrls: Object.keys(mediaUrls).length > 0 ? mediaUrls : undefined,
+      downloadOptions: downloadOptions.length > 0 ? downloadOptions : undefined,
+      embedCode: embedHtml,
+      metadata
     }
 
   } catch (error) {
@@ -1081,8 +1205,72 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
     return createUserFriendlyError(
       'twitter',
       error instanceof Error ? error.message : 'Unknown error',
-      'Tweet could not be extracted. The tweet may be from a protected account, deleted, or temporarily unavailable. Note: Direct downloads are not available for Twitter - embed code only.'
+      'Tweet could not be extracted. The tweet may be from a protected account, deleted, or temporarily unavailable. Try copying the tweet URL again or check if the account is public.'
     )
+  }
+}
+
+// Helper: Extract tweet ID from various Twitter/X URL formats
+function extractTweetId(url: string): string | null {
+  const patterns = [
+    /(?:twitter\.com|x\.com)\/(?:#!\/)?[\w]+\/status(?:es)?\/(\d+)/,
+    /(?:twitter\.com|x\.com)\/[\w]+\/status\/(\d+)/
+  ]
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match && match[1]) {
+      return match[1]
+    }
+  }
+
+  return null
+}
+
+// Helper: Extract tweet text from oEmbed HTML
+function extractTweetTextFromHTML(html: string): string | null {
+  try {
+    // The oEmbed HTML contains a blockquote with the tweet text
+    // Format: <blockquote class="twitter-tweet"><p lang="en" dir="ltr">TWEET TEXT HERE</p>&mdash; @author...
+
+    // Extract content from <p> tag
+    const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/)
+    if (pMatch && pMatch[1]) {
+      // Clean up HTML entities and tags
+      let text = pMatch[1]
+        .replace(/<a[^>]*>(.*?)<\/a>/g, '$1') // Remove link tags but keep text
+        .replace(/<br\s*\/?>/g, '\n') // Convert <br> to newlines
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&mdash;/g, '—')
+        .trim()
+
+      return text
+    }
+
+    return null
+  } catch (error) {
+    console.error('[Twitter] Failed to parse tweet text:', error)
+    return null
+  }
+}
+
+// Helper: Extract author handle from oEmbed HTML
+function extractAuthorHandleFromHTML(html: string): string | null {
+  try {
+    // Look for @username pattern in the HTML
+    const handleMatch = html.match(/@(\w+)/)
+    if (handleMatch && handleMatch[1]) {
+      return '@' + handleMatch[1]
+    }
+
+    return null
+  } catch (error) {
+    console.error('[Twitter] Failed to parse author handle:', error)
+    return null
   }
 }
 
