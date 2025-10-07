@@ -356,6 +356,67 @@
     }
   },
 
+  "vulnerabilityMatrix": {
+    "title": "Vulnerability Comparison Matrix",
+    "description": "Compare and prioritize vulnerabilities across all Centers of Gravity",
+    "exportButton": "Export CSV",
+
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Search vulnerabilities...",
+      "actor": "Actor",
+      "allActors": "All Actors",
+      "domain": "Domain",
+      "allDomains": "All Domains",
+      "cog": "COG",
+      "allCOGs": "All COGs",
+      "minScore": "Min Score",
+      "minScorePlaceholder": "Min",
+      "maxScore": "Max Score",
+      "maxScorePlaceholder": "Max",
+      "clearFilters": "Clear Filters",
+      "showing": "Showing {{shown}} of {{total}} vulnerabilities"
+    },
+
+    "table": {
+      "rank": "Rank",
+      "score": "Score",
+      "cog": "COG",
+      "capability": "Capability",
+      "requirement": "Requirement",
+      "vulnerability": "Vulnerability",
+      "impactShort": "I",
+      "attainabilityShort": "A",
+      "followUpShort": "F",
+      "type": "Type",
+      "confidence": "Confidence"
+    },
+
+    "export": {
+      "filename": "vulnerability-matrix-{{title}}-{{date}}.csv",
+      "headers": {
+        "rank": "Rank",
+        "cog": "COG",
+        "actor": "Actor",
+        "domain": "Domain",
+        "capability": "Capability",
+        "requirement": "Requirement",
+        "vulnerability": "Vulnerability",
+        "type": "Type",
+        "description": "Description",
+        "compositeScore": "Composite Score",
+        "impact": "Impact",
+        "attainability": "Attainability",
+        "followUp": "Follow-up",
+        "expectedEffect": "Expected Effect",
+        "recommendedActions": "Recommended Actions",
+        "confidence": "Confidence"
+      }
+    },
+
+    "emptyState": "No vulnerabilities match the current filters"
+  },
+
   "wizard": {
     "title": "COG Analysis Wizard",
     "subtitle": "Step-by-step guided analysis",
