@@ -417,6 +417,98 @@
     "emptyState": "No hay vulnerabilidades que coincidan con los filtros actuales"
   },
 
+  "aiAssistant": {
+    "analyzing": "La IA está analizando...",
+    "analysisFailed": "Análisis Fallido",
+    "tryAgain": "Intentar de Nuevo",
+    "useThis": "Usar Este",
+    "regenerate": "Regenerar",
+    "acceptAll": "Aceptar Todos ({{count}})",
+
+    "modes": {
+      "suggestCog": {
+        "title": "Sugerencias de COG por IA",
+        "description": "La IA sugerirá Centros de Gravedad potenciales basados en su contexto operacional",
+        "button": "Sugerir COGs"
+      },
+      "validateCog": {
+        "title": "Validación de COG por IA",
+        "description": "La IA validará su COG contra los criterios de doctrina JP 3-0",
+        "button": "Validar COG"
+      },
+      "generateCapabilities": {
+        "title": "Sugerencias de Capacidades por IA",
+        "description": "La IA sugerirá capacidades críticas para este COG",
+        "button": "Sugerir Capacidades"
+      },
+      "generateRequirements": {
+        "title": "Sugerencias de Requisitos por IA",
+        "description": "La IA sugerirá requisitos críticos para esta capacidad",
+        "button": "Sugerir Requisitos"
+      },
+      "generateVulnerabilities": {
+        "title": "Sugerencias de Vulnerabilidades por IA",
+        "description": "La IA sugerirá vulnerabilidades críticas para este requisito",
+        "button": "Sugerir Vulnerabilidades"
+      },
+      "generateImpact": {
+        "title": "Análisis de Impacto por IA",
+        "description": "La IA analizará el impacto de explotar esta vulnerabilidad",
+        "button": "Analizar Impacto"
+      },
+      "default": {
+        "title": "Asistente de IA",
+        "description": "Asistencia de análisis impulsada por IA",
+        "button": "Asistir con IA"
+      }
+    },
+
+    "errors": {
+      "cogRequired": "Se requieren datos de COG para la validación",
+      "cogRequiredForCapabilities": "Se requieren datos de COG para la generación de capacidades",
+      "capabilityRequired": "Se requieren datos de capacidad para la generación de requisitos",
+      "requirementRequired": "Se requieren datos de requisito para la generación de vulnerabilidades",
+      "vulnerabilityAndCapabilitiesRequired": "Se requieren datos de vulnerabilidad y capacidades"
+    },
+
+    "noResults": {
+      "title": "Sin Resultados",
+      "description": "La IA no devolvió sugerencias. Por favor intente de nuevo."
+    },
+
+    "acceptToast": {
+      "title": "Sugerencia de IA Aceptada",
+      "description": "El contenido generado por IA ha sido aplicado."
+    },
+
+    "validation": {
+      "validCog": "COG Válido ✓",
+      "needsRefinement": "Necesita Refinamiento",
+      "criteria": "Criterios de Validación:",
+      "recommendations": "Recomendaciones:",
+      "acceptValidation": "Aceptar Validación",
+      "revalidate": "Re-validar"
+    },
+
+    "details": {
+      "description": "Descripción",
+      "expectedEffect": "Efecto Esperado",
+      "recommendedActions": "Acciones Recomendadas"
+    },
+
+    "impact": {
+      "expectedEffect": "Efecto Esperado",
+      "cascadingEffects": "Efectos en Cascada",
+      "recommendedActions": "Acciones Recomendadas",
+      "confidence": "Confianza",
+      "timeToEffect": "Tiempo hasta el Efecto",
+      "reversibility": "Reversibilidad",
+      "riskToFriendlyForces": "Riesgo para Fuerzas Amigas",
+      "considerations": "Consideraciones",
+      "acceptAnalysis": "Aceptar Análisis"
+    }
+  },
+
   "wizard": {
     "title": "Asistente de Análisis COG",
     "subtitle": "Análisis guiado paso a paso",
