@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
+import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
@@ -83,6 +84,9 @@ export function DashboardHeader() {
 
         {/* Right side - Improved mobile layout */}
         <div className="flex items-center gap-x-2 sm:gap-x-3 lg:gap-x-4">
+          {/* Workspace Selector */}
+          <WorkspaceSelector />
+
           {/* Theme Toggle */}
           <ThemeToggle />
 
