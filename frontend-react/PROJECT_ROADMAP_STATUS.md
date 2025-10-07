@@ -380,10 +380,10 @@
 **Tools Covered**:
 - ✅ Gephi (network visualization) - GEXF, GraphML, CSV - **DONE!**
 - ✅ RStudio (statistical analysis) - R CSV, sample scripts, comprehensive guide - **DONE!**
+- ✅ Neo4j (graph database) - Cypher scripts, comprehensive guide - **DONE!**
 - 🔜 i2 Analyst's Notebook - Entity/link CSV
 - 🔜 Palantir Gotham - JSON, Parquet
 - 🔜 Maltego - Transform CSV
-- 🔜 Neo4j - Cypher scripts
 - 🔜 NetworkX - GraphML, JSON
 
 **Next Steps**: Additional tool integrations or Instagram fix
@@ -495,6 +495,101 @@
 - Proper column names (snake_case) ✅
 - Numeric data unquoted ✅
 - Two-file format (nodes + edges) ✅
+
+---
+
+## 🆕 Neo4j Integration (COMPLETE)
+**Added**: 2025-10-06 (this session)
+**Completed**: 2025-10-06
+
+**Cypher Export Added to NetworkExportDialog**:
+- ✅ New export format: Neo4j Cypher (.cypher file)
+- ✅ Ready-to-run Cypher script with:
+  - CREATE CONSTRAINT for unique entity IDs
+  - CREATE INDEX for fast name and type lookups
+  - CREATE statements for nodes (Entity label + type-specific labels)
+  - CREATE statements for relationships with properties
+  - Comprehensive inline documentation
+  - 10+ example queries (commented out, ready to uncomment)
+- ✅ Nodes grouped by entity type for readability
+- ✅ Relationships grouped by type for organization
+- ✅ Automatic string escaping for Cypher safety
+- ✅ Property name sanitization (spaces → underscores)
+
+**Sample Cypher Query Collection**:
+- Created `docs/neo4j-queries/common_queries.cypher` (455 lines)
+- 75+ ready-to-use queries organized in 12 sections:
+  1. Basic Exploration (view nodes, relationships, counts)
+  2. Finding Central Entities (degree, PageRank, betweenness)
+  3. Relationship Analysis (connections, confidence filtering)
+  4. Pathfinding (shortest paths, k-hop neighborhoods)
+  5. Community Detection (Louvain, Label Propagation, WCC)
+  6. Pattern Matching (triangles, stars, chains, bridges)
+  7. Filtering & Aggregation (by type, statistics)
+  8. Similarity & Recommendations (shared connections, link prediction)
+  9. Graph Data Science Setup (projections, algorithms)
+  10. Export & Reporting (tables, summaries, cross-tabs)
+  11. Temporal Analysis (recent relationships, network growth)
+  12. Advanced Patterns (cliques, k-hop, bridges)
+- All queries heavily commented with purpose and usage notes
+- Placeholder values clearly marked for customization
+
+**Documentation**:
+- Created `docs/NEO4J_IMPORT_GUIDE.md` (621 lines)
+- Quick start guide (10 minutes from export to visualization)
+- Installation instructions (Neo4j Desktop, Docker, Cloud)
+- Import methods (copy-paste, file import, programmatic)
+- Essential queries organized by use case
+- Graph Data Science library setup and usage
+- Visualization tips (Browser, Bloom, web export)
+- 5 common use cases with step-by-step examples
+- Troubleshooting guide (memory, timeouts, projections)
+- Best practices (parameters, indexes, backups, Python integration)
+- Advanced topics (algorithms, APOC, full-text search, spatial)
+
+**Files Modified/Created**:
+- `src/components/network/NetworkExportDialog.tsx` (+169 lines Cypher export)
+- `docs/NEO4J_IMPORT_GUIDE.md` (NEW - 621 lines)
+- `docs/neo4j-queries/common_queries.cypher` (NEW - 455 lines)
+
+**Git Tag**: `neo4j-integration-v1.0.0`
+
+**Impact**:
+- ✅ Native graph database support for complex queries
+- ✅ Professional graph algorithms (PageRank, betweenness, Louvain)
+- ✅ Copy-paste ready scripts for immediate use
+- ✅ Integration with Neo4j Graph Data Science library
+- ✅ Interactive visualization with Neo4j Bloom
+- ✅ Powerful pattern matching and pathfinding
+- ✅ Production-ready graph database deployment option
+
+**Analysis Capabilities** (via Neo4j + GDS):
+- **Centrality**: PageRank, degree, betweenness, closeness, eigenvector
+- **Communities**: Louvain, Label Propagation, Weakly Connected Components
+- **Pathfinding**: shortest path, all shortest paths, k-hop neighborhoods
+- **Similarity**: node similarity, k-nearest neighbors
+- **Link Prediction**: recommend potential relationships
+- **Pattern Matching**: triangles, cliques, bridges, star patterns
+- **Temporal Analysis**: track network changes over time
+- **Graph Embeddings**: node2vec, GraphSAGE (advanced)
+
+**Use Cases**:
+- Complex graph queries beyond SQL capabilities
+- Real-time graph traversal queries (<10ms response)
+- Pattern detection (operational cells, coordination networks)
+- Relationship recommendation (potential connections)
+- Graph-native storage for production applications
+- Integration with enterprise graph platforms
+- Advanced graph algorithms via GDS library
+- Graph visualization with Neo4j Bloom
+- Multi-database sharding for large networks
+
+**Export Formats Now Available**:
+- ✅ **GEXF** - Gephi native with visual metadata
+- ✅ **GraphML** - Universal XML (Gephi, Cytoscape, yEd)
+- ✅ **CSV** - Edge/node lists (R, Python, Excel)
+- ✅ **JSON** - Full structured export with metadata
+- ✅ **Cypher** - Neo4j graph database (NEW!)
 
 ---
 
