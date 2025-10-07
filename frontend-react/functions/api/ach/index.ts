@@ -29,11 +29,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const id = url.searchParams.get('id')
     const userId = 'demo-user' // TODO: Get from auth
 
+    // Get workspace_id from query params or default to '1'
+    const workspaceId = url.searchParams.get('workspace_id') || '1'
+
     if (id) {
       // Get specific analysis with hypotheses, evidence, and scores
+      // WORKSPACE ISOLATION: Filter by workspace_id OR is_public
       const analysis = await context.env.DB.prepare(
-        'SELECT * FROM ach_analyses WHERE id = ? AND user_id = ?'
-      ).bind(id, userId).first()
+        'SELECT * FROM ach_analyses WHERE id = ? AND user_id = ? AND (workspace_id = ? OR is_public = 1)'
+      ).bind(id, userId, workspaceId).first()
 
       if (!analysis) {
         return new Response(JSON.stringify({ error: 'Analysis not found' }), {
@@ -77,9 +81,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     } else {
       // List all analyses
+      // WORKSPACE ISOLATION: Only return analyses in this workspace OR public analyses
       const analyses = await context.env.DB.prepare(
-        'SELECT * FROM ach_analyses WHERE user_id = ? ORDER BY created_at DESC'
-      ).bind(userId).all()
+        'SELECT * FROM ach_analyses WHERE user_id = ? AND (workspace_id = ? OR is_public = 1) ORDER BY created_at DESC'
+      ).bind(userId, workspaceId).all()
 
       return new Response(JSON.stringify({
         analyses: analyses.results || []
@@ -102,8 +107,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 // POST /api/ach - Create new analysis
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const url = new URL(context.request.url)
     const data = await context.request.json() as Partial<ACHAnalysis>
     const userId = 'demo-user' // TODO: Get from auth
+
+    // Get workspace_id from query params or default to '1'
+    const workspaceId = url.searchParams.get('workspace_id') || '1'
 
     if (!data.title || !data.question) {
       return new Response(JSON.stringify({
@@ -117,11 +126,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
 
+    // WORKSPACE ISOLATION: Add workspace_id and original_workspace_id to INSERT
     await context.env.DB.prepare(`
       INSERT INTO ach_analyses (
         id, user_id, title, description, question, analyst, organization,
-        scale_type, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        scale_type, status, workspace_id, original_workspace_id, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id,
       userId,
@@ -132,6 +142,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       data.organization || null,
       data.scale_type || 'logarithmic',
       data.status || 'draft',
+      workspaceId,
+      workspaceId, // original_workspace_id same as workspace_id on creation
       now,
       now
     ).run()
@@ -165,6 +177,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const id = url.searchParams.get('id')
     const userId = 'demo-user' // TODO: Get from auth
 
+    // Get workspace_id from query params or default to '1'
+    const workspaceId = url.searchParams.get('workspace_id') || '1'
+
     if (!id) {
       return new Response(JSON.stringify({ error: 'ID is required' }), {
         status: 400,
@@ -174,13 +189,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     const data = await context.request.json() as Partial<ACHAnalysis>
 
-    // Verify ownership
+    // WORKSPACE ISOLATION: Verify ownership and workspace
     const existing = await context.env.DB.prepare(
-      'SELECT id FROM ach_analyses WHERE id = ? AND user_id = ?'
-    ).bind(id, userId).first()
+      'SELECT id FROM ach_analyses WHERE id = ? AND user_id = ? AND workspace_id = ?'
+    ).bind(id, userId, workspaceId).first()
 
     if (!existing) {
-      return new Response(JSON.stringify({ error: 'Analysis not found' }), {
+      return new Response(JSON.stringify({ error: 'Analysis not found in workspace or unauthorized' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       })
@@ -188,7 +203,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     const now = new Date().toISOString()
 
-    await context.env.DB.prepare(`
+    // WORKSPACE ISOLATION: Update only if in current workspace
+    const result = await context.env.DB.prepare(`
       UPDATE ach_analyses SET
         title = COALESCE(?, title),
         description = COALESCE(?, description),
@@ -198,7 +214,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         scale_type = COALESCE(?, scale_type),
         status = COALESCE(?, status),
         updated_at = ?
-      WHERE id = ?
+      WHERE id = ? AND workspace_id = ?
     `).bind(
       data.title || null,
       data.description || null,
@@ -208,8 +224,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       data.scale_type || null,
       data.status || null,
       now,
-      id
+      id,
+      workspaceId
     ).run()
+
+    if (result.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Analysis not found in workspace or unauthorized' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' }
@@ -233,6 +257,9 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const id = url.searchParams.get('id')
     const userId = 'demo-user' // TODO: Get from auth
 
+    // Get workspace_id from query params or default to '1'
+    const workspaceId = url.searchParams.get('workspace_id') || '1'
+
     if (!id) {
       return new Response(JSON.stringify({ error: 'ID is required' }), {
         status: 400,
@@ -240,22 +267,29 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Verify ownership
+    // WORKSPACE ISOLATION: Verify ownership and workspace
     const existing = await context.env.DB.prepare(
-      'SELECT id FROM ach_analyses WHERE id = ? AND user_id = ?'
-    ).bind(id, userId).first()
+      'SELECT id FROM ach_analyses WHERE id = ? AND user_id = ? AND workspace_id = ?'
+    ).bind(id, userId, workspaceId).first()
 
     if (!existing) {
-      return new Response(JSON.stringify({ error: 'Analysis not found' }), {
+      return new Response(JSON.stringify({ error: 'Analysis not found in workspace or unauthorized' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    // Delete (CASCADE will handle related tables)
-    await context.env.DB.prepare(
-      'DELETE FROM ach_analyses WHERE id = ?'
-    ).bind(id).run()
+    // WORKSPACE ISOLATION: Delete only if in current workspace (CASCADE will handle related tables)
+    const result = await context.env.DB.prepare(
+      'DELETE FROM ach_analyses WHERE id = ? AND workspace_id = ?'
+    ).bind(id, workspaceId).run()
+
+    if (result.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Analysis not found in workspace or unauthorized' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' }
