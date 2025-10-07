@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Zap, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,33 +27,34 @@ interface COGQuickScoreProps {
 
 type ScorePreset = 'high' | 'medium' | 'low' | 'custom'
 
-const SCORE_PRESETS = {
-  high: {
-    name: 'High Priority',
-    description: 'Critical vulnerability requiring immediate action',
-    icon: TrendingUp,
-    color: 'text-red-600',
-    scores: { linear: { impact_on_cog: 5, attainability: 4, follow_up_potential: 5 } },
-  },
-  medium: {
-    name: 'Medium Priority',
-    description: 'Important vulnerability for medium-term planning',
-    icon: Minus,
-    color: 'text-yellow-600',
-    scores: { linear: { impact_on_cog: 3, attainability: 3, follow_up_potential: 3 } },
-  },
-  low: {
-    name: 'Low Priority',
-    description: 'Monitor but not immediate priority',
-    icon: TrendingDown,
-    color: 'text-green-600',
-    scores: { linear: { impact_on_cog: 2, attainability: 2, follow_up_potential: 2 } },
-  },
-}
-
 export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scoringSystem }: COGQuickScoreProps) {
+  const { t } = useTranslation('cog')
   const [workingVulns, setWorkingVulns] = useState<CriticalVulnerability[]>(vulnerabilities)
   const [selectedPreset, setSelectedPreset] = useState<ScorePreset>('custom')
+
+  const SCORE_PRESETS = {
+    high: {
+      name: t('quickScore.presets.high.name'),
+      description: t('quickScore.presets.high.description'),
+      icon: TrendingUp,
+      color: 'text-red-600',
+      scores: { linear: { impact_on_cog: 5, attainability: 4, follow_up_potential: 5 } },
+    },
+    medium: {
+      name: t('quickScore.presets.medium.name'),
+      description: t('quickScore.presets.medium.description'),
+      icon: Minus,
+      color: 'text-yellow-600',
+      scores: { linear: { impact_on_cog: 3, attainability: 3, follow_up_potential: 3 } },
+    },
+    low: {
+      name: t('quickScore.presets.low.name'),
+      description: t('quickScore.presets.low.description'),
+      icon: TrendingDown,
+      color: 'text-green-600',
+      scores: { linear: { impact_on_cog: 2, attainability: 2, follow_up_potential: 2 } },
+    },
+  }
 
   const applyPreset = (vulnId: string, preset: ScorePreset) => {
     if (preset === 'custom') return
@@ -108,14 +110,13 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Quick-Score Mode</DialogTitle>
+            <DialogTitle>{t('quickScore.dialog.title')}</DialogTitle>
             <DialogDescription>
-              Quick-Score mode is currently only available for linear and logarithmic scoring systems.
-              Please use the advanced form for custom scoring criteria.
+              {t('quickScore.dialog.customSystemNotSupported')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button onClick={onClose}>Close</Button>
+            <Button onClick={onClose}>{t('common.close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -128,10 +129,10 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-yellow-500" />
-            Quick-Score Mode
+            {t('quickScore.dialog.title')}
           </DialogTitle>
           <DialogDescription>
-            Rapidly score all vulnerabilities using presets or custom values. Sorted by composite score in real-time.
+            {t('quickScore.dialog.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -139,7 +140,7 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
           {/* Preset Legend */}
           <Card className="bg-blue-50 dark:bg-blue-950">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Score Presets</CardTitle>
+              <CardTitle className="text-sm">{t('quickScore.legend.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-2">
@@ -173,7 +174,7 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
                             #{index + 1}
                           </Badge>
                           <Badge className={getScoreColor(vuln.composite_score)}>
-                            Score: {vuln.composite_score}
+                            {t('quickScore.labels.score', { score: vuln.composite_score })}
                           </Badge>
                         </div>
                         <h4 className="font-semibold text-sm mb-1">{vuln.vulnerability}</h4>
@@ -183,13 +184,13 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
                       </div>
                       <Select value="custom" onValueChange={(value: ScorePreset) => applyPreset(vuln.id, value)}>
                         <SelectTrigger className="w-40">
-                          <SelectValue placeholder="Apply preset..." />
+                          <SelectValue placeholder={t('quickScore.select.placeholder')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="custom">Custom...</SelectItem>
-                          <SelectItem value="high">🔴 High Priority</SelectItem>
-                          <SelectItem value="medium">🟡 Medium Priority</SelectItem>
-                          <SelectItem value="low">🟢 Low Priority</SelectItem>
+                          <SelectItem value="custom">{t('quickScore.select.custom')}</SelectItem>
+                          <SelectItem value="high">{t('quickScore.select.highPriority')}</SelectItem>
+                          <SelectItem value="medium">{t('quickScore.select.mediumPriority')}</SelectItem>
+                          <SelectItem value="low">{t('quickScore.select.lowPriority')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -199,7 +200,7 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
                       <div className="grid grid-cols-3 gap-4">
                         <div>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium">Impact (I)</span>
+                            <span className="text-xs font-medium">{t('quickScore.sliders.impact')}</span>
                             <Badge variant="outline" className="text-xs">
                               {vuln.scoring.impact_on_cog}
                             </Badge>
@@ -216,7 +217,7 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
 
                         <div>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium">Attainability (A)</span>
+                            <span className="text-xs font-medium">{t('quickScore.sliders.attainability')}</span>
                             <Badge variant="outline" className="text-xs">
                               {vuln.scoring.attainability}
                             </Badge>
@@ -233,7 +234,7 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
 
                         <div>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium">Follow-up (F)</span>
+                            <span className="text-xs font-medium">{t('quickScore.sliders.followUp')}</span>
                             <Badge variant="outline" className="text-xs">
                               {vuln.scoring.follow_up_potential}
                             </Badge>
@@ -257,7 +258,7 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
             {workingVulns.length === 0 && (
               <Card>
                 <CardContent className="text-center py-8 text-gray-500">
-                  No vulnerabilities to score
+                  {t('quickScore.emptyState')}
                 </CardContent>
               </Card>
             )}
@@ -266,11 +267,11 @@ export function COGQuickScore({ open, onClose, vulnerabilities, onUpdate, scorin
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSave}>
             <Zap className="h-4 w-4 mr-2" />
-            Apply Scores
+            {t('quickScore.buttons.applyScores')}
           </Button>
         </DialogFooter>
       </DialogContent>
