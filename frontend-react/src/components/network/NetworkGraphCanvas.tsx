@@ -25,6 +25,7 @@ interface NetworkGraphCanvasProps {
   width?: number
   height?: number
   highlightedPath?: string[] // Array of node IDs in the path
+  highlightedNodes?: Set<string> // Set of node IDs to highlight (from framework)
 }
 
 const ENTITY_TYPE_COLORS: Record<EntityType, string> = {
@@ -52,7 +53,8 @@ export function NetworkGraphCanvas({
   onBackgroundClick,
   width = 800,
   height = 600,
-  highlightedPath = []
+  highlightedPath = [],
+  highlightedNodes = new Set()
 }: NetworkGraphCanvasProps) {
   const graphRef = useRef<any>(null)
 
@@ -97,7 +99,9 @@ export function NetworkGraphCanvas({
     const label = node.name
     const fontSize = 12 / globalScale
     const nodeRadius = Math.sqrt(node.val || 1) * 4
-    const isHighlighted = highlightedPath.includes(node.id)
+    const isInPath = highlightedPath.includes(node.id)
+    const isInHighlightSet = highlightedNodes.has(node.id)
+    const isHighlighted = isInPath || isInHighlightSet
 
     // Draw node circle
     ctx.beginPath()
@@ -119,13 +123,15 @@ export function NetworkGraphCanvas({
       ctx.stroke()
     }
 
-    // Draw label
-    ctx.font = `${fontSize}px Sans-Serif`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillStyle = isHighlighted ? '#92400e' : '#333333' // darker text for highlighted
-    ctx.fillText(label, node.x, node.y + nodeRadius + fontSize)
-  }, [highlightedPath])
+    // Draw label (always show for highlighted nodes)
+    if (isHighlighted || globalScale > 1.5) {
+      ctx.font = `${fontSize}px Sans-Serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = isHighlighted ? '#92400e' : '#333333' // darker text for highlighted
+      ctx.fillText(label, node.x, node.y + nodeRadius + fontSize)
+    }
+  }, [highlightedPath, highlightedNodes])
 
   // Custom link canvas rendering
   const paintLink = useCallback((link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
