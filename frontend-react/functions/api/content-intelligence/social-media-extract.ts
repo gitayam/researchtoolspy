@@ -488,116 +488,253 @@ async function fetchYouTubeTranscript(videoId: string): Promise<string> {
 // ========================================
 
 async function extractInstagram(url: string, mode: string): Promise<SocialMediaExtractionResult> {
-  try {
-    console.log('[Instagram] Starting extraction via cobalt.tools, mode:', mode, 'url:', url)
-
-    // Extract shortcode for metadata
-    const shortcode = extractInstagramShortcode(url)
-    if (!shortcode) {
-      return createUserFriendlyError(
-        'instagram',
-        'Invalid URL format',
-        'Could not find a valid Instagram post ID in the URL. Please use a standard Instagram link (e.g., instagram.com/p/...).'
-      )
-    }
-
-    // Use cobalt.tools for reliable extraction (works without auth)
-    const cobaltData = await fetchWithRetry(async () => {
-      const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          url,
-          vCodec: 'h264',
-          vQuality: '1080',
-          aFormat: 'mp3',
-          isAudioOnly: false
-        })
-      })
-
-      if (!cobaltResponse.ok) {
-        throw new Error(`Cobalt API returned status ${cobaltResponse.status}`)
-      }
-
-      return await cobaltResponse.json() as any
-    }, 2, 1000)
-
-    console.log('[Instagram] Cobalt response status:', cobaltData.status)
-
-    // Handle different response types
-    if (cobaltData.status === 'picker') {
-      // Instagram carousel - multiple images/videos
-      const downloadOptions: DownloadOption[] = cobaltData.picker.map((item: any, idx: number) => ({
-        quality: 'Original',
-        format: item.type === 'video' ? 'mp4' : 'jpg',
-        url: item.url,
-        hasAudio: item.type === 'video',
-        hasVideo: item.type === 'video'
-      }))
-
-      const images = cobaltData.picker
-        .filter((item: any) => item.type === 'photo')
-        .map((item: any) => item.url)
-
-      const videos = cobaltData.picker
-        .filter((item: any) => item.type === 'video')
-        .map((item: any) => item.url)
-
-      return {
-        success: true,
-        platform: 'instagram',
-        postType: 'carousel',
-        mediaUrls: {
-          images,
-          video: videos[0],
-          thumbnail: images[0] || videos[0]
-        },
-        downloadOptions,
-        metadata: {
-          shortcode,
-          itemCount: cobaltData.picker.length,
-          extractedVia: 'cobalt.tools'
-        }
-      }
-    } else if (cobaltData.status === 'redirect' || cobaltData.status === 'stream') {
-      // Single image or video
-      const isVideo = cobaltData.url?.includes('.mp4') || mode === 'download'
-
-      return {
-        success: true,
-        platform: 'instagram',
-        postType: isVideo ? 'video' : 'image',
-        mediaUrls: {
-          [isVideo ? 'video' : 'thumbnail']: cobaltData.url
-        },
-        downloadOptions: [{
-          quality: 'Original',
-          format: isVideo ? 'mp4' : 'jpg',
-          url: cobaltData.url,
-          hasAudio: isVideo,
-          hasVideo: isVideo
-        }],
-        metadata: {
-          shortcode,
-          extractedVia: 'cobalt.tools'
-        }
-      }
-    } else if (cobaltData.status === 'error') {
-      throw new Error(cobaltData.text || 'Instagram extraction failed')
-    } else {
-      throw new Error(`Unexpected cobalt.tools response status: ${cobaltData.status}`)
-    }
-
-  } catch (error) {
-    console.error('[Instagram] Extraction failed:', error)
+  // Extract shortcode for metadata
+  const shortcode = extractInstagramShortcode(url)
+  if (!shortcode) {
     return createUserFriendlyError(
       'instagram',
-      error instanceof Error ? error.message : 'Unknown error',
-      'Instagram post could not be extracted. The post may be private, deleted, or you may need to try again later.'
+      'Invalid URL format',
+      'Could not find a valid Instagram post ID in the URL. Please use a standard Instagram link (e.g., instagram.com/p/...).'
     )
+  }
+
+  const errors: string[] = []
+
+  // Strategy 1: Try cobalt.tools (primary method)
+  try {
+    console.log('[Instagram] Attempting extraction via cobalt.tools, mode:', mode, 'url:', url)
+    return await extractInstagramViaCobalt(url, shortcode, mode)
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    console.warn('[Instagram] Cobalt.tools failed:', errorMsg)
+    errors.push(`cobalt.tools: ${errorMsg}`)
+  }
+
+  // Strategy 2: Try InstaDP API (fallback)
+  try {
+    console.log('[Instagram] Attempting fallback extraction via InstaDP')
+    return await extractInstagramViaInstaDP(url, shortcode)
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    console.warn('[Instagram] InstaDP failed:', errorMsg)
+    errors.push(`InstaDP: ${errorMsg}`)
+  }
+
+  // Strategy 3: Try oEmbed API (metadata only)
+  try {
+    console.log('[Instagram] Attempting fallback via Instagram oEmbed API')
+    return await extractInstagramViaOEmbed(url, shortcode)
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    console.warn('[Instagram] oEmbed failed:', errorMsg)
+    errors.push(`oEmbed: ${errorMsg}`)
+  }
+
+  // All strategies failed - return comprehensive error
+  console.error('[Instagram] All extraction methods failed:', errors)
+
+  // Determine likely failure reason based on error patterns
+  let friendlyMessage = 'Instagram post could not be extracted.'
+  let diagnostics = errors.join('; ')
+
+  if (errors.some(e => e.includes('429') || e.includes('rate limit'))) {
+    friendlyMessage += ' The service is temporarily rate-limited. Please try again in a few minutes.'
+  } else if (errors.some(e => e.includes('404') || e.includes('not found'))) {
+    friendlyMessage += ' The post may have been deleted or the URL is incorrect.'
+  } else if (errors.some(e => e.includes('403') || e.includes('private'))) {
+    friendlyMessage += ' The post may be private or require authentication.'
+  } else {
+    friendlyMessage += ' The post may be private, deleted, or Instagram may be blocking automated access. You can try: (1) Waiting a few minutes and trying again, (2) Downloading manually from Instagram and uploading the media, (3) Using the Instagram embed URL instead.'
+  }
+
+  return createUserFriendlyError(
+    'instagram',
+    diagnostics,
+    friendlyMessage
+  )
+}
+
+/**
+ * Extract Instagram content via cobalt.tools API
+ */
+async function extractInstagramViaCobalt(url: string, shortcode: string, mode: string): Promise<SocialMediaExtractionResult> {
+  const cobaltData = await fetchWithRetry(async () => {
+    const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        url,
+        vCodec: 'h264',
+        vQuality: '1080',
+        aFormat: 'mp3',
+        isAudioOnly: false
+      })
+    })
+
+    if (!cobaltResponse.ok) {
+      throw new Error(`HTTP ${cobaltResponse.status}`)
+    }
+
+    return await cobaltResponse.json() as any
+  }, 2, 1000)
+
+  console.log('[Instagram] Cobalt response status:', cobaltData.status)
+
+  // Handle different response types
+  if (cobaltData.status === 'picker') {
+    // Instagram carousel - multiple images/videos
+    const downloadOptions: DownloadOption[] = cobaltData.picker.map((item: any, idx: number) => ({
+      quality: 'Original',
+      format: item.type === 'video' ? 'mp4' : 'jpg',
+      url: item.url,
+      hasAudio: item.type === 'video',
+      hasVideo: item.type === 'video'
+    }))
+
+    const images = cobaltData.picker
+      .filter((item: any) => item.type === 'photo')
+      .map((item: any) => item.url)
+
+    const videos = cobaltData.picker
+      .filter((item: any) => item.type === 'video')
+      .map((item: any) => item.url)
+
+    return {
+      success: true,
+      platform: 'instagram',
+      postType: 'carousel',
+      mediaUrls: {
+        images,
+        video: videos[0],
+        thumbnail: images[0] || videos[0]
+      },
+      downloadOptions,
+      metadata: {
+        shortcode,
+        itemCount: cobaltData.picker.length,
+        extractedVia: 'cobalt.tools'
+      }
+    }
+  } else if (cobaltData.status === 'redirect' || cobaltData.status === 'stream') {
+    // Single image or video
+    const isVideo = cobaltData.url?.includes('.mp4') || mode === 'download'
+
+    return {
+      success: true,
+      platform: 'instagram',
+      postType: isVideo ? 'video' : 'image',
+      mediaUrls: {
+        [isVideo ? 'video' : 'thumbnail']: cobaltData.url
+      },
+      downloadOptions: [{
+        quality: 'Original',
+        format: isVideo ? 'mp4' : 'jpg',
+        url: cobaltData.url,
+        hasAudio: isVideo,
+        hasVideo: isVideo
+      }],
+      metadata: {
+        shortcode,
+        extractedVia: 'cobalt.tools'
+      }
+    }
+  } else if (cobaltData.status === 'error') {
+    throw new Error(cobaltData.text || 'Extraction failed')
+  } else {
+    throw new Error(`Unexpected status: ${cobaltData.status}`)
+  }
+}
+
+/**
+ * Extract Instagram content via InstaDP API (fallback)
+ */
+async function extractInstagramViaInstaDP(url: string, shortcode: string): Promise<SocialMediaExtractionResult> {
+  // InstaDP provides a simple API for Instagram media extraction
+  const response = await fetch(`https://www.instadp.com/api/media?url=${encodeURIComponent(url)}`, {
+    headers: {
+      'Accept': 'application/json'
+    }
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+
+  const data = await response.json() as any
+
+  if (!data.success || !data.media) {
+    throw new Error(data.message || 'No media found')
+  }
+
+  // Parse InstaDP response
+  const mediaUrl = data.media.url || data.media.display_url
+  const isVideo = data.media.is_video || false
+
+  return {
+    success: true,
+    platform: 'instagram',
+    postType: isVideo ? 'video' : 'image',
+    mediaUrls: {
+      [isVideo ? 'video' : 'thumbnail']: mediaUrl
+    },
+    downloadOptions: [{
+      quality: 'Original',
+      format: isVideo ? 'mp4' : 'jpg',
+      url: mediaUrl,
+      hasAudio: isVideo,
+      hasVideo: isVideo
+    }],
+    metadata: {
+      shortcode,
+      extractedVia: 'InstaDP'
+    }
+  }
+}
+
+/**
+ * Extract Instagram content via official oEmbed API (metadata only, no download URLs)
+ */
+async function extractInstagramViaOEmbed(url: string, shortcode: string): Promise<SocialMediaExtractionResult> {
+  const oembedUrl = `https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}`
+
+  const response = await fetch(oembedUrl, {
+    headers: {
+      'Accept': 'application/json'
+    }
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+
+  const data = await response.json() as any
+
+  if (!data.thumbnail_url) {
+    throw new Error('No thumbnail available')
+  }
+
+  // oEmbed doesn't provide direct download URLs, only embed code and thumbnails
+  return {
+    success: true,
+    platform: 'instagram',
+    postType: 'post',
+    mediaUrls: {
+      thumbnail: data.thumbnail_url
+    },
+    embedCode: data.html,
+    metadata: {
+      shortcode,
+      title: data.title,
+      author: data.author_name,
+      authorUrl: data.author_url,
+      width: data.thumbnail_width,
+      height: data.thumbnail_height,
+      extractedVia: 'Instagram oEmbed API (metadata only)',
+      note: 'Direct download not available via oEmbed. Use embed code or thumbnail only.'
+    }
   }
 }
 
