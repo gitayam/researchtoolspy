@@ -26,6 +26,16 @@ import { cn } from '@/lib/utils'
 const getNavigation = (t: (key: string) => string) => [
   { name: t('navigation.dashboard'), href: '/dashboard', icon: Home },
   {
+    name: t('navigation.researchTools'),
+    href: '/dashboard/tools',
+    icon: Search,
+    children: [
+      { name: 'Content Intelligence', href: '/dashboard/tools/content-intelligence', icon: Sparkles },
+      { name: t('tools.citationsGenerator'), href: '/dashboard/tools/citations-generator' },
+      { name: t('tools.documents'), href: '/dashboard/tools/documents' },
+    ]
+  },
+  {
     name: t('navigation.analysisFrameworks'),
     href: '/dashboard/analysis-frameworks',
     icon: Brain,
@@ -81,16 +91,6 @@ const getNavigation = (t: (key: string) => string) => [
           { name: t('frameworks.surveillance'), href: '/dashboard/analysis-frameworks/surveillance' },
         ]
       },
-    ]
-  },
-  {
-    name: t('navigation.researchTools'),
-    href: '/dashboard/tools',
-    icon: Search,
-    children: [
-      { name: 'Content Intelligence', href: '/dashboard/tools/content-intelligence', icon: Sparkles },
-      { name: t('tools.citationsGenerator'), href: '/dashboard/tools/citations-generator' },
-      { name: t('tools.documents'), href: '/dashboard/tools/documents' },
     ]
   },
   {
