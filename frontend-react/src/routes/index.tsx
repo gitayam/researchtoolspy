@@ -2,12 +2,30 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 
-// Loading fallback component
+// Enhanced loading fallback component with progress indicator
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-      <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+  <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="text-center max-w-md px-4">
+      {/* Spinner */}
+      <div className="relative mx-auto mb-6">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 dark:border-gray-700"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute top-0 left-0"></div>
+      </div>
+
+      {/* Loading text with animation */}
+      <div className="space-y-2">
+        <p className="text-lg font-semibold text-gray-900 dark:text-white animate-pulse">
+          Loading
+        </p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Please wait while we prepare your content...
+        </p>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mt-6 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
+        <div className="h-full bg-blue-600 animate-progress-indeterminate"></div>
+      </div>
     </div>
   </div>
 )
