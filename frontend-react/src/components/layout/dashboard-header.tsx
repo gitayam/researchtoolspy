@@ -67,7 +67,7 @@ export function DashboardHeader() {
   }
 
   return (
-    <div className="sticky top-0 z-40 bg-white shadow-sm dark:bg-gray-900 dark:border-b dark:border-gray-700">
+    <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-gray-900 dark:border-b dark:border-gray-700" role="banner">
       <div className="flex h-16 sm:h-18 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Breadcrumbs / Page title - Better mobile spacing */}
         <div className="flex items-center gap-2 sm:gap-3 pl-14 lg:pl-0">
@@ -105,8 +105,9 @@ export function DashboardHeader() {
                 size="sm"
                 onClick={() => navigate('/login')}
                 className="flex items-center gap-1.5 sm:gap-2 h-10 px-3 sm:px-4"
+                aria-label="Log in to save your work"
               >
-                <LogIn className="h-4 w-4" />
+                <LogIn className="h-4 w-4" aria-hidden="true" />
                 <span className="text-sm">{t('auth.login')}</span>
               </Button>
             </div>
@@ -171,6 +172,6 @@ export function DashboardHeader() {
           )}
         </div>
       </div>
-    </div>
+    </header>
   )
 }
