@@ -320,16 +320,18 @@ export default function ContentIntelligencePage() {
   // Save entity to evidence
   const saveEntityToEvidence = async (entityName: string, entityType: 'person' | 'organization' | 'location') => {
     try {
+      const authToken = localStorage.getItem('auth_token')
       const response = await fetch('/api/actors', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` })
         },
         body: JSON.stringify({
           name: entityName,
-          actor_type: entityType === 'person' ? 'INDIVIDUAL' :
-                     entityType === 'organization' ? 'ORGANIZATION' : 'OTHER',
+          type: entityType === 'person' ? 'PERSON' :
+                entityType === 'organization' ? 'ORGANIZATION' : 'OTHER',
+          workspace_id: '1', // Default workspace
           description: `Auto-extracted from: ${analysis?.title || url}`,
           tags: [`content-intelligence`, entityType],
           source_url: url
