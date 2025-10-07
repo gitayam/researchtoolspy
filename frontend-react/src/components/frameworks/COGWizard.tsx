@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ArrowRight, Check, AlertCircle, Lightbulb, FileEdit } from 'lucide-react'
 import { AICOGAssistant } from '@/components/ai/AICOGAssistant'
 import { Button } from '@/components/ui/button'
@@ -31,36 +32,37 @@ interface COGWizardProps {
   backPath: string
 }
 
-const STEPS = [
-  { id: 1, name: 'Context', description: 'Set operational context' },
-  { id: 2, name: 'COG', description: 'Identify Centers of Gravity' },
-  { id: 3, name: 'Capabilities', description: 'Map critical capabilities' },
-  { id: 4, name: 'Requirements', description: 'Identify critical requirements' },
-  { id: 5, name: 'Vulnerabilities', description: 'Assess vulnerabilities' },
-  { id: 6, name: 'Review', description: 'Review and save' },
-]
-
-const ACTOR_CATEGORIES: { value: ActorCategory; label: string }[] = [
-  { value: 'friendly', label: 'Friendly Forces' },
-  { value: 'adversary', label: 'Adversary' },
-  { value: 'host_nation', label: 'Host Nation' },
-  { value: 'third_party', label: 'Third Party' },
-]
-
-const DIMEFIL_DOMAINS: { value: DIMEFILDomain; label: string }[] = [
-  { value: 'diplomatic', label: 'Diplomatic' },
-  { value: 'information', label: 'Information' },
-  { value: 'military', label: 'Military' },
-  { value: 'economic', label: 'Economic' },
-  { value: 'financial', label: 'Financial' },
-  { value: 'intelligence', label: 'Intelligence' },
-  { value: 'law_enforcement', label: 'Law Enforcement' },
-  { value: 'cyber', label: 'Cyber' },
-  { value: 'space', label: 'Space' },
-]
-
 export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation('cog')
+
+  const STEPS = [
+    { id: 1, name: t('wizard.steps.context.name'), description: t('wizard.steps.context.description') },
+    { id: 2, name: t('wizard.steps.cog.name'), description: t('wizard.steps.cog.description') },
+    { id: 3, name: t('wizard.steps.capabilities.name'), description: t('wizard.steps.capabilities.description') },
+    { id: 4, name: t('wizard.steps.requirements.name'), description: t('wizard.steps.requirements.description') },
+    { id: 5, name: t('wizard.steps.vulnerabilities.name'), description: t('wizard.steps.vulnerabilities.description') },
+    { id: 6, name: t('wizard.steps.review.name'), description: t('wizard.steps.review.description') },
+  ]
+
+  const ACTOR_CATEGORIES: { value: ActorCategory; label: string }[] = [
+    { value: 'friendly', label: t('actorCategories.friendly') },
+    { value: 'adversary', label: t('actorCategories.adversary') },
+    { value: 'host_nation', label: t('actorCategories.hostNation') },
+    { value: 'third_party', label: t('actorCategories.thirdParty') },
+  ]
+
+  const DIMEFIL_DOMAINS: { value: DIMEFILDomain; label: string }[] = [
+    { value: 'diplomatic', label: t('domains.diplomatic') },
+    { value: 'information', label: t('domains.information') },
+    { value: 'military', label: t('domains.military') },
+    { value: 'economic', label: t('domains.economic') },
+    { value: 'financial', label: t('domains.financial') },
+    { value: 'intelligence', label: t('domains.intelligence') },
+    { value: 'law_enforcement', label: t('domains.lawEnforcement') },
+    { value: 'cyber', label: t('domains.cyber') },
+    { value: 'space', label: t('domains.space') },
+  ]
   const [currentStep, setCurrentStep] = useState(1)
   const [saving, setSaving] = useState(false)
 
@@ -253,7 +255,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
   }
 
   const switchToAdvancedMode = () => {
-    if (confirm('Switch to advanced mode? Your current progress will be transferred to the advanced form.')) {
+    if (confirm(t('wizard.navigation.switchToAdvanced'))) {
       // Build COG data from wizard state
       const cogId = crypto.randomUUID()
       const capId = crypto.randomUUID()
@@ -348,16 +350,16 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
           <div className="flex items-center gap-4">
             <Button variant="outline" onClick={() => navigate(backPath)}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              {t('wizard.navigation.back')}
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">COG Analysis Wizard</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Step-by-step guided analysis</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('wizard.title')}</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t('wizard.subtitle')}</p>
             </div>
           </div>
           <Button variant="outline" onClick={switchToAdvancedMode}>
             <FileEdit className="h-4 w-4 mr-2" />
-            Advanced Mode
+            {t('wizard.buttons.advancedMode')}
           </Button>
         </div>
 
@@ -365,9 +367,9 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Step {currentStep} of {STEPS.length}: {STEPS[currentStep - 1].name}
+              {t('wizard.navigation.stepOf', { current: currentStep, total: STEPS.length, name: STEPS[currentStep - 1].name })}
             </div>
-            <div className="text-sm text-gray-500">{Math.round(progress)}% Complete</div>
+            <div className="text-sm text-gray-500">{Math.round(progress)}% {t('wizard.progressComplete')}</div>
           </div>
           <Progress value={progress} className="h-2" />
 
@@ -418,86 +420,86 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                 <Alert>
                   <Lightbulb className="h-4 w-4" />
                   <AlertDescription>
-                    Set the operational context for your analysis. This frames the entire COG assessment.
+                    {t('wizard.step1.alert')}
                   </AlertDescription>
                 </Alert>
 
                 <div className="space-y-4">
                   <div>
-                    <Label>Analysis Title *</Label>
-                    <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Adversary Command & Control Analysis" />
+                    <Label>{t('wizard.step1.titleRequired')}</Label>
+                    <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('wizard.step1.titlePlaceholder')} />
                   </div>
 
                   <div>
-                    <Label>Description</Label>
+                    <Label>{t('wizard.step1.descriptionLabel')}</Label>
                     <Textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Brief description of this analysis"
+                      placeholder={t('wizard.step1.descriptionPlaceholder')}
                       rows={2}
                     />
                   </div>
 
                   <div>
-                    <Label>🎯 What is your analysis objective? *</Label>
+                    <Label>{t('wizard.step1.objectiveRequired')}</Label>
                     <Textarea
                       value={operationalContext.objective}
                       onChange={(e) =>
                         setOperationalContext({ ...operationalContext, objective: e.target.value })
                       }
-                      placeholder="Identify and prioritize adversary command and control vulnerabilities..."
+                      placeholder={t('wizard.step1.objectivePlaceholder')}
                       rows={3}
                     />
                   </div>
 
                   <div>
-                    <Label>💥 What impact do we want to achieve? *</Label>
+                    <Label>{t('wizard.step1.impactRequired')}</Label>
                     <Textarea
                       value={operationalContext.desired_impact}
                       onChange={(e) =>
                         setOperationalContext({ ...operationalContext, desired_impact: e.target.value })
                       }
-                      placeholder="Disrupt adversary ability to coordinate forces..."
+                      placeholder={t('wizard.step1.impactPlaceholder')}
                       rows={3}
                     />
                   </div>
 
                   <div>
-                    <Label>👥 Who are we? (Friendly forces) *</Label>
+                    <Label>{t('wizard.step1.identityRequired')}</Label>
                     <Input
                       value={operationalContext.our_identity}
                       onChange={(e) =>
                         setOperationalContext({ ...operationalContext, our_identity: e.target.value })
                       }
-                      placeholder="Joint Task Force with multi-domain capabilities"
+                      placeholder={t('wizard.step1.identityPlaceholder')}
                     />
                   </div>
 
                   <div>
-                    <Label>🌍 Where are we operating? (PMESII-PT)</Label>
+                    <Label>{t('wizard.step1.environmentLabel')}</Label>
                     <Textarea
                       value={operationalContext.operating_environment}
                       onChange={(e) =>
                         setOperationalContext({ ...operationalContext, operating_environment: e.target.value })
                       }
-                      placeholder="Theater-level operations against peer adversary..."
+                      placeholder={t('wizard.step1.environmentPlaceholder')}
                       rows={2}
                     />
                   </div>
 
                   <div>
-                    <Label>⏰ Operational Timeframe</Label>
+                    <Label>{t('wizard.step1.timeframeLabel')}</Label>
                     <Input
                       value={operationalContext.timeframe}
                       onChange={(e) =>
                         setOperationalContext({ ...operationalContext, timeframe: e.target.value })
                       }
-                      placeholder="30-45 days from assessment to decision point"
+                      placeholder={t('wizard.step1.timeframePlaceholder')}
                     />
                   </div>
 
                   <div>
-                    <Label>Strategic Level</Label>
+                    <Label>{t('wizard.step1.strategicLevelLabel')}</Label>
                     <Select
                       value={operationalContext.strategic_level}
                       onValueChange={(value: any) =>
@@ -508,9 +510,9 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="tactical">Tactical</SelectItem>
-                        <SelectItem value="operational">Operational</SelectItem>
-                        <SelectItem value="strategic">Strategic</SelectItem>
+                        <SelectItem value="tactical">{t('wizard.step1.strategicLevels.tactical')}</SelectItem>
+                        <SelectItem value="operational">{t('wizard.step1.strategicLevels.operational')}</SelectItem>
+                        <SelectItem value="strategic">{t('wizard.step1.strategicLevels.strategic')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -524,13 +526,13 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                 <Alert>
                   <Lightbulb className="h-4 w-4" />
                   <AlertDescription>
-                    Identify the primary Center of Gravity. A COG is a source of power that provides moral or physical strength, freedom of action, or will to act.
+                    {t('wizard.step2.alert')}
                   </AlertDescription>
                 </Alert>
 
                 <div className="space-y-4">
                   <div>
-                    <Label>Actor Category</Label>
+                    <Label>{t('wizard.step2.actorLabel')}</Label>
                     <Select value={cogActor} onValueChange={(value: ActorCategory) => setCogActor(value)}>
                       <SelectTrigger>
                         <SelectValue />
@@ -546,7 +548,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                   </div>
 
                   <div>
-                    <Label>DIMEFIL Domain</Label>
+                    <Label>{t('wizard.step2.domainLabel')}</Label>
                     <Select value={cogDomain} onValueChange={(value: DIMEFILDomain) => setCogDomain(value)}>
                       <SelectTrigger>
                         <SelectValue />
@@ -562,21 +564,21 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                   </div>
 
                   <div>
-                    <Label>📝 What is this Center of Gravity? *</Label>
+                    <Label>{t('wizard.step2.descriptionRequired')}</Label>
                     <Textarea
                       value={cogDescription}
                       onChange={(e) => setCogDescription(e.target.value)}
-                      placeholder="Integrated Command and Control System enabling synchronized multi-domain operations"
+                      placeholder={t('wizard.step2.descriptionPlaceholder')}
                       rows={3}
                     />
                   </div>
 
                   <div>
-                    <Label>🤔 Why is this a COG? (Rationale) *</Label>
+                    <Label>{t('wizard.step2.rationaleRequired')}</Label>
                     <Textarea
                       value={cogRationale}
                       onChange={(e) => setCogRationale(e.target.value)}
-                      placeholder="Without this C2 system, adversary cannot coordinate air, ground, and naval forces effectively..."
+                      placeholder={t('wizard.step2.rationalePlaceholder')}
                       rows={4}
                     />
                   </div>
@@ -600,7 +602,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                         setCogDomain(suggestion.domain as DIMEFILDomain)
                         setCogRationale(suggestion.rationale)
                       }}
-                      buttonText="✨ Suggest COG"
+                      buttonText={t('wizard.step2.suggestCOG')}
                     />
 
                     {cogDescription && (
@@ -627,13 +629,13 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                             canBeExploited: validation.criteria.exploitable.passes,
                           })
                         }}
-                        buttonText="🔍 Validate COG"
+                        buttonText={t('wizard.step2.validateCOG')}
                       />
                     )}
                   </div>
 
                   <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                    <Label className="text-sm font-semibold mb-3 block">✅ COG Validation Checklist</Label>
+                    <Label className="text-sm font-semibold mb-3 block">{t('wizard.step2.validationTitle')}</Label>
                     <div className="space-y-2">
                       <div className="flex items-start gap-2">
                         <Checkbox
@@ -643,7 +645,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                           }
                         />
                         <label className="text-sm">
-                          If neutralized, would this critically degrade the actor's ability to achieve objectives?
+                          {t('wizard.step2.validationChecks.criticallyDegrades')}
                         </label>
                       </div>
                       <div className="flex items-start gap-2">
@@ -653,7 +655,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                             setCogValidation({ ...cogValidation, sourceOfPower: !!checked })
                           }
                         />
-                        <label className="text-sm">Is this truly a source of power (not just important)?</label>
+                        <label className="text-sm">{t('wizard.step2.validationChecks.sourceOfPower')}</label>
                       </div>
                       <div className="flex items-start gap-2">
                         <Checkbox
@@ -662,7 +664,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                             setCogValidation({ ...cogValidation, rightLevel: !!checked })
                           }
                         />
-                        <label className="text-sm">Is this at the right level of analysis?</label>
+                        <label className="text-sm">{t('wizard.step2.validationChecks.rightLevel')}</label>
                       </div>
                       <div className="flex items-start gap-2">
                         <Checkbox
@@ -672,7 +674,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                           }
                         />
                         <label className="text-sm">
-                          Can this be protected/exploited through its critical requirements and vulnerabilities?
+                          {t('wizard.step2.validationChecks.canBeExploited')}
                         </label>
                       </div>
                     </div>
@@ -682,7 +684,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
-                        Complete the validation checklist to ensure this is a valid COG. You can proceed but validation is recommended.
+                        {t('wizard.step2.validationWarning')}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -696,7 +698,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                 <Alert>
                   <Lightbulb className="h-4 w-4" />
                   <AlertDescription>
-                    Map critical capabilities - what can the COG DO? Use action verbs (coordinate, project, influence, etc.)
+                    {t('wizard.step3.alert')}
                   </AlertDescription>
                 </Alert>
 
@@ -705,7 +707,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                     <Card key={index} className="bg-gray-50 dark:bg-gray-900">
                       <CardContent className="pt-4 space-y-3">
                         <div>
-                          <Label>⚡ Critical Capability {index + 1} (Action/Verb)</Label>
+                          <Label>{t('wizard.step3.capabilityLabel', { number: index + 1 })}</Label>
                           <Input
                             value={cap.capability}
                             onChange={(e) => {
@@ -713,11 +715,11 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                               updated[index].capability = e.target.value
                               setCapabilities(updated)
                             }}
-                            placeholder="e.g., Coordinate multi-domain strike operations"
+                            placeholder={t('wizard.step3.capabilityPlaceholder')}
                           />
                         </div>
                         <div>
-                          <Label>How does this work?</Label>
+                          <Label>{t('wizard.step3.descriptionLabel')}</Label>
                           <Textarea
                             value={cap.description}
                             onChange={(e) => {
@@ -725,7 +727,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                               updated[index].description = e.target.value
                               setCapabilities(updated)
                             }}
-                            placeholder="Describe how this capability functions..."
+                            placeholder={t('wizard.step3.descriptionPlaceholder')}
                             rows={2}
                           />
                         </div>
@@ -735,7 +737,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                             size="sm"
                             onClick={() => setCapabilities(capabilities.filter((_, i) => i !== index))}
                           >
-                            Remove
+                            {t('wizard.step3.removeButton')}
                           </Button>
                         )}
                       </CardContent>
@@ -746,7 +748,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                       variant="outline"
                       onClick={() => setCapabilities([...capabilities, { id: crypto.randomUUID(), capability: '', description: '' }])}
                     >
-                      + Add Another Capability
+                      {t('wizard.step3.addButton')}
                     </Button>
 
                     {cogDescription && (
@@ -772,7 +774,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                           }))
                           setCapabilities([...capabilities.filter(c => c.capability), ...newCapabilities])
                         }}
-                        buttonText="✨ Generate Capabilities"
+                        buttonText={t('wizard.step3.generateButton')}
                       />
                     )}
                   </div>
@@ -781,7 +783,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
-                        Please complete at least one capability with both the capability name and description before proceeding.
+                        {t('wizard.step3.validationError')}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -795,7 +797,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                 <Alert>
                   <Lightbulb className="h-4 w-4" />
                   <AlertDescription>
-                    Identify critical requirements - what does the COG NEED? Focus on resources, conditions, or infrastructure.
+                    {t('wizard.step4.alert')}
                   </AlertDescription>
                 </Alert>
 
@@ -804,7 +806,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                     <Card key={index} className="bg-gray-50 dark:bg-gray-900">
                       <CardContent className="pt-4 space-y-3">
                         <div>
-                          <Label>📋 Critical Requirement {index + 1} (Noun/Resource)</Label>
+                          <Label>{t('wizard.step4.requirementLabel', { number: index + 1 })}</Label>
                           <Input
                             value={req.requirement}
                             onChange={(e) => {
@@ -812,11 +814,11 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                               updated[index].requirement = e.target.value
                               setRequirements(updated)
                             }}
-                            placeholder="e.g., Redundant communication network"
+                            placeholder={t('wizard.step4.requirementPlaceholder')}
                           />
                         </div>
                         <div>
-                          <Label>Requirement Type</Label>
+                          <Label>{t('wizard.step4.typeLabel')}</Label>
                           <Select
                             value={req.type}
                             onValueChange={(value) => {
@@ -829,17 +831,17 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="personnel">Personnel</SelectItem>
-                              <SelectItem value="equipment">Equipment</SelectItem>
-                              <SelectItem value="logistics">Logistics</SelectItem>
-                              <SelectItem value="information">Information</SelectItem>
-                              <SelectItem value="infrastructure">Infrastructure</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
+                              <SelectItem value="personnel">{t('wizard.step4.types.personnel')}</SelectItem>
+                              <SelectItem value="equipment">{t('wizard.step4.types.equipment')}</SelectItem>
+                              <SelectItem value="logistics">{t('wizard.step4.types.logistics')}</SelectItem>
+                              <SelectItem value="information">{t('wizard.step4.types.information')}</SelectItem>
+                              <SelectItem value="infrastructure">{t('wizard.step4.types.infrastructure')}</SelectItem>
+                              <SelectItem value="other">{t('wizard.step4.types.other')}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div>
-                          <Label>🔗 Supports Which Capability? *</Label>
+                          <Label>{t('wizard.step4.capabilityLinkRequired')}</Label>
                           <Select
                             value={req.capability_id}
                             onValueChange={(value) => {
@@ -849,20 +851,20 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                             }}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select capability..." />
+                              <SelectValue placeholder={t('wizard.step4.capabilityLinkPlaceholder')} />
                             </SelectTrigger>
                             <SelectContent>
                               {capabilities
                                 .filter(c => c.capability)
                                 .map((cap) => (
                                   <SelectItem key={cap.id} value={cap.id}>
-                                    {cap.capability || `Capability ${capabilities.indexOf(cap) + 1}`}
+                                    {cap.capability || t('wizard.step4.capabilityItem', { number: capabilities.indexOf(cap) + 1 })}
                                   </SelectItem>
                                 ))}
                             </SelectContent>
                           </Select>
                           {!req.capability_id && (
-                            <p className="text-xs text-red-600 mt-1">⚠️ Must select a capability</p>
+                            <p className="text-xs text-red-600 mt-1">{t('wizard.step4.capabilityLinkWarning')}</p>
                           )}
                         </div>
                         {index > 0 && (
@@ -871,7 +873,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                             size="sm"
                             onClick={() => setRequirements(requirements.filter((_, i) => i !== index))}
                           >
-                            Remove
+                            {t('wizard.step4.removeButton')}
                           </Button>
                         )}
                       </CardContent>
@@ -882,7 +884,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                       variant="outline"
                       onClick={() => setRequirements([...requirements, { id: crypto.randomUUID(), requirement: '', type: 'other', capability_id: '' }])}
                     >
-                      + Add Another Requirement
+                      {t('wizard.step4.addButton')}
                     </Button>
 
                     {/* Generate requirements for first capability with data */}
@@ -912,7 +914,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                           }))
                           setRequirements([...requirements.filter(r => r.requirement), ...newRequirements])
                         }}
-                        buttonText="✨ Generate Requirements"
+                        buttonText={t('wizard.step4.generateButton')}
                       />
                     )}
                   </div>
@@ -926,7 +928,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                 <Alert>
                   <Lightbulb className="h-4 w-4" />
                   <AlertDescription>
-                    Assess critical vulnerabilities - what are the WEAKNESSES? Identify specific exploitable aspects of requirements.
+                    {t('wizard.step5.alert')}
                   </AlertDescription>
                 </Alert>
 
@@ -935,7 +937,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                     <Card key={index} className="bg-gray-50 dark:bg-gray-900">
                       <CardContent className="pt-4 space-y-3">
                         <div>
-                          <Label>⚠️ Critical Vulnerability {index + 1}</Label>
+                          <Label>{t('wizard.step5.vulnerabilityLabel', { number: index + 1 })}</Label>
                           <Input
                             value={vuln.vulnerability}
                             onChange={(e) => {
@@ -943,11 +945,11 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                               updated[index].vulnerability = e.target.value
                               setVulnerabilities(updated)
                             }}
-                            placeholder="e.g., Single point of failure in communication hub"
+                            placeholder={t('wizard.step5.vulnerabilityPlaceholder')}
                           />
                         </div>
                         <div>
-                          <Label>Description & Exploitation Method</Label>
+                          <Label>{t('wizard.step5.descriptionLabel')}</Label>
                           <Textarea
                             value={vuln.description}
                             onChange={(e) => {
@@ -955,12 +957,12 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                               updated[index].description = e.target.value
                               setVulnerabilities(updated)
                             }}
-                            placeholder="Describe the vulnerability and how it could be exploited..."
+                            placeholder={t('wizard.step5.descriptionPlaceholder')}
                             rows={2}
                           />
                         </div>
                         <div>
-                          <Label>Vulnerability Type</Label>
+                          <Label>{t('wizard.step5.typeLabel')}</Label>
                           <Select
                             value={vuln.type}
                             onValueChange={(value) => {
@@ -973,17 +975,17 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="physical">Physical</SelectItem>
-                              <SelectItem value="cyber">Cyber</SelectItem>
-                              <SelectItem value="human">Human</SelectItem>
-                              <SelectItem value="logistical">Logistical</SelectItem>
-                              <SelectItem value="informational">Informational</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
+                              <SelectItem value="physical">{t('wizard.step5.types.physical')}</SelectItem>
+                              <SelectItem value="cyber">{t('wizard.step5.types.cyber')}</SelectItem>
+                              <SelectItem value="human">{t('wizard.step5.types.human')}</SelectItem>
+                              <SelectItem value="logistical">{t('wizard.step5.types.logistical')}</SelectItem>
+                              <SelectItem value="informational">{t('wizard.step5.types.informational')}</SelectItem>
+                              <SelectItem value="other">{t('wizard.step5.types.other')}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div>
-                          <Label>💡 What happens if exploited? (Expected Effect)</Label>
+                          <Label>{t('wizard.step5.expectedEffectRequired')}</Label>
                           <Textarea
                             value={vuln.expectedEffect}
                             onChange={(e) => {
@@ -991,12 +993,12 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                               updated[index].expectedEffect = e.target.value
                               setVulnerabilities(updated)
                             }}
-                            placeholder="Adversary loses primary C2 capability within 48 hours..."
+                            placeholder={t('wizard.step5.expectedEffectPlaceholder')}
                             rows={2}
                           />
                         </div>
                         <div>
-                          <Label>Recommended Actions (comma-separated)</Label>
+                          <Label>{t('wizard.step5.recommendedActionsLabel')}</Label>
                           <Input
                             value={vuln.recommendedActions}
                             onChange={(e) => {
@@ -1004,11 +1006,11 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                               updated[index].recommendedActions = e.target.value
                               setVulnerabilities(updated)
                             }}
-                            placeholder="Conduct detailed target analysis, Develop strike options, Coordinate with cyber command"
+                            placeholder={t('wizard.step5.recommendedActionsPlaceholder')}
                           />
                         </div>
                         <div>
-                          <Label>🔗 Exploits Which Requirements? * (Select at least one)</Label>
+                          <Label>{t('wizard.step5.requirementLinkRequired')}</Label>
                           <div className="space-y-2 p-3 border rounded-lg bg-white dark:bg-gray-950 max-h-48 overflow-y-auto">
                             {requirements
                               .filter(r => r.requirement)
@@ -1030,17 +1032,17 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                                   <label className="text-sm flex-1 cursor-pointer">
                                     {req.requirement}
                                     <Badge variant="outline" className="ml-2 text-xs">
-                                      {capabilities.find(c => c.id === req.capability_id)?.capability || 'Unknown Cap'}
+                                      {capabilities.find(c => c.id === req.capability_id)?.capability || t('wizard.step5.unknownCapability')}
                                     </Badge>
                                   </label>
                                 </div>
                               ))}
                             {requirements.filter(r => r.requirement).length === 0 && (
-                              <p className="text-sm text-muted-foreground">No requirements defined yet. Go back to Step 4 to add requirements.</p>
+                              <p className="text-sm text-muted-foreground">{t('wizard.step5.noRequirementsWarning')}</p>
                             )}
                           </div>
                           {vuln.requirement_ids.length === 0 && (
-                            <p className="text-xs text-red-600 mt-1">⚠️ Must select at least one requirement</p>
+                            <p className="text-xs text-red-600 mt-1">{t('wizard.step5.requirementLinkWarning')}</p>
                           )}
                         </div>
                         {index > 0 && (
@@ -1049,7 +1051,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                             size="sm"
                             onClick={() => setVulnerabilities(vulnerabilities.filter((_, i) => i !== index))}
                           >
-                            Remove
+                            {t('wizard.step5.removeButton')}
                           </Button>
                         )}
                       </CardContent>
@@ -1065,7 +1067,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                         ])
                       }
                     >
-                      + Add Another Vulnerability
+                      {t('wizard.step5.addButton')}
                     </Button>
 
                     {/* Generate vulnerabilities for first requirement with data */}
@@ -1102,7 +1104,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                           }))
                           setVulnerabilities([...vulnerabilities.filter(v => v.vulnerability), ...newVulnerabilities])
                         }}
-                        buttonText="✨ Generate Vulnerabilities"
+                        buttonText={t('wizard.step5.generateButton')}
                       />
                     )}
                   </div>
@@ -1116,28 +1118,28 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                 <Alert className="bg-green-50 dark:bg-green-950 border-green-200">
                   <Check className="h-4 w-4 text-green-600" />
                   <AlertDescription className="text-green-900 dark:text-green-100">
-                    Review your COG analysis before saving. You can edit details later in advanced mode.
+                    {t('wizard.step6.alert')}
                   </AlertDescription>
                 </Alert>
 
                 <div className="space-y-4">
                   <div>
-                    <h3 className="font-semibold text-lg mb-2">Analysis Summary</h3>
+                    <h3 className="font-semibold text-lg mb-2">{t('wizard.step6.summaryTitle')}</h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">Title:</span>
+                        <span className="text-gray-600 dark:text-gray-400">{t('wizard.step6.titleLabel')}</span>
                         <p className="font-medium">{title}</p>
                       </div>
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">Strategic Level:</span>
+                        <span className="text-gray-600 dark:text-gray-400">{t('wizard.step6.strategicLevelLabel')}</span>
                         <p className="font-medium capitalize">{operationalContext.strategic_level}</p>
                       </div>
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">COG:</span>
-                        <p className="font-medium">{cogDescription || 'Not specified'}</p>
+                        <span className="text-gray-600 dark:text-gray-400">{t('wizard.step6.cogLabel')}</span>
+                        <p className="font-medium">{cogDescription || t('wizard.step6.notSpecified')}</p>
                       </div>
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">Domain:</span>
+                        <span className="text-gray-600 dark:text-gray-400">{t('wizard.step6.domainLabel')}</span>
                         <Badge variant="outline" className="capitalize">
                           {cogDomain}
                         </Badge>
@@ -1150,26 +1152,26 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                       <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {capabilities.filter((c) => c.capability).length}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Capabilities</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{t('wizard.step6.capabilitiesCount')}</div>
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded">
                       <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                         {requirements.filter((r) => r.requirement).length}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Requirements</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{t('wizard.step6.requirementsCount')}</div>
                     </div>
                     <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded">
                       <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                         {vulnerabilities.filter((v) => v.vulnerability).length}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Vulnerabilities</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{t('wizard.step6.vulnerabilitiesCount')}</div>
                     </div>
                   </div>
 
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      After saving, you can refine scoring, add additional COGs, and link evidence in advanced mode.
+                      {t('wizard.step6.advancedModeNote')}
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -1182,17 +1184,17 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
         <div className="flex justify-between">
           <Button variant="outline" onClick={handlePrevious} disabled={currentStep === 1}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Previous
+            {t('wizard.buttons.previous')}
           </Button>
 
           {currentStep < STEPS.length ? (
             <Button onClick={handleNext} disabled={!canProceed()}>
-              Next
+              {t('wizard.buttons.next')}
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
             <Button onClick={handleSave} disabled={!canProceed() || saving}>
-              {saving ? 'Saving...' : 'Save Analysis'}
+              {saving ? t('wizard.buttons.saving') : t('wizard.buttons.save')}
             </Button>
           )}
         </div>

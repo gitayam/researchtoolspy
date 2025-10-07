@@ -310,5 +310,196 @@
     "none": "Ninguno",
     "notAvailable": "N/D",
     "total": "Total"
+  },
+
+  "wizard": {
+    "title": "Asistente de Análisis COG",
+    "subtitle": "Análisis guiado paso a paso",
+    "progressComplete": "Completado",
+
+    "steps": {
+      "context": {
+        "name": "Contexto",
+        "description": "Establecer contexto operacional"
+      },
+      "cog": {
+        "name": "COG",
+        "description": "Identificar Centros de Gravedad"
+      },
+      "capabilities": {
+        "name": "Capacidades",
+        "description": "Mapear capacidades críticas"
+      },
+      "requirements": {
+        "name": "Requisitos",
+        "description": "Identificar requisitos críticos"
+      },
+      "vulnerabilities": {
+        "name": "Vulnerabilidades",
+        "description": "Evaluar vulnerabilidades"
+      },
+      "review": {
+        "name": "Revisar",
+        "description": "Revisar y guardar"
+      }
+    },
+
+    "navigation": {
+      "back": "Atrás",
+      "next": "Siguiente",
+      "previous": "Anterior",
+      "advancedMode": "Modo Avanzado",
+      "switchToAdvanced": "¿Cambiar al modo avanzado? Su progreso actual se transferirá al formulario avanzado.",
+      "stepOf": "Paso {{current}} de {{total}}: {{name}}"
+    },
+
+    "step1": {
+      "alert": "Establezca el contexto operacional para su análisis. Esto enmarca toda la evaluación COG.",
+      "titleLabel": "Título del Análisis",
+      "titleRequired": "Título del Análisis *",
+      "titlePlaceholder": "ej., Análisis de Comando y Control del Adversario",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Breve descripción de este análisis",
+      "objectiveLabel": "¿Cuál es el objetivo de su análisis?",
+      "objectiveRequired": "🎯 ¿Cuál es el objetivo de su análisis? *",
+      "objectivePlaceholder": "Identificar y priorizar vulnerabilidades del comando y control adversario...",
+      "impactLabel": "¿Qué impacto queremos lograr?",
+      "impactRequired": "💥 ¿Qué impacto queremos lograr? *",
+      "impactPlaceholder": "Interrumpir la capacidad del adversario para coordinar fuerzas...",
+      "identityLabel": "¿Quiénes somos? (Fuerzas amigas)",
+      "identityRequired": "👥 ¿Quiénes somos? (Fuerzas amigas) *",
+      "identityPlaceholder": "Fuerza de Tarea Conjunta con capacidades multidominio",
+      "environmentLabel": "¿Dónde operamos? (PMESII-PT)",
+      "environmentPlaceholder": "Operaciones a nivel teatro contra adversario par...",
+      "timeframeLabel": "Marco Temporal Operacional",
+      "timeframePlaceholder": "30-45 días desde la evaluación hasta el punto de decisión",
+      "strategicLevelLabel": "Nivel Estratégico",
+      "strategicLevels": {
+        "tactical": "Táctico",
+        "operational": "Operacional",
+        "strategic": "Estratégico"
+      }
+    },
+
+    "step2": {
+      "alert": "Identifique el Centro de Gravedad principal. Un COG es una fuente de poder que proporciona fuerza moral o física, libertad de acción, o voluntad de actuar.",
+      "actorLabel": "Categoría de Actor",
+      "domainLabel": "Dominio DIMEFIL",
+      "descriptionLabel": "¿Qué es este Centro de Gravedad?",
+      "descriptionRequired": "📝 ¿Qué es este Centro de Gravedad? *",
+      "descriptionPlaceholder": "Sistema Integrado de Comando y Control que permite operaciones multidominio sincronizadas",
+      "rationaleLabel": "¿Por qué es esto un COG? (Justificación)",
+      "rationaleRequired": "🤔 ¿Por qué es esto un COG? (Justificación) *",
+      "rationalePlaceholder": "Sin este sistema C2, el adversario no puede coordinar fuerzas aéreas, terrestres y navales efectivamente...",
+      "suggestCOG": "✨ Sugerir COG",
+      "validateCOG": "🔍 Validar COG",
+      "validationTitle": "✅ Lista de Verificación de Validación COG",
+      "validationChecks": {
+        "criticallyDegrades": "Si se neutraliza, ¿degradaría críticamente la capacidad del actor para lograr objetivos?",
+        "sourceOfPower": "¿Es esto verdaderamente una fuente de poder (no solo importante)?",
+        "rightLevel": "¿Está esto en el nivel correcto de análisis?",
+        "canBeExploited": "¿Puede protegerse/explotarse esto a través de sus requisitos y vulnerabilidades críticas?"
+      },
+      "validationWarning": "Complete la lista de verificación de validación para asegurar que este es un COG válido. Puede continuar pero se recomienda la validación."
+    },
+
+    "step3": {
+      "alert": "Mapee las capacidades críticas - ¿qué PUEDE HACER el COG? Use verbos de acción (coordinar, proyectar, influir, etc.)",
+      "capabilityNumber": "Capacidad Crítica {{number}} (Acción/Verbo)",
+      "capabilityLabel": "⚡ Capacidad Crítica {{number}} (Acción/Verbo)",
+      "capabilityPlaceholder": "ej., Coordinar operaciones de ataque multidominio",
+      "descriptionLabel": "¿Cómo funciona esto?",
+      "descriptionPlaceholder": "Describa cómo funciona esta capacidad...",
+      "removeButton": "Eliminar",
+      "addButton": "+ Agregar Otra Capacidad",
+      "generateButton": "✨ Generar Capacidades",
+      "validationError": "Por favor complete al menos una capacidad con el nombre y descripción antes de continuar."
+    },
+
+    "step4": {
+      "alert": "Identifique los requisitos críticos - ¿qué NECESITA el COG? Enfóquese en recursos, condiciones o infraestructura.",
+      "requirementNumber": "Requisito Crítico {{number}} (Sustantivo/Recurso)",
+      "requirementLabel": "📋 Requisito Crítico {{number}} (Sustantivo/Recurso)",
+      "requirementPlaceholder": "ej., Red de comunicaciones redundante",
+      "typeLabel": "Tipo de Requisito",
+      "types": {
+        "personnel": "Personal",
+        "equipment": "Equipo",
+        "logistics": "Logística",
+        "information": "Información",
+        "infrastructure": "Infraestructura",
+        "other": "Otro"
+      },
+      "capabilityLinkLabel": "¿Apoya a Qué Capacidad?",
+      "capabilityLinkRequired": "🔗 ¿Apoya a Qué Capacidad? *",
+      "capabilityLinkPlaceholder": "Seleccionar capacidad...",
+      "capabilityLinkWarning": "⚠️ Debe seleccionar una capacidad",
+      "capabilityItem": "Capacidad {{number}}",
+      "removeButton": "Eliminar",
+      "addButton": "+ Agregar Otro Requisito",
+      "generateButton": "✨ Generar Requisitos"
+    },
+
+    "step5": {
+      "alert": "Evalúe las vulnerabilidades críticas - ¿cuáles son las DEBILIDADES? Identifique aspectos explotables específicos de los requisitos.",
+      "vulnerabilityNumber": "Vulnerabilidad Crítica {{number}}",
+      "vulnerabilityLabel": "⚠️ Vulnerabilidad Crítica {{number}}",
+      "vulnerabilityPlaceholder": "ej., Punto único de falla en el nodo de comunicaciones",
+      "descriptionLabel": "Descripción y Método de Explotación",
+      "descriptionPlaceholder": "Describa la vulnerabilidad y cómo podría explotarse...",
+      "typeLabel": "Tipo de Vulnerabilidad",
+      "types": {
+        "physical": "Física",
+        "cyber": "Cibernética",
+        "human": "Humana",
+        "logistical": "Logística",
+        "informational": "Informacional",
+        "other": "Otra"
+      },
+      "expectedEffectLabel": "¿Qué sucede si se explota? (Efecto Esperado)",
+      "expectedEffectRequired": "💡 ¿Qué sucede si se explota? (Efecto Esperado)",
+      "expectedEffectPlaceholder": "El adversario pierde capacidad C2 primaria en 48 horas...",
+      "recommendedActionsLabel": "Acciones Recomendadas (separadas por comas)",
+      "recommendedActionsPlaceholder": "Realizar análisis de objetivo detallado, Desarrollar opciones de ataque, Coordinar con comando cibernético",
+      "requirementLinkLabel": "¿Explota Qué Requisitos?",
+      "requirementLinkRequired": "🔗 ¿Explota Qué Requisitos? * (Seleccione al menos uno)",
+      "requirementLinkWarning": "⚠️ Debe seleccionar al menos un requisito",
+      "noRequirementsWarning": "No hay requisitos definidos aún. Vuelva al Paso 4 para agregar requisitos.",
+      "unknownCapability": "Cap. Desconocida",
+      "removeButton": "Eliminar",
+      "addButton": "+ Agregar Otra Vulnerabilidad",
+      "generateButton": "✨ Generar Vulnerabilidades"
+    },
+
+    "step6": {
+      "alert": "Revise su análisis COG antes de guardar. Puede editar los detalles más tarde en modo avanzado.",
+      "summaryTitle": "Resumen del Análisis",
+      "titleLabel": "Título:",
+      "strategicLevelLabel": "Nivel Estratégico:",
+      "cogLabel": "COG:",
+      "domainLabel": "Dominio:",
+      "notSpecified": "No especificado",
+      "capabilitiesCount": "Capacidades",
+      "requirementsCount": "Requisitos",
+      "vulnerabilitiesCount": "Vulnerabilidades",
+      "advancedModeNote": "Después de guardar, puede refinar la puntuación, agregar COGs adicionales y vincular evidencia en modo avanzado."
+    },
+
+    "buttons": {
+      "back": "Atrás",
+      "next": "Siguiente",
+      "previous": "Anterior",
+      "save": "Guardar Análisis",
+      "saving": "Guardando...",
+      "advancedMode": "Modo Avanzado"
+    },
+
+    "validation": {
+      "requiredFields": "Por favor complete todos los campos requeridos antes de continuar.",
+      "atLeastOneCapability": "Por favor agregue al menos una capacidad.",
+      "atLeastOneRequirement": "Por favor agregue al menos un requisito.",
+      "atLeastOneVulnerability": "Por favor agregue al menos una vulnerabilidad.",
+      "cogValidationIncomplete": "Complete la lista de verificación de validación para asegurar que este es un COG válido."
+    }
   }
 }

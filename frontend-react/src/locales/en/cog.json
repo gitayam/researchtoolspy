@@ -310,5 +310,196 @@
     "none": "None",
     "notAvailable": "N/A",
     "total": "Total"
+  },
+
+  "wizard": {
+    "title": "COG Analysis Wizard",
+    "subtitle": "Step-by-step guided analysis",
+    "progressComplete": "Complete",
+
+    "steps": {
+      "context": {
+        "name": "Context",
+        "description": "Set operational context"
+      },
+      "cog": {
+        "name": "COG",
+        "description": "Identify Centers of Gravity"
+      },
+      "capabilities": {
+        "name": "Capabilities",
+        "description": "Map critical capabilities"
+      },
+      "requirements": {
+        "name": "Requirements",
+        "description": "Identify critical requirements"
+      },
+      "vulnerabilities": {
+        "name": "Vulnerabilities",
+        "description": "Assess vulnerabilities"
+      },
+      "review": {
+        "name": "Review",
+        "description": "Review and save"
+      }
+    },
+
+    "navigation": {
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "advancedMode": "Advanced Mode",
+      "switchToAdvanced": "Switch to advanced mode? Your current progress will be transferred to the advanced form.",
+      "stepOf": "Step {{current}} of {{total}}: {{name}}"
+    },
+
+    "step1": {
+      "alert": "Set the operational context for your analysis. This frames the entire COG assessment.",
+      "titleLabel": "Analysis Title",
+      "titleRequired": "Analysis Title *",
+      "titlePlaceholder": "e.g., Adversary Command & Control Analysis",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Brief description of this analysis",
+      "objectiveLabel": "What is your analysis objective?",
+      "objectiveRequired": "🎯 What is your analysis objective? *",
+      "objectivePlaceholder": "Identify and prioritize adversary command and control vulnerabilities...",
+      "impactLabel": "What impact do we want to achieve?",
+      "impactRequired": "💥 What impact do we want to achieve? *",
+      "impactPlaceholder": "Disrupt adversary ability to coordinate forces...",
+      "identityLabel": "Who are we? (Friendly forces)",
+      "identityRequired": "👥 Who are we? (Friendly forces) *",
+      "identityPlaceholder": "Joint Task Force with multi-domain capabilities",
+      "environmentLabel": "Where are we operating? (PMESII-PT)",
+      "environmentPlaceholder": "Theater-level operations against peer adversary...",
+      "timeframeLabel": "Operational Timeframe",
+      "timeframePlaceholder": "30-45 days from assessment to decision point",
+      "strategicLevelLabel": "Strategic Level",
+      "strategicLevels": {
+        "tactical": "Tactical",
+        "operational": "Operational",
+        "strategic": "Strategic"
+      }
+    },
+
+    "step2": {
+      "alert": "Identify the primary Center of Gravity. A COG is a source of power that provides moral or physical strength, freedom of action, or will to act.",
+      "actorLabel": "Actor Category",
+      "domainLabel": "DIMEFIL Domain",
+      "descriptionLabel": "What is this Center of Gravity?",
+      "descriptionRequired": "📝 What is this Center of Gravity? *",
+      "descriptionPlaceholder": "Integrated Command and Control System enabling synchronized multi-domain operations",
+      "rationaleLabel": "Why is this a COG? (Rationale)",
+      "rationaleRequired": "🤔 Why is this a COG? (Rationale) *",
+      "rationalePlaceholder": "Without this C2 system, adversary cannot coordinate air, ground, and naval forces effectively...",
+      "suggestCOG": "✨ Suggest COG",
+      "validateCOG": "🔍 Validate COG",
+      "validationTitle": "✅ COG Validation Checklist",
+      "validationChecks": {
+        "criticallyDegrades": "If neutralized, would this critically degrade the actor's ability to achieve objectives?",
+        "sourceOfPower": "Is this truly a source of power (not just important)?",
+        "rightLevel": "Is this at the right level of analysis?",
+        "canBeExploited": "Can this be protected/exploited through its critical requirements and vulnerabilities?"
+      },
+      "validationWarning": "Complete the validation checklist to ensure this is a valid COG. You can proceed but validation is recommended."
+    },
+
+    "step3": {
+      "alert": "Map critical capabilities - what can the COG DO? Use action verbs (coordinate, project, influence, etc.)",
+      "capabilityNumber": "Critical Capability {{number}} (Action/Verb)",
+      "capabilityLabel": "⚡ Critical Capability {{number}} (Action/Verb)",
+      "capabilityPlaceholder": "e.g., Coordinate multi-domain strike operations",
+      "descriptionLabel": "How does this work?",
+      "descriptionPlaceholder": "Describe how this capability functions...",
+      "removeButton": "Remove",
+      "addButton": "+ Add Another Capability",
+      "generateButton": "✨ Generate Capabilities",
+      "validationError": "Please complete at least one capability with both the capability name and description before proceeding."
+    },
+
+    "step4": {
+      "alert": "Identify critical requirements - what does the COG NEED? Focus on resources, conditions, or infrastructure.",
+      "requirementNumber": "Critical Requirement {{number}} (Noun/Resource)",
+      "requirementLabel": "📋 Critical Requirement {{number}} (Noun/Resource)",
+      "requirementPlaceholder": "e.g., Redundant communication network",
+      "typeLabel": "Requirement Type",
+      "types": {
+        "personnel": "Personnel",
+        "equipment": "Equipment",
+        "logistics": "Logistics",
+        "information": "Information",
+        "infrastructure": "Infrastructure",
+        "other": "Other"
+      },
+      "capabilityLinkLabel": "Supports Which Capability?",
+      "capabilityLinkRequired": "🔗 Supports Which Capability? *",
+      "capabilityLinkPlaceholder": "Select capability...",
+      "capabilityLinkWarning": "⚠️ Must select a capability",
+      "capabilityItem": "Capability {{number}}",
+      "removeButton": "Remove",
+      "addButton": "+ Add Another Requirement",
+      "generateButton": "✨ Generate Requirements"
+    },
+
+    "step5": {
+      "alert": "Assess critical vulnerabilities - what are the WEAKNESSES? Identify specific exploitable aspects of requirements.",
+      "vulnerabilityNumber": "Critical Vulnerability {{number}}",
+      "vulnerabilityLabel": "⚠️ Critical Vulnerability {{number}}",
+      "vulnerabilityPlaceholder": "e.g., Single point of failure in communication hub",
+      "descriptionLabel": "Description & Exploitation Method",
+      "descriptionPlaceholder": "Describe the vulnerability and how it could be exploited...",
+      "typeLabel": "Vulnerability Type",
+      "types": {
+        "physical": "Physical",
+        "cyber": "Cyber",
+        "human": "Human",
+        "logistical": "Logistical",
+        "informational": "Informational",
+        "other": "Other"
+      },
+      "expectedEffectLabel": "What happens if exploited? (Expected Effect)",
+      "expectedEffectRequired": "💡 What happens if exploited? (Expected Effect)",
+      "expectedEffectPlaceholder": "Adversary loses primary C2 capability within 48 hours...",
+      "recommendedActionsLabel": "Recommended Actions (comma-separated)",
+      "recommendedActionsPlaceholder": "Conduct detailed target analysis, Develop strike options, Coordinate with cyber command",
+      "requirementLinkLabel": "Exploits Which Requirements?",
+      "requirementLinkRequired": "🔗 Exploits Which Requirements? * (Select at least one)",
+      "requirementLinkWarning": "⚠️ Must select at least one requirement",
+      "noRequirementsWarning": "No requirements defined yet. Go back to Step 4 to add requirements.",
+      "unknownCapability": "Unknown Cap",
+      "removeButton": "Remove",
+      "addButton": "+ Add Another Vulnerability",
+      "generateButton": "✨ Generate Vulnerabilities"
+    },
+
+    "step6": {
+      "alert": "Review your COG analysis before saving. You can edit details later in advanced mode.",
+      "summaryTitle": "Analysis Summary",
+      "titleLabel": "Title:",
+      "strategicLevelLabel": "Strategic Level:",
+      "cogLabel": "COG:",
+      "domainLabel": "Domain:",
+      "notSpecified": "Not specified",
+      "capabilitiesCount": "Capabilities",
+      "requirementsCount": "Requirements",
+      "vulnerabilitiesCount": "Vulnerabilities",
+      "advancedModeNote": "After saving, you can refine scoring, add additional COGs, and link evidence in advanced mode."
+    },
+
+    "buttons": {
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "save": "Save Analysis",
+      "saving": "Saving...",
+      "advancedMode": "Advanced Mode"
+    },
+
+    "validation": {
+      "requiredFields": "Please fill in all required fields before proceeding.",
+      "atLeastOneCapability": "Please add at least one capability.",
+      "atLeastOneRequirement": "Please add at least one requirement.",
+      "atLeastOneVulnerability": "Please add at least one vulnerability.",
+      "cogValidationIncomplete": "Complete the validation checklist to ensure this is a valid COG."
+    }
   }
 }
