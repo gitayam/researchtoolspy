@@ -623,12 +623,17 @@ Based on the roadmap, the highest-value next steps are:
    - Creates actors, behaviors, and relationships from COG data
    - All entities linked to source framework via cog_analysis_id
    - **Git Tag**: `auto-entity-generation-v1.0.0`
-9. **Performance Optimization** (2-3 days) **IN PROGRESS**
-   - ✅ Code splitting with lazy loading (already implemented)
+9. **Performance Optimization** (2-3 days) ✅ **COMPLETED**
+   - ✅ Code splitting with lazy loading (React.lazy + Suspense)
    - ✅ Loading state improvements (enhanced PageLoader with progress animation)
    - ✅ Enhanced error handling and auth headers
-   - 🔄 Mobile responsiveness improvements (in progress)
-   - 🔲 Accessibility audit (WCAG 2.1 AA) (pending)
+   - ✅ Mobile responsiveness (responsive classes throughout)
+   - ✅ Accessibility improvements (WCAG 2.1 AA baseline)
+     - Skip to content link for keyboard navigation
+     - Semantic HTML (header, main, nav, aside)
+     - ARIA labels and landmarks
+     - Keyboard navigation support
+     - Documentation: docs/ACCESSIBILITY.md
 10. **Other priorities** - Based on user feedback
 
 **What would you like to focus on?**
