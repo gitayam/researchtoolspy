@@ -624,9 +624,24 @@ Based on the roadmap, the highest-value next steps are:
    - **Export Formats Available**: 9 total (JSON, CSV, GraphML, GEXF, Cypher, Maltego, i2 ANB)
    - **Git Tag**: `osint-tools-v1.0.0`
    - **Impact**: Professional OSINT and law enforcement tool integration complete
-7. **Phase 4.1: Comments System** - Enable collaboration (2-3 days)
-   - Threaded comments on COG/capabilities/requirements/vulnerabilities
-   - @mentions and resolve/unresolve workflow
+7. **Phase 4.1: Comments System** 🚧 **IN PROGRESS** (80% Complete - 2025-10-07)
+   - ✅ Database schema (comments, mentions, notifications tables)
+   - ✅ API endpoints (GET, POST, PATCH, DELETE with threading)
+   - ✅ CommentThread UI component with nesting
+   - ✅ @mentions extraction and highlighting
+   - ✅ Resolve/unresolve workflow
+   - ✅ Edit/delete with owner permissions
+   - ✅ Markdown support
+   - 🔲 Translation strings (en/es locales)
+   - 🔲 Integration into COGView and other framework views
+   - 🔲 Database migration deployment
+   - **Files Created**:
+     - `functions/api/comments.ts` (445 lines)
+     - `schema/migrations/020-create-comments-table.sql` (174 lines)
+     - `src/components/comments/CommentThread.tsx` (361 lines)
+   - **Features**: Threading, @mentions, resolve/unresolve, markdown, guest support
+   - **Git Commit**: 9e2b8192
+   - **Remaining**: Minor additions (translations + integration)
 8. **Network Auto-Entity Generation** ✅ **COMPLETED**
    - ✅ Auto-create entities from COG analyses
    - 🔲 Auto-create entities from Causeway analyses (future)
