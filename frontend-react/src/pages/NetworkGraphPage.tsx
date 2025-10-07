@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { NetworkGraphCanvas } from '@/components/network/NetworkGraphCanvas'
 import { NetworkControls, type NetworkFilters } from '@/components/network/NetworkControls'
 import { NetworkExportDialog } from '@/components/network/NetworkExportDialog'
@@ -8,7 +8,8 @@ import { PathFinderDialog } from '@/components/network/PathFinderDialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Download, RefreshCw, BarChart3, Route } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { ArrowLeft, Download, RefreshCw, BarChart3, Route, Info } from 'lucide-react'
 import type { Relationship, EntityType } from '@/types/entities'
 
 interface NetworkNode {
@@ -35,6 +36,8 @@ const CONFIDENCE_ORDER: Record<string, number> = {
 
 export function NetworkGraphPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const [relationships, setRelationships] = useState<Relationship[]>([])
   const [entityNames, setEntityNames] = useState<Record<string, { name: string; type: EntityType }>>({})
   const [loading, setLoading] = useState(true)
@@ -44,7 +47,8 @@ export function NetworkGraphPage() {
   const [pathFinderOpen, setPathFinderOpen] = useState(false)
   const [showMetrics, setShowMetrics] = useState(true)
   const [highlightedPath, setHighlightedPath] = useState<string[]>([])
-
+  const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set())
+  const [sourceInfo, setSourceInfo] = useState<{ type: string; title?: string } | null>(null)
 
   const [filters, setFilters] = useState<NetworkFilters>({
     entityTypes: new Set(['ACTOR', 'SOURCE', 'EVENT', 'PLACE', 'BEHAVIOR', 'EVIDENCE']),
@@ -52,6 +56,33 @@ export function NetworkGraphPage() {
     searchQuery: '',
     showLabels: true
   })
+
+  // Parse deep linking parameters from URL or location state
+  useEffect(() => {
+    // Check location state first (from navigate with state)
+    const stateHighlight = (location.state as any)?.highlightEntities
+    const stateSource = (location.state as any)?.source
+
+    // Check URL search params as fallback
+    const paramHighlight = searchParams.get('highlight')
+    const paramSource = searchParams.get('source')
+    const paramTitle = searchParams.get('title')
+
+    // Priority: location state > URL params
+    const highlightIds = stateHighlight || (paramHighlight ? paramHighlight.split(',') : [])
+    const source = stateSource || paramSource
+
+    if (highlightIds.length > 0) {
+      setHighlightedNodes(new Set(highlightIds))
+    }
+
+    if (source) {
+      setSourceInfo({
+        type: source,
+        title: paramTitle || undefined
+      })
+    }
+  }, [location.state, searchParams])
 
   // Load all relationships
   useEffect(() => {
@@ -367,6 +398,7 @@ export function NetworkGraphPage() {
               <h1 className="text-2xl font-bold text-gray-900">Network Graph</h1>
               <p className="text-sm text-gray-500">
                 Interactive entity relationship visualization
+                {highlightedNodes.size > 0 && ` • ${highlightedNodes.size} entities highlighted`}
               </p>
             </div>
           </div>
@@ -390,6 +422,26 @@ export function NetworkGraphPage() {
         </div>
       </div>
 
+      {/* Source Info Alert */}
+      {sourceInfo && (
+        <div className="px-6 pt-4">
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Viewing entities from{' '}
+              <strong>
+                {sourceInfo.type === 'cog' && 'COG Analysis'}
+                {sourceInfo.type === 'causeway' && 'Causeway Analysis'}
+                {sourceInfo.type === 'framework' && 'Framework'}
+              </strong>
+              {sourceInfo.title && `: ${sourceInfo.title}`}
+              {' • '}
+              {highlightedNodes.size} {highlightedNodes.size === 1 ? 'entity' : 'entities'} highlighted
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Controls panel */}
@@ -412,6 +464,7 @@ export function NetworkGraphPage() {
             width={containerSize.width}
             height={containerSize.height}
             highlightedPath={highlightedPath}
+            highlightedNodes={highlightedNodes}
           />
         </div>
 

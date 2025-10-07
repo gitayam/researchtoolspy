@@ -786,7 +786,8 @@
       "logarithmicScoring": "Puntuación Logarítmica",
       "reference": "Referencia",
       "edit": "Editar",
-      "delete": "Eliminar"
+      "delete": "Eliminar",
+      "viewInNetwork": "Ver en Red"
     },
 
     "tabs": {

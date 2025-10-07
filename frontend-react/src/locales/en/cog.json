@@ -786,7 +786,8 @@
       "logarithmicScoring": "Logarithmic Scoring",
       "reference": "Reference",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "viewInNetwork": "View in Network"
     },
 
     "tabs": {
