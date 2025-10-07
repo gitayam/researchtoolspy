@@ -203,6 +203,8 @@ export function DashboardSidebar() {
                               <button
                                 onClick={() => toggleExpanded(child.name)}
                                 className="w-full text-left py-1.5 px-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-blue-600 dark:hover:text-blue-400"
+                                aria-expanded={expandedItems.includes(child.name)}
+                                aria-label={`${child.name} section`}
                               >
                                 {child.name}
                               </button>
