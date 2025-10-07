@@ -137,16 +137,27 @@ ${links.map((link, i) => `    <edge id="e${i}" source="${escapeXML(link.source)}
   }
 
   const exportAsGEXF = () => {
+    // Entity type color mapping (for Gephi visualization)
+    const ENTITY_TYPE_COLORS: Record<EntityType, {r: number, g: number, b: number}> = {
+      ACTOR: {r: 59, g: 130, b: 246},      // blue
+      SOURCE: {r: 139, g: 92, b: 246},     // purple
+      EVENT: {r: 239, g: 68, b: 68},       // red
+      PLACE: {r: 16, g: 185, b: 129},      // green
+      BEHAVIOR: {r: 245, g: 158, b: 11},   // orange
+      EVIDENCE: {r: 99, g: 102, b: 241}    // indigo
+    }
+
     const gexf = `<?xml version="1.0" encoding="UTF-8"?>
-<gexf xmlns="http://www.gexf.net/1.2draft" version="1.2">
+<gexf xmlns="http://www.gexf.net/1.3" xmlns:viz="http://www.gexf.net/1.3/viz" version="1.3">
   <meta lastmodifieddate="${new Date().toISOString()}">
-    <creator>OmniCore Network Analysis</creator>
-    <description>Entity Network Graph</description>
+    <creator>Research Tools - Network Analysis</creator>
+    <description>Entity Network Graph Export</description>
   </meta>
   <graph mode="static" defaultedgetype="directed">
     <attributes class="node">
       <attribute id="0" title="entity_type" type="string"/>
       <attribute id="1" title="connections" type="integer"/>
+      <attribute id="2" title="export_date" type="string"/>
     </attributes>
     <attributes class="edge">
       <attribute id="0" title="relationship_type" type="string"/>
@@ -155,22 +166,36 @@ ${links.map((link, i) => `    <edge id="e${i}" source="${escapeXML(link.source)}
     </attributes>
 
     <nodes>
-${nodes.map(node => `      <node id="${escapeXML(node.id)}" label="${escapeXML(node.name)}">
+${nodes.map(node => {
+      const color = ENTITY_TYPE_COLORS[node.entityType] || {r: 128, g: 128, b: 128}
+      const size = Math.max(5, Math.min(50, (node.val || 1) * 3)) // Size based on connections
+      return `      <node id="${escapeXML(node.id)}" label="${escapeXML(node.name)}">
         <attvalues>
           <attvalue for="0" value="${escapeXML(node.entityType)}"/>
           <attvalue for="1" value="${node.val || 0}"/>
+          <attvalue for="2" value="${new Date().toISOString()}"/>
         </attvalues>
-      </node>`).join('\n')}
+        <viz:color r="${color.r}" g="${color.g}" b="${color.b}"/>
+        <viz:size value="${size}"/>
+      </node>`
+    }).join('\n')}
     </nodes>
 
     <edges>
-${links.map((link, i) => `      <edge id="${i}" source="${escapeXML(link.source)}" target="${escapeXML(link.target)}">
+${links.map((link, i) => {
+      const confidence = link.confidence || 'UNKNOWN'
+      const edgeWeight = link.weight || 1
+      // Thicker lines for higher confidence
+      const thickness = confidence === 'CONFIRMED' ? 3 : confidence === 'PROBABLE' ? 2 : 1
+      return `      <edge id="${i}" source="${escapeXML(link.source)}" target="${escapeXML(link.target)}" weight="${edgeWeight}">
         <attvalues>
           <attvalue for="0" value="${escapeXML(link.relationshipType)}"/>
-          <attvalue for="1" value="${link.weight}"/>
-          <attvalue for="2" value="${escapeXML(link.confidence || 'UNKNOWN')}"/>
+          <attvalue for="1" value="${edgeWeight}"/>
+          <attvalue for="2" value="${escapeXML(confidence)}"/>
         </attvalues>
-      </edge>`).join('\n')}
+        <viz:thickness value="${thickness}"/>
+      </edge>`
+    }).join('\n')}
     </edges>
   </graph>
 </gexf>`
