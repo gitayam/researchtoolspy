@@ -312,6 +312,50 @@
     "total": "Total"
   },
 
+  "quickScore": {
+    "dialog": {
+      "title": "Quick-Score Mode",
+      "description": "Rapidly score all vulnerabilities using presets or custom values. Sorted by composite score in real-time.",
+      "customSystemNotSupported": "Quick-Score mode is currently only available for linear and logarithmic scoring systems. Please use the advanced form for custom scoring criteria."
+    },
+    "legend": {
+      "title": "Score Presets"
+    },
+    "presets": {
+      "high": {
+        "name": "High Priority",
+        "description": "Critical vulnerability requiring immediate action"
+      },
+      "medium": {
+        "name": "Medium Priority",
+        "description": "Important vulnerability for medium-term planning"
+      },
+      "low": {
+        "name": "Low Priority",
+        "description": "Monitor but not immediate priority"
+      }
+    },
+    "labels": {
+      "score": "Score: {{score}}"
+    },
+    "select": {
+      "placeholder": "Apply preset...",
+      "custom": "Custom...",
+      "highPriority": "🔴 High Priority",
+      "mediumPriority": "🟡 Medium Priority",
+      "lowPriority": "🟢 Low Priority"
+    },
+    "sliders": {
+      "impact": "Impact (I)",
+      "attainability": "Attainability (A)",
+      "followUp": "Follow-up (F)"
+    },
+    "emptyState": "No vulnerabilities to score",
+    "buttons": {
+      "applyScores": "Apply Scores"
+    }
+  },
+
   "wizard": {
     "title": "COG Analysis Wizard",
     "subtitle": "Step-by-step guided analysis",

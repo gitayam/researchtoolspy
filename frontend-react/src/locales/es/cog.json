@@ -312,6 +312,50 @@
     "total": "Total"
   },
 
+  "quickScore": {
+    "dialog": {
+      "title": "Modo de Puntuación Rápida",
+      "description": "Puntúe rápidamente todas las vulnerabilidades usando preselecciones o valores personalizados. Ordenado por puntuación compuesta en tiempo real.",
+      "customSystemNotSupported": "El modo de Puntuación Rápida está disponible actualmente solo para sistemas de puntuación lineal y logarítmica. Por favor use el formulario avanzado para criterios de puntuación personalizados."
+    },
+    "legend": {
+      "title": "Preselecciones de Puntuación"
+    },
+    "presets": {
+      "high": {
+        "name": "Alta Prioridad",
+        "description": "Vulnerabilidad crítica que requiere acción inmediata"
+      },
+      "medium": {
+        "name": "Prioridad Media",
+        "description": "Vulnerabilidad importante para planificación a mediano plazo"
+      },
+      "low": {
+        "name": "Baja Prioridad",
+        "description": "Monitorear pero no es prioridad inmediata"
+      }
+    },
+    "labels": {
+      "score": "Puntuación: {{score}}"
+    },
+    "select": {
+      "placeholder": "Aplicar preselección...",
+      "custom": "Personalizado...",
+      "highPriority": "🔴 Alta Prioridad",
+      "mediumPriority": "🟡 Prioridad Media",
+      "lowPriority": "🟢 Baja Prioridad"
+    },
+    "sliders": {
+      "impact": "Impacto (I)",
+      "attainability": "Alcanzabilidad (A)",
+      "followUp": "Seguimiento (F)"
+    },
+    "emptyState": "No hay vulnerabilidades para puntuar",
+    "buttons": {
+      "applyScores": "Aplicar Puntuaciones"
+    }
+  },
+
   "wizard": {
     "title": "Asistente de Análisis COG",
     "subtitle": "Análisis guiado paso a paso",
