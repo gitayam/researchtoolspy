@@ -140,3 +140,21 @@ button:active, .active\:scale-95:active {
     -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
   }
 }
+
+/* Indeterminate progress bar animation for page loading */
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  width: 50%;
+}
