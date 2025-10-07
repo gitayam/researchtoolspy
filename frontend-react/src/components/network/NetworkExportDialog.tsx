@@ -36,7 +36,7 @@ interface NetworkExportDialogProps {
   filters?: any
 }
 
-export type ExportFormat = 'json' | 'csv' | 'graphml' | 'gexf' | 'cypher'
+export type ExportFormat = 'json' | 'csv' | 'graphml' | 'gexf' | 'cypher' | 'maltego' | 'i2anb'
 
 export function NetworkExportDialog({
   open,
@@ -374,6 +374,129 @@ CREATE (source)-[:${sanitizedRelType} {
     downloadFile(blob, `network-graph-${getTimestamp()}.cypher`)
   }
 
+  const exportAsMaltego = () => {
+    /**
+     * Maltego Transform CSV Format
+     * Columns: Entity Type, Entity Value, Additional Fields (properties)
+     *
+     * Maltego entity types mapping:
+     * - ACTOR → maltego.Person
+     * - SOURCE → maltego.Document
+     * - EVENT → maltego.Phrase
+     * - PLACE → maltego.Location
+     * - BEHAVIOR → maltego.Phrase
+     * - EVIDENCE → maltego.Document
+     */
+
+    const maltegoTypeMap: Record<EntityType, string> = {
+      ACTOR: 'maltego.Person',
+      SOURCE: 'maltego.Document',
+      EVENT: 'maltego.Phrase',
+      PLACE: 'maltego.Location',
+      BEHAVIOR: 'maltego.Phrase',
+      EVIDENCE: 'maltego.Document'
+    }
+
+    // Entities CSV for Maltego
+    const headers = ['Entity Type', 'Entity Value', 'Weight', 'Connections', 'Notes']
+    const rows = nodes.map(node => [
+      maltegoTypeMap[node.entityType] || 'maltego.Phrase',
+      node.name,
+      node.val || 0,
+      node.val || 0,
+      `Original Type: ${node.entityType}`
+    ])
+
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv' })
+    downloadFile(blob, `maltego-entities-${getTimestamp()}.csv`)
+
+    // Also create a links file for reference (Maltego doesn't directly import links)
+    const linkHeaders = ['Source', 'Target', 'Relationship', 'Weight', 'Confidence']
+    const linkRows = links.map(link => [
+      link.source,
+      link.target,
+      link.relationshipType,
+      link.weight,
+      link.confidence || 'UNKNOWN'
+    ])
+    const linksCSV = [linkHeaders, ...linkRows]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n')
+
+    const linksBlob = new Blob([linksCSV], { type: 'text/csv' })
+    downloadFile(linksBlob, `maltego-links-${getTimestamp()}.csv`)
+  }
+
+  const exportAsI2ANB = () => {
+    /**
+     * i2 Analyst's Notebook CSV Format
+     *
+     * Entities CSV: EntityID, Label, EntityType, Icon, Properties
+     * Links CSV: LinkID, SourceID, TargetID, LinkType, LinkStrength, Properties
+     */
+
+    // i2 ANB entity type mapping
+    const i2TypeMap: Record<EntityType, string> = {
+      ACTOR: 'Person',
+      SOURCE: 'Document',
+      EVENT: 'Event',
+      PLACE: 'Location',
+      BEHAVIOR: 'Activity',
+      EVIDENCE: 'Evidence Item'
+    }
+
+    const i2IconMap: Record<EntityType, string> = {
+      ACTOR: 'Person',
+      SOURCE: 'Document',
+      EVENT: 'Calendar',
+      PLACE: 'Location',
+      BEHAVIOR: 'Activity',
+      EVIDENCE: 'Evidence'
+    }
+
+    // Entities CSV
+    const entityHeaders = ['EntityID', 'Label', 'EntityType', 'Icon', 'Connections', 'OriginalType']
+    const entityRows = nodes.map(node => [
+      node.id,
+      node.name,
+      i2TypeMap[node.entityType] || 'Entity',
+      i2IconMap[node.entityType] || 'Circle',
+      node.val || 0,
+      node.entityType
+    ])
+
+    const entitiesCSV = [entityHeaders, ...entityRows]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n')
+
+    // Links CSV
+    const linkHeaders = ['LinkID', 'SourceID', 'TargetID', 'LinkType', 'LinkStrength', 'Confidence', 'Weight']
+    const linkRows = links.map((link, idx) => [
+      `link-${idx + 1}`,
+      link.source,
+      link.target,
+      link.relationshipType,
+      link.weight,
+      link.confidence || 'UNKNOWN',
+      link.weight
+    ])
+
+    const linksCSV = [linkHeaders, ...linkRows]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n')
+
+    // Download both files
+    const entitiesBlob = new Blob([entitiesCSV], { type: 'text/csv; charset=utf-8' })
+    const linksBlob = new Blob([linksCSV], { type: 'text/csv; charset=utf-8' })
+
+    downloadFile(entitiesBlob, `i2anb-entities-${getTimestamp()}.csv`)
+    downloadFile(linksBlob, `i2anb-links-${getTimestamp()}.csv`)
+  }
+
   const handleExport = () => {
     switch (format) {
       case 'json':
@@ -390,6 +513,12 @@ CREATE (source)-[:${sanitizedRelType} {
         break
       case 'cypher':
         exportAsCypher()
+        break
+      case 'maltego':
+        exportAsMaltego()
+        break
+      case 'i2anb':
+        exportAsI2ANB()
         break
     }
     onOpenChange(false)
@@ -486,6 +615,38 @@ CREATE (source)-[:${sanitizedRelType} {
                   </label>
                   <p className="text-xs text-gray-500 mt-1">
                     Ready-to-run Cypher script for Neo4j graph database
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <RadioGroupItem value="maltego" id="maltego" />
+                <div className="flex-1">
+                  <label
+                    htmlFor="maltego"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Maltego CSV
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    OSINT tool CSV format (entities + links) for Maltego transforms
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <RadioGroupItem value="i2anb" id="i2anb" />
+                <div className="flex-1">
+                  <label
+                    htmlFor="i2anb"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    i2 Analyst's Notebook
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    IBM i2 ANB CSV format (entities.csv + links.csv) for law enforcement analysis
                   </p>
                 </div>
               </div>
