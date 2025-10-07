@@ -36,7 +36,7 @@ interface NetworkExportDialogProps {
   filters?: any
 }
 
-export type ExportFormat = 'json' | 'csv' | 'graphml' | 'gexf'
+export type ExportFormat = 'json' | 'csv' | 'graphml' | 'gexf' | 'cypher'
 
 export function NetworkExportDialog({
   open,
@@ -204,6 +204,176 @@ ${links.map((link, i) => {
     downloadFile(blob, `network-graph-${getTimestamp()}.gexf`)
   }
 
+  const exportAsCypher = () => {
+    // Helper function to escape Cypher strings
+    const escapeCypher = (str: string): string => {
+      return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+    }
+
+    // Helper to sanitize property names (Neo4j doesn't allow spaces)
+    const sanitizeProp = (str: string): string => {
+      return str.replace(/\s+/g, '_').toLowerCase()
+    }
+
+    let cypher = `// Neo4j Cypher Script - Network Graph Export
+// Generated: ${new Date().toISOString()}
+// Total Nodes: ${nodes.length} | Total Relationships: ${links.length}
+//
+// USAGE:
+// 1. Open Neo4j Browser (http://localhost:7474) or Neo4j Desktop
+// 2. Copy and paste this entire script
+// 3. Execute to create the graph
+// 4. Run queries to analyze (see bottom of file for examples)
+
+// ============================================================================
+// STEP 1: Create Constraints and Indexes (for performance and data integrity)
+// ============================================================================
+
+// Unique constraint on entity ID (ensures no duplicates)
+CREATE CONSTRAINT entity_id_unique IF NOT EXISTS
+FOR (e:Entity) REQUIRE e.id IS UNIQUE;
+
+// Indexes for fast lookups
+CREATE INDEX entity_name_index IF NOT EXISTS
+FOR (e:Entity) ON (e.name);
+
+CREATE INDEX entity_type_index IF NOT EXISTS
+FOR (e:Entity) ON (e.type);
+
+// ============================================================================
+// STEP 2: Create Nodes
+// ============================================================================
+
+`
+
+    // Group nodes by entity type for cleaner output
+    const nodesByType = nodes.reduce((acc, node) => {
+      if (!acc[node.entityType]) acc[node.entityType] = []
+      acc[node.entityType].push(node)
+      return acc
+    }, {} as Record<string, NetworkNode[]>)
+
+    Object.entries(nodesByType).forEach(([entityType, typeNodes]) => {
+      cypher += `// ${entityType} entities (${typeNodes.length} total)\n`
+      typeNodes.forEach(node => {
+        cypher += `CREATE (:Entity:${entityType} {
+  id: '${escapeCypher(node.id)}',
+  name: '${escapeCypher(node.name)}',
+  type: '${entityType}',
+  connections: ${node.val || 0}
+});\n`
+      })
+      cypher += '\n'
+    })
+
+    cypher += `// ============================================================================
+// STEP 3: Create Relationships
+// ============================================================================
+
+`
+
+    // Group relationships by type for cleaner output
+    const linksByType = links.reduce((acc, link) => {
+      const relType = sanitizeProp(link.relationshipType)
+      if (!acc[relType]) acc[relType] = []
+      acc[relType].push(link)
+      return acc
+    }, {} as Record<string, NetworkLink[]>)
+
+    Object.entries(linksByType).forEach(([relType, typeLinks]) => {
+      cypher += `// ${relType.toUpperCase()} relationships (${typeLinks.length} total)\n`
+      typeLinks.forEach(link => {
+        const sanitizedRelType = sanitizeProp(link.relationshipType).toUpperCase()
+        cypher += `MATCH (source:Entity {id: '${escapeCypher(link.source)}'})
+MATCH (target:Entity {id: '${escapeCypher(link.target)}'})
+CREATE (source)-[:${sanitizedRelType} {
+  type: '${escapeCypher(link.relationshipType)}',
+  weight: ${link.weight},
+  confidence: '${escapeCypher(link.confidence || 'UNKNOWN')}'
+}]->(target);
+`
+      })
+      cypher += '\n'
+    })
+
+    cypher += `// ============================================================================
+// DONE! Your graph has been created in Neo4j.
+// ============================================================================
+
+// ============================================================================
+// EXAMPLE QUERIES (uncomment and run to analyze your network)
+// ============================================================================
+
+// --- Query 1: View all nodes ---
+// MATCH (e:Entity)
+// RETURN e.name, e.type, e.connections
+// ORDER BY e.connections DESC
+// LIMIT 25;
+
+// --- Query 2: Find most connected entities (top hubs) ---
+// MATCH (e:Entity)
+// RETURN e.name, e.type, e.connections
+// ORDER BY e.connections DESC
+// LIMIT 10;
+
+// --- Query 3: Find all relationships for a specific entity ---
+// MATCH (e:Entity {name: 'ENTITY_NAME_HERE'})-[r]-(connected)
+// RETURN e.name as entity, type(r) as relationship, connected.name as connected_entity, r.confidence
+// LIMIT 50;
+
+// --- Query 4: Find shortest path between two entities ---
+// MATCH path = shortestPath(
+//   (start:Entity {name: 'START_ENTITY'})-[*]-(end:Entity {name: 'END_ENTITY'})
+// )
+// RETURN path;
+
+// --- Query 5: Find communities (densely connected subgraphs) ---
+// CALL gds.louvain.stream('myGraph')
+// YIELD nodeId, communityId
+// RETURN gds.util.asNode(nodeId).name AS name, communityId
+// ORDER BY communityId;
+
+// --- Query 6: PageRank (find most influential entities) ---
+// CALL gds.pageRank.stream('myGraph')
+// YIELD nodeId, score
+// RETURN gds.util.asNode(nodeId).name AS name, score
+// ORDER BY score DESC
+// LIMIT 10;
+
+// --- Query 7: Betweenness Centrality (find information brokers) ---
+// CALL gds.betweenness.stream('myGraph')
+// YIELD nodeId, score
+// RETURN gds.util.asNode(nodeId).name AS name, score
+// ORDER BY score DESC
+// LIMIT 10;
+
+// --- Query 8: Find entities by type ---
+// MATCH (e:ACTOR)  // Change to: SOURCE, EVENT, PLACE, BEHAVIOR, EVIDENCE
+// RETURN e.name, e.connections
+// ORDER BY e.connections DESC;
+
+// --- Query 9: Find confirmed relationships only ---
+// MATCH (source)-[r {confidence: 'CONFIRMED'}]->(target)
+// RETURN source.name, type(r), target.name, r.weight
+// ORDER BY r.weight DESC;
+
+// --- Query 10: Export to CSV (for further analysis in R/Python) ---
+// MATCH (e:Entity)
+// RETURN e.id, e.name, e.type, e.connections
+// INTO OUTFILE 'neo4j_nodes_export.csv'
+// FIELDS TERMINATED BY ','
+// ENCLOSED BY '"'
+// LINES TERMINATED BY '\\n';
+
+// ============================================================================
+// VISUALIZATION TIP: Run "MATCH (n)-[r]->(m) RETURN n,r,m LIMIT 100" to see graph
+// ============================================================================
+`
+
+    const blob = new Blob([cypher], { type: 'text/plain' })
+    downloadFile(blob, `network-graph-${getTimestamp()}.cypher`)
+  }
+
   const handleExport = () => {
     switch (format) {
       case 'json':
@@ -217,6 +387,9 @@ ${links.map((link, i) => {
         break
       case 'gexf':
         exportAsGEXF()
+        break
+      case 'cypher':
+        exportAsCypher()
         break
     }
     onOpenChange(false)
@@ -297,6 +470,22 @@ ${links.map((link, i) => {
                   </label>
                   <p className="text-xs text-gray-500 mt-1">
                     Gephi native format with rich metadata
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <RadioGroupItem value="cypher" id="cypher" />
+                <div className="flex-1">
+                  <label
+                    htmlFor="cypher"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Neo4j Cypher
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ready-to-run Cypher script for Neo4j graph database
                   </p>
                 </div>
               </div>
