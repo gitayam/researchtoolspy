@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Save, Plus, X, ExternalLink, Link2, Trash2, HelpCircle, ChevronDown, ChevronRight, Zap } from 'lucide-react'
 import { COGQuickScore } from './COGQuickScore'
 import { AICOGAssistant } from '@/components/ai/AICOGAssistant'
@@ -45,32 +46,55 @@ interface COGFormProps {
   frameworkId?: string
 }
 
-const ACTOR_CATEGORIES: { value: ActorCategory; label: string }[] = [
-  { value: 'friendly', label: 'Friendly Forces' },
-  { value: 'adversary', label: 'Adversary' },
-  { value: 'host_nation', label: 'Host Nation' },
-  { value: 'third_party', label: 'Third Party' },
-]
-
-const DIMEFIL_DOMAINS: { value: DIMEFILDomain; label: string; icon: string }[] = [
-  { value: 'diplomatic', label: 'Diplomatic', icon: '🤝' },
-  { value: 'information', label: 'Information', icon: '📡' },
-  { value: 'military', label: 'Military', icon: '🎖️' },
-  { value: 'economic', label: 'Economic', icon: '💰' },
-  { value: 'financial', label: 'Financial', icon: '💵' },
-  { value: 'intelligence', label: 'Intelligence', icon: '🔍' },
-  { value: 'law_enforcement', label: 'Law Enforcement', icon: '👮' },
-  { value: 'cyber', label: 'Cyber', icon: '💻' },
-  { value: 'space', label: 'Space', icon: '🛰️' },
-]
-
-const REQUIREMENT_TYPES = ['personnel', 'equipment', 'logistics', 'information', 'infrastructure', 'other'] as const
-const VULNERABILITY_TYPES = ['physical', 'cyber', 'human', 'logistical', 'informational', 'other'] as const
-
 export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: COGFormProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation('cog')
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('context')
+
+  // Translated data structures
+  const ACTOR_CATEGORIES: { value: ActorCategory; label: string }[] = [
+    { value: 'friendly', label: t('actorCategories.friendly') },
+    { value: 'adversary', label: t('actorCategories.adversary') },
+    { value: 'host_nation', label: t('actorCategories.hostNation') },
+    { value: 'third_party', label: t('actorCategories.thirdParty') },
+  ]
+
+  const DIMEFIL_DOMAINS: { value: DIMEFILDomain; label: string; icon: string }[] = [
+    { value: 'diplomatic', label: t('domains.diplomatic'), icon: '🤝' },
+    { value: 'information', label: t('domains.information'), icon: '📡' },
+    { value: 'military', label: t('domains.military'), icon: '🎖️' },
+    { value: 'economic', label: t('domains.economic'), icon: '💰' },
+    { value: 'financial', label: t('domains.financial'), icon: '💵' },
+    { value: 'intelligence', label: t('domains.intelligence'), icon: '🔍' },
+    { value: 'law_enforcement', label: t('domains.lawEnforcement'), icon: '👮' },
+    { value: 'cyber', label: t('domains.cyber'), icon: '💻' },
+    { value: 'space', label: t('domains.space'), icon: '🛰️' },
+  ]
+
+  const REQUIREMENT_TYPES = [
+    { value: 'personnel', label: t('form.requirementTypes.personnel') },
+    { value: 'equipment', label: t('form.requirementTypes.equipment') },
+    { value: 'logistics', label: t('form.requirementTypes.logistics') },
+    { value: 'information', label: t('form.requirementTypes.information') },
+    { value: 'infrastructure', label: t('form.requirementTypes.infrastructure') },
+    { value: 'other', label: t('form.requirementTypes.other') },
+  ] as const
+
+  const VULNERABILITY_TYPES = [
+    { value: 'physical', label: t('form.vulnerabilityTypes.physical') },
+    { value: 'cyber', label: t('form.vulnerabilityTypes.cyber') },
+    { value: 'human', label: t('form.vulnerabilityTypes.human') },
+    { value: 'logistical', label: t('form.vulnerabilityTypes.logistical') },
+    { value: 'informational', label: t('form.vulnerabilityTypes.informational') },
+    { value: 'other', label: t('form.vulnerabilityTypes.other') },
+  ] as const
+
+  const STRATEGIC_LEVELS = [
+    { value: 'tactical', label: t('form.strategicLevels.tactical') },
+    { value: 'operational', label: t('form.strategicLevels.operational') },
+    { value: 'strategic', label: t('form.strategicLevels.strategic') },
+  ] as const
 
   // Basic Info
   const [title, setTitle] = useState(initialData?.title || '')
@@ -120,7 +144,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
 
   const handleSave = async () => {
     if (!title.trim()) {
-      alert('Please enter a title for your COG analysis')
+      alert(t('form.validation.titleRequired'))
       return
     }
 
@@ -147,7 +171,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
       navigate(backPath)
     } catch (error) {
       console.error('Failed to save COG analysis:', error)
-      alert('Failed to save COG analysis. Please try again.')
+      alert(t('form.validation.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -171,7 +195,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
   }
 
   const removeCOG = (id: string) => {
-    if (!confirm('Remove this COG and all dependent items?')) return
+    if (!confirm(t('form.confirmations.removeCOG'))) return
     setCogs(cogs.filter(cog => cog.id !== id))
     const capIds = capabilities.filter(cap => cap.cog_id === id).map(cap => cap.id)
     setCapabilities(capabilities.filter(cap => cap.cog_id !== id))
@@ -198,7 +222,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
   }
 
   const removeCapability = (id: string) => {
-    if (!confirm('Remove this capability and all dependent items?')) return
+    if (!confirm(t('form.confirmations.removeCapability'))) return
     setCapabilities(capabilities.filter(cap => cap.id !== id))
     const reqIds = requirements.filter(req => req.capability_id === id).map(req => req.id)
     setRequirements(requirements.filter(req => req.capability_id !== id))
@@ -223,7 +247,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
   }
 
   const removeRequirement = (id: string) => {
-    if (!confirm('Remove this requirement and all dependent vulnerabilities?')) return
+    if (!confirm(t('form.confirmations.removeRequirement'))) return
     setRequirements(requirements.filter(req => req.id !== id))
     setVulnerabilities(vulnerabilities.filter(vuln => vuln.requirement_id !== id))
   }
@@ -270,7 +294,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
   }
 
   const removeVulnerability = (id: string) => {
-    if (!confirm('Remove this vulnerability?')) return
+    if (!confirm(t('form.confirmations.removeVulnerability'))) return
     setVulnerabilities(vulnerabilities.filter(vuln => vuln.id !== id))
   }
 
@@ -421,23 +445,23 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
           <div className="flex items-center gap-4">
             <Button variant="outline" onClick={() => navigate(backPath)}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              {t('form.buttons.back')}
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {mode === 'create' ? 'Create' : 'Edit'} COG Analysis
+                {mode === 'create' ? t('form.header.createTitle') : t('form.header.editTitle')}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Center of Gravity Analysis (JP 3-0 Methodology)</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">{t('form.header.subtitle')}</p>
             </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => window.open('https://irregularpedia.org/index.php/Center_of_Gravity_Analysis_Guide', '_blank')}>
               <ExternalLink className="h-4 w-4 mr-2" />
-              Reference Guide
+              {t('form.buttons.referenceGuide')}
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               <Save className="h-4 w-4 mr-2" />
-              {saving ? 'Saving...' : 'Save Analysis'}
+              {saving ? t('form.buttons.saving') : t('form.buttons.saveAnalysis')}
             </Button>
           </div>
         </div>
@@ -445,17 +469,17 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
         {/* Basic Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Title and description for your COG analysis</CardDescription>
+            <CardTitle>{t('form.basicInfo.title')}</CardTitle>
+            <CardDescription>{t('form.basicInfo.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Title *</Label>
-              <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., Operation XYZ COG Analysis" />
+              <Label>{t('form.basicInfo.titleLabel')}</Label>
+              <Input value={title} onChange={e => setTitle(e.target.value)} placeholder={t('form.basicInfo.titlePlaceholder')} />
             </div>
             <div>
-              <Label>Description</Label>
-              <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Provide context..." rows={3} />
+              <Label>{t('form.basicInfo.descriptionLabel')}</Label>
+              <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t('form.basicInfo.descriptionPlaceholder')} rows={3} />
             </div>
           </CardContent>
         </Card>
@@ -463,34 +487,34 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
         {/* Tabs for organized workflow */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="context">Operational Context</TabsTrigger>
-            <TabsTrigger value="cogs">COG Analysis</TabsTrigger>
-            <TabsTrigger value="scoring">Scoring System</TabsTrigger>
+            <TabsTrigger value="context">{t('form.tabs.operationalContext')}</TabsTrigger>
+            <TabsTrigger value="cogs">{t('form.tabs.cogAnalysis')}</TabsTrigger>
+            <TabsTrigger value="scoring">{t('form.tabs.scoringSystem')}</TabsTrigger>
           </TabsList>
 
           {/* Operational Context Tab */}
           <TabsContent value="context" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Operational Context</CardTitle>
-                <CardDescription>Answer guided questions to define your operational environment</CardDescription>
+                <CardTitle>{t('form.operationalContext.title')}</CardTitle>
+                <CardDescription>{t('form.operationalContext.description')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Label>🎯 What is your analysis objective? *</Label>
+                    <Label>🎯 {t('form.operationalContext.objectiveLabel')}</Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-md">
-                          <p className="font-semibold mb-2">A good objective is specific, measurable, and tied to commander's intent.</p>
-                          <p className="text-sm">Examples:</p>
+                          <p className="font-semibold mb-2">{t('form.tooltips.objective.title')}</p>
+                          <p className="text-sm">{t('form.tooltips.objective.examples')}</p>
                           <ul className="text-sm list-disc ml-4 mt-1">
-                            <li>Identify adversary vulnerabilities for targeting</li>
-                            <li>Protect friendly COGs from adversary action</li>
-                            <li>Assess host nation critical infrastructure</li>
+                            <li>{t('form.tooltips.objective.example1')}</li>
+                            <li>{t('form.tooltips.objective.example2')}</li>
+                            <li>{t('form.tooltips.objective.example3')}</li>
                           </ul>
                         </TooltipContent>
                       </Tooltip>
@@ -499,14 +523,14 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                   <Textarea
                     value={operationalContext.objective}
                     onChange={e => setOperationalContext({ ...operationalContext, objective: e.target.value })}
-                    placeholder="Example: Identify and prioritize adversary information operations vulnerabilities to enable IO counter-campaign and degrade their ability to influence regional populations"
+                    placeholder={t('form.operationalContext.objectivePlaceholder')}
                     rows={3}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Label>💥 What impact do we want to achieve?</Label>
+                    <Label>💥 {t('form.operationalContext.impactLabel')}</Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -527,14 +551,14 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                   <Textarea
                     value={operationalContext.desired_impact}
                     onChange={e => setOperationalContext({ ...operationalContext, desired_impact: e.target.value })}
-                    placeholder="Example: Reduce adversary IO effectiveness by 60%, forcing them to shift resources from offensive to defensive operations, creating windows for friendly information advantage"
+                    placeholder={t('form.operationalContext.impactPlaceholder')}
                     rows={3}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Label>👥 Who are we? (Friendly Forces Description)</Label>
+                    <Label>👥 {t('form.operationalContext.identityLabel')}</Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -550,14 +574,14 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                   <Textarea
                     value={operationalContext.our_identity}
                     onChange={e => setOperationalContext({ ...operationalContext, our_identity: e.target.value })}
-                    placeholder="Example: Joint Task Force with cyber, information operations, and special operations capabilities; partnered with host nation security forces and regional allies"
+                    placeholder={t('form.operationalContext.identityPlaceholder')}
                     rows={2}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Label>🌍 Where are we operating? (PMESII-PT Context)</Label>
+                    <Label>🌍 {t('form.operationalContext.environmentLabel')}</Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -582,13 +606,13 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                   <Textarea
                     value={operationalContext.operating_environment}
                     onChange={e => setOperationalContext({ ...operationalContext, operating_environment: e.target.value })}
-                    placeholder="Example: Urban environment with high internet penetration (70%+), contested information space with multiple state/non-state actors, weak governance creating information voids, population increasingly mobile-first for news consumption"
+                    placeholder={t('form.operationalContext.environmentPlaceholder')}
                     rows={4}
                   />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Label>⛓️ What constraints limit us? (comma-separated)</Label>
+                    <Label>⛓️ {t('form.operationalContext.constraintsLabel')}</Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -596,7 +620,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                         </TooltipTrigger>
                         <TooltipContent className="max-w-md">
                           <p className="font-semibold mb-2">Constraints are things you MUST do or CONDITIONS that limit action.</p>
-                          <p className="text-sm">Examples:</p>
+                          <p className="text-sm">{t('form.tooltips.objective.examples')}</p>
                           <ul className="text-sm list-disc ml-4 mt-1">
                             <li>Must coordinate with State Department</li>
                             <li>Limited to defensive cyber operations only</li>
@@ -610,13 +634,13 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                   <Input
                     value={operationalContext.constraints.join(', ')}
                     onChange={e => setOperationalContext({ ...operationalContext, constraints: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                    placeholder="Example: Must obtain interagency approval, Limited to non-attribution operations, Resource cap of 50 personnel"
+                    placeholder={t('form.operationalContext.constraintsPlaceholder')}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Label>🚫 What restraints restrict us? (comma-separated)</Label>
+                    <Label>🚫 {t('form.operationalContext.restraintsLabel')}</Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -624,7 +648,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                         </TooltipTrigger>
                         <TooltipContent className="max-w-md">
                           <p className="font-semibold mb-2">Restraints are things you MUST NOT do or PROHIBITED actions.</p>
-                          <p className="text-sm">Examples:</p>
+                          <p className="text-sm">{t('form.tooltips.objective.examples')}</p>
                           <ul className="text-sm list-disc ml-4 mt-1">
                             <li>No strikes on religious sites</li>
                             <li>No engagement of state media infrastructure</li>
@@ -638,14 +662,14 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                   <Input
                     value={operationalContext.restraints.join(', ')}
                     onChange={e => setOperationalContext({ ...operationalContext, restraints: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                    placeholder="Example: No targeting of civilian infrastructure, Prohibited from cross-border operations, Cannot disrupt international commerce"
+                    placeholder={t('form.operationalContext.restraintsPlaceholder')}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label>⏱️ What is the operational timeframe?</Label>
+                      <Label>⏱️ {t('form.operationalContext.timeframeLabel')}</Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -660,12 +684,12 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                     <Input
                       value={operationalContext.timeframe}
                       onChange={e => setOperationalContext({ ...operationalContext, timeframe: e.target.value })}
-                      placeholder="e.g., 90 days, Q2 2025, Pre-election period"
+                      placeholder={t('form.operationalContext.timeframePlaceholder')}
                     />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label>📊 At what strategic level?</Label>
+                      <Label>📊 {t('form.operationalContext.strategicLevelLabel')}</Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -687,9 +711,9 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="tactical">Tactical</SelectItem>
-                        <SelectItem value="operational">Operational</SelectItem>
-                        <SelectItem value="strategic">Strategic</SelectItem>
+                        <SelectItem value="tactical">{STRATEGIC_LEVELS[0].label}</SelectItem>
+                        <SelectItem value="operational">{STRATEGIC_LEVELS[1].label}</SelectItem>
+                        <SelectItem value="strategic">{STRATEGIC_LEVELS[2].label}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -705,14 +729,14 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Centers of Gravity</CardTitle>
-                    <CardDescription>Identify COGs across DIMEFIL domains for each actor</CardDescription>
+                    <CardTitle>{t('form.cog.title')}</CardTitle>
+                    <CardDescription>{t('form.cog.description')}</CardDescription>
                   </div>
                   <div className="flex gap-2">
                     {vulnerabilities.length > 0 && (
                       <Button variant="outline" onClick={() => setQuickScoreOpen(true)}>
                         <Zap className="h-4 w-4 mr-2" />
-                        Quick-Score
+                        {t('form.buttons.quickScore')}
                       </Button>
                     )}
                     <AICOGAssistant
@@ -734,19 +758,19 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                         }
                         setCogs([...cogs, newCOG])
                       }}
-                      buttonText="✨ Suggest COG"
+                      buttonText="{t('form.buttons.suggestCOG')}"
                       buttonVariant="outline"
                     />
                     <Button onClick={addCOG}>
                       <Plus className="h-4 w-4 mr-2" />
-                      Add COG
+                      {t('form.buttons.addCOG')}
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {cogs.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">No COGs defined. Click "Add COG" to begin.</p>
+                  <p className="text-center text-gray-500 py-8">{t('form.cog.emptyState')}</p>
                 ) : (
                   cogs.map(cog => (
                     <Card key={cog.id} className="border-l-4 border-red-500">
@@ -756,7 +780,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 grid grid-cols-2 gap-4">
                               <div>
-                                <Label className="text-xs">Actor Category</Label>
+                                <Label className="text-xs">{t('form.cog.actorCategoryLabel')}</Label>
                                 <Select value={cog.actor_category} onValueChange={(v: ActorCategory) => updateCOG(cog.id, { actor_category: v })}>
                                   <SelectTrigger className="h-9">
                                     <SelectValue />
@@ -771,7 +795,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                 </Select>
                               </div>
                               <div>
-                                <Label className="text-xs">Domain</Label>
+                                <Label className="text-xs">{t('form.cog.domainLabel')}</Label>
                                 <Select value={cog.domain} onValueChange={(v: DIMEFILDomain) => updateCOG(cog.id, { domain: v })}>
                                   <SelectTrigger className="h-9">
                                     <SelectValue />
@@ -800,7 +824,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                             <>
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
-                                  <Label className="text-sm">📝 What is this Center of Gravity? *</Label>
+                                  <Label className="text-sm">📝 {t('form.cog.descriptionLabel')}</Label>
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -821,14 +845,14 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                 <Textarea
                                   value={cog.description}
                                   onChange={e => updateCOG(cog.id, { description: e.target.value })}
-                                  placeholder="Example: Adversary's integrated air defense system provides freedom of maneuver and protects critical infrastructure across the theater"
+                                  placeholder={t('form.cog.descriptionPlaceholder')}
                                   rows={2}
                                 />
                               </div>
 
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
-                                  <Label className="text-sm">🤔 Why is this a COG? (Rationale)</Label>
+                                  <Label className="text-sm">🤔 {t('form.cog.rationaleLabel')}</Label>
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -848,7 +872,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                 <Textarea
                                   value={cog.rationale}
                                   onChange={e => updateCOG(cog.id, { rationale: e.target.value })}
-                                  placeholder="Example: Without air defense, adversary loses sanctuary for ground forces, logistics hubs, and C2 nodes. Historical analysis shows air dominance correlates with 85% success rate in similar conflicts."
+                                  placeholder={t('form.cog.rationalePlaceholder')}
                                   rows={3}
                                 />
                               </div>
@@ -867,23 +891,23 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                     })
                                   }}
                                 >
-                                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 cursor-pointer">✅ COG Validation Checklist</p>
+                                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 cursor-pointer">✅ {t('form.cog.validationChecklist')}</p>
                                   {expandedSoWhat.has(`checklist-${cog.id}`) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                 </div>
                                 {expandedSoWhat.has(`checklist-${cog.id}`) && (
                                   <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1 mt-2">
-                                    <li>☐ If neutralized, would this critically degrade objectives?</li>
-                                    <li>☐ Is this truly a source of power (not just important)?</li>
-                                    <li>☐ Is this at the right level of analysis?</li>
-                                    <li>☐ Can this be protected/exploited through its vulnerabilities?</li>
+                                    <li>☐ {t('form.cog.validationCheck1')}</li>
+                                    <li>☐ {t('form.cog.validationCheck2')}</li>
+                                    <li>☐ {t('form.cog.validationCheck3')}</li>
+                                    <li>☐ {t('form.cog.validationCheck4')}</li>
                                   </ul>
                                 )}
                               </div>
                               <div>
-                                <Label className="text-xs">Linked Evidence ({cog.linked_evidence.length})</Label>
+                                <Label className="text-xs">{t('form.cog.linkedEvidenceLabel', { count: cog.linked_evidence.length })}</Label>
                                 <Button variant="outline" size="sm" onClick={() => openEvidenceLinker('cog', cog.id)} className="mt-1">
                                   <Link2 className="h-3 w-3 mr-2" />
-                                  Link Evidence
+                                  {t('form.buttons.linkEvidence')}
                                 </Button>
                               </div>
 
@@ -891,7 +915,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                               <div className="ml-6 space-y-3 border-l-2 border-blue-300 pl-4">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                    <Label className="text-sm font-semibold">⚡ Critical Capabilities - What can the COG DO?</Label>
+                                    <Label className="text-sm font-semibold">⚡ {t('form.capabilities.title')}</Label>
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -936,13 +960,13 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                         }))
                                         setCapabilities([...capabilities, ...newCapabilities])
                                       }}
-                                      buttonText="✨ Generate"
+                                      buttonText="{t('form.buttons.generateCapabilities')}"
                                       buttonVariant="outline"
                                       buttonSize="sm"
                                     />
                                     <Button variant="outline" size="sm" onClick={() => addCapability(cog.id)}>
                                       <Plus className="h-3 w-3 mr-1" />
-                                      Add
+                                      {t('form.buttons.addCapability')}
                                     </Button>
                                   </div>
                                 </div>
@@ -956,7 +980,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                             <Input
                                               value={cap.capability}
                                               onChange={e => updateCapability(cap.id, { capability: e.target.value })}
-                                              placeholder="Example: Launch coordinated missile strikes OR Influence public perception through social media"
+                                              placeholder={t('form.capabilities.capabilityPlaceholder')}
                                               className="flex-1"
                                             />
                                             <div className="flex gap-1">
@@ -972,35 +996,35 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                           {expandedCaps.has(cap.id) && (
                                             <>
                                               <div className="space-y-1">
-                                                <Label className="text-xs">How does this capability work?</Label>
+                                                <Label className="text-xs">{t('form.capabilities.howItWorksLabel')}</Label>
                                                 <Textarea
                                                   value={cap.description}
                                                   onChange={e => updateCapability(cap.id, { description: e.target.value })}
-                                                  placeholder="Example: Uses network of bot accounts, influencers, and state media to amplify narratives across platforms within 24-48 hours"
+                                                  placeholder={t('form.capabilities.howItWorksPlaceholder')}
                                                   rows={2}
                                                   className="text-sm"
                                                 />
                                               </div>
                                               <div className="space-y-1">
-                                                <Label className="text-xs">How does this support the actor's objectives?</Label>
+                                                <Label className="text-xs">{t('form.capabilities.strategicContributionLabel')}</Label>
                                                 <Textarea
                                                   value={cap.strategic_contribution}
                                                   onChange={e => updateCapability(cap.id, { strategic_contribution: e.target.value })}
-                                                  placeholder="Example: Enables shaping of regional opinion to support strategic objectives, undermine adversaries, and prepare information environment for military operations"
+                                                  placeholder={t('form.capabilities.strategicContributionPlaceholder')}
                                                   rows={2}
                                                   className="text-sm"
                                                 />
                                               </div>
                                               <Button variant="outline" size="sm" onClick={() => openEvidenceLinker('capability', cap.id)}>
                                                 <Link2 className="h-3 w-3 mr-2" />
-                                                Evidence ({cap.linked_evidence.length})
+                                                {t('form.cog.linkedEvidenceLabel', { count: cap.linked_evidence.length })}
                                               </Button>
 
                                               {/* Requirements for this Capability */}
                                               <div className="ml-4 space-y-2 border-l-2 border-yellow-300 pl-3">
                                                 <div className="flex items-center justify-between">
                                                   <div className="flex items-center gap-2">
-                                                    <Label className="text-xs font-semibold">📋 Critical Requirements - What does this capability NEED?</Label>
+                                                    <Label className="text-xs font-semibold">📋 {t('form.requirements.title')}</Label>
                                                     <TooltipProvider>
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
@@ -1049,13 +1073,13 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                         }))
                                                         setRequirements([...requirements, ...newRequirements])
                                                       }}
-                                                      buttonText="✨ Generate"
+                                                      buttonText="{t('form.buttons.generateCapabilities')}"
                                                       buttonVariant="outline"
                                                       buttonSize="sm"
                                                     />
                                                     <Button variant="outline" size="sm" onClick={() => addRequirement(cap.id)}>
                                                       <Plus className="h-3 w-3 mr-1" />
-                                                      Add
+                                                      {t('form.buttons.addRequirement')}
                                                     </Button>
                                                   </div>
                                                 </div>
@@ -1069,7 +1093,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                             <Input
                                                               value={req.requirement}
                                                               onChange={e => updateRequirement(req.id, { requirement: e.target.value })}
-                                                              placeholder="Example: Platform policy compliance OR Network of coordinated accounts"
+                                                              placeholder={t('form.requirements.requirementPlaceholder')}
                                                               className="flex-1 h-8 text-sm"
                                                             />
                                                             <Select value={req.requirement_type} onValueChange={(v: any) => updateRequirement(req.id, { requirement_type: v })}>
@@ -1077,9 +1101,9 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                 <SelectValue />
                                                               </SelectTrigger>
                                                               <SelectContent>
-                                                                {REQUIREMENT_TYPES.map(type => (
-                                                                  <SelectItem key={type} value={type}>
-                                                                    {type}
+                                                                {REQUIREMENT_TYPES.map(item => (
+                                                                  <SelectItem key={item.value} value={item.value}>
+                                                                    {item.label}
                                                                   </SelectItem>
                                                                 ))}
                                                               </SelectContent>
@@ -1097,25 +1121,25 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                           {expandedReqs.has(req.id) && (
                                                             <>
                                                               <div className="space-y-1">
-                                                                <Label className="text-xs">What is this requirement and why is it needed?</Label>
+                                                                <Label className="text-xs">{t('form.requirements.descriptionLabel')}</Label>
                                                                 <Textarea
                                                                   value={req.description}
                                                                   onChange={e => updateRequirement(req.id, { description: e.target.value })}
-                                                                  placeholder="Example: Requires active accounts on major platforms to distribute content. Must maintain compliance with platform terms of service to avoid account suspension or content removal."
+                                                                  placeholder={t('form.requirements.descriptionPlaceholder')}
                                                                   rows={2}
                                                                   className="text-xs"
                                                                 />
                                                               </div>
                                                               <Button variant="outline" size="sm" onClick={() => openEvidenceLinker('requirement', req.id)}>
                                                                 <Link2 className="h-3 w-3 mr-1" />
-                                                                Evidence ({req.linked_evidence.length})
+                                                                {t('form.cog.linkedEvidenceLabel', { count: req.linked_evidence.length })}
                                                               </Button>
 
                                                               {/* Vulnerabilities for this Requirement */}
                                                               <div className="ml-3 space-y-2 border-l-2 border-orange-300 pl-2">
                                                                 <div className="flex items-center justify-between">
                                                                   <div className="flex items-center gap-2">
-                                                                    <Label className="text-xs font-semibold">⚠️ Critical Vulnerabilities - What is the WEAKNESS?</Label>
+                                                                    <Label className="text-xs font-semibold">⚠️ {t('form.vulnerabilities.title')}</Label>
                                                                     <TooltipProvider>
                                                                       <Tooltip>
                                                                         <TooltipTrigger asChild>
@@ -1170,13 +1194,13 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                         }))
                                                                         setVulnerabilities([...vulnerabilities, ...newVulnerabilities])
                                                                       }}
-                                                                      buttonText="✨ Generate"
+                                                                      buttonText="{t('form.buttons.generateCapabilities')}"
                                                                       buttonVariant="outline"
                                                                       buttonSize="sm"
                                                                     />
                                                                     <Button variant="outline" size="sm" onClick={() => addVulnerability(req.id)}>
                                                                       <Plus className="h-3 w-3 mr-1" />
-                                                                      Add
+                                                                      {t('form.buttons.addVulnerability')}
                                                                     </Button>
                                                                   </div>
                                                                 </div>
@@ -1190,7 +1214,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                             <Input
                                                                               value={vuln.vulnerability}
                                                                               onChange={e => updateVulnerability(vuln.id, { vulnerability: e.target.value })}
-                                                                              placeholder="Example: Platform policy enforcement OR Single command node"
+                                                                              placeholder={t('form.vulnerabilities.vulnerabilityPlaceholder')}
                                                                               className="flex-1 h-8 text-xs"
                                                                             />
                                                                             <Select value={vuln.vulnerability_type} onValueChange={(v: any) => updateVulnerability(vuln.id, { vulnerability_type: v })}>
@@ -1198,9 +1222,9 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                 <SelectValue />
                                                                               </SelectTrigger>
                                                                               <SelectContent>
-                                                                                {VULNERABILITY_TYPES.map(type => (
-                                                                                  <SelectItem key={type} value={type}>
-                                                                                    {type}
+                                                                                {VULNERABILITY_TYPES.map(item => (
+                                                                                  <SelectItem key={item.value} value={item.value}>
+                                                                                    {item.label}
                                                                                   </SelectItem>
                                                                                 ))}
                                                                               </SelectContent>
@@ -1211,11 +1235,11 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                           </div>
 
                                                                           <div className="space-y-1">
-                                                                            <Label className="text-xs">What is this vulnerability and how can it be exploited?</Label>
+                                                                            <Label className="text-xs">{t('form.vulnerabilities.descriptionLabel')}</Label>
                                                                             <Textarea
                                                                               value={vuln.description}
                                                                               onChange={e => updateVulnerability(vuln.id, { description: e.target.value })}
-                                                                              placeholder="Example: Platforms enforce content policies against coordinated inauthentic behavior. Mass reporting campaigns can trigger automated suspensions within 24-48 hours, disrupting the entire influence operation."
+                                                                              placeholder={t('form.vulnerabilities.descriptionPlaceholder')}
                                                                               rows={2}
                                                                               className="text-xs"
                                                                             />
@@ -1223,7 +1247,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
 
                                                                           {/* Scoring Interface */}
                                                                           <div className="space-y-2 bg-white dark:bg-gray-900 p-2 rounded">
-                                                                            <Label className="text-xs font-semibold">Scoring (Composite: {vuln.composite_score})</Label>
+                                                                            <Label className="text-xs font-semibold">{t('form.vulnerabilities.scoringLabel', { score: vuln.composite_score })}</Label>
 
                                                                             {/* Default Scoring (Linear/Logarithmic) */}
                                                                             {scoringSystem !== 'custom' && vuln.scoring && (
@@ -1231,7 +1255,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                 {/* Impact on COG */}
                                                                                 <div>
                                                                                   <div className="flex items-center justify-between">
-                                                                                    <Label className="text-xs">Impact (I)</Label>
+                                                                                    <Label className="text-xs">{t('form.vulnerabilities.impactLabel')}</Label>
                                                                                     <Tooltip>
                                                                                       <TooltipTrigger>
                                                                                         <HelpCircle className="h-3 w-3" />
@@ -1264,7 +1288,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                 {/* Attainability */}
                                                                                 <div>
                                                                                   <div className="flex items-center justify-between">
-                                                                                    <Label className="text-xs">Attainability (A)</Label>
+                                                                                    <Label className="text-xs">{t('form.vulnerabilities.attainabilityLabel')}</Label>
                                                                                     <Tooltip>
                                                                                       <TooltipTrigger>
                                                                                         <HelpCircle className="h-3 w-3" />
@@ -1297,7 +1321,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                 {/* Follow-up Potential */}
                                                                                 <div>
                                                                                   <div className="flex items-center justify-between">
-                                                                                    <Label className="text-xs">Follow-up (F)</Label>
+                                                                                    <Label className="text-xs">{t('form.vulnerabilities.followUpLabel')}</Label>
                                                                                     <Tooltip>
                                                                                       <TooltipTrigger>
                                                                                         <HelpCircle className="h-3 w-3" />
@@ -1375,7 +1399,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                               onClick={() => toggleExpanded(expandedSoWhat, setExpandedSoWhat, vuln.id)}
                                                                             >
                                                                               <Label className="text-sm font-semibold text-green-900 dark:text-green-100 cursor-pointer">
-                                                                                💡 "So What?" - Impact Analysis
+                                                                                💡 {t('form.vulnerabilities.soWhatTitle')}
                                                                               </Label>
                                                                               {expandedSoWhat.has(vuln.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                                                             </div>
@@ -1383,30 +1407,30 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                             {expandedSoWhat.has(vuln.id) && (
                                                                               <div className="mt-3 space-y-2">
                                                                                 <div className="space-y-1">
-                                                                                  <Label className="text-xs">What happens if exploited?</Label>
+                                                                                  <Label className="text-xs">{t('form.vulnerabilities.expectedEffectLabel')}</Label>
                                                                                   <Textarea
                                                                                     value={vuln.expected_effect || ''}
                                                                                     onChange={e => updateVulnerability(vuln.id, { expected_effect: e.target.value })}
-                                                                                    placeholder="Example: Adversary loses primary influence mechanism within 48 hours."
+                                                                                    placeholder={t('form.vulnerabilities.expectedEffectPlaceholder')}
                                                                                     rows={2}
                                                                                     className="text-xs"
                                                                                   />
                                                                                 </div>
 
                                                                                 <div className="space-y-1">
-                                                                                  <Label className="text-xs">Recommended Actions</Label>
+                                                                                  <Label className="text-xs">{t('form.vulnerabilities.recommendedActionsLabel')}</Label>
                                                                                   <Input
                                                                                     value={(vuln.recommended_actions || []).join(', ')}
                                                                                     onChange={e => updateVulnerability(vuln.id, {
                                                                                       recommended_actions: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
                                                                                     })}
-                                                                                    placeholder="Report accounts, Work with platforms, Monitor adaptation"
+                                                                                    placeholder={t('form.vulnerabilities.recommendedActionsPlaceholder')}
                                                                                     className="text-xs"
                                                                                   />
                                                                                 </div>
 
                                                                                 <div className="space-y-1">
-                                                                                  <Label className="text-xs">Confidence</Label>
+                                                                                  <Label className="text-xs">{t('form.vulnerabilities.confidenceLabel')}</Label>
                                                                                   <Select
                                                                                     value={vuln.confidence || 'medium'}
                                                                                     onValueChange={(v: 'low' | 'medium' | 'high' | 'confirmed') => updateVulnerability(vuln.id, { confidence: v })}
@@ -1415,10 +1439,10 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                       <SelectValue />
                                                                                     </SelectTrigger>
                                                                                     <SelectContent>
-                                                                                      <SelectItem value="low">Low</SelectItem>
-                                                                                      <SelectItem value="medium">Medium</SelectItem>
-                                                                                      <SelectItem value="high">High</SelectItem>
-                                                                                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                                                                                      <SelectItem value="low">{t('form.vulnerabilities.confidenceLow')}</SelectItem>
+                                                                                      <SelectItem value="medium">{t('form.vulnerabilities.confidenceMedium')}</SelectItem>
+                                                                                      <SelectItem value="high">{t('form.vulnerabilities.confidenceHigh')}</SelectItem>
+                                                                                      <SelectItem value="confirmed">{t('form.vulnerabilities.confidenceConfirmed')}</SelectItem>
                                                                                     </SelectContent>
                                                                                   </Select>
                                                                                 </div>
@@ -1428,7 +1452,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
 
                                                                           <Button variant="outline" size="sm" onClick={() => openEvidenceLinker('vulnerability', vuln.id)}>
                                                                             <Link2 className="h-3 w-3 mr-1" />
-                                                                            Evidence ({vuln.linked_evidence.length})
+                                                                            {t('form.cog.linkedEvidenceLabel', { count: vuln.linked_evidence.length })}
                                                                           </Button>
                                                                         </div>
                                                                       </CardContent>
@@ -1464,15 +1488,15 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
           <TabsContent value="scoring" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Scoring System</CardTitle>
-                <CardDescription>Select scoring method and configure criteria for vulnerability assessment</CardDescription>
+                <CardTitle>{t('form.scoring.title')}</CardTitle>
+                <CardDescription>{t('form.scoring.description')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-3 gap-4">
                   <Card className={`cursor-pointer transition-all ${scoringSystem === 'linear' ? 'border-blue-500 border-2' : ''}`} onClick={() => setScoringSystem('linear')}>
                     <CardContent className="pt-6">
-                      <h3 className="font-semibold mb-2">Linear (1-5)</h3>
-                      <p className="text-xs text-gray-600 mb-4">Equal intervals</p>
+                      <h3 className="font-semibold mb-2">{t('form.scoring.linearTitle')}</h3>
+                      <p className="text-xs text-gray-600 mb-4">{t('form.scoring.linearDescription')}</p>
                       <div className="flex justify-between text-xs">
                         <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
                       </div>
@@ -1480,8 +1504,8 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                   </Card>
                   <Card className={`cursor-pointer transition-all ${scoringSystem === 'logarithmic' ? 'border-blue-500 border-2' : ''}`} onClick={() => setScoringSystem('logarithmic')}>
                     <CardContent className="pt-6">
-                      <h3 className="font-semibold mb-2">Logarithmic</h3>
-                      <p className="text-xs text-gray-600 mb-4">Exponential scale</p>
+                      <h3 className="font-semibold mb-2">{t('form.scoring.logarithmicTitle')}</h3>
+                      <p className="text-xs text-gray-600 mb-4">{t('form.scoring.logarithmicDescription')}</p>
                       <div className="flex justify-between text-xs">
                         <span>1</span><span>3</span><span>5</span><span>8</span><span>12</span>
                       </div>
@@ -1489,9 +1513,9 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                   </Card>
                   <Card className={`cursor-pointer transition-all ${scoringSystem === 'custom' ? 'border-blue-500 border-2' : ''}`} onClick={() => setScoringSystem('custom')}>
                     <CardContent className="pt-6">
-                      <h3 className="font-semibold mb-2">Custom</h3>
-                      <p className="text-xs text-gray-600 mb-4">Define your own</p>
-                      <div className="text-xs text-center text-gray-500">1-5 criteria</div>
+                      <h3 className="font-semibold mb-2">{t('form.scoring.customTitle')}</h3>
+                      <p className="text-xs text-gray-600 mb-4">{t('form.scoring.customDescription')}</p>
+                      <div className="text-xs text-center text-gray-500">{t('form.scoring.customCriteriaRange')}</div>
                     </CardContent>
                   </Card>
                 </div>
@@ -1499,12 +1523,12 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                 {/* Default Criteria Info */}
                 {(scoringSystem === 'linear' || scoringSystem === 'logarithmic') && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                    <h4 className="font-semibold mb-2">Default Scoring Criteria</h4>
+                    <h4 className="font-semibold mb-2">{t('form.scoring.defaultCriteriaTitle')}</h4>
                     <ul className="space-y-2 text-sm">
-                      <li><strong>Impact on COG (I):</strong> How significantly would this affect the COG?</li>
-                      <li><strong>Attainability (A):</strong> How feasible is addressing this?</li>
-                      <li><strong>Follow-up Potential (F):</strong> What strategic advantages does this enable?</li>
-                      <li className="pt-2 border-t"><strong>Composite Score = I + A + F</strong></li>
+                      <li><strong>{t('form.scoring.impactCriterion')}</strong></li>
+                      <li><strong>{t('form.scoring.attainabilityCriterion')}</strong></li>
+                      <li><strong>{t('form.scoring.followUpCriterion')}</strong></li>
+                      <li className="pt-2 border-t"><strong>{t('form.scoring.compositeFormula')}</strong></li>
                     </ul>
                   </div>
                 )}
@@ -1513,7 +1537,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                 {scoringSystem === 'custom' && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-semibold">Custom Criteria (1-5 criteria)</h4>
+                      <h4 className="font-semibold">{t('form.scoring.customCriteriaTitle')}</h4>
                       <div className="flex gap-2">
                         <Button
                           size="sm"
@@ -1533,7 +1557,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                           disabled={customCriteria.length >= 5}
                         >
                           <Plus className="h-4 w-4 mr-1" />
-                          Add Criterion
+                          {t('form.buttons.addCriterion')}
                         </Button>
                       </div>
                     </div>
@@ -1545,7 +1569,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                             <div className="flex items-start gap-3">
                               <div className="flex-1 grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                  <Label className="text-xs">Criterion Name *</Label>
+                                  <Label className="text-xs">{t('form.scoring.criterionNameLabel')}</Label>
                                   <Input
                                     value={criterion.name}
                                     onChange={(e) => {
@@ -1553,12 +1577,12 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                       updated[index].name = e.target.value
                                       setCustomCriteria(updated)
                                     }}
-                                    placeholder="e.g., Impact, Risk, Urgency"
+                                    placeholder={t('form.scoring.criterionNamePlaceholder')}
                                     className="h-9"
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-xs">Definition *</Label>
+                                  <Label className="text-xs">{t('form.scoring.criterionDefinitionLabel')}</Label>
                                   <Input
                                     value={criterion.definition}
                                     onChange={(e) => {
@@ -1566,7 +1590,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                       updated[index].definition = e.target.value
                                       setCustomCriteria(updated)
                                     }}
-                                    placeholder="How would you define this criterion?"
+                                    placeholder={t('form.scoring.criterionDefinitionPlaceholder')}
                                     className="h-9"
                                   />
                                 </div>
@@ -1592,7 +1616,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
 
                     <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-200 dark:border-green-800">
                       <p className="text-sm text-green-900 dark:text-green-100">
-                        <strong>Note:</strong> Composite Score = Sum of all criteria scores (1-5 scale per criterion)
+                        <strong>{t('form.scoring.customCompositeNote')}</strong>
                       </p>
                     </div>
                   </div>
@@ -1613,7 +1637,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
           alreadyLinked={[]}
         />
 
-        {/* Quick-Score Modal */}
+        {/* {t('form.buttons.quickScore')} Modal */}
         <COGQuickScore
           open={quickScoreOpen}
           onClose={() => setQuickScoreOpen(false)}
