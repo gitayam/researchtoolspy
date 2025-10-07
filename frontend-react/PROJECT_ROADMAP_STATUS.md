@@ -612,11 +612,18 @@ Based on the roadmap, the highest-value next steps are:
    - **Documentation**: INSTAGRAM_EXTRACTION.md (NEW - 350+ lines)
    - **Git Tag**: `instagram-v2.0.0`
    - **Impact**: Addressed active user-reported bug, improved reliability from ~30% to ~80%
-6. **Additional Tool Integrations** (1-2 weeks)
-   - Neo4j Cypher export for graph database queries
-   - Maltego CSV format for OSINT workflows
-   - i2 Analyst's Notebook entity/link CSV
-   - NetworkX Python integration
+6. **Additional Tool Integrations** ✅ **PARTIALLY COMPLETE** (2025-10-07)
+   - ✅ Neo4j Cypher export (DONE - see Task #4 above)
+   - ✅ Maltego CSV format (NEW - 2025-10-07)
+   - ✅ i2 Analyst's Notebook entity/link CSV (NEW - 2025-10-07)
+   - 🔲 NetworkX Python integration (future)
+   - **Files Modified**: NetworkExportDialog.tsx (+159 lines)
+   - **Documentation**:
+     - MALTEGO_INTEGRATION_GUIDE.md (NEW - 450+ lines)
+     - I2ANB_INTEGRATION_GUIDE.md (NEW - 470+ lines)
+   - **Export Formats Available**: 9 total (JSON, CSV, GraphML, GEXF, Cypher, Maltego, i2 ANB)
+   - **Git Tag**: `osint-tools-v1.0.0`
+   - **Impact**: Professional OSINT and law enforcement tool integration complete
 7. **Phase 4.1: Comments System** - Enable collaboration (2-3 days)
    - Threaded comments on COG/capabilities/requirements/vulnerabilities
    - @mentions and resolve/unresolve workflow
