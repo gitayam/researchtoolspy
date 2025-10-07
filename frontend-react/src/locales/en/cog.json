@@ -312,6 +312,275 @@
     "total": "Total"
   },
 
+  "form": {
+    "header": {
+      "createTitle": "Create COG Analysis",
+      "editTitle": "Edit COG Analysis",
+      "subtitle": "Center of Gravity Analysis (JP 3-0 Methodology)"
+    },
+
+    "buttons": {
+      "back": "Back",
+      "saveAnalysis": "Save Analysis",
+      "saving": "Saving...",
+      "referenceGuide": "Reference Guide",
+      "addCOG": "Add COG",
+      "addCapability": "Add Capability",
+      "addRequirement": "Add Requirement",
+      "addVulnerability": "Add Vulnerability",
+      "suggestCOG": "Suggest COG",
+      "generateCapabilities": "Generate",
+      "generateRequirements": "Generate",
+      "generateVulnerabilities": "Generate",
+      "linkEvidence": "Link Evidence",
+      "quickScore": "Quick-Score",
+      "addCriterion": "Add Criterion"
+    },
+
+    "tabs": {
+      "operationalContext": "Operational Context",
+      "cogAnalysis": "COG Analysis",
+      "scoringSystem": "Scoring System"
+    },
+
+    "basicInfo": {
+      "title": "Basic Information",
+      "description": "Title and description for your COG analysis",
+      "titleLabel": "Title *",
+      "titlePlaceholder": "e.g., Operation XYZ COG Analysis",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Provide context..."
+    },
+
+    "operationalContext": {
+      "title": "Operational Context",
+      "description": "Answer guided questions to define your operational environment",
+      "objectiveLabel": "What is your analysis objective? *",
+      "objectivePlaceholder": "Example: Identify and prioritize adversary information operations vulnerabilities to enable IO counter-campaign and degrade their ability to influence regional populations",
+      "impactLabel": "What impact do we want to achieve?",
+      "impactPlaceholder": "Example: Reduce adversary IO effectiveness by 60%, forcing them to shift resources from offensive to defensive operations, creating windows for friendly information advantage",
+      "identityLabel": "Who are we? (Friendly Forces Description)",
+      "identityPlaceholder": "Example: Joint Task Force with cyber, information operations, and special operations capabilities; partnered with host nation security forces and regional allies",
+      "environmentLabel": "Where are we operating? (PMESII-PT Context)",
+      "environmentPlaceholder": "Example: Urban environment with high internet penetration (70%+), contested information space with multiple state/non-state actors, weak governance creating information voids, population increasingly mobile-first for news consumption",
+      "constraintsLabel": "What constraints limit us? (comma-separated)",
+      "constraintsPlaceholder": "Example: Must obtain interagency approval, Limited to non-attribution operations, Resource cap of 50 personnel",
+      "restraintsLabel": "What restraints restrict us? (comma-separated)",
+      "restraintsPlaceholder": "Example: No targeting of civilian infrastructure, Prohibited from cross-border operations, Cannot disrupt international commerce",
+      "timeframeLabel": "What is the operational timeframe?",
+      "timeframePlaceholder": "e.g., 90 days, Q2 2025, Pre-election period",
+      "strategicLevelLabel": "At what strategic level?"
+    },
+
+    "tooltips": {
+      "objective": {
+        "title": "A good objective is specific, measurable, and tied to commander's intent.",
+        "examples": "Examples:",
+        "example1": "Identify adversary vulnerabilities for targeting",
+        "example2": "Protect friendly COGs from adversary action",
+        "example3": "Assess host nation critical infrastructure"
+      },
+      "impact": {
+        "title": "Describe the desired end-state or effect.",
+        "consider": "Consider:",
+        "point1": "What changes in adversary behavior?",
+        "point2": "What capabilities are degraded/neutralized?",
+        "point3": "What strategic advantage is gained?"
+      },
+      "identity": {
+        "title": "Describe friendly force composition and capabilities.",
+        "include": "Include: organizational structure, key capabilities, partnered forces, unique advantages"
+      },
+      "environment": {
+        "title": "Describe the operational environment using PMESII-PT:",
+        "political": "Political: Government, power structures",
+        "military": "Military: Forces, capabilities, posture",
+        "economic": "Economic: Resources, trade, infrastructure",
+        "social": "Social: Demographics, culture, grievances",
+        "information": "Information: Media, narratives, connectivity",
+        "infrastructure": "Infrastructure: Critical systems, networks",
+        "physical": "Physical: Terrain, climate, geography",
+        "time": "Time: Tempo, windows, constraints"
+      },
+      "constraints": {
+        "title": "Constraints are things you MUST do or CONDITIONS that limit action.",
+        "examples": "Examples:",
+        "example1": "Must coordinate with State Department",
+        "example2": "Limited to defensive cyber operations only",
+        "example3": "Budget ceiling of $5M",
+        "example4": "Requires host nation approval for any kinetic action"
+      },
+      "restraints": {
+        "title": "Restraints are things you MUST NOT do or PROHIBITED actions.",
+        "examples": "Examples:",
+        "example1": "No strikes on religious sites",
+        "example2": "No engagement of state media infrastructure",
+        "example3": "Cannot operate within 50km of border",
+        "example4": "Prohibited from targeting specific platforms"
+      },
+      "timeframe": "Specify the planning horizon or operational window. This helps prioritize vulnerabilities based on when effects are needed.",
+      "strategicLevel": {
+        "title": "Strategic levels of war:",
+        "strategic": "Strategic: National/theater objectives",
+        "operational": "Operational: Campaign/major operation",
+        "tactical": "Tactical: Battle/engagement level"
+      },
+      "cogDescription": {
+        "title": "A COG is a source of power that provides moral or physical strength, freedom of action, or will to act.",
+        "examples": "Examples:",
+        "military": "Military: Integrated air defense system",
+        "information": "Information: State-controlled media apparatus",
+        "economic": "Economic: Oil export infrastructure"
+      },
+      "cogRationale": {
+        "title": "Explain what makes this a true COG:",
+        "point1": "What happens if this is neutralized?",
+        "point2": "What evidence supports this assessment?",
+        "point3": "How does this enable the actor's objectives?"
+      },
+      "capabilities": {
+        "title": "Capabilities are ACTIONS (verbs) the COG can perform.",
+        "examples": "Examples:",
+        "example1": "\"Project military power across theater\"",
+        "example2": "\"Influence regional public opinion\"",
+        "example3": "\"Coordinate multi-domain strike operations\"",
+        "example4": "\"Control information narrative\""
+      },
+      "requirements": {
+        "title": "Requirements are RESOURCES/CONDITIONS (nouns) the capability needs to function.",
+        "examples": "Examples:",
+        "example1": "\"Trained personnel\"",
+        "example2": "\"Logistics support network\"",
+        "example3": "\"Command and control infrastructure\"",
+        "example4": "\"Platform access (social media accounts)\""
+      },
+      "vulnerabilities": {
+        "title": "Vulnerabilities are deficiencies or weaknesses in a requirement that can be exploited.",
+        "examples": "Examples:",
+        "example1": "\"Platform policy enforcement\" (requirement: account access)",
+        "example2": "\"Single point of failure\" (requirement: C2 node)",
+        "example3": "\"Insufficient redundancy\" (requirement: supply route)"
+      },
+      "impactScoring": "How significantly would this affect the COG?",
+      "attainabilityScoring": "How feasible is addressing this?",
+      "followUpScoring": "What strategic advantages does this enable?"
+    },
+
+    "cog": {
+      "title": "Centers of Gravity",
+      "description": "Identify COGs across DIMEFIL domains for each actor",
+      "emptyState": "No COGs defined. Click \"Add COG\" to begin.",
+      "actorCategoryLabel": "Actor Category",
+      "domainLabel": "Domain",
+      "descriptionLabel": "What is this Center of Gravity? *",
+      "descriptionPlaceholder": "Example: Adversary's integrated air defense system provides freedom of maneuver and protects critical infrastructure across the theater",
+      "rationaleLabel": "Why is this a COG? (Rationale)",
+      "rationalePlaceholder": "Example: Without air defense, adversary loses sanctuary for ground forces, logistics hubs, and C2 nodes. Historical analysis shows air dominance correlates with 85% success rate in similar conflicts.",
+      "validationChecklist": "COG Validation Checklist",
+      "validationCheck1": "If neutralized, would this critically degrade objectives?",
+      "validationCheck2": "Is this truly a source of power (not just important)?",
+      "validationCheck3": "Is this at the right level of analysis?",
+      "validationCheck4": "Can this be protected/exploited through its vulnerabilities?",
+      "linkedEvidenceLabel": "Linked Evidence ({{count}})"
+    },
+
+    "capabilities": {
+      "title": "Critical Capabilities - What can the COG DO?",
+      "capabilityPlaceholder": "Example: Launch coordinated missile strikes OR Influence public perception through social media",
+      "howItWorksLabel": "How does this capability work?",
+      "howItWorksPlaceholder": "Example: Uses network of bot accounts, influencers, and state media to amplify narratives across platforms within 24-48 hours",
+      "strategicContributionLabel": "How does this support the actor's objectives?",
+      "strategicContributionPlaceholder": "Example: Enables shaping of regional opinion to support strategic objectives, undermine adversaries, and prepare information environment for military operations"
+    },
+
+    "requirements": {
+      "title": "Critical Requirements - What does this capability NEED?",
+      "requirementPlaceholder": "Example: Platform policy compliance OR Network of coordinated accounts",
+      "descriptionLabel": "What is this requirement and why is it needed?",
+      "descriptionPlaceholder": "Example: Requires active accounts on major platforms to distribute content. Must maintain compliance with platform terms of service to avoid account suspension or content removal."
+    },
+
+    "vulnerabilities": {
+      "title": "Critical Vulnerabilities - What is the WEAKNESS?",
+      "vulnerabilityPlaceholder": "Example: Platform policy enforcement OR Single command node",
+      "descriptionLabel": "What is this vulnerability and how can it be exploited?",
+      "descriptionPlaceholder": "Example: Platforms enforce content policies against coordinated inauthentic behavior. Mass reporting campaigns can trigger automated suspensions within 24-48 hours, disrupting the entire influence operation.",
+      "scoringLabel": "Scoring (Composite: {{score}})",
+      "impactLabel": "Impact (I)",
+      "attainabilityLabel": "Attainability (A)",
+      "followUpLabel": "Follow-up (F)",
+      "soWhatTitle": "\"So What?\" - Impact Analysis",
+      "expectedEffectLabel": "What happens if exploited?",
+      "expectedEffectPlaceholder": "Example: Adversary loses primary influence mechanism within 48 hours.",
+      "recommendedActionsLabel": "Recommended Actions",
+      "recommendedActionsPlaceholder": "Report accounts, Work with platforms, Monitor adaptation",
+      "confidenceLabel": "Confidence",
+      "confidenceLow": "Low",
+      "confidenceMedium": "Medium",
+      "confidenceHigh": "High",
+      "confidenceConfirmed": "Confirmed"
+    },
+
+    "scoring": {
+      "title": "Scoring System",
+      "description": "Select scoring method and configure criteria for vulnerability assessment",
+      "linearTitle": "Linear (1-5)",
+      "linearDescription": "Equal intervals",
+      "logarithmicTitle": "Logarithmic",
+      "logarithmicDescription": "Exponential scale",
+      "customTitle": "Custom",
+      "customDescription": "Define your own",
+      "customCriteriaRange": "1-5 criteria",
+      "defaultCriteriaTitle": "Default Scoring Criteria",
+      "impactCriterion": "Impact on COG (I): How significantly would this affect the COG?",
+      "attainabilityCriterion": "Attainability (A): How feasible is addressing this?",
+      "followUpCriterion": "Follow-up Potential (F): What strategic advantages does this enable?",
+      "compositeFormula": "Composite Score = I + A + F",
+      "customCriteriaTitle": "Custom Criteria (1-5 criteria)",
+      "criterionNameLabel": "Criterion Name *",
+      "criterionNamePlaceholder": "e.g., Impact, Risk, Urgency",
+      "criterionDefinitionLabel": "Definition *",
+      "criterionDefinitionPlaceholder": "How would you define this criterion?",
+      "customCompositeNote": "Note: Composite Score = Sum of all criteria scores (1-5 scale per criterion)"
+    },
+
+    "strategicLevels": {
+      "tactical": "Tactical",
+      "operational": "Operational",
+      "strategic": "Strategic"
+    },
+
+    "requirementTypes": {
+      "personnel": "Personnel",
+      "equipment": "Equipment",
+      "logistics": "Logistics",
+      "information": "Information",
+      "infrastructure": "Infrastructure",
+      "other": "Other"
+    },
+
+    "vulnerabilityTypes": {
+      "physical": "Physical",
+      "cyber": "Cyber",
+      "human": "Human",
+      "logistical": "Logistical",
+      "informational": "Informational",
+      "other": "Other"
+    },
+
+    "validation": {
+      "titleRequired": "Please enter a title for your COG analysis",
+      "saveFailed": "Failed to save COG analysis. Please try again."
+    },
+
+    "confirmations": {
+      "removeCOG": "Remove this COG and all dependent items?",
+      "removeCapability": "Remove this capability and all dependent items?",
+      "removeRequirement": "Remove this requirement and all dependent vulnerabilities?",
+      "removeVulnerability": "Remove this vulnerability?"
+    }
+  },
+
   "quickScore": {
     "dialog": {
       "title": "Quick-Score Mode",
