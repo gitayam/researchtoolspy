@@ -267,6 +267,21 @@ ${Object.entries(centralityMeasures.degree_centrality)
             <ExternalLink className="h-4 w-4 mr-2" />
             {t('view.header.reference')}
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              navigate('/dashboard/network-graph', {
+                state: {
+                  source: 'cog',
+                  title: data.title,
+                  highlightEntities: []  // Will be populated when entity linking is complete
+                }
+              })
+            }}
+          >
+            <Network className="h-4 w-4 mr-2" />
+            {t('view.header.viewInNetwork')}
+          </Button>
           <Button variant="outline" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
             {t('view.header.edit')}
