@@ -112,11 +112,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     console.log('[Starbursting] Calling Starbursting API:', starburstingPayload)
 
+    // Forward auth headers
+    const authHeader = request.headers.get('Authorization')
+
     const starburstingResponse = await fetch(starburstingEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // TODO: Forward auth headers
+        ...(authHeader && { 'Authorization': authHeader })
       },
       body: JSON.stringify(starburstingPayload)
     })
