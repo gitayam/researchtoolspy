@@ -143,6 +143,62 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       )
     }
 
+    // GET /api/actors/search?workspace_id=1&name=EntityName&type=PERSON - Check if actor exists
+    if (method === 'GET' && url.pathname === '/api/actors/search') {
+      const workspaceId = url.searchParams.get('workspace_id')
+      const name = url.searchParams.get('name')
+      const type = url.searchParams.get('type')
+
+      if (!workspaceId || !name) {
+        return new Response(
+          JSON.stringify({ error: 'workspace_id and name parameters required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Check access
+      if (!(await checkWorkspaceAccess(workspaceId, userId, env))) {
+        return new Response(
+          JSON.stringify({ error: 'Access denied to workspace' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Search for actor by name (case-insensitive) and optionally type
+      let query = `SELECT * FROM actors WHERE workspace_id = ? AND LOWER(name) = LOWER(?)`
+      const params = [workspaceId, name]
+
+      if (type) {
+        query += ` AND type = ?`
+        params.push(type)
+      }
+
+      query += ` LIMIT 1`
+
+      const actor = await env.DB.prepare(query).bind(...params).first()
+
+      if (actor) {
+        return new Response(
+          JSON.stringify({
+            exists: true,
+            actor: {
+              ...actor,
+              aliases: actor.aliases ? JSON.parse(actor.aliases as string) : [],
+              tags: actor.tags ? JSON.parse(actor.tags as string) : [],
+              deception_profile: actor.deception_profile ? JSON.parse(actor.deception_profile as string) : null,
+              is_public: Boolean(actor.is_public)
+            }
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({ exists: false, actor: null }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // GET /api/actors?workspace_id=xxx - List actors
     if (method === 'GET' && url.pathname === '/api/actors') {
       const workspaceId = url.searchParams.get('workspace_id')
@@ -197,7 +253,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }))
 
       return new Response(
-        JSON.stringify(actors),
+        JSON.stringify({ actors }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
