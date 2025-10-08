@@ -1,12 +1,14 @@
 import { useState, useCallback, memo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save, Plus, X } from 'lucide-react'
+import { ArrowLeft, Save, Plus, X, Sparkles, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { AIFieldAssistant } from '@/components/ai'
+import { ContentPickerDialog } from './ContentPickerDialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface SwotItem {
   id: string
@@ -134,6 +136,11 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   const [newOpportunity, setNewOpportunity] = useState('')
   const [newThreat, setNewThreat] = useState('')
 
+  // Auto-populate state
+  const [contentPickerOpen, setContentPickerOpen] = useState(false)
+  const [autoPopulating, setAutoPopulating] = useState(false)
+  const [autoPopulateSuccess, setAutoPopulateSuccess] = useState(false)
+
   // Auto-save draft to localStorage every 30 seconds
   useEffect(() => {
     const draftKey = `draft_swot_${mode === 'create' ? 'new' : initialData?.title || 'edit'}`
@@ -221,6 +228,78 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
     setter(prev => prev.filter(item => item.id !== id))
   }
 
+  const handleAutoPopulate = async (contentIds: string[]) => {
+    setAutoPopulating(true)
+    setAutoPopulateSuccess(false)
+    setContentPickerOpen(false)
+
+    try {
+      console.log('[SWOT Auto-Populate] Requesting auto-population for', contentIds.length, 'content sources')
+
+      const response = await fetch('/api/frameworks/swot-auto-populate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contentIds,
+          title: title || undefined
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Failed to auto-populate: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Auto-population failed')
+      }
+
+      console.log('[SWOT Auto-Populate] Received', data.metadata.totalItems, 'items')
+
+      // Add auto-populated items to existing items
+      const newStrengths = data.strengths.map((item: any) => ({
+        id: crypto.randomUUID(),
+        text: `${item.text}${item.source ? ` (Source: ${new URL(item.source).hostname})` : ''}`
+      }))
+
+      const newWeaknesses = data.weaknesses.map((item: any) => ({
+        id: crypto.randomUUID(),
+        text: `${item.text}${item.source ? ` (Source: ${new URL(item.source).hostname})` : ''}`
+      }))
+
+      const newOpportunities = data.opportunities.map((item: any) => ({
+        id: crypto.randomUUID(),
+        text: `${item.text}${item.source ? ` (Source: ${new URL(item.source).hostname})` : ''}`
+      }))
+
+      const newThreats = data.threats.map((item: any) => ({
+        id: crypto.randomUUID(),
+        text: `${item.text}${item.source ? ` (Source: ${new URL(item.source).hostname})` : ''}`
+      }))
+
+      // Merge with existing items (append AI-generated items)
+      setStrengths(prev => [...prev, ...newStrengths])
+      setWeaknesses(prev => [...prev, ...newWeaknesses])
+      setOpportunities(prev => [...prev, ...newOpportunities])
+      setThreats(prev => [...prev, ...newThreats])
+
+      setAutoPopulateSuccess(true)
+      console.log('[SWOT Auto-Populate] Successfully populated form')
+
+      // Hide success message after 5 seconds
+      setTimeout(() => setAutoPopulateSuccess(false), 5000)
+
+    } catch (error) {
+      console.error('[SWOT Auto-Populate] Error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      alert(`Auto-population failed: ${errorMessage}\n\nPlease try again or add items manually.`)
+    } finally {
+      setAutoPopulating(false)
+    }
+  }
+
   const handleSave = async () => {
     if (!title.trim()) {
       setSaveError('Please enter a title for your analysis')
@@ -304,6 +383,17 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
         </Button>
       </div>
 
+      {/* Success Alert */}
+      {autoPopulateSuccess && (
+        <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+          <Info className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <AlertDescription className="text-green-800 dark:text-green-200">
+            ✓ Auto-population successful! AI-generated items have been added to your SWOT analysis.
+            Review and edit them as needed before saving.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Error Alert */}
       {saveError && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -319,6 +409,52 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           </div>
         </div>
       )}
+
+      {/* Auto-Populate Card */}
+      <Card className="border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50 via-blue-50 to-indigo-50 dark:from-purple-950/20 dark:via-blue-950/20 dark:to-indigo-950/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            AI-Powered Auto-Population
+          </CardTitle>
+          <CardDescription>
+            Let AI analyze your content and automatically generate SWOT items with source citations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              onClick={() => setContentPickerOpen(true)}
+              disabled={autoPopulating}
+              className="border-purple-300 hover:bg-purple-100 dark:border-purple-700 dark:hover:bg-purple-900/30"
+            >
+              {autoPopulating ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Analyzing Content...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Auto-Populate from Content
+                </>
+              )}
+            </Button>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Select analyzed content from your library to auto-generate SWOT items
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Content Picker Dialog */}
+      <ContentPickerDialog
+        open={contentPickerOpen}
+        onOpenChange={setContentPickerOpen}
+        onConfirm={handleAutoPopulate}
+        maxSelection={5}
+      />
 
       {/* Basic Info */}
       <Card>
