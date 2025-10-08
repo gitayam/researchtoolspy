@@ -121,7 +121,7 @@ export function LandingPage() {
               <span className="text-blue-600 dark:text-blue-500">ResearchTools</span>
             </h1>
             <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400">
-              Intelligence Analysis Platform
+              Research Analysis Platform
             </p>
           </div>
 

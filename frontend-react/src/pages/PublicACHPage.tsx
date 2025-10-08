@@ -227,7 +227,7 @@ export function PublicACHPage() {
       <Card className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
         <CardContent className="p-6 text-center">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Ready to Analyze This Intelligence Problem?
+            Ready to Analyze This Research Problem?
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             Clone this analysis to your workspace to independently score the evidence and

@@ -333,7 +333,7 @@ export function SocialMediaPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Social Media Intelligence
+            Social Media Research
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
             Scrape, analyze, and monitor social media content
