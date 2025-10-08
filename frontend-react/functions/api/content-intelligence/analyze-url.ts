@@ -3,6 +3,7 @@
  *
  * Features:
  * - URL content extraction with timeout handling
+ * - PDF analysis with intelligent chunking for large documents
  * - Word frequency analysis (2-10 word phrases)
  * - Entity extraction with GPT
  * - Immediate bypass/archive link generation
@@ -11,6 +12,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
 
 interface Env {
   DB: D1Database
@@ -119,8 +121,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Extract content with timeout
     console.log('[DEBUG] Extracting URL content...')
-    const contentData = await extractUrlContent(normalizedUrl)
-    console.log(`[DEBUG] Content extraction result: success=${contentData.success}`)
+    const contentData = await extractUrlContent(normalizedUrl, env.OPENAI_API_KEY)
+    console.log(`[DEBUG] Content extraction result: success=${contentData.success}, isPDF=${contentData.isPDF}`)
 
     if (!contentData.success) {
       console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
@@ -284,7 +286,31 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     try {
       console.log('[DEBUG] Calling generateSummary with GPT...')
-      summary = await generateSummary(contentData.text, env.OPENAI_API_KEY)
+
+      // For large PDFs (>2000 words), use intelligent chunking
+      if (contentData.isPDF && wordCount > 2000) {
+        console.log('[DEBUG] Large PDF detected, using intelligent summarization')
+        const intelligentResult = await intelligentPDFSummary(
+          contentData.text,
+          wordCount,
+          env.OPENAI_API_KEY
+        )
+        summary = intelligentResult.summary
+
+        // Store additional PDF metadata if available
+        if (intelligentResult.chapters) {
+          contentData.pdfMetadata = {
+            ...contentData.pdfMetadata,
+            chapters: intelligentResult.chapters,
+            keyPoints: intelligentResult.keyPoints
+          }
+        }
+
+        console.log(`[DEBUG] Intelligent summary generated with ${intelligentResult.chapters?.length || 0} chapters`)
+      } else {
+        summary = await generateSummary(contentData.text, env.OPENAI_API_KEY)
+      }
+
       console.log(`[DEBUG] Summary generated: ${summary?.substring(0, 100)}...`)
     } catch (error) {
       console.error('[DEBUG] Summary generation failed:', error)
@@ -476,14 +502,50 @@ function generateArchiveUrls(url: string): Record<string, string> {
   }
 }
 
-async function extractUrlContent(url: string): Promise<{
+async function extractUrlContent(url: string, apiKey?: string): Promise<{
   success: boolean
   error?: string
   text: string
   title?: string
   author?: string
   publishDate?: string
+  isPDF?: boolean
+  pdfMetadata?: {
+    pageCount?: number
+    keywords?: string[]
+    chapters?: string[]
+    keyPoints?: string[]
+  }
 }> {
+  // Check if URL is a PDF
+  if (isPDFUrl(url)) {
+    console.log('[Content Extract] Detected PDF URL, using PDF extractor')
+    try {
+      const pdfResult = await extractPDFText(url)
+
+      return {
+        success: true,
+        text: pdfResult.text,
+        title: pdfResult.metadata?.title,
+        author: pdfResult.metadata?.author,
+        isPDF: true,
+        pdfMetadata: {
+          pageCount: pdfResult.metadata?.pageCount,
+          keywords: pdfResult.metadata?.keywords
+        }
+      }
+    } catch (pdfError) {
+      console.error('[Content Extract] PDF extraction failed:', pdfError)
+      return {
+        success: false,
+        error: pdfError instanceof Error ? pdfError.message : 'PDF extraction failed',
+        text: '',
+        isPDF: true
+      }
+    }
+  }
+
+  // Standard HTML extraction
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
 
