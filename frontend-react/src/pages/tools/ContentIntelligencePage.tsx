@@ -62,6 +62,11 @@ export default function ContentIntelligencePage() {
   const [existingActors, setExistingActors] = useState<Record<string, { id: string, name: string }>>({})
   const [checkingDuplicates, setCheckingDuplicates] = useState(false)
 
+  // Starbursting Background Processing State
+  const [starburstingSession, setStarburstingSession] = useState<any>(null)
+  const [starburstingStatus, setStarburstingStatus] = useState<'idle' | 'processing' | 'complete' | 'error'>('idle')
+  const [starburstingError, setStarburstingError] = useState<string | null>(null)
+
   // Load saved links and check for pending URL from landing page
   useEffect(() => {
     loadSavedLinks()
@@ -235,6 +240,11 @@ export default function ContentIntelligencePage() {
       // Check for duplicate entities in the background
       if (data.entities) {
         checkEntityDuplicates(data.entities)
+      }
+
+      // Start Starbursting analysis in the background
+      if (data.id) {
+        startStarburstingInBackground(data.id)
       }
 
       toast({ title: 'Success', description: 'Analysis complete!' })
@@ -473,6 +483,40 @@ export default function ContentIntelligencePage() {
 
     setExistingActors(existingMap)
     setCheckingDuplicates(false)
+  }
+
+  // Start Starbursting analysis in the background
+  const startStarburstingInBackground = async (analysisId: number) => {
+    if (!analysisId) return
+
+    console.log('[Starbursting] Starting background analysis for content ID:', analysisId)
+    setStarburstingStatus('processing')
+    setStarburstingError(null)
+
+    try {
+      const response = await fetch('/api/content-intelligence/starbursting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysis_ids: [analysisId],
+          use_ai_questions: true
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create Starbursting session')
+      }
+
+      const data = await response.json()
+      console.log('[Starbursting] Background session created:', data.session_id)
+
+      setStarburstingSession(data)
+      setStarburstingStatus('complete')
+    } catch (error) {
+      console.error('[Starbursting] Background processing error:', error)
+      setStarburstingError(error instanceof Error ? error.message : 'Unknown error')
+      setStarburstingStatus('error')
+    }
   }
 
   // Country origin lookup
@@ -1252,9 +1296,21 @@ export default function ContentIntelligencePage() {
               <MessageSquare className="h-4 w-4 mr-2" />
               Q&A
             </TabsTrigger>
-            <TabsTrigger value="starbursting">
+            <TabsTrigger value="starbursting" className="relative">
               <Star className="h-4 w-4 mr-2" />
               Starbursting
+              {starburstingStatus === 'processing' && (
+                <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Processing
+                </Badge>
+              )}
+              {starburstingStatus === 'complete' && (
+                <Badge variant="default" className="ml-2 bg-green-100 text-green-700">
+                  <Check className="h-3 w-3 mr-1" />
+                  Ready
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -1612,10 +1668,105 @@ export default function ContentIntelligencePage() {
           <TabsContent value="starbursting" className="mt-4">
             <Card className="p-6">
               <h3 className="font-semibold mb-4">🌟 Starbursting Analysis</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Launch deep-dive question analysis using the Starbursting framework
-              </p>
-              {/* TODO: Implement Starbursting launcher */}
+
+              {/* Processing State */}
+              {starburstingStatus === 'processing' && (
+                <div className="text-center py-8">
+                  <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+                  <p className="text-lg font-medium">Generating Starbursting Questions...</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    This may take a moment. We're creating deep-dive 5W1H questions from your content.
+                  </p>
+                </div>
+              )}
+
+              {/* Complete State */}
+              {starburstingStatus === 'complete' && starburstingSession && (
+                <div className="space-y-4">
+                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <Check className="h-5 w-5 text-green-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-green-900 dark:text-green-100">
+                          Starbursting Session Created!
+                        </h4>
+                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                          {starburstingSession.central_topic}
+                        </p>
+                        <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                          {starburstingSession.sources_count} source{starburstingSession.sources_count !== 1 ? 's' : ''} analyzed
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Questions Summary */}
+                  {starburstingSession.starbursting_data?.data?.questions && (
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-medium mb-3">Generated Questions</h4>
+                      <div className="space-y-2">
+                        {starburstingSession.starbursting_data.data.questions.slice(0, 5).map((q: any, i: number) => (
+                          <div key={i} className="flex items-start gap-2 text-sm">
+                            <Badge variant="outline" className="mt-0.5">{q.category?.toUpperCase()}</Badge>
+                            <span className="flex-1">{q.question}</span>
+                            {q.status === 'answered' && (
+                              <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                            )}
+                          </div>
+                        ))}
+                        {starburstingSession.starbursting_data.data.questions.length > 5 && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            +{starburstingSession.starbursting_data.data.questions.length - 5} more questions
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Button */}
+                  <Button
+                    onClick={() => navigate(`/dashboard/analysis-frameworks/starbursting/${starburstingSession.session_id}/view`)}
+                    className="w-full"
+                  >
+                    <Star className="h-4 w-4 mr-2" />
+                    Open Starbursting Analysis
+                    <ExternalLink className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              )}
+
+              {/* Error State */}
+              {starburstingStatus === 'error' && (
+                <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-red-900 dark:text-red-100">
+                        Failed to Create Starbursting Session
+                      </h4>
+                      <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                        {starburstingError}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => analysis?.id && startStarburstingInBackground(analysis.id)}
+                        className="mt-3"
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Idle State */}
+              {starburstingStatus === 'idle' && !analysis && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Star className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Analyze content first to generate Starbursting questions</p>
+                </div>
+              )}
             </Card>
           </TabsContent>
         </Tabs>
