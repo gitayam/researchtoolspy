@@ -787,14 +787,16 @@
       "reference": "Referencia",
       "edit": "Editar",
       "delete": "Eliminar",
-      "viewInNetwork": "Ver en Red"
+      "viewInNetwork": "Ver en Red",
+      "publishToLibrary": "Publicar en Biblioteca"
     },
 
     "tabs": {
       "overview": "Resumen",
       "hierarchy": "Jerarquía",
       "vulnerabilities": "Vulnerabilidades",
-      "network": "Red"
+      "network": "Red",
+      "comments": "Comentarios"
     },
 
     "operationalContext": {
@@ -1109,6 +1111,49 @@
       "atLeastOneRequirement": "Por favor agregue al menos un requisito.",
       "atLeastOneVulnerability": "Por favor agregue al menos una vulnerabilidad.",
       "cogValidationIncomplete": "Complete la lista de verificación de validación para asegurar que este es un COG válido."
+    },
+
+    "templates": {
+      "dialog": {
+        "title": "Iniciar Nuevo Análisis COG",
+        "description": "Elija cómo crear su análisis: asistente guiado o modo avanzado. También puede comenzar desde una plantilla o en blanco.",
+        "blankAnalysis": "Análisis en Blanco",
+        "blankDescription": "Comenzar desde cero con un marco de análisis COG vacío",
+        "startWithWizard": "Iniciar con Asistente",
+        "advancedMode": "Modo Avanzado",
+        "orStartFromTemplate": "O iniciar desde una plantilla:",
+        "wizard": "Asistente",
+        "advanced": "Avanzado"
+      },
+      "list": {
+        "adversaryC2": {
+          "name": "Comando y Control Adversario",
+          "description": "Plantilla para analizar estructuras de comando y control adversarias e identificar vulnerabilidades en procesos de toma de decisiones militares"
+        },
+        "adversaryInfoOps": {
+          "name": "Operaciones de Información Adversarias",
+          "description": "Plantilla para analizar capacidades de guerra de información adversarias e identificar debilidades en redes de propaganda e influencia"
+        },
+        "friendlyLogistics": {
+          "name": "COG de Logística Amiga",
+          "description": "Plantilla para analizar la logística de fuerzas amigas para identificar y proteger vulnerabilidades críticas en cadenas de suministro"
+        },
+        "cyberDomain": {
+          "name": "COG del Dominio Cibernético",
+          "description": "Plantilla para analizar capacidades cibernéticas adversarias y dependencias de infraestructura crítica"
+        },
+        "hostNationInfrastructure": {
+          "name": "Infraestructura Crítica de la Nación Anfitriona",
+          "description": "Plantilla para analizar infraestructura crítica de la nación anfitriona para identificar prioridades de protección durante operaciones"
+        }
+      },
+      "categories": {
+        "adversary": "Adversario",
+        "friendly": "Amigo",
+        "information": "Información",
+        "cyber": "Cibernético",
+        "host_nation": "Nación Anfitriona"
+      }
     }
   }
 }

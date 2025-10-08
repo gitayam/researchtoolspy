@@ -1,4 +1,6 @@
 // Cloudflare Pages Function for Framework API
+import { logActivity } from '../utils/activity-logger'
+
 export async function onRequest(context: any) {
   const { request, env } = context
 
@@ -6,7 +8,7 @@ export async function onRequest(context: any) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
     'Content-Type': 'application/json',
   }
 
@@ -161,8 +163,23 @@ export async function onRequest(context: any) {
         body.workspace_id || workspaceId  // original_workspace_id same as workspace_id on creation
       ).run()
 
+      const frameworkId = result.meta.last_row_id.toString()
+      const userHash = request.headers.get('X-User-Hash') || 'system'
+
+      // Log activity
+      await logActivity(env.DB, {
+        workspace_id: body.workspace_id || workspaceId,
+        user_hash: userHash,
+        activity_type: 'create',
+        entity_type: 'framework',
+        entity_id: frameworkId,
+        entity_title: body.title,
+        action_summary: `created ${body.framework_type.toUpperCase()} framework "${body.title}"`,
+        metadata: { framework_type: body.framework_type }
+      })
+
       return new Response(JSON.stringify({
-        id: result.meta.last_row_id,
+        id: frameworkId,
         message: 'Framework created successfully'
       }), {
         status: 201,
@@ -198,6 +215,20 @@ export async function onRequest(context: any) {
         })
       }
 
+      const userHash = request.headers.get('X-User-Hash') || 'system'
+
+      // Log activity
+      await logActivity(env.DB, {
+        workspace_id: workspaceId,
+        user_hash: userHash,
+        activity_type: 'update',
+        entity_type: 'framework',
+        entity_id: frameworkId,
+        entity_title: body.title,
+        action_summary: `updated framework "${body.title}"`,
+        metadata: { status: body.status, is_public: body.is_public }
+      })
+
       return new Response(JSON.stringify({ message: 'Framework updated successfully' }), {
         status: 200,
         headers: corsHeaders,
@@ -206,6 +237,18 @@ export async function onRequest(context: any) {
 
     // DELETE - Delete framework
     if (request.method === 'DELETE') {
+      // Get framework details before deleting for activity log
+      const framework = await env.DB.prepare(
+        'SELECT title, framework_type FROM framework_sessions WHERE id = ? AND workspace_id = ?'
+      ).bind(frameworkId, workspaceId).first()
+
+      if (!framework) {
+        return new Response(JSON.stringify({ error: 'Framework not found in workspace or unauthorized' }), {
+          status: 404,
+          headers: corsHeaders,
+        })
+      }
+
       // WORKSPACE ISOLATION: Only allow deleting frameworks in current workspace
       const result = await env.DB.prepare(
         'DELETE FROM framework_sessions WHERE id = ? AND workspace_id = ?'
@@ -217,6 +260,20 @@ export async function onRequest(context: any) {
           headers: corsHeaders,
         })
       }
+
+      const userHash = request.headers.get('X-User-Hash') || 'system'
+
+      // Log activity
+      await logActivity(env.DB, {
+        workspace_id: workspaceId,
+        user_hash: userHash,
+        activity_type: 'delete',
+        entity_type: 'framework',
+        entity_id: frameworkId,
+        entity_title: framework.title as string,
+        action_summary: `deleted framework "${framework.title}"`,
+        metadata: { framework_type: framework.framework_type }
+      })
 
       return new Response(JSON.stringify({ message: 'Framework deleted successfully' }), {
         status: 200,

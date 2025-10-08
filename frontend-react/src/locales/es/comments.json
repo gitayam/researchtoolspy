@@ -1,0 +1,23 @@
+{
+  "title": "Comentarios",
+  "add": "Agregar Comentario",
+  "addReply": "Agregar Respuesta",
+  "reply": "Responder",
+  "edit": "Editar",
+  "save": "Guardar",
+  "cancel": "Cancelar",
+  "delete": "Eliminar",
+  "resolve": "Resolver",
+  "unresolve": "Reabrir",
+  "resolved": "Resuelto",
+  "placeholder": "Agregar un comentario... (Markdown soportado, usa @usuario para mencionar)",
+  "replyPlaceholder": "Escribir una respuesta...",
+  "editPlaceholder": "Editar tu comentario...",
+  "markdownSupport": "Markdown soportado • @menciones habilitadas",
+  "noComments": "No hay comentarios aún. ¡Sé el primero en comentar!",
+  "confirmDelete": "¿Estás seguro de que deseas eliminar este comentario? Esta acción no se puede deshacer.",
+  "showResolved": "Mostrar Resueltos",
+  "hideResolved": "Ocultar Resueltos",
+  "guest": "Invitado",
+  "edited": "editado"
+}

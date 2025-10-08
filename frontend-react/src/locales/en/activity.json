@@ -1,0 +1,47 @@
+{
+  "summary": {
+    "totalActivities": "Total Activities (24h)",
+    "activeUsers": "Active Users",
+    "created": "Created",
+    "comments": "Comments"
+  },
+  "feed": {
+    "title": "Activity Feed",
+    "description": "Recent workspace activity",
+    "empty": "No activity yet"
+  },
+  "filters": {
+    "allTypes": "All Types",
+    "allEntities": "All Entities"
+  },
+  "types": {
+    "create": "Created",
+    "update": "Updated",
+    "delete": "Deleted",
+    "comment": "Commented",
+    "vote": "Voted",
+    "fork": "Forked",
+    "publish": "Published",
+    "share": "Shared",
+    "invite": "Invited"
+  },
+  "entities": {
+    "framework": "Framework",
+    "library_item": "Library Item",
+    "comment": "Comment",
+    "evidence": "Evidence",
+    "entity": "Entity"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "minutesAgo_one": "1m ago",
+    "minutesAgo_other": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "hoursAgo_one": "1h ago",
+    "hoursAgo_other": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago",
+    "daysAgo_one": "1d ago",
+    "daysAgo_other": "{{count}}d ago"
+  }
+}

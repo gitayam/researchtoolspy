@@ -7,6 +7,7 @@ export interface COGTemplate {
   id: string
   name: string
   description: string
+  i18nKey: string // Translation key for name and description
   category: 'adversary' | 'friendly' | 'host_nation' | 'cyber' | 'information'
   icon: string
   template_data: Omit<COGAnalysis, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'status'>
@@ -17,6 +18,7 @@ export const adversaryCommandControlTemplate: COGTemplate = {
   id: 'template-adversary-c2',
   name: 'Adversary Command & Control',
   description: 'Template for analyzing adversary command and control structures and identifying vulnerabilities in military decision-making processes',
+  i18nKey: 'adversaryC2',
   category: 'adversary',
   icon: '🎖️',
   template_data: {
@@ -155,6 +157,7 @@ export const adversaryInformationOpsTemplate: COGTemplate = {
   id: 'template-adversary-info-ops',
   name: 'Adversary Information Operations',
   description: 'Template for analyzing adversary information warfare capabilities and identifying weaknesses in propaganda and influence networks',
+  i18nKey: 'adversaryInfoOps',
   category: 'information',
   icon: '📡',
   template_data: {
@@ -267,6 +270,7 @@ export const friendlyLogisticsTemplate: COGTemplate = {
   id: 'template-friendly-logistics',
   name: 'Friendly Logistics COG',
   description: 'Template for analyzing friendly forces logistics to identify and protect critical vulnerabilities in supply chains',
+  i18nKey: 'friendlyLogistics',
   category: 'friendly',
   icon: '🚚',
   template_data: {
@@ -371,6 +375,7 @@ export const cyberDomainTemplate: COGTemplate = {
   id: 'template-cyber-domain',
   name: 'Cyber Domain COG',
   description: 'Template for analyzing adversary cyber capabilities and critical infrastructure dependencies',
+  i18nKey: 'cyberDomain',
   category: 'cyber',
   icon: '💻',
   template_data: {
@@ -475,6 +480,7 @@ export const hostNationInfrastructureTemplate: COGTemplate = {
   id: 'template-host-nation-infrastructure',
   name: 'Host Nation Critical Infrastructure',
   description: 'Template for analyzing host nation critical infrastructure to identify protection priorities during operations',
+  i18nKey: 'hostNationInfrastructure',
   category: 'host_nation',
   icon: '🏭',
   template_data: {
