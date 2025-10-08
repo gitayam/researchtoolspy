@@ -1,0 +1,121 @@
+{
+  "title": "Public Library",
+  "subtitle": "Discover and share analysis frameworks",
+  "search": {
+    "placeholder": "Search frameworks by title, description, or tags...",
+    "noResults": "No frameworks found matching your search",
+    "results": "{{count}} frameworks found"
+  },
+  "filters": {
+    "type": "Framework Type",
+    "category": "Category",
+    "tags": "Tags",
+    "sortBy": "Sort By",
+    "allTypes": "All Types",
+    "allCategories": "All Categories",
+    "sort": {
+      "popular": "Most Popular",
+      "recent": "Most Recent",
+      "trending": "Trending",
+      "top_rated": "Top Rated",
+      "most_forked": "Most Forked"
+    }
+  },
+  "categories": {
+    "adversary_analysis": "Adversary Analysis",
+    "friendly_analysis": "Friendly Analysis",
+    "host_nation": "Host Nation",
+    "strategic_planning": "Strategic Planning",
+    "operational_planning": "Operational Planning",
+    "tactical_analysis": "Tactical Analysis",
+    "intelligence": "Intelligence",
+    "deception": "Deception Analysis"
+  },
+  "card": {
+    "publishedBy": "Published by",
+    "publishedOn": "Published on",
+    "views": "{{count}} views",
+    "forks": "{{count}} forks",
+    "votes": "{{score}} votes",
+    "rating": "{{avg}} / 5 ({{count}} ratings)",
+    "noRating": "No ratings yet",
+    "viewDetails": "View Details",
+    "fork": "Fork to Workspace",
+    "vote": "Vote",
+    "rate": "Rate",
+    "subscribe": "Subscribe",
+    "subscribed": "Subscribed",
+    "upvote": "Upvote",
+    "downvote": "Downvote"
+  },
+  "publish": {
+    "button": "Publish to Library",
+    "title": "Publish Framework to Library",
+    "description": "Share your framework with the community",
+    "form": {
+      "title": "Title",
+      "titlePlaceholder": "Enter a clear, descriptive title",
+      "description": "Description",
+      "descriptionPlaceholder": "Explain what this framework analyzes and how to use it",
+      "category": "Category",
+      "categoryPlaceholder": "Select a category",
+      "tags": "Tags",
+      "tagsPlaceholder": "Add tags (comma-separated)",
+      "tagsHint": "e.g., logistics, adversary, c2-infrastructure"
+    },
+    "success": "Framework published successfully!",
+    "error": "Failed to publish framework",
+    "alreadyPublished": "This framework is already published",
+    "publishing": "Publishing...",
+    "confirm": "Publish"
+  },
+  "fork": {
+    "title": "Fork Framework",
+    "description": "Create a copy of this framework in your workspace",
+    "confirm": "Fork to My Workspace",
+    "forking": "Forking...",
+    "success": "Framework forked successfully!",
+    "error": "Failed to fork framework",
+    "workspaceSelect": "Fork to Workspace"
+  },
+  "rate": {
+    "title": "Rate Framework",
+    "yourRating": "Your Rating",
+    "writeReview": "Write a Review (Optional)",
+    "reviewPlaceholder": "Share your thoughts about this framework...",
+    "submit": "Submit Rating",
+    "submitting": "Submitting...",
+    "success": "Rating submitted successfully!",
+    "error": "Failed to submit rating",
+    "update": "Update Rating"
+  },
+  "details": {
+    "overview": "Overview",
+    "author": "Author",
+    "published": "Published",
+    "lastUpdated": "Last Updated",
+    "version": "Version",
+    "originalWorkspace": "Original Workspace",
+    "stats": "Statistics",
+    "actions": "Actions",
+    "unpublish": "Unpublish",
+    "edit": "Edit Metadata",
+    "viewFramework": "View Framework",
+    "reviews": "Reviews",
+    "noReviews": "No reviews yet. Be the first to review!",
+    "loading": "Loading framework..."
+  },
+  "subscribe": {
+    "button": "Subscribe to Updates",
+    "unsubscribe": "Unsubscribe",
+    "notifyOnUpdate": "Notify on framework updates",
+    "notifyOnComment": "Notify on new comments",
+    "success": "Subscription updated",
+    "error": "Failed to update subscription"
+  },
+  "empty": {
+    "title": "No Frameworks Yet",
+    "description": "Be the first to publish a framework to the library!",
+    "action": "Create Framework"
+  }
+}

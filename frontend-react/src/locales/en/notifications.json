@@ -1,0 +1,28 @@
+{
+  "title": "Notifications",
+  "markAllRead": "Mark all read",
+  "empty": "No notifications yet",
+  "view": "View",
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "minutesAgo_one": "1m ago",
+    "minutesAgo_other": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "hoursAgo_one": "1h ago",
+    "hoursAgo_other": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago",
+    "daysAgo_one": "1d ago",
+    "daysAgo_other": "{{count}}d ago"
+  },
+  "types": {
+    "framework_update": "Framework Updated",
+    "comment": "New Comment",
+    "mention": "You were mentioned",
+    "fork": "Framework Forked",
+    "vote": "New Vote",
+    "rating": "New Rating",
+    "invite": "Team Invitation",
+    "share": "Shared with you"
+  }
+}
