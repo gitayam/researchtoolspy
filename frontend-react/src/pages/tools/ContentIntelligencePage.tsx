@@ -1732,25 +1732,47 @@ export default function ContentIntelligencePage() {
                   </div>
 
                   {/* Questions Summary */}
-                  {starburstingSession.framework_data?.data?.questions && (
+                  {starburstingSession.framework_data?.data && (
                     <div className="border rounded-lg p-4">
-                      <h4 className="font-medium mb-3">Generated Questions</h4>
-                      <div className="space-y-2">
-                        {starburstingSession.framework_data.data.questions.slice(0, 5).map((q: any, i: number) => (
-                          <div key={i} className="flex items-start gap-2 text-sm">
-                            <Badge variant="outline" className="mt-0.5">{q.category?.toUpperCase()}</Badge>
-                            <span className="flex-1">{q.question}</span>
-                            {q.status === 'answered' && (
-                              <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
-                            )}
-                          </div>
-                        ))}
-                        {starburstingSession.framework_data.data.questions.length > 5 && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            +{starburstingSession.framework_data.data.questions.length - 5} more questions
-                          </p>
-                        )}
-                      </div>
+                      <h4 className="font-medium mb-3">Generated Questions & Answers</h4>
+                      {starburstingSession.framework_data.data.who && (
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          {['who', 'what', 'when', 'where', 'why', 'how'].map(category => {
+                            const questions = starburstingSession.framework_data.data[category] || []
+                            const answered = questions.filter((q: any) => q.answer && q.answer.trim() !== '').length
+                            const total = questions.length
+
+                            return total > 0 && (
+                              <div key={category} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                                <div>
+                                  <Badge variant="outline" className="mb-1">{category.toUpperCase()}</Badge>
+                                  <p className="text-xs text-muted-foreground">
+                                    {answered} answered / {total} total
+                                  </p>
+                                </div>
+                                {answered === total ? (
+                                  <Check className="h-5 w-5 text-green-600" />
+                                ) : (
+                                  <span className="text-xs text-orange-600 font-medium">{total - answered} pending</span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                      {starburstingSession.framework_data.data.questions && (
+                        <div className="space-y-2 mt-3">
+                          {starburstingSession.framework_data.data.questions.slice(0, 3).map((q: any, i: number) => (
+                            <div key={i} className="flex items-start gap-2 text-sm">
+                              <Badge variant="outline" className="mt-0.5">{q.category?.toUpperCase()}</Badge>
+                              <span className="flex-1">{q.question}</span>
+                              {q.status === 'answered' && (
+                                <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
