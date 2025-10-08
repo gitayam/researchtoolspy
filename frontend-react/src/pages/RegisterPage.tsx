@@ -20,6 +20,20 @@ export function RegisterPage() {
   useEffect(() => {
     const hash = generateAccountHash()
     setAccountHash(hash)
+
+    // Immediately add to valid hashes so it can be used for login
+    try {
+      const validHashesStr = localStorage.getItem('omnicore_valid_hashes')
+      const validHashes: string[] = validHashesStr ? JSON.parse(validHashesStr) : []
+
+      if (!validHashes.includes(hash)) {
+        validHashes.push(hash)
+        localStorage.setItem('omnicore_valid_hashes', JSON.stringify(validHashes))
+        console.log('[Register] Hash added to valid hashes:', hash.substring(0, 8) + '...')
+      }
+    } catch (err) {
+      console.error('[Register] Failed to store hash in valid hashes:', err)
+    }
   }, [])
 
   const handleCopyHash = async () => {
