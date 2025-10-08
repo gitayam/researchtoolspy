@@ -17,6 +17,7 @@ export function LandingPage() {
   // URL analysis state
   const [url, setUrl] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
+  const [urlError, setUrlError] = useState('')
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -24,15 +25,45 @@ export function LandingPage() {
     }
   }, [isAuthenticated, navigate])
 
-  const handleAnalyze = async () => {
-    if (!url.trim()) return
+  const isValidUrl = (urlString: string): boolean => {
+    try {
+      const urlObj = new URL(urlString)
+      // Check if protocol is http or https
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:'
+    } catch {
+      return false
+    }
+  }
 
+  const handleAnalyze = async () => {
+    if (!url.trim()) {
+      setUrlError('Please enter a URL')
+      return
+    }
+
+    // Validate URL format
+    if (!isValidUrl(url.trim())) {
+      setUrlError('Invalid URL. Please enter a valid URL starting with http:// or https://')
+      return
+    }
+
+    // Clear error and proceed
+    setUrlError('')
     setAnalyzing(true)
+
     // Store URL in localStorage for Content Intelligence page to pick up
     localStorage.setItem('pending_url_analysis', url)
 
     // Navigate to Content Intelligence page
     navigate('/dashboard/tools/content-intelligence')
+  }
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUrl(e.target.value)
+    // Clear error when user starts typing
+    if (urlError) {
+      setUrlError('')
+    }
   }
 
   const features = useMemo(() => [
@@ -127,14 +158,16 @@ export function LandingPage() {
 
           {/* URL Input - Google-style search box */}
           <div className="w-full max-w-2xl mx-auto">
-            <div className="bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-shadow border border-gray-200 dark:border-gray-700">
+            <div className={`bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-shadow border ${
+              urlError ? 'border-red-500 dark:border-red-500' : 'border-gray-200 dark:border-gray-700'
+            }`}>
               <div className="flex items-center px-5 py-3">
-                <Search className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
+                <Search className={`h-5 w-5 mr-3 flex-shrink-0 ${urlError ? 'text-red-500' : 'text-gray-400'}`} />
                 <Input
                   type="url"
                   placeholder="Paste any URL to analyze..."
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={handleUrlChange}
                   onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
                   className="flex-1 border-0 bg-transparent text-base focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
                   disabled={analyzing}
@@ -152,6 +185,16 @@ export function LandingPage() {
                 </Button>
               </div>
             </div>
+
+            {/* Error message display */}
+            {urlError && (
+              <div className="mt-3 flex items-start gap-2 text-red-600 dark:text-red-400 text-sm px-2">
+                <svg className="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span className="font-medium">{urlError}</span>
+              </div>
+            )}
           </div>
 
           {/* One-line framework callout */}
