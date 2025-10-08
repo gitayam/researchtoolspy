@@ -64,6 +64,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const centralTopic = title || (primaryAnalysis.title as string) || 'Content Analysis'
 
     // Build context from all analyses
+    // Forward auth headers (declare early for AI extraction)
+    const authHeader = request.headers.get('Authorization')
+
     const contextParts: string[] = []
 
     analyses.forEach((analysis, index) => {
@@ -150,9 +153,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     console.log('[Starbursting] Creating framework session:', starburstingPayload)
-
-    // Forward auth headers
-    const authHeader = request.headers.get('Authorization')
 
     const starburstingResponse = await fetch(frameworksEndpoint, {
       method: 'POST',
