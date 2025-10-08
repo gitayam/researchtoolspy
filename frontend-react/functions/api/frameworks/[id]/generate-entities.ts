@@ -5,6 +5,8 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
   SESSIONS: KVNamespace
@@ -107,7 +109,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     }
 
     // Get or create default workspace
-    const workspaceId = 'default' // TODO: Get from request body or user's current workspace
+    const workspaceId = '1' // Default workspace
 
     // Ensure workspace exists
     const workspace = await env.DB.prepare(`

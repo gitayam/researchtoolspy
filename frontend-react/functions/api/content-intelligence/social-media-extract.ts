@@ -11,10 +11,13 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
   OPENAI_API_KEY: string
   CACHE: KVNamespace
+  SESSIONS?: KVNamespace
 }
 
 interface SocialMediaExtractRequest {
@@ -200,7 +203,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (result.success && env.DB) {
       try {
         await saveSocialMediaExtraction(env.DB, {
-          user_id: 1, // TODO: Get from auth
+          user_id: await getUserIdOrDefault(context.request, context.env),
           url,
           platform,
           post_type: result.postType,
