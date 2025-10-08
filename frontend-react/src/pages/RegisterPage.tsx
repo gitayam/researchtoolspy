@@ -4,7 +4,7 @@ import { Copy, Check, Bookmark, Share2, Shield, AlertCircle, RefreshCw } from 'l
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import { formatHashForDisplay, generateAccountHash } from '@/lib/hash-auth'
 
 export function RegisterPage() {
@@ -29,8 +29,7 @@ export function RegisterPage() {
       setCopied(true)
       toast({
         title: 'Copied!',
-        description: 'Hash copied to clipboard. Save it in your password manager now!',
-        duration: 3000
+        description: 'Hash copied to clipboard. Save it in your password manager now!'
       })
       setTimeout(() => setCopied(false), 3000)
     } catch (err) {
@@ -51,8 +50,7 @@ export function RegisterPage() {
           setCopied(true)
           toast({
             title: 'Copied!',
-            description: 'Hash copied to clipboard. Save it in your password manager now!',
-            duration: 3000
+            description: 'Hash copied to clipboard. Save it in your password manager now!'
           })
           setTimeout(() => setCopied(false), 3000)
         } else {
@@ -63,8 +61,7 @@ export function RegisterPage() {
         toast({
           title: 'Copy failed',
           description: 'Please manually select and copy the hash above.',
-          variant: 'destructive',
-          duration: 5000
+          variant: 'destructive'
         })
       }
     }
