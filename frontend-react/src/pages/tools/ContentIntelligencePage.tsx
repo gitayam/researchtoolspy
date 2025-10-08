@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -1731,47 +1731,93 @@ export default function ContentIntelligencePage() {
                     </div>
                   </div>
 
-                  {/* Questions Summary */}
+                  {/* Full Q&A Preview */}
                   {starburstingSession.framework_data?.data && (
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-medium mb-3">Generated Questions & Answers</h4>
+                    <div className="space-y-4">
+                      {/* New format with who/what/when categories */}
                       {starburstingSession.framework_data.data.who && (
-                        <div className="grid grid-cols-2 gap-3 text-sm">
+                        <>
                           {['who', 'what', 'when', 'where', 'why', 'how'].map(category => {
                             const questions = starburstingSession.framework_data.data[category] || []
-                            const answered = questions.filter((q: any) => q.answer && q.answer.trim() !== '').length
-                            const total = questions.length
+                            if (questions.length === 0) return null
 
-                            return total > 0 && (
-                              <div key={category} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                                <div>
-                                  <Badge variant="outline" className="mb-1">{category.toUpperCase()}</Badge>
-                                  <p className="text-xs text-muted-foreground">
-                                    {answered} answered / {total} total
-                                  </p>
-                                </div>
-                                {answered === total ? (
-                                  <Check className="h-5 w-5 text-green-600" />
-                                ) : (
-                                  <span className="text-xs text-orange-600 font-medium">{total - answered} pending</span>
-                                )}
-                              </div>
+                            const categoryColors: Record<string, { bg: string; badge: string }> = {
+                              who: { bg: 'bg-purple-50 dark:bg-purple-900/20', badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300' },
+                              what: { bg: 'bg-blue-50 dark:bg-blue-900/20', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' },
+                              when: { bg: 'bg-green-50 dark:bg-green-900/20', badge: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' },
+                              where: { bg: 'bg-yellow-50 dark:bg-yellow-900/20', badge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' },
+                              why: { bg: 'bg-orange-50 dark:bg-orange-900/20', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300' },
+                              how: { bg: 'bg-pink-50 dark:bg-pink-900/20', badge: 'bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300' }
+                            }
+
+                            const colors = categoryColors[category] || categoryColors.who
+
+                            return (
+                              <Card key={category} className={`${colors.bg} border-none`}>
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="flex items-center gap-2 text-lg">
+                                    <Badge variant="secondary" className={colors.badge}>{category.toUpperCase()}</Badge>
+                                    <span className="text-sm text-muted-foreground">
+                                      {questions.filter((q: any) => q.answer && q.answer.trim() !== '').length} answered / {questions.length} total
+                                    </span>
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <ul className="space-y-3">
+                                    {questions.map((item: any, index: number) => (
+                                      <li key={item.id || index} className="space-y-1">
+                                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                                          <span className="text-gray-600 dark:text-gray-400">{index + 1}.</span> Q: {item.question}
+                                        </div>
+                                        <div className="text-gray-700 dark:text-gray-300 ml-5">
+                                          A: {item.answer && item.answer.trim() !== '' ? (
+                                            item.answer
+                                          ) : (
+                                            <span className="italic text-gray-500 dark:text-gray-400">No answer provided</span>
+                                          )}
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </CardContent>
+                              </Card>
                             )
                           })}
-                        </div>
+                        </>
                       )}
-                      {starburstingSession.framework_data.data.questions && (
-                        <div className="space-y-2 mt-3">
-                          {starburstingSession.framework_data.data.questions.slice(0, 3).map((q: any, i: number) => (
-                            <div key={i} className="flex items-start gap-2 text-sm">
-                              <Badge variant="outline" className="mt-0.5">{q.category?.toUpperCase()}</Badge>
-                              <span className="flex-1">{q.question}</span>
-                              {q.status === 'answered' && (
-                                <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
-                              )}
-                            </div>
-                          ))}
-                        </div>
+
+                      {/* Fallback format with flat questions array */}
+                      {starburstingSession.framework_data.data.questions && !starburstingSession.framework_data.data.who && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-lg">Generated Questions</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-3">
+                              {starburstingSession.framework_data.data.questions.map((item: any, index: number) => (
+                                <li key={item.id || index} className="space-y-1">
+                                  <div className="flex items-start gap-2">
+                                    {item.category && (
+                                      <Badge variant="outline" className="mt-0.5">{item.category.toUpperCase()}</Badge>
+                                    )}
+                                    <div className="flex-1">
+                                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                                        <span className="text-gray-600 dark:text-gray-400">{index + 1}.</span> Q: {item.question}
+                                      </div>
+                                      <div className="text-gray-700 dark:text-gray-300 ml-5">
+                                        A: {item.answer && item.answer.trim() !== '' ? (
+                                          item.answer
+                                        ) : (
+                                          <span className="italic text-gray-500 dark:text-gray-400">No answer provided</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
                       )}
                     </div>
                   )}
