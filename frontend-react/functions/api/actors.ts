@@ -49,6 +49,40 @@ async function checkWorkspaceAccess(
   env: Env,
   requiredRole?: 'ADMIN' | 'EDITOR' | 'VIEWER'
 ): Promise<boolean> {
+  // Default workspace "1" - auto-grant access for all authenticated users
+  if (workspaceId === '1') {
+    // Auto-create workspace 1 if it doesn't exist
+    const workspace = await env.DB.prepare(`
+      SELECT id FROM workspaces WHERE id = ?
+    `).bind(workspaceId).first()
+
+    if (!workspace) {
+      // Create default workspace
+      const now = new Date().toISOString()
+      try {
+        await env.DB.prepare(`
+          INSERT INTO workspaces (id, name, description, type, owner_id, is_public, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          '1',
+          'Default Workspace',
+          'Shared workspace for all users',
+          'SHARED',
+          1,
+          1,
+          now,
+          now
+        ).run()
+      } catch (err) {
+        // Workspace might have been created by another request, ignore
+        console.log('[Actors] Default workspace creation skipped (may already exist)')
+      }
+    }
+
+    // Grant access to default workspace for all authenticated users
+    return true
+  }
+
   const workspace = await env.DB.prepare(`
     SELECT owner_id, is_public FROM workspaces WHERE id = ?
   `).bind(workspaceId).first()
