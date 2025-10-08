@@ -3,8 +3,11 @@
  * CRUD operations for hypotheses within an ACH analysis
  */
 
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
 }
 
 interface Hypothesis {
@@ -22,7 +25,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const url = new URL(context.request.url)
     const data = await context.request.json() as Partial<Hypothesis>
-    const userId = 'demo-user' // TODO: Get from auth
+    const userId = await getUserIdOrDefault(context.request, context.env)
 
     // Get workspace_id from query params or default to '1'
     const workspaceId = url.searchParams.get('workspace_id') || '1'
@@ -98,7 +101,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   try {
     const url = new URL(context.request.url)
     const id = url.searchParams.get('id')
-    const userId = 'demo-user' // TODO: Get from auth
+    const userId = await getUserIdOrDefault(context.request, context.env)
 
     // Get workspace_id from query params or default to '1'
     const workspaceId = url.searchParams.get('workspace_id') || '1'
@@ -162,7 +165,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
     const url = new URL(context.request.url)
     const id = url.searchParams.get('id')
-    const userId = 'demo-user' // TODO: Get from auth
+    const userId = await getUserIdOrDefault(context.request, context.env)
 
     // Get workspace_id from query params or default to '1'
     const workspaceId = url.searchParams.get('workspace_id') || '1'

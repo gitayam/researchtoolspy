@@ -3,8 +3,11 @@
  * POST /api/ach/:id/share - Toggle public/private and manage sharing settings
  */
 
+import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
 }
 
 interface ShareRequest {
@@ -17,7 +20,7 @@ interface ShareRequest {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const { id } = context.params
-    const userId = 'demo-user' // TODO: Get from auth
+    const userId = await getUserIdOrDefault(context.request, context.env)
     const data = await context.request.json() as ShareRequest
 
     // Verify ownership
