@@ -96,7 +96,39 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const context = contextParts.join('\n\n---\n\n')
 
-    // Extract initial questions from content (5W1H)
+    // Extract full Q&A using AI if enabled
+    let extractedData: any = {}
+
+    if (use_ai_questions && primaryAnalysis.url) {
+      console.log('[Starbursting] Calling AI to extract Q&A from:', primaryAnalysis.url)
+
+      const scrapeEndpoint = `${new URL(request.url).origin}/api/ai/scrape-url`
+
+      try {
+        const scrapeResponse = await fetch(scrapeEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authHeader && { 'Authorization': authHeader })
+          },
+          body: JSON.stringify({
+            url: primaryAnalysis.url,
+            framework: 'starbursting'
+          })
+        })
+
+        if (scrapeResponse.ok) {
+          extractedData = await scrapeResponse.json()
+          console.log('[Starbursting] AI extraction successful, got', Object.keys(extractedData).length, 'categories')
+        } else {
+          console.warn('[Starbursting] AI extraction failed:', scrapeResponse.status)
+        }
+      } catch (error) {
+        console.error('[Starbursting] AI extraction error:', error)
+      }
+    }
+
+    // Fallback: Extract initial questions from content if AI fails
     const initialQuestions = extractInitialQuestions(analyses)
 
     // Create Starbursting session via framework API
@@ -109,8 +141,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       data: {
         central_topic: centralTopic,
         context: context.substring(0, 5000), // Limit context size
-        questions: initialQuestions,
-        request_ai_questions: use_ai_questions
+        // Use AI-extracted data if available, otherwise use basic questions
+        ...(extractedData.who ? extractedData : { questions: initialQuestions }),
+        source_url: primaryAnalysis.url,
+        source_title: primaryAnalysis.title
       },
       workspace_id: '1' // Default workspace
     }
