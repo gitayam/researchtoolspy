@@ -243,10 +243,9 @@ export default function ContentIntelligencePage() {
       }
 
       // Start Starbursting analysis in the background
-      // TODO: Re-enable when /api/starbursting/create endpoint is implemented
-      // if (data.id) {
-      //   startStarburstingInBackground(data.id)
-      // }
+      if (data.id) {
+        startStarburstingInBackground(data.id)
+      }
 
       toast({ title: 'Success', description: 'Analysis complete!' })
     } catch (error) {
@@ -1733,11 +1732,11 @@ export default function ContentIntelligencePage() {
                   </div>
 
                   {/* Questions Summary */}
-                  {starburstingSession.starbursting_data?.data?.questions && (
+                  {starburstingSession.framework_data?.data?.questions && (
                     <div className="border rounded-lg p-4">
                       <h4 className="font-medium mb-3">Generated Questions</h4>
                       <div className="space-y-2">
-                        {starburstingSession.starbursting_data.data.questions.slice(0, 5).map((q: any, i: number) => (
+                        {starburstingSession.framework_data.data.questions.slice(0, 5).map((q: any, i: number) => (
                           <div key={i} className="flex items-start gap-2 text-sm">
                             <Badge variant="outline" className="mt-0.5">{q.category?.toUpperCase()}</Badge>
                             <span className="flex-1">{q.question}</span>
@@ -1746,9 +1745,9 @@ export default function ContentIntelligencePage() {
                             )}
                           </div>
                         ))}
-                        {starburstingSession.starbursting_data.data.questions.length > 5 && (
+                        {starburstingSession.framework_data.data.questions.length > 5 && (
                           <p className="text-xs text-muted-foreground mt-2">
-                            +{starburstingSession.starbursting_data.data.questions.length - 5} more questions
+                            +{starburstingSession.framework_data.data.questions.length - 5} more questions
                           </p>
                         )}
                       </div>

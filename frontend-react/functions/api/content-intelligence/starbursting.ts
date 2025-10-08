@@ -99,23 +99,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Extract initial questions from content (5W1H)
     const initialQuestions = extractInitialQuestions(analyses)
 
-    // Call existing Starbursting API
-    const starburstingEndpoint = `${new URL(request.url).origin}/api/starbursting/create`
+    // Create Starbursting session via framework API
+    const frameworksEndpoint = `${new URL(request.url).origin}/api/frameworks`
 
     const starburstingPayload = {
       title: centralTopic,
-      central_topic: centralTopic,
-      context: context.substring(0, 5000), // Limit context size
-      initial_questions: initialQuestions,
-      request_ai_questions: use_ai_questions
+      framework_type: 'starbursting',
+      status: 'draft',
+      data: {
+        central_topic: centralTopic,
+        context: context.substring(0, 5000), // Limit context size
+        questions: initialQuestions,
+        request_ai_questions: use_ai_questions
+      },
+      workspace_id: '1' // Default workspace
     }
 
-    console.log('[Starbursting] Calling Starbursting API:', starburstingPayload)
+    console.log('[Starbursting] Creating framework session:', starburstingPayload)
 
     // Forward auth headers
     const authHeader = request.headers.get('Authorization')
 
-    const starburstingResponse = await fetch(starburstingEndpoint, {
+    const starburstingResponse = await fetch(frameworksEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -126,11 +131,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!starburstingResponse.ok) {
       const errorText = await starburstingResponse.text()
-      throw new Error(`Starbursting API error: ${starburstingResponse.status} - ${errorText}`)
+      throw new Error(`Framework API error: ${starburstingResponse.status} - ${errorText}`)
     }
 
     const starburstingData = await starburstingResponse.json()
-    const sessionId = starburstingData.session_id
+    const sessionId = starburstingData.id
 
     console.log('[Starbursting] Session created:', sessionId)
 
@@ -144,11 +149,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({
       session_id: sessionId,
-      redirect_url: `/frameworks/starbursting/${sessionId}`,
+      redirect_url: `/dashboard/analysis-frameworks/starbursting/${sessionId}`,
       central_topic: centralTopic,
       sources_count: analyses.length,
       ai_questions_generated: use_ai_questions,
-      starbursting_data: starburstingData
+      framework_data: starburstingData
     }), {
       status: 201,
       headers: { 'Content-Type': 'application/json' }
