@@ -30,6 +30,11 @@
 - ✅ YouTube transcript extraction via InnerTube API (99%+ reliability)
 - ✅ Multi-language caption support with intelligent fallback
 - ✅ Support for auto-generated and manual captions
+- ✅ SWOT auto-population from Content Intelligence (GPT-4o-mini)
+- ✅ Content picker dialog for framework auto-population
+- ✅ PDF analysis with intelligent chunking for large documents
+- ✅ Chapter detection, Q&A generation, and precise summarization
+- ✅ Full text view UI with copy-to-clipboard
 
 ---
 
@@ -394,7 +399,12 @@
 - Image OCR and analysis integration
 - Video frame analysis for visual propaganda
 - Audio transcript with speaker diarization
-- PDF table extraction and analysis
+- ✅ PDF text extraction and intelligent analysis (Completed v2.4.0)
+  - Auto-detect .pdf URLs
+  - Extract text, metadata, chapters
+  - Intelligent chunking for >2000 word documents
+  - Q&A generation and precise summarization
+- PDF table extraction and analysis (Advanced feature)
 
 #### R&D Track 2: Geospatial Intelligence
 - Map integration for location-based analysis
