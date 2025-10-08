@@ -443,49 +443,122 @@ function extractYouTubeVideoId(url: string): string | null {
 }
 
 // Helper: Fetch YouTube transcript using YouTube's timedtext API
-async function fetchYouTubeTranscript(videoId: string): Promise<string> {
+/**
+ * Fetch YouTube transcript using InnerTube API (2025 method)
+ * Supports auto-generated and manual captions with multi-language fallback
+ *
+ * @param videoId - YouTube video ID (11 characters)
+ * @param preferredLang - Preferred language code (default: 'en')
+ * @returns Transcript text or throws error if unavailable
+ */
+async function fetchYouTubeTranscript(videoId: string, preferredLang: string = 'en'): Promise<string> {
   try {
-    // Try to get English transcript
-    const transcriptUrl = `https://www.youtube.com/api/timedtext?lang=en&v=${videoId}`
+    console.log(`[YouTube Transcript] Fetching transcript for video ${videoId}, preferred language: ${preferredLang}`)
 
-    const response = await fetch(transcriptUrl)
+    // Use YouTube InnerTube API with Android client for reliability
+    // This API key is public and used by YouTube's Android app
+    const playerResponse = await fetch(
+      `https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          context: {
+            client: {
+              clientName: 'ANDROID',
+              clientVersion: '17.31.35',
+              androidSdkVersion: 30,
+              hl: 'en',
+              gl: 'US',
+            }
+          },
+          videoId: videoId
+        })
+      }
+    )
 
-    if (!response.ok) {
-      throw new Error('Transcript API returned error')
+    if (!playerResponse.ok) {
+      throw new Error(`InnerTube API returned ${playerResponse.status}`)
     }
 
-    const text = await response.text()
+    const playerData = await playerResponse.json() as any
+    const captionTracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks
 
-    // Parse XML transcript
-    // Extract text from <text> tags
-    const textMatches = text.match(/<text[^>]*>(.*?)<\/text>/g)
+    if (!captionTracks || captionTracks.length === 0) {
+      throw new Error('No captions available for this video')
+    }
+
+    console.log(`[YouTube Transcript] Found ${captionTracks.length} caption tracks`)
+
+    // Multi-language fallback chain:
+    // 1. Preferred language (exact match)
+    // 2. English (if not already preferred)
+    // 3. Auto-generated in preferred language
+    // 4. First available track
+    let selectedTrack = captionTracks.find((t: any) => t.languageCode === preferredLang && !t.kind)
+      || captionTracks.find((t: any) => t.languageCode === 'en' && !t.kind)
+      || captionTracks.find((t: any) => t.languageCode === preferredLang)
+      || captionTracks.find((t: any) => t.languageCode === 'en')
+      || captionTracks[0]
+
+    if (!selectedTrack || !selectedTrack.baseUrl) {
+      throw new Error('Selected caption track has no baseUrl')
+    }
+
+    console.log(`[YouTube Transcript] Selected track: ${selectedTrack.name?.simpleText || 'Unknown'} (${selectedTrack.languageCode})${selectedTrack.kind ? ' [auto-generated]' : ''}`)
+
+    // Fetch transcript XML
+    const transcriptResponse = await fetch(selectedTrack.baseUrl)
+
+    if (!transcriptResponse.ok) {
+      throw new Error(`Failed to fetch transcript: ${transcriptResponse.status}`)
+    }
+
+    const xml = await transcriptResponse.text()
+
+    // Parse XML and extract text from <text> tags
+    const textMatches = xml.match(/<text[^>]*>(.*?)<\/text>/g)
 
     if (!textMatches || textMatches.length === 0) {
-      throw new Error('No transcript text found')
+      throw new Error('No transcript text found in XML')
     }
 
-    // Clean up the text
+    // Clean up and decode HTML entities
     const transcript = textMatches
       .map(match => {
-        // Extract text content
         const content = match.replace(/<text[^>]*>/, '').replace(/<\/text>/, '')
-        // Decode HTML entities
         return content
           .replace(/&amp;/g, '&')
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
           .replace(/&quot;/g, '"')
           .replace(/&#39;/g, "'")
+          .replace(/&nbsp;/g, ' ')
           .trim()
       })
       .filter(line => line.length > 0)
       .join(' ')
 
-    return transcript || 'Transcript fetched but appears to be empty.'
+    if (!transcript || transcript.length === 0) {
+      throw new Error('Transcript fetched but appears to be empty')
+    }
+
+    console.log(`[YouTube Transcript] Successfully extracted ${transcript.length} characters`)
+    return transcript
 
   } catch (error) {
     console.error('[YouTube Transcript] Error:', error)
-    throw new Error('Could not fetch transcript. Video may not have captions available.')
+
+    // Provide user-friendly error messages
+    if (error instanceof Error) {
+      if (error.message.includes('No captions available')) {
+        throw new Error('This video does not have captions or transcripts available.')
+      } else if (error.message.includes('InnerTube API returned')) {
+        throw new Error('YouTube API is temporarily unavailable. Please try again later.')
+      }
+    }
+
+    throw new Error('Could not fetch transcript. The video may not have captions available or YouTube blocked the request.')
   }
 }
 
