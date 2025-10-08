@@ -53,6 +53,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.error('[DEBUG] WARNING: OpenAI API key not available!')
     }
 
+    // Get workspace and user authentication
+    const workspaceId = request.headers.get('X-Workspace-ID') || '1'
+    const userHash = request.headers.get('X-User-Hash')
+    const authToken = request.headers.get('Authorization')?.replace('Bearer ', '')
+
+    console.log(`[DEBUG] Auth: workspace=${workspaceId}, userHash=${!!userHash}, authToken=${!!authToken}`)
+
+    // Determine user_id (if authenticated) or use bookmark hash
+    // Use user_id = 1 (system user) for guest/bookmark users to satisfy FK constraint
+    let userId: number = 1  // Default to system user (id=1) for guest users
+    let bookmarkHash: string | null = userHash || null
+
+    if (authToken) {
+      // Try to get user from session
+      // TODO: Implement session lookup
+      userId = 1 // Placeholder - should get actual user_id from session token
+    }
+
     // Parse request
     let body: AnalyzeUrlRequest
     try {
@@ -135,6 +153,57 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Calculate content hash
     const contentHash = await calculateHash(contentData.text)
+    console.log(`[DEBUG] Content hash: ${contentHash}`)
+
+    // Check for duplicate content in this workspace
+    console.log('[DEBUG] Checking for duplicate content...')
+    const dedupCheck = await env.DB.prepare(`
+      SELECT canonical_content_id, duplicate_count
+      FROM content_deduplication
+      WHERE content_hash = ?
+    `).bind(contentHash).first()
+
+    if (dedupCheck) {
+      console.log(`[DEBUG] Duplicate content found! canonical_id=${dedupCheck.canonical_content_id}`)
+
+      // Update access stats
+      await env.DB.prepare(`
+        UPDATE content_deduplication
+        SET total_access_count = total_access_count + 1,
+            duplicate_count = duplicate_count + 1,
+            last_accessed_at = datetime('now')
+        WHERE content_hash = ?
+      `).bind(contentHash).run()
+
+      await env.DB.prepare(`
+        UPDATE content_analysis
+        SET access_count = access_count + 1,
+            last_accessed_at = datetime('now')
+        WHERE id = ?
+      `).bind(dedupCheck.canonical_content_id).run()
+
+      // Return existing analysis
+      const existingAnalysis = await env.DB.prepare(`
+        SELECT * FROM content_analysis WHERE id = ?
+      `).bind(dedupCheck.canonical_content_id).first()
+
+      if (existingAnalysis) {
+        console.log('[DEBUG] Returning cached analysis (deduped)')
+        return new Response(JSON.stringify({
+          ...existingAnalysis,
+          entities: JSON.parse(existingAnalysis.entities as string || '{}'),
+          word_frequency: JSON.parse(existingAnalysis.word_frequency as string || '{}'),
+          top_phrases: JSON.parse(existingAnalysis.top_phrases as string || '[]'),
+          archive_urls: JSON.parse(existingAnalysis.archive_urls as string || '{}'),
+          bypass_urls: JSON.parse(existingAnalysis.bypass_urls as string || '{}'),
+          from_cache: true,
+          cache_hit_count: dedupCheck.duplicate_count
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+    }
 
     // Word frequency analysis (2-10 word phrases)
     const wordFrequency = analyzeWordFrequency(contentData.text)
@@ -150,6 +219,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         try {
           console.log('[DEBUG] Saving link with title:', contentData.title)
           savedLinkId = await saveLinkToLibrary(env.DB, {
+            user_id: userId,
+            workspace_id: workspaceId,
+            bookmark_hash: bookmarkHash,
             url: normalizedUrl,
             title: contentData.title || new URL(normalizedUrl).hostname,
             note: link_note,
@@ -225,6 +297,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let analysisId: number
     try {
       analysisId = await saveAnalysis(env.DB, {
+      user_id: userId,
+      bookmark_hash: bookmarkHash,
+      workspace_id: workspaceId,
       url: normalizedUrl,
       content_hash: contentHash,
       title: contentData.title,
@@ -246,6 +321,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       gpt_model_used: 'gpt-4o-mini'
     })
       console.log(`[DEBUG] Saved to database with ID: ${analysisId}`)
+
+      // Create deduplication entry for new content
+      await env.DB.prepare(`
+        INSERT INTO content_deduplication (
+          content_hash, canonical_content_id, duplicate_count,
+          total_access_count, first_analyzed_at, last_accessed_at
+        ) VALUES (?, ?, 1, 1, datetime('now'), datetime('now'))
+      `).bind(contentHash, analysisId).run()
+
+      console.log('[DEBUG] Deduplication entry created')
     } catch (error) {
       console.error('[DEBUG] Database save failed:', error)
       console.error('[DEBUG] Error details:', error instanceof Error ? error.message : String(error))
@@ -258,6 +343,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       try {
         console.log('[DEBUG] Saving link to library...')
         savedLinkId = await saveLinkToLibrary(env.DB, {
+          user_id: userId,
+          workspace_id: workspaceId,
+          bookmark_hash: bookmarkHash,
           url: normalizedUrl,
           title: contentData.title,
           note: link_note,
@@ -536,24 +624,71 @@ function isStopWordsOnly(phrase: string): boolean {
   return words.every(w => stopWords.has(w))
 }
 
+function deduplicateSubstringPhrases(
+  phrases: Array<{ phrase: string; count: number; percentage: number }>
+): Array<{ phrase: string; count: number; percentage: number }> {
+  if (phrases.length === 0) return phrases
+
+  // Sort by count descending, then length descending for ties
+  const sorted = [...phrases].sort((a, b) => {
+    const countDiff = b.count - a.count
+    const maxCount = Math.max(a.count, b.count)
+
+    // If within 15% frequency, prefer longer phrase for semantic richness
+    if (maxCount > 0 && Math.abs(countDiff) / maxCount < 0.15) {
+      return b.phrase.length - a.phrase.length
+    }
+
+    return countDiff
+  })
+
+  const result: typeof phrases = []
+  const acceptedPhrases = new Set<string>()
+
+  for (const candidate of sorted) {
+    let isSubstring = false
+
+    // Check if candidate is substring of any already-accepted phrase
+    for (const accepted of acceptedPhrases) {
+      if (accepted.includes(candidate.phrase)) {
+        isSubstring = true
+        break
+      }
+    }
+
+    if (!isSubstring) {
+      result.push(candidate)
+      acceptedPhrases.add(candidate.phrase)
+    }
+  }
+
+  return result
+}
+
 function getTopPhrases(frequency: Record<string, number>, limit: number): Array<{
   phrase: string
   count: number
   percentage: number
 }> {
-  // Get top phrases sorted by frequency
+  // Get top phrases sorted by frequency (3x limit to allow for deduplication)
   const sorted = Object.entries(frequency)
     .sort(([, a], [, b]) => b - a)
-    .slice(0, limit)
+    .slice(0, limit * 3)
 
   // Calculate percentage relative to the maximum count (so top item = 100%)
   const maxCount = sorted[0]?.[1] || 1
 
-  return sorted.map(([phrase, count]) => ({
+  const candidates = sorted.map(([phrase, count]) => ({
     phrase,
     count,
     percentage: Math.round((count / maxCount) * 100)
   }))
+
+  // Deduplicate substrings (e.g., remove "berlin wall" if "the berlin wall" exists)
+  const deduplicated = deduplicateSubstringPhrases(candidates)
+
+  // Return top N after deduplication
+  return deduplicated.slice(0, limit)
 }
 
 async function extractEntities(text: string, apiKey: string): Promise<{
@@ -688,13 +823,16 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
 
   const result = await db.prepare(`
     INSERT INTO content_analysis (
-      user_id, url, url_normalized, content_hash, title, author, publish_date,
-      domain, is_social_media, social_platform, extracted_text, summary, word_count,
-      word_frequency, top_phrases, entities, archive_urls, bypass_urls,
-      processing_mode, processing_duration_ms, gpt_model_used
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      user_id, workspace_id, bookmark_hash, url, url_normalized, content_hash,
+      title, author, publish_date, domain, is_social_media, social_platform,
+      extracted_text, summary, word_count, word_frequency, top_phrases, entities,
+      archive_urls, bypass_urls, processing_mode, processing_duration_ms, gpt_model_used,
+      access_count, last_accessed_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
   `).bind(
-    1, // TODO: Get actual user_id from auth
+    toNullable(data.user_id),
+    toNullable(data.workspace_id),
+    toNullable(data.bookmark_hash),
     data.url,
     data.url,
     data.content_hash,
@@ -721,13 +859,17 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
 }
 
 async function saveLinkToLibrary(db: D1Database, data: any): Promise<number> {
+  const toNullable = (val: any) => val === undefined ? null : val
+
   const result = await db.prepare(`
     INSERT INTO saved_links (
-      user_id, url, title, note, tags, domain, is_social_media, social_platform,
-      is_processed, analysis_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      user_id, workspace_id, bookmark_hash, url, title, note, tags, domain,
+      is_social_media, social_platform, is_processed, analysis_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
-    1, // TODO: Get actual user_id from auth
+    toNullable(data.user_id),
+    toNullable(data.workspace_id),
+    toNullable(data.bookmark_hash),
     data.url,
     data.title,
     data.note,

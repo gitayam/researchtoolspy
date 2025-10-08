@@ -58,9 +58,23 @@ export default function ContentIntelligencePage() {
   const [socialMediaData, setSocialMediaData] = useState<any>(null)
   const [socialExtractLoading, setSocialExtractLoading] = useState(false)
 
-  // Load saved links
+  // Load saved links and check for pending URL from landing page
   useEffect(() => {
     loadSavedLinks()
+
+    // Check if user came from landing page with a URL to analyze
+    const pendingUrl = localStorage.getItem('pending_url_analysis')
+    if (pendingUrl) {
+      setUrl(pendingUrl)
+      localStorage.removeItem('pending_url_analysis')
+      // Auto-start analysis after a brief delay to allow state to update
+      setTimeout(() => {
+        const analyzeButton = document.querySelector('[data-analyze-button]') as HTMLButtonElement
+        if (analyzeButton) {
+          analyzeButton.click()
+        }
+      }, 800)
+    }
   }, [])
 
   const loadSavedLinks = async () => {
@@ -158,7 +172,17 @@ export default function ContentIntelligencePage() {
     setProcessing(true)
     setStatus('extracting')
     setProgress(10)
-    setCurrentStep('Extracting content...')
+
+    // Detect social media platform for custom progress messages
+    const isSocialMedia = /youtube\.com|youtu\.be|twitter\.com|x\.com|facebook\.com|instagram\.com|tiktok\.com|linkedin\.com|reddit\.com/i.test(url)
+    const socialPlatform = isSocialMedia
+      ? url.match(/(youtube|twitter|x\.com|facebook|instagram|tiktok|linkedin|reddit)/i)?.[0] || 'social media'
+      : null
+
+    setCurrentStep(isSocialMedia
+      ? `Extracting ${socialPlatform} content (video/audio transcripts may take longer)...`
+      : 'Extracting content...'
+    )
 
     try {
       // Generate bypass/archive URLs immediately
@@ -171,7 +195,10 @@ export default function ContentIntelligencePage() {
 
       setProgress(30)
       setStatus('analyzing_words')
-      setCurrentStep('Analyzing word frequency...')
+      setCurrentStep(isSocialMedia
+        ? `Analyzing ${socialPlatform} content and engagement patterns...`
+        : 'Analyzing word frequency...'
+      )
 
       const response = await fetch('/api/content-intelligence/analyze-url', {
         method: 'POST',
@@ -665,7 +692,7 @@ export default function ContentIntelligencePage() {
               </Button>
             </div>
 
-            <Button onClick={handleAnalyze} disabled={processing} className="ml-auto">
+            <Button onClick={handleAnalyze} disabled={processing} className="ml-auto" data-analyze-button>
               {processing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -682,8 +709,33 @@ export default function ContentIntelligencePage() {
         </div>
       </Card>
 
-      {/* Country Origin Info - Auto-detected */}
-      {countryInfo && (
+      {/* Processing Status - Prominent placement */}
+      {processing && (
+        <Card className="p-6 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 border-2 border-blue-400 dark:border-blue-600">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg text-blue-900 dark:text-blue-100">
+                  {currentStep}
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  This may take 10-30 seconds depending on content size
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                  {progress}%
+                </div>
+              </div>
+            </div>
+            <Progress value={progress} className="h-2" />
+          </div>
+        </Card>
+      )}
+
+      {/* Country Origin Info - Auto-detected (only when not processing) */}
+      {!processing && countryInfo && (
         <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-300">
           <div className="flex items-center gap-3">
             <div className="text-3xl">{countryInfo.flag}</div>
@@ -704,7 +756,7 @@ export default function ContentIntelligencePage() {
         </Card>
       )}
 
-      {countryLoading && (
+      {!processing && countryLoading && (
         <Card className="p-4 bg-gray-50 dark:bg-gray-900">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -820,15 +872,36 @@ export default function ContentIntelligencePage() {
 
           {/* Images Grid */}
           {socialMediaData.mediaUrls?.images && socialMediaData.mediaUrls.images.length > 0 && (
-            <div className="mb-4 grid grid-cols-2 md:grid-cols-3 gap-2">
-              {socialMediaData.mediaUrls.images.map((imgUrl: string, idx: number) => (
-                <img
-                  key={idx}
-                  src={imgUrl}
-                  alt={`Media ${idx + 1}`}
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-              ))}
+            <div className="mb-4">
+              <h4 className="font-semibold mb-2">Media ({socialMediaData.mediaUrls.images.length} {socialMediaData.mediaUrls.images.length === 1 ? 'image' : 'images'})</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {socialMediaData.mediaUrls.images.map((imgUrl: string, idx: number) => {
+                  // Use proxy for Twitter images to handle CORS
+                  const proxiedUrl = socialMediaData.platform === 'twitter'
+                    ? `/api/content-intelligence/twitter-image-proxy?url=${encodeURIComponent(imgUrl)}`
+                    : imgUrl
+
+                  return (
+                    <a
+                      key={idx}
+                      href={imgUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative block overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
+                    >
+                      <img
+                        src={proxiedUrl}
+                        alt={`Media ${idx + 1}`}
+                        className="w-full h-48 object-cover transition-transform group-hover:scale-105"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <ExternalLink className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </a>
+                  )
+                })}
+              </div>
             </div>
           )}
 
@@ -1088,19 +1161,6 @@ export default function ContentIntelligencePage() {
                 Wayback Machine
               </a>
             </Button>
-          </div>
-        </Card>
-      )}
-
-      {/* Processing Status */}
-      {processing && (
-        <Card className="p-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span>{currentStep}</span>
-              <span>{progress}%</span>
-            </div>
-            <Progress value={progress} />
           </div>
         </Card>
       )}

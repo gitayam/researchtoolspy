@@ -93,6 +93,7 @@ const PublicACHLibraryPage = lazy(() => import('@/pages/PublicACHLibraryPage').t
 
 // Library pages (lazy loaded)
 const PublicLibraryPage = lazy(() => import('@/pages/PublicLibraryPage').then(m => ({ default: m.PublicLibraryPage })))
+const ContentLibraryPage = lazy(() => import('@/pages/ContentLibraryPage').then(m => ({ default: m.ContentLibraryPage })))
 
 // Wrapper component for Suspense
 const LazyPage = ({ Component }: { Component: React.LazyExoticComponent<React.ComponentType> }) => (
@@ -430,7 +431,16 @@ export const router = createBrowserRouter([
       },
       {
         path: 'library',
-        element: <LazyPage Component={PublicLibraryPage} />,
+        children: [
+          {
+            index: true,
+            element: <LazyPage Component={PublicLibraryPage} />,
+          },
+          {
+            path: 'content',
+            element: <LazyPage Component={ContentLibraryPage} />,
+          },
+        ],
       },
       {
         path: 'collaboration',
