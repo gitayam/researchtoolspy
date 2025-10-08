@@ -58,6 +58,10 @@ export default function ContentIntelligencePage() {
   const [socialMediaData, setSocialMediaData] = useState<any>(null)
   const [socialExtractLoading, setSocialExtractLoading] = useState(false)
 
+  // Duplicate Detection State
+  const [existingActors, setExistingActors] = useState<Record<string, { id: string, name: string }>>({})
+  const [checkingDuplicates, setCheckingDuplicates] = useState(false)
+
   // Load saved links and check for pending URL from landing page
   useEffect(() => {
     loadSavedLinks()
@@ -227,6 +231,11 @@ export default function ContentIntelligencePage() {
       setStatus('complete')
       setCurrentStep('Complete!')
       setAnalysis(data)
+
+      // Check for duplicate entities in the background
+      if (data.entities) {
+        checkEntityDuplicates(data.entities)
+      }
 
       toast({ title: 'Success', description: 'Analysis complete!' })
     } catch (error) {
@@ -418,6 +427,52 @@ export default function ContentIntelligencePage() {
       title: 'Bulk Save Complete',
       description: `Saved ${saved} of ${allEntities.length} entities to evidence`
     })
+  }
+
+  // Check if entities already exist in Actors database
+  const checkEntityDuplicates = async (entities: any) => {
+    if (!entities) return
+
+    setCheckingDuplicates(true)
+    const userHash = localStorage.getItem('omnicore_user_hash')
+
+    if (!userHash) {
+      setCheckingDuplicates(false)
+      return
+    }
+
+    const allEntities = [
+      ...(entities.people || []).map((p: any) => ({ name: p.name, type: 'PERSON' as const })),
+      ...(entities.organizations || []).map((o: any) => ({ name: o.name, type: 'ORGANIZATION' as const })),
+      ...(entities.locations || []).map((l: any) => ({ name: l.name, type: 'LOCATION' as const }))
+    ]
+
+    const existingMap: Record<string, { id: string, name: string }> = {}
+
+    for (const entity of allEntities) {
+      try {
+        const response = await fetch(
+          `/api/actors/search?workspace_id=1&name=${encodeURIComponent(entity.name)}&type=${entity.type}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${userHash}`
+            }
+          }
+        )
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.exists && data.actor) {
+            existingMap[entity.name] = { id: data.actor.id, name: data.actor.name }
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to check duplicate for ${entity.name}:`, error)
+      }
+    }
+
+    setExistingActors(existingMap)
+    setCheckingDuplicates(false)
   }
 
   // Country origin lookup
@@ -1326,14 +1381,27 @@ export default function ContentIntelligencePage() {
                         <span className="font-medium">{person.name}</span>
                         <span className="text-muted-foreground ml-2">({person.count}×)</span>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => saveEntityToEvidence(person.name, 'person')}
-                        className="h-7 px-2"
-                      >
-                        <Save className="h-3 w-3" />
-                      </Button>
+                      {existingActors[person.name] ? (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => navigate(`/dashboard/entities/actors/${existingActors[person.name].id}`)}
+                          className="h-7 px-2 bg-green-600 hover:bg-green-700"
+                          title="This entity already exists - click to view"
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Jump to
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => saveEntityToEvidence(person.name, 'person')}
+                          className="h-7 px-2"
+                        >
+                          <Save className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                   {(!analysis.entities?.people || analysis.entities.people.length === 0) && (
@@ -1351,14 +1419,27 @@ export default function ContentIntelligencePage() {
                         <span className="font-medium">{org.name}</span>
                         <span className="text-muted-foreground ml-2">({org.count}×)</span>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => saveEntityToEvidence(org.name, 'organization')}
-                        className="h-7 px-2"
-                      >
-                        <Save className="h-3 w-3" />
-                      </Button>
+                      {existingActors[org.name] ? (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => navigate(`/dashboard/entities/actors/${existingActors[org.name].id}`)}
+                          className="h-7 px-2 bg-green-600 hover:bg-green-700"
+                          title="This entity already exists - click to view"
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Jump to
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => saveEntityToEvidence(org.name, 'organization')}
+                          className="h-7 px-2"
+                        >
+                          <Save className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                   {(!analysis.entities?.organizations || analysis.entities.organizations.length === 0) && (
@@ -1376,14 +1457,27 @@ export default function ContentIntelligencePage() {
                         <span className="font-medium">{loc.name}</span>
                         <span className="text-muted-foreground ml-2">({loc.count}×)</span>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => saveEntityToEvidence(loc.name, 'location')}
-                        className="h-7 px-2"
-                      >
-                        <Save className="h-3 w-3" />
-                      </Button>
+                      {existingActors[loc.name] ? (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => navigate(`/dashboard/entities/actors/${existingActors[loc.name].id}`)}
+                          className="h-7 px-2 bg-green-600 hover:bg-green-700"
+                          title="This entity already exists - click to view"
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Jump to
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => saveEntityToEvidence(loc.name, 'location')}
+                          className="h-7 px-2"
+                        >
+                          <Save className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                   {(!analysis.entities?.locations || analysis.entities.locations.length === 0) && (
