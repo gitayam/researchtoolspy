@@ -147,13 +147,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           ownerId = existingUser.id as number
         } else {
           // Create new user with hash
+          // For hash-based users, generate unique username and provide default values
           const userResult = await env.DB.prepare(`
-            INSERT INTO users (username, email, user_hash, created_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
           `).bind(
-            `user_${user.userHash.substring(0, 8)}`,
-            null,
+            `guest_${user.userHash.substring(0, 8)}`,  // Unique username
+            `${user.userHash.substring(0, 8)}@guest.local`,  // Placeholder email
             user.userHash,
+            'Guest User',  // Default full name
+            '',  // No password for hash-based users
             new Date().toISOString()
           ).run()
           ownerId = Number(userResult.meta.last_row_id)
@@ -217,12 +220,23 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
+      // Get user ID for access check
+      let userId = user.userId
+      if (!userId && user.userHash) {
+        const existingUser = await env.DB.prepare(`
+          SELECT id FROM users WHERE user_hash = ?
+        `).bind(user.userHash).first()
+        if (existingUser) {
+          userId = existingUser.id as number
+        }
+      }
+
       // Check access
       const isOwner = workspace.owner_id === userId
-      const isMember = await env.DB.prepare(`
+      const isMember = userId ? await env.DB.prepare(`
         SELECT 1 FROM workspace_members
         WHERE workspace_id = ? AND user_id = ?
-      `).bind(workspaceId, userId).first()
+      `).bind(workspaceId, userId).first() : null
 
       if (!isOwner && !isMember && !workspace.is_public) {
         return new Response(
@@ -275,12 +289,23 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
+      // Get user ID for permission check
+      let userId = user.userId
+      if (!userId && user.userHash) {
+        const existingUser = await env.DB.prepare(`
+          SELECT id FROM users WHERE user_hash = ?
+        `).bind(user.userHash).first()
+        if (existingUser) {
+          userId = existingUser.id as number
+        }
+      }
+
       // Only owner or admin can update
       const isOwner = workspace.owner_id === userId
-      const member = await env.DB.prepare(`
+      const member = userId ? await env.DB.prepare(`
         SELECT role FROM workspace_members
         WHERE workspace_id = ? AND user_id = ?
-      `).bind(workspaceId, userId).first()
+      `).bind(workspaceId, userId).first() : null
 
       if (!isOwner && (!member || member.role !== 'ADMIN')) {
         return new Response(
@@ -333,6 +358,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           JSON.stringify({ error: 'Workspace not found' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
+      }
+
+      // Get user ID for ownership check
+      let userId = user.userId
+      if (!userId && user.userHash) {
+        const existingUser = await env.DB.prepare(`
+          SELECT id FROM users WHERE user_hash = ?
+        `).bind(user.userHash).first()
+        if (existingUser) {
+          userId = existingUser.id as number
+        }
       }
 
       // Only owner can delete
@@ -400,11 +436,22 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
+      // Get user ID for permission check
+      let userId = user.userId
+      if (!userId && user.userHash) {
+        const existingUser = await env.DB.prepare(`
+          SELECT id FROM users WHERE user_hash = ?
+        `).bind(user.userHash).first()
+        if (existingUser) {
+          userId = existingUser.id as number
+        }
+      }
+
       const isOwner = workspace.owner_id === userId
-      const member = await env.DB.prepare(`
+      const member = userId ? await env.DB.prepare(`
         SELECT role FROM workspace_members
         WHERE workspace_id = ? AND user_id = ?
-      `).bind(workspaceId, userId).first()
+      `).bind(workspaceId, userId).first() : null
 
       if (!isOwner && (!member || member.role !== 'ADMIN')) {
         return new Response(
