@@ -361,28 +361,29 @@ export function LandingPage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {[
-              t('frameworks.swot'),
-              t('frameworks.cog'),
-              t('frameworks.pmesiipt'),
-              t('frameworks.ach'),
-              t('frameworks.dotmlpf'),
-              t('frameworks.deception'),
-              t('frameworks.behavior'),
-              t('frameworks.starbursting'),
-              t('frameworks.causeway'),
-              t('frameworks.dime')
+              { name: t('frameworks.swot'), route: '/dashboard/analysis-frameworks/swot-dashboard' },
+              { name: t('frameworks.cog'), route: '/dashboard/analysis-frameworks/cog' },
+              { name: t('frameworks.pmesiipt'), route: '/dashboard/analysis-frameworks/pmesii-pt' },
+              { name: t('frameworks.ach'), route: '/dashboard/analysis-frameworks/ach-dashboard' },
+              { name: t('frameworks.dotmlpf'), route: '/dashboard/analysis-frameworks/dotmlpf' },
+              { name: t('frameworks.deception'), route: '/dashboard/analysis-frameworks/deception' },
+              { name: t('frameworks.behavior'), route: '/dashboard/analysis-frameworks/behavior' },
+              { name: t('frameworks.starbursting'), route: '/dashboard/analysis-frameworks/starbursting' },
+              { name: t('frameworks.causeway'), route: '/dashboard/analysis-frameworks/causeway' },
+              { name: t('frameworks.dime'), route: '/dashboard/analysis-frameworks/dime' }
             ].map((framework, index) => (
-              <div
+              <Link
                 key={index}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 text-center shadow-sm hover:shadow-md transition-shadow"
+                to={framework.route}
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 text-center shadow-sm hover:shadow-md hover:border-blue-500 dark:hover:border-blue-400 transition-all cursor-pointer"
               >
                 <div className="w-8 h-8 sm:w-9 sm:h-9 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
                   <span className="text-white text-xs sm:text-sm font-bold">{index + 1}</span>
                 </div>
                 <h3 className="font-medium text-xs sm:text-sm text-gray-900 dark:text-gray-100">
-                  {framework}
+                  {framework.name}
                 </h3>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

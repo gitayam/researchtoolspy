@@ -1,28 +1,58 @@
-import { useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { 
-  BarChart3, 
-  Brain, 
-  FileText, 
-  Plus, 
-  Search, 
+import {
+  BarChart3,
+  Brain,
+  FileText,
+  Plus,
+  Search,
   Target,
   TrendingUp,
   Users,
   Activity,
-  Clock
+  Clock,
+  ChevronDown
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { formatRelativeTime } from '@/lib/utils'
 
 export function DashboardPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+
   // Mock data for now - will integrate with real store later
   const isLoading = false
   const recentSessions: any[] = []
   const allSessions: any[] = []
+
+  // Available frameworks for quick creation
+  const availableFrameworks = useMemo(() => [
+    { name: 'SWOT', route: '/dashboard/analysis-frameworks/swot-dashboard', icon: Target, description: 'Strengths, Weaknesses, Opportunities, Threats' },
+    { name: 'ACH', route: '/dashboard/analysis-frameworks/ach-dashboard', icon: Search, description: 'Analysis of Competing Hypotheses' },
+    { name: 'COG', route: '/dashboard/analysis-frameworks/cog', icon: Brain, description: 'Center of Gravity Analysis' },
+    { name: 'PMESII-PT', route: '/dashboard/analysis-frameworks/pmesii-pt', icon: BarChart3, description: 'Multi-dimensional Operational Environment' },
+    { name: 'DOTMLPF', route: '/dashboard/analysis-frameworks/dotmlpf', icon: FileText, description: 'Capability Analysis Framework' },
+    { name: 'DIME', route: '/dashboard/analysis-frameworks/dime', icon: Target, description: 'Diplomatic, Information, Military, Economic' },
+    { name: 'PEST', route: '/dashboard/analysis-frameworks/pest', icon: TrendingUp, description: 'Political, Economic, Social, Technological' },
+    { name: 'Deception', route: '/dashboard/analysis-frameworks/deception', icon: Search, description: 'Deception Detection & Analysis' },
+    { name: 'Behavior', route: '/dashboard/analysis-frameworks/behavior', icon: Users, description: 'Behavioral Analysis' },
+    { name: 'COM-B', route: '/dashboard/analysis-frameworks/comb-analysis', icon: Brain, description: 'Capability, Opportunity, Motivation' },
+    { name: 'Starbursting', route: '/dashboard/analysis-frameworks/starbursting', icon: Target, description: 'Question Generation Framework' },
+    { name: 'Causeway', route: '/dashboard/analysis-frameworks/causeway', icon: BarChart3, description: 'Critical Infrastructure Analysis' },
+    { name: 'Stakeholder', route: '/dashboard/analysis-frameworks/stakeholder', icon: Users, description: 'Stakeholder Analysis' },
+    { name: 'Surveillance', route: '/dashboard/analysis-frameworks/surveillance', icon: Search, description: 'ISR Planning Framework' },
+    { name: 'Fundamental Flow', route: '/dashboard/analysis-frameworks/fundamental-flow', icon: Activity, description: 'Surveillance Detection Framework' },
+  ], [])
 
   // Calculate framework stats from real data
   const frameworkStats = useMemo(() => {
@@ -72,28 +102,28 @@ export function DashboardPage() {
     {
       title: t('dashboard.newSwot'),
       description: t('dashboard.strategicPlanning'),
-      href: '/analysis-frameworks/swot-dashboard',
+      href: '/dashboard/analysis-frameworks/swot-dashboard',
       icon: Target,
       color: 'bg-blue-500 hover:bg-blue-600'
     },
     {
       title: t('dashboard.cogAnalysis'),
       description: t('dashboard.centerOfGravity'),
-      href: '/analysis-frameworks/cog',
+      href: '/dashboard/analysis-frameworks/cog',
       icon: Brain,
       color: 'bg-green-500 hover:bg-green-600'
     },
     {
       title: t('dashboard.researchTools'),
       description: t('dashboard.urlAndCitations'),
-      href: '/tools',
+      href: '/dashboard/tools',
       icon: Search,
       color: 'bg-purple-500 hover:bg-purple-600'
     },
     {
       title: t('dashboard.viewReports'),
       description: t('dashboard.exportShare'),
-      href: '/reports',
+      href: '/dashboard/reports',
       icon: FileText,
       color: 'bg-orange-500 hover:bg-orange-600'
     },
@@ -279,12 +309,34 @@ export function DashboardPage() {
           <p className="text-gray-500 text-center mb-4">
             {t('dashboard.chooseFramework')}
           </p>
-          <Link to="/analysis-frameworks/swot-dashboard">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              {t('dashboard.createAnalysis')}
-            </Button>
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                {t('dashboard.createAnalysis')}
+                <ChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="w-80">
+              <DropdownMenuLabel>Select Analysis Framework</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <div className="max-h-96 overflow-y-auto">
+                {availableFrameworks.map((framework) => (
+                  <DropdownMenuItem
+                    key={framework.name}
+                    onClick={() => navigate(framework.route)}
+                    className="cursor-pointer flex items-start gap-3 py-3"
+                  >
+                    <framework.icon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">{framework.name}</div>
+                      <div className="text-xs text-gray-500 line-clamp-1">{framework.description}</div>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardContent>
       </Card>
     </div>
