@@ -165,8 +165,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
 
       // Search for actor by name (case-insensitive) and optionally type
-      let query = `SELECT * FROM actors WHERE workspace_id = ? AND LOWER(name) = LOWER(?)`
-      const params = [workspaceId, name]
+      // Only search within user's own entities (created_by = userId)
+      let query = `SELECT * FROM actors WHERE workspace_id = ? AND created_by = ? AND LOWER(name) = LOWER(?)`
+      const params = [workspaceId, userId, name]
 
       if (type) {
         query += ` AND type = ?`
