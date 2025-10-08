@@ -3,15 +3,18 @@
  * POST /api/ach/public/:token/clone - Clone public analysis to user's workspace
  */
 
+import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
 }
 
 // POST /api/ach/public/:token/clone - Clone public analysis
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const { token } = context.params
-    const userId = 'demo-user' // TODO: Get from auth
+    const userId = await getUserIdOrDefault(context.request, context.env)
 
     if (!token) {
       return new Response(JSON.stringify({ error: 'Share token is required' }), {

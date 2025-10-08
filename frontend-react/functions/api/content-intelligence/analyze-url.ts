@@ -13,10 +13,12 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
   OPENAI_API_KEY: string
+  SESSIONS?: KVNamespace
 }
 
 interface AnalyzeUrlRequest {
@@ -62,16 +64,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     console.log(`[DEBUG] Auth: workspace=${workspaceId}, userHash=${!!userHash}, authToken=${!!authToken}`)
 
-    // Determine user_id (if authenticated) or use bookmark hash
-    // Use user_id = 1 (system user) for guest/bookmark users to satisfy FK constraint
-    let userId: number = 1  // Default to system user (id=1) for guest users
-    let bookmarkHash: string | null = userHash || null
-
-    if (authToken) {
-      // Try to get user from session
-      // TODO: Implement session lookup
-      userId = 1 // Placeholder - should get actual user_id from session token
-    }
+    // Determine user_id using shared auth helper
+    // Supports both session-based and hash-based authentication
+    const userId = await getUserIdOrDefault(request, env)
+    const bookmarkHash: string | null = userHash || null
 
     // Parse request
     let body: AnalyzeUrlRequest
