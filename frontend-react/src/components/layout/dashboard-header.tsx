@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -24,32 +23,25 @@ import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
 import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { useAuthStore } from '@/stores/auth'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  // Hash-based user info (optional authentication)
-  const [userHash, setUserHash] = useState<string | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  useEffect(() => {
-    const hash = localStorage.getItem('omnicore_user_hash')
-    const authenticated = localStorage.getItem('omnicore_authenticated') === 'true'
-    setUserHash(hash)
-    setIsAuthenticated(authenticated && !!hash)
-  }, [])
+  // Use Zustand auth store for reactive authentication state
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const authUser = useAuthStore((state) => state.user)
+  const logoutUser = useAuthStore((state) => state.logout)
 
-  const user = {
-    username: userHash ? `Hash: ${userHash.slice(0, 8)}...` : t('auth.guest'),
+  // Display info for header
+  const displayUser = {
+    username: authUser?.account_hash ? `Hash: ${authUser.account_hash.slice(0, 8)}...` : t('auth.guest'),
     role: 'user'
   }
 
   const handleLogout = () => {
-    // Clear hash-based authentication
-    localStorage.removeItem('omnicore_user_hash')
-    localStorage.removeItem('omnicore_authenticated')
-    setIsAuthenticated(false)
-    setUserHash(null)
+    logoutUser()
     // Stay on current page - no redirect needed
   }
 
@@ -130,14 +122,14 @@ export function DashboardHeader() {
                   </div>
                   <div className="hidden lg:flex lg:flex-col lg:items-start">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {user?.username}
+                      {displayUser?.username}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={cn(
                         'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                        getRoleColor(user?.role || '')
+                        getRoleColor(displayUser?.role || '')
                       )}>
-                        {user?.role?.toUpperCase()}
+                        {displayUser?.role?.toUpperCase()}
                       </span>
                     </div>
                   </div>
@@ -146,7 +138,7 @@ export function DashboardHeader() {
 
                 <DropdownMenuContent align="end" className="w-48">
                   <div className="px-2 py-1.5 text-sm font-semibold">
-                    {user?.username}
+                    {displayUser?.username}
                   </div>
                   <DropdownMenuSeparator />
 
