@@ -1,9 +1,11 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { ArrowRight, Brain, Sparkles, Zap, Users, BarChart3, Target, Unlock, KeyRound } from 'lucide-react'
+import { ArrowRight, Brain, Sparkles, Zap, Users, BarChart3, Target, Unlock, KeyRound, Search, Link2, Loader2 } from 'lucide-react'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { useTranslation } from 'react-i18next'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 export function LandingPage() {
   const navigate = useNavigate()
@@ -12,11 +14,26 @@ export function LandingPage() {
   // Check if authenticated - placeholder for now
   const isAuthenticated = false
 
+  // URL analysis state
+  const [url, setUrl] = useState('')
+  const [analyzing, setAnalyzing] = useState(false)
+
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard')
     }
   }, [isAuthenticated, navigate])
+
+  const handleAnalyze = async () => {
+    if (!url.trim()) return
+
+    setAnalyzing(true)
+    // Store URL in localStorage for Content Intelligence page to pick up
+    localStorage.setItem('pending_url_analysis', url)
+
+    // Navigate to Content Intelligence page
+    navigate('/dashboard/tools/content-intelligence')
+  }
 
   const features = useMemo(() => [
     {
@@ -95,42 +112,71 @@ export function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section - Enhanced mobile typography and touch targets */}
-      <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto text-center">
-          <div className="mb-4 sm:mb-6">
-            <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/20 px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base font-medium text-blue-800 dark:text-blue-300">
-              🎉 {t('landing.freeForCommunity')}
+      {/* Hero Section - Google-style minimalist */}
+      <section className="min-h-[70vh] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-3xl mx-auto text-center space-y-8">
+          {/* Logo and Title */}
+          <div className="space-y-4">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 dark:text-white">
+              <span className="text-blue-600 dark:text-blue-500">ResearchTools</span>
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400">
+              Intelligence Analysis Platform
+            </p>
+          </div>
+
+          {/* URL Input - Google-style search box */}
+          <div className="w-full max-w-2xl mx-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-shadow border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center px-5 py-3">
+                <Search className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
+                <Input
+                  type="url"
+                  placeholder="Paste any URL to analyze..."
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+                  className="flex-1 border-0 bg-transparent text-base focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
+                  disabled={analyzing}
+                />
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={!url.trim() || analyzing}
+                  className="ml-3 rounded-full bg-blue-600 hover:bg-blue-700 px-6"
+                >
+                  {analyzing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Analyze'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* One-line framework callout */}
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <Target className="h-4 w-4 text-blue-600" />
+            <span>
+              Links to 10+ analysis frameworks: SWOT, PMESII-PT, COG, ACH, and more
             </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 px-4">
-            <span className="text-blue-600 dark:text-blue-500">ResearchTools</span>
-            <span className="block mt-2 text-gray-900 dark:text-white">{t('landing.advancedPlatform')}</span>
-          </h1>
-          <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
-            {t('landing.tagline')} <strong className="text-green-600 dark:text-green-400">{t('landing.freeAndPublic')}</strong> {t('landing.forCommunity')}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center px-4">
-            <Link to="/dashboard" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-100 transition-all flex items-center justify-center gap-2 min-h-[3rem]">
-                <Target className="h-5 w-5 sm:h-6 sm:w-6" />
-                <span>{t('landing.browseFrameworks')}</span>
-                <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6" />
-              </button>
+
+          {/* Quick actions */}
+          <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+            <Link to="/dashboard" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium flex items-center gap-1">
+              <Brain className="h-4 w-4" />
+              Browse Frameworks
             </Link>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4 sm:mt-5 px-4">
-            <Link to="/login" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto text-sm sm:text-base px-6 sm:px-7 py-3 sm:py-3 border-2 border-green-600 dark:border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 active:bg-green-100 dark:active:bg-green-900/30 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 min-h-[2.75rem]">
-                <Unlock className="h-4 w-4 sm:h-5 sm:w-5" />
-                <span>{t('landing.accessSavedWork')}</span>
-              </button>
+            <span className="text-gray-300 dark:text-gray-600">•</span>
+            <Link to="/login" className="text-green-600 hover:text-green-700 dark:text-green-400 font-medium flex items-center gap-1">
+              <Unlock className="h-4 w-4" />
+              Access Saved Work
             </Link>
-            <Link to="/register" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto text-sm sm:text-base px-6 sm:px-7 py-3 sm:py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 min-h-[2.75rem]">
-                <KeyRound className="h-4 w-4" />
-                <span>{t('landing.createAccount')}</span>
-              </button>
+            <span className="text-gray-300 dark:text-gray-600">•</span>
+            <Link to="/register" className="text-gray-600 hover:text-gray-700 dark:text-gray-400 font-medium flex items-center gap-1">
+              <KeyRound className="h-4 w-4" />
+              Create Account
             </Link>
           </div>
         </div>

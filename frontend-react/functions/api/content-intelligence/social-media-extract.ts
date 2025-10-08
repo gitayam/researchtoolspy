@@ -1167,6 +1167,74 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
       }
     }
 
+    // Strategy 3: Try vxTwitter API as fallback for reliable image extraction
+    if (!mediaUrls.images && !mediaUrls.video) {
+      try {
+        console.log('[Twitter] Attempting vxTwitter API fallback for media extraction...')
+
+        // Extract username from URL for vxTwitter endpoint
+        const usernameMatch = url.match(/(?:twitter\.com|x\.com)\/([^\/]+)\/status/)
+        const username = usernameMatch ? usernameMatch[1] : 'Twitter'
+
+        const vxData = await fetchWithRetry(async () => {
+          const vxUrl = `https://api.vxtwitter.com/${username}/status/${tweetId}`
+          const vxResponse = await fetch(vxUrl)
+
+          if (!vxResponse.ok) {
+            throw new Error(`VxTwitter API returned status ${vxResponse.status}`)
+          }
+
+          return await vxResponse.json() as any
+        }, 2, 1000)
+
+        console.log('[Twitter] VxTwitter response received, media count:', vxData.mediaURLs?.length || 0)
+
+        // Map vxTwitter response to mediaUrls
+        if (vxData.mediaURLs && vxData.mediaURLs.length > 0) {
+          const images: string[] = []
+          let videoUrl: string | undefined
+
+          for (const mediaUrl of vxData.mediaURLs) {
+            const isVideo = mediaUrl.includes('.mp4')
+
+            if (isVideo) {
+              videoUrl = mediaUrl
+              downloadOptions.push({
+                quality: 'Original',
+                format: 'mp4',
+                url: mediaUrl,
+                hasAudio: true,
+                hasVideo: true
+              })
+            } else {
+              images.push(mediaUrl)
+              downloadOptions.push({
+                quality: 'Original',
+                format: 'jpg',
+                url: mediaUrl,
+                hasAudio: false,
+                hasVideo: false
+              })
+            }
+          }
+
+          if (images.length > 0) {
+            mediaUrls.images = images
+            mediaUrls.thumbnail = images[0]
+          }
+          if (videoUrl) {
+            mediaUrls.video = videoUrl
+          }
+
+          console.log('[Twitter] Extracted from vxTwitter:', images.length, 'images,', videoUrl ? '1 video' : '0 videos')
+        }
+
+      } catch (vxError) {
+        console.warn('[Twitter] VxTwitter API fallback failed:', vxError)
+        // Continue to metadata even if vxTwitter fails
+      }
+    }
+
     // Build enhanced metadata
     const metadata: Record<string, any> = {
       tweetId,
@@ -1179,7 +1247,11 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
       mediaCount: (mediaUrls.images?.length || 0) + (mediaUrls.video ? 1 : 0),
       width: oembedData.width,
       height: oembedData.height,
-      extractedVia: downloadOptions.length > 0 ? 'cobalt.tools + oEmbed' : 'oEmbed only'
+      extractedVia: cobaltData?.status === 'picker' || cobaltData?.url
+        ? 'cobalt.tools + oEmbed'
+        : (mediaUrls.images?.length || mediaUrls.video) && downloadOptions.length > 0
+        ? 'vxTwitter + oEmbed'
+        : 'oEmbed only'
     }
 
     // Determine post type
