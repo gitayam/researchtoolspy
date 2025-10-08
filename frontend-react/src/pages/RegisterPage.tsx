@@ -4,10 +4,12 @@ import { Copy, Check, Bookmark, Share2, Shield, AlertCircle, RefreshCw } from 'l
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useToast } from '@/hooks/use-toast'
 import { formatHashForDisplay, generateAccountHash } from '@/lib/hash-auth'
 
 export function RegisterPage() {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const [accountHash, setAccountHash] = useState('')
   const [copied, setCopied] = useState(false)
   const [hashSaved, setHashSaved] = useState(false)
@@ -22,11 +24,49 @@ export function RegisterPage() {
 
   const handleCopyHash = async () => {
     try {
+      // Try modern clipboard API first
       await navigator.clipboard.writeText(accountHash)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      toast({
+        title: 'Copied!',
+        description: 'Hash copied to clipboard. Save it in your password manager now!',
+        duration: 3000
+      })
+      setTimeout(() => setCopied(false), 3000)
     } catch (err) {
-      // Failed to copy - continue silently
+      // Fallback to legacy method
+      try {
+        const textArea = document.createElement('textarea')
+        textArea.value = accountHash
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        const successful = document.execCommand('copy')
+        document.body.removeChild(textArea)
+
+        if (successful) {
+          setCopied(true)
+          toast({
+            title: 'Copied!',
+            description: 'Hash copied to clipboard. Save it in your password manager now!',
+            duration: 3000
+          })
+          setTimeout(() => setCopied(false), 3000)
+        } else {
+          throw new Error('Copy command failed')
+        }
+      } catch (fallbackErr) {
+        console.error('Failed to copy:', fallbackErr)
+        toast({
+          title: 'Copy failed',
+          description: 'Please manually select and copy the hash above.',
+          variant: 'destructive',
+          duration: 5000
+        })
+      }
     }
   }
 
@@ -92,6 +132,28 @@ export function RegisterPage() {
                 </div>
               )}
 
+              {/* CRITICAL WARNING - TOP OF PAGE */}
+              <div className="bg-red-100 dark:bg-red-900/30 border-2 border-red-500 dark:border-red-600 rounded-lg p-5 animate-pulse">
+                <div className="flex items-start gap-4">
+                  <div className="animate-bounce">
+                    <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400 flex-shrink-0" />
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    <h3 className="text-lg font-bold text-red-900 dark:text-red-100">
+                      {'⚠️ CRITICAL: SAVE THIS CODE NOW'}
+                    </h3>
+                    <div className="space-y-1.5">
+                      <p className="text-base text-red-800 dark:text-red-200 font-semibold">
+                        This is your ONLY way to access your work.
+                      </p>
+                      <p className="text-base text-red-800 dark:text-red-200">
+                        <strong className="text-red-900 dark:text-red-100">NO RECOVERY POSSIBLE</strong> if lost. Save in password manager <strong>immediately</strong>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Hash Display */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -99,55 +161,39 @@ export function RegisterPage() {
                     Your Bookmark Code
                   </label>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {loading ? 'Generating...' : accountHash ? 'Click the copy button →' : 'Ready to generate'}
+                    {loading ? 'Generating...' : accountHash ? 'Click COPY button below →' : 'Ready to generate'}
                   </span>
                 </div>
                 <div className="relative">
-                  <div className="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-3 font-mono text-sm break-all text-gray-900 dark:text-gray-100 min-h-[48px] flex items-center">
+                  <div className="bg-gray-50 dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 rounded-md p-4 font-mono text-base break-all text-gray-900 dark:text-gray-100 min-h-[60px] flex items-center">
                     {loading ? 'Generating secure hash from server...' : accountHash ? formattedHash : 'Failed to generate hash'}
                   </div>
-                  {accountHash && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCopyHash}
-                      className="absolute right-2 top-2 h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                      title={copied ? "Copied!" : "Copy hash to clipboard"}
-                    >
-                      {copied ? (
-                        <Check className="h-3 w-3 text-green-500" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                    </Button>
-                  )}
                 </div>
+                {accountHash && (
+                  <Button
+                    type="button"
+                    onClick={handleCopyHash}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 text-base"
+                    size="lg"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-5 w-5 mr-2 text-green-300" />
+                        Copied to Clipboard!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-5 w-5 mr-2" />
+                        Copy Hash to Clipboard
+                      </>
+                    )}
+                  </Button>
+                )}
                 {copied && (
-                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">
-                    {'✓'} Hash copied! Now save it in your password manager.
+                  <p className="text-sm text-green-600 dark:text-green-400 font-semibold text-center">
+                    {'✓'} Hash copied! Now save it in your password manager before continuing.
                   </p>
                 )}
-              </div>
-
-              {/* Important Notice */}
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-md p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                  <div className="space-y-2">
-                    <h3 className="font-medium text-amber-800 dark:text-amber-200">
-                      {'⚠️'} Critical: Save This Hash Now
-                    </h3>
-                    <div className="space-y-1">
-                      <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
-                        This is your ONLY way to access saved analyses.
-                      </p>
-                      <p className="text-sm text-amber-700 dark:text-amber-300">
-                        <strong>No recovery possible</strong> if lost. Save in a password manager immediately.
-                      </p>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* What This Is */}
