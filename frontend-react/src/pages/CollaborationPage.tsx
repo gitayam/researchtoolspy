@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
+import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog'
 import type { WorkspaceInvite, CreateWorkspaceInviteRequest, WorkspaceMemberWithNickname } from '@/types/workspace-invites'
 
 interface Workspace {
@@ -49,11 +50,19 @@ export function CollaborationPage() {
 
   const fetchWorkspaces = async () => {
     try {
-      const response = await fetch('/api/workspaces', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+      const userHash = localStorage.getItem('omnicore_user_hash')
+      const headers: HeadersInit = {}
+
+      if (userHash && userHash !== 'guest') {
+        headers['X-User-Hash'] = userHash
+      } else {
+        const authToken = localStorage.getItem('auth_token')
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`
         }
-      })
+      }
+
+      const response = await fetch('/api/workspaces', { headers })
 
       if (response.ok) {
         const data = await response.json()
@@ -268,6 +277,7 @@ export function CollaborationPage() {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Create a workspace to start collaborating with your team
             </p>
+            <CreateWorkspaceDialog onWorkspaceCreated={fetchWorkspaces} />
           </CardContent>
         </Card>
       </div>

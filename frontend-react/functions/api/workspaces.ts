@@ -10,22 +10,26 @@ interface Env {
   SESSIONS: KVNamespace
 }
 
-// Helper to get user from session
-async function getUserFromRequest(request: Request, env: Env): Promise<number | null> {
+// Helper to get user from session or hash
+async function getUserFromRequest(request: Request, env: Env): Promise<{ userId?: number; userHash?: string }> {
+  // Try bearer token first (authenticated users)
   const authHeader = request.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return null
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7)
+    const sessionData = await env.SESSIONS.get(token)
+    if (sessionData) {
+      const session = JSON.parse(sessionData)
+      return { userId: session.user_id }
+    }
   }
 
-  const token = authHeader.substring(7)
-  const sessionData = await env.SESSIONS.get(token)
-
-  if (!sessionData) {
-    return null
+  // Fall back to hash-based auth (guest mode)
+  const userHash = request.headers.get('X-User-Hash')
+  if (userHash && userHash !== 'guest') {
+    return { userHash }
   }
 
-  const session = JSON.parse(sessionData)
-  return session.user_id
+  return {}
 }
 
 // Generate UUID v4
@@ -42,7 +46,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
   }
 
   if (method === 'OPTIONS') {
@@ -50,17 +54,36 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    // Get authenticated user
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
+    // Get authenticated user (supports both token and hash auth)
+    const user = await getUserFromRequest(request, env)
+    if (!user.userId && !user.userHash) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized - Please log in or create a bookmark account' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     // GET /api/workspaces - List user's workspaces
     if (method === 'GET' && url.pathname === '/api/workspaces') {
+      // Get or create user ID for hash-based users
+      let userId = user.userId
+      if (!userId && user.userHash) {
+        const existingUser = await env.DB.prepare(`
+          SELECT id FROM users WHERE user_hash = ?
+        `).bind(user.userHash).first()
+
+        if (existingUser) {
+          userId = existingUser.id as number
+        }
+        // If no user exists yet, return empty workspaces (will be created on first workspace creation)
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ owned: [], member: [] }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      }
+
       const { results: ownedWorkspaces } = await env.DB.prepare(`
         SELECT * FROM workspaces
         WHERE owner_id = ?
@@ -112,6 +135,31 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
+      // For hash-based users, create or get user record
+      let ownerId = user.userId
+      if (!ownerId && user.userHash) {
+        // Check if user exists with this hash
+        const existingUser = await env.DB.prepare(`
+          SELECT id FROM users WHERE user_hash = ?
+        `).bind(user.userHash).first()
+
+        if (existingUser) {
+          ownerId = existingUser.id as number
+        } else {
+          // Create new user with hash
+          const userResult = await env.DB.prepare(`
+            INSERT INTO users (username, email, user_hash, created_at)
+            VALUES (?, ?, ?, ?)
+          `).bind(
+            `user_${user.userHash.substring(0, 8)}`,
+            null,
+            user.userHash,
+            new Date().toISOString()
+          ).run()
+          ownerId = Number(userResult.meta.last_row_id)
+        }
+      }
+
       const id = generateId()
       const now = new Date().toISOString()
       const entityCount = JSON.stringify({
@@ -130,7 +178,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         body.name,
         body.description || null,
         body.type,
-        userId,
+        ownerId,
         body.is_public ? 1 : 0,
         body.allow_cloning !== false ? 1 : 0,
         entityCount,
