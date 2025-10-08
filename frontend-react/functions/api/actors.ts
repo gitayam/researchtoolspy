@@ -191,6 +191,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const actors = results.map(a => ({
         ...a,
         aliases: a.aliases ? JSON.parse(a.aliases as string) : [],
+        tags: a.tags ? JSON.parse(a.tags as string) : [],
         deception_profile: a.deception_profile ? JSON.parse(a.deception_profile as string) : null,
         is_public: Boolean(a.is_public)
       }))
@@ -230,8 +231,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           deception_profile,
           causeway_analysis_id, cog_analysis_id,
           workspace_id, created_by, created_at, updated_at,
-          is_public, votes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          is_public, votes,
+          tags, source_url
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         id,
         body.type,
@@ -249,7 +251,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         now,
         now,
         body.is_public ? 1 : 0,
-        0
+        0,
+        body.tags ? JSON.stringify(body.tags) : null,
+        body.source_url || null
       ).run()
 
       // Update workspace entity count
@@ -272,6 +276,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         JSON.stringify({
           ...actor,
           aliases: actor.aliases ? JSON.parse(actor.aliases as string) : [],
+          tags: actor.tags ? JSON.parse(actor.tags as string) : [],
           deception_profile: actor.deception_profile ? JSON.parse(actor.deception_profile as string) : null,
           is_public: Boolean(actor.is_public)
         }),
@@ -327,6 +332,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         JSON.stringify({
           ...actor,
           aliases: actor.aliases ? JSON.parse(actor.aliases as string) : [],
+          tags: actor.tags ? JSON.parse(actor.tags as string) : [],
           deception_profile: actor.deception_profile ? JSON.parse(actor.deception_profile as string) : null,
           is_public: Boolean(actor.is_public),
           related_counts: {
@@ -403,6 +409,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         JSON.stringify({
           ...updated,
           aliases: updated.aliases ? JSON.parse(updated.aliases as string) : [],
+          tags: updated.tags ? JSON.parse(updated.tags as string) : [],
           deception_profile: updated.deception_profile ? JSON.parse(updated.deception_profile as string) : null,
           is_public: Boolean(updated.is_public)
         }),
