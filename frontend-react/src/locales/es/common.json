@@ -21,7 +21,8 @@
     "settings": "Configuración",
     "general": "General",
     "collaboration": "Colaboración",
-    "datasetLibrary": "Biblioteca de Conjuntos de Datos"
+    "datasetLibrary": "Biblioteca de Conjuntos de Datos",
+    "library": "Biblioteca"
   },
   "buttons": {
     "save": "Guardar",

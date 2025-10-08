@@ -1,0 +1,47 @@
+{
+  "summary": {
+    "totalActivities": "Actividades Totales (24h)",
+    "activeUsers": "Usuarios Activos",
+    "created": "Creados",
+    "comments": "Comentarios"
+  },
+  "feed": {
+    "title": "Feed de Actividad",
+    "description": "Actividad reciente del espacio de trabajo",
+    "empty": "No hay actividad aún"
+  },
+  "filters": {
+    "allTypes": "Todos los Tipos",
+    "allEntities": "Todas las Entidades"
+  },
+  "types": {
+    "create": "Creado",
+    "update": "Actualizado",
+    "delete": "Eliminado",
+    "comment": "Comentado",
+    "vote": "Votado",
+    "fork": "Bifurcado",
+    "publish": "Publicado",
+    "share": "Compartido",
+    "invite": "Invitado"
+  },
+  "entities": {
+    "framework": "Marco",
+    "library_item": "Elemento de Biblioteca",
+    "comment": "Comentario",
+    "evidence": "Evidencia",
+    "entity": "Entidad"
+  },
+  "time": {
+    "justNow": "Justo ahora",
+    "minutesAgo": "hace {{count}}m",
+    "minutesAgo_one": "hace 1m",
+    "minutesAgo_other": "hace {{count}}m",
+    "hoursAgo": "hace {{count}}h",
+    "hoursAgo_one": "hace 1h",
+    "hoursAgo_other": "hace {{count}}h",
+    "daysAgo": "hace {{count}}d",
+    "daysAgo_one": "hace 1d",
+    "daysAgo_other": "hace {{count}}d"
+  }
+}

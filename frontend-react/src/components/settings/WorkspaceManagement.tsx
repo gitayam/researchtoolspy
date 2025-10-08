@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { Plus, Trash2, Users, Globe, Lock, Settings as SettingsIcon } from 'lucide-react'
+import { Plus, Trash2, Users, Globe, Lock, Settings as SettingsIcon, Share2, Copy, Mail } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -54,6 +54,7 @@ export function WorkspaceManagement({
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null)
 
   const [newWorkspaceName, setNewWorkspaceName] = useState('')
@@ -61,6 +62,9 @@ export function WorkspaceManagement({
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('')
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [inviteHash, setInviteHash] = useState('')
+  const [shareLink, setShareLink] = useState('')
+  const [linkCopied, setLinkCopied] = useState(false)
 
   const handleCreateWorkspace = useCallback(async () => {
     if (!newWorkspaceName.trim()) return
@@ -97,6 +101,32 @@ export function WorkspaceManagement({
       setDeleting(false)
     }
   }, [selectedWorkspace, onWorkspaceDelete])
+
+  const handleOpenShareDialog = useCallback((workspace: Workspace) => {
+    setSelectedWorkspace(workspace)
+    // Generate share link
+    const link = `${window.location.origin}/workspace/join/${workspace.id}`
+    setShareLink(link)
+    setShareDialogOpen(true)
+  }, [])
+
+  const handleCopyLink = useCallback(() => {
+    navigator.clipboard.writeText(shareLink)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }, [shareLink])
+
+  const handleInviteByHash = useCallback(async () => {
+    if (!inviteHash.trim() || !selectedWorkspace) return
+
+    try {
+      // TODO: Implement API call to invite user by hash
+      console.log('Inviting hash:', inviteHash, 'to workspace:', selectedWorkspace.id)
+      setInviteHash('')
+    } catch (error) {
+      console.error('Failed to invite user:', error)
+    }
+  }, [inviteHash, selectedWorkspace])
 
   const getWorkspaceIcon = (type: WorkspaceType, isPublic: boolean) => {
     if (isPublic) return <Globe className="h-4 w-4" />
@@ -249,6 +279,16 @@ export function WorkspaceManagement({
                       Switch
                     </Button>
                   )}
+                  {(workspace.type === 'TEAM' || workspace.type === 'PUBLIC') && workspace.role === 'owner' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenShareDialog(workspace)}
+                    >
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share
+                    </Button>
+                  )}
                   {!workspace.is_default && workspace.role === 'owner' && (
                     <Button
                       variant="ghost"
@@ -273,6 +313,104 @@ export function WorkspaceManagement({
           </div>
         </CardContent>
       </Card>
+
+      {/* Share Workspace Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Share Workspace: {selectedWorkspace?.name}</DialogTitle>
+            <DialogDescription>
+              Invite collaborators to join this workspace
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Share Link */}
+            <div className="space-y-2">
+              <Label>Share Link</Label>
+              <div className="flex gap-2">
+                <Input value={shareLink} readOnly className="font-mono text-sm" />
+                <Button onClick={handleCopyLink} variant="outline">
+                  <Copy className="h-4 w-4 mr-2" />
+                  {linkCopied ? 'Copied!' : 'Copy'}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Anyone with this link can request access to the workspace
+              </p>
+            </div>
+
+            {/* Invite by Hash */}
+            <div className="space-y-2">
+              <Label htmlFor="invite-hash">Invite by User Hash</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="invite-hash"
+                  placeholder="Enter 16-digit user hash"
+                  value={inviteHash}
+                  onChange={(e) => setInviteHash(e.target.value)}
+                  maxLength={16}
+                />
+                <Button onClick={handleInviteByHash} disabled={!inviteHash.trim()}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Invite
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Directly invite a user by their account hash
+              </p>
+            </div>
+
+            {/* Workspace Visibility */}
+            <div className="space-y-2">
+              <Label>Workspace Visibility</Label>
+              <div className="flex items-center gap-4 p-3 border rounded-lg">
+                {selectedWorkspace?.is_public ? (
+                  <>
+                    <Globe className="h-5 w-5 text-primary" />
+                    <div className="flex-1">
+                      <p className="font-medium">Public</p>
+                      <p className="text-sm text-muted-foreground">
+                        Anyone can view this workspace's contents
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-5 w-5 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="font-medium">Private</p>
+                      <p className="text-sm text-muted-foreground">
+                        Only invited members can access this workspace
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Current Members */}
+            {selectedWorkspace?.member_count && selectedWorkspace.member_count > 0 && (
+              <div className="space-y-2">
+                <Label>Current Members</Label>
+                <div className="p-3 border rounded-lg">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4" />
+                    <span>{selectedWorkspace.member_count} member(s)</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Member management coming soon
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShareDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

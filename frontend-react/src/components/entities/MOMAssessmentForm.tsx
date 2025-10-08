@@ -205,14 +205,14 @@ export function MOMAssessmentForm({
           <div className="space-y-2">
             <Label htmlFor="event_id">Link to Event (Optional)</Label>
             <Select
-              value={formData.event_id}
-              onValueChange={(value) => setFormData({ ...formData, event_id: value })}
+              value={formData.event_id || "none"}
+              onValueChange={(value) => setFormData({ ...formData, event_id: value === "none" ? "" : value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="No event (general scenario)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No event (general scenario)</SelectItem>
+                <SelectItem value="none">No event (general scenario)</SelectItem>
                 {events.map((event) => (
                   <SelectItem key={event.id} value={event.id}>
                     {event.name}

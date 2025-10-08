@@ -21,7 +21,8 @@
     "settings": "Settings",
     "general": "General",
     "collaboration": "Collaboration",
-    "datasetLibrary": "Dataset Library"
+    "datasetLibrary": "Dataset Library",
+    "library": "Library"
   },
   "buttons": {
     "save": "Save",

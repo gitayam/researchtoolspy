@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import type { DisplaySettings, Theme, Language, Density, SidebarBehavior, FontSize } from '@/types/settings'
+import i18n from '@/i18n/config'
 
 interface DisplayPreferencesProps {
   settings: DisplaySettings
@@ -42,10 +43,8 @@ export function DisplayPreferences({ settings, onUpdate, updating = false }: Dis
     async (language: Language) => {
       await onUpdate({ language })
 
-      // Update i18n if available
-      if (window.i18n && window.i18n.changeLanguage) {
-        window.i18n.changeLanguage(language)
-      }
+      // Update i18n
+      await i18n.changeLanguage(language)
       document.documentElement.lang = language
     },
     [onUpdate]
@@ -262,13 +261,4 @@ export function DisplayPreferences({ settings, onUpdate, updating = false }: Dis
       </Card>
     </div>
   )
-}
-
-// Extend Window type for i18n
-declare global {
-  interface Window {
-    i18n?: {
-      changeLanguage: (lang: string) => void
-    }
-  }
 }

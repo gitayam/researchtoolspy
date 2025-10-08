@@ -219,7 +219,7 @@ export function AISettingsPage() {
               <div className="space-y-2">
                 <Label htmlFor="defaultModel">Default Model</Label>
                 <Select
-                  value={config.defaultModel}
+                  value={config.defaultModel || 'gpt-5-mini'}
                   onValueChange={(value: AIModel) =>
                     setConfig({ ...config, defaultModel: value })
                   }
@@ -338,8 +338,10 @@ export function AISettingsPage() {
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
                   <strong>Estimated Daily Cost:</strong> $
-                  {((config.rateLimits.tokensPerDay / 1_000_000) * MODEL_PRICING[config.defaultModel].output).toFixed(2)}
-                  {' '} (max, at {config.defaultModel} output rates)
+                  {config.defaultModel && MODEL_PRICING[config.defaultModel]
+                    ? ((config.rateLimits.tokensPerDay / 1_000_000) * MODEL_PRICING[config.defaultModel].output).toFixed(2)
+                    : '0.00'}
+                  {config.defaultModel && ` (max, at ${config.defaultModel} output rates)`}
                 </p>
               </div>
             </CardContent>
@@ -401,7 +403,7 @@ export function AISettingsPage() {
                 <div key={model} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm">{model}</Label>
-                    {config.defaultModel === model && (
+                    {config.defaultModel && config.defaultModel === model && (
                       <Badge variant="secondary" className="text-xs">Default</Badge>
                     )}
                   </div>

@@ -19,7 +19,8 @@ import {
   Calendar,
   Shield,
   Network,
-  Sparkles
+  Sparkles,
+  Library
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -107,6 +108,7 @@ const getNavigation = (t: (key: string) => string) => [
   { name: t('navigation.networkAnalysis'), href: '/dashboard/network', icon: Network },
   { name: t('navigation.datasetLibrary'), href: '/dashboard/datasets', icon: Database },
   { name: t('navigation.reports'), href: '/dashboard/reports', icon: FileText },
+  { name: t('navigation.library'), href: '/dashboard/library', icon: Library },
   { name: t('navigation.collaboration'), href: '/dashboard/collaboration', icon: Users },
   {
     name: t('navigation.settings'),

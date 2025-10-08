@@ -23,6 +23,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
 import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
@@ -118,18 +119,8 @@ export function DashboardHeader() {
           ) : (
             // Logged in - show user menu
             <>
-              {/* Notifications - Larger touch target for mobile */}
-              <button
-                type="button"
-                className="relative rounded-full bg-white p-2 sm:p-2.5 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-gray-900 dark:hover:text-gray-300 transition-colors"
-                aria-label="View notifications"
-              >
-                <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
-                {/* Notification badge */}
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-xs text-white flex items-center justify-center font-medium">
-                  3
-                </span>
-              </button>
+              {/* Notifications */}
+              <NotificationBell />
 
               {/* User menu - Improved mobile touch target */}
               <DropdownMenu>

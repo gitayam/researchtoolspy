@@ -1165,9 +1165,9 @@ export const CogPage = () => {
       <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Start New COG Analysis</DialogTitle>
+            <DialogTitle>{t('cog:templates.dialog.title')}</DialogTitle>
             <DialogDescription>
-              Choose how to create your analysis: guided wizard or advanced mode. You can also start from a template or blank.
+              {t('cog:templates.dialog.description')}
             </DialogDescription>
           </DialogHeader>
 
@@ -1178,16 +1178,16 @@ export const CogPage = () => {
                 <div className="flex items-start gap-4">
                   <div className="text-4xl">📄</div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg mb-1">Blank Analysis</h3>
+                    <h3 className="font-semibold text-lg mb-1">{t('cog:templates.dialog.blankAnalysis')}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      Start from scratch with an empty COG analysis framework
+                      {t('cog:templates.dialog.blankDescription')}
                     </p>
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => handleTemplateSelect(null, 'wizard')}>
-                        🧙 Start with Wizard
+                        🧙 {t('cog:templates.dialog.startWithWizard')}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => handleTemplateSelect(null, 'advanced')}>
-                        ⚡ Advanced Mode
+                        ⚡ {t('cog:templates.dialog.advancedMode')}
                       </Button>
                     </div>
                   </div>
@@ -1196,7 +1196,7 @@ export const CogPage = () => {
             </Card>
 
             <div className="border-t pt-4">
-              <h4 className="font-semibold mb-3 text-gray-700 dark:text-gray-300">Or start from a template:</h4>
+              <h4 className="font-semibold mb-3 text-gray-700 dark:text-gray-300">{t('cog:templates.dialog.orStartFromTemplate')}</h4>
               <div className="grid gap-3">
                 {COG_TEMPLATES.map((template) => (
                   <Card key={template.id} className="border">
@@ -1205,13 +1205,13 @@ export const CogPage = () => {
                         <div className="text-3xl">{template.icon}</div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold">{template.name}</h3>
+                            <h3 className="font-semibold">{t(`cog:templates.list.${template.i18nKey}.name`)}</h3>
                             <Badge variant="outline" className="text-xs capitalize">
-                              {template.category.replace('_', ' ')}
+                              {t(`cog:templates.categories.${template.category}`)}
                             </Badge>
                           </div>
                           <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
-                            {template.description}
+                            {t(`cog:templates.list.${template.i18nKey}.description`)}
                           </p>
                           <div className="flex gap-4 text-xs text-gray-500 mb-3">
                             <span>• {template.template_data.centers_of_gravity.length} COG(s)</span>
@@ -1220,10 +1220,10 @@ export const CogPage = () => {
                           </div>
                           <div className="flex gap-2">
                             <Button size="sm" variant="default" onClick={() => handleTemplateSelect(template, 'wizard')}>
-                              🧙 Wizard
+                              🧙 {t('cog:templates.dialog.wizard')}
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => handleTemplateSelect(template, 'advanced')}>
-                              ⚡ Advanced
+                              ⚡ {t('cog:templates.dialog.advanced')}
                             </Button>
                           </div>
                         </div>

@@ -1,17 +1,19 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Edit, Trash2, Download, Network, FileText, Table2, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Download, Network, FileText, Table2, ExternalLink, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { COGVulnerabilityMatrix } from '@/components/frameworks/COGVulnerabilityMatrix'
+import { CommentThread } from '@/components/comments/CommentThread'
 import { COGNetworkVisualization } from '@/components/frameworks/COGNetworkVisualization'
 import { COGPowerPointExport } from '@/components/frameworks/COGPowerPointExport'
 import { COGExcelExport } from '@/components/frameworks/COGExcelExport'
 import { COGPDFExport } from '@/components/frameworks/COGPDFExport'
+import { PublishDialog } from '@/components/library/PublishDialog'
 import {
   type COGAnalysis,
   type CenterOfGravity,
@@ -54,6 +56,7 @@ export function COGView({ data, onEdit, onDelete, backPath }: COGViewProps) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('overview')
   const [expandedCogs, setExpandedCogs] = useState<Set<string>>(new Set())
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false)
 
   // Calculate ranked vulnerabilities
   const rankedVulnerabilities = useMemo(() => {
@@ -282,6 +285,10 @@ ${Object.entries(centralityMeasures.degree_centrality)
             <Network className="h-4 w-4 mr-2" />
             {t('view.header.viewInNetwork')}
           </Button>
+          <Button variant="outline" onClick={() => setPublishDialogOpen(true)}>
+            <Share2 className="h-4 w-4 mr-2" />
+            {t('view.header.publishToLibrary')}
+          </Button>
           <Button variant="outline" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
             {t('view.header.edit')}
@@ -304,11 +311,12 @@ ${Object.entries(centralityMeasures.degree_centrality)
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">{t('view.tabs.overview')}</TabsTrigger>
           <TabsTrigger value="hierarchy">{t('view.tabs.hierarchy')}</TabsTrigger>
           <TabsTrigger value="vulnerabilities">{t('view.tabs.vulnerabilities')}</TabsTrigger>
           <TabsTrigger value="network">{t('view.tabs.network')}</TabsTrigger>
+          <TabsTrigger value="comments">{t('view.tabs.comments')}</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -636,7 +644,25 @@ ${Object.entries(centralityMeasures.degree_centrality)
             edges={edgeList}
           />
         </TabsContent>
+
+        {/* Comments Tab */}
+        <TabsContent value="comments" className="space-y-4">
+          <CommentThread
+            entityType="cog_analysis"
+            entityId={data.id}
+          />
+        </TabsContent>
       </Tabs>
+
+      {/* Publish Dialog */}
+      <PublishDialog
+        open={publishDialogOpen}
+        onOpenChange={setPublishDialogOpen}
+        frameworkId={data.id}
+        frameworkType="cog"
+        defaultTitle={data.title}
+        defaultDescription={data.description}
+      />
     </div>
   )
 }
