@@ -21,6 +21,7 @@
     "settings": "Settings",
     "general": "General",
     "collaboration": "Collaboration",
+    "activity": "Activity Feed",
     "datasetLibrary": "Dataset Library",
     "library": "Library"
   },

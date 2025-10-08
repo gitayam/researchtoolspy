@@ -72,6 +72,7 @@ const NetworkGraphPage = lazy(() => import('@/pages/NetworkGraphPage').then(m =>
 
 // Other pages (lazy loaded)
 const CollaborationPage = lazy(() => import('@/pages/CollaborationPage').then(m => ({ default: m.CollaborationPage })))
+const ActivityPage = lazy(() => import('@/pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const AISettingsPage = lazy(() => import('@/pages/AISettingsPage').then(m => ({ default: m.AISettingsPage })))
 const InviteAcceptPage = lazy(() => import('@/pages/InviteAcceptPage').then(m => ({ default: m.InviteAcceptPage })))
@@ -434,6 +435,10 @@ export const router = createBrowserRouter([
       {
         path: 'collaboration',
         element: <LazyPage Component={CollaborationPage} />,
+      },
+      {
+        path: 'activity',
+        element: <LazyPage Component={ActivityPage} />,
       },
       {
         path: 'settings',
