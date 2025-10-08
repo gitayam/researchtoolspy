@@ -93,8 +93,8 @@ export function CreateWorkspaceDialog({ onWorkspaceCreated }: CreateWorkspaceDia
       setOpen(false)
       setFormData({ name: '', type: 'TEAM' })
 
-      // Store the new workspace ID
-      localStorage.setItem('omnicore_workspace_id', data.workspace.id)
+      // Store the new workspace ID (API returns workspace directly)
+      localStorage.setItem('omnicore_workspace_id', data.id)
 
       // Refresh the page or call callback
       if (onWorkspaceCreated) {
