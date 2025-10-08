@@ -92,7 +92,7 @@ export function EntityQuickCreate({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+          'Authorization': `Bearer ${localStorage.getItem('omnicore_user_hash') || ''}`
         },
         body: JSON.stringify({
           ...dataForm,
@@ -129,7 +129,7 @@ export function EntityQuickCreate({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+          'Authorization': `Bearer ${localStorage.getItem('omnicore_user_hash') || ''}`
         },
         body: JSON.stringify({
           ...actorForm,
@@ -165,7 +165,7 @@ export function EntityQuickCreate({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+          'Authorization': `Bearer ${localStorage.getItem('omnicore_user_hash') || ''}`
         },
         body: JSON.stringify({
           ...sourceForm,
@@ -201,7 +201,7 @@ export function EntityQuickCreate({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+          'Authorization': `Bearer ${localStorage.getItem('omnicore_user_hash') || ''}`
         },
         body: JSON.stringify({
           ...eventForm,
