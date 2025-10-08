@@ -42,12 +42,17 @@ export function ActorsPage() {
   const loadActors = async () => {
     setLoading(true)
     try {
+      const userHash = localStorage.getItem('omnicore_user_hash')
       const params = new URLSearchParams({
         workspace_id: workspaceId.toString(),
         ...(filterType !== 'all' && { actor_type: filterType })
       })
 
-      const response = await fetch(`/api/actors?${params}`)
+      const response = await fetch(`/api/actors?${params}`, {
+        headers: {
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+        }
+      })
       const data = await response.json()
 
       if (response.ok) {
@@ -63,13 +68,18 @@ export function ActorsPage() {
   const loadActor = async (actorId: string) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/actors/${actorId}`)
+      const userHash = localStorage.getItem('omnicore_user_hash')
+      const response = await fetch(`/api/actors/${actorId}`, {
+        headers: {
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+        }
+      })
       const data = await response.json()
 
       if (response.ok) {
-        setCurrentActor(data.actor)
+        setCurrentActor(data)
         if (isEditMode) {
-          setEditingActor(data.actor)
+          setEditingActor(data)
         }
       }
     } catch (error) {
@@ -80,9 +90,13 @@ export function ActorsPage() {
   }
 
   const handleCreateActor = async (data: Partial<Actor>) => {
+    const userHash = localStorage.getItem('omnicore_user_hash')
     const response = await fetch('/api/actors', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+      },
       body: JSON.stringify({ ...data, workspace_id: workspaceId })
     })
 
@@ -99,9 +113,13 @@ export function ActorsPage() {
   const handleUpdateActor = async (data: Partial<Actor>) => {
     if (!editingActor) return
 
+    const userHash = localStorage.getItem('omnicore_user_hash')
     const response = await fetch(`/api/actors/${editingActor.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+      },
       body: JSON.stringify(data)
     })
 
@@ -126,8 +144,12 @@ export function ActorsPage() {
     if (!confirm(`Are you sure you want to delete "${currentActor.name}"?`)) return
 
     try {
+      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch(`/api/actors/${currentActor.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+        }
       })
 
       if (response.ok) {
