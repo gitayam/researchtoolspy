@@ -67,7 +67,7 @@ async function checkWorkspaceAccess(
           '1',
           'Default Workspace',
           'Shared workspace for all users',
-          'SHARED',
+          'PUBLIC',
           1,
           1,
           now,
