@@ -30,7 +30,7 @@ interface ACHShareButtonProps {
 }
 
 const DOMAINS: { value: ACHDomain; label: string }[] = [
-  { value: 'intelligence', label: 'Intelligence Analysis' },
+  { value: 'intelligence', label: 'Research Analysis' },
   { value: 'security', label: 'Security & Law Enforcement' },
   { value: 'business', label: 'Business Strategy' },
   { value: 'research', label: 'Scientific Research' },

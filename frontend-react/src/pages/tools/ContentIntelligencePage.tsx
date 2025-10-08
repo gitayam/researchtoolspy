@@ -640,7 +640,7 @@ export default function ContentIntelligencePage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <FileText className="h-8 w-8" />
-          Content Intelligence & Link Analysis
+          Content Research & Link Analysis
         </h1>
         <p className="text-muted-foreground">
           Analyze URLs, extract insights, preserve evidence, and ask questions

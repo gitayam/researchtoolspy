@@ -169,7 +169,7 @@ export function ContentPickerDialog({
                 {searchQuery ? 'No content matches your search' : 'No analyzed content found'}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                Visit Content Intelligence to analyze URLs first
+                Visit Content Research to analyze URLs first
               </p>
             </div>
           )}

@@ -9,10 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { ACHAnalysis, ACHDomain } from '@/types/ach'
 
 const DOMAIN_LABELS: Record<ACHDomain, string> = {
-  intelligence: 'Intelligence',
+  intelligence: 'Research Analysis',
   security: 'Security',
   business: 'Business',
-  research: 'Research',
+  research: 'Scientific Research',
   medical: 'Medical',
   legal: 'Legal',
   other: 'Other'
