@@ -243,9 +243,10 @@ export default function ContentIntelligencePage() {
       }
 
       // Start Starbursting analysis in the background
-      if (data.id) {
-        startStarburstingInBackground(data.id)
-      }
+      // TODO: Re-enable when /api/starbursting/create endpoint is implemented
+      // if (data.id) {
+      //   startStarburstingInBackground(data.id)
+      // }
 
       toast({ title: 'Success', description: 'Analysis complete!' })
     } catch (error) {
@@ -388,9 +389,19 @@ export default function ContentIntelligencePage() {
           headers: { 'Authorization': `Bearer ${userHash}` }
         }
       )
-      const checkData = await checkResponse.json()
 
-      if (checkData.exists) {
+      if (!checkResponse.ok) {
+        console.warn(`Duplicate check failed for ${entityName}: ${checkResponse.status}`)
+        // Continue with save if duplicate check fails
+      } else {
+        const contentType = checkResponse.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+          console.warn(`Non-JSON response from duplicate check for ${entityName}`)
+          // Continue with save if response is not JSON
+        } else {
+          const checkData = await checkResponse.json()
+
+          if (checkData.exists) {
         // Entity exists - show alert with options
         const choice = window.confirm(
           `"${entityName}" already exists in your entities.\n\n` +
@@ -415,6 +426,8 @@ export default function ContentIntelligencePage() {
 
           // Use the new name
           entityName = newName.trim()
+        }
+      }
         }
       }
 
@@ -515,10 +528,17 @@ export default function ContentIntelligencePage() {
         )
 
         if (response.ok) {
-          const data = await response.json()
-          if (data.exists && data.actor) {
-            existingMap[entity.name] = { id: data.actor.id, name: data.actor.name }
+          const contentType = response.headers.get('content-type')
+          if (contentType && contentType.includes('application/json')) {
+            const data = await response.json()
+            if (data.exists && data.actor) {
+              existingMap[entity.name] = { id: data.actor.id, name: data.actor.name }
+            }
+          } else {
+            console.warn(`Non-JSON response for ${entity.name}:`, await response.text())
           }
+        } else {
+          console.warn(`Failed to check duplicate for ${entity.name}: ${response.status}`)
         }
       } catch (error) {
         console.error(`Failed to check duplicate for ${entity.name}:`, error)
@@ -538,9 +558,13 @@ export default function ContentIntelligencePage() {
     setStarburstingError(null)
 
     try {
+      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/content-intelligence/starbursting', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+        },
         body: JSON.stringify({
           analysis_ids: [analysisId],
           use_ai_questions: true
