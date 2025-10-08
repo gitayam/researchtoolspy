@@ -347,12 +347,23 @@ export default function ContentIntelligencePage() {
   // Save entity to evidence
   const saveEntityToEvidence = async (entityName: string, entityType: 'person' | 'organization' | 'location') => {
     try {
-      const authToken = localStorage.getItem('auth_token')
+      // Use hash-based authentication
+      const userHash = localStorage.getItem('omnicore_user_hash')
+
+      if (!userHash) {
+        toast({
+          title: 'Login Required',
+          description: 'Please login or register to save entities',
+          variant: 'destructive'
+        })
+        return
+      }
+
       const response = await fetch('/api/actors', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+          'Authorization': `Bearer ${userHash}`
         },
         body: JSON.stringify({
           name: entityName,
@@ -371,12 +382,13 @@ export default function ContentIntelligencePage() {
           description: `${entityName} added to ${entityType === 'person' ? 'Actors' : entityType === 'location' ? 'Places' : 'Evidence'}`
         })
       } else {
-        throw new Error('Failed to save')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to save')
       }
     } catch (error) {
       toast({
         title: 'Error',
-        description: `Failed to save ${entityName}`,
+        description: error instanceof Error ? error.message : `Failed to save ${entityName}`,
         variant: 'destructive'
       })
     }

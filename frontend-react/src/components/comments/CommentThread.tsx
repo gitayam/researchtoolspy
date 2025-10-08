@@ -85,15 +85,13 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
 
     setLoading(true)
     try {
-      const authToken = localStorage.getItem('auth_token')
       const userHash = localStorage.getItem('omnicore_user_hash')
 
       const response = await fetch('/api/comments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': authToken ? `Bearer ${authToken}` : '',
-          'X-User-Hash': userHash || ''
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
         },
         body: JSON.stringify({
           entity_type: entityType,
@@ -121,15 +119,13 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
   const handleEdit = async (commentId: string) => {
     setLoading(true)
     try {
-      const authToken = localStorage.getItem('auth_token')
       const userHash = localStorage.getItem('omnicore_user_hash')
 
       const response = await fetch(`/api/comments/${commentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': authToken ? `Bearer ${authToken}` : '',
-          'X-User-Hash': userHash || ''
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
         },
         body: JSON.stringify({ content: editContent })
       })
@@ -151,14 +147,12 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
 
     setLoading(true)
     try {
-      const authToken = localStorage.getItem('auth_token')
       const userHash = localStorage.getItem('omnicore_user_hash')
 
       const response = await fetch(`/api/comments/${commentId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': authToken ? `Bearer ${authToken}` : '',
-          'X-User-Hash': userHash || ''
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
         }
       })
 
@@ -175,15 +169,13 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
   const handleResolve = async (commentId: string, resolved: boolean) => {
     setLoading(true)
     try {
-      const authToken = localStorage.getItem('auth_token')
       const userHash = localStorage.getItem('omnicore_user_hash')
 
       const response = await fetch(`/api/comments/${commentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': authToken ? `Bearer ${authToken}` : '',
-          'X-User-Hash': userHash || ''
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
         },
         body: JSON.stringify({ action: resolved ? 'unresolve' : 'resolve' })
       })
