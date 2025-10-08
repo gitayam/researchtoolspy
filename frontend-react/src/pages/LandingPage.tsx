@@ -18,6 +18,7 @@ export function LandingPage() {
   const [url, setUrl] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [urlError, setUrlError] = useState('')
+  const [detectedFramework, setDetectedFramework] = useState<string | null>(null)
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -69,9 +70,50 @@ export function LandingPage() {
     }
   }
 
+  // Framework keyword detection with regex
+  const detectFramework = (input: string): { route: string; name: string } | null => {
+    const trimmedInput = input.trim().toLowerCase()
+
+    // Framework patterns (case-insensitive)
+    const frameworkPatterns: Array<{ pattern: RegExp; route: string; name: string }> = [
+      { pattern: /^swot(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/swot-dashboard', name: 'SWOT' },
+      { pattern: /^ach(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/ach-dashboard', name: 'ACH' },
+      { pattern: /^cog(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/cog', name: 'COG' },
+      { pattern: /^pmesii(-|\s)?pt(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/pmesii-pt', name: 'PMESII-PT' },
+      { pattern: /^dotmlpf(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/dotmlpf', name: 'DOTMLPF' },
+      { pattern: /^dime(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/dime', name: 'DIME' },
+      { pattern: /^pest(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/pest', name: 'PEST' },
+      { pattern: /^deception(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/deception', name: 'Deception' },
+      { pattern: /^behavior(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/behavior', name: 'Behavior' },
+      { pattern: /^com(-|\s)?b(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/comb-analysis', name: 'COM-B' },
+      { pattern: /^starbursting(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/starbursting', name: 'Starbursting' },
+      { pattern: /^causeway(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/causeway', name: 'Causeway' },
+      { pattern: /^stakeholder(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/stakeholder', name: 'Stakeholder' },
+      { pattern: /^surveillance(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/surveillance', name: 'Surveillance' },
+      { pattern: /^fundamental(\s+|-)?flow(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/fundamental-flow', name: 'Fundamental Flow' },
+    ]
+
+    for (const { pattern, route, name } of frameworkPatterns) {
+      if (pattern.test(trimmedInput)) {
+        return { route, name }
+      }
+    }
+
+    return null
+  }
+
   const handleAnalyze = async () => {
     if (!url.trim()) {
       setUrlError('Please enter a URL')
+      return
+    }
+
+    // Check if input is a framework keyword
+    const framework = detectFramework(url)
+    if (framework) {
+      setUrlError('')
+      setAnalyzing(true)
+      navigate(framework.route)
       return
     }
 
@@ -93,11 +135,17 @@ export function LandingPage() {
   }
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUrl(e.target.value)
+    const value = e.target.value
+    setUrl(value)
+
     // Clear error when user starts typing
     if (urlError) {
       setUrlError('')
     }
+
+    // Detect framework as user types
+    const framework = detectFramework(value)
+    setDetectedFramework(framework ? framework.name : null)
   }
 
   const features = useMemo(() => [
@@ -198,8 +246,8 @@ export function LandingPage() {
               <div className="flex items-center px-5 py-3">
                 <Search className={`h-5 w-5 mr-3 flex-shrink-0 ${urlError ? 'text-red-500' : 'text-gray-400'}`} />
                 <Input
-                  type="url"
-                  placeholder="Paste any URL to analyze..."
+                  type="text"
+                  placeholder="Paste URL to analyze or type framework name (SWOT, COG, ACH...)"
                   value={url}
                   onChange={handleUrlChange}
                   onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
@@ -227,6 +275,16 @@ export function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <span className="font-medium">{urlError}</span>
+              </div>
+            )}
+
+            {/* Framework detected hint */}
+            {!urlError && detectedFramework && (
+              <div className="mt-3 flex items-start gap-2 text-blue-600 dark:text-blue-400 text-sm px-2 animate-in fade-in duration-200">
+                <Brain className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <span className="font-medium">
+                  Framework detected: <strong>{detectedFramework}</strong> - Press Enter or click Analyze to open
+                </span>
               </div>
             )}
           </div>
