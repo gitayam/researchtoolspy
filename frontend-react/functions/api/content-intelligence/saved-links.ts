@@ -11,8 +11,11 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
 }
 
 // ========================================

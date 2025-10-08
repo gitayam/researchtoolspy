@@ -10,9 +10,12 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
   OPENAI_API_KEY: string
+  SESSIONS?: KVNamespace
 }
 
 interface QuestionRequest {
@@ -105,7 +108,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       id: qaId,
       content_analysis_id: analysis_id,
-      user_id: 1, // TODO: Get actual user_id from auth
+      user_id: await getUserIdOrDefault(context.request, context.env),
       question,
       answer: combinedAnswer.answer,
       confidence_score: combinedAnswer.confidence,

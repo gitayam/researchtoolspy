@@ -13,9 +13,12 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
   OPENAI_API_KEY?: string
+  SESSIONS?: KVNamespace
 }
 
 interface SocialExtractRequest {
