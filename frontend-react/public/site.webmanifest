@@ -1,7 +1,7 @@
 {
   "name": "Research Tools",
   "short_name": "ResearchTools",
-  "description": "Intelligence analysis and research framework tools - SWOT, ACH, PMESII-PT, and more",
+  "description": "Research analysis and framework tools - SWOT, ACH, PMESII-PT, and more",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

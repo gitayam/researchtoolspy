@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Research Tools",
-    "tagline": "Intelligence Analysis Platform"
+    "tagline": "Research Analysis Platform"
   },
   "navigation": {
     "dashboard": "Dashboard",

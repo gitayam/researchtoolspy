@@ -195,7 +195,7 @@ export function ContentLibraryPage() {
           <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No Content Yet</h3>
           <p className="text-muted-foreground mb-4">
-            Start analyzing URLs from the landing page or Content Intelligence tool
+            Start analyzing URLs from the landing page or Content Research tool
           </p>
           <Button onClick={() => navigate('/dashboard/tools/content-intelligence')}>
             <Search className="h-4 w-4 mr-2" />
