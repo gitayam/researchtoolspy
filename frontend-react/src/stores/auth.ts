@@ -31,11 +31,18 @@ export const useAuthStore = create<AuthState>()(
         try {
           const hash = data.account_hash
 
+          console.log('[Auth] Attempting login with hash:', hash.substring(0, 8) + '...')
+
           // Validate hash exists in valid hashes list
           const validHashesStr = localStorage.getItem('omnicore_valid_hashes')
           const validHashes: string[] = validHashesStr ? JSON.parse(validHashesStr) : []
 
+          console.log('[Auth] Valid hashes in localStorage:', validHashes.length, 'hashes')
+          console.log('[Auth] Hash being checked:', hash)
+          console.log('[Auth] First valid hash (if exists):', validHashes[0]?.substring(0, 8) + '...')
+
           if (!validHashes.includes(hash)) {
+            console.error('[Auth] Hash not found in valid hashes list')
             throw new Error('Invalid hash. Please check your bookmark code.')
           }
 
