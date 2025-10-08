@@ -5,10 +5,11 @@
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT NOT NULL UNIQUE,
-  email TEXT NOT NULL UNIQUE,
-  full_name TEXT NOT NULL,
-  hashed_password TEXT NOT NULL,
+  username TEXT UNIQUE,
+  email TEXT UNIQUE,
+  full_name TEXT,
+  hashed_password TEXT,
+  user_hash TEXT UNIQUE,  -- For anonymous/hash-based users
   account_hash TEXT UNIQUE,
   is_active INTEGER NOT NULL DEFAULT 1,
   is_verified INTEGER NOT NULL DEFAULT 0,
@@ -23,6 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_user_hash ON users(user_hash);
 CREATE INDEX IF NOT EXISTS idx_users_account_hash ON users(account_hash);
 
 -- API Keys table
