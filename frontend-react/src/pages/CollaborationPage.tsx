@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
 import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog'
+import { generateAccountHash } from '@/lib/hash-auth'
 import type { WorkspaceInvite, CreateWorkspaceInviteRequest, WorkspaceMemberWithNickname } from '@/types/workspace-invites'
 
 interface Workspace {
@@ -37,9 +38,29 @@ export function CollaborationPage() {
     label: null
   })
 
+  // Ensure user has a hash before fetching
   useEffect(() => {
+    ensureUserHash()
     fetchWorkspaces()
   }, [])
+
+  const ensureUserHash = () => {
+    let userHash = localStorage.getItem('omnicore_user_hash')
+
+    if (!userHash || userHash === 'guest') {
+      // Generate a new bookmark hash for guest users
+      userHash = generateAccountHash()
+      localStorage.setItem('omnicore_user_hash', userHash)
+      localStorage.setItem('omnicore_authenticated', 'true')
+
+      toast({
+        title: 'Account Created',
+        description: 'Your bookmark account has been created. Save this URL to access your workspace!',
+      })
+    }
+
+    return userHash
+  }
 
   useEffect(() => {
     if (selectedWorkspace) {
