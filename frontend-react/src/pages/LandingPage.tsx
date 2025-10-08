@@ -28,8 +28,42 @@ export function LandingPage() {
   const isValidUrl = (urlString: string): boolean => {
     try {
       const urlObj = new URL(urlString)
+
       // Check if protocol is http or https
-      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:'
+      if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+        return false
+      }
+
+      // Check if hostname has at least one dot (e.g., example.com) or is localhost
+      const hostname = urlObj.hostname
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return true
+      }
+
+      // Check for IP address pattern
+      const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/
+      if (ipPattern.test(hostname)) {
+        return true
+      }
+
+      // Hostname must have at least one dot and valid TLD
+      if (!hostname.includes('.')) {
+        return false
+      }
+
+      // Check for valid domain structure (at least domain.tld)
+      const parts = hostname.split('.')
+      if (parts.length < 2) {
+        return false
+      }
+
+      // Check that TLD is at least 2 characters
+      const tld = parts[parts.length - 1]
+      if (tld.length < 2) {
+        return false
+      }
+
+      return true
     } catch {
       return false
     }
