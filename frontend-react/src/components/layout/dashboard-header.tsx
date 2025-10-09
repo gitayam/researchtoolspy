@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Bell,
@@ -64,7 +64,7 @@ export function DashboardHeader() {
     <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-gray-900 dark:border-b dark:border-gray-700" role="banner">
       <div className="flex h-16 sm:h-18 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Breadcrumbs / Page title - Better mobile spacing */}
-        <div className="flex items-center gap-2 sm:gap-3 pl-14 lg:pl-0">
+        <Link to="/" className="flex items-center gap-2 sm:gap-3 pl-14 lg:pl-0 hover:opacity-80 transition-opacity">
           <img
             src="/logo.png"
             alt="Research Tools"
@@ -73,7 +73,7 @@ export function DashboardHeader() {
           <h1 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
             {t('app.name')}
           </h1>
-        </div>
+        </Link>
 
         {/* Right side - Improved mobile layout */}
         <div className="flex items-center gap-x-2 sm:gap-x-3 lg:gap-x-4">

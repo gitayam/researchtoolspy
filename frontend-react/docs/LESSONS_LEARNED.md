@@ -1,5 +1,134 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2025-10-09 - Double JSON Parsing Bug Fix
+
+### Summary
+Fixed critical bug where framework Q&A data was showing as empty (all zeros) in Starbursting and other frameworks despite being correctly stored in the database. Root cause was double-parsing of JSON data.
+
+---
+
+## Double JSON Parsing Bug in Framework Views
+
+### Problem
+Starbursting framework Q&A data showed all zeros (WHO: 0, WHAT: 0, WHERE: 0, etc.) in the framework view page, even though:
+- Data was correctly generated and stored in the database
+- Content Intelligence page showed correct Q&A counts
+- Database logs confirmed data was being saved with proper structure
+
+### Root Cause
+**Double-parsing bug in framework loading logic** (`src/pages/frameworks/index.tsx`):
+
+1. **API endpoint** (`/api/frameworks`) parses `data` field from JSON string to object before returning:
+   ```typescript
+   framework.data = JSON.parse(framework.data)  // Line 57 in frameworks.ts
+   ```
+
+2. **loadAnalysis() function** also parses the data:
+   ```typescript
+   data.data = JSON.parse(data.data)  // Line 441 in index.tsx
+   ```
+
+3. **View rendering** called `safeJSONParse()` on already-parsed object:
+   ```typescript
+   const parsedData = safeJSONParse(currentAnalysis.data, {})
+   ```
+
+4. **safeJSONParse utility** checked `typeof jsonString !== 'string'`, saw it was already an object, and returned the fallback empty object `{}`:
+   ```typescript
+   if (!jsonString || typeof jsonString !== 'string') {
+     return fallback  // Returns {} when data is already an object!
+   }
+   ```
+
+**Result**: All Q&A data (who/what/where/when/why/how arrays) was replaced with empty object, showing zero counts.
+
+### How to Diagnose
+**Symptoms:**
+- Data appears correct in database/API logs
+- Data shows correctly in some views but not others
+- Empty objects or zero counts despite confirmed data storage
+
+**Debugging steps:**
+1. Add comprehensive logging at each data transformation point:
+   ```typescript
+   console.log('[API] Data being stored:', JSON.stringify(data, null, 2))
+   console.log('[API] Data retrieved:', JSON.stringify(data, null, 2))
+   console.log('[Frontend] Data before parse:', typeof data, data)
+   console.log('[Frontend] Data after parse:', parsedData)
+   ```
+
+2. Check for multiple JSON.parse() calls in the data flow
+3. Look for `safeJSONParse()` or similar utilities being called on already-parsed objects
+4. Verify the type of data at each step (string vs object)
+
+### The Fix
+Add type checking before parsing to handle both string and object data:
+
+```typescript
+// BEFORE (broken):
+const parsedData: any = safeJSONParse(currentAnalysis.data, {})
+
+// AFTER (fixed):
+const parsedData: any = typeof currentAnalysis.data === 'object'
+  ? currentAnalysis.data
+  : safeJSONParse(currentAnalysis.data, {})
+```
+
+Applied to **9 locations** across:
+- SwotPage (edit/view modes + list view)
+- GenericFrameworkPage (edit/view modes + list view) - affects Starbursting, PEST, PMESII-PT, etc.
+- CogPage (edit/view modes + list view)
+- DeceptionPage (edit/view modes + list view)
+
+### Files Modified
+- `/Users/sac/Git/researchtoolspy/frontend-react/src/pages/frameworks/index.tsx` - Fixed 9 instances
+- Lines: 159, 178, 301, 523, 546, 669, 1003, 1019, 1097, 1408, 1428, 1548
+
+### Lessons Learned
+
+#### ✅ Do:
+1. **Check data type before parsing** - Always verify if data is already an object before calling `JSON.parse()` or parsing utilities
+2. **Trace data flow end-to-end** - Log data at every transformation point (API → storage → retrieval → parsing → rendering)
+3. **Use TypeScript type guards** - `typeof data === 'object'` checks prevent re-parsing
+4. **Standardize parsing location** - Parse data in ONE place (either API or component, not both)
+5. **Write defensive parsing utilities** - Utilities like `safeJSONParse()` should handle both string and object inputs gracefully
+6. **Add comprehensive logging temporarily** - When debugging data flow issues, log extensively then clean up
+
+#### ❌ Don't:
+1. **Parse JSON multiple times** - Each `JSON.parse()` call assumes string input; objects will fail or return unexpected results
+2. **Trust utility fallbacks blindly** - `safeJSONParse(object, {})` silently returns empty object for non-string input
+3. **Skip type checking** - Always check `typeof data` before transformation operations
+4. **Leave debug logging in production** - Remove `console.log()` statements after debugging; keep only error logging
+5. **Assume consistent data types** - Data can be string or object depending on source (API, cache, localStorage, etc.)
+
+### Prevention Strategy
+**Best Practice for JSON Data Handling:**
+
+```typescript
+// Option 1: Parse once at API level, use objects everywhere
+// API endpoint:
+framework.data = JSON.parse(framework.data)  // Parse once here
+// Frontend:
+const data = framework.data  // Already an object, use directly
+
+// Option 2: Keep as strings until needed, parse once in component
+// API endpoint:
+return framework  // Keep data as JSON string
+// Frontend:
+const parsedData = JSON.parse(framework.data)  // Parse once here
+
+// Option 3 (RECOMMENDED): Defensive parsing with type check
+const parsedData = typeof data === 'object' ? data : JSON.parse(data)
+```
+
+### Impact
+- **Fixed**: All framework views (Starbursting, SWOT, COG, PEST, PMESII-PT, DIME, Deception, etc.)
+- **Affected Users**: Anyone viewing saved framework sessions
+- **Severity**: Critical - complete data loss in UI (data intact in DB)
+- **Resolution Time**: ~2 hours (debugging + fixing + deployment)
+
+---
+
 ## Session: 2025-10-07 - Major Feature Implementations
 
 ### Summary

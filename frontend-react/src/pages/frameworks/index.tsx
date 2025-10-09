@@ -153,7 +153,10 @@ export const SwotPage = () => {
 
   // Show form for edit mode
   if (isEditMode && currentAnalysis) {
-    const parsedData: any = safeJSONParse(currentAnalysis.data, {})
+    // Data is already parsed in loadAnalysis(), so use it directly if it's an object
+    const parsedData: any = typeof currentAnalysis.data === 'object'
+      ? currentAnalysis.data
+      : safeJSONParse(currentAnalysis.data, {})
     return (
       <SwotForm
         mode="edit"
@@ -169,7 +172,10 @@ export const SwotPage = () => {
 
   // Show view for view mode
   if (isViewMode && currentAnalysis) {
-    const parsedData: any = safeJSONParse(currentAnalysis.data, {})
+    // Data is already parsed in loadAnalysis(), so use it directly if it's an object
+    const parsedData: any = typeof currentAnalysis.data === 'object'
+      ? currentAnalysis.data
+      : safeJSONParse(currentAnalysis.data, {})
     return (
       <SwotView
         data={{
@@ -292,7 +298,10 @@ export const SwotPage = () => {
 
       <div className="grid gap-4">
         {filteredAnalyses.map((analysis) => {
-          const parsedData: any = safeJSONParse(analysis.data, {})
+          // API already parses data, use it directly if it's an object
+          const parsedData: any = typeof analysis.data === 'object'
+            ? analysis.data
+            : safeJSONParse(analysis.data, {})
           return (
             <Card key={analysis.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
@@ -511,7 +520,10 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   }
 
   if (isEditMode && currentAnalysis) {
-    const parsedData: any = safeJSONParse(currentAnalysis.data, {})
+    // Data is already parsed in loadAnalysis(), so use it directly if it's an object
+    const parsedData: any = typeof currentAnalysis.data === 'object'
+      ? currentAnalysis.data
+      : safeJSONParse(currentAnalysis.data, {})
     return (
       <GenericFrameworkForm
         mode="edit"
@@ -531,7 +543,10 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   }
 
   if (isViewMode && currentAnalysis) {
-    const parsedData: any = safeJSONParse(currentAnalysis.data, {})
+    // Data is already parsed in loadAnalysis(), so use it directly if it's an object
+    const parsedData: any = typeof currentAnalysis.data === 'object'
+      ? currentAnalysis.data
+      : safeJSONParse(currentAnalysis.data, {})
     return (
       <GenericFrameworkView
         data={{
@@ -654,7 +669,10 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
 
       <div className="grid gap-4">
         {filteredAnalyses.map((analysis) => {
-          const parsedData: any = safeJSONParse(analysis.data, {})
+          // API already parses data, use it directly if it's an object
+          const parsedData: any = typeof analysis.data === 'object'
+            ? analysis.data
+            : safeJSONParse(analysis.data, {})
           return (
             <Card key={analysis.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
@@ -985,7 +1003,10 @@ export const CogPage = () => {
   }
 
   if (isEditMode && currentAnalysis) {
-    const parsedData: any = safeJSONParse(currentAnalysis.data, {})
+    // Data is already parsed in loadAnalysis(), so use it directly if it's an object
+    const parsedData: any = typeof currentAnalysis.data === 'object'
+      ? currentAnalysis.data
+      : safeJSONParse(currentAnalysis.data, {})
     return (
       <COGForm
         mode="edit"
@@ -998,7 +1019,10 @@ export const CogPage = () => {
   }
 
   if (isViewMode && currentAnalysis) {
-    const parsedData: any = safeJSONParse(currentAnalysis.data, {})
+    // Data is already parsed in loadAnalysis(), so use it directly if it's an object
+    const parsedData: any = typeof currentAnalysis.data === 'object'
+      ? currentAnalysis.data
+      : safeJSONParse(currentAnalysis.data, {})
     return (
       <COGView
         data={parsedData}
@@ -1076,7 +1100,10 @@ export const CogPage = () => {
 
       <div className="grid gap-4">
         {filteredAnalyses.map((analysis) => {
-          const parsedData: any = safeJSONParse(analysis.data, {})
+          // API already parses data, use it directly if it's an object
+          const parsedData: any = typeof analysis.data === 'object'
+            ? analysis.data
+            : safeJSONParse(analysis.data, {})
           return (
             <Card key={analysis.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
@@ -1384,7 +1411,10 @@ export const DeceptionPage = () => {
   }
 
   if (isEditMode && currentAnalysis) {
-    const parsedData: any = safeJSONParse(currentAnalysis.data, {})
+    // Data is already parsed in loadAnalysis(), so use it directly if it's an object
+    const parsedData: any = typeof currentAnalysis.data === 'object'
+      ? currentAnalysis.data
+      : safeJSONParse(currentAnalysis.data, {})
     return (
       <DeceptionForm
         mode="edit"
@@ -1401,7 +1431,10 @@ export const DeceptionPage = () => {
   }
 
   if (isViewMode && currentAnalysis) {
-    const parsedData: any = safeJSONParse(currentAnalysis.data, {})
+    // Data is already parsed in loadAnalysis(), so use it directly if it's an object
+    const parsedData: any = typeof currentAnalysis.data === 'object'
+      ? currentAnalysis.data
+      : safeJSONParse(currentAnalysis.data, {})
     return (
       <DeceptionView
         data={{

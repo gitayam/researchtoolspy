@@ -85,7 +85,46 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const { url, mode = 'full', save_link = false, link_note, link_tags } = body
+    const { url, mode = 'full', save_link = false, link_note, link_tags, load_existing = false, analysis_id } = body
+
+    // If load_existing is true, fetch and return existing analysis
+    if (load_existing && analysis_id) {
+      console.log(`[DEBUG] Loading existing analysis ID: ${analysis_id}`)
+      try {
+        const result = await env.DB.prepare(`
+          SELECT * FROM content_analysis WHERE id = ?
+        `).bind(analysis_id).first()
+
+        if (!result) {
+          return new Response(JSON.stringify({ error: 'Analysis not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        }
+
+        // Parse JSON fields
+        const analysis = {
+          ...result,
+          entities: JSON.parse(result.entities as string || '{}'),
+          word_frequency: JSON.parse(result.word_frequency as string || '{}')
+        }
+
+        console.log(`[DEBUG] Loaded existing analysis for URL: ${result.url}`)
+        return new Response(JSON.stringify({ analysis }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      } catch (error) {
+        console.error('[DEBUG] Failed to load existing analysis:', error)
+        return new Response(JSON.stringify({
+          error: 'Failed to load analysis',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+    }
 
     if (!url) {
       console.error('[DEBUG] No URL provided')
@@ -272,7 +311,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.log(`[DEBUG] API Key available: ${!!env.OPENAI_API_KEY}`)
       console.log(`[DEBUG] Text length: ${contentData.text.length}`)
 
-      entitiesData = await extractEntities(contentData.text, env.OPENAI_API_KEY)
+      entitiesData = await extractEntities(contentData.text, env.OPENAI_API_KEY, contentData.author)
       console.log(`[DEBUG] Entities extracted: ${JSON.stringify(entitiesData)}`)
     } catch (error) {
       console.error('[DEBUG] Entity extraction failed:', error)
@@ -626,10 +665,18 @@ function cleanHtmlText(html: string): string {
     .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
     .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, '')
     .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '')
+    .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, '') // Remove headers (often contain bylines)
     .replace(/<[^>]+>/g, ' ') // Remove all HTML tags
     .replace(/&nbsp;/g, ' ')
     .replace(/&[a-z]+;/g, ' ') // Remove HTML entities
     .replace(/\s+/g, ' ') // Collapse whitespace
+    .trim()
+
+  // Remove common byline patterns that might remain
+  text = text
+    .replace(/\b(?:By|Written by|Author:|Reporter:|Reported by)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/gi, '')
+    .replace(/\bPublished\s+\d{1,2}\s+(?:hours?|minutes?|days?)\s+ago\b/gi, '')
+    .replace(/\s+/g, ' ')
     .trim()
 
   return text
@@ -654,6 +701,26 @@ function analyzeWordFrequency(text: string): Record<string, number> {
     .filter(w => w.length > 2) // Ignore very short words
 
   const frequency: Record<string, number> = {}
+
+  // First, add single word frequencies
+  const stopWords = new Set([
+    'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i',
+    'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
+    'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
+    'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what',
+    'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me',
+    'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know', 'take',
+    'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other',
+    'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also',
+    'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way',
+    'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us'
+  ])
+
+  words.forEach(word => {
+    if (!stopWords.has(word) && word.length > 3) {
+      frequency[word] = (frequency[word] || 0) + 1
+    }
+  })
 
   // Generate 2-10 word phrases
   for (let phraseLength = 2; phraseLength <= 10; phraseLength++) {
@@ -749,7 +816,7 @@ function getTopPhrases(frequency: Record<string, number>, limit: number): Array<
   return deduplicated.slice(0, limit)
 }
 
-async function extractEntities(text: string, apiKey: string): Promise<{
+async function extractEntities(text: string, apiKey: string, articleAuthor?: string): Promise<{
   people: Array<{ name: string; count: number }>
   organizations: Array<{ name: string; count: number }>
   locations: Array<{ name: string; count: number }>
@@ -757,7 +824,17 @@ async function extractEntities(text: string, apiKey: string): Promise<{
   // Truncate text for GPT
   const truncated = text.substring(0, 10000)
 
-  const prompt = `Extract all named entities from this text. Return ONLY valid JSON.
+  const authorNote = articleAuthor
+    ? `\n\nIMPORTANT: "${articleAuthor}" is the article author/journalist, NOT a subject of the story. DO NOT include them in the people list unless they are directly involved in the story events themselves.`
+    : ''
+
+  const prompt = `Extract named entities from this article's CONTENT. Focus on people, organizations, and locations that are SUBJECTS of the story, not the article's byline or metadata.${authorNote}
+
+Rules:
+- EXCLUDE article authors, journalists, and byline names unless they are subjects of the story
+- EXCLUDE phrases like "By [Name]", "Written by [Name]", "Reporter: [Name]"
+- ONLY include people, organizations, and locations that are part of the story content
+- Count how many times each entity appears
 
 Text: ${truncated}
 
@@ -784,7 +861,7 @@ Return format:
       body: JSON.stringify({
         model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
         messages: [
-          { role: 'system', content: 'You are a named entity recognition expert. Extract people, organizations, and locations from text. Return ONLY valid JSON.' },
+          { role: 'system', content: 'You are a named entity recognition expert. Extract people, organizations, and locations from article CONTENT only. Exclude article authors, journalists, and byline metadata. Focus only on entities that are subjects of the story. Return ONLY valid JSON.' },
           { role: 'user', content: prompt }
         ],
         max_completion_tokens: 800,

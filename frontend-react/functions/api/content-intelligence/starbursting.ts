@@ -103,8 +103,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let extractedData: any = {}
 
     if (use_ai_questions && primaryAnalysis.url) {
-      console.log('[Starbursting] Calling AI to extract Q&A from:', primaryAnalysis.url)
-
       const scrapeEndpoint = `${new URL(request.url).origin}/api/ai/scrape-url`
 
       try {
@@ -122,7 +120,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         if (scrapeResponse.ok) {
           extractedData = await scrapeResponse.json()
-          console.log('[Starbursting] AI extraction successful, got', Object.keys(extractedData).length, 'categories')
         } else {
           console.warn('[Starbursting] AI extraction failed:', scrapeResponse.status)
         }
@@ -134,6 +131,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Fallback: Extract initial questions from content if AI fails
     const initialQuestions = extractInitialQuestions(analyses)
 
+    // Determine the Q&A structure to use
+    let qaData
+    if (extractedData.who) {
+      // AI extraction succeeded - use categorized structure
+      qaData = extractedData
+    } else {
+      // AI extraction failed - convert flat questions array to categorized structure
+      qaData = categorizeFlatQuestions(initialQuestions)
+    }
+
     // Create Starbursting session via framework API
     const frameworksEndpoint = `${new URL(request.url).origin}/api/frameworks`
 
@@ -144,15 +151,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       data: {
         central_topic: centralTopic,
         context: context.substring(0, 5000), // Limit context size
-        // Use AI-extracted data if available, otherwise use basic questions
-        ...(extractedData.who ? extractedData : { questions: initialQuestions }),
+        ...qaData,
         source_url: primaryAnalysis.url,
         source_title: primaryAnalysis.title
       },
       workspace_id: '1' // Default workspace
     }
-
-    console.log('[Starbursting] Creating framework session:', starburstingPayload)
 
     const starburstingResponse = await fetch(frameworksEndpoint, {
       method: 'POST',
@@ -170,8 +174,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const starburstingData = await starburstingResponse.json()
     const sessionId = starburstingData.id
-
-    console.log('[Starbursting] Session created:', sessionId)
 
     // Link content analyses to Starbursting session
     for (const analysisId of analysis_ids) {
@@ -192,7 +194,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let fullFrameworkData = starburstingData
     if (getFrameworkResponse.ok) {
       fullFrameworkData = await getFrameworkResponse.json()
-      console.log('[Starbursting] Fetched full framework data with Q&A')
     } else {
       console.warn('[Starbursting] Failed to fetch full framework data:', getFrameworkResponse.status)
     }
@@ -275,6 +276,36 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       headers: { 'Content-Type': 'application/json' }
     })
   }
+}
+
+// ========================================
+// Convert flat questions array to categorized structure
+// ========================================
+function categorizeFlatQuestions(questions: any[]): {
+  who: any[]
+  what: any[]
+  where: any[]
+  when: any[]
+  why: any[]
+  how: any[]
+} {
+  const categorized = {
+    who: [] as any[],
+    what: [] as any[],
+    where: [] as any[],
+    when: [] as any[],
+    why: [] as any[],
+    how: [] as any[]
+  }
+
+  questions.forEach(q => {
+    const category = q.category as keyof typeof categorized
+    if (category in categorized) {
+      categorized[category].push(q)
+    }
+  })
+
+  return categorized
 }
 
 // ========================================
