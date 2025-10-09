@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import html2canvas from 'html2canvas'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -8,10 +9,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
-  Copy, Check, Video, Download, Play, Info
+  Copy, Check, Video, Download, Play, Info, Image
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -85,6 +87,75 @@ export default function ContentIntelligencePage() {
       // Clean up common artifacts
       .replace(/\n{3,}/g, '\n\n')
       .trim()
+  }
+
+  // Export word cloud as image
+  const exportWordCloud = async (format: 'png' | 'jpeg', includeMetadata: boolean) => {
+    const container = document.getElementById('word-cloud-container')
+    if (!container || !analysis) return
+
+    try {
+      // Create a wrapper div with metadata if requested
+      const exportContainer = document.createElement('div')
+      exportContainer.style.padding = '40px'
+      exportContainer.style.background = 'white'
+      exportContainer.style.width = 'fit-content'
+      exportContainer.style.maxWidth = '1200px'
+
+      if (includeMetadata) {
+        const metadata = document.createElement('div')
+        metadata.style.marginBottom = '20px'
+        metadata.style.color = '#000'
+        metadata.innerHTML = `
+          <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">${wordCloudView.charAt(0).toUpperCase() + wordCloudView.slice(1)} Word Cloud</h2>
+          <p style="font-size: 14px; color: #666; margin-bottom: 4px;"><strong>Source:</strong> ${analysis.title || 'Untitled'}</p>
+          <p style="font-size: 14px; color: #666;"><strong>URL:</strong> ${analysis.url}</p>
+        `
+        exportContainer.appendChild(metadata)
+      }
+
+      // Clone the word cloud container
+      const clone = container.cloneNode(true) as HTMLElement
+      exportContainer.appendChild(clone)
+
+      // Temporarily add to DOM for rendering
+      document.body.appendChild(exportContainer)
+
+      // Capture as canvas
+      const canvas = await html2canvas(exportContainer, {
+        backgroundColor: '#ffffff',
+        scale: 2, // Higher quality
+        logging: false
+      })
+
+      // Remove temporary element
+      document.body.removeChild(exportContainer)
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (!blob) return
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        const viewName = wordCloudView.charAt(0).toUpperCase() + wordCloudView.slice(1)
+        link.download = `wordcloud-${viewName}-${new Date().getTime()}.${format}`
+        link.href = url
+        link.click()
+        URL.revokeObjectURL(url)
+
+        toast({
+          title: 'Success',
+          description: `Word cloud exported as ${format.toUpperCase()}`
+        })
+      }, `image/${format}`, 0.95)
+
+    } catch (error) {
+      console.error('Export failed:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to export word cloud',
+        variant: 'destructive'
+      })
+    }
   }
 
   // Load saved links and check for pending URL from landing page
@@ -1562,7 +1633,7 @@ export default function ContentIntelligencePage() {
 
             {/* Word Cloud */}
             <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <h3 className="font-semibold">Word Cloud</h3>
                 <div className="flex gap-2">
                   <Button
@@ -1586,15 +1657,45 @@ export default function ContentIntelligencePage() {
                   >
                     Entities
                   </Button>
+
+                  {/* Export Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <Image className="h-4 w-4 mr-2" />
+                        Export
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => exportWordCloud('png', false)}>
+                        PNG (Image only)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportWordCloud('png', true)}>
+                        PNG (With title & URL)
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => exportWordCloud('jpeg', false)}>
+                        JPEG (Image only)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportWordCloud('jpeg', true)}>
+                        JPEG (With title & URL)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-8 min-h-[300px] flex flex-wrap items-center justify-center gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-8 min-h-[300px] flex flex-wrap items-center justify-center gap-4" id="word-cloud-container">
                 {wordCloudView === 'words' && Object.entries(analysis.word_frequency || {})
+                  .filter(([word]) => !word.includes(' ') && word.length > 2) // Only single words, min 3 chars
                   .sort(([, a], [, b]) => b - a)
                   .slice(0, 10)
                   .map(([word, count], index) => {
-                    const maxCount = Math.max(...Object.values(analysis.word_frequency || {}))
+                    const singleWords = Object.entries(analysis.word_frequency || {})
+                      .filter(([w]) => !w.includes(' ') && w.length > 2)
+                    const maxCount = Math.max(...singleWords.map(([, c]) => c))
                     const minSize = 20
                     const maxSize = 56
                     const fontSize = minSize + ((count / maxCount) * (maxSize - minSize))
@@ -1651,85 +1752,49 @@ export default function ContentIntelligencePage() {
                     )
                   })}
 
-                {wordCloudView === 'entities' && (
-                  <>
-                    {(analysis.entities?.people || [])
-                      .slice(0, 4)
-                      .map((entity, index) => {
-                        const allEntities = [
-                          ...(analysis.entities?.people || []),
-                          ...(analysis.entities?.organizations || []),
-                          ...(analysis.entities?.locations || [])
-                        ]
-                        const maxCount = Math.max(...allEntities.map(e => e.count))
-                        const minSize = 18
-                        const maxSize = 52
-                        const fontSize = minSize + ((entity.count / maxCount) * (maxSize - minSize))
+                {wordCloudView === 'entities' && (() => {
+                  // Combine all entities with their types
+                  const allEntities = [
+                    ...(analysis.entities?.people || []).map(e => ({ ...e, type: 'person' })),
+                    ...(analysis.entities?.organizations || []).map(e => ({ ...e, type: 'organization' })),
+                    ...(analysis.entities?.locations || []).map(e => ({ ...e, type: 'location' }))
+                  ]
+                  // Sort by count and take top 10
+                  const topEntities = allEntities.sort((a, b) => b.count - a.count).slice(0, 10)
+                  const maxCount = Math.max(...topEntities.map(e => e.count), 1)
 
-                        return (
-                          <span
-                            key={entity.name}
-                            className="font-bold text-blue-600 dark:text-blue-400 hover:scale-110 transition-transform cursor-default select-none"
-                            style={{ fontSize: `${fontSize}px`, lineHeight: 1.3 }}
-                            title={`${entity.name} (Person): ${entity.count} mentions`}
-                          >
-                            {entity.name}
-                          </span>
-                        )
-                      })}
-                    {(analysis.entities?.organizations || [])
-                      .slice(0, 3)
-                      .map((entity, index) => {
-                        const allEntities = [
-                          ...(analysis.entities?.people || []),
-                          ...(analysis.entities?.organizations || []),
-                          ...(analysis.entities?.locations || [])
-                        ]
-                        const maxCount = Math.max(...allEntities.map(e => e.count))
-                        const minSize = 18
-                        const maxSize = 52
-                        const fontSize = minSize + ((entity.count / maxCount) * (maxSize - minSize))
+                  return topEntities.map((entity) => {
+                    const minSize = 18
+                    const maxSize = 52
+                    const fontSize = minSize + ((entity.count / maxCount) * (maxSize - minSize))
 
-                        return (
-                          <span
-                            key={entity.name}
-                            className="font-bold text-green-600 dark:text-green-400 hover:scale-110 transition-transform cursor-default select-none"
-                            style={{ fontSize: `${fontSize}px`, lineHeight: 1.3 }}
-                            title={`${entity.name} (Organization): ${entity.count} mentions`}
-                          >
-                            {entity.name}
-                          </span>
-                        )
-                      })}
-                    {(analysis.entities?.locations || [])
-                      .slice(0, 3)
-                      .map((entity, index) => {
-                        const allEntities = [
-                          ...(analysis.entities?.people || []),
-                          ...(analysis.entities?.organizations || []),
-                          ...(analysis.entities?.locations || [])
-                        ]
-                        const maxCount = Math.max(...allEntities.map(e => e.count))
-                        const minSize = 18
-                        const maxSize = 52
-                        const fontSize = minSize + ((entity.count / maxCount) * (maxSize - minSize))
+                    const colorClass = entity.type === 'person'
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : entity.type === 'organization'
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-orange-600 dark:text-orange-400'
 
-                        return (
-                          <span
-                            key={entity.name}
-                            className="font-bold text-orange-600 dark:text-orange-400 hover:scale-110 transition-transform cursor-default select-none"
-                            style={{ fontSize: `${fontSize}px`, lineHeight: 1.3 }}
-                            title={`${entity.name} (Location): ${entity.count} mentions`}
-                          >
-                            {entity.name}
-                          </span>
-                        )
-                      })}
-                  </>
-                )}
+                    const typeLabel = entity.type === 'person'
+                      ? 'Person'
+                      : entity.type === 'organization'
+                      ? 'Organization'
+                      : 'Location'
+
+                    return (
+                      <span
+                        key={`${entity.type}-${entity.name}`}
+                        className={`font-bold ${colorClass} hover:scale-110 transition-transform cursor-default select-none`}
+                        style={{ fontSize: `${fontSize}px`, lineHeight: 1.3 }}
+                        title={`${entity.name} (${typeLabel}): ${entity.count} mentions`}
+                      >
+                        {entity.name}
+                      </span>
+                    )
+                  })
+                })()}
               </div>
 
-              {/* Legend for entity view */}
+              {/* Legend and description */}
               {wordCloudView === 'entities' ? (
                 <div className="flex items-center justify-center gap-4 mt-4 text-xs">
                   <div className="flex items-center gap-1.5">
@@ -1745,10 +1810,37 @@ export default function ContentIntelligencePage() {
                     <span className="text-muted-foreground">Locations</span>
                   </div>
                 </div>
+              ) : wordCloudView === 'phrases' ? (
+                <div className="space-y-2 mt-4">
+                  <div className="flex items-center justify-center flex-wrap gap-3 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-blue-600 dark:bg-blue-400"></div>
+                      <span className="text-muted-foreground">Rank 1-2</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-purple-600 dark:bg-purple-400"></div>
+                      <span className="text-muted-foreground">Rank 3-4</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-green-600 dark:bg-green-400"></div>
+                      <span className="text-muted-foreground">Rank 5-6</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-orange-600 dark:bg-orange-400"></div>
+                      <span className="text-muted-foreground">Rank 7-8</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-pink-600 dark:bg-pink-400"></div>
+                      <span className="text-muted-foreground">Rank 9-10</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Top 10 most common phrases (size = frequency)
+                  </p>
+                </div>
               ) : (
                 <p className="text-xs text-muted-foreground mt-2 text-center">
-                  {wordCloudView === 'words' && 'Top 10 most frequent words'}
-                  {wordCloudView === 'phrases' && 'Top 10 most common phrases'}
+                  Top 10 most frequent single words (size = frequency)
                 </p>
               )}
             </Card>
