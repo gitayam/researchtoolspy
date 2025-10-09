@@ -370,11 +370,16 @@ export default function ContentIntelligencePage() {
       const userHash = localStorage.getItem('omnicore_user_hash')
 
       if (!userHash) {
-        toast({
-          title: 'Login Required',
-          description: 'Please login or register to save entities',
-          variant: 'destructive'
-        })
+        // Prompt user to login and return to this page
+        const shouldLogin = window.confirm(
+          'You need to be logged in to save entities.\n\nWould you like to login or create an account now?'
+        )
+
+        if (shouldLogin) {
+          // Save current URL to return after login
+          localStorage.setItem('redirect_after_login', window.location.pathname + window.location.search)
+          navigate('/login')
+        }
         return
       }
 
@@ -575,7 +580,15 @@ export default function ContentIntelligencePage() {
       }
 
       const data = await response.json()
-      console.log('[Starbursting] Background session created:', data.session_id)
+
+      // Parse the framework data if it's a string
+      if (data.framework_data?.data && typeof data.framework_data.data === 'string') {
+        try {
+          data.framework_data.data = JSON.parse(data.framework_data.data)
+        } catch (e) {
+          console.error('[Starbursting] Failed to parse framework data:', e)
+        }
+      }
 
       setStarburstingSession(data)
       setStarburstingStatus('complete')
