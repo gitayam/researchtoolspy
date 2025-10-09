@@ -1672,11 +1672,29 @@ export default function ContentIntelligencePage() {
                   </>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                {wordCloudView === 'words' && 'Top 10 most frequent words'}
-                {wordCloudView === 'phrases' && 'Top 10 most common phrases'}
-                {wordCloudView === 'entities' && 'Top entities (people, organizations, locations)'}
-              </p>
+
+              {/* Legend for entity view */}
+              {wordCloudView === 'entities' ? (
+                <div className="flex items-center justify-center gap-4 mt-4 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-blue-600 dark:bg-blue-400"></div>
+                    <span className="text-muted-foreground">People</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-green-600 dark:bg-green-400"></div>
+                    <span className="text-muted-foreground">Organizations</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-orange-600 dark:bg-orange-400"></div>
+                    <span className="text-muted-foreground">Locations</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  {wordCloudView === 'words' && 'Top 10 most frequent words'}
+                  {wordCloudView === 'phrases' && 'Top 10 most common phrases'}
+                </p>
+              )}
             </Card>
 
             {/* Top Phrases */}
