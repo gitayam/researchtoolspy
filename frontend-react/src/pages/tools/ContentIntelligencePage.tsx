@@ -67,6 +67,9 @@ export default function ContentIntelligencePage() {
   const [starburstingStatus, setStarburstingStatus] = useState<'idle' | 'processing' | 'complete' | 'error'>('idle')
   const [starburstingError, setStarburstingError] = useState<string | null>(null)
 
+  // Word Analysis View State
+  const [wordCloudView, setWordCloudView] = useState<'words' | 'phrases' | 'entities'>('words')
+
   // Load saved links and check for pending URL from landing page
   useEffect(() => {
     loadSavedLinks()
@@ -1503,19 +1506,43 @@ export default function ContentIntelligencePage() {
 
             {/* Word Cloud */}
             <Card className="p-6">
-              <h3 className="font-semibold mb-4">Word Cloud</h3>
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-8 min-h-[300px] flex flex-wrap items-center justify-center gap-3">
-                {Object.entries(analysis.word_frequency || {})
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Word Cloud</h3>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={wordCloudView === 'words' ? 'default' : 'outline'}
+                    onClick={() => setWordCloudView('words')}
+                  >
+                    Words
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={wordCloudView === 'phrases' ? 'default' : 'outline'}
+                    onClick={() => setWordCloudView('phrases')}
+                  >
+                    Phrases
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={wordCloudView === 'entities' ? 'default' : 'outline'}
+                    onClick={() => setWordCloudView('entities')}
+                  >
+                    Entities
+                  </Button>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-8 min-h-[300px] flex flex-wrap items-center justify-center gap-4">
+                {wordCloudView === 'words' && Object.entries(analysis.word_frequency || {})
                   .sort(([, a], [, b]) => b - a)
-                  .slice(0, 50)
+                  .slice(0, 10)
                   .map(([word, count], index) => {
-                    // Calculate font size based on frequency (normalize to 12-48px range)
                     const maxCount = Math.max(...Object.values(analysis.word_frequency || {}))
-                    const minSize = 12
-                    const maxSize = 48
+                    const minSize = 20
+                    const maxSize = 56
                     const fontSize = minSize + ((count / maxCount) * (maxSize - minSize))
 
-                    // Color variation based on index
                     const colors = [
                       'text-blue-600 dark:text-blue-400',
                       'text-purple-600 dark:text-purple-400',
@@ -1529,17 +1556,126 @@ export default function ContentIntelligencePage() {
                     return (
                       <span
                         key={word}
-                        className={`font-semibold ${colorClass} hover:scale-110 transition-transform cursor-default select-none`}
-                        style={{ fontSize: `${fontSize}px`, lineHeight: 1.2 }}
-                        title={`${word}: ${count} occurrences`}
+                        className={`font-bold ${colorClass} hover:scale-110 transition-transform cursor-default select-none`}
+                        style={{ fontSize: `${fontSize}px`, lineHeight: 1.3 }}
+                        title={`${word}: ${count} times`}
                       >
                         {word}
                       </span>
                     )
                   })}
+
+                {wordCloudView === 'phrases' && analysis.top_phrases
+                  .slice(0, 10)
+                  .map((item, index) => {
+                    const maxCount = Math.max(...analysis.top_phrases.map(p => p.count))
+                    const minSize = 16
+                    const maxSize = 48
+                    const fontSize = minSize + ((item.count / maxCount) * (maxSize - minSize))
+
+                    const colors = [
+                      'text-blue-600 dark:text-blue-400',
+                      'text-purple-600 dark:text-purple-400',
+                      'text-green-600 dark:text-green-400',
+                      'text-orange-600 dark:text-orange-400',
+                      'text-pink-600 dark:text-pink-400',
+                      'text-indigo-600 dark:text-indigo-400'
+                    ]
+                    const colorClass = colors[index % colors.length]
+
+                    return (
+                      <span
+                        key={index}
+                        className={`font-bold ${colorClass} hover:scale-110 transition-transform cursor-default select-none text-center`}
+                        style={{ fontSize: `${fontSize}px`, lineHeight: 1.3 }}
+                        title={`${item.phrase}: ${item.count} times`}
+                      >
+                        {item.phrase}
+                      </span>
+                    )
+                  })}
+
+                {wordCloudView === 'entities' && (
+                  <>
+                    {(analysis.entities?.people || [])
+                      .slice(0, 4)
+                      .map((entity, index) => {
+                        const allEntities = [
+                          ...(analysis.entities?.people || []),
+                          ...(analysis.entities?.organizations || []),
+                          ...(analysis.entities?.locations || [])
+                        ]
+                        const maxCount = Math.max(...allEntities.map(e => e.count))
+                        const minSize = 18
+                        const maxSize = 52
+                        const fontSize = minSize + ((entity.count / maxCount) * (maxSize - minSize))
+
+                        return (
+                          <span
+                            key={entity.name}
+                            className="font-bold text-blue-600 dark:text-blue-400 hover:scale-110 transition-transform cursor-default select-none"
+                            style={{ fontSize: `${fontSize}px`, lineHeight: 1.3 }}
+                            title={`${entity.name} (Person): ${entity.count} mentions`}
+                          >
+                            {entity.name}
+                          </span>
+                        )
+                      })}
+                    {(analysis.entities?.organizations || [])
+                      .slice(0, 3)
+                      .map((entity, index) => {
+                        const allEntities = [
+                          ...(analysis.entities?.people || []),
+                          ...(analysis.entities?.organizations || []),
+                          ...(analysis.entities?.locations || [])
+                        ]
+                        const maxCount = Math.max(...allEntities.map(e => e.count))
+                        const minSize = 18
+                        const maxSize = 52
+                        const fontSize = minSize + ((entity.count / maxCount) * (maxSize - minSize))
+
+                        return (
+                          <span
+                            key={entity.name}
+                            className="font-bold text-green-600 dark:text-green-400 hover:scale-110 transition-transform cursor-default select-none"
+                            style={{ fontSize: `${fontSize}px`, lineHeight: 1.3 }}
+                            title={`${entity.name} (Organization): ${entity.count} mentions`}
+                          >
+                            {entity.name}
+                          </span>
+                        )
+                      })}
+                    {(analysis.entities?.locations || [])
+                      .slice(0, 3)
+                      .map((entity, index) => {
+                        const allEntities = [
+                          ...(analysis.entities?.people || []),
+                          ...(analysis.entities?.organizations || []),
+                          ...(analysis.entities?.locations || [])
+                        ]
+                        const maxCount = Math.max(...allEntities.map(e => e.count))
+                        const minSize = 18
+                        const maxSize = 52
+                        const fontSize = minSize + ((entity.count / maxCount) * (maxSize - minSize))
+
+                        return (
+                          <span
+                            key={entity.name}
+                            className="font-bold text-orange-600 dark:text-orange-400 hover:scale-110 transition-transform cursor-default select-none"
+                            style={{ fontSize: `${fontSize}px`, lineHeight: 1.3 }}
+                            title={`${entity.name} (Location): ${entity.count} mentions`}
+                          >
+                            {entity.name}
+                          </span>
+                        )
+                      })}
+                  </>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mt-2 text-center">
-                Showing top 50 words by frequency
+                {wordCloudView === 'words' && 'Top 10 most frequent words'}
+                {wordCloudView === 'phrases' && 'Top 10 most common phrases'}
+                {wordCloudView === 'entities' && 'Top entities (people, organizations, locations)'}
               </p>
             </Card>
 
@@ -1559,8 +1695,10 @@ export default function ContentIntelligencePage() {
                           <span className="text-sm font-bold text-primary shrink-0">{item.count}×</span>
                         </div>
                         <div className="space-y-1">
-                          <Progress value={item.percentage} className="h-1.5" />
-                          <p className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}% of content</p>
+                          <Progress value={(item.count / analysis.top_phrases[0].count) * 100} className="h-1.5" />
+                          <p className="text-xs text-muted-foreground">
+                            {item.count} {item.count === 1 ? 'occurrence' : 'occurrences'}
+                          </p>
                         </div>
                       </div>
                     </div>
