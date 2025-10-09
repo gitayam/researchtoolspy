@@ -74,6 +74,16 @@ export const SwotPage = () => {
       const response = await fetch(`/api/frameworks?id=${analysisId}`)
       if (response.ok) {
         const data = await response.json()
+
+        // Parse the data field if it's a JSON string
+        if (data.data && typeof data.data === 'string') {
+          try {
+            data.data = JSON.parse(data.data)
+          } catch (e) {
+            console.error('Failed to parse framework data:', e)
+          }
+        }
+
         setCurrentAnalysis(data)
       }
     } catch (error) {
@@ -426,6 +436,16 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
       const response = await fetch(`/api/frameworks?id=${analysisId}`)
       if (response.ok) {
         const data = await response.json()
+
+        // Parse the data field if it's a JSON string
+        if (data.data && typeof data.data === 'string') {
+          try {
+            data.data = JSON.parse(data.data)
+          } catch (e) {
+            console.error('Failed to parse framework data:', e)
+          }
+        }
+
         setCurrentAnalysis(data)
       }
     } catch (error) {
@@ -1289,6 +1309,16 @@ export const DeceptionPage = () => {
       const response = await fetch(`/api/frameworks?id=${analysisId}`)
       if (response.ok) {
         const data = await response.json()
+
+        // Parse the data field if it's a JSON string
+        if (data.data && typeof data.data === 'string') {
+          try {
+            data.data = JSON.parse(data.data)
+          } catch (e) {
+            console.error('Failed to parse framework data:', e)
+          }
+        }
+
         setCurrentAnalysis(data)
       }
     } catch (error) {
