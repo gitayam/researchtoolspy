@@ -323,6 +323,28 @@ export default function ContentIntelligencePage() {
       const clone = container.cloneNode(true) as HTMLElement
       // Remove the id to avoid conflicts
       clone.removeAttribute('id')
+
+      // Convert Tailwind colors to inline styles that html2canvas can understand
+      const convertOklchToRgb = (element: HTMLElement) => {
+        const computedStyle = window.getComputedStyle(element)
+        const color = computedStyle.color
+
+        // Set computed color as inline style (this converts oklch to rgb)
+        if (color && color !== 'rgba(0, 0, 0, 0)') {
+          element.style.color = color
+        }
+
+        // Process all children recursively
+        Array.from(element.children).forEach(child => {
+          if (child instanceof HTMLElement) {
+            convertOklchToRgb(child)
+          }
+        })
+      }
+
+      // Convert all colors before adding to DOM
+      convertOklchToRgb(clone)
+
       exportContainer.appendChild(clone)
 
       // Temporarily add to DOM for rendering (position off-screen)
@@ -335,8 +357,16 @@ export default function ContentIntelligencePage() {
       const canvas = await html2canvas(exportContainer, {
         backgroundColor: '#ffffff',
         scale: 2, // Higher quality
-        logging: true,
-        useCORS: true
+        logging: false, // Disable logging to avoid clutter
+        useCORS: true,
+        onclone: (clonedDoc) => {
+          // Additional cleanup in cloned document
+          const clonedContainer = clonedDoc.querySelector('[style*="position: absolute"]') as HTMLElement
+          if (clonedContainer) {
+            clonedContainer.style.position = 'static'
+            clonedContainer.style.left = '0'
+          }
+        }
       })
 
       // Remove temporary element
