@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
-  Copy, Check, Video, Download, Play, Info, Image
+  Copy, Check, Video, Download, Play, Info, Image, FileDown
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -89,12 +89,217 @@ export default function ContentIntelligencePage() {
       .trim()
   }
 
+  // Export comprehensive report
+  const exportFullReport = () => {
+    if (!analysis) return
+
+    // Create a new window with the report
+    const reportWindow = window.open('', '_blank')
+    if (!reportWindow) {
+      toast({
+        title: 'Error',
+        description: 'Please allow popups to export the report',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    // Build comprehensive HTML report
+    const reportHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${analysis.title || 'Content Intelligence Report'}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 40px 20px; color: #333; }
+          h1 { color: #1a1a1a; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; margin-bottom: 30px; }
+          h2 { color: #2563eb; margin-top: 40px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 8px; }
+          h3 { color: #4b5563; margin-top: 30px; margin-bottom: 15px; }
+          .metadata { background: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+          .metadata p { margin: 8px 0; }
+          .metadata strong { color: #1f2937; }
+          .citation { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; font-family: 'Georgia', serif; }
+          .summary { background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .qa-item { background: #ffffff; border: 1px solid #e5e7eb; padding: 15px; margin: 10px 0; border-radius: 6px; }
+          .qa-question { font-weight: 600; color: #1f2937; margin-bottom: 8px; }
+          .qa-answer { color: #4b5563; margin-left: 20px; }
+          .entity-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 15px 0; }
+          .entity-item { background: #f3f4f6; padding: 10px; border-radius: 4px; }
+          .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+          .stat-card { background: #fefce8; padding: 15px; border-radius: 8px; border-left: 4px solid #eab308; }
+          .stat-label { font-size: 0.875rem; color: #78350f; font-weight: 500; }
+          .stat-value { font-size: 1.875rem; font-weight: bold; color: #713f12; margin-top: 5px; }
+          .link-button { background: #3b82f6; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; display: inline-block; margin: 20px 0; }
+          .link-button:hover { background: #2563eb; }
+          @media print { .no-print { display: none; } }
+          @page { margin: 2cm; }
+        </style>
+      </head>
+      <body>
+        <h1>Content Intelligence Report</h1>
+
+        <!-- Metadata -->
+        <div class="metadata">
+          <p><strong>Title:</strong> ${analysis.title || 'Untitled'}</p>
+          <p><strong>URL:</strong> <a href="${analysis.url}" target="_blank">${analysis.url}</a></p>
+          ${analysis.author ? `<p><strong>Author:</strong> ${analysis.author}</p>` : ''}
+          ${analysis.publish_date ? `<p><strong>Published:</strong> ${analysis.publish_date}</p>` : ''}
+          <p><strong>Domain:</strong> ${analysis.domain}</p>
+          <p><strong>Analysis Date:</strong> ${new Date().toLocaleString()}</p>
+          <p><strong>Word Count:</strong> ${analysis.word_count.toLocaleString()}</p>
+          ${analysis.is_social_media ? `<p><strong>Platform:</strong> ${analysis.social_platform?.toUpperCase()}</p>` : ''}
+        </div>
+
+        <!-- Citation -->
+        ${generatedCitation ? `
+          <h2>Citation (APA)</h2>
+          <div class="citation">${generatedCitation}</div>
+        ` : ''}
+
+        <!-- Summary -->
+        ${analysis.summary ? `
+          <h2>Summary</h2>
+          <div class="summary">${analysis.summary}</div>
+        ` : ''}
+
+        <!-- Quick Stats -->
+        <h2>Analysis Overview</h2>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Words</div>
+            <div class="stat-value">${analysis.word_count.toLocaleString()}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Unique Words</div>
+            <div class="stat-value">${Object.keys(analysis.word_frequency || {}).length.toLocaleString()}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">People Identified</div>
+            <div class="stat-value">${analysis.entities?.people?.length || 0}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Organizations</div>
+            <div class="stat-value">${analysis.entities?.organizations?.length || 0}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Locations</div>
+            <div class="stat-value">${analysis.entities?.locations?.length || 0}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Top Phrases</div>
+            <div class="stat-value">${analysis.top_phrases?.length || 0}</div>
+          </div>
+        </div>
+
+        <!-- Entities -->
+        ${analysis.entities ? `
+          <h2>Extracted Entities</h2>
+
+          ${analysis.entities.people && analysis.entities.people.length > 0 ? `
+            <h3>People (${analysis.entities.people.length})</h3>
+            <div class="entity-list">
+              ${analysis.entities.people.slice(0, 20).map((p: any) =>
+                `<div class="entity-item">${p.name} ${p.count > 1 ? `(${p.count}×)` : ''}</div>`
+              ).join('')}
+            </div>
+          ` : ''}
+
+          ${analysis.entities.organizations && analysis.entities.organizations.length > 0 ? `
+            <h3>Organizations (${analysis.entities.organizations.length})</h3>
+            <div class="entity-list">
+              ${analysis.entities.organizations.slice(0, 20).map((o: any) =>
+                `<div class="entity-item">${o.name} ${o.count > 1 ? `(${o.count}×)` : ''}</div>`
+              ).join('')}
+            </div>
+          ` : ''}
+
+          ${analysis.entities.locations && analysis.entities.locations.length > 0 ? `
+            <h3>Locations (${analysis.entities.locations.length})</h3>
+            <div class="entity-list">
+              ${analysis.entities.locations.slice(0, 20).map((l: any) =>
+                `<div class="entity-item">${l.name} ${l.count > 1 ? `(${l.count}×)` : ''}</div>`
+              ).join('')}
+            </div>
+          ` : ''}
+        ` : ''}
+
+        <!-- Q&A History -->
+        ${qaHistory && qaHistory.length > 0 ? `
+          <h2>Questions & Answers</h2>
+          ${qaHistory.map((qa, index) => `
+            <div class="qa-item">
+              <div class="qa-question">Q${index + 1}: ${qa.question}</div>
+              <div class="qa-answer">A: ${qa.answer}</div>
+            </div>
+          `).join('')}
+        ` : ''}
+
+        <!-- Top Phrases -->
+        ${analysis.top_phrases && analysis.top_phrases.length > 0 ? `
+          <h2>Top Phrases</h2>
+          <div class="entity-list">
+            ${analysis.top_phrases.slice(0, 20).map((p: any) =>
+              `<div class="entity-item">${p.phrase} (${p.count}×)</div>`
+            ).join('')}
+          </div>
+        ` : ''}
+
+        <!-- Starbursting Link -->
+        ${starburstingSession && starburstingStatus === 'complete' ? `
+          <h2>Starbursting Analysis</h2>
+          <p>A comprehensive 5W1H (Who, What, When, Where, Why, How) analysis has been generated for this content.</p>
+          <a href="/dashboard/analysis-frameworks/starbursting/${starburstingSession.session_id}/view" class="link-button no-print">
+            View Starbursting Analysis →
+          </a>
+          <p class="no-print" style="font-size: 0.875rem; color: #6b7280; margin-top: 10px;">
+            Direct link: ${window.location.origin}/dashboard/analysis-frameworks/starbursting/${starburstingSession.session_id}/view
+          </p>
+        ` : ''}
+
+        <!-- Print Instructions -->
+        <div class="no-print" style="margin-top: 40px; padding: 20px; background: #f3f4f6; border-radius: 8px;">
+          <p><strong>To save this report:</strong></p>
+          <ul>
+            <li>Press Ctrl+P (Windows) or Cmd+P (Mac) to print</li>
+            <li>Select "Save as PDF" as the destination</li>
+            <li>Click Save</li>
+          </ul>
+          <button onclick="window.print()" style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+            Print / Save as PDF
+          </button>
+        </div>
+
+        <div style="margin-top: 60px; padding-top: 20px; border-top: 2px solid #e5e7eb; font-size: 0.75rem; color: #9ca3af; text-align: center;">
+          Generated by Content Intelligence Tool • ${new Date().toLocaleString()}
+        </div>
+      </body>
+      </html>
+    `
+
+    reportWindow.document.write(reportHTML)
+    reportWindow.document.close()
+
+    toast({
+      title: 'Report Generated',
+      description: 'Report opened in new window. You can print or save as PDF.'
+    })
+  }
+
   // Export word cloud as image
   const exportWordCloud = async (format: 'png' | 'jpeg', includeMetadata: boolean) => {
     const container = document.getElementById('word-cloud-container')
-    if (!container || !analysis) return
+    if (!container || !analysis) {
+      toast({
+        title: 'Error',
+        description: 'Word cloud not found',
+        variant: 'destructive'
+      })
+      return
+    }
 
     try {
+      console.log('[Export] Starting word cloud export...')
+
       // Create a wrapper div with metadata if requested
       const exportContainer = document.createElement('div')
       exportContainer.style.padding = '40px'
@@ -116,24 +321,38 @@ export default function ContentIntelligencePage() {
 
       // Clone the word cloud container
       const clone = container.cloneNode(true) as HTMLElement
+      // Remove the id to avoid conflicts
+      clone.removeAttribute('id')
       exportContainer.appendChild(clone)
 
-      // Temporarily add to DOM for rendering
+      // Temporarily add to DOM for rendering (position off-screen)
+      exportContainer.style.position = 'absolute'
+      exportContainer.style.left = '-9999px'
       document.body.appendChild(exportContainer)
 
+      console.log('[Export] Rendering canvas...')
       // Capture as canvas
       const canvas = await html2canvas(exportContainer, {
         backgroundColor: '#ffffff',
         scale: 2, // Higher quality
-        logging: false
+        logging: true,
+        useCORS: true
       })
 
       // Remove temporary element
       document.body.removeChild(exportContainer)
 
+      console.log('[Export] Canvas rendered, creating download...')
       // Convert to blob and download
       canvas.toBlob((blob) => {
-        if (!blob) return
+        if (!blob) {
+          toast({
+            title: 'Error',
+            description: 'Failed to create image blob',
+            variant: 'destructive'
+          })
+          return
+        }
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         const viewName = wordCloudView.charAt(0).toUpperCase() + wordCloudView.slice(1)
@@ -142,6 +361,7 @@ export default function ContentIntelligencePage() {
         link.click()
         URL.revokeObjectURL(url)
 
+        console.log('[Export] Download triggered successfully')
         toast({
           title: 'Success',
           description: `Word cloud exported as ${format.toUpperCase()}`
@@ -149,10 +369,10 @@ export default function ContentIntelligencePage() {
       }, `image/${format}`, 0.95)
 
     } catch (error) {
-      console.error('Export failed:', error)
+      console.error('[Export] Failed:', error)
       toast({
         title: 'Error',
-        description: 'Failed to export word cloud',
+        description: `Failed to export: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive'
       })
     }
@@ -1497,15 +1717,24 @@ export default function ContentIntelligencePage() {
                     <p className="text-sm text-muted-foreground">Published: {analysis.publish_date}</p>
                   )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleCreateCitation(analysis)}
-                  className="ml-4"
-                >
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Create Citation
-                </Button>
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCreateCitation(analysis)}
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Create Citation
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={exportFullReport}
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Export Report
+                  </Button>
+                </div>
               </div>
 
               {/* Text Content with Toggle */}
@@ -1635,28 +1864,30 @@ export default function ContentIntelligencePage() {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <h3 className="font-semibold">Word Cloud</h3>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant={wordCloudView === 'words' ? 'default' : 'outline'}
-                    onClick={() => setWordCloudView('words')}
-                  >
-                    Words
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={wordCloudView === 'phrases' ? 'default' : 'outline'}
-                    onClick={() => setWordCloudView('phrases')}
-                  >
-                    Phrases
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={wordCloudView === 'entities' ? 'default' : 'outline'}
-                    onClick={() => setWordCloudView('entities')}
-                  >
-                    Entities
-                  </Button>
+                <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={wordCloudView === 'words' ? 'default' : 'outline'}
+                      onClick={() => setWordCloudView('words')}
+                    >
+                      Words
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={wordCloudView === 'phrases' ? 'default' : 'outline'}
+                      onClick={() => setWordCloudView('phrases')}
+                    >
+                      Phrases
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={wordCloudView === 'entities' ? 'default' : 'outline'}
+                      onClick={() => setWordCloudView('entities')}
+                    >
+                      Entities
+                    </Button>
+                  </div>
 
                   {/* Export Dropdown */}
                   <DropdownMenu>
@@ -1667,7 +1898,7 @@ export default function ContentIntelligencePage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+                      <DropdownMenuLabel>Export Word Cloud</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => exportWordCloud('png', false)}>
                         PNG (Image only)
@@ -1688,14 +1919,19 @@ export default function ContentIntelligencePage() {
               </div>
 
               <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-8 min-h-[300px] flex flex-wrap items-center justify-center gap-4" id="word-cloud-container">
-                {wordCloudView === 'words' && Object.entries(analysis.word_frequency || {})
-                  .filter(([word]) => !word.includes(' ') && word.length > 2) // Only single words, min 3 chars
-                  .sort(([, a], [, b]) => b - a)
-                  .slice(0, 10)
-                  .map(([word, count], index) => {
-                    const singleWords = Object.entries(analysis.word_frequency || {})
-                      .filter(([w]) => !w.includes(' ') && w.length > 2)
-                    const maxCount = Math.max(...singleWords.map(([, c]) => c))
+                {wordCloudView === 'words' && (() => {
+                  const singleWords = Object.entries(analysis.word_frequency || {})
+                    .filter(([word]) => !word.includes(' ')) // Only single words
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 10)
+
+                  if (singleWords.length === 0) {
+                    return <p className="text-muted-foreground italic">No single words found in analysis</p>
+                  }
+
+                  const maxCount = Math.max(...singleWords.map(([, c]) => c))
+
+                  return singleWords.map(([word, count], index) => {
                     const minSize = 20
                     const maxSize = 56
                     const fontSize = minSize + ((count / maxCount) * (maxSize - minSize))
@@ -1720,7 +1956,8 @@ export default function ContentIntelligencePage() {
                         {word}
                       </span>
                     )
-                  })}
+                  })
+                })()}
 
                 {wordCloudView === 'phrases' && analysis.top_phrases
                   .slice(0, 10)
