@@ -324,49 +324,77 @@ export default function ContentIntelligencePage() {
       // Remove the id to avoid conflicts
       clone.removeAttribute('id')
 
-      // Convert Tailwind colors to inline styles that html2canvas can understand
-      const convertOklchToRgb = (element: HTMLElement) => {
-        const computedStyle = window.getComputedStyle(element)
-        const color = computedStyle.color
-
-        // Set computed color as inline style (this converts oklch to rgb)
-        if (color && color !== 'rgba(0, 0, 0, 0)') {
-          element.style.color = color
-        }
-
-        // Process all children recursively
-        Array.from(element.children).forEach(child => {
-          if (child instanceof HTMLElement) {
-            convertOklchToRgb(child)
-          }
-        })
-      }
-
-      // Convert all colors before adding to DOM
-      convertOklchToRgb(clone)
-
       exportContainer.appendChild(clone)
 
       // Temporarily add to DOM for rendering (position off-screen)
       exportContainer.style.position = 'absolute'
       exportContainer.style.left = '-9999px'
+      exportContainer.style.top = '-9999px'
       document.body.appendChild(exportContainer)
 
+      // Strip all Tailwind classes and apply plain RGB colors
+      // This completely avoids oklch color issues
+      const stripTailwindAndApplyRgb = (element: HTMLElement) => {
+        // Get computed style BEFORE removing class
+        const computedStyle = window.getComputedStyle(element)
+        const color = computedStyle.color
+        const backgroundColor = computedStyle.backgroundColor
+        const fontSize = computedStyle.fontSize
+        const fontWeight = computedStyle.fontWeight
+        const opacity = computedStyle.opacity
+
+        // Remove ALL classes to avoid Tailwind
+        element.className = ''
+
+        // Apply computed styles as inline RGB
+        if (color && !color.includes('oklch')) {
+          element.style.color = color
+        } else if (color) {
+          // Fallback to black if still has oklch
+          element.style.color = 'rgb(0, 0, 0)'
+        }
+
+        if (backgroundColor && !backgroundColor.includes('oklch') && backgroundColor !== 'rgba(0, 0, 0, 0)') {
+          element.style.backgroundColor = backgroundColor
+        }
+
+        element.style.fontSize = fontSize
+        element.style.fontWeight = fontWeight
+        element.style.opacity = opacity
+
+        // Process all children recursively
+        Array.from(element.children).forEach(child => {
+          if (child instanceof HTMLElement) {
+            stripTailwindAndApplyRgb(child)
+          }
+        })
+      }
+
+      // Strip classes and apply RGB colors
+      stripTailwindAndApplyRgb(clone)
+
+      // Replace the gradient background with plain colors
+      clone.style.background = 'linear-gradient(135deg, rgb(239, 246, 255) 0%, rgb(250, 245, 255) 100%)'
+      clone.style.borderRadius = '8px'
+      clone.style.padding = '32px'
+      clone.style.minHeight = '300px'
+      clone.style.display = 'flex'
+      clone.style.flexWrap = 'wrap'
+      clone.style.alignItems = 'center'
+      clone.style.justifyContent = 'center'
+      clone.style.gap = '16px'
+
+      // Force white background on container
+      exportContainer.style.setProperty('background-color', '#ffffff', 'important')
+
       console.log('[Export] Rendering canvas...')
-      // Capture as canvas
+      // Capture as canvas with minimal options
       const canvas = await html2canvas(exportContainer, {
         backgroundColor: '#ffffff',
-        scale: 2, // Higher quality
-        logging: false, // Disable logging to avoid clutter
+        scale: 2,
+        logging: false,
         useCORS: true,
-        onclone: (clonedDoc) => {
-          // Additional cleanup in cloned document
-          const clonedContainer = clonedDoc.querySelector('[style*="position: absolute"]') as HTMLElement
-          if (clonedContainer) {
-            clonedContainer.style.position = 'static'
-            clonedContainer.style.left = '0'
-          }
-        }
+        allowTaint: true
       })
 
       // Remove temporary element
@@ -510,10 +538,16 @@ export default function ContentIntelligencePage() {
   }
 
   // Analyze URL
-  const handleAnalyze = async () => {
-    if (!url) {
+  const handleAnalyze = async (urlToAnalyze?: string) => {
+    const targetUrl = urlToAnalyze || url
+    if (!targetUrl) {
       toast({ title: 'Error', description: 'Please enter a URL', variant: 'destructive' })
       return
+    }
+
+    // If URL was passed in, update the state to reflect it in the UI
+    if (urlToAnalyze) {
+      setUrl(urlToAnalyze)
     }
 
     // Clear previous analysis and bypass URLs
@@ -524,9 +558,9 @@ export default function ContentIntelligencePage() {
     setProgress(10)
 
     // Detect social media platform for custom progress messages
-    const isSocialMedia = /youtube\.com|youtu\.be|twitter\.com|x\.com|facebook\.com|instagram\.com|tiktok\.com|linkedin\.com|reddit\.com/i.test(url)
+    const isSocialMedia = /youtube\.com|youtu\.be|twitter\.com|x\.com|facebook\.com|instagram\.com|tiktok\.com|linkedin\.com|reddit\.com/i.test(targetUrl)
     const socialPlatform = isSocialMedia
-      ? url.match(/(youtube|twitter|x\.com|facebook|instagram|tiktok|linkedin|reddit)/i)?.[0] || 'social media'
+      ? targetUrl.match(/(youtube|twitter|x\.com|facebook|instagram|tiktok|linkedin|reddit)/i)?.[0] || 'social media'
       : null
 
     setCurrentStep(isSocialMedia
@@ -536,11 +570,11 @@ export default function ContentIntelligencePage() {
 
     try {
       // Generate bypass/archive URLs immediately
-      const encoded = encodeURIComponent(url)
+      const encoded = encodeURIComponent(targetUrl)
       setBypassUrls({
         '12ft': `https://12ft.io/proxy?q=${encoded}`,
-        'wayback': `https://web.archive.org/web/*/${url}`,
-        'archive_is': `https://archive.is/${url}`
+        'wayback': `https://web.archive.org/web/*/${targetUrl}`,
+        'archive_is': `https://archive.is/${targetUrl}`
       })
 
       setProgress(30)
@@ -554,7 +588,7 @@ export default function ContentIntelligencePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url,
+          url: targetUrl,
           mode,
           save_link: true, // Always auto-save analyzed URLs
           link_note: saveNote || undefined,
@@ -1224,7 +1258,7 @@ export default function ContentIntelligencePage() {
               </Button>
             </div>
 
-            <Button onClick={handleAnalyze} disabled={processing} className="ml-auto" data-analyze-button>
+            <Button onClick={() => handleAnalyze()} disabled={processing} className="ml-auto" data-analyze-button>
               {processing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -2598,14 +2632,53 @@ export default function ContentIntelligencePage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
+                        onClick={async () => {
                           setUrl(link.url)
                           if (link.note) setSaveNote(link.note)
                           if (link.tags?.length) setSaveTags(link.tags.join(', '))
-                          window.scrollTo({ top: 0, behavior: 'smooth' })
+
+                          // If already processed, load existing analysis
+                          if (link.is_processed && link.analysis_id) {
+                            try {
+                              setProcessing(true)
+                              const response = await fetch(`/api/content-intelligence/analyze-url`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  url: link.url,
+                                  load_existing: true,
+                                  analysis_id: link.analysis_id
+                                })
+                              })
+
+                              if (response.ok) {
+                                const data = await response.json()
+                                setAnalysis(data.analysis)
+                                setActiveTab('overview')
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                                toast({ title: 'Success', description: 'Loaded existing analysis' })
+                              } else {
+                                throw new Error('Failed to load analysis')
+                              }
+                            } catch (error) {
+                              console.error('Load analysis error:', error)
+                              toast({
+                                title: 'Error',
+                                description: 'Failed to load analysis. Click Analyze to create new one.',
+                                variant: 'destructive'
+                              })
+                            } finally {
+                              setProcessing(false)
+                            }
+                          } else {
+                            // Not processed yet - trigger analysis automatically
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                            // Pass the URL directly to avoid state update timing issues
+                            handleAnalyze(link.url)
+                          }
                         }}
                       >
-                        {link.is_processed ? 'Re-analyze' : 'Analyze Now'}
+                        {link.is_processed ? 'Load Analysis' : 'Analyze Now'}
                       </Button>
                       {link.is_processed && link.analysis_id && (
                         <>

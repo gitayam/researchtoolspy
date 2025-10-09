@@ -162,7 +162,7 @@ export function DashboardSidebar() {
     <div className="flex h-full flex-col">
       {/* Logo */}
       <div className="flex h-16 shrink-0 items-center px-6">
-        <div className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <img
             src="/logo.png"
             alt="Research Tools Logo"
@@ -171,7 +171,7 @@ export function DashboardSidebar() {
           <span className="text-xl font-bold text-gray-900 dark:text-white">
             Research Tools
           </span>
-        </div>
+        </Link>
       </div>
 
       {/* Navigation */}
