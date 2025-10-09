@@ -581,24 +581,14 @@ export default function ContentIntelligencePage() {
 
       const data = await response.json()
 
-      console.log('[Starbursting] Raw response:', data)
-      console.log('[Starbursting] framework_data:', data.framework_data)
-      console.log('[Starbursting] framework_data.data type:', typeof data.framework_data?.data)
-      console.log('[Starbursting] framework_data.data:', data.framework_data?.data)
-
       // Parse the framework data if it's a string
       if (data.framework_data?.data && typeof data.framework_data.data === 'string') {
         try {
           data.framework_data.data = JSON.parse(data.framework_data.data)
-          console.log('[Starbursting] After parsing:', data.framework_data.data)
         } catch (e) {
           console.error('[Starbursting] Failed to parse framework data:', e)
         }
       }
-
-      console.log('[Starbursting] Final session data:', data)
-      console.log('[Starbursting] Has WHO category?', !!data.framework_data?.data?.who)
-      console.log('[Starbursting] Has questions array?', !!data.framework_data?.data?.questions)
 
       setStarburstingSession(data)
       setStarburstingStatus('complete')
