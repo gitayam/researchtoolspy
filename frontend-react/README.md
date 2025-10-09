@@ -6,11 +6,47 @@ A comprehensive intelligence analysis and research platform built with React, Ty
 
 This application provides military intelligence analysts and researchers with a suite of analytical tools and frameworks including:
 
-- **Analysis Frameworks**: COG Analysis, ACH, BCW, Deception Detection, Starbursting
-- **Content Intelligence**: URL analysis, entity extraction, Q&A system, citation generation
-- **Intelligence Management**: Evidence tracking, actor/entity management, investigation teams
-- **Report Generation**: PDF, PowerPoint, Excel exports with professional formatting
-- **Multi-language Support**: English and Spanish interfaces
+- **Analysis Frameworks**:
+  - COG Analysis with network visualization
+  - ACH (Analysis of Competing Hypotheses) with inconsistency scoring
+  - Behavior Change Wheel (COM-B Analysis)
+  - Deception Detection (SATS framework)
+  - Starbursting (5W1H question generation)
+  - SWOT, PEST, PMESII-PT, DIME, DOTMLPF
+  - Stakeholder Analysis, Causeway Analysis
+  - Surveillance/ISR Planning, Fundamental Flow Analysis
+
+- **Content Intelligence**:
+  - URL analysis with AI-powered entity extraction
+  - Automatic Q&A generation from content
+  - Word cloud and phrase frequency analysis
+  - Citation generation (APA, MLA, Chicago)
+  - Social media extraction (Twitter, Instagram, TikTok)
+  - PDF text extraction and analysis
+
+- **Intelligence Management**:
+  - Evidence collection and linking
+  - Actor/entity relationship mapping
+  - Source credibility tracking
+  - Event timeline management
+  - Investigation team collaboration
+
+- **Network Analysis**:
+  - Interactive network graph visualization
+  - Auto-relationship generation from frameworks
+  - Export to Gephi, Neo4j, Maltego, i2 ANB
+
+- **Report Generation**:
+  - Professional PDF exports with charts
+  - PowerPoint presentations
+  - Excel data exports
+  - Framework-specific report templates
+
+- **Multi-workspace Support**:
+  - Isolated workspaces for different projects
+  - Public/private framework sharing
+  - Activity feed and notifications
+  - Hash-based authentication for guest access
 
 ## Tech Stack
 
@@ -42,18 +78,31 @@ npx wrangler pages deploy dist
 
 ## Documentation
 
-- **Development Guide**: `Cloudflare_React_Development_Guide.md` - Best practices for Cloudflare Workers development
-- **Lessons Learned**: `lessonslearned-gpt-cloudflare-workers.md` - GPT + Cloudflare Workers integration notes
-- **Implementation Status**: `docs/COG_IMPLEMENTATION_STATUS.md` - Current roadmap and feature status
-- **Archive**: `archive/` - Historical planning documents, implementation summaries, and old status updates
+### Essential Docs
+- **Lessons Learned**: `docs/LESSONS_LEARNED.md` - Critical bugs, fixes, and best practices
+- **Cloudflare Lessons**: `docs/CLOUDFLARE_LESSONS_LEARNED.md` - Workers, Pages, D1 database tips
+- **Roadmap**: `ROADMAP_2025.md` - Feature roadmap and future plans
+- **Project Status**: `PROJECT_ROADMAP_STATUS.md` - Current development status
 
-## Archive Structure
+### Integration Guides
+- `docs/GEPHI_IMPORT_GUIDE.md` - Export to Gephi for network visualization
+- `docs/NEO4J_IMPORT_GUIDE.md` - Import data into Neo4j graph database
+- `docs/MALTEGO_INTEGRATION_GUIDE.md` - Export to Maltego transforms
+- `docs/I2ANB_INTEGRATION_GUIDE.md` - Export to IBM i2 Analyst's Notebook
+- `docs/RSTUDIO_INTEGRATION_GUIDE.md` - R integration for statistical analysis
 
+### Feature Documentation
+- `docs/COLLABORATION_SYSTEM_DESIGN.md` - Collaboration features architecture
+- `docs/INSTAGRAM_EXTRACTION.md` - Social media extraction implementation
+- `docs/COG_IMPLEMENTATION_STATUS.md` - Center of Gravity analysis details
+- `docs/ACCESSIBILITY.md` - Accessibility features and WCAG compliance
+
+### Archive
 Historical documentation has been organized into the `archive/` directory:
-
 - `archive/planning/` - Feature planning documents and roadmaps
 - `archive/implementations/` - Completed implementation summaries
 - `archive/status-updates/` - Historical status reports and progress updates
+- `archive/working-docs-2025/` - Working documents from 2025 development sessions
 
 ## Environment Variables
 
