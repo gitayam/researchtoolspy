@@ -181,13 +181,29 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       `).bind(sessionId, analysisId).run()
     }
 
+    // Fetch the complete framework data to get the Q&A
+    const getFrameworkEndpoint = `${new URL(request.url).origin}/api/frameworks?id=${sessionId}`
+    const getFrameworkResponse = await fetch(getFrameworkEndpoint, {
+      headers: {
+        ...(authHeader && { 'Authorization': authHeader })
+      }
+    })
+
+    let fullFrameworkData = starburstingData
+    if (getFrameworkResponse.ok) {
+      fullFrameworkData = await getFrameworkResponse.json()
+      console.log('[Starbursting] Fetched full framework data with Q&A')
+    } else {
+      console.warn('[Starbursting] Failed to fetch full framework data:', getFrameworkResponse.status)
+    }
+
     return new Response(JSON.stringify({
       session_id: sessionId,
-      redirect_url: `/dashboard/analysis-frameworks/starbursting/${sessionId}`,
+      redirect_url: `/dashboard/analysis-frameworks/starbursting/${sessionId}/view`,
       central_topic: centralTopic,
       sources_count: analyses.length,
       ai_questions_generated: use_ai_questions,
-      framework_data: starburstingData
+      framework_data: fullFrameworkData
     }), {
       status: 201,
       headers: { 'Content-Type': 'application/json' }
