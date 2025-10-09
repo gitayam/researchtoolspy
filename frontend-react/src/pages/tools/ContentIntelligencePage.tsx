@@ -70,6 +70,23 @@ export default function ContentIntelligencePage() {
   // Word Analysis View State
   const [wordCloudView, setWordCloudView] = useState<'words' | 'phrases' | 'entities'>('words')
 
+  // Text View State (Summary vs Full Text)
+  const [textView, setTextView] = useState<'summary' | 'fulltext'>('summary')
+
+  // Format full text for better readability
+  const formatFullText = (text: string): string => {
+    if (!text) return ''
+
+    return text
+      // Remove excessive whitespace
+      .replace(/\s+/g, ' ')
+      // Add paragraph breaks at common separators
+      .replace(/\. ([A-Z])/g, '.\n\n$1')
+      // Clean up common artifacts
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  }
+
   // Load saved links and check for pending URL from landing page
   useEffect(() => {
     loadSavedLinks()
@@ -1420,12 +1437,51 @@ export default function ContentIntelligencePage() {
                 </Button>
               </div>
 
-              {analysis.summary && (
-                <div>
-                  <h3 className="font-semibold mb-2">Summary</h3>
-                  <p className="text-sm">{analysis.summary}</p>
+              {/* Text Content with Toggle */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold">Content</h3>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={textView === 'summary' ? 'default' : 'outline'}
+                      onClick={() => setTextView('summary')}
+                    >
+                      Summary
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={textView === 'fulltext' ? 'default' : 'outline'}
+                      onClick={() => setTextView('fulltext')}
+                    >
+                      Full Text
+                    </Button>
+                  </div>
                 </div>
-              )}
+
+                {textView === 'summary' && analysis.summary && (
+                  <div className="text-sm leading-relaxed">
+                    {analysis.summary}
+                  </div>
+                )}
+
+                {textView === 'fulltext' && analysis.extracted_text && (
+                  <div className="max-h-[600px] overflow-y-auto">
+                    <div className="text-sm leading-relaxed whitespace-pre-line bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                      {formatFullText(analysis.extracted_text)}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {analysis.extracted_text.length.toLocaleString()} characters • {analysis.word_count.toLocaleString()} words
+                    </p>
+                  </div>
+                )}
+
+                {textView === 'fulltext' && !analysis.extracted_text && (
+                  <div className="text-sm text-muted-foreground italic">
+                    No full text available for this analysis.
+                  </div>
+                )}
+              </div>
 
               {/* Citation Section */}
               {generatedCitation && (
