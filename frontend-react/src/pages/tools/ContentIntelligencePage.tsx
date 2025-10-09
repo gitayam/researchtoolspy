@@ -1476,25 +1476,102 @@ export default function ContentIntelligencePage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="word-analysis" className="mt-4">
+          <TabsContent value="word-analysis" className="mt-4 space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="p-4">
+                <p className="text-sm text-muted-foreground mb-1">Total Words</p>
+                <p className="text-2xl font-bold">{analysis.word_count.toLocaleString()}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-muted-foreground mb-1">Unique Words</p>
+                <p className="text-2xl font-bold">{Object.keys(analysis.word_frequency || {}).length.toLocaleString()}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-muted-foreground mb-1">Top Phrases</p>
+                <p className="text-2xl font-bold">{analysis.top_phrases?.length || 0}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-muted-foreground mb-1">Avg. Word Length</p>
+                <p className="text-2xl font-bold">
+                  {analysis.word_frequency ?
+                    Math.round(Object.keys(analysis.word_frequency).reduce((sum, word) => sum + word.length, 0) / Object.keys(analysis.word_frequency).length)
+                    : 0}
+                </p>
+              </Card>
+            </div>
+
+            {/* Word Cloud */}
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4">Word Cloud</h3>
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-8 min-h-[300px] flex flex-wrap items-center justify-center gap-3">
+                {Object.entries(analysis.word_frequency || {})
+                  .sort(([, a], [, b]) => b - a)
+                  .slice(0, 50)
+                  .map(([word, count], index) => {
+                    // Calculate font size based on frequency (normalize to 12-48px range)
+                    const maxCount = Math.max(...Object.values(analysis.word_frequency || {}))
+                    const minSize = 12
+                    const maxSize = 48
+                    const fontSize = minSize + ((count / maxCount) * (maxSize - minSize))
+
+                    // Color variation based on index
+                    const colors = [
+                      'text-blue-600 dark:text-blue-400',
+                      'text-purple-600 dark:text-purple-400',
+                      'text-green-600 dark:text-green-400',
+                      'text-orange-600 dark:text-orange-400',
+                      'text-pink-600 dark:text-pink-400',
+                      'text-indigo-600 dark:text-indigo-400'
+                    ]
+                    const colorClass = colors[index % colors.length]
+
+                    return (
+                      <span
+                        key={word}
+                        className={`font-semibold ${colorClass} hover:scale-110 transition-transform cursor-default select-none`}
+                        style={{ fontSize: `${fontSize}px`, lineHeight: 1.2 }}
+                        title={`${word}: ${count} occurrences`}
+                      >
+                        {word}
+                      </span>
+                    )
+                  })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Showing top 50 words by frequency
+              </p>
+            </Card>
+
+            {/* Top Phrases */}
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Top Phrases (2-10 words)</h3>
-              <div className="space-y-2">
-                {analysis.top_phrases.slice(0, 10).map((item, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <span className="text-sm font-mono text-muted-foreground w-8">
-                      {index + 1}.
-                    </span>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm">{item.phrase}</span>
-                        <span className="text-sm font-semibold">{item.count}×</span>
+              <div className="grid md:grid-cols-2 gap-4">
+                {analysis.top_phrases.slice(0, 20).map((item, index) => (
+                  <div key={index} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <span className="text-lg font-bold text-muted-foreground/50 min-w-[32px]">
+                        #{index + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <span className="text-sm font-medium break-words">{item.phrase}</span>
+                          <span className="text-sm font-bold text-primary shrink-0">{item.count}×</span>
+                        </div>
+                        <div className="space-y-1">
+                          <Progress value={item.percentage} className="h-1.5" />
+                          <p className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}% of content</p>
+                        </div>
                       </div>
-                      <Progress value={item.percentage} className="h-2" />
                     </div>
                   </div>
                 ))}
               </div>
+              {analysis.top_phrases.length > 20 && (
+                <p className="text-sm text-muted-foreground mt-4 text-center">
+                  Showing top 20 of {analysis.top_phrases.length} phrases
+                </p>
+              )}
             </Card>
           </TabsContent>
 
