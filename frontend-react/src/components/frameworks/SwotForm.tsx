@@ -307,14 +307,6 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
       return
     }
 
-    // Validate that at least one quadrant has data
-    const hasData = strengths.length > 0 || weaknesses.length > 0 || opportunities.length > 0 || threats.length > 0
-    if (!hasData) {
-      setSaveError('Please add at least one item to any quadrant')
-      alert('Please add at least one strength, weakness, opportunity, or threat before saving')
-      return
-    }
-
     setSaving(true)
     setSaveError(null)
 
