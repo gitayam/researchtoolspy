@@ -526,13 +526,44 @@ export function GenericFrameworkView({
           )}
           <Button
             variant="outline"
-            onClick={() => navigate('/dashboard/network-graph', {
-              state: {
-                highlightEntities: [],
-                source: frameworkType,
-                title: data.title
+            onClick={async () => {
+              // Extract entity IDs from linked evidence
+              const entityIds: string[] = []
+
+              for (const evidence of linkedEvidence) {
+                if (evidence.entity_type === 'actor') {
+                  entityIds.push(evidence.entity_id.toString())
+                } else if (evidence.entity_type === 'source') {
+                  entityIds.push(evidence.entity_id.toString())
+                } else if (evidence.entity_type === 'event') {
+                  entityIds.push(evidence.entity_id.toString())
+                } else if (evidence.entity_type === 'data') {
+                  // For data (evidence items), try to fetch linked actors
+                  try {
+                    const response = await fetch(`/api/evidence-items?id=${evidence.entity_id}`)
+                    if (response.ok) {
+                      const evidenceData = await response.json()
+                      if (evidenceData.linked_actors && Array.isArray(evidenceData.linked_actors)) {
+                        entityIds.push(...evidenceData.linked_actors)
+                      }
+                    }
+                  } catch (error) {
+                    console.log('Error fetching evidence actors:', error)
+                  }
+                }
               }
-            })}
+
+              // Remove duplicates
+              const uniqueEntityIds = [...new Set(entityIds)]
+
+              navigate('/dashboard/network-graph', {
+                state: {
+                  highlightEntities: uniqueEntityIds,
+                  source: frameworkType,
+                  title: data.title
+                }
+              })
+            }}
           >
             <Network className="h-4 w-4 mr-2" />
             View in Network

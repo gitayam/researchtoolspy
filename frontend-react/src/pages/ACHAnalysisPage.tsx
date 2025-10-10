@@ -238,13 +238,38 @@ export function ACHAnalysisPage() {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => navigate('/dashboard/network-graph', {
-              state: {
-                highlightEntities: [],
-                source: 'ach',
-                title: analysis.title
+            onClick={async () => {
+              // Extract actor IDs from linked evidence
+              const actorIds: string[] = []
+
+              if (analysis.evidence && analysis.evidence.length > 0) {
+                // Fetch each evidence item to get linked actors
+                for (const ev of analysis.evidence) {
+                  try {
+                    const response = await fetch(`/api/evidence-items?id=${ev.evidence_id}`)
+                    if (response.ok) {
+                      const evidenceData = await response.json()
+                      if (evidenceData.linked_actors && Array.isArray(evidenceData.linked_actors)) {
+                        actorIds.push(...evidenceData.linked_actors)
+                      }
+                    }
+                  } catch (error) {
+                    console.log('Error fetching evidence actors:', error)
+                  }
+                }
               }
-            })}
+
+              // Remove duplicates
+              const uniqueActorIds = [...new Set(actorIds)]
+
+              navigate('/dashboard/network-graph', {
+                state: {
+                  highlightEntities: uniqueActorIds,
+                  source: 'ach',
+                  title: analysis.title
+                }
+              })
+            }}
           >
             <Network className="h-4 w-4 mr-2" />
             View in Network

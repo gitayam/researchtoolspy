@@ -105,13 +105,34 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => navigate('/dashboard/network-graph', {
-              state: {
-                highlightEntities: [],
-                source: 'swot',
-                title: data.title
+            onClick={() => {
+              // Extract any entity IDs that might be in SWOT data
+              const entityIds: string[] = []
+
+              // Helper to extract entity IDs from text (looks for patterns like actor_xxx, source_xxx, event_xxx)
+              const extractEntityIds = (text: string) => {
+                const matches = text.match(/(actor|source|event|place)_[a-zA-Z0-9]+/g)
+                if (matches) {
+                  entityIds.push(...matches)
+                }
               }
-            })}
+
+              // Check all SWOT sections
+              ;[...data.strengths, ...data.weaknesses, ...data.opportunities, ...data.threats].forEach(item => {
+                extractEntityIds(item.text)
+              })
+
+              // Remove duplicates
+              const uniqueEntityIds = [...new Set(entityIds)]
+
+              navigate('/dashboard/network-graph', {
+                state: {
+                  highlightEntities: uniqueEntityIds,
+                  source: 'swot',
+                  title: data.title
+                }
+              })
+            }}
           >
             <Network className="h-4 w-4 mr-2" />
             View in Network
