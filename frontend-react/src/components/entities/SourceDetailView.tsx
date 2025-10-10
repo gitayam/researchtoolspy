@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { RelationshipList, RelationshipForm } from '@/components/network'
+import { FrameworkUsagePanel } from '@/components/shared/FrameworkUsagePanel'
 import type { Source, Relationship } from '@/types/entities'
 
 interface SourceDetailViewProps {
@@ -447,6 +448,13 @@ export function SourceDetailView({ source, onEdit, onDelete }: SourceDetailViewP
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Framework Usage Panel */}
+      <FrameworkUsagePanel
+        entityId={source.id}
+        entityType="SOURCE"
+        entityName={source.name}
+      />
 
       {/* Relationship Form Dialog */}
       <Dialog open={isRelationshipFormOpen} onOpenChange={setIsRelationshipFormOpen}>

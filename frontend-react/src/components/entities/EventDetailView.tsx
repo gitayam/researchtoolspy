@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MOMAssessmentList } from './MOMAssessmentList'
 import { RelationshipList, RelationshipForm } from '@/components/network'
+import { FrameworkUsagePanel } from '@/components/shared/FrameworkUsagePanel'
 import type { Event, MOMAssessment, Relationship } from '@/types/entities'
 
 interface EventDetailViewProps {
@@ -568,6 +569,13 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Framework Usage Panel */}
+      <FrameworkUsagePanel
+        entityId={event.id}
+        entityType="EVENT"
+        entityName={event.name}
+      />
 
       {/* Relationship Form Dialog */}
       <Dialog open={isRelationshipFormOpen} onOpenChange={setIsRelationshipFormOpen}>
