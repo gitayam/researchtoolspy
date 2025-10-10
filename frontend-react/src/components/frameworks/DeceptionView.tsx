@@ -22,6 +22,7 @@ import { generatePDFReport, generateDOCXReport, generateExecutiveBriefing, type 
 import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type LinkedEvidence, type EvidenceEntityType } from '@/components/evidence'
 import { AutoGenerateButton } from '@/components/network'
 import { generateRelationshipsFromMOM } from '@/utils/framework-relationships'
+import { CommentThread } from '@/components/comments/CommentThread'
 import type { CreateRelationshipRequest } from '@/types/entities'
 
 interface DeceptionViewProps {
@@ -742,6 +743,12 @@ export function DeceptionView({
         alreadyLinked={linkedEvidence}
         title="Link Evidence to Deception Analysis"
         description="Select evidence items (Data, Actors, Sources, Events) that support or inform this deception analysis"
+      />
+
+      {/* Comments Section */}
+      <CommentThread
+        entityType="framework"
+        entityId={data.id}
       />
 
       {/* Evidence Panel - Right Sidebar */}
