@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Users, Shield, TrendingUp, AlertTriangle, Link as LinkIcon, Calendar, FileText, Plus, Target } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Users, Shield, TrendingUp, AlertTriangle, Link as LinkIcon, Calendar, FileText, Plus, Target, Network } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -197,6 +197,19 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
         </div>
 
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/dashboard/network-graph', {
+              state: {
+                highlightEntities: [actor.id],
+                source: 'actor',
+                title: actor.name
+              }
+            })}
+          >
+            <Network className="h-4 w-4 mr-2" />
+            View in Network
+          </Button>
           <Button variant="outline" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit

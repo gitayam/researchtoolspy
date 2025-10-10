@@ -209,6 +209,16 @@ export async function onRequest(context: any) {
         }
       }
 
+      // If linked_actors provided, create actor links
+      if (body.linked_actors && Array.isArray(body.linked_actors)) {
+        for (const actorId of body.linked_actors) {
+          await env.DB.prepare(`
+            INSERT INTO evidence_actors (evidence_id, actor_id, relevance)
+            VALUES (?, ?, ?)
+          `).bind(evidenceId, actorId, 'Mentioned').run()
+        }
+      }
+
       return new Response(JSON.stringify({
         message: 'Evidence created successfully',
         id: evidenceId
@@ -285,6 +295,24 @@ export async function onRequest(context: any) {
         body.shared_by_user_id || null,
         evidenceId
       ).run()
+
+      // Update linked_actors if provided
+      if (body.linked_actors !== undefined) {
+        // Delete existing links
+        await env.DB.prepare(`
+          DELETE FROM evidence_actors WHERE evidence_id = ?
+        `).bind(evidenceId).run()
+
+        // Create new links
+        if (Array.isArray(body.linked_actors) && body.linked_actors.length > 0) {
+          for (const actorId of body.linked_actors) {
+            await env.DB.prepare(`
+              INSERT INTO evidence_actors (evidence_id, actor_id, relevance)
+              VALUES (?, ?, ?)
+            `).bind(evidenceId, actorId, 'Mentioned').run()
+          }
+        }
+      }
 
       return new Response(JSON.stringify({ message: 'Evidence updated successfully' }), {
         status: 200,

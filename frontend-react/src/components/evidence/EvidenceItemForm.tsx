@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Plus, AlertTriangle, CheckCircle2, Shield } from 'lucide-react'
+import { X, Plus, AlertTriangle, CheckCircle2, Shield, Users } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,6 +40,8 @@ export function EvidenceItemForm({
   const [selectedDatasets, setSelectedDatasets] = useState<number[]>([])
   const [newTag, setNewTag] = useState('')
   const [showEVE, setShowEVE] = useState(false)
+  const [actors, setActors] = useState<Array<{ id: string; name: string }>>([])
+  const [loadingActors, setLoadingActors] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState<EvidenceFormData>({
@@ -69,8 +71,33 @@ export function EvidenceItemForm({
     },
     tags: [],
     priority: 'normal' as PriorityLevel,
-    citations: []
+    citations: [],
+    linked_actors: []
   })
+
+  // Load actors for selection
+  useEffect(() => {
+    const loadActors = async () => {
+      setLoadingActors(true)
+      try {
+        const userHash = localStorage.getItem('omnicore_user_hash')
+        const response = await fetch('/api/actors', {
+          headers: {
+            ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+          }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setActors(data.actors.map((a: any) => ({ id: a.id, name: a.name })))
+        }
+      } catch (error) {
+        console.error('Failed to load actors:', error)
+      } finally {
+        setLoadingActors(false)
+      }
+    }
+    loadActors()
+  }, [])
 
   useEffect(() => {
     if (initialData) {
@@ -106,6 +133,7 @@ export function EvidenceItemForm({
         },
         tags: initialData.tags || [],
         priority: initialData.priority,
+        linked_actors: initialData.linked_actors || []
       })
       if (initialData.citations) {
         setSelectedDatasets(initialData.citations.map(c => c.dataset_id))
@@ -585,6 +613,51 @@ export function EvidenceItemForm({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Linked Actors
+                </Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Link this evidence to specific actors (people, organizations, units)
+                </p>
+                <Select
+                  value=""
+                  onValueChange={(value) => {
+                    if (value && !formData.linked_actors?.includes(value)) {
+                      handleChange('linked_actors', [...(formData.linked_actors || []), value])
+                    }
+                  }}
+                  disabled={loadingActors || actors.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingActors ? "Loading actors..." : actors.length === 0 ? "No actors available" : "Select actor..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {actors
+                      .filter(actor => !formData.linked_actors?.includes(actor.id))
+                      .map(actor => (
+                        <SelectItem key={actor.id} value={actor.id}>
+                          {actor.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.linked_actors?.map(actorId => {
+                    const actor = actors.find(a => a.id === actorId)
+                    return (
+                      <Badge key={actorId} variant="secondary" className="cursor-pointer" onClick={() => {
+                        handleChange('linked_actors', formData.linked_actors?.filter(id => id !== actorId) || [])
+                      }}>
+                        {actor?.name || actorId}
+                        <X className="h-3 w-3 ml-1" />
+                      </Badge>
+                    )
+                  })}
+                </div>
               </div>
             </CardContent>
           </Card>
