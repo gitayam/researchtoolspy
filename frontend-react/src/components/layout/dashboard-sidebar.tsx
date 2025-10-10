@@ -65,6 +65,7 @@ const getNavigation = (t: (key: string) => string) => [
         name: t('frameworkCategories.hypothesis'),
         isCategory: true,
         children: [
+          { name: 'Deception Risk Dashboard', href: '/dashboard/deception-risk', icon: Shield },
           { name: t('frameworks.ach'), href: '/dashboard/analysis-frameworks/ach-dashboard' },
           { name: t('frameworks.deception'), href: '/dashboard/analysis-frameworks/deception' },
         ]
