@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { MOMAssessmentList } from './MOMAssessmentList'
 import { MOMAssessmentModal } from './MOMAssessmentModal'
 import { RelationshipList, RelationshipForm } from '@/components/network'
+import { FrameworkUsagePanel } from '@/components/shared/FrameworkUsagePanel'
 import type { Actor, MOMAssessment, POPVariation, Relationship, CreateRelationshipRequest, UpdateRelationshipRequest } from '@/types/entities'
 
 interface ActorDetailViewProps {
@@ -625,6 +626,13 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Framework Usage Panel */}
+      <FrameworkUsagePanel
+        entityId={actor.id}
+        entityType="ACTOR"
+        entityName={actor.name}
+      />
     </div>
   )
 }
