@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, Tag, Clock, FileText, MoreHorizontal, Trash2, Edit, Archive, CheckCircle2, XCircle, AlertCircle, Target, TrendingUp, Zap, BookOpen } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Search, Tag, Clock, FileText, MoreHorizontal, Trash2, Edit, Archive, CheckCircle2, XCircle, AlertCircle, Target, TrendingUp, Zap, BookOpen, Network } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -16,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 
 export function EvidencePage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [evidence, setEvidence] = useState<EvidenceItem[]>([])
   const [filter, setFilter] = useState<EvidenceFilter>({})
   const [searchTerm, setSearchTerm] = useState('')
@@ -345,6 +347,17 @@ export function EvidencePage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate('/dashboard/network-graph', {
+                          state: {
+                            highlightEntities: [`evidence_${item.id}`],
+                            source: 'evidence',
+                            title: item.title
+                          }
+                        })}>
+                          <Network className="h-4 w-4 mr-2" />
+                          View in Network
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => openEditForm(item)}>
                           <Edit className="h-4 w-4 mr-2" />
                           {t('evidence.edit')}
