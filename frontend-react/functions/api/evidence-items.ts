@@ -49,10 +49,19 @@ export async function onRequest(context: any) {
           ORDER BY ec.relevance_score DESC
         `).bind(evidenceId).all()
 
+        // Get linked actors
+        const linkedActors = await env.DB.prepare(`
+          SELECT actor_id, relevance, auto_linked
+          FROM evidence_actors
+          WHERE evidence_id = ?
+        `).bind(evidenceId).all()
+
         // Parse JSON fields
         const parsedEvidence = {
           ...evidence,
           tags: JSON.parse(evidence.tags || '[]'),
+          linked_actors: linkedActors.results.map((la: any) => la.actor_id),
+          linked_actors_details: linkedActors.results,
           citations: citations.results.map((c: any) => ({
             ...c,
             dataset: {
@@ -184,6 +193,35 @@ export async function onRequest(context: any) {
 
       const evidenceId = result.meta.last_row_id
 
+      // Auto-link actors mentioned in the "who" field
+      if (body.who && body.who.trim()) {
+        try {
+          // Search for actors whose names appear in the "who" field (case-insensitive)
+          const actors = await env.DB.prepare(`
+            SELECT id, name FROM actors
+            WHERE LOWER(?) LIKE '%' || LOWER(name) || '%'
+            AND LENGTH(name) > 3
+            LIMIT 10
+          `).bind(body.who).all()
+
+          // Auto-create links for matched actors
+          for (const actor of actors.results) {
+            try {
+              await env.DB.prepare(`
+                INSERT INTO evidence_actors (evidence_id, actor_id, relevance, auto_linked)
+                VALUES (?, ?, ?, 1)
+              `).bind(evidenceId, actor.id, 'Auto-detected').run()
+            } catch (e) {
+              // Ignore duplicate errors
+              console.log('Duplicate or error auto-linking actor:', e)
+            }
+          }
+        } catch (error) {
+          console.log('Error auto-linking actors:', error)
+          // Don't fail the whole request if auto-linking fails
+        }
+      }
+
       // If citations provided, create them
       if (body.citations && Array.isArray(body.citations)) {
         for (const citation of body.citations) {
@@ -296,14 +334,48 @@ export async function onRequest(context: any) {
         evidenceId
       ).run()
 
+      // Auto-link actors from updated "who" field
+      if (body.who && body.who.trim()) {
+        try {
+          // Delete existing auto-linked actors
+          await env.DB.prepare(`
+            DELETE FROM evidence_actors
+            WHERE evidence_id = ? AND auto_linked = 1
+          `).bind(evidenceId).run()
+
+          // Search for actors whose names appear in the "who" field
+          const actors = await env.DB.prepare(`
+            SELECT id, name FROM actors
+            WHERE LOWER(?) LIKE '%' || LOWER(name) || '%'
+            AND LENGTH(name) > 3
+            LIMIT 10
+          `).bind(body.who).all()
+
+          // Auto-create new links
+          for (const actor of actors.results) {
+            try {
+              await env.DB.prepare(`
+                INSERT INTO evidence_actors (evidence_id, actor_id, relevance, auto_linked)
+                VALUES (?, ?, ?, 1)
+              `).bind(evidenceId, actor.id, 'Auto-detected').run()
+            } catch (e) {
+              console.log('Duplicate or error auto-linking actor:', e)
+            }
+          }
+        } catch (error) {
+          console.log('Error auto-linking actors during update:', error)
+        }
+      }
+
       // Update linked_actors if provided
       if (body.linked_actors !== undefined) {
-        // Delete existing links
+        // Delete existing manually-linked actors (preserve auto-linked)
         await env.DB.prepare(`
-          DELETE FROM evidence_actors WHERE evidence_id = ?
+          DELETE FROM evidence_actors
+          WHERE evidence_id = ? AND (auto_linked IS NULL OR auto_linked = 0)
         `).bind(evidenceId).run()
 
-        // Create new links
+        // Create new manual links
         if (Array.isArray(body.linked_actors) && body.linked_actors.length > 0) {
           for (const actorId of body.linked_actors) {
             await env.DB.prepare(`
