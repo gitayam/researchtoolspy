@@ -3,7 +3,7 @@
  * Creates ACH with hypotheses and evidence from analyzed content
  */
 
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
