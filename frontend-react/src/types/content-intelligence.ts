@@ -65,6 +65,11 @@ export interface EntitiesData {
   people: EntityMention[]
   organizations: EntityMention[]
   locations: EntityMention[]
+  dates?: EntityMention[]
+  money?: EntityMention[]
+  events?: EntityMention[]
+  products?: EntityMention[]
+  percentages?: EntityMention[]
 }
 
 export interface ArchiveUrls {

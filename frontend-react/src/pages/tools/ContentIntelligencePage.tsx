@@ -2386,10 +2386,14 @@ export default function ContentIntelligencePage() {
               </Button>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* People */}
               <Card className="p-4">
-                <h3 className="font-semibold mb-3">👥 People ({analysis.entities?.people?.length || 0})</h3>
-                <div className="space-y-2">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <span>👥</span>
+                  <span>People ({analysis.entities?.people?.length || 0})</span>
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
                   {(analysis.entities?.people || []).slice(0, 10).map((person, i) => (
                     <div key={i} className="text-sm flex justify-between items-center">
                       <div>
@@ -2408,14 +2412,18 @@ export default function ContentIntelligencePage() {
                     </div>
                   ))}
                   {(!analysis.entities?.people || analysis.entities.people.length === 0) && (
-                    <p className="text-sm text-muted-foreground">No people found</p>
+                    <p className="text-sm text-muted-foreground">None found</p>
                   )}
                 </div>
               </Card>
 
+              {/* Organizations */}
               <Card className="p-4">
-                <h3 className="font-semibold mb-3">🏢 Organizations ({analysis.entities?.organizations?.length || 0})</h3>
-                <div className="space-y-2">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <span>🏢</span>
+                  <span>Organizations ({analysis.entities?.organizations?.length || 0})</span>
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
                   {(analysis.entities?.organizations || []).slice(0, 10).map((org, i) => (
                     <div key={i} className="text-sm flex justify-between items-center">
                       <div>
@@ -2434,14 +2442,18 @@ export default function ContentIntelligencePage() {
                     </div>
                   ))}
                   {(!analysis.entities?.organizations || analysis.entities.organizations.length === 0) && (
-                    <p className="text-sm text-muted-foreground">No organizations found</p>
+                    <p className="text-sm text-muted-foreground">None found</p>
                   )}
                 </div>
               </Card>
 
+              {/* Locations */}
               <Card className="p-4">
-                <h3 className="font-semibold mb-3">📍 Locations ({analysis.entities?.locations?.length || 0})</h3>
-                <div className="space-y-2">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <span>📍</span>
+                  <span>Locations ({analysis.entities?.locations?.length || 0})</span>
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
                   {(analysis.entities?.locations || []).slice(0, 10).map((loc, i) => (
                     <div key={i} className="text-sm flex justify-between items-center">
                       <div>
@@ -2460,7 +2472,102 @@ export default function ContentIntelligencePage() {
                     </div>
                   ))}
                   {(!analysis.entities?.locations || analysis.entities.locations.length === 0) && (
-                    <p className="text-sm text-muted-foreground">No locations found</p>
+                    <p className="text-sm text-muted-foreground">None found</p>
+                  )}
+                </div>
+              </Card>
+
+              {/* Dates */}
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  <span>Dates ({analysis.entities?.dates?.length || 0})</span>
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {(analysis.entities?.dates || []).slice(0, 10).map((date, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-medium">{date.name}</span>
+                      <span className="text-muted-foreground ml-2">({date.count}×)</span>
+                    </div>
+                  ))}
+                  {(!analysis.entities?.dates || analysis.entities.dates.length === 0) && (
+                    <p className="text-sm text-muted-foreground">None found</p>
+                  )}
+                </div>
+              </Card>
+
+              {/* Money */}
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <span>💰</span>
+                  <span>Money ({analysis.entities?.money?.length || 0})</span>
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {(analysis.entities?.money || []).slice(0, 10).map((money, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-medium">{money.name}</span>
+                      <span className="text-muted-foreground ml-2">({money.count}×)</span>
+                    </div>
+                  ))}
+                  {(!analysis.entities?.money || analysis.entities.money.length === 0) && (
+                    <p className="text-sm text-muted-foreground">None found</p>
+                  )}
+                </div>
+              </Card>
+
+              {/* Events */}
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  <span>Events ({analysis.entities?.events?.length || 0})</span>
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {(analysis.entities?.events || []).slice(0, 10).map((event, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-medium">{event.name}</span>
+                      <span className="text-muted-foreground ml-2">({event.count}×)</span>
+                    </div>
+                  ))}
+                  {(!analysis.entities?.events || analysis.entities.events.length === 0) && (
+                    <p className="text-sm text-muted-foreground">None found</p>
+                  )}
+                </div>
+              </Card>
+
+              {/* Products */}
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <span>📦</span>
+                  <span>Products ({analysis.entities?.products?.length || 0})</span>
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {(analysis.entities?.products || []).slice(0, 10).map((product, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-medium">{product.name}</span>
+                      <span className="text-muted-foreground ml-2">({product.count}×)</span>
+                    </div>
+                  ))}
+                  {(!analysis.entities?.products || analysis.entities.products.length === 0) && (
+                    <p className="text-sm text-muted-foreground">None found</p>
+                  )}
+                </div>
+              </Card>
+
+              {/* Percentages */}
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <span>📊</span>
+                  <span>Percentages ({analysis.entities?.percentages?.length || 0})</span>
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {(analysis.entities?.percentages || []).slice(0, 10).map((pct, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-medium">{pct.name}</span>
+                      <span className="text-muted-foreground ml-2">({pct.count}×)</span>
+                    </div>
+                  ))}
+                  {(!analysis.entities?.percentages || analysis.entities.percentages.length === 0) && (
+                    <p className="text-sm text-muted-foreground">None found</p>
                   )}
                 </div>
               </Card>
