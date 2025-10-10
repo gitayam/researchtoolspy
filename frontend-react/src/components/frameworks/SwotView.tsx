@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Network } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -103,6 +103,19 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/dashboard/network-graph', {
+              state: {
+                highlightEntities: [],
+                source: 'swot',
+                title: data.title
+              }
+            })}
+          >
+            <Network className="h-4 w-4 mr-2" />
+            View in Network
+          </Button>
           <ExportButton
             frameworkType="swot"
             frameworkTitle="SWOT Analysis"

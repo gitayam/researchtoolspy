@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, FileText, Calendar, User, Building, Download } from 'lucide-react'
+import { ArrowLeft, Edit, FileText, Calendar, User, Building, Download, Network } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -236,6 +236,19 @@ export function ACHAnalysisPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/dashboard/network-graph', {
+              state: {
+                highlightEntities: [],
+                source: 'ach',
+                title: analysis.title
+              }
+            })}
+          >
+            <Network className="h-4 w-4 mr-2" />
+            View in Network
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
