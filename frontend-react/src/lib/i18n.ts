@@ -6,6 +6,8 @@ import enCommon from '@/locales/en/common.json'
 import esCommon from '@/locales/es/common.json'
 import enCOG from '@/locales/en/cog.json'
 import esCOG from '@/locales/es/cog.json'
+import enComments from '@/locales/en/comments.json'
+import esComments from '@/locales/es/comments.json'
 
 // Initialize i18next with react-i18next and language detection
 i18n
@@ -15,16 +17,18 @@ i18n
     resources: {
       en: {
         common: enCommon,
-        cog: enCOG
+        cog: enCOG,
+        comments: enComments
       },
       es: {
         common: esCommon,
-        cog: esCOG
+        cog: esCOG,
+        comments: esComments
       }
     },
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'cog'],
+    ns: ['common', 'cog', 'comments'],
 
     interpolation: {
       escapeValue: false // React already escapes values
