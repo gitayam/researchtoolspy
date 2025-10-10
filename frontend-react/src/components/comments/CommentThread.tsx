@@ -49,7 +49,7 @@ interface CommentThreadProps {
 }
 
 export function CommentThread({ entityType, entityId, className }: CommentThreadProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation('comments')
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
@@ -57,6 +57,13 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
   const [editContent, setEditContent] = useState('')
   const [loading, setLoading] = useState(false)
   const [showResolved, setShowResolved] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    // Check authentication status
+    const userHash = localStorage.getItem('omnicore_user_hash')
+    setIsAuthenticated(!!userHash)
+  }, [])
 
   useEffect(() => {
     fetchComments()
@@ -143,7 +150,7 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
   }
 
   const handleDelete = async (commentId: string) => {
-    if (!confirm(t('comments.confirmDelete'))) return
+    if (!confirm(t('confirmDelete'))) return
 
     setLoading(true)
     try {
@@ -213,14 +220,14 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-              <span className="font-medium">{comment.user_id === 'guest' ? t('comments.guest') : `User ${comment.user_id.slice(0, 8)}`}</span>
+              <span className="font-medium">{comment.user_id === 'guest' ? t('guest') : `User ${comment.user_id.slice(0, 8)}`}</span>
               <span>•</span>
               <span>{new Date(comment.created_at).toLocaleString()}</span>
               {comment.edited && <span className="text-xs italic">(edited)</span>}
               {isResolved && (
                 <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs">
                   <CheckCircle className="h-3 w-3" />
-                  {t('comments.resolved')}
+                  {t('resolved')}
                 </span>
               )}
             </div>
@@ -231,19 +238,19 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
                   className="min-h-[80px]"
-                  placeholder={t('comments.editPlaceholder')}
+                  placeholder={t('editPlaceholder')}
                 />
                 <div className="flex gap-2">
                   <Button size="sm" onClick={() => handleEdit(comment.id)} disabled={loading}>
                     <Check className="h-4 w-4 mr-1" />
-                    {t('comments.save')}
+                    {t('save')}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => {
                     setEditingId(null)
                     setEditContent('')
                   }}>
                     <X className="h-4 w-4 mr-1" />
-                    {t('comments.cancel')}
+                    {t('cancel')}
                   </Button>
                 </div>
               </div>
@@ -258,7 +265,7 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
                     onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                   >
                     <Reply className="h-3 w-3 mr-1" />
-                    {t('comments.reply')}
+                    {t('reply')}
                   </Button>
 
                   <Button
@@ -269,12 +276,12 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
                     {isResolved ? (
                       <>
                         <Circle className="h-3 w-3 mr-1" />
-                        {t('comments.unresolve')}
+                        {t('unresolve')}
                       </>
                     ) : (
                       <>
                         <CheckCircle className="h-3 w-3 mr-1" />
-                        {t('comments.resolve')}
+                        {t('resolve')}
                       </>
                     )}
                   </Button>
@@ -291,11 +298,11 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
                         setEditContent(comment.content)
                       }}>
                         <Edit className="h-4 w-4 mr-2" />
-                        {t('comments.edit')}
+                        {t('edit')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDelete(comment.id)} className="text-red-600">
                         <Trash2 className="h-4 w-4 mr-2" />
-                        {t('comments.delete')}
+                        {t('delete')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -310,15 +317,15 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
           <div className="mt-3 ml-4 space-y-2">
             <Textarea
               id={`reply-${comment.id}`}
-              placeholder={t('comments.replyPlaceholder')}
+              placeholder={t('replyPlaceholder')}
               className="min-h-[80px]"
             />
             <div className="flex gap-2">
               <Button size="sm" onClick={() => handleAddComment(comment.id)} disabled={loading}>
-                {t('comments.addReply')}
+                {t('addReply')}
               </Button>
               <Button size="sm" variant="outline" onClick={() => setReplyingTo(null)}>
-                {t('comments.cancel')}
+                {t('cancel')}
               </Button>
             </div>
           </div>
@@ -341,32 +348,62 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <MessageCircle className="h-5 w-5" />
-          {t('comments.title')} ({comments.length})
+          {t('title')} ({comments.length})
         </h3>
         <Button
           size="sm"
           variant="outline"
           onClick={() => setShowResolved(!showResolved)}
         >
-          {showResolved ? t('comments.hideResolved') : t('comments.showResolved')}
+          {showResolved ? t('hideResolved') : t('showResolved')}
         </Button>
       </div>
 
       {/* New comment form */}
-      <div className="space-y-2">
-        <Textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder={t('comments.placeholder')}
-          className="min-h-[100px]"
-        />
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-500">{t('comments.markdownSupport')}</span>
-          <Button onClick={() => handleAddComment()} disabled={loading || !newComment.trim()}>
-            {t('comments.add')}
-          </Button>
+      {isAuthenticated ? (
+        <div className="space-y-2">
+          <Textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder={t('placeholder')}
+            className="min-h-[100px]"
+          />
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-gray-500">{t('markdownSupport')}</span>
+            <Button onClick={() => handleAddComment()} disabled={loading || !newComment.trim()}>
+              {t('add')}
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
+          <MessageCircle className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+          <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+            {t('loginRequired', 'Sign in to comment')}
+          </h4>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {t('loginMessage', 'Create a bookmark or sign in to join the discussion')}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button
+              onClick={() => window.location.href = '/login'}
+              variant="default"
+            >
+              {t('signIn', 'Sign In')}
+            </Button>
+            <Button
+              onClick={() => {
+                const hash = Math.random().toString(36).substring(2, 15)
+                localStorage.setItem('omnicore_user_hash', hash)
+                setIsAuthenticated(true)
+              }}
+              variant="outline"
+            >
+              {t('createBookmark', 'Create Bookmark')}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Comments list */}
       {rootComments.length > 0 ? (
@@ -375,7 +412,7 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
         </div>
       ) : (
         <div className="text-center py-8 text-gray-500">
-          {t('comments.noComments')}
+          {t('noComments')}
         </div>
       )}
     </div>
