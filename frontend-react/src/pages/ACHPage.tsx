@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, MoreHorizontal, Trash2, Edit, FileText, Clock, CheckCircle2, AlertCircle, Grid3x3, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, Search, MoreHorizontal, Trash2, Edit, FileText, Clock, CheckCircle2, AlertCircle, Grid3x3, ExternalLink, CheckCircle, XCircle, Sparkles, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,6 +10,7 @@ import type { ACHAnalysis, AnalysisStatus } from '@/types/ach'
 import { cn } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
 import { ACHAnalysisForm, type ACHFormData } from '@/components/ach/ACHAnalysisForm'
+import { ACHWizard } from '@/components/ach/ACHWizard'
 import { frameworkDescriptions } from '@/config/framework-descriptions'
 
 export function ACHPage() {
@@ -19,6 +20,7 @@ export function ACHPage() {
   const [statusFilter, setStatusFilter] = useState<AnalysisStatus | 'all'>('all')
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editingAnalysis, setEditingAnalysis] = useState<ACHAnalysis | undefined>(undefined)
 
@@ -222,6 +224,29 @@ export function ACHPage() {
     navigate(`/dashboard/analysis-frameworks/ach-dashboard/${id}`)
   }
 
+  const handleWizardSave = async (data: Partial<ACHAnalysis>): Promise<string> => {
+    try {
+      const response = await fetch('/api/ach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+
+      if (!response.ok) throw new Error('Failed to create ACH')
+
+      const result = await response.json()
+      return result.id
+    } catch (error) {
+      console.error('Failed to create ACH:', error)
+      throw error
+    }
+  }
+
+  const handleWizardComplete = (achId: string) => {
+    setWizardOpen(false)
+    navigate(`/dashboard/analysis-frameworks/ach-dashboard/${achId}`)
+  }
+
   const filteredAnalyses = analyses.filter(analysis => {
     const matchesSearch = analysis.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          analysis.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -269,10 +294,31 @@ export function ACHPage() {
             Analysis of Competing Hypotheses - Structured intelligence methodology
           </p>
         </div>
-        <Button onClick={handleCreateAnalysis}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Analysis
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Analysis
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setWizardOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              <div>
+                <div className="font-medium">Wizard (Recommended)</div>
+                <div className="text-xs text-muted-foreground">Step-by-step with AI assistance</div>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleCreateAnalysis}>
+              <Zap className="h-4 w-4 mr-2" />
+              <div>
+                <div className="font-medium">Quick Create</div>
+                <div className="text-xs text-muted-foreground">Manual form entry</div>
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Framework Context */}
@@ -531,6 +577,19 @@ export function ACHPage() {
         initialData={editingAnalysis}
         mode={formMode}
       />
+
+      {/* Wizard Modal */}
+      {wizardOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+          <div className="min-h-screen px-4 py-8">
+            <ACHWizard
+              onSave={handleWizardSave}
+              onComplete={handleWizardComplete}
+              backPath="/dashboard/analysis-frameworks/ach-dashboard"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
