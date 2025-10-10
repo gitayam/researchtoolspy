@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
-  Copy, Check, Video, Download, Play, Info, Image, FileDown
+  Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -1789,6 +1789,18 @@ export default function ContentIntelligencePage() {
                   >
                     <BookOpen className="h-4 w-4 mr-2" />
                     Create Citation
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const citationData = extractCitationData(analysis, url)
+                      const params = createCitationParams(citationData)
+                      navigate(`/dashboard/tools/citations-generator?${params.toString()}`)
+                    }}
+                  >
+                    <Globe className="h-4 w-4 mr-2" />
+                    Open in Generator
                   </Button>
                   <Button
                     variant="default"
