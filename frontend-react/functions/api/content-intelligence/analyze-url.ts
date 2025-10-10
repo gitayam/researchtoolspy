@@ -305,7 +305,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Full mode: Extract entities and generate summary with GPT
-    let entitiesData = { people: [], organizations: [], locations: [] }
+    let entitiesData = {
+      people: [],
+      organizations: [],
+      locations: [],
+      dates: [],
+      money: [],
+      events: [],
+      products: [],
+      percentages: []
+    }
     let summary = ''
 
     try {
@@ -836,6 +845,11 @@ async function extractEntities(text: string, apiKey: string, articleAuthor?: str
   people: Array<{ name: string; count: number }>
   organizations: Array<{ name: string; count: number }>
   locations: Array<{ name: string; count: number }>
+  dates: Array<{ name: string; count: number }>
+  money: Array<{ name: string; count: number }>
+  events: Array<{ name: string; count: number }>
+  products: Array<{ name: string; count: number }>
+  percentages: Array<{ name: string; count: number }>
 }> {
   // Truncate text for GPT
   const truncated = text.substring(0, 10000)
@@ -844,21 +858,36 @@ async function extractEntities(text: string, apiKey: string, articleAuthor?: str
     ? `\n\nIMPORTANT: "${articleAuthor}" is the article author/journalist, NOT a subject of the story. DO NOT include them in the people list unless they are directly involved in the story events themselves.`
     : ''
 
-  const prompt = `Extract named entities from this article's CONTENT. Focus on people, organizations, and locations that are SUBJECTS of the story, not the article's byline or metadata.${authorNote}
+  const prompt = `Extract ALL named entities from this article's CONTENT. Categorize entities by type.${authorNote}
+
+Extract these entity types:
+1. PEOPLE - Individuals mentioned (EXCLUDE article authors/journalists unless they are story subjects)
+2. ORGANIZATIONS - Companies, agencies, institutions, government bodies
+3. LOCATIONS - Cities, countries, regions, landmarks, facilities
+4. DATES - Specific dates, time periods, years (e.g., "January 2024", "last week", "2023")
+5. MONEY - Financial amounts, currencies (e.g., "$5 million", "€100", "2 billion dollars")
+6. EVENTS - Named events, incidents, operations (e.g., "Operation Desert Storm", "COVID-19 pandemic")
+7. PRODUCTS - Named products, technologies, weapons systems (e.g., "iPhone", "F-35", "ChatGPT")
+8. PERCENTAGES - Percentage values mentioned (e.g., "25%", "fifty percent")
 
 Rules:
-- EXCLUDE article authors, journalists, and byline names unless they are subjects of the story
-- EXCLUDE phrases like "By [Name]", "Written by [Name]", "Reporter: [Name]"
-- ONLY include people, organizations, and locations that are part of the story content
-- Count how many times each entity appears
+- EXCLUDE article authors, journalists, and byline names from PEOPLE
+- Count occurrences of each unique entity
+- Normalize similar references (e.g., "U.S.", "United States", "USA" → "United States")
+- Include context-relevant entities only (skip generic terms)
 
 Text: ${truncated}
 
-Return format:
+Return ONLY valid JSON in this exact format:
 {
   "people": [{"name": "John Doe", "count": 3}, ...],
   "organizations": [{"name": "FBI", "count": 5}, ...],
-  "locations": [{"name": "New York", "count": 2}, ...]
+  "locations": [{"name": "New York", "count": 2}, ...],
+  "dates": [{"name": "January 2024", "count": 1}, ...],
+  "money": [{"name": "$5 million", "count": 2}, ...],
+  "events": [{"name": "Operation Storm", "count": 1}, ...],
+  "products": [{"name": "F-35", "count": 3}, ...],
+  "percentages": [{"name": "25%", "count": 1}, ...]
 }`
 
   try {
@@ -877,10 +906,10 @@ Return format:
       body: JSON.stringify({
         model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
         messages: [
-          { role: 'system', content: 'You are a named entity recognition expert. Extract people, organizations, and locations from article CONTENT only. Exclude article authors, journalists, and byline metadata. Focus only on entities that are subjects of the story. Return ONLY valid JSON.' },
+          { role: 'system', content: 'You are a named entity recognition expert. Extract entities by type: people, organizations, locations, dates, money, events, products, and percentages. Exclude article authors from people. Normalize similar entities. Return ONLY valid JSON.' },
           { role: 'user', content: prompt }
         ],
-        max_completion_tokens: 800,
+        max_completion_tokens: 1200,
         temperature: 0.7
       })
     })
@@ -915,7 +944,16 @@ Return format:
   } catch (error) {
     console.error('[DEBUG] Entity Extraction Error:', error)
     console.error('[DEBUG] Entity Error stack:', error instanceof Error ? error.stack : 'No stack')
-    return { people: [], organizations: [], locations: [] }
+    return {
+      people: [],
+      organizations: [],
+      locations: [],
+      dates: [],
+      money: [],
+      events: [],
+      products: [],
+      percentages: []
+    }
   }
 }
 
