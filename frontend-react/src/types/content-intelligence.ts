@@ -111,6 +111,14 @@ export interface ContentAnalysis {
   word_frequency: Record<string, number> // { "phrase": count }
   top_phrases: WordFrequencyItem[] // Top 10 2-10 word phrases
 
+  // Keyphrase Extraction (TextRank-style)
+  keyphrases?: Array<{
+    phrase: string
+    score: number // 0.0 to 1.0 importance
+    category: 'technology' | 'concept' | 'event' | 'location' | 'other'
+    relevance: 'high' | 'medium' | 'low'
+  }>
+
   // Entity Extraction
   entities: EntitiesData
 

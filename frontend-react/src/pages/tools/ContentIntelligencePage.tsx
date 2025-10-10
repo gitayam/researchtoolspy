@@ -2251,6 +2251,66 @@ export default function ContentIntelligencePage() {
                 </p>
               )}
             </Card>
+
+            {/* Keyphrases (TextRank) */}
+            {analysis.keyphrases && analysis.keyphrases.length > 0 && (
+              <Card className="p-6">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Key Concepts & Terminology</CardTitle>
+                    <Badge variant="secondary">{analysis.keyphrases.length} keyphrases</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Important concepts extracted using TextRank-style analysis (centrality, domain relevance, importance)
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {analysis.keyphrases
+                      .sort((a, b) => b.score - a.score)
+                      .map((kp, i) => (
+                        <div
+                          key={i}
+                          className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                        >
+                          <div className="shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
+                            {i + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-sm">{kp.phrase}</span>
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${
+                                  kp.category === 'technology' ? 'border-blue-300 text-blue-700' :
+                                  kp.category === 'concept' ? 'border-purple-300 text-purple-700' :
+                                  kp.category === 'event' ? 'border-orange-300 text-orange-700' :
+                                  kp.category === 'location' ? 'border-green-300 text-green-700' :
+                                  'border-gray-300 text-gray-700'
+                                }`}
+                              >
+                                {kp.category}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Progress
+                                value={kp.score * 100}
+                                className="h-1.5 flex-1"
+                              />
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {(kp.score * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Relevance: {kp.relevance}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="sentiment" className="mt-4">
