@@ -1,0 +1,34 @@
+-- ========================================
+-- Add Sentiment Analysis to Content Intelligence
+-- ========================================
+-- Extends content_analysis table with sentiment analysis capabilities
+-- Supports overall document sentiment and sentence-level analysis
+
+-- Add sentiment analysis column
+ALTER TABLE content_analysis ADD COLUMN sentiment_analysis TEXT; -- JSON: { overall, score, emotions, controversialClaims }
+
+-- JSON Structure:
+-- {
+--   "overall": "positive" | "negative" | "neutral" | "mixed",
+--   "score": -1.0 to +1.0 (numeric sentiment),
+--   "confidence": 0.0 to 1.0 (model confidence),
+--   "emotions": {
+--     "joy": 0-100,
+--     "anger": 0-100,
+--     "fear": 0-100,
+--     "sadness": 0-100,
+--     "surprise": 0-100
+--   },
+--   "controversialClaims": [
+--     {
+--       "text": "claim text snippet",
+--       "sentiment": "strongly negative",
+--       "reason": "why it's controversial"
+--     }
+--   ],
+--   "keyInsights": [
+--     "Main positive aspect: ...",
+--     "Main concern: ...",
+--     "Notable tone: ..."
+--   ]
+-- }
