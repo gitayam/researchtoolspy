@@ -151,6 +151,37 @@ export interface ContentAnalysis {
     keyInsights: string[]
   }
 
+  // Claim Analysis & Deception Detection
+  claim_analysis?: {
+    claims: Array<{
+      claim: string
+      category: string
+      source?: string
+      deception_analysis: {
+        overall_risk: 'low' | 'medium' | 'high'
+        risk_score: number
+        methods: {
+          internal_consistency: { score: number; reasoning: string }
+          source_credibility: { score: number; reasoning: string }
+          evidence_quality: { score: number; reasoning: string }
+          logical_coherence: { score: number; reasoning: string }
+          temporal_consistency: { score: number; reasoning: string }
+          specificity: { score: number; reasoning: string }
+        }
+        red_flags: string[]
+        confidence_assessment: string
+      }
+    }>
+    summary: {
+      total_claims: number
+      high_risk_claims: number
+      medium_risk_claims: number
+      low_risk_claims: number
+      most_concerning_claim?: string
+      overall_content_credibility: number
+    }
+  }
+
   // Archive/Bypass Links (generated immediately)
   archive_urls: ArchiveUrls
   bypass_urls: BypassUrls
@@ -240,6 +271,7 @@ export type AnalysisTab =
   | 'word-analysis'
   | 'sentiment'
   | 'entities'
+  | 'claims'
   | 'qa'
   | 'starbursting'
 

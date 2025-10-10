@@ -19,6 +19,7 @@ import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
 import { extractCitationData, createCitationParams } from '@/utils/content-to-citation'
 import { addCitation, generateCitationId } from '@/utils/citation-library'
+import { ClaimAnalysisDisplay } from '@/components/content-intelligence/ClaimAnalysisDisplay'
 
 export default function ContentIntelligencePage() {
   const { toast } = useToast()
@@ -1824,7 +1825,7 @@ export default function ContentIntelligencePage() {
       {/* Results */}
       {analysis && (
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AnalysisTab)}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
             <TabsTrigger value="overview">
               <FileText className="h-4 w-4 mr-2" />
               Overview
@@ -1840,6 +1841,10 @@ export default function ContentIntelligencePage() {
             <TabsTrigger value="entities">
               <Users className="h-4 w-4 mr-2" />
               Entities
+            </TabsTrigger>
+            <TabsTrigger value="claims">
+              <Shield className="h-4 w-4 mr-2" />
+              Claims
             </TabsTrigger>
             <TabsTrigger value="qa">
               <MessageSquare className="h-4 w-4 mr-2" />
@@ -2762,6 +2767,18 @@ export default function ContentIntelligencePage() {
                 </div>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="claims" className="mt-4">
+            {analysis.claim_analysis ? (
+              <ClaimAnalysisDisplay claimAnalysis={analysis.claim_analysis} />
+            ) : (
+              <Card className="p-6 text-center">
+                <p className="text-muted-foreground">
+                  No claim analysis available for this content.
+                </p>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="qa" className="mt-4 space-y-4">

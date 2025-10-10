@@ -109,7 +109,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           word_frequency: JSON.parse(result.word_frequency as string || '{}'),
           sentiment_analysis: result.sentiment_analysis ? JSON.parse(result.sentiment_analysis as string) : null,
           keyphrases: result.keyphrases ? JSON.parse(result.keyphrases as string) : null,
-          topics: result.topics ? JSON.parse(result.topics as string) : null
+          topics: result.topics ? JSON.parse(result.topics as string) : null,
+          claim_analysis: result.claim_analysis ? JSON.parse(result.claim_analysis as string) : null
         }
 
         console.log(`[DEBUG] Loaded existing analysis for URL: ${result.url}`)
@@ -237,6 +238,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           sentiment_analysis: existingAnalysis.sentiment_analysis ? JSON.parse(existingAnalysis.sentiment_analysis as string) : null,
           keyphrases: existingAnalysis.keyphrases ? JSON.parse(existingAnalysis.keyphrases as string) : null,
           topics: existingAnalysis.topics ? JSON.parse(existingAnalysis.topics as string) : null,
+          claim_analysis: existingAnalysis.claim_analysis ? JSON.parse(existingAnalysis.claim_analysis as string) : null,
           archive_urls: JSON.parse(existingAnalysis.archive_urls as string || '{}'),
           bypass_urls: JSON.parse(existingAnalysis.bypass_urls as string || '{}'),
           from_cache: true,
