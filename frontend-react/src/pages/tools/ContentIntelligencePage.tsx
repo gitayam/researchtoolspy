@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
-  Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe, SmileIcon, FrownIcon, MehIcon
+  Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe, SmileIcon, FrownIcon, MehIcon, Grid3x3
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -714,6 +714,58 @@ export default function ContentIntelligencePage() {
       setTimeout(() => {
         document.getElementById('citation-section')?.scrollIntoView({ behavior: 'smooth' })
       }, 100)
+    } catch (error) {
+      console.error('Citation generation error:', error)
+    }
+  }
+
+  // Create ACH from Content Intelligence
+  const handleCreateACH = async (analysisData: ContentAnalysis) => {
+    try {
+      setProcessing(true)
+      setStatus('analyzing_words')
+      setCurrentStep('Creating ACH analysis...')
+
+      const response = await fetch('/api/ach/from-content-intelligence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysis_id: analysisData.id
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create ACH')
+      }
+
+      const data = await response.json()
+
+      toast({
+        title: 'ACH Analysis Created',
+        description: `Created with ${data.hypotheses_count} hypotheses and linked evidence`
+      })
+
+      // Navigate to ACH analysis
+      navigate(`/dashboard/analysis-frameworks/ach/${data.ach_id}`)
+    } catch (error) {
+      console.error('ACH creation error:', error)
+      toast({
+        title: 'Failed to Create ACH',
+        description: 'Could not create ACH analysis from this content',
+        variant: 'destructive'
+      })
+    } finally {
+      setProcessing(false)
+      setStatus('complete')
+      setCurrentStep('')
+    }
+  }
+
+  // Old handlers remain (for backward compatibility)
+  const handleCitationOld = () => {
+    if (!analysis) return
+    try {
+      handleCreateCitation(analysis)
     } catch (error) {
       console.error('Citation creation error:', error)
       toast({
@@ -1831,6 +1883,15 @@ export default function ContentIntelligencePage() {
                   >
                     <BookOpen className="h-4 w-4 mr-2" />
                     Create Citation
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCreateACH(analysis)}
+                    disabled={processing}
+                  >
+                    <Grid3x3 className="h-4 w-4 mr-2" />
+                    Create ACH
                   </Button>
                   <Button
                     variant="outline"
