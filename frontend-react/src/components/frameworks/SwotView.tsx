@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ExportButton } from '@/components/reports/ExportButton'
+import { CommentThread } from '@/components/comments/CommentThread'
 
 interface SwotItem {
   id: string
@@ -215,6 +216,12 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
           icon="⚡"
         />
       </div>
+
+      {/* Comments Section */}
+      <CommentThread
+        entityType="framework"
+        entityId={data.id}
+      />
     </div>
   )
 }

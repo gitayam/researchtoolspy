@@ -17,6 +17,7 @@ import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
 import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
 import { LocationBadge } from '@/components/behavior/LocationBadge'
+import { CommentThread } from '@/components/comments/CommentThread'
 import type { CreateRelationshipRequest } from '@/types/entities'
 import type { ComBDeficits, InterventionFunction } from '@/types/behavior-change-wheel'
 import type { LocationContext } from '@/types/behavior'
@@ -771,6 +772,12 @@ export function GenericFrameworkView({
           />
         </div>
       )}
+
+      {/* Comments Section */}
+      <CommentThread
+        entityType="framework"
+        entityId={data.id}
+      />
 
       {/* Citation Picker Modal */}
       <CitationPicker
