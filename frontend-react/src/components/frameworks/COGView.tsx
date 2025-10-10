@@ -273,11 +273,16 @@ ${Object.entries(centralityMeasures.degree_centrality)
           <Button
             variant="outline"
             onClick={() => {
+              // Collect all linked actor IDs from COGs
+              const linkedActorIds = data.centers_of_gravity
+                .filter(cog => cog.actor_id)
+                .map(cog => cog.actor_id!)
+
               navigate('/dashboard/network-graph', {
                 state: {
                   source: 'cog',
                   title: data.title,
-                  highlightEntities: []  // Will be populated when entity linking is complete
+                  highlightEntities: linkedActorIds
                 }
               })
             }}

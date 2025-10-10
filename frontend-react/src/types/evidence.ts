@@ -235,6 +235,7 @@ export interface EvidenceItem {
 
   // Related data (loaded from joins)
   citations?: EvidenceCitation[]
+  linked_actors?: string[]  // Actor IDs linked via evidence_actors junction table
 }
 
 // Evidence Citation Interface
@@ -338,4 +339,5 @@ export interface EvidenceFormData {
     quote?: string
     context?: string
   }[]
+  linked_actors?: string[]  // Actor IDs to link via evidence_actors junction table
 }
