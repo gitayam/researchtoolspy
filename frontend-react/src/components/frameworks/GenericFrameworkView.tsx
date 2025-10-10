@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink, MoreVertical, BookOpen, Trash } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink, MoreVertical, BookOpen, Trash, Network } from 'lucide-react'
 import type { FrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
@@ -524,6 +524,19 @@ export function GenericFrameworkView({
               disabled={generatedRelationships.length === 0}
             />
           )}
+          <Button
+            variant="outline"
+            onClick={() => navigate('/dashboard/network-graph', {
+              state: {
+                highlightEntities: [],
+                source: frameworkType,
+                title: data.title
+              }
+            })}
+          >
+            <Network className="h-4 w-4 mr-2" />
+            View in Network
+          </Button>
           <ExportButton
             frameworkType={frameworkType}
             frameworkTitle={frameworkTitle}
