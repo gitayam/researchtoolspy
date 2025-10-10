@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, FileText, Calendar, User, Building } from 'lucide-react'
+import { ArrowLeft, Edit, FileText, Calendar, User, Building, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import type { ACHAnalysis } from '@/types/ach'
 import { ACHMatrix } from '@/components/ach/ACHMatrix'
 import { ACHAnalysisForm, type ACHFormData } from '@/components/ach/ACHAnalysisForm'
 import { ACHShareButton } from '@/components/ach/ACHShareButton'
 import { ACHVisualAnalytics } from '@/components/ach/ACHVisualAnalytics'
+import { ACHPDFExport } from '@/components/ach/ACHPDFExport'
+import { ACHPowerPointExport } from '@/components/ach/ACHPowerPointExport'
+import { ACHExcelExport } from '@/components/ach/ACHExcelExport'
 
 export function ACHAnalysisPage() {
   const { id } = useParams<{ id: string }>()
@@ -227,6 +236,31 @@ export function ACHAnalysisPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <div className="w-full">
+                  <ACHPDFExport analysis={analysis} size="sm" className="w-full justify-start" />
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <div className="w-full">
+                  <ACHPowerPointExport analysis={analysis} size="sm" className="w-full justify-start" />
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <div className="w-full">
+                  <ACHExcelExport analysis={analysis} size="sm" className="w-full justify-start" />
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <ACHShareButton
             analysisId={analysis.id}
             isPublic={analysis.is_public || false}
