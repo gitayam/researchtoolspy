@@ -966,6 +966,52 @@ export default function ContentIntelligencePage() {
     })
   }
 
+  // Auto-extract entities and create actors + relationships
+  const autoExtractEntities = async () => {
+    if (!analysis?.id) return
+
+    setProcessing(true)
+    const userHash = localStorage.getItem('omnicore_user_hash')
+
+    try {
+      const response = await fetch('/api/content-intelligence/auto-extract-entities', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+        },
+        body: JSON.stringify({
+          analysis_id: analysis.id,
+          workspace_id: '1',
+          user_id: 1
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to auto-extract entities')
+      }
+
+      const result = await response.json()
+
+      toast({
+        title: 'Auto-Extraction Complete!',
+        description: `Created ${result.summary.new_actors} actors, matched ${result.summary.matched_actors} existing, and created ${result.summary.new_relationships} relationships.`
+      })
+
+      // Show detailed results in console for debugging
+      console.log('Auto-extraction results:', result)
+    } catch (error) {
+      console.error('Auto-extract error:', error)
+      toast({
+        title: 'Auto-Extraction Failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive'
+      })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   // Check if entities already exist in Actors database
   const checkEntityDuplicates = async (entities: any) => {
     if (!entities) return
@@ -2575,10 +2621,16 @@ export default function ContentIntelligencePage() {
           <TabsContent value="entities" className="mt-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Extracted Entities</h3>
-              <Button onClick={saveAllEntities} variant="outline" size="sm">
-                <Save className="h-4 w-4 mr-2" />
-                Save All to Evidence
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={autoExtractEntities} variant="default" size="sm" disabled={processing}>
+                  <Users className="h-4 w-4 mr-2" />
+                  {processing ? 'Processing...' : 'Auto-Create Actors & Relationships'}
+                </Button>
+                <Button onClick={saveAllEntities} variant="outline" size="sm">
+                  <Save className="h-4 w-4 mr-2" />
+                  Save All to Evidence
+                </Button>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
