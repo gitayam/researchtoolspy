@@ -119,6 +119,15 @@ export interface ContentAnalysis {
     relevance: 'high' | 'medium' | 'low'
   }>
 
+  // Topic Modeling (LDA-style)
+  topics?: Array<{
+    name: string
+    keywords: string[]
+    coherence: number // 0.0 to 1.0
+    coverage: number // 0.0 to 1.0
+    description: string
+  }>
+
   // Entity Extraction
   entities: EntitiesData
 

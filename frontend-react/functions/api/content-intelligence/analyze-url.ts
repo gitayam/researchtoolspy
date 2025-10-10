@@ -108,7 +108,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           entities: JSON.parse(result.entities as string || '{}'),
           word_frequency: JSON.parse(result.word_frequency as string || '{}'),
           sentiment_analysis: result.sentiment_analysis ? JSON.parse(result.sentiment_analysis as string) : null,
-          keyphrases: result.keyphrases ? JSON.parse(result.keyphrases as string) : null
+          keyphrases: result.keyphrases ? JSON.parse(result.keyphrases as string) : null,
+          topics: result.topics ? JSON.parse(result.topics as string) : null
         }
 
         console.log(`[DEBUG] Loaded existing analysis for URL: ${result.url}`)
@@ -235,6 +236,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           top_phrases: JSON.parse(existingAnalysis.top_phrases as string || '[]'),
           sentiment_analysis: existingAnalysis.sentiment_analysis ? JSON.parse(existingAnalysis.sentiment_analysis as string) : null,
           keyphrases: existingAnalysis.keyphrases ? JSON.parse(existingAnalysis.keyphrases as string) : null,
+          topics: existingAnalysis.topics ? JSON.parse(existingAnalysis.topics as string) : null,
           archive_urls: JSON.parse(existingAnalysis.archive_urls as string || '{}'),
           bypass_urls: JSON.parse(existingAnalysis.bypass_urls as string || '{}'),
           from_cache: true,
@@ -390,6 +392,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Continue without keyphrases rather than failing
     }
 
+    // Topic modeling
+    let topics
+    try {
+      console.log('[DEBUG] Calling extractTopics with GPT...')
+      topics = await extractTopics(contentData.text, env.OPENAI_API_KEY)
+      console.log(`[DEBUG] Topics extracted: ${topics.length} topics`)
+    } catch (error) {
+      console.error('[DEBUG] Topic extraction failed:', error)
+      console.error('[DEBUG] Continuing without topics...')
+      // Continue without topics rather than failing
+    }
+
     // Save to database
     console.log('[DEBUG] Saving to database...')
     let analysisId: number
@@ -414,6 +428,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       entities: entitiesData,
       sentiment_analysis: sentimentData,
       keyphrases: keyphrases,
+      topics: topics,
       archive_urls: archiveUrls,
       bypass_urls: bypassUrls,
       processing_mode: mode,
@@ -483,6 +498,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       entities: entitiesData,
       sentiment_analysis: sentimentData,
       keyphrases: keyphrases,
+      topics: topics,
       archive_urls: archiveUrls,
       bypass_urls: bypassUrls,
       processing_mode: mode,
@@ -1022,6 +1038,107 @@ ${truncated}`
   }
 }
 
+async function extractTopics(text: string, apiKey: string): Promise<Array<{
+  name: string
+  keywords: string[]
+  coherence: number // 0.0 to 1.0 - how well-defined
+  coverage: number // 0.0 to 1.0 - % of document
+  description: string
+}>> {
+  const truncated = text.substring(0, 10000)
+
+  const prompt = `Analyze this content and identify the 3-5 main topics using Latent Dirichlet Allocation (LDA) principles.
+
+For each topic, provide:
+1. Topic Name - A clear, descriptive label (2-4 words)
+2. Keywords - Top 5-10 keywords that define this topic
+3. Coherence Score - How well-defined and internally consistent the topic is (0.0 to 1.0)
+4. Coverage - What percentage of the document relates to this topic (0.0 to 1.0, all topics should sum to ~1.0)
+5. Description - Brief explanation of what this topic covers
+
+Guidelines:
+- Topics should be distinct from each other (avoid overlap)
+- Keywords should be specific and meaningful
+- Coverage should reflect actual document content distribution
+- Higher coherence means more focused, well-defined topics
+- Aim for 3-5 topics (don't force more if content is focused)
+
+Text to analyze:
+${truncated}
+
+Return ONLY valid JSON in this exact format:
+[
+  {
+    "name": "Machine Learning Applications",
+    "keywords": ["neural networks", "deep learning", "training", "models", "accuracy"],
+    "coherence": 0.88,
+    "coverage": 0.45,
+    "description": "Technical discussion of ML model training and deployment"
+  },
+  {
+    "name": "Data Privacy Regulations",
+    "keywords": ["GDPR", "privacy", "compliance", "data protection", "regulations"],
+    "coherence": 0.82,
+    "coverage": 0.35,
+    "description": "Legal and regulatory aspects of data handling"
+  }
+]`
+
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 20000) // Longer timeout for topic modeling
+
+    console.log('[DEBUG] Calling OpenAI API for topic extraction...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a topic modeling expert using LDA principles. Identify distinct, coherent topics with accurate coverage distributions. Return ONLY valid JSON.' },
+          { role: 'user', content: prompt }
+        ],
+        max_completion_tokens: 1000,
+        temperature: 0.3 // Lower temperature for consistent topic identification
+      })
+    })
+
+    clearTimeout(timeoutId)
+    console.log('[DEBUG] Topic extraction response status:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[DEBUG] Topic API error:', errorText)
+      throw new Error(`OpenAI API error: ${response.status}`)
+    }
+
+    const data = await response.json() as any
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid API response for topics')
+    }
+
+    const jsonText = data.choices[0].message.content
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim()
+
+    console.log('[DEBUG] Parsing topics JSON...')
+    const result = JSON.parse(jsonText)
+    console.log('[DEBUG] Topics parsed:', result.length, 'topics')
+    return result
+
+  } catch (error) {
+    console.error('[Topic Modeling] Error:', error)
+    // Return empty array on error
+    return []
+  }
+}
+
 async function extractKeyphrases(text: string, apiKey: string): Promise<Array<{
   phrase: string
   score: number // 0.0 to 1.0 importance score
@@ -1251,10 +1368,10 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
       user_id, workspace_id, bookmark_hash, url, url_normalized, content_hash,
       title, author, publish_date, domain, is_social_media, social_platform,
       extracted_text, summary, word_count, word_frequency, top_phrases, entities,
-      sentiment_analysis, keyphrases,
+      sentiment_analysis, keyphrases, topics,
       archive_urls, bypass_urls, processing_mode, processing_duration_ms, gpt_model_used,
       access_count, last_accessed_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
   `).bind(
     toNullable(data.user_id),
     toNullable(data.workspace_id),
@@ -1276,6 +1393,7 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     JSON.stringify(data.entities || {}),
     toNullable(data.sentiment_analysis ? JSON.stringify(data.sentiment_analysis) : null),
     toNullable(data.keyphrases ? JSON.stringify(data.keyphrases) : null),
+    toNullable(data.topics ? JSON.stringify(data.topics) : null),
     JSON.stringify(data.archive_urls || {}),
     JSON.stringify(data.bypass_urls || {}),
     data.processing_mode,
