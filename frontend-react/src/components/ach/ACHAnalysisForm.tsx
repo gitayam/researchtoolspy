@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { ACHAnalysis, ACHHypothesis, ScaleType, AnalysisStatus } from '@/types/ach'
 import { ACHEvidenceManager } from './ACHEvidenceManager'
+import { EvidenceRecommendations } from '@/components/evidence/EvidenceRecommendations'
 
 interface ACHAnalysisFormProps {
   open: boolean
@@ -347,6 +348,28 @@ export function ACHAnalysisForm({
             </CardContent>
           </Card>
 
+          {/* Evidence Recommendations - Suggest relevant evidence based on context */}
+          {mode === 'create' && formData.title && (
+            <EvidenceRecommendations
+              frameworkType="ach"
+              context={{
+                title: formData.title,
+                description: formData.description,
+                keywords: extractKeywords(formData.title, formData.question, formData.description)
+              }}
+              onSelectEvidence={(evidence) => {
+                // Add the evidence ID to the selected evidence list
+                if (!formData.evidence_ids?.includes(String(evidence.id))) {
+                  setFormData({
+                    ...formData,
+                    evidence_ids: [...(formData.evidence_ids || []), String(evidence.id)]
+                  })
+                }
+              }}
+              selectedEvidenceIds={(formData.evidence_ids || []).map(id => parseInt(id))}
+            />
+          )}
+
           {/* Evidence Manager - Comes AFTER hypotheses per ACH methodology */}
           <ACHEvidenceManager
             analysisId={initialData?.id}
@@ -367,4 +390,37 @@ export function ACHAnalysisForm({
       </DialogContent>
     </Dialog>
   )
+}
+
+/**
+ * Extract keywords from text for evidence recommendation
+ */
+function extractKeywords(...texts: (string | undefined)[]): string[] {
+  const allText = texts.filter(Boolean).join(' ')
+
+  // Remove common stop words
+  const stopWords = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
+    'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those'
+  ])
+
+  // Extract words, filter out stop words, and get unique keywords
+  const words = allText
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 3 && !stopWords.has(word))
+
+  // Get unique words and return top 10 most frequent
+  const wordFreq = words.reduce((acc, word) => {
+    acc[word] = (acc[word] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  return Object.entries(wordFreq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([word]) => word)
 }
