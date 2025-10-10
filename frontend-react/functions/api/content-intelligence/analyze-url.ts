@@ -107,7 +107,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           ...result,
           entities: JSON.parse(result.entities as string || '{}'),
           word_frequency: JSON.parse(result.word_frequency as string || '{}'),
-          sentiment_analysis: result.sentiment_analysis ? JSON.parse(result.sentiment_analysis as string) : null
+          sentiment_analysis: result.sentiment_analysis ? JSON.parse(result.sentiment_analysis as string) : null,
+          keyphrases: result.keyphrases ? JSON.parse(result.keyphrases as string) : null
         }
 
         console.log(`[DEBUG] Loaded existing analysis for URL: ${result.url}`)
@@ -233,6 +234,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           word_frequency: JSON.parse(existingAnalysis.word_frequency as string || '{}'),
           top_phrases: JSON.parse(existingAnalysis.top_phrases as string || '[]'),
           sentiment_analysis: existingAnalysis.sentiment_analysis ? JSON.parse(existingAnalysis.sentiment_analysis as string) : null,
+          keyphrases: existingAnalysis.keyphrases ? JSON.parse(existingAnalysis.keyphrases as string) : null,
           archive_urls: JSON.parse(existingAnalysis.archive_urls as string || '{}'),
           bypass_urls: JSON.parse(existingAnalysis.bypass_urls as string || '{}'),
           from_cache: true,
@@ -376,6 +378,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Continue without sentiment rather than failing
     }
 
+    // Keyphrase extraction
+    let keyphrases
+    try {
+      console.log('[DEBUG] Calling extractKeyphrases with GPT...')
+      keyphrases = await extractKeyphrases(contentData.text, env.OPENAI_API_KEY)
+      console.log(`[DEBUG] Keyphrases extracted: ${keyphrases.length} phrases`)
+    } catch (error) {
+      console.error('[DEBUG] Keyphrase extraction failed:', error)
+      console.error('[DEBUG] Continuing without keyphrases...')
+      // Continue without keyphrases rather than failing
+    }
+
     // Save to database
     console.log('[DEBUG] Saving to database...')
     let analysisId: number
@@ -399,6 +413,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       top_phrases: topPhrases,
       entities: entitiesData,
       sentiment_analysis: sentimentData,
+      keyphrases: keyphrases,
       archive_urls: archiveUrls,
       bypass_urls: bypassUrls,
       processing_mode: mode,
@@ -467,6 +482,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       top_phrases: topPhrases,
       entities: entitiesData,
       sentiment_analysis: sentimentData,
+      keyphrases: keyphrases,
       archive_urls: archiveUrls,
       bypass_urls: bypassUrls,
       processing_mode: mode,
@@ -1006,6 +1022,107 @@ ${truncated}`
   }
 }
 
+async function extractKeyphrases(text: string, apiKey: string): Promise<Array<{
+  phrase: string
+  score: number // 0.0 to 1.0 importance score
+  category: 'technology' | 'concept' | 'event' | 'location' | 'other'
+  relevance: 'high' | 'medium' | 'low'
+}>> {
+  const truncated = text.substring(0, 10000)
+
+  const prompt = `Extract the most important keyphrases from this content using TextRank-style analysis.
+
+Identify phrases that are:
+1. Central to the document's main topics (high graph centrality)
+2. Domain-specific terminology (technical terms, jargon, specialized vocabulary)
+3. Conceptually important (core ideas, themes, arguments)
+4. Unique and specific (not generic common phrases like "the government" or "many people")
+
+Extract 10-15 keyphrases maximum. Focus on quality over quantity.
+
+Categorize each keyphrase:
+- technology: Technical terms, products, systems, methods
+- concept: Abstract ideas, theories, principles, frameworks
+- event: Specific incidents, operations, phenomena
+- location: Specific places mentioned prominently
+- other: Other important terms
+
+Score each keyphrase 0.0 to 1.0 based on importance to the document.
+
+Text to analyze:
+${truncated}
+
+Return ONLY valid JSON in this exact format:
+[
+  {
+    "phrase": "machine learning algorithms",
+    "score": 0.95,
+    "category": "technology",
+    "relevance": "high"
+  },
+  {
+    "phrase": "data privacy concerns",
+    "score": 0.82,
+    "category": "concept",
+    "relevance": "high"
+  }
+]`
+
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+    console.log('[DEBUG] Calling OpenAI API for keyphrase extraction...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a keyphrase extraction expert. Identify important concepts, terminology, and themes using graph-based importance ranking. Return ONLY valid JSON.' },
+          { role: 'user', content: prompt }
+        ],
+        max_completion_tokens: 800,
+        temperature: 0.3 // Lower temperature for consistent extraction
+      })
+    })
+
+    clearTimeout(timeoutId)
+    console.log('[DEBUG] Keyphrase extraction response status:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[DEBUG] Keyphrase API error:', errorText)
+      throw new Error(`OpenAI API error: ${response.status}`)
+    }
+
+    const data = await response.json() as any
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid API response for keyphrases')
+    }
+
+    const jsonText = data.choices[0].message.content
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim()
+
+    console.log('[DEBUG] Parsing keyphrases JSON...')
+    const result = JSON.parse(jsonText)
+    console.log('[DEBUG] Keyphrases parsed:', result.length, 'phrases')
+    return result
+
+  } catch (error) {
+    console.error('[Keyphrase Extraction] Error:', error)
+    // Return empty array on error
+    return []
+  }
+}
+
 async function analyzeSentiment(text: string, apiKey: string): Promise<{
   overall: 'positive' | 'negative' | 'neutral' | 'mixed'
   score: number // -1.0 to +1.0
@@ -1134,10 +1251,10 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
       user_id, workspace_id, bookmark_hash, url, url_normalized, content_hash,
       title, author, publish_date, domain, is_social_media, social_platform,
       extracted_text, summary, word_count, word_frequency, top_phrases, entities,
-      sentiment_analysis,
+      sentiment_analysis, keyphrases,
       archive_urls, bypass_urls, processing_mode, processing_duration_ms, gpt_model_used,
       access_count, last_accessed_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
   `).bind(
     toNullable(data.user_id),
     toNullable(data.workspace_id),
@@ -1158,6 +1275,7 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     JSON.stringify(data.top_phrases || []),
     JSON.stringify(data.entities || {}),
     toNullable(data.sentiment_analysis ? JSON.stringify(data.sentiment_analysis) : null),
+    toNullable(data.keyphrases ? JSON.stringify(data.keyphrases) : null),
     JSON.stringify(data.archive_urls || {}),
     JSON.stringify(data.bypass_urls || {}),
     data.processing_mode,
