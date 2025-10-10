@@ -44,6 +44,7 @@ const CogPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.
 const PmesiiPtPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.PmesiiPtPage })))
 const DotmlpfPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.DotmlpfPage })))
 const DeceptionPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.DeceptionPage })))
+const DeceptionRiskDashboard = lazy(() => import('@/pages/DeceptionRiskDashboard'))
 const BehaviorPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.BehaviorPage })))
 const COMBAnalysisPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.COMBAnalysisPage })))
 const StarburstingPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.StarburstingPage })))
@@ -208,6 +209,10 @@ export const router = createBrowserRouter([
       {
         path: 'analysis-frameworks/dotmlpf/:id/:action',
         element: <LazyPage Component={DotmlpfPage} />,
+      },
+      {
+        path: 'deception-risk',
+        element: <LazyPage Component={DeceptionRiskDashboard} />,
       },
       {
         path: 'analysis-frameworks/deception',
