@@ -392,11 +392,7 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
               {t('signIn', 'Sign In')}
             </Button>
             <Button
-              onClick={() => {
-                const hash = Math.random().toString(36).substring(2, 15)
-                localStorage.setItem('omnicore_user_hash', hash)
-                setIsAuthenticated(true)
-              }}
+              onClick={() => window.location.href = '/dashboard/settings'}
               variant="outline"
             >
               {t('createBookmark', 'Create Bookmark')}
