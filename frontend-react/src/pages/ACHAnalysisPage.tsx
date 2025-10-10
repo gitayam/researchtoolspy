@@ -8,6 +8,7 @@ import type { ACHAnalysis } from '@/types/ach'
 import { ACHMatrix } from '@/components/ach/ACHMatrix'
 import { ACHAnalysisForm, type ACHFormData } from '@/components/ach/ACHAnalysisForm'
 import { ACHShareButton } from '@/components/ach/ACHShareButton'
+import { ACHVisualAnalytics } from '@/components/ach/ACHVisualAnalytics'
 
 export function ACHAnalysisPage() {
   const { id } = useParams<{ id: string }>()
@@ -285,6 +286,9 @@ export function ACHAnalysisPage() {
         onAddEvidence={handleAddEvidence}
         onRemoveEvidence={handleRemoveEvidence}
       />
+
+      {/* Visual Analytics */}
+      <ACHVisualAnalytics analysis={analysis} />
 
       {/* Edit Form */}
       <ACHAnalysisForm
