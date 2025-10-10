@@ -1,0 +1,39 @@
+-- Add claim_analysis column to content_analysis table
+-- Migration: 033
+-- Created: 2025-10-09
+-- Purpose: Store extracted factual claims with multi-method deception detection analysis
+
+-- Add claim_analysis JSON column to store:
+-- {
+--   "claims": [
+--     {
+--       "claim": "Objective factual statement",
+--       "category": "statement|quote|statistic|event|relationship",
+--       "source": "Named source",
+--       "deception_analysis": {
+--         "overall_risk": "low|medium|high",
+--         "risk_score": 0-100,
+--         "methods": {
+--           "internal_consistency": { "score": 95, "reasoning": "..." },
+--           "source_credibility": { "score": 85, "reasoning": "..." },
+--           "evidence_quality": { "score": 70, "reasoning": "..." },
+--           "logical_coherence": { "score": 90, "reasoning": "..." },
+--           "temporal_consistency": { "score": 95, "reasoning": "..." },
+--           "specificity": { "score": 80, "reasoning": "..." }
+--         },
+--         "red_flags": ["flag1", "flag2"],
+--         "confidence_assessment": "Assessment text"
+--       }
+--     }
+--   ],
+--   "summary": {
+--     "total_claims": 10,
+--     "high_risk_claims": 1,
+--     "medium_risk_claims": 2,
+--     "low_risk_claims": 7,
+--     "most_concerning_claim": "Claim text",
+--     "overall_content_credibility": 75
+--   }
+-- }
+
+ALTER TABLE content_analysis ADD COLUMN claim_analysis TEXT;
