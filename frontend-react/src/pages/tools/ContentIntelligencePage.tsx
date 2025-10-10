@@ -18,6 +18,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
 import { extractCitationData, createCitationParams } from '@/utils/content-to-citation'
+import { addCitation, generateCitationId } from '@/utils/citation-library'
 
 export default function ContentIntelligencePage() {
   const { toast } = useToast()
@@ -51,6 +52,8 @@ export default function ContentIntelligencePage() {
   // Citation State
   const [generatedCitation, setGeneratedCitation] = useState<string>('')
   const [showCitationCopied, setShowCitationCopied] = useState(false)
+  const [citationSaved, setCitationSaved] = useState(false)
+  const [currentCitationData, setCurrentCitationData] = useState<any>(null)
 
   // Country Origin State
   const [countryInfo, setCountryInfo] = useState<any>(null)
@@ -696,9 +699,11 @@ export default function ContentIntelligencePage() {
       const { generateCitation } = require('@/utils/citation-formatters')
 
       // Generate APA citation by default
-      const { citation } = generateCitation(citationData.fields, citationData.sourceType, 'apa')
+      const { citation, inTextCitation } = generateCitation(citationData.fields, citationData.sourceType, 'apa')
 
       setGeneratedCitation(citation)
+      setCurrentCitationData({ citationData, citation, inTextCitation })
+      setCitationSaved(false) // Reset saved state
 
       toast({
         title: 'Citation Generated',
@@ -714,6 +719,39 @@ export default function ContentIntelligencePage() {
       toast({
         title: 'Error',
         description: 'Failed to create citation',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  // Save citation to library
+  const saveCitationToLibrary = () => {
+    if (!currentCitationData) return
+
+    try {
+      const savedCitation = {
+        id: generateCitationId(),
+        citation: currentCitationData.citation,
+        inTextCitation: currentCitationData.inTextCitation,
+        citationStyle: 'apa' as const,
+        sourceType: currentCitationData.citationData.sourceType,
+        fields: currentCitationData.citationData.fields,
+        addedAt: new Date().toISOString(),
+        tags: ['content-intelligence']
+      }
+
+      addCitation(savedCitation)
+      setCitationSaved(true)
+
+      toast({
+        title: 'Citation Saved!',
+        description: 'Added to your citation library. Open Citation Generator to view all saved citations.'
+      })
+    } catch (error) {
+      console.error('Citation save error:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to save citation',
         variant: 'destructive'
       })
     }
@@ -1866,24 +1904,43 @@ export default function ContentIntelligencePage() {
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                     <p className="text-sm font-serif">{generatedCitation}</p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={copyCitation}
-                    className="mt-2"
-                  >
-                    {showCitationCopied ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy Citation
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={copyCitation}
+                    >
+                      {showCitationCopied ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={saveCitationToLibrary}
+                      disabled={citationSaved}
+                    >
+                      {citationSaved ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Saved!
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save to Library
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               )}
 
