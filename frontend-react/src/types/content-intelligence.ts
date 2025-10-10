@@ -109,6 +109,26 @@ export interface ContentAnalysis {
   // Entity Extraction
   entities: EntitiesData
 
+  // Sentiment Analysis
+  sentiment_analysis?: {
+    overall: 'positive' | 'negative' | 'neutral' | 'mixed'
+    score: number // -1.0 to +1.0
+    confidence: number // 0.0 to 1.0
+    emotions: {
+      joy: number
+      anger: number
+      fear: number
+      sadness: number
+      surprise: number
+    }
+    controversialClaims: Array<{
+      text: string
+      sentiment: string
+      reason: string
+    }>
+    keyInsights: string[]
+  }
+
   // Archive/Bypass Links (generated immediately)
   archive_urls: ArchiveUrls
   bypass_urls: BypassUrls
@@ -196,6 +216,7 @@ export interface ProcessingProgress {
 export type AnalysisTab =
   | 'overview'
   | 'word-analysis'
+  | 'sentiment'
   | 'entities'
   | 'qa'
   | 'starbursting'

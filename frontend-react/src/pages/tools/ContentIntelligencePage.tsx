@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
-  Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe
+  Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe, SmileIcon, FrownIcon, MehIcon
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -1781,6 +1781,10 @@ export default function ContentIntelligencePage() {
               <BarChart3 className="h-4 w-4 mr-2" />
               Word Analysis
             </TabsTrigger>
+            <TabsTrigger value="sentiment">
+              <SmileIcon className="h-4 w-4 mr-2" />
+              Sentiment
+            </TabsTrigger>
             <TabsTrigger value="entities">
               <Users className="h-4 w-4 mr-2" />
               Entities
@@ -2247,6 +2251,130 @@ export default function ContentIntelligencePage() {
                 </p>
               )}
             </Card>
+          </TabsContent>
+
+          <TabsContent value="sentiment" className="mt-4">
+            {analysis.sentiment_analysis ? (
+              <div className="space-y-6">
+                {/* Overall Sentiment Card */}
+                <Card className="p-6">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2">
+                      {analysis.sentiment_analysis.overall === 'positive' && <SmileIcon className="h-6 w-6 text-green-600" />}
+                      {analysis.sentiment_analysis.overall === 'negative' && <FrownIcon className="h-6 w-6 text-red-600" />}
+                      {(analysis.sentiment_analysis.overall === 'neutral' || analysis.sentiment_analysis.overall === 'mixed') && <MehIcon className="h-6 w-6 text-yellow-600" />}
+                      Overall Sentiment: {analysis.sentiment_analysis.overall.charAt(0).toUpperCase() + analysis.sentiment_analysis.overall.slice(1)}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm text-muted-foreground">Sentiment Score</span>
+                        <span className="font-semibold">{analysis.sentiment_analysis.score.toFixed(2)}</span>
+                      </div>
+                      <Progress
+                        value={(analysis.sentiment_analysis.score + 1) * 50}
+                        className={`h-3 ${
+                          analysis.sentiment_analysis.score > 0.3 ? 'bg-green-200' :
+                          analysis.sentiment_analysis.score < -0.3 ? 'bg-red-200' :
+                          'bg-yellow-200'
+                        }`}
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>Very Negative (-1.0)</span>
+                        <span>Neutral (0)</span>
+                        <span>Very Positive (+1.0)</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Confidence</span>
+                        <span className="font-semibold">{(analysis.sentiment_analysis.confidence * 100).toFixed(0)}%</span>
+                      </div>
+                      <Progress value={analysis.sentiment_analysis.confidence * 100} className="h-2 mt-2" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Emotion Breakdown Card */}
+                {analysis.sentiment_analysis.emotions && (
+                  <Card className="p-6">
+                    <CardHeader className="pb-4">
+                      <CardTitle>Emotion Analysis</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {Object.entries(analysis.sentiment_analysis.emotions).map(([emotion, value]) => (
+                        <div key={emotion}>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm capitalize">{emotion}</span>
+                            <span className="text-sm font-semibold">{value}%</span>
+                          </div>
+                          <Progress
+                            value={value as number}
+                            className={`h-2 ${
+                              emotion === 'joy' ? 'bg-green-200' :
+                              emotion === 'anger' ? 'bg-red-200' :
+                              emotion === 'fear' ? 'bg-purple-200' :
+                              emotion === 'sadness' ? 'bg-blue-200' :
+                              'bg-orange-200'
+                            }`}
+                          />
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Key Insights */}
+                {analysis.sentiment_analysis.keyInsights && analysis.sentiment_analysis.keyInsights.length > 0 && (
+                  <Card className="p-6">
+                    <CardHeader className="pb-4">
+                      <CardTitle>Key Insights</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {analysis.sentiment_analysis.keyInsights.map((insight, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <Info className="h-4 w-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                            <span className="text-sm">{insight}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Controversial Claims */}
+                {analysis.sentiment_analysis.controversialClaims && analysis.sentiment_analysis.controversialClaims.length > 0 && (
+                  <Card className="p-6 border-red-200">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2 text-red-700">
+                        <AlertCircle className="h-5 w-5" />
+                        Controversial Claims Detected
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {analysis.sentiment_analysis.controversialClaims.map((claim, i) => (
+                        <div key={i} className="bg-red-50 p-4 rounded-lg border border-red-200">
+                          <p className="text-sm font-semibold mb-2 text-red-900">{claim.text}</p>
+                          <div className="flex gap-4 text-xs text-red-700">
+                            <span>Sentiment: {claim.sentiment}</span>
+                            <span>•</span>
+                            <span>{claim.reason}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            ) : (
+              <Card className="p-6">
+                <p className="text-center text-muted-foreground">
+                  Sentiment analysis not available for this content
+                </p>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="entities" className="mt-4">
