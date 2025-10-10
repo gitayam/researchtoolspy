@@ -404,6 +404,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Continue without topics rather than failing
     }
 
+    // Claim extraction and deception detection
+    let claimAnalysis
+    try {
+      console.log('[DEBUG] Calling extractClaims with GPT...')
+      const claims = await extractClaims(contentData.text, env.OPENAI_API_KEY, contentData.title)
+      console.log(`[DEBUG] Claims extracted: ${claims.length} claims`)
+
+      // Run deception detection on each claim
+      console.log('[DEBUG] Running deception detection on claims...')
+      claimAnalysis = await analyzeClaimsForDeception(claims, contentData.text, env.OPENAI_API_KEY)
+      console.log(`[DEBUG] Claim deception analysis complete`)
+    } catch (error) {
+      console.error('[DEBUG] Claim extraction/analysis failed:', error)
+      console.error('[DEBUG] Continuing without claim analysis...')
+      // Continue without claim analysis rather than failing
+    }
+
     // Save to database
     console.log('[DEBUG] Saving to database...')
     let analysisId: number
@@ -429,6 +446,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       sentiment_analysis: sentimentData,
       keyphrases: keyphrases,
       topics: topics,
+      claim_analysis: claimAnalysis,
       archive_urls: archiveUrls,
       bypass_urls: bypassUrls,
       processing_mode: mode,
@@ -499,6 +517,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       sentiment_analysis: sentimentData,
       keyphrases: keyphrases,
       topics: topics,
+      claim_analysis: claimAnalysis,
       archive_urls: archiveUrls,
       bypass_urls: bypassUrls,
       processing_mode: mode,
@@ -1368,10 +1387,10 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
       user_id, workspace_id, bookmark_hash, url, url_normalized, content_hash,
       title, author, publish_date, domain, is_social_media, social_platform,
       extracted_text, summary, word_count, word_frequency, top_phrases, entities,
-      sentiment_analysis, keyphrases, topics,
+      sentiment_analysis, keyphrases, topics, claim_analysis,
       archive_urls, bypass_urls, processing_mode, processing_duration_ms, gpt_model_used,
       access_count, last_accessed_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
   `).bind(
     toNullable(data.user_id),
     toNullable(data.workspace_id),
@@ -1394,6 +1413,7 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     toNullable(data.sentiment_analysis ? JSON.stringify(data.sentiment_analysis) : null),
     toNullable(data.keyphrases ? JSON.stringify(data.keyphrases) : null),
     toNullable(data.topics ? JSON.stringify(data.topics) : null),
+    toNullable(data.claim_analysis ? JSON.stringify(data.claim_analysis) : null),
     JSON.stringify(data.archive_urls || {}),
     JSON.stringify(data.bypass_urls || {}),
     data.processing_mode,
@@ -1428,4 +1448,347 @@ async function saveLinkToLibrary(db: D1Database, data: any): Promise<number> {
   ).run()
 
   return result.meta.last_row_id as number
+}
+
+/**
+ * Extract objective factual claims from content
+ *
+ * Extracts verifiable, specific statements about:
+ * - Who said/did what
+ * - When and where events occurred
+ * - Quantitative data (numbers, statistics)
+ * - Direct quotes from named sources
+ * - Cause-effect relationships
+ */
+async function extractClaims(text: string, apiKey: string, title?: string): Promise<Array<{
+  claim: string
+  category: 'statement' | 'quote' | 'statistic' | 'event' | 'relationship'
+  source?: string
+  confidence: number
+  supporting_text?: string
+}>> {
+  const truncated = text.substring(0, 12000)
+
+  const prompt = `Extract objective factual claims from this article. Focus on verifiable statements, NOT opinions or analysis.
+
+Article Title: ${title || 'Unknown'}
+
+Extract claims in these categories:
+1. STATEMENT - Factual assertions about what happened (e.g., "Company X announced layoffs on March 15, 2024")
+2. QUOTE - Direct quotes from named sources (e.g., "CEO John Smith said, 'We expect growth'")
+3. STATISTIC - Numerical data and statistics (e.g., "Unemployment rose to 5.2% in Q3 2024")
+4. EVENT - Specific events with who/what/when/where (e.g., "The summit occurred in Geneva on June 10")
+5. RELATIONSHIP - Cause-effect or correlation claims (e.g., "The policy led to a 20% increase in enrollment")
+
+Rules for extraction:
+- Claims MUST be objective and verifiable
+- Include specific names, dates, numbers, locations
+- NO opinions, predictions, or speculation
+- NO vague statements ("some experts say", "it is believed that")
+- Each claim must be self-contained (understandable without context)
+- Include the source in the claim if mentioned ("According to WHO..." or "John Doe stated...")
+- Extract 5-15 claims maximum (quality over quantity)
+
+For each claim provide:
+- claim: The complete factual statement
+- category: statement|quote|statistic|event|relationship
+- source: Name of source if mentioned (person, organization, document)
+- confidence: 0.0-1.0 (how confident this is a factual claim vs opinion)
+- supporting_text: Short snippet from article that contains this claim (max 150 chars)
+
+Text to analyze:
+${truncated}
+
+Return ONLY valid JSON array:
+[
+  {
+    "claim": "NATO announced on May 12, 2024 that it would expand its presence in Eastern Europe",
+    "category": "event",
+    "source": "NATO",
+    "confidence": 0.95,
+    "supporting_text": "NATO officials confirmed the expansion during a press conference in Brussels..."
+  }
+]`
+
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 20000)
+
+    console.log('[DEBUG] Calling OpenAI API for claim extraction...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a fact-extraction expert. Extract only objective, verifiable claims from content. Ignore opinions, predictions, and speculation. Each claim must be specific with names, dates, numbers. Return ONLY valid JSON.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        max_completion_tokens: 1500,
+        temperature: 0.2 // Low temperature for consistent, factual extraction
+      })
+    })
+
+    clearTimeout(timeoutId)
+    console.log('[DEBUG] Claim extraction response status:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[DEBUG] Claim extraction API error:', errorText)
+      throw new Error(`OpenAI API error: ${response.status}`)
+    }
+
+    const data = await response.json() as any
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid API response for claim extraction')
+    }
+
+    const jsonText = data.choices[0].message.content
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim()
+
+    console.log('[DEBUG] Parsing claims JSON...')
+    const result = JSON.parse(jsonText)
+    console.log('[DEBUG] Claims parsed:', result.length, 'claims')
+    return result
+
+  } catch (error) {
+    console.error('[Claim Extraction] Error:', error)
+    return []
+  }
+}
+
+/**
+ * Analyze each claim for potential deception using multiple methods
+ *
+ * Deception Detection Methods:
+ * 1. Internal Consistency - Does claim contradict other claims?
+ * 2. Source Credibility - Is the source authoritative/reliable?
+ * 3. Evidence Quality - Is supporting evidence provided?
+ * 4. Logical Coherence - Does the claim make logical sense?
+ * 5. Temporal Consistency - Do timelines/sequences make sense?
+ * 6. Specificity Analysis - Vague claims are more likely deceptive
+ */
+async function analyzeClaimsForDeception(
+  claims: Array<{claim: string; category: string; source?: string; confidence: number; supporting_text?: string}>,
+  fullText: string,
+  apiKey: string
+): Promise<{
+  claims: Array<{
+    claim: string
+    category: string
+    source?: string
+    deception_analysis: {
+      overall_risk: 'low' | 'medium' | 'high'
+      risk_score: number // 0-100
+      methods: {
+        internal_consistency: { score: number; reasoning: string }
+        source_credibility: { score: number; reasoning: string }
+        evidence_quality: { score: number; reasoning: string }
+        logical_coherence: { score: number; reasoning: string }
+        temporal_consistency: { score: number; reasoning: string }
+        specificity: { score: number; reasoning: string }
+      }
+      red_flags: string[]
+      confidence_assessment: string
+    }
+  }>
+  summary: {
+    total_claims: number
+    high_risk_claims: number
+    medium_risk_claims: number
+    low_risk_claims: number
+    most_concerning_claim?: string
+    overall_content_credibility: number
+  }
+}> {
+  const truncatedText = fullText.substring(0, 15000)
+
+  const prompt = `Analyze these claims for potential deception using multiple detection methods.
+
+Full Article Context (for reference):
+${truncatedText.substring(0, 3000)}...
+
+Claims to Analyze:
+${JSON.stringify(claims, null, 2)}
+
+For EACH claim, run these deception detection methods:
+
+1. INTERNAL CONSISTENCY (0-100)
+   - Does this claim contradict any other claims?
+   - Are there logical inconsistencies within the claim itself?
+   - Score: 0 = major contradictions, 100 = fully consistent
+
+2. SOURCE CREDIBILITY (0-100)
+   - Is the source named and authoritative for this topic?
+   - Is the source verifiable?
+   - Score: 0 = anonymous/unreliable source, 100 = highly credible named source
+
+3. EVIDENCE QUALITY (0-100)
+   - Is supporting evidence provided?
+   - Is the evidence specific and verifiable?
+   - Score: 0 = no evidence/vague claims, 100 = strong specific evidence
+
+4. LOGICAL COHERENCE (0-100)
+   - Does the claim make logical sense?
+   - Are cause-effect relationships plausible?
+   - Score: 0 = illogical/implausible, 100 = logically sound
+
+5. TEMPORAL CONSISTENCY (0-100)
+   - Do dates, timelines, and sequences make sense?
+   - Are temporal references consistent?
+   - Score: 0 = timeline inconsistencies, 100 = temporally consistent
+
+6. SPECIFICITY ANALYSIS (0-100)
+   - How specific is the claim (names, dates, numbers)?
+   - Vague claims are more suspect
+   - Score: 0 = very vague, 100 = highly specific
+
+For each claim, calculate:
+- Risk Score: (600 - sum of all method scores) / 6 (inverted average)
+- Overall Risk: low (<30), medium (30-60), high (>60)
+- Red Flags: List any concerning patterns
+- Confidence Assessment: Overall evaluation
+
+Return ONLY valid JSON:
+{
+  "claims": [
+    {
+      "claim": "...",
+      "category": "...",
+      "source": "...",
+      "deception_analysis": {
+        "overall_risk": "low|medium|high",
+        "risk_score": 0-100,
+        "methods": {
+          "internal_consistency": {
+            "score": 95,
+            "reasoning": "Claim is consistent with other statements in article"
+          },
+          "source_credibility": {
+            "score": 85,
+            "reasoning": "Source is a named government official"
+          },
+          "evidence_quality": {
+            "score": 70,
+            "reasoning": "Some specific evidence provided but could be more detailed"
+          },
+          "logical_coherence": {
+            "score": 90,
+            "reasoning": "Claim makes logical sense given context"
+          },
+          "temporal_consistency": {
+            "score": 95,
+            "reasoning": "Timeline is consistent and plausible"
+          },
+          "specificity": {
+            "score": 80,
+            "reasoning": "Includes specific date and organization name"
+          }
+        },
+        "red_flags": [],
+        "confidence_assessment": "High confidence this is a factual claim"
+      }
+    }
+  ],
+  "summary": {
+    "total_claims": 10,
+    "high_risk_claims": 1,
+    "medium_risk_claims": 2,
+    "low_risk_claims": 7,
+    "most_concerning_claim": "Claim with highest risk score",
+    "overall_content_credibility": 75
+  }
+}`
+
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // Longer timeout for comprehensive analysis
+
+    console.log('[DEBUG] Calling OpenAI API for deception analysis...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a deception detection expert trained in multiple analytical methods. Analyze claims objectively using: internal consistency, source credibility, evidence quality, logical coherence, temporal consistency, and specificity. Provide detailed reasoning for each score. Return ONLY valid JSON.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        max_completion_tokens: 3000,
+        temperature: 0.3 // Moderate temperature for balanced analysis
+      })
+    })
+
+    clearTimeout(timeoutId)
+    console.log('[DEBUG] Deception analysis response status:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[DEBUG] Deception analysis API error:', errorText)
+      throw new Error(`OpenAI API error: ${response.status}`)
+    }
+
+    const data = await response.json() as any
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid API response for deception analysis')
+    }
+
+    const jsonText = data.choices[0].message.content
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim()
+
+    console.log('[DEBUG] Parsing deception analysis JSON...')
+    const result = JSON.parse(jsonText)
+    console.log('[DEBUG] Deception analysis complete:', result.summary?.total_claims, 'claims analyzed')
+    return result
+
+  } catch (error) {
+    console.error('[Deception Analysis] Error:', error)
+    // Return empty analysis on error
+    return {
+      claims: claims.map(c => ({
+        ...c,
+        deception_analysis: {
+          overall_risk: 'medium' as const,
+          risk_score: 50,
+          methods: {
+            internal_consistency: { score: 50, reasoning: 'Analysis unavailable' },
+            source_credibility: { score: 50, reasoning: 'Analysis unavailable' },
+            evidence_quality: { score: 50, reasoning: 'Analysis unavailable' },
+            logical_coherence: { score: 50, reasoning: 'Analysis unavailable' },
+            temporal_consistency: { score: 50, reasoning: 'Analysis unavailable' },
+            specificity: { score: 50, reasoning: 'Analysis unavailable' }
+          },
+          red_flags: ['Analysis failed'],
+          confidence_assessment: 'Unable to perform deception analysis'
+        }
+      })),
+      summary: {
+        total_claims: claims.length,
+        high_risk_claims: 0,
+        medium_risk_claims: claims.length,
+        low_risk_claims: 0,
+        overall_content_credibility: 50
+      }
+    }
+  }
 }
