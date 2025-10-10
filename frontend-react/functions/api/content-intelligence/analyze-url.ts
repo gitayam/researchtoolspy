@@ -106,7 +106,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         const analysis = {
           ...result,
           entities: JSON.parse(result.entities as string || '{}'),
-          word_frequency: JSON.parse(result.word_frequency as string || '{}')
+          word_frequency: JSON.parse(result.word_frequency as string || '{}'),
+          sentiment_analysis: result.sentiment_analysis ? JSON.parse(result.sentiment_analysis as string) : null
         }
 
         console.log(`[DEBUG] Loaded existing analysis for URL: ${result.url}`)
@@ -231,6 +232,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           entities: JSON.parse(existingAnalysis.entities as string || '{}'),
           word_frequency: JSON.parse(existingAnalysis.word_frequency as string || '{}'),
           top_phrases: JSON.parse(existingAnalysis.top_phrases as string || '[]'),
+          sentiment_analysis: existingAnalysis.sentiment_analysis ? JSON.parse(existingAnalysis.sentiment_analysis as string) : null,
           archive_urls: JSON.parse(existingAnalysis.archive_urls as string || '{}'),
           bypass_urls: JSON.parse(existingAnalysis.bypass_urls as string || '{}'),
           from_cache: true,
@@ -353,6 +355,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Continue without summary rather than failing
     }
 
+    // Sentiment analysis
+    let sentimentData
+    try {
+      console.log('[DEBUG] Calling analyzeSentiment with GPT...')
+      sentimentData = await analyzeSentiment(contentData.text, env.OPENAI_API_KEY)
+      console.log(`[DEBUG] Sentiment analyzed: ${sentimentData.overall} (score: ${sentimentData.score})`)
+    } catch (error) {
+      console.error('[DEBUG] Sentiment analysis failed:', error)
+      console.error('[DEBUG] Continuing without sentiment...')
+      // Continue without sentiment rather than failing
+    }
+
     // Save to database
     console.log('[DEBUG] Saving to database...')
     let analysisId: number
@@ -375,6 +389,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       word_frequency: wordFrequency,
       top_phrases: topPhrases,
       entities: entitiesData,
+      sentiment_analysis: sentimentData,
       archive_urls: archiveUrls,
       bypass_urls: bypassUrls,
       processing_mode: mode,
@@ -442,11 +457,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       word_frequency: wordFrequency,
       top_phrases: topPhrases,
       entities: entitiesData,
+      sentiment_analysis: sentimentData,
       archive_urls: archiveUrls,
       bypass_urls: bypassUrls,
       processing_mode: mode,
       processing_duration_ms: Date.now() - startTime,
-      gpt_model_used: 'gpt-5-mini'
+      gpt_model_used: 'gpt-4o-mini'
     }
 
     return new Response(JSON.stringify(result), {
@@ -952,6 +968,125 @@ ${truncated}`
   }
 }
 
+async function analyzeSentiment(text: string, apiKey: string): Promise<{
+  overall: 'positive' | 'negative' | 'neutral' | 'mixed'
+  score: number // -1.0 to +1.0
+  confidence: number // 0.0 to 1.0
+  emotions: {
+    joy: number
+    anger: number
+    fear: number
+    sadness: number
+    surprise: number
+  }
+  controversialClaims: Array<{
+    text: string
+    sentiment: string
+    reason: string
+  }>
+  keyInsights: string[]
+}> {
+  const truncated = text.substring(0, 10000)
+
+  const prompt = `Analyze the sentiment of this content. Provide:
+1. Overall sentiment (positive, negative, neutral, or mixed)
+2. Sentiment score from -1.0 (very negative) to +1.0 (very positive)
+3. Confidence score (0.0 to 1.0)
+4. Emotion breakdown (joy, anger, fear, sadness, surprise) as percentages 0-100
+5. Controversial or inflammatory claims (if any)
+6. Key insights about the tone and messaging
+
+Text to analyze:
+${truncated}
+
+Return ONLY valid JSON in this exact format:
+{
+  "overall": "positive|negative|neutral|mixed",
+  "score": -1.0 to +1.0,
+  "confidence": 0.0 to 1.0,
+  "emotions": {
+    "joy": 0-100,
+    "anger": 0-100,
+    "fear": 0-100,
+    "sadness": 0-100,
+    "surprise": 0-100
+  },
+  "controversialClaims": [
+    {
+      "text": "claim snippet",
+      "sentiment": "description",
+      "reason": "why controversial"
+    }
+  ],
+  "keyInsights": [
+    "Main positive aspect: ...",
+    "Main concern: ...",
+    "Notable tone: ..."
+  ]
+}`
+
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+    console.log('[DEBUG] Calling OpenAI API for sentiment analysis...')
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a sentiment analysis expert. Analyze content objectively and return only valid JSON.' },
+          { role: 'user', content: prompt }
+        ],
+        max_completion_tokens: 1000,
+        temperature: 0.3 // Lower temperature for more consistent analysis
+      })
+    })
+
+    clearTimeout(timeoutId)
+    console.log('[DEBUG] Sentiment analysis response status:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[DEBUG] Sentiment API error:', errorText)
+      throw new Error(`OpenAI API error: ${response.status}`)
+    }
+
+    const data = await response.json() as any
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid API response for sentiment')
+    }
+
+    const jsonText = data.choices[0].message.content
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim()
+
+    console.log('[DEBUG] Parsing sentiment JSON...')
+    const result = JSON.parse(jsonText)
+    console.log('[DEBUG] Sentiment parsed:', result.overall, result.score)
+    return result
+
+  } catch (error) {
+    console.error('[Sentiment Analysis] Error:', error)
+    // Return neutral fallback
+    return {
+      overall: 'neutral',
+      score: 0,
+      confidence: 0,
+      emotions: { joy: 0, anger: 0, fear: 0, sadness: 0, surprise: 0 },
+      controversialClaims: [],
+      keyInsights: ['Sentiment analysis unavailable']
+    }
+  }
+}
+
 async function saveAnalysis(db: D1Database, data: any): Promise<number> {
   // D1 doesn't accept undefined, convert to null
   const toNullable = (val: any) => val === undefined ? null : val
@@ -961,9 +1096,10 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
       user_id, workspace_id, bookmark_hash, url, url_normalized, content_hash,
       title, author, publish_date, domain, is_social_media, social_platform,
       extracted_text, summary, word_count, word_frequency, top_phrases, entities,
+      sentiment_analysis,
       archive_urls, bypass_urls, processing_mode, processing_duration_ms, gpt_model_used,
       access_count, last_accessed_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
   `).bind(
     toNullable(data.user_id),
     toNullable(data.workspace_id),
@@ -983,6 +1119,7 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     JSON.stringify(data.word_frequency || {}),
     JSON.stringify(data.top_phrases || []),
     JSON.stringify(data.entities || {}),
+    toNullable(data.sentiment_analysis ? JSON.stringify(data.sentiment_analysis) : null),
     JSON.stringify(data.archive_urls || {}),
     JSON.stringify(data.bypass_urls || {}),
     data.processing_mode,
