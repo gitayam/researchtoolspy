@@ -2311,6 +2311,75 @@ export default function ContentIntelligencePage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Topic Modeling (LDA) */}
+            {analysis.topics && analysis.topics.length > 0 && (
+              <Card className="p-6">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Topic Analysis (LDA)</CardTitle>
+                    <Badge variant="secondary">{analysis.topics.length} topics</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Main themes identified using Latent Dirichlet Allocation (coherence, coverage, keywords)
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {analysis.topics
+                    .sort((a, b) => b.coverage - a.coverage)
+                    .map((topic, i) => (
+                      <div
+                        key={i}
+                        className="p-4 rounded-lg border bg-gradient-to-r from-card to-accent/20"
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold text-base">{topic.name}</span>
+                              <Badge className="bg-primary/10 text-primary border-primary/20">
+                                Topic {i + 1}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{topic.description}</p>
+                          </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-muted-foreground">Coherence</span>
+                              <span className="text-xs font-semibold">{(topic.coherence * 100).toFixed(0)}%</span>
+                            </div>
+                            <Progress value={topic.coherence * 100} className="h-2" />
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-muted-foreground">Coverage</span>
+                              <span className="text-xs font-semibold">{(topic.coverage * 100).toFixed(0)}%</span>
+                            </div>
+                            <Progress value={topic.coverage * 100} className="h-2 bg-green-100" />
+                          </div>
+                        </div>
+
+                        <div>
+                          <span className="text-xs font-medium text-muted-foreground block mb-2">Keywords:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {topic.keywords.map((keyword, ki) => (
+                              <Badge
+                                key={ki}
+                                variant="secondary"
+                                className="text-xs bg-primary/5 hover:bg-primary/10"
+                              >
+                                {keyword}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="sentiment" className="mt-4">
