@@ -1,0 +1,369 @@
+/**
+ * Claim Analysis Display Component
+ *
+ * Displays extracted objective claims with multi-method deception detection analysis
+ * Shows 6 detection methods: internal consistency, source credibility, evidence quality,
+ * logical coherence, temporal consistency, and specificity
+ */
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  Shield,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  TrendingUp,
+  Target,
+  Clock,
+  FileText,
+  Quote,
+  BarChart3,
+  Calendar,
+  Link as LinkIcon,
+  Info
+} from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
+interface ClaimAnalysisDisplayProps {
+  claimAnalysis: {
+    claims: Array<{
+      claim: string
+      category: string
+      source?: string
+      deception_analysis: {
+        overall_risk: 'low' | 'medium' | 'high'
+        risk_score: number
+        methods: {
+          internal_consistency: { score: number; reasoning: string }
+          source_credibility: { score: number; reasoning: string }
+          evidence_quality: { score: number; reasoning: string }
+          logical_coherence: { score: number; reasoning: string }
+          temporal_consistency: { score: number; reasoning: string }
+          specificity: { score: number; reasoning: string }
+        }
+        red_flags: string[]
+        confidence_assessment: string
+      }
+    }>
+    summary: {
+      total_claims: number
+      high_risk_claims: number
+      medium_risk_claims: number
+      low_risk_claims: number
+      most_concerning_claim?: string
+      overall_content_credibility: number
+    }
+  }
+}
+
+export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProps) {
+  if (!claimAnalysis || !claimAnalysis.claims || claimAnalysis.claims.length === 0) {
+    return null
+  }
+
+  const { claims, summary } = claimAnalysis
+
+  // Get risk color
+  const getRiskColor = (risk: 'low' | 'medium' | 'high') => {
+    switch (risk) {
+      case 'low': return 'text-green-700 bg-green-100 dark:text-green-400 dark:bg-green-900/20'
+      case 'medium': return 'text-yellow-700 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/20'
+      case 'high': return 'text-red-700 bg-red-100 dark:text-red-400 dark:bg-red-900/20'
+    }
+  }
+
+  const getRiskIcon = (risk: 'low' | 'medium' | 'high') => {
+    switch (risk) {
+      case 'low': return <CheckCircle2 className="h-4 w-4" />
+      case 'medium': return <AlertTriangle className="h-4 w-4" />
+      case 'high': return <XCircle className="h-4 w-4" />
+    }
+  }
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'statement': return <FileText className="h-4 w-4" />
+      case 'quote': return <Quote className="h-4 w-4" />
+      case 'statistic': return <BarChart3 className="h-4 w-4" />
+      case 'event': return <Calendar className="h-4 w-4" />
+      case 'relationship': return <LinkIcon className="h-4 w-4" />
+      default: return <Info className="h-4 w-4" />
+    }
+  }
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'statement': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+      case 'quote': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400'
+      case 'statistic': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400'
+      case 'event': return 'bg-teal-100 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400'
+      case 'relationship': return 'bg-pink-100 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400'
+      default: return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400'
+    }
+  }
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600 dark:text-green-400'
+    if (score >= 60) return 'text-yellow-600 dark:text-yellow-400'
+    return 'text-red-600 dark:text-red-400'
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Card */}
+      <Card className="border-2">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Claim Analysis Summary
+              </CardTitle>
+              <CardDescription>
+                {summary.total_claims} objective claims extracted and analyzed
+              </CardDescription>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold">
+                {summary.overall_content_credibility}
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Overall Credibility
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Low Risk */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/10">
+              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <div>
+                <div className="text-2xl font-bold text-green-700 dark:text-green-400">
+                  {summary.low_risk_claims}
+                </div>
+                <div className="text-sm text-green-600 dark:text-green-500">Low Risk Claims</div>
+              </div>
+            </div>
+
+            {/* Medium Risk */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/10">
+              <AlertTriangle className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+              <div>
+                <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">
+                  {summary.medium_risk_claims}
+                </div>
+                <div className="text-sm text-yellow-600 dark:text-yellow-500">Medium Risk Claims</div>
+              </div>
+            </div>
+
+            {/* High Risk */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/10">
+              <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+              <div>
+                <div className="text-2xl font-bold text-red-700 dark:text-red-400">
+                  {summary.high_risk_claims}
+                </div>
+                <div className="text-sm text-red-600 dark:text-red-500">High Risk Claims</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Most Concerning Claim */}
+          {summary.most_concerning_claim && summary.high_risk_claims > 0 && (
+            <Alert className="mt-4 border-red-200 dark:border-red-800">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription>
+                <strong>Most Concerning Claim:</strong> {summary.most_concerning_claim}
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Individual Claims */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Extracted Claims ({claims.length})</h3>
+
+        {claims.map((claimData, index) => (
+          <Card key={index} className="border-l-4" style={{
+            borderLeftColor: claimData.deception_analysis.overall_risk === 'low' ? '#10b981' :
+                            claimData.deception_analysis.overall_risk === 'medium' ? '#f59e0b' : '#ef4444'
+          }}>
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className={getCategoryColor(claimData.category)}>
+                      {getCategoryIcon(claimData.category)}
+                      <span className="ml-1">{claimData.category.toUpperCase()}</span>
+                    </Badge>
+                    <Badge className={getRiskColor(claimData.deception_analysis.overall_risk)}>
+                      {getRiskIcon(claimData.deception_analysis.overall_risk)}
+                      <span className="ml-1">{claimData.deception_analysis.overall_risk.toUpperCase()} RISK</span>
+                    </Badge>
+                    {claimData.source && (
+                      <Badge variant="outline">
+                        Source: {claimData.source}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-base font-medium leading-relaxed">
+                    {claimData.claim}
+                  </p>
+                </div>
+                <div className="text-center min-w-[80px]">
+                  <div className={`text-3xl font-bold ${getScoreColor(100 - claimData.deception_analysis.risk_score)}`}>
+                    {claimData.deception_analysis.risk_score}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Risk Score</div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="methods" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="methods">Detection Methods</TabsTrigger>
+                  <TabsTrigger value="assessment">Assessment</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="methods" className="space-y-3 mt-4">
+                  {/* Internal Consistency */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium flex items-center gap-2">
+                        <Target className="h-4 w-4" />
+                        Internal Consistency
+                      </span>
+                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.internal_consistency.score)}`}>
+                        {claimData.deception_analysis.methods.internal_consistency.score}
+                      </span>
+                    </div>
+                    <Progress value={claimData.deception_analysis.methods.internal_consistency.score} className="h-2" />
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {claimData.deception_analysis.methods.internal_consistency.reasoning}
+                    </p>
+                  </div>
+
+                  {/* Source Credibility */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Source Credibility
+                      </span>
+                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.source_credibility.score)}`}>
+                        {claimData.deception_analysis.methods.source_credibility.score}
+                      </span>
+                    </div>
+                    <Progress value={claimData.deception_analysis.methods.source_credibility.score} className="h-2" />
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {claimData.deception_analysis.methods.source_credibility.reasoning}
+                    </p>
+                  </div>
+
+                  {/* Evidence Quality */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Evidence Quality
+                      </span>
+                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.evidence_quality.score)}`}>
+                        {claimData.deception_analysis.methods.evidence_quality.score}
+                      </span>
+                    </div>
+                    <Progress value={claimData.deception_analysis.methods.evidence_quality.score} className="h-2" />
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {claimData.deception_analysis.methods.evidence_quality.reasoning}
+                    </p>
+                  </div>
+
+                  {/* Logical Coherence */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4" />
+                        Logical Coherence
+                      </span>
+                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.logical_coherence.score)}`}>
+                        {claimData.deception_analysis.methods.logical_coherence.score}
+                      </span>
+                    </div>
+                    <Progress value={claimData.deception_analysis.methods.logical_coherence.score} className="h-2" />
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {claimData.deception_analysis.methods.logical_coherence.reasoning}
+                    </p>
+                  </div>
+
+                  {/* Temporal Consistency */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Temporal Consistency
+                      </span>
+                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.temporal_consistency.score)}`}>
+                        {claimData.deception_analysis.methods.temporal_consistency.score}
+                      </span>
+                    </div>
+                    <Progress value={claimData.deception_analysis.methods.temporal_consistency.score} className="h-2" />
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {claimData.deception_analysis.methods.temporal_consistency.reasoning}
+                    </p>
+                  </div>
+
+                  {/* Specificity */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium flex items-center gap-2">
+                        <Info className="h-4 w-4" />
+                        Specificity
+                      </span>
+                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.specificity.score)}`}>
+                        {claimData.deception_analysis.methods.specificity.score}
+                      </span>
+                    </div>
+                    <Progress value={claimData.deception_analysis.methods.specificity.score} className="h-2" />
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {claimData.deception_analysis.methods.specificity.reasoning}
+                    </p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="assessment" className="space-y-4 mt-4">
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">Confidence Assessment</h4>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {claimData.deception_analysis.confidence_assessment}
+                    </p>
+                  </div>
+
+                  {claimData.deception_analysis.red_flags.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-red-700 dark:text-red-400">
+                        <AlertTriangle className="h-4 w-4" />
+                        Red Flags ({claimData.deception_analysis.red_flags.length})
+                      </h4>
+                      <ul className="space-y-1">
+                        {claimData.deception_analysis.red_flags.map((flag, idx) => (
+                          <li key={idx} className="text-sm text-red-600 dark:text-red-400 flex items-start gap-2">
+                            <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                            <span>{flag}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
