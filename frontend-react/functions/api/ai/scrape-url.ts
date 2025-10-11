@@ -74,12 +74,21 @@ Article Title: {title}
 Article URL: {url}
 Article Content: {content}
 
-Generate 3-5 specific questions for each category based on the article content. CRITICAL REQUIREMENTS for each question:
+Generate 3-5 specific questions for each category based on the article content.
+
+CRITICAL REQUIREMENTS for QUESTIONS:
 1. Include the specific article title in the question (NEVER use "this article", "the article", "this", or "it")
 2. Include specific dates, event names, and entity names mentioned in the article
 3. Questions must be self-contained and understandable without seeing the article
 4. Replace ALL pronouns with specific references (e.g., instead of "Who published this?", write "Who published '[Article Title]' on [Source] ([Date])?")
-5. Answers must also be specific and complete (avoid pronouns in answers too)
+
+CRITICAL REQUIREMENTS for ANSWERS:
+1. Answers must be SELF-CONTAINED and understandable on their own
+2. DO NOT use pronouns (it, they, them, this, these, that, those) without immediately clarifying what they refer to
+3. Use SPECIFIC names, organizations, locations, dates, and numbers instead of vague references
+4. Each answer should explicitly state the subject (e.g., "Newsweek published the article" instead of "It was published")
+5. Answers must be OBJECTIVE and contain actual information from the content
+6. Include specific details: names of people, organizations, places, dates, amounts
 
 For each question, provide an answer extracted from the article. If the answer is not available in the article, set answer to empty string "".
 
@@ -89,6 +98,10 @@ Example of GOOD vs BAD questions:
 
 ❌ BAD: "What event is discussed?" (vague, uses "event")
 ✅ GOOD: "What weather phenomenon does NOAA predict will influence the 2024-2025 winter season across the United States?"
+
+Example of GOOD vs BAD answers:
+❌ BAD: "It announced that they would increase spending." (pronouns without context)
+✅ GOOD: "The United States Department of Defense announced on March 15, 2024 that it would increase military spending by $20 billion."
 
 Return ONLY valid JSON with question-answer pairs:
 
