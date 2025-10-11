@@ -18,6 +18,7 @@ interface DeceptionAnalysisData {
   scores: Partial<DeceptionScores>
   aiAnalysis?: any
   calculatedAssessment?: DeceptionAssessment
+  claimReferences?: string[]
   lastUpdated?: string
 }
 
