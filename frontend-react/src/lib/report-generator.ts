@@ -613,6 +613,15 @@ export class ReportGenerator {
     // Get item type from config
     const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
     const isQA = itemType === 'qa'
+    const isDIME = frameworkType === 'dime'
+
+    // DIME section colors
+    const dimeColors: Record<string, [number, number, number]> = {
+      'Diplomatic': [41, 98, 255],      // Blue
+      'Information': [16, 185, 129],    // Green
+      'Military': [239, 68, 68],        // Red
+      'Economic': [245, 158, 11]        // Orange
+    }
 
     // Helper function to check page break
     const checkPageBreak = (requiredSpace: number = 20) => {
@@ -646,7 +655,7 @@ export class ReportGenerator {
 
     yPos += 8
 
-    // Unanswered Questions Summary (for Q&A frameworks)
+    // Unanswered Questions Summary (for Q&A frameworks) - Improved and less prominent
     if (isQA) {
       const config = frameworkConfigs[frameworkType]
       const unansweredBySection: Record<string, number> = {}
@@ -667,24 +676,31 @@ export class ReportGenerator {
       }
 
       if (totalUnanswered > 0) {
-        checkPageBreak(30)
-        pdf.setFontSize(14)
-        pdf.setFont('helvetica', 'bold')
-        pdf.setTextColor(200, 50, 50) // Red color
-        pdf.text('⚠️ Unanswered Questions Summary', 20, yPos)
-        yPos += 10
+        checkPageBreak(25)
 
-        pdf.setFontSize(11)
+        // Less prominent styling - use a box instead of red text
+        pdf.setDrawColor(255, 193, 7) // Amber border
+        pdf.setFillColor(255, 248, 225) // Light amber background
+        pdf.rect(15, yPos - 5, 180, 20 + Object.keys(unansweredBySection).length * 5, 'FD')
+
+        pdf.setFontSize(12)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setTextColor(120, 53, 15) // Dark amber text
+        pdf.text('Unanswered Questions', 20, yPos)
+        yPos += 7
+
+        pdf.setFontSize(10)
         pdf.setFont('helvetica', 'normal')
-        pdf.setTextColor(0, 0, 0) // Reset to black
-        pdf.text(`Total unanswered questions: ${totalUnanswered}`, 20, yPos)
-        yPos += 8
+        pdf.text(`${totalUnanswered} total`, 20, yPos)
+        yPos += 5
 
         Object.entries(unansweredBySection).forEach(([label, count]) => {
-          pdf.text(`• ${label}: ${count} unanswered`, 25, yPos)
-          yPos += 6
+          pdf.setFontSize(9)
+          pdf.text(`${label}: ${count}`, 25, yPos)
+          yPos += 5
         })
-        yPos += 10
+
+        yPos += 5
         pdf.setTextColor(0, 0, 0) // Reset to black
       }
     }
@@ -709,13 +725,29 @@ export class ReportGenerator {
     if (config?.sections) {
       config.sections.forEach(section => {
         if (data[section.key] && data[section.key].length > 0) {
-          checkPageBreak(20)
+          checkPageBreak(25)
 
-          // Section header
-          pdf.setFontSize(14)
-          pdf.setFont('helvetica', 'bold')
-          pdf.text(`${section.label}`, 20, yPos)
-          yPos += 10
+          // DIME-specific section header with color coding
+          if (isDIME) {
+            const sectionColor = dimeColors[section.label] || [30, 30, 30]
+
+            // Draw colored header bar
+            pdf.setFillColor(...sectionColor)
+            pdf.rect(15, yPos - 6, 180, 12, 'F')
+
+            pdf.setFontSize(14)
+            pdf.setFont('helvetica', 'bold')
+            pdf.setTextColor(255, 255, 255) // White text on colored background
+            pdf.text(`${section.label}`, 20, yPos)
+            yPos += 12
+            pdf.setTextColor(0, 0, 0) // Reset to black
+          } else {
+            // Standard section header
+            pdf.setFontSize(14)
+            pdf.setFont('helvetica', 'bold')
+            pdf.text(`${section.label}`, 20, yPos)
+            yPos += 10
+          }
 
           pdf.setFontSize(11)
           pdf.setFont('helvetica', 'normal')
@@ -736,25 +768,42 @@ export class ReportGenerator {
           // Section items
           sectionItems.forEach((item: FrameworkItem, idx: number) => {
             if (isQA && isQuestionAnswerItem(item)) {
-              // Q&A format
-              checkPageBreak(15)
-
+              // Q&A format with improved page break logic
               const isAnswered = item.answer && item.answer.trim() !== ''
 
+              // Calculate required space for this Q&A pair
+              const questionLines = pdf.splitTextToSize(`Q: ${item.question}`, 165)
+              const answerLines = pdf.splitTextToSize(`A: ${item.answer || 'No answer provided'}`, 160)
+              const requiredSpace = (questionLines.length * 6) + (answerLines.length * 6) + 8
+
+              // Check if we need a page break to avoid cutting mid-question
+              checkPageBreak(requiredSpace)
+
+              // Draw subtle box around each Q&A pair for DIME
+              if (isDIME) {
+                const boxHeight = requiredSpace - 2
+                pdf.setDrawColor(220, 220, 220)
+                pdf.setFillColor(250, 250, 250)
+                pdf.rect(22, yPos - 3, 168, boxHeight, 'FD')
+              }
+
               pdf.setFont('helvetica', 'bold')
+              pdf.setTextColor(0, 0, 0)
               const questionText = `Q: ${item.question}`
-              const questionLines = pdf.splitTextToSize(questionText, 165)
-              pdf.text(questionLines, 25, yPos)
-              yPos += questionLines.length * 6
+              const finalQuestionLines = pdf.splitTextToSize(questionText, 160)
+              pdf.text(finalQuestionLines, 25, yPos)
+              yPos += finalQuestionLines.length * 6 + 2
 
               pdf.setFont('helvetica', isAnswered ? 'normal' : 'italic')
               if (!isAnswered) {
                 pdf.setTextColor(150, 150, 150) // Gray for unanswered
+              } else {
+                pdf.setTextColor(60, 60, 60) // Dark gray for answers
               }
-              const answerText = `   A: ${item.answer || 'No answer provided'}`
-              const answerLines = pdf.splitTextToSize(answerText, 160)
-              pdf.text(answerLines, 30, yPos)
-              yPos += answerLines.length * 6 + 4
+              const answerText = `A: ${item.answer || 'No answer provided'}`
+              const finalAnswerLines = pdf.splitTextToSize(answerText, 155)
+              pdf.text(finalAnswerLines, 30, yPos)
+              yPos += finalAnswerLines.length * 6 + 6
               pdf.setTextColor(0, 0, 0) // Reset to black
             } else {
               // Text format
@@ -768,7 +817,7 @@ export class ReportGenerator {
             }
           })
 
-          yPos += 8
+          yPos += 10
         }
       })
     }

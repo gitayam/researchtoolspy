@@ -79,6 +79,15 @@ export default function ContentIntelligencePage() {
   // Text View State (Summary vs Full Text)
   const [textView, setTextView] = useState<'summary' | 'fulltext'>('summary')
 
+  // DIME Analysis State
+  const [dimeLoading, setDimeLoading] = useState(false)
+  const [dimeAnalysis, setDimeAnalysis] = useState<any>(null)
+
+  // Save/Share State
+  const [saveLoading, setSaveLoading] = useState(false)
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [showShareDialog, setShowShareDialog] = useState(false)
+
   // Format full text for better readability
   const formatFullText = (text: string): string => {
     if (!text) return ''
@@ -236,6 +245,60 @@ export default function ContentIntelligencePage() {
               <div class="qa-answer">A: ${qa.answer}</div>
             </div>
           `).join('')}
+        ` : ''}
+
+        <!-- DIME Framework Analysis -->
+        ${(analysis.dime_analysis || dimeAnalysis) ? `
+          <h2>DIME Framework Analysis</h2>
+          <p style="color: #6b7280; font-style: italic; margin-bottom: 20px;">
+            Diplomatic, Information, Military, Economic strategic analysis framework
+          </p>
+
+          ${(analysis.dime_analysis?.diplomatic || dimeAnalysis?.diplomatic) ? `
+            <h3 style="color: #2563eb;">🤝 Diplomatic</h3>
+            ${(analysis.dime_analysis?.diplomatic || dimeAnalysis?.diplomatic).map((qa: any, index: number) => `
+              <div class="qa-item">
+                <div class="qa-question">Q${index + 1}: ${qa.question}</div>
+                <div class="qa-answer">A: ${qa.answer}</div>
+              </div>
+            `).join('')}
+          ` : ''}
+
+          ${(analysis.dime_analysis?.information || dimeAnalysis?.information) ? `
+            <h3 style="color: #10b981;">📰 Information</h3>
+            ${(analysis.dime_analysis?.information || dimeAnalysis?.information).map((qa: any, index: number) => `
+              <div class="qa-item">
+                <div class="qa-question">Q${index + 1}: ${qa.question}</div>
+                <div class="qa-answer">A: ${qa.answer}</div>
+              </div>
+            `).join('')}
+          ` : ''}
+
+          ${(analysis.dime_analysis?.military || dimeAnalysis?.military) ? `
+            <h3 style="color: #ef4444;">⚔️ Military</h3>
+            ${(analysis.dime_analysis?.military || dimeAnalysis?.military).map((qa: any, index: number) => `
+              <div class="qa-item">
+                <div class="qa-question">Q${index + 1}: ${qa.question}</div>
+                <div class="qa-answer">A: ${qa.answer}</div>
+              </div>
+            `).join('')}
+          ` : ''}
+
+          ${(analysis.dime_analysis?.economic || dimeAnalysis?.economic) ? `
+            <h3 style="color: #f59e0b;">💰 Economic</h3>
+            ${(analysis.dime_analysis?.economic || dimeAnalysis?.economic).map((qa: any, index: number) => `
+              <div class="qa-item">
+                <div class="qa-question">Q${index + 1}: ${qa.question}</div>
+                <div class="qa-answer">A: ${qa.answer}</div>
+              </div>
+            `).join('')}
+          ` : ''}
+
+          ${(analysis.dime_analysis?.summary || dimeAnalysis?.summary) ? `
+            <div class="summary" style="margin-top: 20px;">
+              <strong>DIME Summary:</strong> ${analysis.dime_analysis?.summary || dimeAnalysis?.summary}
+            </div>
+          ` : ''}
         ` : ''}
 
         <!-- Top Phrases -->
@@ -471,6 +534,109 @@ export default function ContentIntelligencePage() {
       console.error('Failed to load saved links:', error)
     } finally {
       setLoadingSavedLinks(false)
+    }
+  }
+
+  // Run DIME Framework Analysis
+  const runDIMEAnalysis = async () => {
+    if (!analysis) {
+      toast({ title: 'Error', description: 'No analysis available', variant: 'destructive' })
+      return
+    }
+
+    setDimeLoading(true)
+    try {
+      const response = await fetch('/api/content-intelligence/dime-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysis_id: analysis.id.toString(),
+          content_text: analysis.extracted_text,
+          title: analysis.title || 'Untitled',
+          url: analysis.url
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('DIME analysis failed')
+      }
+
+      const data = await response.json()
+      setDimeAnalysis(data.dime_analysis)
+      setAnalysis({ ...analysis, dime_analysis: data.dime_analysis })
+
+      toast({
+        title: 'DIME Analysis Complete',
+        description: 'Framework analysis has been generated successfully'
+      })
+    } catch (error) {
+      console.error('DIME analysis error:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to run DIME analysis',
+        variant: 'destructive'
+      })
+    } finally {
+      setDimeLoading(false)
+    }
+  }
+
+  // Save analysis permanently and generate share link
+  const saveAnalysisPermanently = async () => {
+    if (!analysis) {
+      toast({ title: 'Error', description: 'No analysis to save', variant: 'destructive' })
+      return
+    }
+
+    const userHash = localStorage.getItem('omnicore_user_hash')
+    if (!userHash) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please ensure you have a user session',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    setSaveLoading(true)
+    try {
+      const response = await fetch('/api/content-intelligence/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userHash}`,
+          'X-User-Hash': userHash
+        },
+        body: JSON.stringify({
+          analysis_id: analysis.id.toString(),
+          generate_share_link: true,
+          note: saveNote || undefined,
+          tags: saveTags ? saveTags.split(',').map(t => t.trim()) : []
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save analysis')
+      }
+
+      const data = await response.json()
+      setShareUrl(data.share_url ? `${window.location.origin}${data.share_url}` : null)
+      setShowShareDialog(true)
+      setAnalysis({ ...analysis, is_saved: true, share_token: data.share_token })
+
+      toast({
+        title: 'Analysis Saved',
+        description: 'Your analysis has been saved permanently'
+      })
+    } catch (error) {
+      console.error('Save error:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to save analysis',
+        variant: 'destructive'
+      })
+    } finally {
+      setSaveLoading(false)
     }
   }
 
@@ -1871,7 +2037,7 @@ export default function ContentIntelligencePage() {
       {/* Results */}
       {analysis && (
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AnalysisTab)}>
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
             <TabsTrigger value="overview">
               <FileText className="h-4 w-4 mr-2" />
               Overview
@@ -1895,6 +2061,22 @@ export default function ContentIntelligencePage() {
             <TabsTrigger value="qa">
               <MessageSquare className="h-4 w-4 mr-2" />
               Q&A
+            </TabsTrigger>
+            <TabsTrigger value="dime" className="relative">
+              <Grid3x3 className="h-4 w-4 mr-2" />
+              DIME
+              {dimeLoading && (
+                <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Analyzing
+                </Badge>
+              )}
+              {(analysis.dime_analysis || dimeAnalysis) && !dimeLoading && (
+                <Badge variant="default" className="ml-2 bg-green-100 text-green-700">
+                  <Check className="h-3 w-3 mr-1" />
+                  Ready
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="starbursting" className="relative">
               <Star className="h-4 w-4 mr-2" />
@@ -1957,6 +2139,32 @@ export default function ContentIntelligencePage() {
                     Open in Generator
                   </Button>
                   <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={runDIMEAnalysis}
+                    disabled={dimeLoading || !analysis.extracted_text}
+                  >
+                    {dimeLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Grid3x3 className="h-4 w-4 mr-2" />
+                    )}
+                    DIME Analysis
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={saveAnalysisPermanently}
+                    disabled={saveLoading || analysis.is_saved}
+                  >
+                    {saveLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {analysis.is_saved ? 'Saved' : 'Save Permanently'}
+                  </Button>
+                  <Button
                     variant="default"
                     size="sm"
                     onClick={exportFullReport}
@@ -1965,6 +2173,41 @@ export default function ContentIntelligencePage() {
                     Export Report
                   </Button>
                 </div>
+              </div>
+
+              {/* Expiration Warning & Share Link */}
+              <div className="flex items-center gap-3">
+                {analysis.expires_at && !analysis.is_saved && (
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Auto-deletes in {Math.ceil((new Date(analysis.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days - Save to keep permanently
+                  </Badge>
+                )}
+                {analysis.is_saved && (
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    <Check className="h-3 w-3 mr-1" />
+                    Saved Permanently
+                  </Badge>
+                )}
+                {shareUrl && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                      <Link2 className="h-3 w-3 mr-1" />
+                      Shareable
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(shareUrl)
+                        toast({ title: 'Link Copied', description: 'Share URL copied to clipboard' })
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copy Link
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Text Content with Toggle */}
@@ -3125,6 +3368,167 @@ export default function ContentIntelligencePage() {
                 </div>
               )}
             </Card>
+          </TabsContent>
+
+          {/* DIME Framework Analysis Tab */}
+          <TabsContent value="dime" className="mt-4">
+            {(analysis?.dime_analysis || dimeAnalysis) ? (
+              <div className="space-y-6">
+                {/* Summary Card */}
+                {((analysis?.dime_analysis || dimeAnalysis)?.summary) && (
+                  <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2">
+                        <Grid3x3 className="h-5 w-5 text-blue-600" />
+                        DIME Framework Summary
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {(analysis?.dime_analysis || dimeAnalysis).summary}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Diplomatic Dimension */}
+                {(analysis?.dime_analysis || dimeAnalysis)?.diplomatic && (
+                  <Card className="p-6 border-l-4 border-blue-500">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                        🤝 Diplomatic
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        International relations, negotiations, alliances, and diplomatic strategies
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {(analysis?.dime_analysis || dimeAnalysis).diplomatic.map((qa: any, index: number) => (
+                        <div key={index} className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+                          <div className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                            Q{index + 1}: {qa.question}
+                          </div>
+                          <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                            <strong>A:</strong> {qa.answer}
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Information Dimension */}
+                {(analysis?.dime_analysis || dimeAnalysis)?.information && (
+                  <Card className="p-6 border-l-4 border-purple-500">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2 text-purple-700 dark:text-purple-400">
+                        📡 Information
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Media narratives, public messaging, information operations, and communication strategies
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {(analysis?.dime_analysis || dimeAnalysis).information.map((qa: any, index: number) => (
+                        <div key={index} className="bg-purple-50 dark:bg-purple-950/30 p-4 rounded-lg">
+                          <div className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
+                            Q{index + 1}: {qa.question}
+                          </div>
+                          <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                            <strong>A:</strong> {qa.answer}
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Military Dimension */}
+                {(analysis?.dime_analysis || dimeAnalysis)?.military && (
+                  <Card className="p-6 border-l-4 border-red-500">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                        ⚔️ Military
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Defense capabilities, security concerns, armed forces, and military strategies
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {(analysis?.dime_analysis || dimeAnalysis).military.map((qa: any, index: number) => (
+                        <div key={index} className="bg-red-50 dark:bg-red-950/30 p-4 rounded-lg">
+                          <div className="font-semibold text-red-900 dark:text-red-100 mb-2">
+                            Q{index + 1}: {qa.question}
+                          </div>
+                          <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                            <strong>A:</strong> {qa.answer}
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Economic Dimension */}
+                {(analysis?.dime_analysis || dimeAnalysis)?.economic && (
+                  <Card className="p-6 border-l-4 border-green-500">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                        💰 Economic
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Trade, sanctions, financial systems, economic policies, and fiscal implications
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {(analysis?.dime_analysis || dimeAnalysis).economic.map((qa: any, index: number) => (
+                        <div key={index} className="bg-green-50 dark:bg-green-950/30 p-4 rounded-lg">
+                          <div className="font-semibold text-green-900 dark:text-green-100 mb-2">
+                            Q{index + 1}: {qa.question}
+                          </div>
+                          <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                            <strong>A:</strong> {qa.answer}
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Re-run button */}
+                <Card className="p-4 bg-gray-50 dark:bg-gray-900">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Need to refresh the analysis?</p>
+                      <p className="text-xs text-muted-foreground">Run DIME analysis again to update results</p>
+                    </div>
+                    <Button onClick={runDIMEAnalysis} disabled={dimeLoading} variant="outline" size="sm">
+                      <Grid3x3 className="h-4 w-4 mr-2" />
+                      {dimeLoading ? 'Analyzing...' : 'Re-run Analysis'}
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            ) : (
+              <Card className="p-6">
+                <div className="text-center py-8">
+                  <Grid3x3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="font-semibold text-lg mb-2">DIME Framework Analysis</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Analyze this content through the DIME framework lens: Diplomatic, Information, Military, and Economic dimensions.
+                  </p>
+                  <Button onClick={runDIMEAnalysis} disabled={dimeLoading || !analysis} size="lg">
+                    <Grid3x3 className="h-4 w-4 mr-2" />
+                    {dimeLoading ? 'Analyzing...' : 'Run DIME Analysis'}
+                  </Button>
+                  {!analysis && (
+                    <p className="text-sm text-muted-foreground mt-4">
+                      Analyze content first before running DIME framework analysis
+                    </p>
+                  )}
+                </div>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       )}

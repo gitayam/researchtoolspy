@@ -17,6 +17,7 @@ import { ArrowLeft, Save, Sparkles, AlertTriangle } from 'lucide-react'
 import { AIFieldAssistant, AIUrlScraper } from '@/components/ai'
 import { DeceptionScoringForm } from './DeceptionScoringForm'
 import { DeceptionDashboard } from './DeceptionDashboard'
+import { DeceptionPDFExport } from './DeceptionPDFExport'
 import type { DeceptionScores } from '@/lib/deception-scoring'
 import { calculateDeceptionLikelihood } from '@/lib/deception-scoring'
 import type { AIDeceptionAnalysis } from '@/lib/ai-deception-analysis'
@@ -196,6 +197,25 @@ export function DeceptionForm({
                 <Sparkles className="h-4 w-4 mr-2" />
                 {runningAI ? 'Analyzing...' : 'AI Analysis'}
               </Button>
+            )}
+            {mode === 'edit' && calculatedAssessment && (
+              <DeceptionPDFExport
+                analysis={{
+                  title,
+                  description,
+                  scenario,
+                  mom,
+                  pop,
+                  moses,
+                  eve,
+                  assessment,
+                  scores,
+                  aiAnalysis,
+                  calculatedAssessment,
+                  lastUpdated: new Date().toISOString()
+                }}
+                variant="outline"
+              />
             )}
             <Button onClick={handleSave} disabled={saving}>
               <Save className="h-4 w-4 mr-2" />

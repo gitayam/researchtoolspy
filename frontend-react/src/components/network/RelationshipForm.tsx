@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, X, Search, ArrowRight, Calendar as CalendarIcon } from 'lucide-react'
+import { Save, X, Search, ArrowRight, Calendar as CalendarIcon, Sparkles, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -60,6 +60,14 @@ export function RelationshipForm({
   const [entitySearch, setEntitySearch] = useState({ source: '', target: '' })
   const [entityOptions, setEntityOptions] = useState<EntityOption[]>([])
   const [searchingEntities, setSearchingEntities] = useState(false)
+
+  // GPT Inference State
+  const [inferenceLoading, setInferenceLoading] = useState(false)
+  const [inferenceResult, setInferenceResult] = useState<{
+    inferred_type: string
+    confidence: string
+    explanation: string
+  } | null>(null)
 
   // Entity type options
   const entityTypes: EntityType[] = ['ACTOR', 'SOURCE', 'EVIDENCE', 'EVENT', 'PLACE', 'BEHAVIOR']
@@ -140,6 +148,56 @@ export function RelationshipForm({
       EVIDENCE: 'evidence'
     }
     return keys[type]
+  }
+
+  // GPT Inference Function
+  const inferRelationshipType = async () => {
+    if (!formData.source_entity_id || !formData.target_entity_id) {
+      setError('Please select both source and target entities first')
+      return
+    }
+
+    setInferenceLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/relationships/infer-type', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source_entity_id: formData.source_entity_id,
+          source_entity_type: formData.source_entity_type,
+          target_entity_id: formData.target_entity_id,
+          target_entity_type: formData.target_entity_type,
+          context: formData.description || undefined,
+          evidence_text: undefined // Could be populated if we have evidence context
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setInferenceResult({
+          inferred_type: data.inferred_type,
+          confidence: data.confidence,
+          explanation: data.explanation
+        })
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to infer relationship type')
+      }
+    } catch (error) {
+      console.error('Inference error:', error)
+      setError('Failed to infer relationship type. Please try again.')
+    } finally {
+      setInferenceLoading(false)
+    }
+  }
+
+  const applyInferredType = () => {
+    if (inferenceResult) {
+      setFormData({ ...formData, relationship_type: inferenceResult.inferred_type as RelationshipType })
+      setInferenceResult(null)
+    }
   }
 
   useEffect(() => {
@@ -300,6 +358,65 @@ export function RelationshipForm({
               <p className="text-xs text-gray-500">{selectedRelationType.description}</p>
             )}
           </div>
+
+          {/* GPT Inference Section */}
+          {!isEditing && (
+            <div className="space-y-3 p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <h4 className="font-semibold text-gray-900 dark:text-white">AI-Powered Type Suggestion</h4>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={inferRelationshipType}
+                  disabled={inferenceLoading || !formData.source_entity_id || !formData.target_entity_id}
+                >
+                  {inferenceLoading ? 'Analyzing...' : 'Suggest Type'}
+                </Button>
+              </div>
+
+              {inferenceResult && (
+                <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-purple-300 dark:border-purple-700 space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="default" className="bg-purple-600">
+                          {inferenceResult.inferred_type.replace(/_/g, ' ')}
+                        </Badge>
+                        <Badge variant="outline" className={
+                          inferenceResult.confidence === 'HIGH' ? 'border-green-500 text-green-700' :
+                          inferenceResult.confidence === 'MEDIUM' ? 'border-yellow-500 text-yellow-700' :
+                          'border-gray-500 text-gray-700'
+                        }>
+                          {inferenceResult.confidence} Confidence
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+                        {inferenceResult.explanation}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="default"
+                      onClick={applyInferredType}
+                      className="ml-3 bg-purple-600 hover:bg-purple-700"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Use This
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                GPT will analyze the selected entities and suggest the most appropriate relationship type based on their context.
+              </p>
+            </div>
+          )}
 
           {/* Description */}
           <div className="space-y-2">
