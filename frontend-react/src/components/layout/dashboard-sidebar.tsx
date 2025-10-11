@@ -22,7 +22,8 @@ import {
   Sparkles,
   Library,
   Activity,
-  Folder
+  Folder,
+  AlertTriangle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +39,19 @@ const getNavigation = (t: (key: string) => string) => [
       { name: t('tools.documents'), href: '/dashboard/tools/documents' },
     ]
   },
+  {
+    name: t('navigation.evidenceCollection'),
+    href: '/dashboard/evidence',
+    icon: Archive,
+    children: [
+      { name: t('navigation.data'), href: '/dashboard/evidence' },
+      { name: 'Claims', href: '/dashboard/tools/content-intelligence', icon: AlertTriangle },
+      { name: t('navigation.actors'), href: '/dashboard/entities/actors' },
+      { name: t('navigation.sources'), href: '/dashboard/entities/sources' },
+      { name: t('navigation.events'), href: '/dashboard/entities/events' },
+    ]
+  },
+  { name: 'Investigation Packets', href: '/dashboard/investigations', icon: Folder },
   {
     name: t('navigation.analysisFrameworks'),
     href: '/dashboard/analysis-frameworks',
@@ -97,18 +111,6 @@ const getNavigation = (t: (key: string) => string) => [
       },
     ]
   },
-  {
-    name: t('navigation.evidenceCollection'),
-    href: '/dashboard/evidence',
-    icon: Archive,
-    children: [
-      { name: t('navigation.data'), href: '/dashboard/evidence' },
-      { name: t('navigation.actors'), href: '/dashboard/entities/actors' },
-      { name: t('navigation.sources'), href: '/dashboard/entities/sources' },
-      { name: t('navigation.events'), href: '/dashboard/entities/events' },
-    ]
-  },
-  { name: 'Investigation Packets', href: '/dashboard/investigations', icon: Folder },
   { name: t('navigation.networkAnalysis'), href: '/dashboard/network', icon: Network },
   { name: t('navigation.datasetLibrary'), href: '/dashboard/datasets', icon: Database },
   { name: t('navigation.reports'), href: '/dashboard/reports', icon: FileText },
