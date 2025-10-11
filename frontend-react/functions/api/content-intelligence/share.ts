@@ -3,17 +3,18 @@
  * POST /api/content-intelligence/share - Generate or update share token for analysis
  */
 
-import { getAuthFromCookie } from '../_shared/auth'
+import { requireAuth } from '../_shared/auth-helpers'
 import crypto from 'crypto'
 
 interface Env {
   DB: D1Database
+  SESSIONS: KVNamespace
 }
 
 // POST /api/content-intelligence/share - Make analysis public and get share link
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const auth = getAuthFromCookie(context.request)
+    const auth = await requireAuth(context)
     if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -42,7 +43,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (analysis.user_id !== auth.userId) {
+    if (analysis.user_id !== auth.user.id) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' }
