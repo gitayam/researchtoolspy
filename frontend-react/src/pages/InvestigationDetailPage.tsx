@@ -12,6 +12,14 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Folder,
   FileText,
   Link as LinkIcon,
@@ -24,7 +32,9 @@ import {
   TrendingUp,
   Calendar,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Brain,
+  ChevronDown
 } from 'lucide-react'
 
 interface InvestigationPacket {
@@ -208,6 +218,26 @@ export function InvestigationDetailPage() {
     return 'text-green-600 dark:text-green-400'
   }
 
+  const generateFramework = (frameworkType: 'cog' | 'swot') => {
+    // Navigate to framework creation page with investigation context
+    const state = {
+      fromInvestigation: true,
+      investigationId: id,
+      investigationTitle: packet?.title,
+      investigationData: {
+        content,
+        statistics,
+        description: packet?.description
+      }
+    }
+
+    if (frameworkType === 'cog') {
+      navigate('/dashboard/analysis-frameworks/cog/create', { state })
+    } else if (frameworkType === 'swot') {
+      navigate('/dashboard/analysis-frameworks/swot-dashboard/create', { state })
+    }
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -341,6 +371,39 @@ export function InvestigationDetailPage() {
           </Card>
         </div>
       )}
+
+      {/* Generate Framework Button */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="w-full gap-2">
+            <Brain className="h-4 w-4" />
+            Generate Framework from Investigation
+            <ChevronDown className="h-4 w-4 ml-auto" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56">
+          <DropdownMenuLabel>Choose Framework Type</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => generateFramework('cog')}>
+            <Brain className="h-4 w-4 mr-2" />
+            <div>
+              <div className="font-medium">Center of Gravity (COG)</div>
+              <div className="text-xs text-muted-foreground">
+                Identify critical capabilities and vulnerabilities
+              </div>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => generateFramework('swot')}>
+            <TrendingUp className="h-4 w-4 mr-2" />
+            <div>
+              <div className="font-medium">SWOT Analysis</div>
+              <div className="text-xs text-muted-foreground">
+                Analyze strengths, weaknesses, opportunities, threats
+              </div>
+            </div>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Add Content Button */}
       <Dialog open={isAddContentOpen} onOpenChange={setIsAddContentOpen}>
