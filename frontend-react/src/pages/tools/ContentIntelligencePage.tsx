@@ -738,6 +738,9 @@ export default function ContentIntelligencePage() {
       : 'Extracting content...'
     )
 
+    // Declare progress interval outside try block so it's accessible in catch
+    let progressInterval: NodeJS.Timeout | null = null
+
     try {
       // Generate bypass/archive URLs immediately
       const encoded = encodeURIComponent(targetUrl)
@@ -754,6 +757,26 @@ export default function ContentIntelligencePage() {
         : 'Analyzing word frequency...'
       )
 
+      // Simulate progress during long API call to show user something is happening
+      const steps = [
+        { progress: 35, message: 'Extracting entities...' },
+        { progress: 45, message: 'Generating summary...' },
+        { progress: 55, message: 'Analyzing topics...' },
+        { progress: 62, message: 'Extracting key phrases...' },
+        { progress: 68, message: 'Analyzing sentiment...' },
+        { progress: 75, message: 'Detecting claims...' },
+        { progress: 85, message: 'Analyzing claim credibility...' }
+      ]
+
+      let stepIndex = 0
+      progressInterval = setInterval(() => {
+        if (stepIndex < steps.length) {
+          setProgress(steps[stepIndex].progress)
+          setCurrentStep(steps[stepIndex].message)
+          stepIndex++
+        }
+      }, 2000) // Update every 2 seconds
+
       const response = await fetch('/api/content-intelligence/analyze-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -765,6 +788,9 @@ export default function ContentIntelligencePage() {
           link_tags: saveTags ? saveTags.split(',').map(t => t.trim()) : []
         })
       })
+
+      // Clear progress interval once we have response
+      if (progressInterval) clearInterval(progressInterval)
 
       if (!response.ok) {
         const error = await response.json()
@@ -792,6 +818,8 @@ export default function ContentIntelligencePage() {
 
       toast({ title: 'Success', description: 'Analysis complete!' })
     } catch (error) {
+      // Clear progress interval on error
+      if (progressInterval) clearInterval(progressInterval)
       console.error('Analysis error:', error)
       setStatus('error')
 
