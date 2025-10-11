@@ -1493,7 +1493,7 @@ export function GenericFrameworkForm({
       {frameworkType === 'pmesii-pt' && (
         <PMESIIPTLocationSelector
           value={pmesiiLocation}
-          onChange={setPmesiiLocation}
+          onChange={(data) => setPmesiiLocation(data as any)}
           suggestedLocations={importedSources.length > 0 ? [] : []} // TODO: Extract locations from imported sources
         />
       )}
