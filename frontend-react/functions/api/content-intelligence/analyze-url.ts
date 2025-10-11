@@ -14,11 +14,14 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
 import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
   OPENAI_API_KEY: string
+  AI_GATEWAY_ACCOUNT_ID?: string
   SESSIONS?: KVNamespace
+  RATE_LIMIT?: KVNamespace
 }
 
 interface AnalyzeUrlRequest {
@@ -328,7 +331,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.log(`[DEBUG] API Key available: ${!!env.OPENAI_API_KEY}`)
       console.log(`[DEBUG] Text length: ${contentData.text.length}`)
 
-      entitiesData = await extractEntities(contentData.text, env.OPENAI_API_KEY, contentData.author)
+      entitiesData = await extractEntities(contentData.text, env, contentData.author)
       console.log(`[DEBUG] Entities extracted: ${JSON.stringify(entitiesData)}`)
     } catch (error) {
       console.error('[DEBUG] Entity extraction failed:', error)
@@ -360,7 +363,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         console.log(`[DEBUG] Intelligent summary generated with ${intelligentResult.chapters?.length || 0} chapters`)
       } else {
-        summary = await generateSummary(contentData.text, env.OPENAI_API_KEY)
+        summary = await generateSummary(contentData.text, env)
       }
 
       console.log(`[DEBUG] Summary generated: ${summary?.substring(0, 100)}...`)
@@ -374,7 +377,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let sentimentData
     try {
       console.log('[DEBUG] Calling analyzeSentiment with GPT...')
-      sentimentData = await analyzeSentiment(contentData.text, env.OPENAI_API_KEY)
+      sentimentData = await analyzeSentiment(contentData.text, env)
       console.log(`[DEBUG] Sentiment analyzed: ${sentimentData.overall} (score: ${sentimentData.score})`)
     } catch (error) {
       console.error('[DEBUG] Sentiment analysis failed:', error)
@@ -386,7 +389,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let keyphrases
     try {
       console.log('[DEBUG] Calling extractKeyphrases with GPT...')
-      keyphrases = await extractKeyphrases(contentData.text, env.OPENAI_API_KEY)
+      keyphrases = await extractKeyphrases(contentData.text, env)
       console.log(`[DEBUG] Keyphrases extracted: ${keyphrases.length} phrases`)
     } catch (error) {
       console.error('[DEBUG] Keyphrase extraction failed:', error)
@@ -398,7 +401,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let topics
     try {
       console.log('[DEBUG] Calling extractTopics with GPT...')
-      topics = await extractTopics(contentData.text, env.OPENAI_API_KEY)
+      topics = await extractTopics(contentData.text, env)
       console.log(`[DEBUG] Topics extracted: ${topics.length} topics`)
     } catch (error) {
       console.error('[DEBUG] Topic extraction failed:', error)
@@ -410,13 +413,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let claimAnalysis
     try {
       console.log('[DEBUG] Calling extractClaims with GPT...')
-      const claims = await extractClaims(contentData.text, env.OPENAI_API_KEY, contentData.title)
+      const claims = await extractClaims(contentData.text, env, contentData.title)
       console.log(`[DEBUG] Claims extracted: ${claims.length} claims`)
 
       // Only run deception detection if we have claims
       if (claims.length > 0) {
         console.log('[DEBUG] Running deception detection on claims...')
-        claimAnalysis = await analyzeClaimsForDeception(claims, contentData.text, env.OPENAI_API_KEY)
+        claimAnalysis = await analyzeClaimsForDeception(claims, contentData.text, env)
         console.log(`[DEBUG] Claim deception analysis complete`)
       } else {
         console.log('[DEBUG] No claims extracted, skipping deception analysis')
@@ -897,7 +900,7 @@ function getTopPhrases(frequency: Record<string, number>, limit: number): Array<
   return deduplicated.slice(0, limit)
 }
 
-async function extractEntities(text: string, apiKey: string, articleAuthor?: string): Promise<{
+async function extractEntities(text: string, env: Env, articleAuthor?: string): Promise<{
   people: Array<{ name: string; count: number }>
   organizations: Array<{ name: string; count: number }>
   locations: Array<{ name: string; count: number }>
@@ -947,40 +950,27 @@ Return ONLY valid JSON in this exact format:
 }`
 
   try {
-    console.log('[DEBUG] extractEntities called, API key present:', !!apiKey)
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
+    console.log('[DEBUG] extractEntities called, API key present:', !!env.OPENAI_API_KEY)
+    console.log('[DEBUG] Calling OpenAI API for entity extraction via AI Gateway...')
 
-    console.log('[DEBUG] Calling OpenAI API for entity extraction...')
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+    const data = await callOpenAIViaGateway(env, {
+      model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
+      messages: [
+        { role: 'system', content: 'You are a named entity recognition expert. Extract entities by type: people, organizations, locations, dates, money, events, products, and percentages. Exclude article authors from people. Normalize similar entities. Return ONLY valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: 1200,
+      temperature: 0.7
+    }, {
+      cacheTTL: getOptimalCacheTTL('entity-extraction'),
+      metadata: {
+        endpoint: 'content-intelligence',
+        operation: 'extract-entities'
       },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
-        messages: [
-          { role: 'system', content: 'You are a named entity recognition expert. Extract entities by type: people, organizations, locations, dates, money, events, products, and percentages. Exclude article authors from people. Normalize similar entities. Return ONLY valid JSON.' },
-          { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 1200,
-        temperature: 0.7
-      })
+      timeout: 15000
     })
 
-    clearTimeout(timeoutId)
-    console.log('[DEBUG] OpenAI response status:', response.status)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[DEBUG] OpenAI API error response:', errorText)
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
-    }
-
-    const data = await response.json() as any
-    console.log('[DEBUG] OpenAI response received')
+    console.log('[DEBUG] OpenAI response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       console.error('[DEBUG] Invalid API response structure:', JSON.stringify(data))
@@ -1013,7 +1003,7 @@ Return ONLY valid JSON in this exact format:
   }
 }
 
-async function generateSummary(text: string, apiKey: string): Promise<string> {
+async function generateSummary(text: string, env: Env): Promise<string> {
   const truncated = text.substring(0, 10000)
 
   const prompt = `Summarize this content in 200-250 words. Focus on key facts and main points.
@@ -1021,34 +1011,22 @@ async function generateSummary(text: string, apiKey: string): Promise<string> {
 ${truncated}`
 
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+    const data = await callOpenAIViaGateway(env, {
+      model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
+      messages: [
+        { role: 'system', content: 'You are a professional summarizer.' },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: 500,
+      temperature: 0.7
+    }, {
+      cacheTTL: getOptimalCacheTTL('content-intelligence'),
+      metadata: {
+        endpoint: 'content-intelligence',
+        operation: 'generate-summary'
       },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
-        messages: [
-          { role: 'system', content: 'You are a professional summarizer.' },
-          { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 500,
-        temperature: 0.7
-      })
+      timeout: 15000
     })
-
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json() as any
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid API response')
@@ -1062,7 +1040,7 @@ ${truncated}`
   }
 }
 
-async function extractTopics(text: string, apiKey: string): Promise<Array<{
+async function extractTopics(text: string, env: Env): Promise<Array<{
   name: string
   keywords: string[]
   coherence: number // 0.0 to 1.0 - how well-defined
@@ -1109,38 +1087,25 @@ Return ONLY valid JSON in this exact format:
 ]`
 
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 20000) // Longer timeout for topic modeling
-
-    console.log('[DEBUG] Calling OpenAI API for topic extraction...')
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+    console.log('[DEBUG] Calling OpenAI API for topic extraction via AI Gateway...')
+    const data = await callOpenAIViaGateway(env, {
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a topic modeling expert using LDA principles. Identify distinct, coherent topics with accurate coverage distributions. Return ONLY valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: 1000,
+      temperature: 0.3 // Lower temperature for consistent topic identification
+    }, {
+      cacheTTL: getOptimalCacheTTL('content-intelligence'),
+      metadata: {
+        endpoint: 'content-intelligence',
+        operation: 'extract-topics'
       },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are a topic modeling expert using LDA principles. Identify distinct, coherent topics with accurate coverage distributions. Return ONLY valid JSON.' },
-          { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 1000,
-        temperature: 0.3 // Lower temperature for consistent topic identification
-      })
+      timeout: 20000
     })
 
-    clearTimeout(timeoutId)
-    console.log('[DEBUG] Topic extraction response status:', response.status)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[DEBUG] Topic API error:', errorText)
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json() as any
+    console.log('[DEBUG] Topic extraction response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid API response for topics')
@@ -1163,7 +1128,7 @@ Return ONLY valid JSON in this exact format:
   }
 }
 
-async function extractKeyphrases(text: string, apiKey: string): Promise<Array<{
+async function extractKeyphrases(text: string, env: Env): Promise<Array<{
   phrase: string
   score: number // 0.0 to 1.0 importance score
   category: 'technology' | 'concept' | 'event' | 'location' | 'other'
@@ -1210,38 +1175,25 @@ Return ONLY valid JSON in this exact format:
 ]`
 
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
-
-    console.log('[DEBUG] Calling OpenAI API for keyphrase extraction...')
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+    console.log('[DEBUG] Calling OpenAI API for keyphrase extraction via AI Gateway...')
+    const data = await callOpenAIViaGateway(env, {
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a keyphrase extraction expert. Identify important concepts, terminology, and themes using graph-based importance ranking. Return ONLY valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: 800,
+      temperature: 0.3 // Lower temperature for consistent extraction
+    }, {
+      cacheTTL: getOptimalCacheTTL('content-intelligence'),
+      metadata: {
+        endpoint: 'content-intelligence',
+        operation: 'extract-keyphrases'
       },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are a keyphrase extraction expert. Identify important concepts, terminology, and themes using graph-based importance ranking. Return ONLY valid JSON.' },
-          { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 800,
-        temperature: 0.3 // Lower temperature for consistent extraction
-      })
+      timeout: 15000
     })
 
-    clearTimeout(timeoutId)
-    console.log('[DEBUG] Keyphrase extraction response status:', response.status)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[DEBUG] Keyphrase API error:', errorText)
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json() as any
+    console.log('[DEBUG] Keyphrase extraction response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid API response for keyphrases')
@@ -1264,7 +1216,7 @@ Return ONLY valid JSON in this exact format:
   }
 }
 
-async function analyzeSentiment(text: string, apiKey: string): Promise<{
+async function analyzeSentiment(text: string, env: Env): Promise<{
   overall: 'positive' | 'negative' | 'neutral' | 'mixed'
   score: number // -1.0 to +1.0
   confidence: number // 0.0 to 1.0
@@ -1322,38 +1274,25 @@ Return ONLY valid JSON in this exact format:
 }`
 
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
-
-    console.log('[DEBUG] Calling OpenAI API for sentiment analysis...')
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+    console.log('[DEBUG] Calling OpenAI API for sentiment analysis via AI Gateway...')
+    const data = await callOpenAIViaGateway(env, {
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a sentiment analysis expert. Analyze content objectively and return only valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: 1000,
+      temperature: 0.3 // Lower temperature for more consistent analysis
+    }, {
+      cacheTTL: getOptimalCacheTTL('sentiment-analysis'),
+      metadata: {
+        endpoint: 'content-intelligence',
+        operation: 'analyze-sentiment'
       },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are a sentiment analysis expert. Analyze content objectively and return only valid JSON.' },
-          { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 1000,
-        temperature: 0.3 // Lower temperature for more consistent analysis
-      })
+      timeout: 15000
     })
 
-    clearTimeout(timeoutId)
-    console.log('[DEBUG] Sentiment analysis response status:', response.status)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[DEBUG] Sentiment API error:', errorText)
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json() as any
+    console.log('[DEBUG] Sentiment analysis response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid API response for sentiment')
@@ -1465,7 +1404,7 @@ async function saveLinkToLibrary(db: D1Database, data: any): Promise<number> {
  * - Direct quotes from named sources
  * - Cause-effect relationships
  */
-async function extractClaims(text: string, apiKey: string, title?: string): Promise<Array<{
+async function extractClaims(text: string, env: Env, title?: string): Promise<Array<{
   claim: string
   category: 'statement' | 'quote' | 'statistic' | 'event' | 'relationship'
   source?: string
@@ -1516,41 +1455,28 @@ Return ONLY valid JSON array:
 ]`
 
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 20000)
-
-    console.log('[DEBUG] Calling OpenAI API for claim extraction...')
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+    console.log('[DEBUG] Calling OpenAI API for claim extraction via AI Gateway...')
+    const data = await callOpenAIViaGateway(env, {
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a fact-extraction expert. Extract only objective, verifiable claims from content. Ignore opinions, predictions, and speculation. Each claim must be specific with names, dates, numbers. Return ONLY valid JSON.'
+        },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: 1500,
+      temperature: 0.2 // Low temperature for consistent, factual extraction
+    }, {
+      cacheTTL: getOptimalCacheTTL('claim-analysis'),
+      metadata: {
+        endpoint: 'content-intelligence',
+        operation: 'extract-claims'
       },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a fact-extraction expert. Extract only objective, verifiable claims from content. Ignore opinions, predictions, and speculation. Each claim must be specific with names, dates, numbers. Return ONLY valid JSON.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 1500,
-        temperature: 0.2 // Low temperature for consistent, factual extraction
-      })
+      timeout: 20000
     })
 
-    clearTimeout(timeoutId)
-    console.log('[DEBUG] Claim extraction response status:', response.status)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[DEBUG] Claim extraction API error:', errorText)
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json() as any
+    console.log('[DEBUG] Claim extraction response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid API response for claim extraction')
@@ -1586,7 +1512,7 @@ Return ONLY valid JSON array:
 async function analyzeClaimsForDeception(
   claims: Array<{claim: string; category: string; source?: string; confidence: number; supporting_text?: string}>,
   fullText: string,
-  apiKey: string
+  env: Env
 ): Promise<{
   claims: Array<{
     claim: string
@@ -1719,41 +1645,28 @@ Return ONLY valid JSON:
     console.log('[DEBUG] Starting deception analysis for', claims.length, 'claims')
     console.log('[DEBUG] First claim:', claims[0]?.claim || 'N/A')
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000) // Longer timeout for comprehensive analysis
-
-    console.log('[DEBUG] Calling OpenAI API for deception analysis...')
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+    console.log('[DEBUG] Calling OpenAI API for deception analysis via AI Gateway...')
+    const data = await callOpenAIViaGateway(env, {
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a deception detection expert trained in multiple analytical methods. Analyze claims objectively using: internal consistency, source credibility, evidence quality, logical coherence, temporal consistency, and specificity. Provide detailed reasoning for each score. Return ONLY valid JSON.'
+        },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: 3000,
+      temperature: 0.3 // Moderate temperature for balanced analysis
+    }, {
+      cacheTTL: getOptimalCacheTTL('claim-analysis'),
+      metadata: {
+        endpoint: 'content-intelligence',
+        operation: 'analyze-claims-deception'
       },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a deception detection expert trained in multiple analytical methods. Analyze claims objectively using: internal consistency, source credibility, evidence quality, logical coherence, temporal consistency, and specificity. Provide detailed reasoning for each score. Return ONLY valid JSON.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 3000,
-        temperature: 0.3 // Moderate temperature for balanced analysis
-      })
+      timeout: 30000
     })
 
-    clearTimeout(timeoutId)
-    console.log('[DEBUG] Deception analysis response status:', response.status)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[DEBUG] Deception analysis API error:', errorText)
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json() as any
+    console.log('[DEBUG] Deception analysis response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       console.error('[DEBUG] Invalid API response structure:', JSON.stringify(data))
