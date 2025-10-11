@@ -38,6 +38,7 @@ import {
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ClaimEvidenceLinker } from './ClaimEvidenceLinker'
+import { ClaimEntityLinker } from './ClaimEntityLinker'
 
 interface ClaimAnalysisDisplayProps {
   contentAnalysisId: number
@@ -507,10 +508,13 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                 </div>
               )}
 
-              {/* Evidence Linking - Only available after claim is saved */}
+              {/* Evidence & Entity Linking - Only available after claim is saved */}
               {hasAdjustment && adjustments[index].id && (
-                <div className="mt-4">
+                <div className="mt-4 flex gap-2">
                   <ClaimEvidenceLinker
+                    claimAdjustmentId={adjustments[index].id!}
+                  />
+                  <ClaimEntityLinker
                     claimAdjustmentId={adjustments[index].id!}
                   />
                 </div>
