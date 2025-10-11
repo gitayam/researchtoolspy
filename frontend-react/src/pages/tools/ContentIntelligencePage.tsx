@@ -787,10 +787,8 @@ export default function ContentIntelligencePage() {
         checkEntityDuplicates(data.entities)
       }
 
-      // Start Starbursting analysis in the background
-      if (data.id) {
-        startStarburstingInBackground(data.id)
-      }
+      // NOTE: Starbursting is now manual-trigger only (like DIME analysis)
+      // Users must click "Create Starbursting Session" button to generate
 
       toast({ title: 'Success', description: 'Analysis complete!' })
     } catch (error) {
@@ -2081,6 +2079,11 @@ export default function ContentIntelligencePage() {
             <TabsTrigger value="starbursting" className="relative">
               <Star className="h-4 w-4 mr-2" />
               Starbursting
+              {starburstingStatus === 'idle' && (
+                <Badge variant="outline" className="ml-2 text-gray-600 dark:text-gray-400">
+                  Not Run
+                </Badge>
+              )}
               {starburstingStatus === 'processing' && (
                 <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
                   <Loader2 className="h-3 w-3 mr-1 animate-spin" />
@@ -2091,6 +2094,11 @@ export default function ContentIntelligencePage() {
                 <Badge variant="default" className="ml-2 bg-green-100 text-green-700">
                   <Check className="h-3 w-3 mr-1" />
                   Ready
+                </Badge>
+              )}
+              {starburstingStatus === 'error' && (
+                <Badge variant="destructive" className="ml-2">
+                  Error
                 </Badge>
               )}
             </TabsTrigger>
@@ -3361,10 +3369,23 @@ export default function ContentIntelligencePage() {
               )}
 
               {/* Idle State */}
-              {starburstingStatus === 'idle' && !analysis && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Star className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Analyze content first to generate Starbursting questions</p>
+              {starburstingStatus === 'idle' && (
+                <div className="text-center py-8">
+                  <Star className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="font-semibold text-lg mb-2">Starbursting Analysis</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Generate deep-dive 5W1H questions (Who, What, When, Where, Why, How) to explore all angles of this content.
+                  </p>
+                  {analysis ? (
+                    <Button onClick={() => analysis.id && startStarburstingInBackground(analysis.id)} size="lg">
+                      <Star className="h-4 w-4 mr-2" />
+                      Create Starbursting Session
+                    </Button>
+                  ) : (
+                    <p className="text-sm text-muted-foreground mt-4">
+                      Analyze content first to generate Starbursting questions
+                    </p>
+                  )}
                 </div>
               )}
             </Card>
