@@ -37,6 +37,7 @@ import {
   Loader2
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ClaimEvidenceLinker } from './ClaimEvidenceLinker'
 
 interface ClaimAnalysisDisplayProps {
   contentAnalysisId: number
@@ -72,6 +73,7 @@ interface ClaimAnalysisDisplayProps {
 }
 
 interface ClaimAdjustment {
+  id?: string // Claim adjustment ID from database
   adjustedRiskScore: number
   userComment: string
   adjustedAt: string
@@ -124,6 +126,7 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
           const loadedAdjustments: Record<number, ClaimAdjustment> = {}
           data.adjustments.forEach((adj: SavedAdjustment) => {
             loadedAdjustments[adj.claim_index] = {
+              id: adj.id, // Store the claim_adjustment_id
               adjustedRiskScore: adj.adjusted_risk_score,
               userComment: adj.user_comment || '',
               adjustedAt: adj.updated_at
@@ -188,10 +191,11 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
       const data = await response.json()
 
       if (data.success) {
-        // Update local state
+        // Update local state with ID from server
         setAdjustments({
           ...adjustments,
           [index]: {
+            id: data.id, // Store the claim_adjustment_id
             adjustedRiskScore: tempRiskScore,
             userComment: tempComment,
             adjustedAt: new Date().toISOString()
@@ -500,6 +504,15 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                       </p>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Evidence Linking - Only available after claim is saved */}
+              {hasAdjustment && adjustments[index].id && (
+                <div className="mt-4">
+                  <ClaimEvidenceLinker
+                    claimAdjustmentId={adjustments[index].id!}
+                  />
                 </div>
               )}
             </CardHeader>
