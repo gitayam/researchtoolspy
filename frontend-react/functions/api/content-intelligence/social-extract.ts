@@ -138,18 +138,41 @@ async function extractYouTube(url: string, mode: string, options: any): Promise<
       author_url: oembedData.author_url,
       post_url: url,
       thumbnail_url: oembedData.thumbnail_url,
+      thumbnail_width: oembedData.thumbnail_width,
+      thumbnail_height: oembedData.thumbnail_height,
       video_id: videoId,
       platform: 'youtube',
       post_type: 'video'
     }
 
-    // For full mode, add transcript extraction using external service
+    // For full mode, add transcript extraction
     let transcript: string | undefined
     if (mode === 'full' && options.include_transcript) {
       try {
         transcript = await fetchYouTubeTranscript(videoId)
       } catch (err) {
         console.warn('Transcript extraction failed:', err)
+      }
+    }
+
+    // Generate download URLs for various qualities
+    const downloadOptions = {
+      watch_youtube: `https://www.youtube.com/watch?v=${videoId}`,
+      embed_url: `https://www.youtube.com/embed/${videoId}`,
+      // Note: Actual video file downloads require yt-dlp or similar tools
+      // These are alternative access methods:
+      download_helpers: [
+        { name: 'yt-dlp', url: `yt-dlp "https://www.youtube.com/watch?v=${videoId}"`, description: 'Command-line download tool' },
+        { name: 'youtube-dl', url: `youtube-dl "https://www.youtube.com/watch?v=${videoId}"`, description: 'Python-based downloader' },
+        { name: '4K Video Downloader', url: `https://www.4kdownload.com/`, description: 'GUI application for downloads' },
+        { name: 'SaveFrom.net', url: `https://en.savefrom.net/1-youtube-video-downloader-75/${videoId}`, description: 'Online downloader' }
+      ],
+      thumbnail_urls: {
+        maxres: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+        hq: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+        mq: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+        sd: `https://img.youtube.com/vi/${videoId}/sddefault.jpg`,
+        default: `https://img.youtube.com/vi/${videoId}/default.jpg`
       }
     }
 
@@ -160,16 +183,21 @@ async function extractYouTube(url: string, mode: string, options: any): Promise<
       metadata,
       content: {
         transcript,
+        transcript_available: !!transcript,
+        transcript_word_count: transcript ? transcript.split(/\s+/).length : 0,
         description: 'YouTube video content extraction'
       },
       media: {
         thumbnail_url: oembedData.thumbnail_url,
         video_url: `https://www.youtube.com/watch?v=${videoId}`,
-        embed_url: `https://www.youtube.com/embed/${videoId}`
+        embed_url: `https://www.youtube.com/embed/${videoId}`,
+        stream_url: `https://www.youtube.com/embed/${videoId}`,
+        download_options: downloadOptions.download_helpers,
+        thumbnail_options: downloadOptions.thumbnail_urls
       },
       extraction_note: mode === 'metadata' ?
-        'Metadata only. Use "full" mode for transcript extraction.' :
-        'Full extraction with transcript'
+        'Metadata only. Use "full" mode with include_transcript:true for transcript extraction.' :
+        transcript ? `Full extraction complete with ${transcript.split(/\s+/).length} word transcript` : 'Full extraction complete (transcript unavailable)'
     }
 
   } catch (error) {
@@ -583,7 +611,9 @@ function extractYouTubeId(url: string): string | null {
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/,
     /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
-    /youtube\.com\/v\/([A-Za-z0-9_-]{11})/
+    /youtube\.com\/v\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/live\/([A-Za-z0-9_-]{11})/,  // YouTube live streams
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/  // YouTube shorts
   ]
 
   for (const pattern of patterns) {
@@ -595,15 +625,98 @@ function extractYouTubeId(url: string): string | null {
 }
 
 /**
- * Helper: Fetch YouTube transcript (using external service)
+ * Helper: Fetch YouTube transcript using YouTube's native timedtext API
  */
 async function fetchYouTubeTranscript(videoId: string): Promise<string | undefined> {
   try {
-    // Use a public YouTube transcript API
-    // Example: youtube-transcript.p.rapidapi.com or youtube-transcript-api
-    // For MVP, return placeholder
-    return `[Transcript extraction requires external service integration. Video ID: ${videoId}]`
-  } catch {
+    // Step 1: Fetch video page to get caption tracks
+    const videoPageUrl = `https://www.youtube.com/watch?v=${videoId}`
+    const videoPageResponse = await fetch(videoPageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    })
+
+    if (!videoPageResponse.ok) {
+      console.warn(`[YouTube Transcript] Failed to fetch video page: ${videoPageResponse.status}`)
+      return undefined
+    }
+
+    const videoPageHtml = await videoPageResponse.text()
+
+    // Step 2: Extract caption tracks from page HTML
+    // Look for "captionTracks" in the ytInitialPlayerResponse JSON
+    const captionTracksMatch = videoPageHtml.match(/"captionTracks":(\[.*?\])/)
+
+    if (!captionTracksMatch) {
+      console.warn(`[YouTube Transcript] No caption tracks found for video ${videoId}`)
+      return undefined
+    }
+
+    const captionTracks = JSON.parse(captionTracksMatch[1])
+
+    // Prefer English captions, fallback to first available
+    let captionTrack = captionTracks.find((track: any) =>
+      track.languageCode === 'en' || track.languageCode?.startsWith('en')
+    )
+
+    if (!captionTrack && captionTracks.length > 0) {
+      captionTrack = captionTracks[0]
+    }
+
+    if (!captionTrack || !captionTrack.baseUrl) {
+      console.warn(`[YouTube Transcript] No valid caption track found`)
+      return undefined
+    }
+
+    // Step 3: Fetch transcript from caption URL
+    const transcriptResponse = await fetch(captionTrack.baseUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    })
+
+    if (!transcriptResponse.ok) {
+      console.warn(`[YouTube Transcript] Failed to fetch transcript: ${transcriptResponse.status}`)
+      return undefined
+    }
+
+    const transcriptXml = await transcriptResponse.text()
+
+    // Step 4: Parse XML and extract text
+    // Extract text from <text> tags and decode HTML entities
+    const textMatches = transcriptXml.matchAll(/<text[^>]*>(.*?)<\/text>/g)
+    const transcriptParts: string[] = []
+
+    for (const match of textMatches) {
+      let text = match[1]
+      // Decode common HTML entities
+      text = text
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&nbsp;/g, ' ')
+        .replace(/<[^>]+>/g, '') // Remove any remaining tags
+
+      if (text.trim()) {
+        transcriptParts.push(text.trim())
+      }
+    }
+
+    if (transcriptParts.length === 0) {
+      console.warn(`[YouTube Transcript] No text found in transcript`)
+      return undefined
+    }
+
+    const fullTranscript = transcriptParts.join(' ')
+    console.log(`[YouTube Transcript] Successfully extracted ${fullTranscript.length} characters`)
+
+    return fullTranscript
+
+  } catch (error) {
+    console.error(`[YouTube Transcript] Extraction error:`, error)
     return undefined
   }
 }
