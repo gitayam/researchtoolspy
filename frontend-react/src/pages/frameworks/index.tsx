@@ -148,7 +148,37 @@ export const SwotPage = () => {
 
   // Show form for create mode
   if (isCreateMode) {
-    return <SwotForm mode="create" onSave={handleSave} />
+    let initialData: any = {}
+
+    // Pre-populate from investigation if available
+    if (location.state?.fromInvestigation) {
+      const { investigationData } = location.state
+      const { content } = investigationData || {}
+
+      // Extract high-risk claims to pre-populate threats
+      const claims = content?.flatMap((c: any) => c.claims || []) || []
+      const highRiskClaims = claims
+        .filter((claim: any) => {
+          const score = claim.adjusted_risk_score ?? claim.original_risk_score
+          return score >= 60
+        })
+        .slice(0, 3)
+
+      initialData = {
+        title: `${location.state.investigationTitle} - SWOT Analysis`,
+        description: investigationData?.description || `Generated from investigation: ${location.state.investigationTitle}`,
+        threats: highRiskClaims.map((claim: any) => ({
+          id: crypto.randomUUID(),
+          text: claim.claim_text
+        })),
+        strengths: [],
+        weaknesses: [],
+        opportunities: [],
+        source_investigation_id: location.state.investigationId
+      }
+    }
+
+    return <SwotForm mode="create" onSave={handleSave} initialData={initialData} />
   }
 
   // Show form for edit mode
@@ -995,10 +1025,43 @@ export const CogPage = () => {
   }
 
   if (isCreateMode) {
-    // Check for wizard data first, then template data
+    // Check for wizard data first, then template data, then investigation data
     const wizardData = location.state?.wizardData
     const templateData = location.state?.template?.template_data
-    const initialData = wizardData || templateData
+    const investigationData = location.state?.investigationData
+
+    let initialData = wizardData || templateData
+
+    // Pre-populate from investigation if available
+    if (location.state?.fromInvestigation && investigationData) {
+      const { content, statistics } = investigationData
+
+      // Extract claims to pre-populate vulnerabilities
+      const claims = content?.flatMap((c: any) => c.claims || []) || []
+      const highRiskClaims = claims
+        .filter((claim: any) => {
+          const score = claim.adjusted_risk_score ?? claim.original_risk_score
+          return score >= 50
+        })
+        .slice(0, 5) // Limit to top 5
+
+      initialData = {
+        title: `${location.state.investigationTitle} - COG Analysis`,
+        description: investigationData.description || `Generated from investigation: ${location.state.investigationTitle}`,
+        operational_context: {
+          objective: `Analysis of ${location.state.investigationTitle}`,
+          desired_impact: '',
+          our_identity: '',
+          operating_environment: '',
+          constraints: [],
+          restraints: [],
+          timeframe: '',
+          strategic_level: 'operational' as const,
+        },
+        source_investigation_id: location.state.investigationId
+      }
+    }
+
     return <COGForm mode="create" onSave={handleSave} backPath={basePath} initialData={initialData} />
   }
 
