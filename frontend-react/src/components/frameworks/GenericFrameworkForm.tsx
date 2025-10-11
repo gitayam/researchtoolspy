@@ -1,6 +1,6 @@
 import { useState, memo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check, Download, FileJson, Users } from 'lucide-react'
+import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check, Download, FileJson, Users, MapPin, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,6 +19,8 @@ import { ConsequencesManager } from '@/components/frameworks/ConsequencesManager
 import { SymbolsManager } from '@/components/frameworks/SymbolsManager'
 import { PMESIIPTLocationSelector } from '@/components/frameworks/PMESIIPTLocationSelector'
 import { ActorLinker, ActorBadge, type LinkedActor } from '@/components/actors/ActorLinker'
+import { PlaceLinker, PlaceBadge, type LinkedPlace } from '@/components/places/PlaceLinker'
+import { EventLinker, EventBadge, type LinkedEvent } from '@/components/events/EventLinker'
 import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity, ConsequenceItem, SymbolItem } from '@/types/behavior'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
@@ -73,7 +75,11 @@ const SectionCard = memo(({
   allData,
   itemType,
   deficitLevel,
-  onDeficitChange
+  onDeficitChange,
+  sectionKey,
+  onLinkQuestionActors,
+  onLinkQuestionPlaces,
+  onLinkQuestionEvents
 }: {
   section: FrameworkSection
   items: FrameworkItem[]
@@ -95,6 +101,10 @@ const SectionCard = memo(({
   itemType?: 'text' | 'qa'
   deficitLevel?: DeficitLevel
   onDeficitChange?: (level: DeficitLevel) => void
+  sectionKey?: string
+  onLinkQuestionActors?: (questionId: string) => void
+  onLinkQuestionPlaces?: (questionId: string) => void
+  onLinkQuestionEvents?: (questionId: string) => void
 }) => {
   const isQA = itemType === 'qa'
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -287,7 +297,7 @@ const SectionCard = memo(({
                     // VIEW MODE
                     <>
                       {isQA && isQuestionAnswerItem(item) ? (
-                        <div className="flex-1 space-y-1">
+                        <div className="flex-1 space-y-2">
                           <div className="text-sm font-medium flex items-start gap-2">
                             {needsAnswer && <span className="text-red-600 dark:text-red-400 flex-shrink-0">❗</span>}
                             <span className="break-words">Q: {item.question}</span>
@@ -295,6 +305,79 @@ const SectionCard = memo(({
                           <div className={`text-sm break-words ${needsAnswer ? 'text-red-700 dark:text-red-300' : 'text-gray-600 dark:text-gray-400'}`}>
                             A: {item.answer || <span className="italic font-semibold">Needs answer - please fill in</span>}
                           </div>
+
+                          {/* Entity Linking for Starbursting */}
+                          {frameworkType === 'starbursting' && (
+                            <div className="mt-2 space-y-2">
+                              {/* Entity linking buttons based on question category */}
+                              {sectionKey && (
+                                <div className="flex flex-wrap gap-2">
+                                  {sectionKey === 'who' && onLinkQuestionActors && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => onLinkQuestionActors(item.id)}
+                                      className="h-7 text-xs"
+                                    >
+                                      <Users className="h-3 w-3 mr-1" />
+                                      Link Actors ({item.linked_actors?.length || 0})
+                                    </Button>
+                                  )}
+                                  {sectionKey === 'where' && onLinkQuestionPlaces && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => onLinkQuestionPlaces(item.id)}
+                                      className="h-7 text-xs"
+                                    >
+                                      <MapPin className="h-3 w-3 mr-1" />
+                                      Link Places ({item.linked_places?.length || 0})
+                                    </Button>
+                                  )}
+                                  {sectionKey === 'when' && onLinkQuestionEvents && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => onLinkQuestionEvents(item.id)}
+                                      className="h-7 text-xs"
+                                    >
+                                      <Calendar className="h-3 w-3 mr-1" />
+                                      Link Events ({item.linked_events?.length || 0})
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Display linked entities */}
+                              {item.linked_actors && item.linked_actors.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {item.linked_actors.map((actor) => (
+                                    <Badge key={actor.id} variant="secondary" className="text-xs">
+                                      👤 {actor.name}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                              {item.linked_places && item.linked_places.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {item.linked_places.map((place) => (
+                                    <Badge key={place.id} variant="secondary" className="text-xs">
+                                      📍 {place.name}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                              {item.linked_events && item.linked_events.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {item.linked_events.map((event) => (
+                                    <Badge key={event.id} variant="secondary" className="text-xs">
+                                      📅 {event.name}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <span className="flex-1 text-sm break-words">
@@ -508,6 +591,11 @@ export function GenericFrameworkForm({
     }, {} as { [key: string]: LinkedActor[] })
   )
   const [actorLinkerOpen, setActorLinkerOpen] = useState(false)
+
+  // Entity linking state (for Starbursting Q&A items)
+  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null)
+  const [placeLinkerOpen, setPlaceLinkerOpen] = useState(false)
+  const [eventLinkerOpen, setEventLinkerOpen] = useState(false)
 
   // AI title generation state
   const [generatingTitle, setGeneratingTitle] = useState(false)
@@ -801,6 +889,66 @@ export function GenericFrameworkForm({
     setSectionActors(prev => ({
       ...prev,
       [sectionKey]: (prev[sectionKey] || []).filter(a => a.id !== actor.id)
+    }))
+  }
+
+  // Entity linking handlers for Starbursting Q&A items
+  const openEntityLinkerForQuestion = (sectionKey: string, questionId: string, linkerType: 'actor' | 'place' | 'event') => {
+    setActiveSection(sectionKey)
+    setActiveQuestionId(questionId)
+    if (linkerType === 'actor') setActorLinkerOpen(true)
+    else if (linkerType === 'place') setPlaceLinkerOpen(true)
+    else if (linkerType === 'event') setEventLinkerOpen(true)
+  }
+
+  const handleQuestionActorLink = (actors: LinkedActor[]) => {
+    if (!activeSection || !activeQuestionId) return
+
+    setSectionData(prev => ({
+      ...prev,
+      [activeSection]: prev[activeSection].map(item => {
+        if (item.id === activeQuestionId && isQuestionAnswerItem(item)) {
+          return {
+            ...item,
+            linked_actors: actors.map(a => ({ id: a.id, name: a.name, type: a.type }))
+          }
+        }
+        return item
+      })
+    }))
+  }
+
+  const handleQuestionPlaceLink = (places: LinkedPlace[]) => {
+    if (!activeSection || !activeQuestionId) return
+
+    setSectionData(prev => ({
+      ...prev,
+      [activeSection]: prev[activeSection].map(item => {
+        if (item.id === activeQuestionId && isQuestionAnswerItem(item)) {
+          return {
+            ...item,
+            linked_places: places.map(p => ({ id: p.id, name: p.name, place_type: p.place_type }))
+          }
+        }
+        return item
+      })
+    }))
+  }
+
+  const handleQuestionEventLink = (events: LinkedEvent[]) => {
+    if (!activeSection || !activeQuestionId) return
+
+    setSectionData(prev => ({
+      ...prev,
+      [activeSection]: prev[activeSection].map(item => {
+        if (item.id === activeQuestionId && isQuestionAnswerItem(item)) {
+          return {
+            ...item,
+            linked_events: events.map(e => ({ id: e.id, name: e.name, event_type: e.event_type, date_start: e.date_start }))
+          }
+        }
+        return item
+      })
     }))
   }
 
@@ -1699,6 +1847,10 @@ export function GenericFrameworkForm({
                       }))
                   : undefined
               }
+              sectionKey={section.key}
+              onLinkQuestionActors={frameworkType === 'starbursting' ? (questionId) => openEntityLinkerForQuestion(section.key, questionId, 'actor') : undefined}
+              onLinkQuestionPlaces={frameworkType === 'starbursting' ? (questionId) => openEntityLinkerForQuestion(section.key, questionId, 'place') : undefined}
+              onLinkQuestionEvents={frameworkType === 'starbursting' ? (questionId) => openEntityLinkerForQuestion(section.key, questionId, 'event') : undefined}
             />
           )
         })}
@@ -1724,7 +1876,7 @@ export function GenericFrameworkForm({
         alreadyLinked={activeSection ? sectionEvidence[activeSection] || [] : []}
       />
 
-      {/* Actor Linker Modal (for PMESII-PT) */}
+      {/* Actor Linker Modal (for PMESII-PT domains) */}
       {frameworkType === 'pmesii-pt' && (
         <ActorLinker
           isOpen={actorLinkerOpen}
@@ -1735,6 +1887,95 @@ export function GenericFrameworkForm({
           selectedActors={activeSection ? (sectionActors[activeSection] || []) : []}
           onActorsChange={handleActorLink}
           domainName={activeSection ? sections.find(s => s.key === activeSection)?.label : undefined}
+        />
+      )}
+
+      {/* Actor Linker Modal (for Starbursting "Who" questions) */}
+      {frameworkType === 'starbursting' && (
+        <ActorLinker
+          isOpen={actorLinkerOpen}
+          onClose={() => {
+            setActorLinkerOpen(false)
+            setActiveSection(null)
+            setActiveQuestionId(null)
+          }}
+          selectedActors={
+            activeSection && activeQuestionId
+              ? (() => {
+                  const question = sectionData[activeSection]?.find(item => item.id === activeQuestionId)
+                  if (question && isQuestionAnswerItem(question) && question.linked_actors) {
+                    return question.linked_actors.map(a => ({
+                      id: a.id,
+                      name: a.name,
+                      type: a.type as any
+                    }))
+                  }
+                  return []
+                })()
+              : []
+          }
+          onActorsChange={handleQuestionActorLink}
+          domainName={`"Who" question`}
+        />
+      )}
+
+      {/* Place Linker Modal (for Starbursting "Where" questions) */}
+      {frameworkType === 'starbursting' && (
+        <PlaceLinker
+          isOpen={placeLinkerOpen}
+          onClose={() => {
+            setPlaceLinkerOpen(false)
+            setActiveSection(null)
+            setActiveQuestionId(null)
+          }}
+          selectedPlaces={
+            activeSection && activeQuestionId
+              ? (() => {
+                  const question = sectionData[activeSection]?.find(item => item.id === activeQuestionId)
+                  if (question && isQuestionAnswerItem(question) && question.linked_places) {
+                    return question.linked_places.map(p => ({
+                      id: p.id,
+                      name: p.name,
+                      place_type: p.place_type as any,
+                      coordinates: { lat: 0, lng: 0 } // We only store minimal data, full data fetched by linker
+                    }))
+                  }
+                  return []
+                })()
+              : []
+          }
+          onPlacesChange={handleQuestionPlaceLink}
+          contextLabel={`"Where" question`}
+        />
+      )}
+
+      {/* Event Linker Modal (for Starbursting "When" questions) */}
+      {frameworkType === 'starbursting' && (
+        <EventLinker
+          isOpen={eventLinkerOpen}
+          onClose={() => {
+            setEventLinkerOpen(false)
+            setActiveSection(null)
+            setActiveQuestionId(null)
+          }}
+          selectedEvents={
+            activeSection && activeQuestionId
+              ? (() => {
+                  const question = sectionData[activeSection]?.find(item => item.id === activeQuestionId)
+                  if (question && isQuestionAnswerItem(question) && question.linked_events) {
+                    return question.linked_events.map(e => ({
+                      id: e.id,
+                      name: e.name,
+                      event_type: e.event_type as any,
+                      date_start: e.date_start
+                    }))
+                  }
+                  return []
+                })()
+              : []
+          }
+          onEventsChange={handleQuestionEventLink}
+          contextLabel={`"When" question`}
         />
       )}
 
