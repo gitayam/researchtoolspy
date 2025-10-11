@@ -13,6 +13,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 interface SwotItem {
   id: string
   text: string
+  evidence_ids?: string[]
+  confidence?: number
 }
 
 interface SwotData {

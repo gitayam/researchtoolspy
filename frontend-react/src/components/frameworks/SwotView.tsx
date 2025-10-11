@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Network } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Network, Database, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,8 @@ import { CommentThread } from '@/components/comments/CommentThread'
 interface SwotItem {
   id: string
   text: string
+  evidence_ids?: string[]
+  confidence?: number
 }
 
 interface SwotData {
@@ -62,17 +64,53 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
           </p>
         ) : (
           <ul className="space-y-2">
-            {items.map((item, index) => (
-              <li
-                key={item.id}
-                className={`p-3 rounded-lg ${bgColor} text-sm`}
-              >
-                <span className="font-medium text-gray-700 dark:text-gray-300">
-                  {index + 1}.
-                </span>{' '}
-                {item.text}
-              </li>
-            ))}
+            {items.map((item, index) => {
+              const evidenceCount = item.evidence_ids?.length || 0
+              const hasEvidence = evidenceCount > 0
+              const confidence = item.confidence || (hasEvidence ? 50 + (evidenceCount * 10) : 0)
+
+              return (
+                <li
+                  key={item.id}
+                  className={`p-3 rounded-lg ${bgColor} text-sm`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                        {index + 1}.
+                      </span>{' '}
+                      {item.text}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {hasEvidence && (
+                        <>
+                          <Badge variant="outline" className="text-xs flex items-center gap-1">
+                            <Database className="h-3 w-3" />
+                            {evidenceCount}
+                          </Badge>
+                          {confidence >= 75 && (
+                            <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              {confidence}%
+                            </Badge>
+                          )}
+                          {confidence >= 50 && confidence < 75 && (
+                            <Badge className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+                              {confidence}%
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                      {!hasEvidence && (
+                        <Badge variant="outline" className="text-xs text-gray-500">
+                          No evidence
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </CardContent>
