@@ -17,6 +17,7 @@ import { BehaviorBasicInfoForm } from '@/components/frameworks/BehaviorBasicInfo
 import { AITimelineGenerator } from '@/components/frameworks/AITimelineGenerator'
 import { ConsequencesManager } from '@/components/frameworks/ConsequencesManager'
 import { SymbolsManager } from '@/components/frameworks/SymbolsManager'
+import { PMESIIPTLocationSelector } from '@/components/frameworks/PMESIIPTLocationSelector'
 import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity, ConsequenceItem, SymbolItem } from '@/types/behavior'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
@@ -416,6 +417,16 @@ export function GenericFrameworkForm({
     has_requirements: false
   })
   const [complexity, setComplexity] = useState<BehaviorComplexity>((initialData as any)?.complexity || 'simple_sequence')
+
+  // For PMESII-PT: Geographic context (required for location-based analysis)
+  const [pmesiiLocation, setPmesiiLocation] = useState({
+    country: (initialData as any)?.location_country || '',
+    region: (initialData as any)?.location_region || '',
+    city: (initialData as any)?.location_city || '',
+    time_period_start: (initialData as any)?.time_period_start || '',
+    time_period_end: (initialData as any)?.time_period_end || '',
+    scope_objectives: (initialData as any)?.scope_objectives || ''
+  })
 
   // Initialize state for each section
   const [sectionData, setSectionData] = useState<{ [key: string]: FrameworkItem[] }>(
@@ -1452,6 +1463,15 @@ export function GenericFrameworkForm({
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* PMESII-PT Location Selector */}
+      {frameworkType === 'pmesii-pt' && (
+        <PMESIIPTLocationSelector
+          value={pmesiiLocation}
+          onChange={setPmesiiLocation}
+          suggestedLocations={importedSources.length > 0 ? [] : []} // TODO: Extract locations from imported sources
+        />
       )}
 
       {/* Framework Sections */}

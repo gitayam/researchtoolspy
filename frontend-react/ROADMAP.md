@@ -181,7 +181,185 @@ Time: Dates, historical context, temporal patterns
 
 ---
 
-### Phase 4: Batch URL Import
+### Phase 4: Geographic Context & Evidence Integration
+**Status**: NOT STARTED
+**Priority**: CRITICAL
+**Issue**: PMESII-PT is fundamentally geographic but lacks location context
+
+**Requirements**:
+- [ ] **Location Selector**: Add country, state/region, city fields to PMESII-PT
+  - Required field: At minimum country
+  - Optional: State/region, city for more specificity
+  - Auto-suggest locations (use existing location entities)
+  - Display location prominently in analysis header
+
+- [ ] **Evidence Integration**: Transform PMESII-PT into evidence library
+  - Each Q&A item should link to evidence
+  - Tag evidence with:
+    - Location (country, region, city)
+    - PMESII-PT dimension (Political, Military, etc.)
+    - Source URL
+    - Date/temporal context
+  - Create "PMESII Evidence Library" page showing all evidence by dimension and location
+
+- [ ] **Framework Integration**: Feed PMESII evidence into ACH and other frameworks
+  - PMESII evidence items appear as evidence options in ACH
+  - Filter evidence by location and dimension
+  - Cross-reference evidence across frameworks
+
+**Estimated Effort**: 12 hours
+
+---
+
+### Phase 5: Wizard Workflow
+**Status**: NOT STARTED
+**Priority**: HIGH
+**Reason**: PMESII-PT is complex like COG - needs guided workflow
+
+**Wizard Steps**:
+1. **Step 1: Analysis Setup**
+   - Title
+   - Location (country, region, city) - REQUIRED
+   - Time period
+   - Scope/objectives
+
+2. **Step 2: Source Import**
+   - Import from URLs
+   - Import from PPTX (auto-detect PMESII sections)
+   - Import from DOCX/Word (auto-parse)
+   - Import from saved Content Intelligence analyses
+   - Manual entry
+
+3. **Step 3: Dimension Analysis** (8 tabs)
+   - Political → Military → Economic → Social → Information → Infrastructure → Physical → Time
+   - AI suggestions for each dimension
+   - Evidence linking per item
+   - Progress indicator showing completed dimensions
+
+4. **Step 4: Review & Export**
+   - Summary view across all dimensions
+   - Identify gaps (dimensions with no data)
+   - AI-generated executive summary
+   - Export options (PDF, DOCX, PPTX, JSON, CSV)
+   - Generate shareable link
+
+**Files to Create**:
+- `src/components/frameworks/PMESIIPTWizard.tsx`
+- `src/components/frameworks/PMESIIPTLocationSelector.tsx`
+- `src/components/frameworks/PMESIIPTDimensionStep.tsx`
+
+**Estimated Effort**: 16 hours
+
+---
+
+### Phase 6: Document Import (PPTX, DOCX)
+**Status**: NOT STARTED
+**Priority**: MEDIUM
+**Use Case**: Many analysts have existing PMESII-PT analyses in PowerPoint/Word
+
+**Implementation**:
+- [ ] **PPTX Import**:
+  - Parse PowerPoint slides
+  - Detect PMESII-PT sections by headers/keywords
+  - Extract text content by dimension
+  - Map to Q&A format (slide title = question, content = answer)
+
+- [ ] **DOCX/Word Import**:
+  - Parse Word documents
+  - Use heading structure to identify dimensions
+  - Extract paragraphs under each dimension
+  - Convert to Q&A pairs
+
+- [ ] **Auto-Mapping**:
+  - GPT-4o-mini analyzes extracted text
+  - Categorizes content into correct PMESII-PT dimension
+  - Handles mislabeled or ambiguous sections
+
+**Libraries Needed**:
+- `mammoth` or `docx` for DOCX parsing
+- `pptxgenjs` or custom parser for PPTX
+
+**API Endpoints**:
+- `/api/frameworks/pmesii-pt/import-pptx`
+- `/api/frameworks/pmesii-pt/import-docx`
+
+**Estimated Effort**: 14 hours
+
+---
+
+### Phase 7: Enhanced Export with AI Summaries
+**Status**: NOT STARTED
+**Priority**: MEDIUM
+
+**Export Formats**:
+- [x] JSON (already exists)
+- [x] CSV (already exists)
+- [ ] **PDF** (enhanced with AI summary, charts, location maps)
+- [ ] **DOCX/Word** (professional report format)
+- [ ] **PPTX/PowerPoint** (briefing slides, one slide per dimension)
+- [ ] **Shareable Link** (public view, no login required)
+
+**AI Enhancements**:
+- [ ] Executive summary (2-3 paragraphs)
+- [ ] Key findings per dimension
+- [ ] Cross-dimension insights
+- [ ] Gap analysis (what's missing)
+- [ ] Recommendations
+
+**PDF Export Features**:
+- Cover page with location and date
+- Table of contents
+- Executive summary (AI-generated)
+- One section per dimension with Q&A
+- Evidence citations
+- Appendix with source URLs
+
+**Estimated Effort**: 10 hours
+
+---
+
+### Phase 8: PMESII Evidence Library
+**Status**: NOT STARTED
+**Priority**: MEDIUM
+
+**Features**:
+- [ ] Dedicated page: `/dashboard/evidence/pmesii`
+- [ ] View all PMESII evidence across all analyses
+- [ ] Filter by:
+  - Location (country, region, city)
+  - Dimension (Political, Military, etc.)
+  - Date range
+  - Source
+- [ ] Search evidence text
+- [ ] Tag evidence with custom labels
+- [ ] Link evidence to multiple analyses
+- [ ] Export filtered evidence sets
+
+**Database Schema**:
+```sql
+CREATE TABLE pmesii_evidence (
+  id INTEGER PRIMARY KEY,
+  pmesii_analysis_id INTEGER,
+  dimension TEXT, -- political, military, etc.
+  location_country TEXT,
+  location_region TEXT,
+  location_city TEXT,
+  question TEXT,
+  answer TEXT,
+  source_url TEXT,
+  source_date TEXT,
+  evidence_ids TEXT, -- JSON array of linked evidence
+  tags TEXT, -- JSON array
+  created_at TEXT,
+  updated_at TEXT
+);
+```
+
+**Estimated Effort**: 12 hours
+
+---
+
+### Phase 9: Batch URL Import (Deferred)
 **Status**: DEFERRED
 **Priority**: LOW
 **Reason**: Single URL import working well. Batch processing can be added later if needed based on user demand.
@@ -191,7 +369,6 @@ Time: Dates, historical context, temporal patterns
 - [ ] Support CSV upload of URLs
 - [ ] Parallel analysis of multiple URLs
 - [ ] Aggregate findings by dimension
-- [ ] Detect contradictions and patterns
 
 **Estimated Effort**: 10 hours
 
