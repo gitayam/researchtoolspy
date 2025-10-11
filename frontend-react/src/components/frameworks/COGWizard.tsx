@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ArrowRight, Check, AlertCircle, Lightbulb, FileEdit, Network } from 'lucide-react'
 import { AICOGAssistant } from '@/components/ai/AICOGAssistant'
+import { ActorPicker } from '@/components/content-intelligence/ActorPicker'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -89,6 +90,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
 
   // COG data
   const [cogActor, setCogActor] = useState<ActorCategory>('adversary')
+  const [cogActorLink, setCogActorLink] = useState<{ actor_id: string; actor_name: string } | null>(null)
   const [cogDomain, setCogDomain] = useState<DIMEFILDomain>('military')
   const [cogDescription, setCogDescription] = useState('')
   const [cogRationale, setCogRationale] = useState('')
@@ -224,6 +226,8 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
       const cogs: CenterOfGravity[] = cogDescription ? [{
         id: cogId,
         actor_category: cogActor || 'adversary',
+        actor_name: cogActorLink?.actor_name,
+        actor_id: cogActorLink?.actor_id,
         domain: cogDomain || 'military',
         description: cogDescription,
         rationale: cogRationale || '',
@@ -407,6 +411,8 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
       const cog: CenterOfGravity | undefined = cogDescription && cogRationale ? {
         id: cogId,
         actor_category: cogActor,
+        actor_name: cogActorLink?.actor_name,
+        actor_id: cogActorLink?.actor_id,
         domain: cogDomain,
         description: cogDescription,
         rationale: cogRationale,
@@ -688,6 +694,14 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <ActorPicker
+                    value={cogActorLink}
+                    onChange={setCogActorLink}
+                    label="Link to Actor Entity (Optional)"
+                    placeholder="Search for an actor in your database..."
+                    helperText="Link this COG to a specific actor from your knowledge base to track credibility and enable cross-analysis pivoting."
+                  />
 
                   <div>
                     <Label>{t('wizard.step2.domainLabel')}</Label>

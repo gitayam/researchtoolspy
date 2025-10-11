@@ -153,7 +153,7 @@ ${data.description}
 ${data.centers_of_gravity
   .map(
     cog => `
-### ${cog.actor_category.toUpperCase()} - ${cog.domain.toUpperCase()}
+### ${cog.actor_category.toUpperCase()} - ${cog.domain.toUpperCase()}${cog.actor_name ? ` (${cog.actor_name})` : ''}
 
 ${cog.description}
 
@@ -469,7 +469,13 @@ ${Object.entries(centralityMeasures.degree_centrality)
                         <div className="font-semibold">
                           🎯 {cog.actor_category.toUpperCase()} - {cog.domain.replace('_', ' ').toUpperCase()}
                         </div>
-                        <div className="text-sm text-gray-600">{cog.description}</div>
+                        {cog.actor_name && (
+                          <div className="text-sm text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-1">
+                            <span>👤 Linked Entity:</span>
+                            <Badge variant="outline" className="font-normal">{cog.actor_name}</Badge>
+                          </div>
+                        )}
+                        <div className="text-sm text-gray-600 mt-1">{cog.description}</div>
                       </div>
                       <Badge variant="outline">{expandedCogs.has(cog.id) ? t('view.hierarchy.collapseIcon') : t('view.hierarchy.expandIcon')}</Badge>
                     </div>
