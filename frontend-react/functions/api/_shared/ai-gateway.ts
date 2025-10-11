@@ -9,6 +9,9 @@
  * - Analytics and monitoring
  */
 
+// Cloudflare Workers types (globally available at runtime)
+declare type KVNamespace = any
+
 interface Env {
   AI_GATEWAY_ACCOUNT_ID?: string
   OPENAI_API_KEY: string
