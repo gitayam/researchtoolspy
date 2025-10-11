@@ -69,6 +69,11 @@ export interface QuestionAnswerItem {
   sourceTitle?: string // For display without full citation
   sourceDate?: string  // Publication date for display
   sourceAuthor?: string // Author(s) for quick display
+  // Entity linking (for Starbursting and other Q&A frameworks)
+  linked_actors?: Array<{ id: string; name: string; type: string }> // Who questions
+  linked_places?: Array<{ id: string; name: string; place_type: string }> // Where questions
+  linked_events?: Array<{ id: string; name: string; event_type: string; date_start: string }> // When questions
+  evidence_ids?: string[] // Supporting evidence for answers
 }
 
 // Stakeholder item with rich metadata
