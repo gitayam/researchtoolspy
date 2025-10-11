@@ -46,6 +46,18 @@ Content URL: ${body.url}
 Content:
 ${body.content_text.substring(0, 6000)} ${body.content_text.length > 6000 ? '...(truncated)' : ''}
 
+CRITICAL ANSWER REQUIREMENTS:
+1. Answers must be SELF-CONTAINED and understandable without additional context
+2. DO NOT use pronouns (it, they, them, this, these, that, those) without immediately clarifying what they refer to
+3. Use SPECIFIC names, organizations, locations, dates, and numbers instead of vague references
+4. Each answer should explicitly state the subject (e.g., "The United States government" instead of "It")
+5. Answers must be OBJECTIVE and fact-based, containing the actual information from the content
+6. Include specific details: names of people, organizations, places, dates, amounts
+
+GOOD answer example: "The United States Department of Defense announced on March 15, 2024 that it would increase military spending by $20 billion to counter threats in the Indo-Pacific region."
+
+BAD answer example: "It announced that they would increase spending to counter threats in the region."
+
 Generate a JSON response with this structure:
 {
   "diplomatic": [

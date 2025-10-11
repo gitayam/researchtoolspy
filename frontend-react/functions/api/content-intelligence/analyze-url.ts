@@ -4,7 +4,7 @@
  * Features:
  * - URL content extraction with timeout handling
  * - PDF analysis with intelligent chunking for large documents
- * - Word frequency analysis (2-10 word phrases)
+ * - Word frequency analysis (2-7 word phrases, single words shown in word cloud)
  * - Entity extraction with GPT
  * - Immediate bypass/archive link generation
  * - Social media detection
@@ -250,7 +250,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // Word frequency analysis (2-10 word phrases)
+    // Word frequency analysis (2-7 word phrases only, no single words)
     const wordFrequency = analyzeWordFrequency(contentData.text)
     const topPhrases = getTopPhrases(wordFrequency, 10)
 
@@ -800,14 +800,11 @@ function analyzeWordFrequency(text: string): Record<string, number> {
     'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us'
   ])
 
-  words.forEach(word => {
-    if (!stopWords.has(word) && word.length > 3) {
-      frequency[word] = (frequency[word] || 0) + 1
-    }
-  })
+  // Single words are handled separately in word cloud
+  // Only count multi-word phrases (2-7 words)
 
-  // Generate 2-10 word phrases
-  for (let phraseLength = 2; phraseLength <= 10; phraseLength++) {
+  // Generate 2-7 word phrases (not single words since those are in word cloud)
+  for (let phraseLength = 2; phraseLength <= 7; phraseLength++) {
     for (let i = 0; i <= words.length - phraseLength; i++) {
       const phrase = words.slice(i, i + phraseLength).join(' ')
 
