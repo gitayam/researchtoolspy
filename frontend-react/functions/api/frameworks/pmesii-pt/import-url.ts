@@ -5,9 +5,13 @@
  * Uses GPT to generate dimension-specific questions and answers
  */
 
+import { callOpenAIViaGateway, getOptimalCacheTTL } from '../../_shared/ai-gateway'
+
 interface Env {
   DB: D1Database
   OPENAI_API_KEY: string
+  AI_GATEWAY_ACCOUNT_ID?: string
+  RATE_LIMIT?: KVNamespace
 }
 
 interface ImportRequest {
@@ -115,36 +119,33 @@ Return a JSON object with this structure:
 
 For dimensions where the content provides no relevant information, return an empty array [].`
 
-  const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${env.OPENAI_API_KEY}`
+  console.log('[PMESII-PT] Calling OpenAI via AI Gateway...')
+  const gptData = await callOpenAIViaGateway(env, {
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an expert analyst specializing in PMESII-PT framework analysis. Generate insightful, evidence-based questions and answers.'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ],
+    temperature: 0.7,
+    max_tokens: 2000,
+    response_format: { type: 'json_object' }
+  }, {
+    cacheTTL: getOptimalCacheTTL('pmesii-import'),
+    metadata: {
+      endpoint: 'pmesii-pt',
+      operation: 'import-url',
+      url: analysis.url
     },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert analyst specializing in PMESII-PT framework analysis. Generate insightful, evidence-based questions and answers.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' }
-    })
+    timeout: 20000
   })
 
-  if (!gptResponse.ok) {
-    console.error('[PMESII-PT] GPT API error:', await gptResponse.text())
-    throw new Error('Failed to generate PMESII-PT mapping')
-  }
-
-  const gptData = await gptResponse.json()
+  console.log('[PMESII-PT] Response received from AI Gateway')
   const dimensions = JSON.parse(gptData.choices[0].message.content)
 
   console.log('[PMESII-PT] Generated dimensions:', Object.keys(dimensions).map(k => `${k}: ${dimensions[k].length} items`))
