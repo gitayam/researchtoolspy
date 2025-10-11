@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
-  Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe, SmileIcon, FrownIcon, MehIcon, Grid3x3
+  Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe, SmileIcon, FrownIcon, MehIcon, Grid3x3, Share2
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -350,6 +350,41 @@ export default function ContentIntelligencePage() {
       title: 'Report Generated',
       description: 'Report opened in new window. You can print or save as PDF.'
     })
+  }
+
+  // Share analysis publicly
+  const handleShareAnalysis = async () => {
+    if (!analysis?.id) return
+
+    try {
+      setSaveLoading(true)
+      const response = await fetch('/api/content-intelligence/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ analysisId: analysis.id })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create share link')
+      }
+
+      const data = await response.json()
+      setShareUrl(data.shareUrl)
+
+      toast({
+        title: 'Analysis Shared!',
+        description: 'Public link created successfully. Click "Copy Link" to share.'
+      })
+    } catch (error) {
+      console.error('Share error:', error)
+      toast({
+        title: 'Share Failed',
+        description: error instanceof Error ? error.message : 'Failed to create share link',
+        variant: 'destructive'
+      })
+    } finally {
+      setSaveLoading(false)
+    }
   }
 
   // Export word cloud as image
@@ -2208,6 +2243,17 @@ export default function ContentIntelligencePage() {
                     <FileDown className="h-4 w-4 mr-2" />
                     Export Report
                   </Button>
+                  {!shareUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleShareAnalysis}
+                      disabled={saveLoading}
+                    >
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share Analysis
+                    </Button>
+                  )}
                 </div>
               </div>
 

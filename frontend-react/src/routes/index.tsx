@@ -91,6 +91,7 @@ const ACHAnalysisPage = lazy(() => import('@/pages/ACHAnalysisPage').then(m => (
 const PublicFrameworkPage = lazy(() => import('@/pages/PublicFrameworkPage').then(m => ({ default: m.PublicFrameworkPage })))
 const PublicACHPage = lazy(() => import('@/pages/PublicACHPage').then(m => ({ default: m.PublicACHPage })))
 const PublicACHLibraryPage = lazy(() => import('@/pages/PublicACHLibraryPage').then(m => ({ default: m.PublicACHLibraryPage })))
+const PublicContentAnalysisPage = lazy(() => import('@/pages/PublicContentAnalysisPage').then(m => ({ default: m.PublicContentAnalysisPage })))
 
 // Library pages (lazy loaded)
 const PublicLibraryPage = lazy(() => import('@/pages/PublicLibraryPage').then(m => ({ default: m.PublicLibraryPage })))
@@ -131,6 +132,10 @@ export const router = createBrowserRouter([
   {
     path: '/public/ach/:token',
     element: <LazyPage Component={PublicACHPage} />,
+  },
+  {
+    path: '/public/content-analysis/:token',
+    element: <LazyPage Component={PublicContentAnalysisPage} />,
   },
   {
     path: '/tools',
