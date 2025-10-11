@@ -954,16 +954,50 @@ export default function ContentIntelligencePage() {
       setStatus('analyzing_words')
       setCurrentStep('Creating ACH analysis...')
 
+      // Ensure analysis has an ID (i.e., is saved to database)
+      let analysisId = analysisData.id
+
+      // If no ID, the analysis wasn't saved yet - save it first
+      if (!analysisId) {
+        setCurrentStep('Saving analysis first...')
+
+        const saveResponse = await fetch('/api/content-intelligence/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            analysis_id: analysisData.id?.toString() || 'temp',
+            generate_share_link: false
+          })
+        })
+
+        if (!saveResponse.ok) {
+          throw new Error('Failed to save analysis before creating ACH')
+        }
+
+        const saveData = await saveResponse.json()
+        analysisId = saveData.analysis_id || saveData.id
+
+        // Update local state with saved analysis
+        setAnalysis({ ...analysisData, id: analysisId, is_saved: true })
+      }
+
+      if (!analysisId) {
+        throw new Error('Could not obtain analysis ID')
+      }
+
+      setCurrentStep('Generating ACH hypotheses...')
+
       const response = await fetch('/api/ach/from-content-intelligence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          analysis_id: analysisData.id
+          analysis_id: analysisId
         })
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create ACH')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.details || errorData.error || 'Failed to create ACH')
       }
 
       const data = await response.json()
@@ -979,7 +1013,7 @@ export default function ContentIntelligencePage() {
       console.error('ACH creation error:', error)
       toast({
         title: 'Failed to Create ACH',
-        description: 'Could not create ACH analysis from this content',
+        description: error instanceof Error ? error.message : 'Could not create ACH analysis from this content',
         variant: 'destructive'
       })
     } finally {
