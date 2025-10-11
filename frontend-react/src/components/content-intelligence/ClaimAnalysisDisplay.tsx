@@ -34,7 +34,8 @@ import {
   Save,
   X as XIcon,
   MessageSquare,
-  Loader2
+  Loader2,
+  Download
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ClaimEvidenceLinker } from './ClaimEvidenceLinker'
@@ -262,6 +263,33 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
     if (score >= 80) return 'text-green-600 dark:text-green-400'
     if (score >= 60) return 'text-yellow-600 dark:text-yellow-400'
     return 'text-red-600 dark:text-red-400'
+  }
+
+  // Export to Markdown
+  const exportToMarkdown = async (claimAdjustmentId: string) => {
+    try {
+      const response = await fetch(`/api/claims/export-markdown/${claimAdjustmentId}`, {
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to export claim')
+      }
+
+      // Trigger download
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `claim-${claimAdjustmentId.substring(0, 8)}-${Date.now()}.md`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Error exporting claim:', error)
+      alert('Failed to export claim to Markdown')
+    }
   }
 
   return (
@@ -517,6 +545,15 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                   <ClaimEntityLinker
                     claimAdjustmentId={adjustments[index].id!}
                   />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => exportToMarkdown(adjustments[index].id!)}
+                  >
+                    <Download className="h-4 w-4" />
+                    Export to Markdown
+                  </Button>
                 </div>
               )}
             </CardHeader>
