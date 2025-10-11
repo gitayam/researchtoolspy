@@ -470,6 +470,17 @@ export function GenericFrameworkForm({
     (initialData as any)?.selected_interventions || []
   )
 
+  // URL Import state for PMESII-PT and other frameworks
+  const [importedSources, setImportedSources] = useState<Array<{
+    id: string
+    url: string
+    title: string
+    analysis_id?: number
+  }>>((initialData as any)?.imported_sources || [])
+  const [importUrl, setImportUrl] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+
   // Get item type from config
   const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
 
@@ -838,6 +849,176 @@ export function GenericFrameworkForm({
     }
   }
 
+  // URL Import Handler for PMESII-PT and similar frameworks
+  const handleImportFromUrl = async () => {
+    if (!importUrl.trim()) return
+
+    setImporting(true)
+    setImportError(null)
+
+    try {
+      // Use dedicated PMESII-PT import endpoint if available
+      if (frameworkType === 'pmesii-pt') {
+        const response = await fetch('/api/frameworks/pmesii-pt/import-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: importUrl.trim()
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to analyze URL')
+        }
+
+        const { analysis_id, url, title, dimensions } = await response.json()
+
+        // Add to imported sources
+        const newSource = {
+          id: crypto.randomUUID(),
+          url,
+          title: title || new URL(url).hostname,
+          analysis_id
+        }
+        setImportedSources(prev => [...prev, newSource])
+
+        // Apply GPT-generated dimensions to sections
+        if (dimensions) {
+          const newSectionData = { ...sectionData }
+
+          Object.keys(dimensions).forEach(dimensionKey => {
+            if (dimensions[dimensionKey] && Array.isArray(dimensions[dimensionKey])) {
+              const items: QuestionAnswerItem[] = dimensions[dimensionKey].map((qa: any) => ({
+                id: crypto.randomUUID(),
+                question: qa.question,
+                answer: qa.answer || '',
+                needsAnswer: !qa.answer
+              }))
+              newSectionData[dimensionKey] = [...(newSectionData[dimensionKey] || []), ...items]
+            }
+          })
+
+          setSectionData(newSectionData)
+        }
+      } else {
+        // Fallback to generic Content Intelligence analysis
+        const response = await fetch('/api/content-intelligence/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: importUrl.trim(),
+            mode: 'quick'
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to analyze URL')
+        }
+
+        const { analysis } = await response.json()
+
+        const newSource = {
+          id: crypto.randomUUID(),
+          url: importUrl.trim(),
+          title: analysis.title || new URL(importUrl).hostname,
+          analysis_id: analysis.id
+        }
+        setImportedSources(prev => [...prev, newSource])
+
+        // Use basic mapping for other frameworks
+        await mapContentToFramework(analysis)
+      }
+
+      // Clear input
+      setImportUrl('')
+
+    } catch (error) {
+      console.error('Import error:', error)
+      setImportError(error instanceof Error ? error.message : 'Failed to import URL')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  // Map Content Intelligence analysis to framework dimensions (fallback for non-PMESII-PT frameworks)
+  const mapContentToFramework = async (analysis: any) => {
+    const newSectionData = { ...sectionData }
+
+    // Political: Leaders, government entities, political organizations
+    const politicalEntities = [
+      ...(analysis.entities?.people || []).slice(0, 5),
+      ...(analysis.entities?.organizations || []).filter((org: any) =>
+        org.name.toLowerCase().includes('government') ||
+        org.name.toLowerCase().includes('party') ||
+        org.name.toLowerCase().includes('ministry')
+      )
+    ]
+
+    if (politicalEntities.length > 0) {
+      const items: QuestionAnswerItem[] = politicalEntities.map(entity => ({
+        id: crypto.randomUUID(),
+        question: `What is the role of ${entity.name}?`,
+        answer: `Mentioned ${entity.count} times in the source. ${entity.contexts?.[0] || ''}`,
+        needsAnswer: !entity.contexts?.[0]
+      }))
+      newSectionData.political = [...(newSectionData.political || []), ...items]
+    }
+
+    // Economic: Money, trade, financial entities
+    const economicData = analysis.entities?.money || []
+    if (economicData.length > 0) {
+      const items: QuestionAnswerItem[] = economicData.slice(0, 3).map((money: any) => ({
+        id: crypto.randomUUID(),
+        question: `What are the economic implications of ${money.name}?`,
+        answer: `Referenced ${money.count} times. ${money.contexts?.[0] || ''}`,
+        needsAnswer: !money.contexts?.[0]
+      }))
+      newSectionData.economic = [...(newSectionData.economic || []), ...items]
+    }
+
+    // Social: Demographics, cultural factors
+    if (analysis.summary) {
+      const socialItem: QuestionAnswerItem = {
+        id: crypto.randomUUID(),
+        question: 'What are the key social and cultural factors?',
+        answer: analysis.summary,
+        needsAnswer: false
+      }
+      newSectionData.social = [...(newSectionData.social || []), socialItem]
+    }
+
+    // Infrastructure: Locations, physical entities
+    const locations = analysis.entities?.locations || []
+    if (locations.length > 0) {
+      const items: QuestionAnswerItem[] = locations.slice(0, 5).map((loc: any) => ({
+        id: crypto.randomUUID(),
+        question: `What infrastructure exists in ${loc.name}?`,
+        answer: `Location mentioned ${loc.count} times. ${loc.contexts?.[0] || ''}`,
+        needsAnswer: !loc.contexts?.[0]
+      }))
+      newSectionData.infrastructure = [...(newSectionData.infrastructure || []), ...items]
+    }
+
+    // Time: Dates and temporal context
+    const dates = analysis.entities?.dates || []
+    if (dates.length > 0) {
+      const items: QuestionAnswerItem[] = dates.slice(0, 3).map((date: any) => ({
+        id: crypto.randomUUID(),
+        question: `What happened on ${date.name}?`,
+        answer: `Referenced ${date.count} times. ${date.contexts?.[0] || ''}`,
+        needsAnswer: !date.contexts?.[0]
+      }))
+      newSectionData.time = [...(newSectionData.time || []), ...items]
+    }
+
+    setSectionData(newSectionData)
+  }
+
+  // Remove imported source
+  const removeImportedSource = (id: string) => {
+    setImportedSources(prev => prev.filter(source => source.id !== id))
+  }
+
   // Export functions for saving data when server save fails
   const exportAsJSON = () => {
     const data: GenericFrameworkData = {
@@ -1177,6 +1358,97 @@ export function GenericFrameworkForm({
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
               />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* URL Import Section (for PMESII-PT, DIME, and similar frameworks) */}
+      {['pmesii-pt', 'dime', 'dotmlpf', 'pest'].includes(frameworkType) && (
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              Import Sources
+            </CardTitle>
+            <CardDescription>
+              Import analysis from URLs to auto-populate {frameworkTitle} dimensions with extracted insights
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="https://example.com/article"
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleImportFromUrl()}
+                disabled={importing}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleImportFromUrl}
+                disabled={importing || !importUrl.trim()}
+              >
+                {importing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Analyze URL
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Import Error */}
+            {importError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-sm text-red-700 dark:text-red-300">{importError}</p>
+              </div>
+            )}
+
+            {/* Imported Sources List */}
+            {importedSources.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Imported Sources ({importedSources.length})
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {importedSources.map(source => (
+                    <Badge
+                      key={source.id}
+                      variant="secondary"
+                      className="pr-1 gap-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200"
+                    >
+                      <span className="max-w-[200px] truncate" title={source.url}>
+                        {source.title}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 hover:bg-red-200 dark:hover:bg-red-900"
+                        onClick={() => removeImportedSource(source.id)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Helper Text */}
+            <div className="text-xs text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 rounded p-3 border border-blue-200 dark:border-blue-800">
+              <p className="font-medium mb-1">💡 How it works:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Enter a URL and click "Analyze URL"</li>
+                <li>Content Intelligence extracts key information</li>
+                <li>Entities and insights are mapped to {frameworkTitle} dimensions</li>
+                <li>Review and edit the auto-generated questions & answers below</li>
+              </ul>
             </div>
           </CardContent>
         </Card>
