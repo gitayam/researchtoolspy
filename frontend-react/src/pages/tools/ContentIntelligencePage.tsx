@@ -1539,6 +1539,63 @@ export default function ContentIntelligencePage() {
     }
   }
 
+  // Handle media download
+  const handleMediaDownload = async (url: string, filename?: string) => {
+    try {
+      toast({ title: 'Starting download...', description: 'Please wait' })
+
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename || `download_${Date.now()}`
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+
+      // For cross-origin URLs, try to fetch and download as blob
+      if (url.startsWith('http') && !url.includes(window.location.host)) {
+        try {
+          const response = await fetch(url, { mode: 'cors' })
+          if (response.ok) {
+            const blob = await response.blob()
+            const blobUrl = URL.createObjectURL(blob)
+            link.href = blobUrl
+
+            // Trigger download
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+
+            // Clean up blob URL after a delay
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
+
+            toast({ title: 'Download started!', description: 'Check your downloads folder' })
+            return
+          }
+        } catch (fetchError) {
+          console.warn('CORS fetch failed, falling back to direct link:', fetchError)
+          // Fall through to direct link method
+        }
+      }
+
+      // Fallback: direct link method (will open in new tab if CORS blocked)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast({
+        title: 'Download initiated',
+        description: 'If download doesn\'t start, check popup blocker settings'
+      })
+    } catch (error) {
+      console.error('Download error:', error)
+      toast({
+        title: 'Download failed',
+        description: error instanceof Error ? error.message : 'Could not download file',
+        variant: 'destructive'
+      })
+    }
+  }
+
   // Get platform features description
   const getPlatformFeatures = (platform: string): string => {
     const features: Record<string, string> = {
@@ -1845,7 +1902,10 @@ export default function ContentIntelligencePage() {
                     key={idx}
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(option.url, '_blank')}
+                    onClick={() => handleMediaDownload(
+                      option.url,
+                      `${socialMediaData.platform}_${option.quality}.${option.format}`
+                    )}
                     className="justify-start"
                   >
                     <Download className="h-4 w-4 mr-2" />
