@@ -194,6 +194,25 @@ export interface ContentAnalysis {
   // Timestamps
   created_at: string
   updated_at: string
+
+  // Expiration & Sharing
+  expires_at?: string | null // Auto-delete after 7 days if not saved
+  is_saved?: boolean // If true, saved permanently
+  share_token?: string // For public sharing
+  dime_analysis?: DIMEAnalysis | null // DIME framework analysis
+}
+
+export interface DIMEQuestionAnswer {
+  question: string
+  answer: string
+}
+
+export interface DIMEAnalysis {
+  diplomatic: DIMEQuestionAnswer[]
+  information: DIMEQuestionAnswer[]
+  military: DIMEQuestionAnswer[]
+  economic: DIMEQuestionAnswer[]
+  summary: string
 }
 
 // ========================================

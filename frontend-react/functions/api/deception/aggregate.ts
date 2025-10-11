@@ -22,7 +22,7 @@ interface Alert {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const userId = getUserIdOrDefault(context)
+    const userId = await getUserIdOrDefault(context.request, context.env)
     const url = new URL(context.request.url)
     const workspaceId = url.searchParams.get('workspace_id') || '1'
 
