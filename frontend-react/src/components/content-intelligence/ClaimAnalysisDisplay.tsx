@@ -8,7 +8,7 @@
  * Allows users to adjust risk scores and add comments for their own assessment
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -33,11 +33,13 @@ import {
   Edit,
   Save,
   X as XIcon,
-  MessageSquare
+  MessageSquare,
+  Loader2
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface ClaimAnalysisDisplayProps {
+  contentAnalysisId: number
   claimAnalysis: {
     claims: Array<{
       claim: string
@@ -75,7 +77,16 @@ interface ClaimAdjustment {
   adjustedAt: string
 }
 
-export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProps) {
+interface SavedAdjustment {
+  id: string
+  claim_index: number
+  adjusted_risk_score: number
+  user_comment: string
+  created_at: string
+  updated_at: string
+}
+
+export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: ClaimAnalysisDisplayProps) {
   if (!claimAnalysis || !claimAnalysis.claims || claimAnalysis.claims.length === 0) {
     return null
   }
@@ -87,6 +98,49 @@ export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProp
   const [adjustments, setAdjustments] = useState<Record<number, ClaimAdjustment>>({})
   const [tempRiskScore, setTempRiskScore] = useState<number>(50)
   const [tempComment, setTempComment] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  // Load existing adjustments on mount
+  useEffect(() => {
+    const loadAdjustments = async () => {
+      try {
+        setIsLoading(true)
+        setLoadError(null)
+
+        const response = await fetch(`/api/claims/get-adjustments/${contentAnalysisId}`, {
+          credentials: 'include'
+        })
+
+        if (!response.ok) {
+          throw new Error(`Failed to load adjustments: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+
+        if (data.success && data.adjustments) {
+          // Convert saved adjustments to component state format
+          const loadedAdjustments: Record<number, ClaimAdjustment> = {}
+          data.adjustments.forEach((adj: SavedAdjustment) => {
+            loadedAdjustments[adj.claim_index] = {
+              adjustedRiskScore: adj.adjusted_risk_score,
+              userComment: adj.user_comment || '',
+              adjustedAt: adj.updated_at
+            }
+          })
+          setAdjustments(loadedAdjustments)
+        }
+      } catch (error) {
+        console.error('Error loading claim adjustments:', error)
+        setLoadError(error instanceof Error ? error.message : 'Unknown error')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadAdjustments()
+  }, [contentAnalysisId])
 
   // Handle edit mode
   const startEditing = (index: number, currentRiskScore: number) => {
@@ -102,18 +156,57 @@ export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProp
     setTempComment('')
   }
 
-  const saveAdjustment = (index: number) => {
-    setAdjustments({
-      ...adjustments,
-      [index]: {
-        adjustedRiskScore: tempRiskScore,
-        userComment: tempComment,
-        adjustedAt: new Date().toISOString()
+  const saveAdjustment = async (index: number) => {
+    try {
+      setIsSaving(true)
+
+      const claim = claims[index]
+      const payload = {
+        content_analysis_id: contentAnalysisId,
+        claim_index: index,
+        claim_text: claim.claim,
+        claim_category: claim.category,
+        original_risk_score: claim.deception_analysis.risk_score,
+        original_overall_risk: claim.deception_analysis.overall_risk,
+        original_methods: claim.deception_analysis.methods,
+        adjusted_risk_score: tempRiskScore,
+        user_comment: tempComment,
+        verification_status: 'pending'
       }
-    })
-    setEditingIndex(null)
-    setTempRiskScore(50)
-    setTempComment('')
+
+      const response = await fetch('/api/claims/save-adjustment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to save adjustment: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Update local state
+        setAdjustments({
+          ...adjustments,
+          [index]: {
+            adjustedRiskScore: tempRiskScore,
+            userComment: tempComment,
+            adjustedAt: new Date().toISOString()
+          }
+        })
+        setEditingIndex(null)
+        setTempRiskScore(50)
+        setTempComment('')
+      }
+    } catch (error) {
+      console.error('Error saving adjustment:', error)
+      alert('Failed to save adjustment. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // Get effective risk score (adjusted or original)
@@ -168,6 +261,23 @@ export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProp
 
   return (
     <div className="space-y-6">
+      {/* Loading/Error State for Adjustments */}
+      {isLoading && (
+        <Alert>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <AlertDescription>Loading saved adjustments...</AlertDescription>
+        </Alert>
+      )}
+
+      {loadError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load saved adjustments: {loadError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Summary Card */}
       <Card className="border-2">
         <CardHeader>
@@ -346,14 +456,25 @@ export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProp
                       size="sm"
                       onClick={() => saveAdjustment(index)}
                       className="flex-1"
+                      disabled={isSaving}
                     >
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Adjustment
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Adjustment
+                        </>
+                      )}
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={cancelEditing}
+                      disabled={isSaving}
                     >
                       <XIcon className="h-4 w-4 mr-2" />
                       Cancel

@@ -3242,7 +3242,10 @@ export default function ContentIntelligencePage() {
 
           <TabsContent value="claims" className="mt-4">
             {analysis.claim_analysis ? (
-              <ClaimAnalysisDisplay claimAnalysis={analysis.claim_analysis} />
+              <ClaimAnalysisDisplay
+                contentAnalysisId={analysis.id}
+                claimAnalysis={analysis.claim_analysis}
+              />
             ) : (
               <Card className="p-6 text-center">
                 <p className="text-muted-foreground">
