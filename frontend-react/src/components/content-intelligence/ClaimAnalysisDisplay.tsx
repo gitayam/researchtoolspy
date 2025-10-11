@@ -4,12 +4,18 @@
  * Displays extracted objective claims with multi-method deception detection analysis
  * Shows 6 detection methods: internal consistency, source credibility, evidence quality,
  * logical coherence, temporal consistency, and specificity
+ *
+ * Allows users to adjust risk scores and add comments for their own assessment
  */
 
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Shield,
   AlertTriangle,
@@ -23,7 +29,11 @@ import {
   BarChart3,
   Calendar,
   Link as LinkIcon,
-  Info
+  Info,
+  Edit,
+  Save,
+  X as XIcon,
+  MessageSquare
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -59,12 +69,57 @@ interface ClaimAnalysisDisplayProps {
   }
 }
 
+interface ClaimAdjustment {
+  adjustedRiskScore: number
+  userComment: string
+  adjustedAt: string
+}
+
 export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProps) {
   if (!claimAnalysis || !claimAnalysis.claims || claimAnalysis.claims.length === 0) {
     return null
   }
 
   const { claims, summary } = claimAnalysis
+
+  // State for claim adjustments
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [adjustments, setAdjustments] = useState<Record<number, ClaimAdjustment>>({})
+  const [tempRiskScore, setTempRiskScore] = useState<number>(50)
+  const [tempComment, setTempComment] = useState<string>('')
+
+  // Handle edit mode
+  const startEditing = (index: number, currentRiskScore: number) => {
+    setEditingIndex(index)
+    const existing = adjustments[index]
+    setTempRiskScore(existing?.adjustedRiskScore ?? currentRiskScore)
+    setTempComment(existing?.userComment ?? '')
+  }
+
+  const cancelEditing = () => {
+    setEditingIndex(null)
+    setTempRiskScore(50)
+    setTempComment('')
+  }
+
+  const saveAdjustment = (index: number) => {
+    setAdjustments({
+      ...adjustments,
+      [index]: {
+        adjustedRiskScore: tempRiskScore,
+        userComment: tempComment,
+        adjustedAt: new Date().toISOString()
+      }
+    })
+    setEditingIndex(null)
+    setTempRiskScore(50)
+    setTempComment('')
+  }
+
+  // Get effective risk score (adjusted or original)
+  const getEffectiveRiskScore = (index: number, originalScore: number) => {
+    return adjustments[index]?.adjustedRiskScore ?? originalScore
+  }
 
   // Get risk color
   const getRiskColor = (risk: 'low' | 'medium' | 'high') => {
@@ -188,7 +243,12 @@ export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProp
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Extracted Claims ({claims.length})</h3>
 
-        {claims.map((claimData, index) => (
+        {claims.map((claimData, index) => {
+          const effectiveRiskScore = getEffectiveRiskScore(index, claimData.deception_analysis.risk_score)
+          const hasAdjustment = adjustments[index] !== undefined
+          const isEditing = editingIndex === index
+
+          return (
           <Card key={index} className="border-l-4" style={{
             borderLeftColor: claimData.deception_analysis.overall_risk === 'low' ? '#10b981' :
                             claimData.deception_analysis.overall_risk === 'medium' ? '#f59e0b' : '#ef4444'
@@ -196,7 +256,7 @@ export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProp
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <Badge className={getCategoryColor(claimData.category)}>
                       {getCategoryIcon(claimData.category)}
                       <span className="ml-1">{claimData.category.toUpperCase()}</span>
@@ -205,6 +265,12 @@ export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProp
                       {getRiskIcon(claimData.deception_analysis.overall_risk)}
                       <span className="ml-1">{claimData.deception_analysis.overall_risk.toUpperCase()} RISK</span>
                     </Badge>
+                    {hasAdjustment && (
+                      <Badge variant="default" className="bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+                        <Edit className="h-3 w-3 mr-1" />
+                        User Adjusted
+                      </Badge>
+                    )}
                     {claimData.source && (
                       <Badge variant="outline">
                         Source: {claimData.source}
@@ -216,12 +282,105 @@ export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProp
                   </p>
                 </div>
                 <div className="text-center min-w-[80px]">
-                  <div className={`text-3xl font-bold ${getScoreColor(100 - claimData.deception_analysis.risk_score)}`}>
-                    {claimData.deception_analysis.risk_score}
+                  <div className={`text-3xl font-bold ${getScoreColor(100 - effectiveRiskScore)}`}>
+                    {effectiveRiskScore}
+                    {hasAdjustment && effectiveRiskScore !== claimData.deception_analysis.risk_score && (
+                      <span className="text-xs block text-gray-500 line-through">
+                        {claimData.deception_analysis.risk_score}
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">Risk Score</div>
+                  {!isEditing && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="mt-2 h-7 text-xs"
+                      onClick={() => startEditing(index, effectiveRiskScore)}
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      {hasAdjustment ? 'Edit' : 'Adjust'}
+                    </Button>
+                  )}
                 </div>
               </div>
+
+              {/* User Adjustment UI */}
+              {isEditing && (
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Adjust Risk Score: {tempRiskScore}
+                    </label>
+                    <Slider
+                      value={[tempRiskScore]}
+                      onValueChange={(value) => setTempRiskScore(value[0])}
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                      <span>Low Risk (0)</span>
+                      <span>Medium Risk (50)</span>
+                      <span>High Risk (100)</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Your Assessment Comments
+                    </label>
+                    <Textarea
+                      value={tempComment}
+                      onChange={(e) => setTempComment(e.target.value)}
+                      placeholder="Explain why you're adjusting this risk score... (optional)"
+                      rows={3}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => saveAdjustment(index)}
+                      className="flex-1"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Adjustment
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={cancelEditing}
+                    >
+                      <XIcon className="h-4 w-4 mr-2" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Show saved comment */}
+              {!isEditing && hasAdjustment && adjustments[index].userComment && (
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <MessageSquare className="h-4 w-4 mt-0.5 text-blue-600 dark:text-blue-400" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">
+                        Your Assessment:
+                      </p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {adjustments[index].userComment}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Adjusted {new Date(adjustments[index].adjustedAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="methods" className="w-full">
@@ -362,7 +521,8 @@ export function ClaimAnalysisDisplay({ claimAnalysis }: ClaimAnalysisDisplayProp
               </Tabs>
             </CardContent>
           </Card>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
