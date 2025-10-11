@@ -79,7 +79,10 @@ const SectionCard = memo(({
   sectionKey,
   onLinkQuestionActors,
   onLinkQuestionPlaces,
-  onLinkQuestionEvents
+  onLinkQuestionEvents,
+  onLinkQuestionEvidence,
+  questionEvidence,
+  onRemoveQuestionEvidence
 }: {
   section: FrameworkSection
   items: FrameworkItem[]
@@ -105,6 +108,9 @@ const SectionCard = memo(({
   onLinkQuestionActors?: (questionId: string) => void
   onLinkQuestionPlaces?: (questionId: string) => void
   onLinkQuestionEvents?: (questionId: string) => void
+  onLinkQuestionEvidence?: (questionId: string) => void
+  questionEvidence?: { [questionId: string]: LinkedEvidence[] }
+  onRemoveQuestionEvidence?: (questionId: string, evidence: LinkedEvidence) => void
 }) => {
   const isQA = itemType === 'qa'
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -345,6 +351,18 @@ const SectionCard = memo(({
                                       Link Events ({item.linked_events?.length || 0})
                                     </Button>
                                   )}
+                                  {/* Evidence linking for all Q&A items */}
+                                  {onLinkQuestionEvidence && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => onLinkQuestionEvidence(item.id)}
+                                      className="h-7 text-xs"
+                                    >
+                                      <Link2 className="h-3 w-3 mr-1" />
+                                      Link Evidence ({item.evidence_ids?.length || 0})
+                                    </Button>
+                                  )}
                                 </div>
                               )}
 
@@ -373,6 +391,21 @@ const SectionCard = memo(({
                                     <Badge key={event.id} variant="secondary" className="text-xs">
                                       📅 {event.name}
                                     </Badge>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Display linked evidence */}
+                              {questionEvidence && questionEvidence[item.id] && questionEvidence[item.id].length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mr-2">Evidence:</span>
+                                  {questionEvidence[item.id].map((evidence) => (
+                                    <EvidenceItemBadge
+                                      key={`${evidence.entity_type}-${evidence.entity_id}`}
+                                      evidence={evidence}
+                                      onRemove={onRemoveQuestionEvidence ? () => onRemoveQuestionEvidence(item.id, evidence) : undefined}
+                                      showDetails={false}
+                                    />
                                   ))}
                                 </div>
                               )}
@@ -596,6 +629,10 @@ export function GenericFrameworkForm({
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null)
   const [placeLinkerOpen, setPlaceLinkerOpen] = useState(false)
   const [eventLinkerOpen, setEventLinkerOpen] = useState(false)
+
+  // Evidence linking state for Q&A items (Starbursting)
+  const [questionEvidenceLinkerOpen, setQuestionEvidenceLinkerOpen] = useState(false)
+  const [questionEvidence, setQuestionEvidence] = useState<{ [questionId: string]: LinkedEvidence[] }>({})
 
   // AI title generation state
   const [generatingTitle, setGeneratingTitle] = useState(false)
@@ -950,6 +987,65 @@ export function GenericFrameworkForm({
         return item
       })
     }))
+  }
+
+  // Evidence linking handlers for Starbursting Q&A items
+  const openQuestionEvidenceLinker = (sectionKey: string, questionId: string) => {
+    setActiveSection(sectionKey)
+    setActiveQuestionId(questionId)
+    setQuestionEvidenceLinkerOpen(true)
+  }
+
+  const handleQuestionEvidenceLink = (evidence: LinkedEvidence[]) => {
+    if (!activeSection || !activeQuestionId) return
+
+    // Store evidence for this question
+    setQuestionEvidence(prev => ({
+      ...prev,
+      [activeQuestionId]: [...(prev[activeQuestionId] || []), ...evidence]
+    }))
+
+    // Update the question item with evidence IDs
+    setSectionData(prev => ({
+      ...prev,
+      [activeSection]: prev[activeSection].map(item => {
+        if (item.id === activeQuestionId && isQuestionAnswerItem(item)) {
+          const existingIds = item.evidence_ids || []
+          const newIds = evidence.map(e => `${e.entity_type}-${e.entity_id}`)
+          return {
+            ...item,
+            evidence_ids: [...new Set([...existingIds, ...newIds])]
+          }
+        }
+        return item
+      })
+    }))
+  }
+
+  const handleQuestionEvidenceRemove = (questionId: string, evidence: LinkedEvidence) => {
+    setQuestionEvidence(prev => ({
+      ...prev,
+      [questionId]: (prev[questionId] || []).filter(
+        e => !(e.entity_type === evidence.entity_type && e.entity_id === evidence.entity_id)
+      )
+    }))
+
+    // Update Q&A item to remove evidence ID
+    if (activeSection) {
+      setSectionData(prev => ({
+        ...prev,
+        [activeSection]: prev[activeSection].map(item => {
+          if (item.id === questionId && isQuestionAnswerItem(item)) {
+            const evidenceId = `${evidence.entity_type}-${evidence.entity_id}`
+            return {
+              ...item,
+              evidence_ids: (item.evidence_ids || []).filter(id => id !== evidenceId)
+            }
+          }
+          return item
+        })
+      }))
+    }
   }
 
   const handleUrlExtract = (extractedData: Record<string, any>, metadata: { url: string; title: string; summary: string }) => {
@@ -1851,6 +1947,9 @@ export function GenericFrameworkForm({
               onLinkQuestionActors={frameworkType === 'starbursting' ? (questionId) => openEntityLinkerForQuestion(section.key, questionId, 'actor') : undefined}
               onLinkQuestionPlaces={frameworkType === 'starbursting' ? (questionId) => openEntityLinkerForQuestion(section.key, questionId, 'place') : undefined}
               onLinkQuestionEvents={frameworkType === 'starbursting' ? (questionId) => openEntityLinkerForQuestion(section.key, questionId, 'event') : undefined}
+              onLinkQuestionEvidence={frameworkType === 'starbursting' ? (questionId) => openQuestionEvidenceLinker(section.key, questionId) : undefined}
+              questionEvidence={frameworkType === 'starbursting' ? questionEvidence : undefined}
+              onRemoveQuestionEvidence={frameworkType === 'starbursting' ? handleQuestionEvidenceRemove : undefined}
             />
           )
         })}
@@ -1976,6 +2075,22 @@ export function GenericFrameworkForm({
           }
           onEventsChange={handleQuestionEventLink}
           contextLabel={`"When" question`}
+        />
+      )}
+
+      {/* Evidence Linker Modal (for Starbursting Q&A items) */}
+      {frameworkType === 'starbursting' && (
+        <EvidenceLinker
+          open={questionEvidenceLinkerOpen}
+          onClose={() => {
+            setQuestionEvidenceLinkerOpen(false)
+            setActiveSection(null)
+            setActiveQuestionId(null)
+          }}
+          onLink={handleQuestionEvidenceLink}
+          alreadyLinked={activeQuestionId ? (questionEvidence[activeQuestionId] || []) : []}
+          title="Link Evidence to Answer"
+          description="Select evidence that supports or contradicts this answer"
         />
       )}
 
