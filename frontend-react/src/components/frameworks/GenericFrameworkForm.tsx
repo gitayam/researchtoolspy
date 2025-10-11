@@ -1144,6 +1144,21 @@ export function GenericFrameworkForm({
         alert('Please add a description or fill in at least one field (location, settings, frequency, etc.)')
         return
       }
+    } else if (frameworkType === 'pmesii-pt') {
+      // For PMESII-PT - require country and at least some content
+      if (!pmesiiLocation.country.trim()) {
+        setSaveError('Country is required for PMESII-PT analysis')
+        alert('Please specify a country for your PMESII-PT analysis. Location context is essential for this framework.')
+        return
+      }
+
+      hasData = !!description.trim() || sections.some(section => sectionData[section.key]?.length > 0)
+
+      if (!hasData) {
+        setSaveError('Please add a description or at least one item to any section')
+        alert('Please add a description or at least one item before saving')
+        return
+      }
     } else {
       // For other frameworks - description OR section items
       hasData = !!description.trim() || sections.some(section => sectionData[section.key]?.length > 0)
@@ -1180,6 +1195,15 @@ export function GenericFrameworkForm({
           linked_behavior_title: linkedBehaviorTitle,
           com_b_deficits: comBDeficits,
           selected_interventions: selectedInterventions,
+        }),
+        // Add geographic context for PMESII-PT
+        ...(frameworkType === 'pmesii-pt' && {
+          location_country: pmesiiLocation.country || undefined,
+          location_region: pmesiiLocation.region || undefined,
+          location_city: pmesiiLocation.city || undefined,
+          time_period_start: pmesiiLocation.time_period_start || undefined,
+          time_period_end: pmesiiLocation.time_period_end || undefined,
+          scope_objectives: pmesiiLocation.scope_objectives || undefined,
         }),
       }
 
