@@ -9,9 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Shield, AlertTriangle, TrendingUp, Eye, Target, CheckCircle2,
-  XCircle, Clock, BarChart3, Activity, ExternalLink, RefreshCw
+  XCircle, Clock, BarChart3, Activity, ExternalLink, RefreshCw, FolderKanban
 } from 'lucide-react'
 
 interface RiskStats {
@@ -82,12 +83,57 @@ interface DeceptionAggregateData {
   }
 }
 
+interface Workspace {
+  id: string
+  name: string
+  description?: string
+  type: 'PERSONAL' | 'TEAM' | 'PUBLIC'
+  entity_count: {
+    actors: number
+    sources: number
+    evidence: number
+    events: number
+    places: number
+    behaviors: number
+  }
+}
+
 export default function DeceptionRiskDashboard() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<DeceptionAggregateData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('1')
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(true)
+
+  const loadWorkspaces = async () => {
+    try {
+      setLoadingWorkspaces(true)
+      const userHash = localStorage.getItem('omnicore_user_hash')
+      const response = await fetch('/api/workspaces', {
+        headers: {
+          ...(userHash && { 'Authorization': `Bearer ${userHash}`, 'X-User-Hash': userHash })
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        const allWorkspaces = [...(result.owned || []), ...(result.member || [])]
+        setWorkspaces(allWorkspaces)
+
+        // If no workspaces, keep default workspace ID '1'
+        if (allWorkspaces.length > 0 && !allWorkspaces.find(w => w.id === selectedWorkspaceId)) {
+          setSelectedWorkspaceId(allWorkspaces[0].id)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load workspaces:', err)
+    } finally {
+      setLoadingWorkspaces(false)
+    }
+  }
 
   const loadData = async () => {
     try {
@@ -95,7 +141,7 @@ export default function DeceptionRiskDashboard() {
       setError(null)
 
       const userHash = localStorage.getItem('omnicore_user_hash')
-      const response = await fetch('/api/deception/aggregate?workspace_id=1', {
+      const response = await fetch(`/api/deception/aggregate?workspace_id=${selectedWorkspaceId}`, {
         headers: {
           ...(userHash && { 'Authorization': `Bearer ${userHash}` })
         }
@@ -117,8 +163,14 @@ export default function DeceptionRiskDashboard() {
   }
 
   useEffect(() => {
-    loadData()
+    loadWorkspaces()
   }, [])
+
+  useEffect(() => {
+    if (!loadingWorkspaces) {
+      loadData()
+    }
+  }, [selectedWorkspaceId, loadingWorkspaces])
 
   if (loading) {
     return (
@@ -175,11 +227,13 @@ export default function DeceptionRiskDashboard() {
     }
   }
 
+  const selectedWorkspace = workspaces.find(w => w.id === selectedWorkspaceId)
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
             <Shield className="h-8 w-8" />
             Deception Risk Dashboard
@@ -187,6 +241,40 @@ export default function DeceptionRiskDashboard() {
           <p className="text-muted-foreground mt-2">
             Unified view of all deception detection systems: MOM, POP, EVE, MOSES, Claims
           </p>
+
+          {/* Workspace Selector */}
+          <div className="mt-4 flex items-center gap-3">
+            <FolderKanban className="h-5 w-5 text-muted-foreground" />
+            <Select value={selectedWorkspaceId} onValueChange={setSelectedWorkspaceId}>
+              <SelectTrigger className="w-[300px]">
+                <SelectValue placeholder="Select workspace..." />
+              </SelectTrigger>
+              <SelectContent>
+                {workspaces.length === 0 ? (
+                  <SelectItem value="1">Default Workspace</SelectItem>
+                ) : (
+                  workspaces.map(workspace => (
+                    <SelectItem key={workspace.id} value={workspace.id}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{workspace.name}</span>
+                        {workspace.type === 'TEAM' && (
+                          <Badge variant="outline" className="text-xs">Team</Badge>
+                        )}
+                        {workspace.type === 'PUBLIC' && (
+                          <Badge variant="outline" className="text-xs">Public</Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {selectedWorkspace && (
+              <div className="text-sm text-muted-foreground">
+                {selectedWorkspace.entity_count.actors} actors · {selectedWorkspace.entity_count.sources} sources · {selectedWorkspace.entity_count.evidence} evidence
+              </div>
+            )}
+          </div>
         </div>
         <div className="text-right">
           <Button onClick={loadData} variant="outline" size="sm">

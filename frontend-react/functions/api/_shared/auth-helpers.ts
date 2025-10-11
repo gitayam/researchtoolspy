@@ -45,11 +45,31 @@ export async function getUserFromRequest(
   }
 
   // Fallback to hash-based auth
-  // For hash-based auth (16+ chars), return default user ID
-  // In production, you could map hashes to user IDs in database
-  if (token.length >= 16) {
-    // Valid hash format - return default authenticated user ID
-    return 1
+  // For hash-based auth (16+ chars), create/retrieve guest user
+  if (token.length >= 16 && env.DB) {
+    try {
+      // Try to find existing user with this hash
+      const existingUser = await env.DB.prepare(
+        'SELECT id FROM users WHERE user_hash = ?'
+      ).bind(token).first()
+
+      if (existingUser) {
+        return Number(existingUser.id)
+      }
+
+      // Create new guest user with hash
+      const result = await env.DB.prepare(`
+        INSERT INTO users (user_hash, is_active, is_verified, role)
+        VALUES (?, 1, 0, 'guest')
+        RETURNING id
+      `).bind(token).first()
+
+      if (result?.id) {
+        return Number(result.id)
+      }
+    } catch (err) {
+      console.error('[Auth] Failed to create/retrieve hash-based user:', err)
+    }
   }
 
   return null
