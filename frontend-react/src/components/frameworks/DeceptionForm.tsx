@@ -18,6 +18,7 @@ import { AIFieldAssistant, AIUrlScraper } from '@/components/ai'
 import { DeceptionScoringForm } from './DeceptionScoringForm'
 import { DeceptionDashboard } from './DeceptionDashboard'
 import { DeceptionPDFExport } from './DeceptionPDFExport'
+import { DeceptionClaimImporter } from './DeceptionClaimImporter'
 import type { DeceptionScores } from '@/lib/deception-scoring'
 import { calculateDeceptionLikelihood } from '@/lib/deception-scoring'
 import type { AIDeceptionAnalysis } from '@/lib/ai-deception-analysis'
@@ -53,6 +54,7 @@ export function DeceptionForm({
   // Scoring
   const [scores, setScores] = useState<Partial<DeceptionScores>>(initialData?.scores || {})
   const [aiAnalysis, setAiAnalysis] = useState<AIDeceptionAnalysis | null>(initialData?.aiAnalysis || null)
+  const [claimReferences, setClaimReferences] = useState<string[]>(initialData?.claimReferences || [])
 
   // UI state
   const [activeTab, setActiveTab] = useState('scenario')
@@ -121,6 +123,38 @@ export function DeceptionForm({
     }
   }
 
+  const handleClaimImport = (data: {
+    scenario: string
+    scores: Partial<DeceptionScores>
+    claimReferences: string[]
+    eveIndicators: string[]
+    mosesIndicators: string[]
+  }) => {
+    // Set scenario from claims
+    setScenario(prev => prev ? `${prev}\n\n--- Imported Claims ---\n${data.scenario}` : data.scenario)
+
+    // Update MOSES field with indicators
+    if (data.mosesIndicators.length > 0) {
+      const mosesText = data.mosesIndicators.map((ind, idx) => `${idx + 1}. ${ind}`).join('\n')
+      setMoses(prev => prev ? `${prev}\n\n--- From Claims ---\n${mosesText}` : mosesText)
+    }
+
+    // Update EVE field with indicators
+    if (data.eveIndicators.length > 0) {
+      const eveText = data.eveIndicators.map((ind, idx) => `${idx + 1}. ${ind}`).join('\n')
+      setEve(prev => prev ? `${prev}\n\n--- From Claims ---\n${eveText}` : eveText)
+    }
+
+    // Merge scores (preserve existing scores, add new ones)
+    setScores(prev => ({ ...prev, ...data.scores }))
+
+    // Store claim references for traceability
+    setClaimReferences(data.claimReferences)
+
+    // Switch to scenario tab to show imported content
+    setActiveTab('scenario')
+  }
+
   const handleSave = async () => {
     if (!title || !scenario) {
       setError('Title and scenario are required')
@@ -145,6 +179,7 @@ export function DeceptionForm({
         scores,
         aiAnalysis,
         calculatedAssessment,
+        claimReferences,
         lastUpdated: new Date().toISOString()
       })
 
@@ -184,6 +219,7 @@ export function DeceptionForm({
             </p>
           </div>
           <div className="flex gap-2">
+            <DeceptionClaimImporter onImport={handleClaimImport} />
             <AIUrlScraper
               framework="deception"
               onExtract={handleUrlExtract}
@@ -212,6 +248,7 @@ export function DeceptionForm({
                   scores,
                   aiAnalysis,
                   calculatedAssessment,
+                  claimReferences,
                   lastUpdated: new Date().toISOString()
                 }}
                 variant="outline"
