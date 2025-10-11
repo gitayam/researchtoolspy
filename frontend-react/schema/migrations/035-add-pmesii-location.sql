@@ -1,25 +1,25 @@
 -- Add geographic context to PMESII-PT framework
 -- PMESII-PT is fundamentally location-based analysis
 
--- Add location columns to framework_analyses
-ALTER TABLE framework_analyses ADD COLUMN location_country TEXT;
-ALTER TABLE framework_analyses ADD COLUMN location_region TEXT; -- State/province
-ALTER TABLE framework_analyses ADD COLUMN location_city TEXT;
-ALTER TABLE framework_analyses ADD COLUMN time_period_start TEXT; -- ISO 8601 date
-ALTER TABLE framework_analyses ADD COLUMN time_period_end TEXT; -- ISO 8601 date
-ALTER TABLE framework_analyses ADD COLUMN scope_objectives TEXT; -- Analysis objectives
+-- Add location columns to framework_sessions
+ALTER TABLE framework_sessions ADD COLUMN location_country TEXT;
+ALTER TABLE framework_sessions ADD COLUMN location_region TEXT; -- State/province
+ALTER TABLE framework_sessions ADD COLUMN location_city TEXT;
+ALTER TABLE framework_sessions ADD COLUMN time_period_start TEXT; -- ISO 8601 date
+ALTER TABLE framework_sessions ADD COLUMN time_period_end TEXT; -- ISO 8601 date
+ALTER TABLE framework_sessions ADD COLUMN scope_objectives TEXT; -- Analysis objectives
 
 -- Create indexes for location-based queries
 CREATE INDEX IF NOT EXISTS idx_framework_location_country
-ON framework_analyses(location_country)
+ON framework_sessions(location_country)
 WHERE location_country IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_framework_location_region
-ON framework_analyses(location_region)
+ON framework_sessions(location_region)
 WHERE location_region IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_framework_type_location
-ON framework_analyses(framework_type, location_country)
+ON framework_sessions(framework_type, location_country)
 WHERE location_country IS NOT NULL;
 
 -- Add comment explaining usage
