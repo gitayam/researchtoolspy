@@ -6,11 +6,14 @@
  */
 
 import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
   OPENAI_API_KEY: string
+  AI_GATEWAY_ACCOUNT_ID?: string
   SESSIONS?: KVNamespace
+  RATE_LIMIT?: KVNamespace
 }
 
 interface DIMEAnalysisRequest {
@@ -81,35 +84,33 @@ Generate a JSON response with this structure:
 
 Focus on aspects that are actually present in the content. If a dimension has no relevant information, include 1-2 questions about why it might be absent or what related aspects to consider.`
 
-    const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${context.env.OPENAI_API_KEY}`
+    console.log('[DIME] Calling OpenAI via AI Gateway...')
+    const gptData = await callOpenAIViaGateway(context.env, {
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a strategic analyst expert in DIME framework analysis. Provide thoughtful, evidence-based analysis.'
+        },
+        {
+          role: 'user',
+          content: dimePrompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000,
+      response_format: { type: 'json_object' }
+    }, {
+      cacheTTL: getOptimalCacheTTL('dime-analysis'),
+      metadata: {
+        endpoint: 'content-intelligence',
+        operation: 'dime-analysis',
+        analysis_id: body.analysis_id
       },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a strategic analyst expert in DIME framework analysis. Provide thoughtful, evidence-based analysis.'
-          },
-          {
-            role: 'user',
-            content: dimePrompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-        response_format: { type: 'json_object' }
-      })
+      timeout: 20000
     })
 
-    if (!gptResponse.ok) {
-      throw new Error(`GPT API error: ${gptResponse.statusText}`)
-    }
-
-    const gptData = await gptResponse.json()
+    console.log('[DIME] Response received from AI Gateway')
     const dimeAnalysis = JSON.parse(gptData.choices[0].message.content)
 
     // Update content_analysis with DIME results
