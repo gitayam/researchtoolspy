@@ -413,12 +413,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const claims = await extractClaims(contentData.text, env.OPENAI_API_KEY, contentData.title)
       console.log(`[DEBUG] Claims extracted: ${claims.length} claims`)
 
-      // Run deception detection on each claim
-      console.log('[DEBUG] Running deception detection on claims...')
-      claimAnalysis = await analyzeClaimsForDeception(claims, contentData.text, env.OPENAI_API_KEY)
-      console.log(`[DEBUG] Claim deception analysis complete`)
+      // Only run deception detection if we have claims
+      if (claims.length > 0) {
+        console.log('[DEBUG] Running deception detection on claims...')
+        claimAnalysis = await analyzeClaimsForDeception(claims, contentData.text, env.OPENAI_API_KEY)
+        console.log(`[DEBUG] Claim deception analysis complete`)
+      } else {
+        console.log('[DEBUG] No claims extracted, skipping deception analysis')
+        claimAnalysis = null
+      }
     } catch (error) {
       console.error('[DEBUG] Claim extraction/analysis failed:', error)
+      console.error('[DEBUG] Error details:', error instanceof Error ? error.message : String(error))
       console.error('[DEBUG] Continuing without claim analysis...')
       // Continue without claim analysis rather than failing
     }
@@ -1713,6 +1719,9 @@ Return ONLY valid JSON:
 }`
 
   try {
+    console.log('[DEBUG] Starting deception analysis for', claims.length, 'claims')
+    console.log('[DEBUG] First claim:', claims[0]?.claim || 'N/A')
+
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 30000) // Longer timeout for comprehensive analysis
 
@@ -1750,21 +1759,39 @@ Return ONLY valid JSON:
     const data = await response.json() as any
 
     if (!data.choices?.[0]?.message?.content) {
+      console.error('[DEBUG] Invalid API response structure:', JSON.stringify(data))
       throw new Error('Invalid API response for deception analysis')
     }
 
-    const jsonText = data.choices[0].message.content
+    const rawContent = data.choices[0].message.content
+    console.log('[DEBUG] GPT raw response length:', rawContent.length, 'chars')
+    console.log('[DEBUG] GPT response preview:', rawContent.substring(0, 200))
+
+    const jsonText = rawContent
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
       .trim()
 
     console.log('[DEBUG] Parsing deception analysis JSON...')
-    const result = JSON.parse(jsonText)
+    let result
+    try {
+      result = JSON.parse(jsonText)
+    } catch (parseError) {
+      console.error('[DEBUG] JSON parse error:', parseError)
+      console.error('[DEBUG] Failed to parse text:', jsonText.substring(0, 500))
+      throw new Error(`Failed to parse deception analysis JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}`)
+    }
+
     console.log('[DEBUG] Deception analysis complete:', result.summary?.total_claims, 'claims analyzed')
     return result
 
   } catch (error) {
     console.error('[Deception Analysis] Error:', error)
+    console.error('[Deception Analysis] Error type:', error instanceof Error ? error.constructor.name : typeof error)
+    console.error('[Deception Analysis] Error message:', error instanceof Error ? error.message : String(error))
+    console.error('[Deception Analysis] Error stack:', error instanceof Error ? error.stack : 'N/A')
+    console.error('[Deception Analysis] Number of claims attempted:', claims.length)
+
     // Return empty analysis on error
     return {
       claims: claims.map(c => ({
@@ -1773,15 +1800,15 @@ Return ONLY valid JSON:
           overall_risk: 'medium' as const,
           risk_score: 50,
           methods: {
-            internal_consistency: { score: 50, reasoning: 'Analysis unavailable' },
-            source_credibility: { score: 50, reasoning: 'Analysis unavailable' },
-            evidence_quality: { score: 50, reasoning: 'Analysis unavailable' },
-            logical_coherence: { score: 50, reasoning: 'Analysis unavailable' },
-            temporal_consistency: { score: 50, reasoning: 'Analysis unavailable' },
-            specificity: { score: 50, reasoning: 'Analysis unavailable' }
+            internal_consistency: { score: 50, reasoning: 'Analysis failed - see logs' },
+            source_credibility: { score: 50, reasoning: 'Analysis failed - see logs' },
+            evidence_quality: { score: 50, reasoning: 'Analysis failed - see logs' },
+            logical_coherence: { score: 50, reasoning: 'Analysis failed - see logs' },
+            temporal_consistency: { score: 50, reasoning: 'Analysis failed - see logs' },
+            specificity: { score: 50, reasoning: 'Analysis failed - see logs' }
           },
-          red_flags: ['Analysis failed'],
-          confidence_assessment: 'Unable to perform deception analysis'
+          red_flags: ['Deception analysis failed: ' + (error instanceof Error ? error.message : 'Unknown error')],
+          confidence_assessment: 'Unable to perform deception analysis due to error'
         }
       })),
       summary: {
