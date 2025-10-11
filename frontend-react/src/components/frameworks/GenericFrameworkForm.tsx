@@ -1,6 +1,6 @@
 import { useState, memo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check, Download, FileJson } from 'lucide-react'
+import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check, Download, FileJson, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +18,7 @@ import { AITimelineGenerator } from '@/components/frameworks/AITimelineGenerator
 import { ConsequencesManager } from '@/components/frameworks/ConsequencesManager'
 import { SymbolsManager } from '@/components/frameworks/SymbolsManager'
 import { PMESIIPTLocationSelector } from '@/components/frameworks/PMESIIPTLocationSelector'
+import { ActorLinker, ActorBadge, type LinkedActor } from '@/components/actors/ActorLinker'
 import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity, ConsequenceItem, SymbolItem } from '@/types/behavior'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
@@ -65,6 +66,9 @@ const SectionCard = memo(({
   linkedEvidence,
   onLinkEvidence,
   onRemoveEvidence,
+  linkedActors,
+  onLinkActors,
+  onRemoveActor,
   frameworkType,
   allData,
   itemType,
@@ -83,6 +87,9 @@ const SectionCard = memo(({
   linkedEvidence: LinkedEvidence[]
   onLinkEvidence: () => void
   onRemoveEvidence: (evidence: LinkedEvidence) => void
+  linkedActors?: LinkedActor[]
+  onLinkActors?: () => void
+  onRemoveActor?: (actor: LinkedActor) => void
   frameworkType: string
   allData?: GenericFrameworkData
   itemType?: 'text' | 'qa'
@@ -376,6 +383,38 @@ const SectionCard = memo(({
         </div>
       </div>
 
+      {/* Actor Section (for PMESII-PT domains) */}
+      {onLinkActors && (
+        <div className="pt-4 border-t">
+          <div className="flex items-center justify-between mb-3">
+            <Label className="text-sm font-medium">Linked Actors ({linkedActors?.length || 0})</Label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onLinkActors}
+            >
+              <Users className="h-3 w-3 mr-2" />
+              Link Actors
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {!linkedActors || linkedActors.length === 0 ? (
+              <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                No actors linked to this domain
+              </p>
+            ) : (
+              linkedActors.map((actor) => (
+                <ActorBadge
+                  key={actor.id}
+                  actor={actor}
+                  onRemove={onRemoveActor ? () => onRemoveActor(actor) : undefined}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       <Badge variant="secondary">{items.length} items</Badge>
     </CardContent>
   </Card>
@@ -460,6 +499,15 @@ export function GenericFrameworkForm({
   )
   const [evidenceLinkerOpen, setEvidenceLinkerOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<string | null>(null)
+
+  // Actor linking state (for PMESII-PT)
+  const [sectionActors, setSectionActors] = useState<{ [key: string]: LinkedActor[] }>(
+    sections.reduce((acc, section) => {
+      acc[section.key] = (initialData as any)?.[`${section.key}_actors`] || []
+      return acc
+    }, {} as { [key: string]: LinkedActor[] })
+  )
+  const [actorLinkerOpen, setActorLinkerOpen] = useState(false)
 
   // AI title generation state
   const [generatingTitle, setGeneratingTitle] = useState(false)
@@ -732,6 +780,28 @@ export function GenericFrameworkForm({
       console.error('Failed to unlink evidence:', error)
       alert('Failed to unlink evidence. Please try again.')
     }
+  }
+
+  // Actor linking handlers (for PMESII-PT)
+  const openActorLinker = (sectionKey: string) => {
+    setActiveSection(sectionKey)
+    setActorLinkerOpen(true)
+  }
+
+  const handleActorLink = (selected: LinkedActor[]) => {
+    if (!activeSection) return
+
+    setSectionActors(prev => ({
+      ...prev,
+      [activeSection]: selected
+    }))
+  }
+
+  const handleActorRemove = (sectionKey: string, actor: LinkedActor) => {
+    setSectionActors(prev => ({
+      ...prev,
+      [sectionKey]: (prev[sectionKey] || []).filter(a => a.id !== actor.id)
+    }))
   }
 
   const handleUrlExtract = (extractedData: Record<string, any>, metadata: { url: string; title: string; summary: string }) => {
@@ -1207,6 +1277,15 @@ export function GenericFrameworkForm({
         }),
       }
 
+      // Add linked actors for PMESII-PT (store per section)
+      if (frameworkType === 'pmesii-pt') {
+        sections.forEach(section => {
+          if (sectionActors[section.key] && sectionActors[section.key].length > 0) {
+            data[`${section.key}_actors`] = sectionActors[section.key]
+          }
+        })
+      }
+
       console.log(`Saving ${frameworkType} analysis:`, data)
 
       await onSave(data)
@@ -1604,6 +1683,9 @@ export function GenericFrameworkForm({
               linkedEvidence={sectionEvidence[section.key] || []}
               onLinkEvidence={() => openEvidenceLinker(section.key)}
               onRemoveEvidence={(evidence) => handleEvidenceRemove(section.key, evidence)}
+              linkedActors={frameworkType === 'pmesii-pt' ? (sectionActors[section.key] || []) : undefined}
+              onLinkActors={frameworkType === 'pmesii-pt' ? () => openActorLinker(section.key) : undefined}
+              onRemoveActor={frameworkType === 'pmesii-pt' ? (actor) => handleActorRemove(section.key, actor) : undefined}
               frameworkType={frameworkType}
               allData={{ title, description, ...sectionData }}
               itemType={itemType}
@@ -1641,6 +1723,20 @@ export function GenericFrameworkForm({
         onLink={handleEvidenceLink}
         alreadyLinked={activeSection ? sectionEvidence[activeSection] || [] : []}
       />
+
+      {/* Actor Linker Modal (for PMESII-PT) */}
+      {frameworkType === 'pmesii-pt' && (
+        <ActorLinker
+          isOpen={actorLinkerOpen}
+          onClose={() => {
+            setActorLinkerOpen(false)
+            setActiveSection(null)
+          }}
+          selectedActors={activeSection ? (sectionActors[activeSection] || []) : []}
+          onActorsChange={handleActorLink}
+          domainName={activeSection ? sections.find(s => s.key === activeSection)?.label : undefined}
+        />
+      )}
 
       {/* Behavior Analysis Usage Guide */}
       {frameworkType === 'behavior' && (
