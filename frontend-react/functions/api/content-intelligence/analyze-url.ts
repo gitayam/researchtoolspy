@@ -789,7 +789,6 @@ function analyzeWordFrequency(text: string): Record<string, number> {
 
   const frequency: Record<string, number> = {}
 
-  // First, add single word frequencies
   const stopWords = new Set([
     'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i',
     'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
@@ -803,10 +802,14 @@ function analyzeWordFrequency(text: string): Record<string, number> {
     'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us'
   ])
 
-  // Single words are handled separately in word cloud
-  // Only count multi-word phrases (2-7 words)
+  // Count single words (excluding stop words)
+  for (const word of words) {
+    if (!stopWords.has(word) && word.length > 3) {
+      frequency[word] = (frequency[word] || 0) + 1
+    }
+  }
 
-  // Generate 2-7 word phrases (not single words since those are in word cloud)
+  // Generate 2-7 word phrases
   for (let phraseLength = 2; phraseLength <= 7; phraseLength++) {
     for (let i = 0; i <= words.length - phraseLength; i++) {
       const phrase = words.slice(i, i + phraseLength).join(' ')
