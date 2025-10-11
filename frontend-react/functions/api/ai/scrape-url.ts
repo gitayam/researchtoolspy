@@ -4,10 +4,14 @@
  * Scrapes URLs, extracts content, and uses GPT-5-nano to extract structured data
  */
 
+import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+
 interface Env {
   OPENAI_API_KEY: string
+  AI_GATEWAY_ACCOUNT_ID?: string
   AI_CONFIG: KVNamespace
   CACHE: KVNamespace
+  RATE_LIMIT?: KVNamespace
 }
 
 interface ScrapeRequest {
@@ -378,35 +382,29 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // First, get summary
-    const summaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+    console.log('[AI Scrape] Generating summary via AI Gateway...')
+    const summaryData = await callOpenAIViaGateway(context.env, {
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a concise summarization assistant. Summarize articles in 2-3 sentences.'
+        },
+        {
+          role: 'user',
+          content: `Summarize this article:\n\n${content.substring(0, 10000)}`
+        }
+      ],
+      max_completion_tokens: 500
+    }, {
+      cacheTTL: getOptimalCacheTTL('content-intelligence'),
+      metadata: {
+        endpoint: 'ai-scrape',
+        operation: 'generate-summary',
+        url: url
       },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a concise summarization assistant. Summarize articles in 2-3 sentences.'
-          },
-          {
-            role: 'user',
-            content: `Summarize this article:\n\n${content.substring(0, 10000)}`
-          }
-        ],
-        max_completion_tokens: 500
-      })
+      timeout: 15000
     })
-
-    if (!summaryResponse.ok) {
-      const errorData = await summaryResponse.json().catch(() => ({ error: 'Unknown error' }))
-      console.error('OpenAI API error:', errorData)
-      throw new Error(`Failed to generate summary: ${JSON.stringify(errorData)}`)
-    }
-
-    const summaryData = await summaryResponse.json()
 
     // Validate summary response structure
     if (!summaryData.choices || !summaryData.choices[0] || !summaryData.choices[0].message) {
@@ -415,6 +413,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const summary = summaryData.choices[0].message.content || 'No summary available'
+    console.log('[AI Scrape] Summary generated via AI Gateway')
 
     // Extract framework-specific data if prompt exists
     let extractedData: Record<string, any> = {}
@@ -426,14 +425,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         .replace('{content}', content.substring(0, 15000))
 
       console.log(`Extracting ${framework} data from URL: ${url}`)
+      console.log(`[AI Scrape] Extracting framework data via AI Gateway...`)
 
-      const extractResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+      try {
+        const extractData = await callOpenAIViaGateway(context.env, {
           model: 'gpt-4o-mini',
           messages: [
             {
@@ -447,19 +442,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           ],
           max_completion_tokens: 3000
           // Note: gpt-4o-mini only supports temperature=1 (default), so we omit it
+        }, {
+          cacheTTL: getOptimalCacheTTL('content-intelligence'),
+          metadata: {
+            endpoint: 'ai-scrape',
+            operation: 'extract-framework-data',
+            framework: framework,
+            url: url
+          },
+          timeout: 20000
         })
-      })
 
-      if (!extractResponse.ok) {
-        const errorData = await extractResponse.json().catch(() => ({ error: 'Unknown extraction error' }))
-        console.error(`OpenAI extraction API error for ${framework}:`, errorData)
-        extractedData = {
-          _error: `Failed to extract ${framework} data: ${JSON.stringify(errorData)}`,
-          _model: 'gpt-4o-mini',
-          _framework: framework
-        }
-      } else {
-        const extractData = await extractResponse.json()
+        console.log(`[AI Scrape] Framework extraction completed via AI Gateway`)
 
         // Validate response structure
         if (!extractData.choices || !extractData.choices[0] || !extractData.choices[0].message) {
@@ -520,6 +514,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             }
           }
         }
+      } catch (extractError) {
+        console.error(`OpenAI extraction API error for ${framework}:`, extractError)
+        extractedData = {
+          _error: `Failed to extract ${framework} data: ${extractError instanceof Error ? extractError.message : String(extractError)}`,
+          _model: 'gpt-4o-mini',
+          _framework: framework
+        }
       }
     } else {
       console.log(`No extraction prompt found for framework: ${framework}`)
@@ -571,13 +572,9 @@ Example BAD question: "What sanctions were imposed?" (vague, no context)
 Return ONLY JSON:
 {"diplomatic": ["Specific Q1 with article title?", "Specific Q2 with article title?"], "information": ["Specific Q1?", "Specific Q2?"], "military": ["Specific Q1?", "Specific Q2?"], "economic": ["Specific Q1?", "Specific Q2?"]}`
 
-      const unansweredResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+      console.log(`[AI Scrape] Generating unanswered questions via AI Gateway...`)
+      try {
+        const unansweredData = await callOpenAIViaGateway(context.env, {
           model: 'gpt-4o-mini',
           messages: [
             {
@@ -590,11 +587,18 @@ Return ONLY JSON:
             }
           ],
           max_completion_tokens: 800  // Reduced from 2000 for faster response
+        }, {
+          cacheTTL: getOptimalCacheTTL('content-intelligence'),
+          metadata: {
+            endpoint: 'ai-scrape',
+            operation: 'generate-unanswered-questions',
+            framework: framework,
+            url: url
+          },
+          timeout: 15000
         })
-      })
 
-      if (unansweredResponse.ok) {
-        const unansweredData = await unansweredResponse.json()
+        console.log(`[AI Scrape] Unanswered questions generated via AI Gateway`)
 
         // Validate response structure
         if (!unansweredData.choices || !unansweredData.choices[0] || !unansweredData.choices[0].message) {
@@ -618,8 +622,8 @@ Return ONLY JSON:
             console.error('Raw unanswered questions text:', unansweredText)
           }
         }
-      } else {
-        console.error('Failed to generate unanswered questions')
+      } catch (unansweredError) {
+        console.error('Failed to generate unanswered questions:', unansweredError)
       }
     }
 
