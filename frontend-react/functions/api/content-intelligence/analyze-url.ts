@@ -1563,9 +1563,13 @@ For EACH claim, run these deception detection methods:
    - Score: 0 = major contradictions, 100 = fully consistent
 
 2. SOURCE CREDIBILITY (0-100)
-   - Is the source named and authoritative for this topic?
-   - Is the source verifiable?
-   - Score: 0 = anonymous/unreliable source, 100 = highly credible named source
+   - IMPORTANT: Evaluate the CLAIM MAKER, not the publication reporting it
+   - For quoted statements (e.g., "X said/claimed/blamed..."), evaluate X's credibility
+   - Consider: Is the claim maker authoritative on this topic?
+   - Consider: Does the claim maker have political/financial motivations or biases?
+   - Consider: Does the claim maker have a track record of truthfulness?
+   - For direct quotes: Low credibility = known for dishonesty/political bias, High credibility = expert/neutral source
+   - Score: 0 = unreliable speaker with strong bias/track record of falsehoods, 100 = highly credible expert with no conflicts
 
 3. EVIDENCE QUALITY (0-100)
    - Is supporting evidence provided?
@@ -1610,7 +1614,7 @@ Return ONLY valid JSON:
           },
           "source_credibility": {
             "score": 85,
-            "reasoning": "Source is a named government official"
+            "reasoning": "Claim maker is a named expert with relevant authority; no obvious political bias"
           },
           "evidence_quality": {
             "score": 70,
