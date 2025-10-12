@@ -5,13 +5,8 @@
  * Generates research question recommendations based on a topic description.
  */
 
-import { requireAuth } from '../_shared/auth-helpers'
-
 interface Env {
-  DB: D1Database
-  SESSIONS?: KVNamespace
   OPENAI_API_KEY: string
-  AI_GATEWAY_ACCOUNT_ID?: string
 }
 
 interface RecommendQuestionsRequest {
@@ -38,8 +33,6 @@ interface GeneratedQuestion {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const userId = await requireAuth(context.request, context.env)
-
     const body = await context.request.json() as RecommendQuestionsRequest
 
     // Validate required fields
