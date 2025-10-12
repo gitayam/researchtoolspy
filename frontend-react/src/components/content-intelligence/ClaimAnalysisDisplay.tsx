@@ -350,7 +350,8 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
     }
   }
 
-  const getScoreColor = (score: number) => {
+  const getScoreColor = (score: number | null) => {
+    if (score === null || score === undefined) return 'text-gray-600 dark:text-gray-400'
     if (score >= 80) return 'text-green-600 dark:text-green-400'
     if (score >= 60) return 'text-yellow-600 dark:text-yellow-400'
     return 'text-red-600 dark:text-red-400'
@@ -417,7 +418,10 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold">
-                {summary.overall_content_credibility}
+                {summary.overall_content_credibility !== null && summary.overall_content_credibility !== undefined
+                  ? summary.overall_content_credibility
+                  : <span className="text-gray-400">N/A</span>
+                }
               </div>
               <div className="text-xs text-gray-600 dark:text-gray-400">
                 Overall Credibility
@@ -890,10 +894,10 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         Internal Consistency
                       </span>
                       <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.internal_consistency.score)}`}>
-                        {claimData.deception_analysis.methods.internal_consistency.score}
+                        {claimData.deception_analysis.methods.internal_consistency.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.internal_consistency.score} className="h-2" />
+                    <Progress value={claimData.deception_analysis.methods.internal_consistency.score ?? 0} className="h-2" />
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.internal_consistency.reasoning}
                     </p>
@@ -907,10 +911,10 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         Source Credibility
                       </span>
                       <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.source_credibility.score)}`}>
-                        {claimData.deception_analysis.methods.source_credibility.score}
+                        {claimData.deception_analysis.methods.source_credibility.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.source_credibility.score} className="h-2" />
+                    <Progress value={claimData.deception_analysis.methods.source_credibility.score ?? 0} className="h-2" />
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.source_credibility.reasoning}
                     </p>
@@ -924,10 +928,10 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         Evidence Quality
                       </span>
                       <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.evidence_quality.score)}`}>
-                        {claimData.deception_analysis.methods.evidence_quality.score}
+                        {claimData.deception_analysis.methods.evidence_quality.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.evidence_quality.score} className="h-2" />
+                    <Progress value={claimData.deception_analysis.methods.evidence_quality.score ?? 0} className="h-2" />
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.evidence_quality.reasoning}
                     </p>
@@ -941,10 +945,10 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         Logical Coherence
                       </span>
                       <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.logical_coherence.score)}`}>
-                        {claimData.deception_analysis.methods.logical_coherence.score}
+                        {claimData.deception_analysis.methods.logical_coherence.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.logical_coherence.score} className="h-2" />
+                    <Progress value={claimData.deception_analysis.methods.logical_coherence.score ?? 0} className="h-2" />
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.logical_coherence.reasoning}
                     </p>
@@ -958,10 +962,10 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         Temporal Consistency
                       </span>
                       <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.temporal_consistency.score)}`}>
-                        {claimData.deception_analysis.methods.temporal_consistency.score}
+                        {claimData.deception_analysis.methods.temporal_consistency.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.temporal_consistency.score} className="h-2" />
+                    <Progress value={claimData.deception_analysis.methods.temporal_consistency.score ?? 0} className="h-2" />
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.temporal_consistency.reasoning}
                     </p>
@@ -975,10 +979,10 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         Specificity
                       </span>
                       <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.specificity.score)}`}>
-                        {claimData.deception_analysis.methods.specificity.score}
+                        {claimData.deception_analysis.methods.specificity.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.specificity.score} className="h-2" />
+                    <Progress value={claimData.deception_analysis.methods.specificity.score ?? 0} className="h-2" />
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.specificity.reasoning}
                     </p>
