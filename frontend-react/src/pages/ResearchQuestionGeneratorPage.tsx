@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Check, ArrowLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react'
+import { Check, ArrowLeft, ArrowRight, Loader2, Sparkles, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useNavigate } from 'react-router-dom'
+import ResearchPlanDisplay from '@/components/research/ResearchPlanDisplay'
 
 interface FormData {
   // Step 1: Basic Context
@@ -38,6 +39,62 @@ interface GeneratedQuestion {
   overallScore: number
 }
 
+interface Milestone {
+  phase: string
+  tasks: string[]
+  duration: string
+  deliverables: string[]
+}
+
+interface ResearchPlan {
+  methodology: {
+    approach: string
+    design: string
+    rationale: string
+    dataCollection: string[]
+    sampling: string
+    sampleSize: string
+  }
+  timeline: {
+    totalDuration: string
+    milestones: Milestone[]
+    criticalPath: string[]
+  }
+  resources: {
+    personnel: string[]
+    equipment: string[]
+    software: string[]
+    funding: string
+    facilities: string[]
+  }
+  literatureReview: {
+    databases: string[]
+    searchTerms: string[]
+    inclusionCriteria: string[]
+    exclusionCriteria: string[]
+    expectedSources: number
+  }
+  dataAnalysis: {
+    quantitativeTests: string[]
+    qualitativeApproaches: string[]
+    software: string[]
+    validationMethods: string[]
+  }
+  ethicalConsiderations: {
+    irbRequired: boolean
+    riskLevel: string
+    consentRequired: boolean
+    privacyMeasures: string[]
+    potentialRisks: string[]
+  }
+  dissemination: {
+    targetJournals: string[]
+    conferences: string[]
+    stakeholders: string[]
+    formats: string[]
+  }
+}
+
 const STEPS = [
   { id: 1, title: 'Topic & Purpose', description: 'Define your research area' },
   { id: 2, title: 'The 5 W\'s', description: 'Who, What, Where, When, Why' },
@@ -51,6 +108,9 @@ export default function ResearchQuestionGeneratorPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([])
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null)
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false)
+  const [researchPlan, setResearchPlan] = useState<ResearchPlan | null>(null)
+  const [researchQuestionId, setResearchQuestionId] = useState<string | null>(null)
 
   const [formData, setFormData] = useState<FormData>({
     topic: '',
@@ -101,6 +161,7 @@ export default function ResearchQuestionGeneratorPage() {
       if (response.ok) {
         const data = await response.json()
         setGeneratedQuestions(data.questions || [])
+        setResearchQuestionId(data.researchQuestionId || null)
       } else {
         alert('Failed to generate questions. Please try again.')
       }
@@ -109,6 +170,51 @@ export default function ResearchQuestionGeneratorPage() {
       alert('An error occurred. Please try again.')
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleGeneratePlan = async () => {
+    if (selectedQuestionIndex === null) return
+
+    setIsGeneratingPlan(true)
+    try {
+      const userHash = localStorage.getItem('omnicore_user_hash')
+      const selectedQuestion = generatedQuestions[selectedQuestionIndex]
+
+      const response = await fetch('/api/research/generate-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+        },
+        body: JSON.stringify({
+          researchQuestionId,
+          researchQuestion: selectedQuestion.question,
+          duration: formData.duration,
+          resources: formData.resources,
+          experienceLevel: formData.experienceLevel,
+          projectType: formData.projectType,
+          fiveWs: {
+            who: formData.who,
+            what: formData.what,
+            where: formData.where,
+            when: formData.when,
+            why: formData.why
+          }
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setResearchPlan(data.plan)
+      } else {
+        alert('Failed to generate research plan. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error generating plan:', error)
+      alert('An error occurred. Please try again.')
+    } finally {
+      setIsGeneratingPlan(false)
     }
   }
 
@@ -182,6 +288,9 @@ export default function ResearchQuestionGeneratorPage() {
           selectedQuestionIndex={selectedQuestionIndex}
           onGenerate={handleGenerate}
           onSelectQuestion={setSelectedQuestionIndex}
+          isGeneratingPlan={isGeneratingPlan}
+          onGeneratePlan={handleGeneratePlan}
+          researchPlan={researchPlan}
         />
       )}
 
@@ -579,13 +688,16 @@ function Step3Resources({ formData, updateFormData }: {
 }
 
 // Step 4: Generate
-function Step4Generate({ formData, isGenerating, generatedQuestions, selectedQuestionIndex, onGenerate, onSelectQuestion }: {
+function Step4Generate({ formData, isGenerating, generatedQuestions, selectedQuestionIndex, onGenerate, onSelectQuestion, isGeneratingPlan, onGeneratePlan, researchPlan }: {
   formData: FormData
   isGenerating: boolean
   generatedQuestions: GeneratedQuestion[]
   selectedQuestionIndex: number | null
   onGenerate: () => void
   onSelectQuestion: (index: number) => void
+  isGeneratingPlan: boolean
+  onGeneratePlan: () => void
+  researchPlan: ResearchPlan | null
 }) {
   return (
     <div className="space-y-6">
@@ -650,7 +762,7 @@ function Step4Generate({ formData, isGenerating, generatedQuestions, selectedQue
       )}
 
       {/* Generated Questions */}
-      {generatedQuestions.length > 0 && (
+      {generatedQuestions.length > 0 && !researchPlan && (
         <div className="space-y-4">
           <h3 className="text-xl font-bold">Generated Research Questions</h3>
           {generatedQuestions.map((q, index) => (
@@ -662,7 +774,44 @@ function Step4Generate({ formData, isGenerating, generatedQuestions, selectedQue
               onSelect={() => onSelectQuestion(index)}
             />
           ))}
+
+          {/* Generate Plan Button */}
+          {selectedQuestionIndex !== null && (
+            <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
+              <CardContent className="pt-6">
+                <div className="text-center space-y-3">
+                  <h4 className="text-lg font-semibold">Ready to create your research plan?</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Generate a comprehensive, actionable research plan tailored to your selected question
+                  </p>
+                  <Button
+                    onClick={onGeneratePlan}
+                    disabled={isGeneratingPlan}
+                    size="lg"
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {isGeneratingPlan ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Generating Research Plan...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-5 w-5 mr-2" />
+                        Generate Research Plan
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
+      )}
+
+      {/* Research Plan Display */}
+      {researchPlan && (
+        <ResearchPlanDisplay plan={researchPlan} />
       )}
     </div>
   )
