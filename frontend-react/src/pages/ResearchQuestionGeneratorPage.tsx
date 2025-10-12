@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Check, ArrowLeft, ArrowRight, Loader2, Sparkles, FileText } from 'lucide-react'
+import { Check, ArrowLeft, ArrowRight, Loader2, Sparkles, FileText, Upload, Wand2, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { Textarea } from '@/components/ui/textarea'
 import { useNavigate } from 'react-router-dom'
 import ResearchPlanDisplay from '@/components/research/ResearchPlanDisplay'
 
@@ -96,6 +97,7 @@ interface ResearchPlan {
 }
 
 const STEPS = [
+  { id: 0, title: 'Quick Start', description: 'Choose how to begin' },
   { id: 1, title: 'Topic & Purpose', description: 'Define your research area' },
   { id: 2, title: 'The 5 W\'s', description: 'Who, What, Where, When, Why' },
   { id: 3, title: 'Resources & Constraints', description: 'Timeline and limitations' },
@@ -104,13 +106,16 @@ const STEPS = [
 
 export default function ResearchQuestionGeneratorPage() {
   const navigate = useNavigate()
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([])
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null)
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false)
   const [researchPlan, setResearchPlan] = useState<ResearchPlan | null>(null)
   const [researchQuestionId, setResearchQuestionId] = useState<string | null>(null)
+  const [importedQuestion, setImportedQuestion] = useState('')
+  const [aiRecommendTopic, setAiRecommendTopic] = useState('')
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
 
   const [formData, setFormData] = useState<FormData>({
     topic: '',
@@ -218,6 +223,64 @@ export default function ResearchQuestionGeneratorPage() {
     }
   }
 
+  const handleImportQuestion = () => {
+    if (!importedQuestion.trim()) {
+      alert('Please enter a research question')
+      return
+    }
+    // Create a question object from imported text
+    const question: GeneratedQuestion = {
+      question: importedQuestion,
+      smartAssessment: {},
+      finerAssessment: {},
+      nullHypothesis: '',
+      alternativeHypothesis: '',
+      keyVariables: [],
+      dataCollectionMethods: [],
+      potentialChallenges: [],
+      overallScore: 0
+    }
+    setGeneratedQuestions([question])
+    setSelectedQuestionIndex(0)
+    setCurrentStep(4)
+  }
+
+  const handleAIRecommend = async () => {
+    if (!aiRecommendTopic.trim()) {
+      alert('Please enter a topic or area of interest')
+      return
+    }
+
+    setIsLoadingRecommendations(true)
+    try {
+      const userHash = localStorage.getItem('omnicore_user_hash')
+      const response = await fetch('/api/research/recommend-questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+        },
+        body: JSON.stringify({
+          topic: aiRecommendTopic,
+          count: 3
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setGeneratedQuestions(data.questions || [])
+        setCurrentStep(4)
+      } else {
+        alert('Failed to generate recommendations. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error generating recommendations:', error)
+      alert('An error occurred. Please try again.')
+    } finally {
+      setIsLoadingRecommendations(false)
+    }
+  }
+
   const progressPercent = (currentStep / STEPS.length) * 100
 
   return (
@@ -271,6 +334,18 @@ export default function ResearchQuestionGeneratorPage() {
       </Card>
 
       {/* Step Content */}
+      {currentStep === 0 && (
+        <Step0QuickStart
+          importedQuestion={importedQuestion}
+          setImportedQuestion={setImportedQuestion}
+          aiRecommendTopic={aiRecommendTopic}
+          setAiRecommendTopic={setAiRecommendTopic}
+          isLoadingRecommendations={isLoadingRecommendations}
+          onStartWizard={() => setCurrentStep(1)}
+          onImportQuestion={handleImportQuestion}
+          onAIRecommend={handleAIRecommend}
+        />
+      )}
       {currentStep === 1 && (
         <Step1TopicContext formData={formData} updateFormData={updateFormData} />
       )}
@@ -295,7 +370,7 @@ export default function ResearchQuestionGeneratorPage() {
       )}
 
       {/* Navigation */}
-      {currentStep < 4 && (
+      {currentStep < 4 && currentStep !== 0 && (
         <div className="flex justify-between mt-6">
           <Button
             variant="outline"
@@ -317,6 +392,143 @@ export default function ResearchQuestionGeneratorPage() {
           </Button>
         </div>
       )}
+    </div>
+  )
+}
+
+// Step 0: Quick Start
+function Step0QuickStart({
+  importedQuestion,
+  setImportedQuestion,
+  aiRecommendTopic,
+  setAiRecommendTopic,
+  isLoadingRecommendations,
+  onStartWizard,
+  onImportQuestion,
+  onAIRecommend
+}: {
+  importedQuestion: string
+  setImportedQuestion: (value: string) => void
+  aiRecommendTopic: string
+  setAiRecommendTopic: (value: string) => void
+  isLoadingRecommendations: boolean
+  onStartWizard: () => void
+  onImportQuestion: () => void
+  onAIRecommend: () => void
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold mb-2">How would you like to start?</h2>
+        <p className="text-gray-600 dark:text-gray-400">
+          Choose your preferred way to create a research question
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Start Wizard */}
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-purple-500">
+          <CardHeader>
+            <div className="flex justify-center mb-4">
+              <div className="p-4 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                <BookOpen className="h-8 w-8 text-purple-600" />
+              </div>
+            </div>
+            <CardTitle className="text-center">Start Wizard</CardTitle>
+            <CardDescription className="text-center">
+              Step-by-step guided process to craft your research question
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={onStartWizard} className="w-full bg-purple-600 hover:bg-purple-700">
+              <BookOpen className="h-4 w-4 mr-2" />
+              Begin Guided Process
+            </Button>
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              Best for: Comprehensive planning
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Import Question */}
+        <Card className="hover:shadow-lg transition-shadow border-2 hover:border-blue-500">
+          <CardHeader>
+            <div className="flex justify-center mb-4">
+              <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                <Upload className="h-8 w-8 text-blue-600" />
+              </div>
+            </div>
+            <CardTitle className="text-center">Import Question</CardTitle>
+            <CardDescription className="text-center">
+              Already have a research question? Paste it here to start
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Textarea
+              placeholder="Paste your research question here..."
+              value={importedQuestion}
+              onChange={(e) => setImportedQuestion(e.target.value)}
+              rows={4}
+              className="text-sm"
+            />
+            <Button
+              onClick={onImportQuestion}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled={!importedQuestion.trim()}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Import & Continue
+            </Button>
+            <p className="text-xs text-gray-500 text-center">
+              Best for: Quick start with existing questions
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* AI Recommendations */}
+        <Card className="hover:shadow-lg transition-shadow border-2 hover:border-green-500">
+          <CardHeader>
+            <div className="flex justify-center mb-4">
+              <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-full">
+                <Wand2 className="h-8 w-8 text-green-600" />
+              </div>
+            </div>
+            <CardTitle className="text-center">AI Recommend</CardTitle>
+            <CardDescription className="text-center">
+              Get AI-generated research question suggestions
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Textarea
+              placeholder="Describe your topic or area of interest..."
+              value={aiRecommendTopic}
+              onChange={(e) => setAiRecommendTopic(e.target.value)}
+              rows={4}
+              className="text-sm"
+            />
+            <Button
+              onClick={onAIRecommend}
+              className="w-full bg-green-600 hover:bg-green-700"
+              disabled={!aiRecommendTopic.trim() || isLoadingRecommendations}
+            >
+              {isLoadingRecommendations ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Get Recommendations
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-gray-500 text-center">
+              Best for: Exploring new research ideas
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
