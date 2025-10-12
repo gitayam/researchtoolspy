@@ -17,6 +17,7 @@ import { getUserIdOrDefault } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { normalizeClaims } from './normalize-claims'
 import { extractAndSaveClaimEntities } from './extract-claim-entities'
+import { matchMultipleClaimsEntities } from './match-entities-to-actors'
 
 interface Env {
   DB: D1Database
@@ -538,6 +539,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             )
 
             console.log(`[DEBUG] Entity extraction complete: ${entityStats.totalEntities} entities from ${entityStats.claimsWithEntities} claims`)
+
+            // Phase 3: Match extracted entities to existing actors/places/events
+            if (entityStats.totalEntities > 0) {
+              try {
+                console.log('[DEBUG] Matching entities to existing actors...')
+                const matchStats = await matchMultipleClaimsEntities(
+                  env.DB,
+                  claimIds,
+                  workspaceId
+                )
+
+                console.log(`[DEBUG] Entity matching complete: ${matchStats.exactMatches} exact + ${matchStats.fuzzyMatches} fuzzy matches (${matchStats.noMatches} unmatched)`)
+              } catch (error) {
+                console.error('[DEBUG] Entity matching failed (non-fatal):', error)
+                // Don't fail if matching fails
+                // Entities still have temp IDs and can be manually matched later
+              }
+            }
           } catch (error) {
             console.error('[DEBUG] Entity extraction failed (non-fatal):', error)
             // Don't fail if entity extraction fails
