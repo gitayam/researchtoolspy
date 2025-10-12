@@ -34,6 +34,7 @@ const getNavigation = (t: (key: string) => string) => [
     href: '/dashboard/tools',
     icon: Search,
     children: [
+      { name: 'Research Question Generator', href: '/dashboard/tools/research-question-generator', icon: Sparkles },
       { name: 'Content Research', href: '/dashboard/tools/content-intelligence', icon: Sparkles },
       { name: t('tools.citationsGenerator'), href: '/dashboard/tools/citations-generator' },
       { name: t('tools.documents'), href: '/dashboard/tools/documents' },
