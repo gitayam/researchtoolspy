@@ -110,29 +110,39 @@ Return the response as a JSON object with a "questions" array:
 
     console.log('[recommend-questions] Calling AI Gateway for question generation')
 
-    const aiResponse = await callOpenAIViaGateway({
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert research methodologist specializing in formulating high-quality research questions. You provide detailed assessments based on SMART and FINER criteria.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      model: 'gpt-4o-mini',
-      temperature: 0.7,
-      max_tokens: 3000,
-      response_format: { type: 'json_object' }
-    }, context.env)
+    const aiResponse = await callOpenAIViaGateway(
+      context.env,
+      {
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert research methodologist specializing in formulating high-quality research questions. You provide detailed assessments based on SMART and FINER criteria.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        model: 'gpt-4o-mini',
+        temperature: 0.7,
+        max_tokens: 3000,
+        response_format: { type: 'json_object' }
+      }
+    )
 
     console.log('[recommend-questions] AI Response received')
 
     // Parse AI response
     let questions: GeneratedQuestion[] = []
     try {
-      const parsed = JSON.parse(aiResponse.content)
+      // Extract content from OpenAI response
+      const content = aiResponse.choices?.[0]?.message?.content || aiResponse.content
+      if (!content) {
+        console.error('[recommend-questions] No content in AI response:', aiResponse)
+        throw new Error('No content in AI response')
+      }
+
+      const parsed = JSON.parse(content)
       questions = parsed.questions || []
 
       if (!questions || questions.length === 0) {
@@ -141,7 +151,7 @@ Return the response as a JSON object with a "questions" array:
       }
     } catch (error) {
       console.error('[recommend-questions] Failed to parse AI response:', error)
-      console.error('[recommend-questions] AI Response content:', aiResponse.content)
+      console.error('[recommend-questions] AI Response:', aiResponse)
       throw new Error('Failed to parse AI response: ' + (error instanceof Error ? error.message : 'Unknown error'))
     }
 
