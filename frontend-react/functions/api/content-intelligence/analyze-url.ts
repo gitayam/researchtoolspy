@@ -1474,7 +1474,7 @@ async function updateAnalysisFields(db: D1Database, analysisId: number, updates:
 
   if (fields.length === 0) return
 
-  fields.push('updated_at = datetime(\\'now\\')')
+  fields.push("updated_at = datetime('now')")
   values.push(analysisId)
 
   await db.prepare(`
