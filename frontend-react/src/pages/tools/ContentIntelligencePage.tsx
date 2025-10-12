@@ -957,8 +957,20 @@ export default function ContentIntelligencePage() {
       if (progressInterval) clearInterval(progressInterval)
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Analysis failed')
+        // Handle different error types
+        if (response.status === 524) {
+          throw new Error('Analysis timed out. The content may be too large or complex. Try using "quick" mode or a shorter article.')
+        }
+
+        // Check if response is JSON before parsing
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const error = await response.json()
+          throw new Error(error.error || `Analysis failed with status ${response.status}`)
+        } else {
+          // Non-JSON response (likely HTML error page)
+          throw new Error(`Analysis failed with status ${response.status}. The server may be overloaded or the request timed out.`)
+        }
       }
 
       setProgress(70)
