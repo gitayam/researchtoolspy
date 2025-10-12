@@ -79,32 +79,34 @@ Requirements:
 - Questions should be relevant to current research trends
 - Provide specific, actionable assessments
 
-Return the response as a JSON array with this structure:
-[
-  {
-    "question": "Research question text",
-    "smartAssessment": {
-      "specific": { "passed": true/false, "explanation": "explanation" },
-      "measurable": { "passed": true/false, "explanation": "explanation" },
-      "achievable": { "passed": true/false, "explanation": "explanation" },
-      "relevant": { "passed": true/false, "explanation": "explanation" },
-      "timeBound": { "passed": true/false, "explanation": "explanation" }
-    },
-    "finerAssessment": {
-      "feasible": { "passed": true/false, "explanation": "explanation" },
-      "interesting": { "passed": true/false, "explanation": "explanation" },
-      "novel": { "passed": true/false, "explanation": "explanation" },
-      "ethical": { "passed": true/false, "explanation": "explanation" },
-      "relevant": { "passed": true/false, "explanation": "explanation" }
-    },
-    "nullHypothesis": "H₀ statement",
-    "alternativeHypothesis": "H₁ statement",
-    "keyVariables": ["variable1", "variable2", "variable3"],
-    "dataCollectionMethods": ["method1", "method2"],
-    "potentialChallenges": ["challenge1", "challenge2"],
-    "overallScore": 85
-  }
-]`
+Return the response as a JSON object with a "questions" array:
+{
+  "questions": [
+    {
+      "question": "Research question text",
+      "smartAssessment": {
+        "specific": { "passed": true/false, "explanation": "explanation" },
+        "measurable": { "passed": true/false, "explanation": "explanation" },
+        "achievable": { "passed": true/false, "explanation": "explanation" },
+        "relevant": { "passed": true/false, "explanation": "explanation" },
+        "timeBound": { "passed": true/false, "explanation": "explanation" }
+      },
+      "finerAssessment": {
+        "feasible": { "passed": true/false, "explanation": "explanation" },
+        "interesting": { "passed": true/false, "explanation": "explanation" },
+        "novel": { "passed": true/false, "explanation": "explanation" },
+        "ethical": { "passed": true/false, "explanation": "explanation" },
+        "relevant": { "passed": true/false, "explanation": "explanation" }
+      },
+      "nullHypothesis": "H₀ statement",
+      "alternativeHypothesis": "H₁ statement",
+      "keyVariables": ["variable1", "variable2", "variable3"],
+      "dataCollectionMethods": ["method1", "method2"],
+      "potentialChallenges": ["challenge1", "challenge2"],
+      "overallScore": 85
+    }
+  ]
+}`
 
     console.log('[recommend-questions] Calling AI Gateway for question generation')
 
@@ -131,20 +133,16 @@ Return the response as a JSON array with this structure:
     let questions: GeneratedQuestion[] = []
     try {
       const parsed = JSON.parse(aiResponse.content)
-      questions = Array.isArray(parsed) ? parsed : (parsed.questions || [])
+      questions = parsed.questions || []
+
+      if (!questions || questions.length === 0) {
+        console.error('[recommend-questions] No questions in parsed response:', parsed)
+        throw new Error('No questions generated from AI response')
+      }
     } catch (error) {
       console.error('[recommend-questions] Failed to parse AI response:', error)
-      // Try to extract JSON array from response
-      const match = aiResponse.content.match(/\[[\s\S]*\]/)
-      if (match) {
-        questions = JSON.parse(match[0])
-      } else {
-        throw new Error('Failed to parse AI response into questions array')
-      }
-    }
-
-    if (!questions || questions.length === 0) {
-      throw new Error('No questions generated from AI response')
+      console.error('[recommend-questions] AI Response content:', aiResponse.content)
+      throw new Error('Failed to parse AI response: ' + (error instanceof Error ? error.message : 'Unknown error'))
     }
 
     console.log(`[recommend-questions] Generated ${questions.length} questions`)
