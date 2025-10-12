@@ -18,6 +18,7 @@ import { AITimelineGenerator } from '@/components/frameworks/AITimelineGenerator
 import { ConsequencesManager } from '@/components/frameworks/ConsequencesManager'
 import { SymbolsManager } from '@/components/frameworks/SymbolsManager'
 import { PMESIIPTLocationSelector } from '@/components/frameworks/PMESIIPTLocationSelector'
+import { StarburstingDashboard } from '@/components/frameworks/StarburstingDashboard'
 import { ActorLinker, ActorBadge, type LinkedActor } from '@/components/actors/ActorLinker'
 import { PlaceLinker, PlaceBadge, type LinkedPlace } from '@/components/places/PlaceLinker'
 import { EventLinker, EventBadge, type LinkedEvent } from '@/components/events/EventLinker'
@@ -117,6 +118,7 @@ const SectionCard = memo(({
   const [editQuestion, setEditQuestion] = useState('')
   const [editAnswer, setEditAnswer] = useState('')
   const [editText, setEditText] = useState('')
+  const [editPriority, setEditPriority] = useState<'critical' | 'high' | 'medium' | 'low'>('medium')
   const [showTemplates, setShowTemplates] = useState(false)
 
   const startEditing = (item: FrameworkItem) => {
@@ -124,6 +126,7 @@ const SectionCard = memo(({
     if (isQuestionAnswerItem(item)) {
       setEditQuestion(item.question)
       setEditAnswer(item.answer || '')
+      setEditPriority(item.priority || 'medium')
     } else if ('text' in item) {
       setEditText(item.text)
     }
@@ -133,7 +136,7 @@ const SectionCard = memo(({
     if (!editingId) return
 
     if (isQA) {
-      onEdit(editingId, { question: editQuestion, answer: editAnswer })
+      onEdit(editingId, { question: editQuestion, answer: editAnswer, priority: editPriority })
     } else {
       onEdit(editingId, { text: editText })
     }
@@ -142,6 +145,7 @@ const SectionCard = memo(({
     setEditQuestion('')
     setEditAnswer('')
     setEditText('')
+    setEditPriority('medium')
   }
 
   const cancelEdit = () => {
@@ -149,6 +153,7 @@ const SectionCard = memo(({
     setEditQuestion('')
     setEditAnswer('')
     setEditText('')
+    setEditPriority('medium')
   }
 
   return (
@@ -321,6 +326,21 @@ const SectionCard = memo(({
                             rows={3}
                             className="text-sm resize-y"
                           />
+                          {frameworkType === 'starbursting' && (
+                            <div className="flex items-center gap-2">
+                              <Label className="text-xs font-medium whitespace-nowrap">Priority:</Label>
+                              <select
+                                value={editPriority}
+                                onChange={(e) => setEditPriority(e.target.value as any)}
+                                className="text-xs border rounded px-2 py-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                              >
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="critical">Critical</option>
+                              </select>
+                            </div>
+                          )}
                         </>
                       ) : (
                         <Textarea
@@ -339,7 +359,17 @@ const SectionCard = memo(({
                         <div className="flex-1 space-y-2">
                           <div className="text-sm font-medium flex items-start gap-2">
                             {needsAnswer && <span className="text-red-600 dark:text-red-400 flex-shrink-0">❗</span>}
-                            <span className="break-words">Q: {item.question}</span>
+                            <span className="break-words flex-1">Q: {item.question}</span>
+                            {frameworkType === 'starbursting' && item.priority && (
+                              <Badge
+                                variant={item.priority === 'critical' ? 'destructive' : item.priority === 'high' ? 'secondary' : 'outline'}
+                                className={`text-xs shrink-0 ${
+                                  item.priority === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400' : ''
+                                }`}
+                              >
+                                {item.priority}
+                              </Badge>
+                            )}
                           </div>
                           <div className={`text-sm break-words ${needsAnswer ? 'text-red-700 dark:text-red-300' : 'text-gray-600 dark:text-gray-400'}`}>
                             A: {item.answer || <span className="italic font-semibold">Needs answer - please fill in</span>}
@@ -1851,6 +1881,14 @@ export function GenericFrameworkForm({
           value={pmesiiLocation}
           onChange={(data) => setPmesiiLocation(data as any)}
           suggestedLocations={importedSources.length > 0 ? [] : []} // TODO: Extract locations from imported sources
+        />
+      )}
+
+      {/* Starbursting Progress Dashboard */}
+      {frameworkType === 'starbursting' && (
+        <StarburstingDashboard
+          sectionData={sectionData}
+          questionEvidence={questionEvidence}
         />
       )}
 

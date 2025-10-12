@@ -63,6 +63,7 @@ export interface QuestionAnswerItem {
   question: string
   answer: string
   needsAnswer?: boolean // Flag for questions that need answers (red highlight)
+  priority?: 'critical' | 'high' | 'medium' | 'low' // Question priority for analysis
   // Citation support
   citationId?: string  // Reference to citation in library
   sourceUrl?: string   // Original URL if auto-generated
