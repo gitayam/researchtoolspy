@@ -47,7 +47,7 @@ const getNavigation = (t: (key: string) => string) => [
     icon: Archive,
     children: [
       { name: t('navigation.data'), href: '/dashboard/evidence' },
-      { name: 'Claims', href: '/dashboard/tools/content-intelligence', icon: AlertTriangle },
+      { name: 'Claims', href: '/dashboard/entities/claims', icon: AlertTriangle },
       { name: t('navigation.actors'), href: '/dashboard/entities/actors' },
       { name: t('navigation.sources'), href: '/dashboard/entities/sources' },
       { name: t('navigation.events'), href: '/dashboard/entities/events' },
