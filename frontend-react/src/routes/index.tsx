@@ -87,6 +87,7 @@ const InviteAcceptPage = lazy(() => import('@/pages/InviteAcceptPage').then(m =>
 const ActorsPage = lazy(() => import('@/pages/entities/ActorsPage').then(m => ({ default: m.ActorsPage })))
 const SourcesPage = lazy(() => import('@/pages/entities/SourcesPage').then(m => ({ default: m.SourcesPage })))
 const EventsPage = lazy(() => import('@/pages/entities/EventsPage').then(m => ({ default: m.EventsPage })))
+const ClaimsPage = lazy(() => import('@/pages/entities/ClaimsPage').then(m => ({ default: m.ClaimsPage })))
 
 // ACH pages (lazy loaded)
 const ACHPage = lazy(() => import('@/pages/ACHPage').then(m => ({ default: m.ACHPage })))
@@ -438,6 +439,18 @@ export const router = createBrowserRouter([
       {
         path: 'entities/events/:id/edit',
         element: <LazyPage Component={EventsPage} />,
+      },
+      {
+        path: 'entities/claims',
+        element: <LazyPage Component={ClaimsPage} />,
+      },
+      {
+        path: 'entities/claims/:id',
+        element: <LazyPage Component={ClaimsPage} />,
+      },
+      {
+        path: 'entities/claims/:id/edit',
+        element: <LazyPage Component={ClaimsPage} />,
       },
       // Network Analysis Route
       {
