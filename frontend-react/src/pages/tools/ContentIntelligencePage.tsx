@@ -2263,9 +2263,9 @@ export default function ContentIntelligencePage() {
 
           <TabsContent value="overview" className="mt-4">
             <Card className="p-6 space-y-4">
-              <div className="flex items-start justify-between">
+              <div className="space-y-4">
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold">{analysis.title || 'Untitled'}</h2>
+                  <h2 className="text-2xl font-bold break-words">{analysis.title || 'Untitled'}</h2>
                   {analysis.author && (
                     <p className="text-sm text-muted-foreground">By {analysis.author}</p>
                   )}
@@ -2273,7 +2273,7 @@ export default function ContentIntelligencePage() {
                     <p className="text-sm text-muted-foreground">Published: {analysis.publish_date}</p>
                   )}
                 </div>
-                <div className="flex gap-2 ml-4">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
                     size="sm"
