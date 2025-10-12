@@ -77,6 +77,8 @@ const CollaborationPage = lazy(() => import('@/pages/CollaborationPage').then(m 
 const ActivityPage = lazy(() => import('@/pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
 const InvestigationPacketsPage = lazy(() => import('@/pages/InvestigationPacketsPage').then(m => ({ default: m.InvestigationPacketsPage })))
 const InvestigationDetailPage = lazy(() => import('@/pages/InvestigationDetailPage').then(m => ({ default: m.InvestigationDetailPage })))
+const InvestigationsPage = lazy(() => import('@/pages/InvestigationsPage'))
+const NewInvestigationPage = lazy(() => import('@/pages/NewInvestigationPage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const AISettingsPage = lazy(() => import('@/pages/AISettingsPage').then(m => ({ default: m.AISettingsPage })))
 const InviteAcceptPage = lazy(() => import('@/pages/InviteAcceptPage').then(m => ({ default: m.InviteAcceptPage })))
@@ -473,7 +475,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'investigations',
-        element: <LazyPage Component={InvestigationPacketsPage} />,
+        element: <LazyPage Component={InvestigationsPage} />,
+      },
+      {
+        path: 'investigations/new',
+        element: <LazyPage Component={NewInvestigationPage} />,
       },
       {
         path: 'investigations/:id',

@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils'
 
 const getNavigation = (t: (key: string) => string) => [
   { name: t('navigation.dashboard'), href: '/dashboard', icon: Home },
+  { name: 'Investigations', href: '/dashboard/investigations', icon: Folder },
   {
     name: t('navigation.researchTools'),
     href: '/dashboard/tools',
@@ -52,7 +53,6 @@ const getNavigation = (t: (key: string) => string) => [
       { name: t('navigation.events'), href: '/dashboard/entities/events' },
     ]
   },
-  { name: 'Investigation Packets', href: '/dashboard/investigations', icon: Folder },
   {
     name: t('navigation.analysisFrameworks'),
     href: '/dashboard/analysis-frameworks',
