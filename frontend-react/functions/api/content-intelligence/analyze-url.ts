@@ -16,6 +16,7 @@ import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor
 import { getUserIdOrDefault } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { normalizeClaims } from './normalize-claims'
+import { extractAndSaveClaimEntities } from './extract-claim-entities'
 
 interface Env {
   DB: D1Database
@@ -520,6 +521,29 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           workspace_id: workspaceId
         })
         console.log(`[DEBUG] Successfully normalized ${claimIds.length} claims`)
+
+        // Phase 2: Extract entities from claims
+        if (claimIds.length > 0) {
+          try {
+            console.log('[DEBUG] Extracting entities from claims...')
+            const claimsWithIds = claimAnalysis.claims.map((claim, idx) => ({
+              claimId: claimIds[idx],
+              claimText: claim.claim
+            }))
+
+            const entityStats = await extractAndSaveClaimEntities(
+              env.DB,
+              claimsWithIds,
+              env
+            )
+
+            console.log(`[DEBUG] Entity extraction complete: ${entityStats.totalEntities} entities from ${entityStats.claimsWithEntities} claims`)
+          } catch (error) {
+            console.error('[DEBUG] Entity extraction failed (non-fatal):', error)
+            // Don't fail if entity extraction fails
+            // Claims are still normalized without entities
+          }
+        }
       } catch (error) {
         console.error('[DEBUG] Claim normalization failed (non-fatal):', error)
         // Don't fail the whole request if normalization fails
