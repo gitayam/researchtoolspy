@@ -25,6 +25,8 @@ interface SaveAdjustmentRequest {
 
   // User adjustments
   adjusted_risk_score: number
+  adjusted_claim_text?: string | null // User-edited claim wording
+  adjusted_methods?: Record<string, { score: number; reasoning: string }> // User-edited method scores
   user_comment: string
   verification_status?: string
 }
@@ -96,6 +98,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           original_overall_risk = ?,
           original_methods = ?,
           adjusted_risk_score = ?,
+          adjusted_claim_text = ?,
+          adjusted_methods = ?,
           user_comment = ?,
           verification_status = ?,
           updated_at = ?
@@ -107,6 +111,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         body.original_overall_risk,
         JSON.stringify(body.original_methods || {}),
         body.adjusted_risk_score,
+        body.adjusted_claim_text || null,
+        body.adjusted_methods ? JSON.stringify(body.adjusted_methods) : null,
         body.user_comment || null,
         body.verification_status || 'pending',
         now,
@@ -128,9 +134,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         INSERT INTO claim_adjustments (
           id, content_analysis_id, claim_index, claim_text, claim_category,
           original_risk_score, original_overall_risk, original_methods,
-          adjusted_risk_score, user_comment, verification_status,
+          adjusted_risk_score, adjusted_claim_text, adjusted_methods,
+          user_comment, verification_status,
           adjusted_by, workspace_id, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         id,
         body.content_analysis_id,
@@ -141,6 +148,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         body.original_overall_risk,
         JSON.stringify(body.original_methods || {}),
         body.adjusted_risk_score,
+        body.adjusted_claim_text || null,
+        body.adjusted_methods ? JSON.stringify(body.adjusted_methods) : null,
         body.user_comment || null,
         body.verification_status || 'pending',
         auth.user.id,
