@@ -66,6 +66,7 @@ const CitationsGeneratorPage = lazy(() => import('@/pages/tools/CitationsGenerat
 const URLProcessingPage = lazy(() => import('@/pages/tools/URLProcessingPage').then(m => ({ default: m.URLProcessingPage })))
 const BatchProcessingPage = lazy(() => import('@/pages/tools/BatchProcessingPage').then(m => ({ default: m.BatchProcessingPage })))
 const ContentIntelligencePage = lazy(() => import('@/pages/tools/ContentIntelligencePage'))
+const ResearchQuestionGeneratorPage = lazy(() => import('@/pages/ResearchQuestionGeneratorPage'))
 
 // Heavy pages (lazy loaded - only when needed)
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then(m => ({ default: m.ReportsPage })))
@@ -381,6 +382,10 @@ export const router = createBrowserRouter([
       {
         path: 'tools/ach/:id',
         element: <LazyPage Component={ACHAnalysisPage} />,
+      },
+      {
+        path: 'tools/research-question-generator',
+        element: <LazyPage Component={ResearchQuestionGeneratorPage} />,
       },
       {
         path: 'tools/:toolId',
