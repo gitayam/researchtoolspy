@@ -23,14 +23,14 @@ import { cn } from '@/lib/utils'
 
 interface ActivityItem {
   id: string
-  user_hash: string
-  user_name?: string
-  activity_type: string
-  entity_type: string
-  entity_id?: string
+  actor_user_id: string
+  actor_user_hash?: string
+  actor_nickname?: string
+  action_type: 'CREATED' | 'UPDATED' | 'DELETED' | 'COMMENTED' | 'VOTED' | 'RATED' | 'SHARED' | 'FORKED' | 'PUBLISHED' | 'CLONED'
+  entity_type: 'FRAMEWORK' | 'ENTITY' | 'COMMENT' | 'WORKSPACE' | 'MEMBER' | 'INVESTIGATION' | 'RESEARCH_QUESTION'
+  entity_id: string
   entity_title?: string
-  action_summary: string
-  metadata?: string
+  details?: string
   created_at: string
 }
 
@@ -43,27 +43,29 @@ interface ActivitySummary {
 }
 
 const activityIcons: Record<string, React.ElementType> = {
-  create: Plus,
-  update: Edit,
-  delete: Trash2,
-  comment: MessageSquare,
-  vote: ThumbsUp,
-  fork: GitFork,
-  publish: Share2,
-  share: Share2,
-  invite: UserPlus,
+  CREATED: Plus,
+  UPDATED: Edit,
+  DELETED: Trash2,
+  COMMENTED: MessageSquare,
+  VOTED: ThumbsUp,
+  RATED: TrendingUp,
+  FORKED: GitFork,
+  PUBLISHED: Share2,
+  SHARED: Share2,
+  CLONED: GitFork,
 }
 
 const activityColors: Record<string, string> = {
-  create: 'text-green-500',
-  update: 'text-blue-500',
-  delete: 'text-red-500',
-  comment: 'text-purple-500',
-  vote: 'text-orange-500',
-  fork: 'text-cyan-500',
-  publish: 'text-indigo-500',
-  share: 'text-pink-500',
-  invite: 'text-yellow-500',
+  CREATED: 'text-green-500',
+  UPDATED: 'text-blue-500',
+  DELETED: 'text-red-500',
+  COMMENTED: 'text-purple-500',
+  VOTED: 'text-orange-500',
+  RATED: 'text-yellow-500',
+  FORKED: 'text-cyan-500',
+  PUBLISHED: 'text-indigo-500',
+  SHARED: 'text-pink-500',
+  CLONED: 'text-teal-500',
 }
 
 export function ActivityFeed() {
@@ -151,6 +153,35 @@ export function ActivityFeed() {
     return '??'
   }
 
+  const getActionText = (activity: ActivityItem): string => {
+    const entityTypeLabel = activity.entity_type.toLowerCase().replace('_', ' ')
+
+    switch (activity.action_type) {
+      case 'CREATED':
+        return `created a ${entityTypeLabel}`
+      case 'UPDATED':
+        return `updated a ${entityTypeLabel}`
+      case 'DELETED':
+        return `deleted a ${entityTypeLabel}`
+      case 'COMMENTED':
+        return `commented on a ${entityTypeLabel}`
+      case 'VOTED':
+        return `voted on a ${entityTypeLabel}`
+      case 'RATED':
+        return `rated a ${entityTypeLabel}`
+      case 'FORKED':
+        return `forked a ${entityTypeLabel}`
+      case 'PUBLISHED':
+        return `published a ${entityTypeLabel}`
+      case 'SHARED':
+        return `shared a ${entityTypeLabel}`
+      case 'CLONED':
+        return `cloned a ${entityTypeLabel}`
+      default:
+        return `interacted with a ${entityTypeLabel}`
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -208,12 +239,13 @@ export function ActivityFeed() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('activity:filters.allTypes')}</SelectItem>
-                  <SelectItem value="create">{t('activity:types.create')}</SelectItem>
-                  <SelectItem value="update">{t('activity:types.update')}</SelectItem>
-                  <SelectItem value="comment">{t('activity:types.comment')}</SelectItem>
-                  <SelectItem value="vote">{t('activity:types.vote')}</SelectItem>
-                  <SelectItem value="fork">{t('activity:types.fork')}</SelectItem>
-                  <SelectItem value="publish">{t('activity:types.publish')}</SelectItem>
+                  <SelectItem value="CREATED">Created</SelectItem>
+                  <SelectItem value="UPDATED">Updated</SelectItem>
+                  <SelectItem value="DELETED">Deleted</SelectItem>
+                  <SelectItem value="COMMENTED">Commented</SelectItem>
+                  <SelectItem value="VOTED">Voted</SelectItem>
+                  <SelectItem value="RATED">Rated</SelectItem>
+                  <SelectItem value="PUBLISHED">Published</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={entityType || "all"} onValueChange={(v) => setEntityType(v === "all" ? "" : v)}>
@@ -222,10 +254,11 @@ export function ActivityFeed() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('activity:filters.allEntities')}</SelectItem>
-                  <SelectItem value="framework">{t('activity:entities.framework')}</SelectItem>
-                  <SelectItem value="library_item">{t('activity:entities.library_item')}</SelectItem>
-                  <SelectItem value="comment">{t('activity:entities.comment')}</SelectItem>
-                  <SelectItem value="evidence">{t('activity:entities.evidence')}</SelectItem>
+                  <SelectItem value="FRAMEWORK">Framework</SelectItem>
+                  <SelectItem value="INVESTIGATION">Investigation</SelectItem>
+                  <SelectItem value="RESEARCH_QUESTION">Research Question</SelectItem>
+                  <SelectItem value="ENTITY">Entity</SelectItem>
+                  <SelectItem value="COMMENT">Comment</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -251,19 +284,21 @@ export function ActivityFeed() {
                     <div key={activity.id} className="flex gap-4 pb-4 border-b last:border-0">
                       <Avatar className="h-10 w-10">
                         <AvatarFallback className="text-xs">
-                          {getUserInitials(activity.user_name, activity.user_hash)}
+                          {getUserInitials(activity.actor_nickname, activity.actor_user_hash)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
                             <p className="text-sm">
-                              <span className="font-medium">{activity.user_name || 'Anonymous'}</span>
+                              <span className="font-medium">{activity.actor_nickname || 'Anonymous'}</span>
                               {' '}
-                              <span className="text-muted-foreground">{activity.action_summary}</span>
+                              <span className="text-muted-foreground">{getActionText(activity)}</span>
                             </p>
                             {activity.entity_title && (
-                              <p className="text-sm font-medium mt-1">{activity.entity_title}</p>
+                              <p className="text-sm font-medium mt-1 text-gray-900 dark:text-white">
+                                {activity.entity_title}
+                              </p>
                             )}
                             <p className="text-xs text-muted-foreground mt-1">
                               {formatTime(activity.created_at)}
@@ -272,7 +307,7 @@ export function ActivityFeed() {
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <Icon className={cn('h-4 w-4', iconColor)} />
                             <Badge variant="outline" className="text-xs">
-                              {activity.entity_type}
+                              {activity.entity_type.replace('_', ' ')}
                             </Badge>
                           </div>
                         </div>

@@ -221,18 +221,18 @@ export default function ResearchQuestionGeneratorPage() {
   const progressPercent = (currentStep / STEPS.length) * 100
 
   return (
-    <div className="container mx-auto p-6 max-w-5xl">
+    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-5xl">
       {/* Header */}
-      <div className="mb-8">
-        <Button variant="outline" onClick={() => navigate('/dashboard')} className="mb-4">
+      <div className="mb-6 sm:mb-8">
+        <Button variant="outline" onClick={() => navigate('/dashboard')} size="sm" className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Dashboard
         </Button>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-          <Sparkles className="h-8 w-8 text-purple-600" />
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
+          <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
           Research Question Generator
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
           Generate high-quality research questions following SMART and FINER criteria
         </p>
       </div>
@@ -355,7 +355,7 @@ function Step1TopicContext({ formData, updateFormData }: {
           <label className="block text-sm font-medium mb-2">
             What is the purpose of this research? (Select all that apply)
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {purposes.map(purpose => (
               <label key={purpose} className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
                 <input
@@ -579,7 +579,10 @@ function Step3Resources({ formData, updateFormData }: {
   formData: FormData
   updateFormData: (updates: Partial<FormData>) => void
 }) {
-  const durations = ['1-3 months', '3-6 months', '6-12 months', '1-2 years', '2+ years', 'Flexible/No deadline']
+  const [showCustomDuration, setShowCustomDuration] = useState(false)
+  const [customDuration, setCustomDuration] = useState('')
+
+  const durations = ['1 day', '2-7 days', '1-2 weeks', '2-4 weeks', '1-3 months', '3-6 months', '6-12 months', '1-2 years', '2+ years', 'Flexible/No deadline', 'Custom']
   const resourceOptions = [
     'Existing datasets',
     'Survey tools',
@@ -591,6 +594,21 @@ function Step3Resources({ formData, updateFormData }: {
     'Institutional support'
   ]
   const experienceLevels = ['beginner', 'intermediate', 'advanced', 'expert']
+
+  const handleDurationChange = (value: string) => {
+    if (value === 'Custom') {
+      setShowCustomDuration(true)
+      updateFormData({ duration: customDuration })
+    } else {
+      setShowCustomDuration(false)
+      updateFormData({ duration: value })
+    }
+  }
+
+  const handleCustomDurationChange = (value: string) => {
+    setCustomDuration(value)
+    updateFormData({ duration: value })
+  }
 
   return (
     <Card>
@@ -605,8 +623,8 @@ function Step3Resources({ formData, updateFormData }: {
             How long do you have to complete this research?
           </label>
           <select
-            value={formData.duration}
-            onChange={(e) => updateFormData({ duration: e.target.value })}
+            value={showCustomDuration ? 'Custom' : formData.duration}
+            onChange={(e) => handleDurationChange(e.target.value)}
             className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
           >
             <option value="">Select duration...</option>
@@ -614,6 +632,15 @@ function Step3Resources({ formData, updateFormData }: {
               <option key={duration} value={duration}>{duration}</option>
             ))}
           </select>
+          {showCustomDuration && (
+            <input
+              type="text"
+              value={customDuration}
+              onChange={(e) => handleCustomDurationChange(e.target.value)}
+              placeholder="Enter custom duration (e.g., 3 days, 5 hours)"
+              className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 mt-2"
+            />
+          )}
         </div>
 
         {/* Resources */}
@@ -621,7 +648,7 @@ function Step3Resources({ formData, updateFormData }: {
           <label className="block text-sm font-medium mb-2">
             What resources do you have access to? (Check all that apply)
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {resourceOptions.map(resource => (
               <label key={resource} className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
                 <input
@@ -705,31 +732,58 @@ function Step4Generate({ formData, isGenerating, generatedQuestions, selectedQue
       <Card>
         <CardHeader>
           <CardTitle>Review Your Inputs</CardTitle>
-          <CardDescription>5 W's Summary</CardDescription>
+          <CardDescription>Research Summary</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-4">
+        <CardContent className="space-y-4">
+          {/* Generated Sentence */}
+          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+            <p className="text-sm font-medium text-purple-900 dark:text-purple-100 leading-relaxed">
+              A {formData.projectType.toLowerCase()} investigating{' '}
+              <span className="font-semibold">{formData.topic}</span>,{' '}
+              focusing on <span className="font-semibold">{formData.who.population}</span> in{' '}
+              <span className="font-semibold">{formData.where.location}</span> during{' '}
+              <span className="font-semibold">{formData.when.timePeriod}</span>, by examining{' '}
+              <span className="font-semibold">{formData.what.variables}</span>{' '}
+              to understand {formData.why.importance.toLowerCase()}.
+            </p>
+          </div>
+
+          {/* Detailed Breakdown */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div>
-              <span className="font-semibold">Topic:</span> {formData.topic}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">Topic:</span>{' '}
+              <span className="text-gray-600 dark:text-gray-400">{formData.topic}</span>
             </div>
             <div>
-              <span className="font-semibold">Project Type:</span> {formData.projectType}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">Project Type:</span>{' '}
+              <span className="text-gray-600 dark:text-gray-400">{formData.projectType}</span>
             </div>
             <div>
-              <span className="font-semibold">Who:</span> {formData.who.population}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">Who:</span>{' '}
+              <span className="text-gray-600 dark:text-gray-400">{formData.who.population}</span>
             </div>
             <div>
-              <span className="font-semibold">What:</span> {formData.what.variables}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">What:</span>{' '}
+              <span className="text-gray-600 dark:text-gray-400">{formData.what.variables}</span>
             </div>
             <div>
-              <span className="font-semibold">Where:</span> {formData.where.location}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">Where:</span>{' '}
+              <span className="text-gray-600 dark:text-gray-400">{formData.where.location}</span>
             </div>
             <div>
-              <span className="font-semibold">When:</span> {formData.when.timePeriod}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">When:</span>{' '}
+              <span className="text-gray-600 dark:text-gray-400">{formData.when.timePeriod}</span>
             </div>
-            <div className="col-span-2">
-              <span className="font-semibold">Why:</span> {formData.why.importance}
+            <div className="md:col-span-2">
+              <span className="font-semibold text-gray-700 dark:text-gray-300">Why:</span>{' '}
+              <span className="text-gray-600 dark:text-gray-400">{formData.why.importance}</span>
             </div>
+            {formData.duration && (
+              <div>
+                <span className="font-semibold text-gray-700 dark:text-gray-300">Duration:</span>{' '}
+                <span className="text-gray-600 dark:text-gray-400">{formData.duration}</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -868,7 +922,7 @@ function QuestionCard({ question, index, isSelected, onSelect }: {
         {/* SMART Assessment */}
         <div>
           <span className="font-semibold block mb-2">SMART Criteria:</span>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             {Object.entries(question.smartAssessment).map(([key, value]) => (
               <div key={key} className="flex items-center gap-2">
                 <span className={value.passed ? 'text-green-600' : 'text-red-600'}>

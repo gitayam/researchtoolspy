@@ -29,9 +29,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const url = new URL(request.url)
       const limit = parseInt(url.searchParams.get('limit') || '50')
       const offset = parseInt(url.searchParams.get('offset') || '0')
-      const activityType = url.searchParams.get('type')
+      const actionType = url.searchParams.get('type')
       const entityType = url.searchParams.get('entity_type')
-      const userId = url.searchParams.get('user_hash')
+      const actorUserId = url.searchParams.get('user_id')
 
       if (!workspaceId) {
         return new Response(JSON.stringify({ error: 'X-Workspace-ID header required' }), {
@@ -47,9 +47,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       `
       const params: any[] = [workspaceId]
 
-      if (activityType) {
-        query += ` AND activity_type = ?`
-        params.push(activityType)
+      if (actionType) {
+        query += ` AND action_type = ?`
+        params.push(actionType)
       }
 
       if (entityType) {
@@ -57,9 +57,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         params.push(entityType)
       }
 
-      if (userId) {
-        query += ` AND user_hash = ?`
-        params.push(userId)
+      if (actorUserId) {
+        query += ` AND actor_user_id = ?`
+        params.push(actorUserId)
       }
 
       query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`
@@ -71,10 +71,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const summary = await env.DB.prepare(`
         SELECT
           COUNT(*) as total_activities,
-          COUNT(DISTINCT user_hash) as active_users,
-          SUM(CASE WHEN activity_type = 'create' THEN 1 ELSE 0 END) as creates,
-          SUM(CASE WHEN activity_type = 'update' THEN 1 ELSE 0 END) as updates,
-          SUM(CASE WHEN activity_type = 'comment' THEN 1 ELSE 0 END) as comments
+          COUNT(DISTINCT actor_user_id) as active_users,
+          SUM(CASE WHEN action_type = 'CREATED' THEN 1 ELSE 0 END) as creates,
+          SUM(CASE WHEN action_type = 'UPDATED' THEN 1 ELSE 0 END) as updates,
+          SUM(CASE WHEN action_type = 'COMMENTED' THEN 1 ELSE 0 END) as comments
         FROM activity_feed
         WHERE workspace_id = ?
           AND created_at >= datetime('now', '-24 hours')
@@ -82,7 +82,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(JSON.stringify({
         activities: activities.results || [],
-        total: activities.meta?.total_count || 0,
+        total: activities.results?.length || 0,
         summary: summary || {
           total_activities: 0,
           active_users: 0,

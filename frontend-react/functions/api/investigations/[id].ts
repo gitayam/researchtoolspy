@@ -6,6 +6,8 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
+import { logActivity } from '../_shared/activity-logger'
+import { notifyWorkspaceMembers } from '../_shared/notification-logger'
 
 interface Env {
   DB: D1Database
@@ -23,14 +25,7 @@ interface UpdateInvestigationRequest {
 // GET - Get investigation details
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
+    const userId = await requireAuth(context.request, context.env)
     const investigationId = context.params.id as string
 
     // Get investigation with stats
@@ -51,7 +46,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       LEFT JOIN research_questions rq ON i.research_question_id = rq.id
       INNER JOIN workspace_members wm ON i.workspace_id = wm.workspace_id
       WHERE i.id = ? AND wm.user_id = ?
-    `).bind(investigationId, auth.user.id).first()
+    `).bind(investigationId, userId).first()
 
     if (!investigation) {
       return new Response(JSON.stringify({
@@ -71,6 +66,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     return new Response(JSON.stringify({
+      success: true,
       investigation: parsed
     }), {
       headers: { 'Content-Type': 'application/json' }
@@ -90,14 +86,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 // PUT - Update investigation
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
+    const userId = await requireAuth(context.request, context.env)
     const investigationId = context.params.id as string
     const body = await context.request.json() as UpdateInvestigationRequest
 
@@ -107,7 +96,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       FROM investigations i
       INNER JOIN workspace_members wm ON i.workspace_id = wm.workspace_id
       WHERE i.id = ? AND wm.user_id = ?
-    `).bind(investigationId, auth.user.id).first()
+    `).bind(investigationId, userId).first()
 
     if (!investigation) {
       return new Response(JSON.stringify({
@@ -167,9 +156,51 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     `).bind(
       crypto.randomUUID(),
       investigationId,
-      auth.user.id,
+      userId,
       JSON.stringify(body)
     ).run()
+
+    // Get workspace ID for activity feed
+    const invData = await context.env.DB.prepare(`
+      SELECT workspace_id, title FROM investigations WHERE id = ?
+    `).bind(investigationId).first()
+
+    if (invData) {
+      // Log to workspace activity feed
+      await logActivity(context.env.DB, {
+        workspaceId: invData.workspace_id as string,
+        actorUserId: userId.toString(),
+        actionType: 'UPDATED',
+        entityType: 'INVESTIGATION',
+        entityId: investigationId,
+        entityTitle: invData.title as string,
+        details: body
+      })
+
+      // Get user info for notifications
+      const userInfo = await context.env.DB.prepare(`
+        SELECT account_hash, username FROM users WHERE id = ?
+      `).bind(userId).first()
+
+      if (userInfo && userInfo.account_hash) {
+        // Notify workspace members about investigation update
+        await notifyWorkspaceMembers(
+          context.env.DB,
+          invData.workspace_id as string,
+          userInfo.account_hash as string,
+          {
+            notificationType: 'INVESTIGATION_UPDATED',
+            title: 'Investigation Updated',
+            message: `${userInfo.username || 'A team member'} updated "${invData.title}"`,
+            actionUrl: `/dashboard/investigations/${investigationId}`,
+            entityType: 'INVESTIGATION',
+            entityId: investigationId,
+            actorHash: userInfo.account_hash as string,
+            actorName: userInfo.username as string
+          }
+        )
+      }
+    }
 
     // Fetch updated investigation
     const updated = await context.env.DB.prepare(`
@@ -210,23 +241,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 // DELETE - Delete investigation
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
+    const userId = await requireAuth(context.request, context.env)
     const investigationId = context.params.id as string
 
     // Verify access
     const investigation = await context.env.DB.prepare(`
-      SELECT i.id, i.title
+      SELECT i.id, i.title, i.workspace_id
       FROM investigations i
       INNER JOIN workspace_members wm ON i.workspace_id = wm.workspace_id
       WHERE i.id = ? AND wm.user_id = ?
-    `).bind(investigationId, auth.user.id).first()
+    `).bind(investigationId, userId).first()
 
     if (!investigation) {
       return new Response(JSON.stringify({
@@ -235,6 +259,40 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       })
+    }
+
+    // Log to workspace activity feed before deletion
+    await logActivity(context.env.DB, {
+      workspaceId: (investigation as any).workspace_id,
+      actorUserId: userId.toString(),
+      actionType: 'DELETED',
+      entityType: 'INVESTIGATION',
+      entityId: investigationId,
+      entityTitle: investigation.title as string
+    })
+
+    // Get user info for notifications
+    const userInfo = await context.env.DB.prepare(`
+      SELECT account_hash, username FROM users WHERE id = ?
+    `).bind(userId).first()
+
+    if (userInfo && userInfo.account_hash) {
+      // Notify workspace members about investigation deletion
+      await notifyWorkspaceMembers(
+        context.env.DB,
+        (investigation as any).workspace_id,
+        userInfo.account_hash as string,
+        {
+          notificationType: 'INVESTIGATION_DELETED',
+          title: 'Investigation Deleted',
+          message: `${userInfo.username || 'A team member'} deleted "${investigation.title}"`,
+          actionUrl: `/dashboard/investigations`,
+          entityType: 'INVESTIGATION',
+          entityId: investigationId,
+          actorHash: userInfo.account_hash as string,
+          actorName: userInfo.username as string
+        }
+      )
     }
 
     // Delete investigation (cascade will handle related records)
