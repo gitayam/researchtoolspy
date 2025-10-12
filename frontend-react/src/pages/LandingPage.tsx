@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowRight, Brain, Sparkles, Zap, Users, BarChart3, Target, Unlock, KeyRound, Search, Link2, Loader2 } from 'lucide-react'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 export function LandingPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Check if authenticated - placeholder for now
   const isAuthenticated = false
@@ -25,6 +26,11 @@ export function LandingPage() {
       navigate('/dashboard')
     }
   }, [isAuthenticated, navigate])
+
+  // Auto-focus input on mount
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
 
   const isValidUrl = (urlString: string): boolean => {
     try {
@@ -246,6 +252,7 @@ export function LandingPage() {
               <div className="flex items-center px-5 py-3">
                 <Search className={`h-5 w-5 mr-3 flex-shrink-0 ${urlError ? 'text-red-500' : 'text-gray-400'}`} />
                 <Input
+                  ref={inputRef}
                   type="text"
                   placeholder="Paste URL to analyze or type framework name (SWOT, COG, ACH...)"
                   value={url}
