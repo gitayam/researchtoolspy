@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Users, Shield, TrendingUp, AlertTriangle, Link as LinkIcon, Calendar, FileText, Plus, Target, Network } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Users, Shield, TrendingUp, AlertTriangle, Link as LinkIcon, Calendar, FileText, Plus, Target, Network, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +32,10 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
   const [editingRelationship, setEditingRelationship] = useState<Relationship | undefined>(undefined)
   const [isMomModalOpen, setIsMomModalOpen] = useState(false)
   const [editingMomAssessment, setEditingMomAssessment] = useState<MOMAssessment | undefined>(undefined)
+  const [claims, setClaims] = useState<any[]>([])
+  const [claimStats, setClaimStats] = useState<any>(null)
+  const [groupedClaims, setGroupedClaims] = useState<any>({})
+  const [loadingClaims, setLoadingClaims] = useState(false)
 
   // Load MOM assessments for this actor
   useEffect(() => {
@@ -99,6 +103,35 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
 
     if (actor.id) {
       loadRelationships()
+    }
+  }, [actor.id])
+
+  // Load claims for this actor
+  useEffect(() => {
+    const loadClaims = async () => {
+      setLoadingClaims(true)
+      try {
+        const userHash = localStorage.getItem('omnicore_user_hash')
+        const response = await fetch(`/api/actors/${actor.id}/claims`, {
+          headers: {
+            ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+          }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setClaims(data.claims || [])
+          setClaimStats(data.statistics || {})
+          setGroupedClaims(data.grouped_by_role || {})
+        }
+      } catch (error) {
+        console.error('Failed to load claims:', error)
+      } finally {
+        setLoadingClaims(false)
+      }
+    }
+
+    if (actor.id) {
+      loadClaims()
     }
   }, [actor.id])
 
@@ -223,10 +256,15 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="deception">Deception Profile</TabsTrigger>
           <TabsTrigger value="relationships">Relationships</TabsTrigger>
+          <TabsTrigger value="claims">
+            Claims {claimStats && claimStats.total_claims > 0 && (
+              <Badge variant="secondary" className="ml-2">{claimStats.total_claims}</Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
@@ -612,6 +650,219 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
             />
           </DialogContent>
         </Dialog>
+
+        {/* Claims Tab */}
+        <TabsContent value="claims" className="space-y-6">
+          {loadingClaims ? (
+            <Card>
+              <CardContent className="py-12 text-center text-gray-500">
+                Loading claims...
+              </CardContent>
+            </Card>
+          ) : claims.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No claims found</p>
+                <p className="text-sm text-gray-400 mt-2">
+                  This actor hasn't been mentioned in any analyzed content yet
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Claims Statistics */}
+              {claimStats && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Claims Statistics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {claimStats.total_claims}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Total Claims</div>
+                      </div>
+                      <div className="text-center p-3 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-900 dark:text-blue-200">
+                          {claimStats.as_claim_maker}
+                        </div>
+                        <div className="text-sm text-blue-700 dark:text-blue-300">As Claim Maker</div>
+                      </div>
+                      <div className="text-center p-3 bg-purple-50 dark:bg-purple-900 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-900 dark:text-purple-200">
+                          {claimStats.as_subject}
+                        </div>
+                        <div className="text-sm text-purple-700 dark:text-purple-300">As Subject</div>
+                      </div>
+                      <div className="text-center p-3 bg-orange-50 dark:bg-orange-900 rounded-lg">
+                        <div className="text-2xl font-bold text-orange-900 dark:text-orange-200">
+                          {claimStats.as_mentioned}
+                        </div>
+                        <div className="text-sm text-orange-700 dark:text-orange-300">Mentioned</div>
+                      </div>
+                    </div>
+                    <Separator className="my-4" />
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">High Risk:</span>
+                        <Badge className="bg-red-100 text-red-800">{claimStats.high_risk_claims}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Verified:</span>
+                        <Badge className="bg-green-100 text-green-800">{claimStats.verified_claims}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Debunked:</span>
+                        <Badge className="bg-yellow-100 text-yellow-800">{claimStats.debunked_claims}</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Claims as Claim Maker */}
+              {groupedClaims.claim_maker && groupedClaims.claim_maker.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-blue-600" />
+                      Claims Made by {actor.name}
+                    </CardTitle>
+                    <CardDescription>
+                      Claims where {actor.name} is identified as the claim maker
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {groupedClaims.claim_maker.map((claim: any) => (
+                      <div key={claim.mention_id} className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                           onClick={() => navigate(`/dashboard/content-intelligence/${claim.content_analysis_id}`)}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <p className="text-gray-900 dark:text-white font-medium mb-1">
+                              {claim.claim_text}
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="outline">{claim.claim_category}</Badge>
+                              <Badge className={
+                                claim.overall_risk === 'high' ? 'bg-red-100 text-red-800' :
+                                claim.overall_risk === 'medium' ? 'bg-orange-100 text-orange-800' :
+                                'bg-green-100 text-green-800'
+                              }>
+                                {claim.overall_risk} risk
+                              </Badge>
+                              {claim.verification_status && (
+                                <Badge variant="secondary">{claim.verification_status}</Badge>
+                              )}
+                              {claim.credibility_impact && (
+                                <Badge variant="outline">
+                                  Impact: {claim.credibility_impact > 0 ? '+' : ''}{claim.credibility_impact}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {claim.context && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            {claim.context}
+                          </p>
+                        )}
+                        <div className="text-xs text-gray-500 mt-2 flex items-center gap-4">
+                          <span>From: {claim.content_title || claim.content_url}</span>
+                          <span>•</span>
+                          <span>{new Date(claim.analyzed_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Claims as Subject */}
+              {groupedClaims.subject && groupedClaims.subject.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-purple-600" />
+                      Claims About {actor.name}
+                    </CardTitle>
+                    <CardDescription>
+                      Claims where {actor.name} is the primary subject
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {groupedClaims.subject.map((claim: any) => (
+                      <div key={claim.mention_id} className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                           onClick={() => navigate(`/dashboard/content-intelligence/${claim.content_analysis_id}`)}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <p className="text-gray-900 dark:text-white font-medium mb-1">
+                              {claim.claim_text}
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="outline">{claim.claim_category}</Badge>
+                              <Badge className={
+                                claim.overall_risk === 'high' ? 'bg-red-100 text-red-800' :
+                                claim.overall_risk === 'medium' ? 'bg-orange-100 text-orange-800' :
+                                'bg-green-100 text-green-800'
+                              }>
+                                {claim.overall_risk} risk
+                              </Badge>
+                              {claim.verification_status && (
+                                <Badge variant="secondary">{claim.verification_status}</Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {claim.context && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            {claim.context}
+                          </p>
+                        )}
+                        <div className="text-xs text-gray-500 mt-2 flex items-center gap-4">
+                          <span>From: {claim.content_title || claim.content_url}</span>
+                          <span>•</span>
+                          <span>{new Date(claim.analyzed_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Other Mentions */}
+              {((groupedClaims.mentioned && groupedClaims.mentioned.length > 0) ||
+                (groupedClaims.affected && groupedClaims.affected.length > 0)) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-gray-600" />
+                      Other Mentions of {actor.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {[...groupedClaims.mentioned || [], ...groupedClaims.affected || []].map((claim: any) => (
+                      <div key={claim.mention_id} className="p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm"
+                           onClick={() => navigate(`/dashboard/content-intelligence/${claim.content_analysis_id}`)}>
+                        <p className="text-gray-900 dark:text-white mb-1">{claim.claim_text}</p>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <Badge variant="outline" className="text-xs">{claim.role}</Badge>
+                          <span>•</span>
+                          <span>{new Date(claim.analyzed_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </TabsContent>
 
         {/* Activity Tab */}
         <TabsContent value="activity" className="space-y-6">
