@@ -26,20 +26,33 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const limit = parseInt(url.searchParams.get('limit') || '20')
     const claimId = url.searchParams.get('claim_id') // Optional: exclude already linked actors
 
+    // Get user's workspace
+    const workspace = await context.env.DB.prepare(`
+      SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1
+    `).bind(auth.user.id).first()
+
+    if (!workspace) {
+      return new Response(JSON.stringify({
+        error: 'No workspace found for user',
+        actors: []
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
     let sql = `
       SELECT
         id,
         name,
         type,
         description,
-        credibility_rating,
-        bias_rating,
         created_at
       FROM actors
-      WHERE user_id = ?
+      WHERE workspace_id = ?
     `
 
-    const bindings: any[] = [auth.user.id]
+    const bindings: any[] = [workspace.workspace_id]
 
     // Exclude actors already linked to this claim
     if (claimId) {
