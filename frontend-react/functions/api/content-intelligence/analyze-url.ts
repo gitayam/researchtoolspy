@@ -15,6 +15,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
 import { getUserIdOrDefault } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+import { normalizeClaims } from './normalize-claims'
 
 interface Env {
   DB: D1Database
@@ -504,6 +505,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       } catch (error) {
         console.error('[DEBUG] Link save failed (non-fatal):', error)
         // Don't fail the whole request if link save fails
+      }
+    }
+
+    // Normalize claims to database (Phase 1: Claims & Entity Integration)
+    let claimIds: string[] = []
+    if (claimAnalysis && claimAnalysis.claims && claimAnalysis.claims.length > 0) {
+      try {
+        console.log('[DEBUG] Normalizing claims to database...')
+        claimIds = await normalizeClaims(env.DB, {
+          content_analysis_id: analysisId,
+          claims: claimAnalysis.claims,
+          user_id: userId,
+          workspace_id: workspaceId
+        })
+        console.log(`[DEBUG] Successfully normalized ${claimIds.length} claims`)
+      } catch (error) {
+        console.error('[DEBUG] Claim normalization failed (non-fatal):', error)
+        // Don't fail the whole request if normalization fails
+        // Claims are still available in JSON format
       }
     }
 
