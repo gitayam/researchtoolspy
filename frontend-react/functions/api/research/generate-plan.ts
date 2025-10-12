@@ -90,13 +90,7 @@ interface ResearchPlan {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const userId = await requireAuth(context.request, context.env)
 
     const body = await context.request.json() as GeneratePlanRequest
 

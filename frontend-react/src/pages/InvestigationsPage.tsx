@@ -29,6 +29,7 @@ export default function InvestigationsPage() {
   const navigate = useNavigate()
   const [investigations, setInvestigations] = useState<Investigation[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'active' | 'completed' | 'archived'>('active')
 
@@ -38,6 +39,7 @@ export default function InvestigationsPage() {
 
   const loadInvestigations = async () => {
     setIsLoading(true)
+    setError(null)
     try {
       const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch(`/api/investigations?status=${statusFilter}`, {
@@ -49,9 +51,15 @@ export default function InvestigationsPage() {
       if (response.ok) {
         const data = await response.json()
         setInvestigations(data.investigations || [])
+      } else if (response.status === 401) {
+        setError('Authentication required. Please log in to view your investigations.')
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        setError(errorData.error || 'Failed to load investigations')
       }
     } catch (error) {
       console.error('Error loading investigations:', error)
+      setError('Network error: Unable to load investigations. Please check your connection.')
     } finally {
       setIsLoading(false)
     }
@@ -89,16 +97,16 @@ export default function InvestigationsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-7xl">
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Investigations</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Investigations</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
             Organize your research with investigation-centric workflows
           </p>
         </div>
-        <Button onClick={() => navigate('/dashboard/investigations/new')} className="bg-purple-600 hover:bg-purple-700">
+        <Button onClick={() => navigate('/dashboard/investigations/new')} className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           New Investigation
         </Button>
@@ -107,7 +115,7 @@ export default function InvestigationsPage() {
       {/* Search and Filters */}
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
@@ -130,7 +138,24 @@ export default function InvestigationsPage() {
         </TabsList>
 
         <TabsContent value={statusFilter} className="mt-6">
-          {isLoading ? (
+          {error ? (
+            <Card>
+              <CardContent className="py-12">
+                <div className="text-center">
+                  <div className="text-red-500 mb-4">⚠️</div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Error Loading Investigations
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    {error}
+                  </p>
+                  <Button onClick={() => loadInvestigations()} variant="outline">
+                    Try Again
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : isLoading ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
             </div>

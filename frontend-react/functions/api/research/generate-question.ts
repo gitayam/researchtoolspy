@@ -86,13 +86,7 @@ interface GeneratedQuestion {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const userId = await requireAuth(context.request, context.env)
 
     const body = await context.request.json() as GenerateQuestionRequest
 
@@ -212,7 +206,7 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
       // Get user's workspace
       const workspace = await context.env.DB.prepare(`
         SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1
-      `).bind(auth.user.id).first()
+      `).bind(userId).first()
 
       if (!workspace) {
         return new Response(JSON.stringify({
@@ -235,7 +229,7 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
       `).bind(
         savedId,
-        auth.user.id,
+        userId,
         workspace.workspace_id,
         body.topic,
         JSON.stringify(body.purpose),
