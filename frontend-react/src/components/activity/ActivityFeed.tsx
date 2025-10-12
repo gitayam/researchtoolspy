@@ -277,8 +277,8 @@ export function ActivityFeed() {
             <ScrollArea className="h-[500px]">
               <div className="space-y-4">
                 {activities.map((activity) => {
-                  const Icon = activityIcons[activity.activity_type] || FileText
-                  const iconColor = activityColors[activity.activity_type] || 'text-gray-500'
+                  const Icon = activityIcons[activity.action_type] || FileText
+                  const iconColor = activityColors[activity.action_type] || 'text-gray-500'
 
                   return (
                     <div key={activity.id} className="flex gap-4 pb-4 border-b last:border-0">
