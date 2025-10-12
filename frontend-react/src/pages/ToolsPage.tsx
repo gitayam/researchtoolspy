@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3 } from 'lucide-react'
+import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,20 @@ export function ToolsPage() {
   const [searchTerm, setSearchTerm] = useState('')
 
   const tools = [
+    {
+      id: 'research-question-generator',
+      name: 'Research Question Generator',
+      description: 'Generate high-quality research questions with AI assistance following SMART and FINER criteria',
+      icon: Sparkles,
+      features: [
+        'AI-powered question generation',
+        'SMART & FINER criteria assessment',
+        'Comprehensive research plan generation',
+        'Null/alternative hypothesis formulation'
+      ],
+      path: '/dashboard/tools/research-question-generator',
+      available: true
+    },
     {
       id: 'content-extraction',
       name: t('toolsPage.contentExtractionName'),
@@ -171,7 +185,7 @@ export function ToolsPage() {
             <Card
               key={tool.id}
               className="hover:shadow-lg active:shadow-md transition-shadow cursor-pointer"
-              onClick={() => navigate(`/dashboard/tools/${tool.id}`)}
+              onClick={() => navigate((tool as any).path || `/dashboard/tools/${tool.id}`)}
             >
               <CardHeader className="pb-3 sm:pb-4">
                 <div className="flex items-start justify-between">
