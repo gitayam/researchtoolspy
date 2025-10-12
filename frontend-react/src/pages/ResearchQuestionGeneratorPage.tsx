@@ -223,26 +223,66 @@ export default function ResearchQuestionGeneratorPage() {
     }
   }
 
-  const handleImportQuestion = () => {
+  const handleImportQuestion = async () => {
     if (!importedQuestion.trim()) {
       alert('Please enter a research question')
       return
     }
-    // Create a question object from imported text
-    const question: GeneratedQuestion = {
-      question: importedQuestion,
-      smartAssessment: {},
-      finerAssessment: {},
-      nullHypothesis: '',
-      alternativeHypothesis: '',
-      keyVariables: [],
-      dataCollectionMethods: [],
-      potentialChallenges: [],
-      overallScore: 0
+
+    // Skip question generation and go straight to plan generation
+    setIsGeneratingPlan(true)
+    try {
+      const userHash = localStorage.getItem('omnicore_user_hash')
+
+      const response = await fetch('/api/research/generate-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+        },
+        body: JSON.stringify({
+          researchQuestion: importedQuestion,
+          duration: '3-6 months', // Default values for imported questions
+          resources: [],
+          experienceLevel: 'intermediate',
+          projectType: 'General research',
+          fiveWs: {
+            who: { population: 'To be determined based on research scope' },
+            what: { variables: 'To be determined based on research focus' },
+            where: { location: 'To be determined based on research context' },
+            when: { timePeriod: 'To be determined', studyType: 'cross-sectional' },
+            why: { importance: 'As specified in research question' }
+          }
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setResearchPlan(data.plan)
+        // Create a minimal question object for display
+        const question: GeneratedQuestion = {
+          question: importedQuestion,
+          smartAssessment: {},
+          finerAssessment: {},
+          nullHypothesis: '',
+          alternativeHypothesis: '',
+          keyVariables: [],
+          dataCollectionMethods: [],
+          potentialChallenges: [],
+          overallScore: 0
+        }
+        setGeneratedQuestions([question])
+        setSelectedQuestionIndex(0)
+        setCurrentStep(4)
+      } else {
+        alert('Failed to generate research plan. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error generating plan:', error)
+      alert('An error occurred. Please try again.')
+    } finally {
+      setIsGeneratingPlan(false)
     }
-    setGeneratedQuestions([question])
-    setSelectedQuestionIndex(0)
-    setCurrentStep(4)
   }
 
   const handleAIRecommend = async () => {
@@ -341,6 +381,7 @@ export default function ResearchQuestionGeneratorPage() {
           aiRecommendTopic={aiRecommendTopic}
           setAiRecommendTopic={setAiRecommendTopic}
           isLoadingRecommendations={isLoadingRecommendations}
+          isGeneratingPlan={isGeneratingPlan}
           onStartWizard={() => setCurrentStep(1)}
           onImportQuestion={handleImportQuestion}
           onAIRecommend={handleAIRecommend}
@@ -403,6 +444,7 @@ function Step0QuickStart({
   aiRecommendTopic,
   setAiRecommendTopic,
   isLoadingRecommendations,
+  isGeneratingPlan,
   onStartWizard,
   onImportQuestion,
   onAIRecommend
@@ -412,6 +454,7 @@ function Step0QuickStart({
   aiRecommendTopic: string
   setAiRecommendTopic: (value: string) => void
   isLoadingRecommendations: boolean
+  isGeneratingPlan: boolean
   onStartWizard: () => void
   onImportQuestion: () => void
   onAIRecommend: () => void
@@ -474,10 +517,19 @@ function Step0QuickStart({
             <Button
               onClick={onImportQuestion}
               className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={!importedQuestion.trim()}
+              disabled={!importedQuestion.trim() || isGeneratingPlan}
             >
-              <Upload className="h-4 w-4 mr-2" />
-              Import & Continue
+              {isGeneratingPlan ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating Plan...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import & Continue
+                </>
+              )}
             </Button>
             <p className="text-xs text-gray-500 text-center">
               Best for: Quick start with existing questions
