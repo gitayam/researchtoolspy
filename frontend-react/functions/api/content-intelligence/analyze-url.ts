@@ -1820,31 +1820,37 @@ Return ONLY valid JSON:
     console.error('[Deception Analysis] Error stack:', error instanceof Error ? error.stack : 'N/A')
     console.error('[Deception Analysis] Number of claims attempted:', claims.length)
 
-    // Return empty analysis on error
+    // Return claims with NO deception analysis on error
+    // This allows users to manually assess instead of showing misleading "50" scores
     return {
       claims: claims.map(c => ({
         ...c,
         deception_analysis: {
           overall_risk: 'medium' as const,
-          risk_score: 50,
+          risk_score: null as any, // Explicitly null to indicate no analysis
           methods: {
-            internal_consistency: { score: 50, reasoning: 'Analysis failed - see logs' },
-            source_credibility: { score: 50, reasoning: 'Analysis failed - see logs' },
-            evidence_quality: { score: 50, reasoning: 'Analysis failed - see logs' },
-            logical_coherence: { score: 50, reasoning: 'Analysis failed - see logs' },
-            temporal_consistency: { score: 50, reasoning: 'Analysis failed - see logs' },
-            specificity: { score: 50, reasoning: 'Analysis failed - see logs' }
+            internal_consistency: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
+            source_credibility: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
+            evidence_quality: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
+            logical_coherence: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
+            temporal_consistency: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
+            specificity: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' }
           },
-          red_flags: ['Deception analysis failed: ' + (error instanceof Error ? error.message : 'Unknown error')],
-          confidence_assessment: 'Unable to perform deception analysis due to error'
+          red_flags: [
+            '⚠️ Automated analysis unavailable',
+            'Manual assessment required',
+            'Error: ' + (error instanceof Error ? error.message : 'Unknown error')
+          ],
+          confidence_assessment: 'AI analysis failed - manual review strongly recommended. Edit scores below to provide your assessment.'
         }
       })),
       summary: {
         total_claims: claims.length,
         high_risk_claims: 0,
-        medium_risk_claims: claims.length,
+        medium_risk_claims: 0,
         low_risk_claims: 0,
-        overall_content_credibility: 50
+        most_concerning_claim: 'Unable to determine - manual analysis needed',
+        overall_content_credibility: null as any // Null to indicate no automated assessment
       }
     }
   }
