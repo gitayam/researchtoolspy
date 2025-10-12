@@ -1434,6 +1434,54 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
   return result.meta.last_row_id as number
 }
 
+// Update specific fields in an existing analysis
+async function updateAnalysisFields(db: D1Database, analysisId: number, updates: {
+  summary?: string
+  entities?: any
+  sentiment_analysis?: any
+  keyphrases?: any
+  topics?: any
+  claim_analysis?: any
+}): Promise<void> {
+  const toNullable = (val: any) => val === undefined ? null : val
+  const fields: string[] = []
+  const values: any[] = []
+
+  if (updates.summary !== undefined) {
+    fields.push('summary = ?')
+    values.push(toNullable(updates.summary))
+  }
+  if (updates.entities !== undefined) {
+    fields.push('entities = ?')
+    values.push(JSON.stringify(updates.entities))
+  }
+  if (updates.sentiment_analysis !== undefined) {
+    fields.push('sentiment_analysis = ?')
+    values.push(toNullable(updates.sentiment_analysis ? JSON.stringify(updates.sentiment_analysis) : null))
+  }
+  if (updates.keyphrases !== undefined) {
+    fields.push('keyphrases = ?')
+    values.push(toNullable(updates.keyphrases ? JSON.stringify(updates.keyphrases) : null))
+  }
+  if (updates.topics !== undefined) {
+    fields.push('topics = ?')
+    values.push(toNullable(updates.topics ? JSON.stringify(updates.topics) : null))
+  }
+  if (updates.claim_analysis !== undefined) {
+    fields.push('claim_analysis = ?')
+    values.push(toNullable(updates.claim_analysis ? JSON.stringify(updates.claim_analysis) : null))
+  }
+
+  if (fields.length === 0) return
+
+  fields.push('updated_at = datetime(\\'now\\')')
+  values.push(analysisId)
+
+  await db.prepare(`
+    UPDATE content_analysis SET ${fields.join(', ')} WHERE id = ?
+  `).bind(...values).run()
+}
+
 async function saveLinkToLibrary(db: D1Database, data: any): Promise<number> {
   const toNullable = (val: any) => val === undefined ? null : val
 
