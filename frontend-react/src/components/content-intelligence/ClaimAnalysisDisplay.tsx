@@ -118,7 +118,21 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
         })
 
         if (!response.ok) {
+          // Silently handle 404 - adjustments might not exist yet
+          if (response.status === 404) {
+            console.log('No saved adjustments found for this content')
+            setIsLoading(false)
+            return
+          }
           throw new Error(`Failed to load adjustments: ${response.statusText}`)
+        }
+
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+          console.warn('Non-JSON response received for claim adjustments')
+          setIsLoading(false)
+          return
         }
 
         const data = await response.json()
