@@ -5,6 +5,8 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
+import { logActivity } from '../_shared/activity-logger'
+import { notifyWorkspaceMembers } from '../_shared/notification-logger'
 
 interface Env {
   DB: D1Database
@@ -22,18 +24,12 @@ interface CreateInvestigationRequest {
 // GET - List investigations
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const userId = await requireAuth(context.request, context.env)
 
     // Get user's workspace
     const workspace = await context.env.DB.prepare(`
       SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1
-    `).bind(auth.user.id).first()
+    `).bind(userId).first()
 
     if (!workspace) {
       return new Response(JSON.stringify({ error: 'No workspace found' }), {
@@ -110,12 +106,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 // POST - Create investigation
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
+    // Try to get auth, but don't require it - support guest investigations
+    let userId: number | null = null
+    try {
+      userId = await requireAuth(context.request, context.env)
+    } catch (error) {
+      // User is not authenticated - this is okay for guest investigations
+      userId = null
     }
 
     const body = await context.request.json() as CreateInvestigationRequest
@@ -129,16 +126,51 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get user's workspace
-    const workspace = await context.env.DB.prepare(`
-      SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1
-    `).bind(auth.user.id).first()
+    let workspace_id: string
+    let user_id: number | null = null
 
-    if (!workspace) {
-      return new Response(JSON.stringify({ error: 'No workspace found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      })
+    if (userId) {
+      // Authenticated user - get or create workspace
+      const workspace = await context.env.DB.prepare(`
+        SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1
+      `).bind(userId).first()
+
+      if (workspace) {
+        workspace_id = workspace.workspace_id as string
+        user_id = userId
+      } else {
+        // Create personal workspace for user
+        workspace_id = crypto.randomUUID()
+
+        // Get username
+        const user = await context.env.DB.prepare(`
+          SELECT username FROM users WHERE id = ?
+        `).bind(userId).first()
+        const workspaceName = user?.username ? `${user.username}'s Workspace` : `Workspace ${workspace_id.slice(0, 8)}`
+
+        await context.env.DB.prepare(`
+          INSERT INTO workspaces (id, name, created_by, created_at)
+          VALUES (?, ?, ?, datetime('now'))
+        `).bind(workspace_id, workspaceName, userId).run()
+
+        await context.env.DB.prepare(`
+          INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+          VALUES (?, ?, 'owner', datetime('now'))
+        `).bind(workspace_id, userId).run()
+
+        user_id = userId
+        console.log('[investigations] Created personal workspace:', workspace_id)
+      }
+    } else {
+      // Guest user - create guest workspace
+      workspace_id = crypto.randomUUID()
+
+      await context.env.DB.prepare(`
+        INSERT INTO workspaces (id, name, created_by, created_at)
+        VALUES (?, 'Guest Workspace', NULL, datetime('now'))
+      `).bind(workspace_id).run()
+
+      console.log('[investigations] Created guest workspace:', workspace_id)
     }
 
     // Generate ID
@@ -148,7 +180,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (body.research_question_id) {
       const rq = await context.env.DB.prepare(`
         SELECT id FROM research_questions WHERE id = ? AND workspace_id = ?
-      `).bind(body.research_question_id, workspace.workspace_id).first()
+      `).bind(body.research_question_id, workspace_id).first()
 
       if (!rq) {
         return new Response(JSON.stringify({
@@ -168,8 +200,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
     `).bind(
       id,
-      workspace.workspace_id,
-      auth.user.id,
+      workspace_id,
+      user_id,
       body.title,
       body.description || null,
       body.type,
@@ -177,17 +209,57 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.tags ? JSON.stringify(body.tags) : JSON.stringify([])
     ).run()
 
-    // Log activity
-    await context.env.DB.prepare(`
-      INSERT INTO investigation_activity (
-        id, investigation_id, user_id, activity_type, activity_data
-      ) VALUES (?, ?, ?, 'created', ?)
-    `).bind(
-      crypto.randomUUID(),
-      id,
-      auth.user.id,
-      JSON.stringify({ title: body.title, type: body.type })
-    ).run()
+    // Log activity (only if user is authenticated)
+    if (user_id) {
+      await context.env.DB.prepare(`
+        INSERT INTO investigation_activity (
+          id, investigation_id, user_id, activity_type, activity_data
+        ) VALUES (?, ?, ?, 'created', ?)
+      `).bind(
+        crypto.randomUUID(),
+        id,
+        user_id,
+        JSON.stringify({ title: body.title, type: body.type })
+      ).run()
+
+      // Log to workspace activity feed
+      await logActivity(context.env.DB, {
+        workspaceId: workspace_id,
+        actorUserId: user_id.toString(),
+        actionType: 'CREATED',
+        entityType: 'INVESTIGATION',
+        entityId: id,
+        entityTitle: body.title,
+        details: {
+          type: body.type,
+          research_question_id: body.research_question_id
+        }
+      })
+
+      // Get user info for notifications
+      const userInfo = await context.env.DB.prepare(`
+        SELECT account_hash, username FROM users WHERE id = ?
+      `).bind(user_id).first()
+
+      if (userInfo && userInfo.account_hash) {
+        // Notify workspace members about new investigation
+        await notifyWorkspaceMembers(
+          context.env.DB,
+          workspace_id,
+          userInfo.account_hash as string,
+          {
+            notificationType: 'INVESTIGATION_CREATED',
+            title: 'New Investigation Created',
+            message: `${userInfo.username || 'A team member'} created "${body.title}"`,
+            actionUrl: `/dashboard/investigations/${id}`,
+            entityType: 'INVESTIGATION',
+            entityId: id,
+            actorHash: userInfo.account_hash as string,
+            actorName: userInfo.username as string
+          }
+        )
+      }
+    }
 
     // Fetch the created investigation
     const investigation = await context.env.DB.prepare(`

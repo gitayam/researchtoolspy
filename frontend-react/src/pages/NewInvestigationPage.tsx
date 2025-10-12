@@ -104,28 +104,38 @@ export default function NewInvestigationPage() {
         const data = await response.json()
         navigate(`/dashboard/investigations/${data.investigation.id}`)
       } else {
-        alert('Failed to create investigation')
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error || 'Failed to create investigation'
+        const errorDetails = errorData.details ? `\n\nDetails: ${errorData.details}` : ''
+        alert(`${errorMessage}${errorDetails}`)
       }
     } catch (error) {
       console.error('Error creating investigation:', error)
-      alert('An error occurred')
+      alert(`Network error: Unable to create investigation. Please check your connection and try again.`)
     } finally {
       setIsCreating(false)
     }
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-4xl">
       {/* Header */}
       <div className="mb-6">
-        <Button variant="outline" onClick={() => step === 'type' ? navigate('/dashboard/investigations') : setStep('type')} className="mb-4">
+        <Button variant="outline" onClick={() => step === 'type' ? navigate('/dashboard/investigations') : setStep('type')} size="sm" className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           {step === 'type' ? 'Back to Investigations' : 'Back'}
         </Button>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create New Investigation</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Create New Investigation</h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
           {step === 'type' ? 'Choose your investigation type' : 'Provide investigation details'}
         </p>
+        {!localStorage.getItem('omnicore_user_hash') && (
+          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              💡 <strong>Guest Mode:</strong> You're creating an investigation without logging in. You can still collaborate and share it with others.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Step 1: Select Type */}

@@ -12,10 +12,15 @@ import {
   Users,
   Activity,
   Clock,
-  ChevronDown
+  ChevronDown,
+  Folder,
+  Zap,
+  ArrowRight,
+  Loader2
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,14 +31,57 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { formatRelativeTime } from '@/lib/utils'
 
+interface Investigation {
+  id: string
+  title: string
+  description?: string
+  type: 'structured_research' | 'general_topic' | 'rapid_analysis'
+  status: 'active' | 'completed' | 'archived'
+  created_at: string
+  updated_at: string
+  evidence_count: number
+  actor_count: number
+  source_count: number
+  framework_count: number
+  tags: string[]
+}
+
 export function DashboardPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+
+  const [investigations, setInvestigations] = useState<Investigation[]>([])
+  const [isLoadingInvestigations, setIsLoadingInvestigations] = useState(true)
 
   // Mock data for now - will integrate with real store later
   const isLoading = false
   const recentSessions: any[] = []
   const allSessions: any[] = []
+
+  useEffect(() => {
+    loadInvestigations()
+  }, [])
+
+  const loadInvestigations = async () => {
+    try {
+      setIsLoadingInvestigations(true)
+      const userHash = localStorage.getItem('omnicore_user_hash')
+      const response = await fetch('/api/investigations?status=active', {
+        headers: {
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setInvestigations(data.investigations || [])
+      }
+    } catch (error) {
+      console.error('Error loading investigations:', error)
+    } finally {
+      setIsLoadingInvestigations(false)
+    }
+  }
 
   // Available frameworks for quick creation
   const availableFrameworks = useMemo(() => [
@@ -129,20 +177,73 @@ export function DashboardPage() {
     },
   ], [t])
 
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'structured_research': return <FileText className="h-4 w-4" />
+      case 'rapid_analysis': return <Zap className="h-4 w-4" />
+      default: return <Folder className="h-4 w-4" />
+    }
+  }
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'structured_research': return 'Structured'
+      case 'rapid_analysis': return 'Rapid'
+      default: return 'General'
+    }
+  }
+
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">
-          {t('dashboard.welcome')}
-        </h1>
-        <p className="text-blue-100">
-          {t('dashboard.welcomeSubtext')}
-        </p>
+      {/* Welcome Section with Investigation CTA */}
+      <div className="bg-gradient-to-r from-purple-600 to-purple-800 rounded-lg p-6 text-white">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold mb-2">
+              {t('dashboard.welcome')}
+            </h1>
+            <p className="text-purple-100 mb-4">
+              Start a new investigation or continue working on existing research
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => navigate('/dashboard/investigations/new')}
+                className="bg-white text-purple-700 hover:bg-purple-50"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Investigation
+              </Button>
+              <Button
+                onClick={() => navigate('/dashboard/investigations')}
+                variant="outline"
+                className="border-white text-white hover:bg-purple-700"
+              >
+                View All
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+          <Folder className="h-20 w-20 text-purple-400 opacity-50" />
+        </div>
       </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Investigations</CardTitle>
+            <Folder className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {isLoadingInvestigations ? '...' : investigations.length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {investigations.length === 0 ? 'Start your first investigation' : 'Currently active'}
+            </p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t('dashboard.totalAnalyses')}</CardTitle>
@@ -154,21 +255,6 @@ export function DashboardPage() {
             </div>
             <p className="text-xs text-muted-foreground">
               {totalAnalyses === 0 ? t('dashboard.startCreating') : t('dashboard.totalCreated')}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('dashboard.activeSessions')}</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading ? '...' : activeSessions}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {activeSessions === 0 ? t('dashboard.noActiveSessions') : t('dashboard.inProgressAnalyses')}
             </p>
           </CardContent>
         </Card>
@@ -201,6 +287,79 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Active Investigations */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Folder className="h-5 w-5" />
+              Active Investigations
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/investigations')}>
+              View All
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+          <CardDescription>
+            Your ongoing research investigations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingInvestigations ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+            </div>
+          ) : investigations.length > 0 ? (
+            <div className="space-y-3">
+              {investigations.slice(0, 5).map((inv) => (
+                <div
+                  key={inv.id}
+                  onClick={() => navigate(`/dashboard/investigations/${inv.id}`)}
+                  className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors border border-gray-200 dark:border-gray-700"
+                >
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    {getTypeIcon(inv.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        {inv.title}
+                      </h4>
+                      <Badge variant="outline" className="text-xs">
+                        {getTypeLabel(inv.type)}
+                      </Badge>
+                    </div>
+                    {inv.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+                        {inv.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                      <span>{inv.evidence_count} evidence</span>
+                      <span>{inv.actor_count} actors</span>
+                      <span>{inv.framework_count} analyses</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {formatRelativeTime(inv.updated_at)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Folder className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">No active investigations</p>
+              <p className="text-xs text-gray-500 mb-4">Create your first investigation to organize your research</p>
+              <Button onClick={() => navigate('/dashboard/investigations/new')} size="sm" className="bg-purple-600 hover:bg-purple-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Investigation
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
       <div>
