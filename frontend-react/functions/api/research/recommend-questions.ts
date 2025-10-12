@@ -6,7 +6,6 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
-import { callOpenAIViaGateway } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -108,11 +107,17 @@ Return the response as a JSON object with a "questions" array:
   ]
 }`
 
-    console.log('[recommend-questions] Calling AI Gateway for question generation')
+    console.log('[recommend-questions] Calling OpenAI API for question generation')
 
-    const aiResponse = await callOpenAIViaGateway(
-      context.env,
-      {
+    // Call OpenAI API directly
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${context.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -123,20 +128,26 @@ Return the response as a JSON object with a "questions" array:
             content: prompt
           }
         ],
-        model: 'gpt-4o-mini',
         temperature: 0.7,
         max_tokens: 3000,
         response_format: { type: 'json_object' }
-      }
-    )
+      })
+    })
 
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[recommend-questions] OpenAI API error:', errorText)
+      throw new Error(`OpenAI API error ${response.status}: ${errorText}`)
+    }
+
+    const aiResponse = await response.json()
     console.log('[recommend-questions] AI Response received')
 
     // Parse AI response
     let questions: GeneratedQuestion[] = []
     try {
       // Extract content from OpenAI response
-      const content = aiResponse.choices?.[0]?.message?.content || aiResponse.content
+      const content = aiResponse.choices?.[0]?.message?.content
       if (!content) {
         console.error('[recommend-questions] No content in AI response:', aiResponse)
         throw new Error('No content in AI response')
