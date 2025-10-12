@@ -117,6 +117,7 @@ const SectionCard = memo(({
   const [editQuestion, setEditQuestion] = useState('')
   const [editAnswer, setEditAnswer] = useState('')
   const [editText, setEditText] = useState('')
+  const [showTemplates, setShowTemplates] = useState(false)
 
   const startEditing = (item: FrameworkItem) => {
     setEditingId(item.id)
@@ -159,15 +160,47 @@ const SectionCard = memo(({
         </CardTitle>
         <CardDescription>{section.description}</CardDescription>
 
-        {/* Guided Questions */}
+        {/* Guided Questions / Template Questions */}
         {section.promptQuestions && section.promptQuestions.length > 0 && (
-          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">💡 Questions to consider:</p>
-            <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1 ml-4 list-disc">
-              {section.promptQuestions.map((question, idx) => (
-                <li key={idx}>{question}</li>
-              ))}
-            </ul>
+          <div className="mt-3">
+            <button
+              onClick={() => setShowTemplates(!showTemplates)}
+              className="w-full flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+            >
+              <span className="text-xs font-medium text-blue-900 dark:text-blue-100">
+                💡 {isQA ? 'Template Questions' : 'Questions to consider'} ({section.promptQuestions.length})
+              </span>
+              <span className="text-blue-600 dark:text-blue-400">{showTemplates ? '▼' : '▶'}</span>
+            </button>
+
+            {showTemplates && (
+              <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-2">
+                {section.promptQuestions.map((question, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-xs">
+                    {isQA ? (
+                      <>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setNewItem(question)
+                            setNewAnswer('')
+                          }}
+                          className="h-7 text-xs px-2 hover:bg-blue-200 dark:hover:bg-blue-800"
+                          title="Add this question"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                        <span className="flex-1 text-blue-800 dark:text-blue-200 pt-1">{question}</span>
+                      </>
+                    ) : (
+                      <li className="list-disc ml-4 text-blue-800 dark:text-blue-200">{question}</li>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

@@ -627,7 +627,15 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Questions about people and stakeholders',
         color: 'border-purple-500',
         bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-        icon: '👤'
+        icon: '👤',
+        promptQuestions: [
+          'Who are the primary stakeholders?',
+          'Who benefits from this situation?',
+          'Who has the authority to make decisions?',
+          'Who are the influencers or opinion leaders?',
+          'Who might oppose this?',
+          'Who are the experts on this topic?'
+        ]
       },
       {
         key: 'what',
@@ -635,7 +643,15 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Questions about the subject matter',
         color: 'border-blue-500',
         bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-        icon: '❓'
+        icon: '❓',
+        promptQuestions: [
+          'What is the core issue or problem?',
+          'What are the stated objectives?',
+          'What evidence supports this?',
+          'What are the alternative explanations?',
+          'What are the potential consequences?',
+          'What assumptions are being made?'
+        ]
       },
       {
         key: 'when',
@@ -643,7 +659,15 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Questions about timing and schedule',
         color: 'border-green-500',
         bgColor: 'bg-green-50 dark:bg-green-900/20',
-        icon: '⏰'
+        icon: '⏰',
+        promptQuestions: [
+          'When did this situation begin?',
+          'When are key decisions being made?',
+          'When have similar situations occurred?',
+          'When is the critical timeframe?',
+          'When will we see outcomes?',
+          'When do deadlines occur?'
+        ]
       },
       {
         key: 'where',
@@ -651,7 +675,15 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Questions about location and place',
         color: 'border-orange-500',
         bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-        icon: '📍'
+        icon: '📍',
+        promptQuestions: [
+          'Where is this occurring geographically?',
+          'Where are the stakeholders located?',
+          'Where could this spread or expand?',
+          'Where are safe zones or areas of concern?',
+          'Where is evidence being collected?',
+          'Where should resources be deployed?'
+        ]
       },
       {
         key: 'why',
@@ -659,7 +691,15 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Questions about reasons and motivations',
         color: 'border-red-500',
         bgColor: 'bg-red-50 dark:bg-red-900/20',
-        icon: '💡'
+        icon: '💡',
+        promptQuestions: [
+          'Why is this happening now?',
+          'Why are actors motivated to act?',
+          'Why is this significant?',
+          'Why might deception be present?',
+          'Why are some perspectives being emphasized?',
+          'Why might this fail or succeed?'
+        ]
       },
       {
         key: 'how',
@@ -667,7 +707,15 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         description: 'Questions about methods and processes',
         color: 'border-cyan-500',
         bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
-        icon: '⚙️'
+        icon: '⚙️',
+        promptQuestions: [
+          'How did this situation develop?',
+          'How are actors coordinating?',
+          'How can we verify claims?',
+          'How might this evolve?',
+          'How can we influence outcomes?',
+          'How do we measure success?'
+        ]
       }
     ]
   },
