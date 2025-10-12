@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import {
   Shield,
   AlertTriangle,
@@ -78,6 +79,15 @@ interface ClaimAdjustment {
   id?: string // Claim adjustment ID from database
   adjustedRiskScore: number
   userComment: string
+  adjustedClaimText?: string // User-edited claim wording
+  adjustedMethods?: {
+    internal_consistency: { score: number; reasoning: string }
+    source_credibility: { score: number; reasoning: string }
+    evidence_quality: { score: number; reasoning: string }
+    logical_coherence: { score: number; reasoning: string }
+    temporal_consistency: { score: number; reasoning: string }
+    specificity: { score: number; reasoning: string }
+  }
   adjustedAt: string
 }
 
@@ -102,6 +112,22 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
   const [adjustments, setAdjustments] = useState<Record<number, ClaimAdjustment>>({})
   const [tempRiskScore, setTempRiskScore] = useState<number>(50)
   const [tempComment, setTempComment] = useState<string>('')
+  const [tempClaimText, setTempClaimText] = useState<string>('')
+  const [tempMethods, setTempMethods] = useState<{
+    internal_consistency: { score: number; reasoning: string }
+    source_credibility: { score: number; reasoning: string }
+    evidence_quality: { score: number; reasoning: string }
+    logical_coherence: { score: number; reasoning: string }
+    temporal_consistency: { score: number; reasoning: string }
+    specificity: { score: number; reasoning: string }
+  }>({
+    internal_consistency: { score: 50, reasoning: '' },
+    source_credibility: { score: 50, reasoning: '' },
+    evidence_quality: { score: 50, reasoning: '' },
+    logical_coherence: { score: 50, reasoning: '' },
+    temporal_consistency: { score: 50, reasoning: '' },
+    specificity: { score: 50, reasoning: '' }
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -164,15 +190,53 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
   // Handle edit mode
   const startEditing = (index: number, currentRiskScore: number) => {
     setEditingIndex(index)
+    const claim = claims[index]
     const existing = adjustments[index]
+
     setTempRiskScore(existing?.adjustedRiskScore ?? currentRiskScore)
     setTempComment(existing?.userComment ?? '')
+    setTempClaimText(claim.claim)
+    setTempMethods({
+      internal_consistency: {
+        score: claim.deception_analysis.methods.internal_consistency.score ?? 50,
+        reasoning: claim.deception_analysis.methods.internal_consistency.reasoning ?? ''
+      },
+      source_credibility: {
+        score: claim.deception_analysis.methods.source_credibility.score ?? 50,
+        reasoning: claim.deception_analysis.methods.source_credibility.reasoning ?? ''
+      },
+      evidence_quality: {
+        score: claim.deception_analysis.methods.evidence_quality.score ?? 50,
+        reasoning: claim.deception_analysis.methods.evidence_quality.reasoning ?? ''
+      },
+      logical_coherence: {
+        score: claim.deception_analysis.methods.logical_coherence.score ?? 50,
+        reasoning: claim.deception_analysis.methods.logical_coherence.reasoning ?? ''
+      },
+      temporal_consistency: {
+        score: claim.deception_analysis.methods.temporal_consistency.score ?? 50,
+        reasoning: claim.deception_analysis.methods.temporal_consistency.reasoning ?? ''
+      },
+      specificity: {
+        score: claim.deception_analysis.methods.specificity.score ?? 50,
+        reasoning: claim.deception_analysis.methods.specificity.reasoning ?? ''
+      }
+    })
   }
 
   const cancelEditing = () => {
     setEditingIndex(null)
     setTempRiskScore(50)
     setTempComment('')
+    setTempClaimText('')
+    setTempMethods({
+      internal_consistency: { score: 50, reasoning: '' },
+      source_credibility: { score: 50, reasoning: '' },
+      evidence_quality: { score: 50, reasoning: '' },
+      logical_coherence: { score: 50, reasoning: '' },
+      temporal_consistency: { score: 50, reasoning: '' },
+      specificity: { score: 50, reasoning: '' }
+    })
   }
 
   const saveAdjustment = async (index: number) => {
@@ -189,6 +253,8 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
         original_overall_risk: claim.deception_analysis.overall_risk,
         original_methods: claim.deception_analysis.methods,
         adjusted_risk_score: tempRiskScore,
+        adjusted_claim_text: tempClaimText !== claim.claim ? tempClaimText : null, // Only send if changed
+        adjusted_methods: tempMethods,
         user_comment: tempComment,
         verification_status: 'pending'
       }
@@ -214,12 +280,23 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
             id: data.id, // Store the claim_adjustment_id
             adjustedRiskScore: tempRiskScore,
             userComment: tempComment,
+            adjustedClaimText: tempClaimText,
+            adjustedMethods: tempMethods,
             adjustedAt: new Date().toISOString()
           }
         })
         setEditingIndex(null)
         setTempRiskScore(50)
         setTempComment('')
+        setTempClaimText('')
+        setTempMethods({
+          internal_consistency: { score: 50, reasoning: '' },
+          source_credibility: { score: 50, reasoning: '' },
+          evidence_quality: { score: 50, reasoning: '' },
+          logical_coherence: { score: 50, reasoning: '' },
+          temporal_consistency: { score: 50, reasoning: '' },
+          specificity: { score: 50, reasoning: '' }
+        })
       }
     } catch (error) {
       console.error('Error saving adjustment:', error)
@@ -465,40 +542,266 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
               {/* User Adjustment UI */}
               {isEditing && (
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Adjust Risk Score: {tempRiskScore}
-                    </label>
-                    <Slider
-                      value={[tempRiskScore]}
-                      onValueChange={(value) => setTempRiskScore(value[0])}
-                      min={0}
-                      max={100}
-                      step={1}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-                      <span>Low Risk (0)</span>
-                      <span>Medium Risk (50)</span>
-                      <span>High Risk (100)</span>
-                    </div>
-                  </div>
+                  <Tabs defaultValue="overall" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="overall">Overall</TabsTrigger>
+                      <TabsTrigger value="claim">Claim Text</TabsTrigger>
+                      <TabsTrigger value="methods">Method Scores</TabsTrigger>
+                    </TabsList>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Your Assessment Comments
-                    </label>
-                    <Textarea
-                      value={tempComment}
-                      onChange={(e) => setTempComment(e.target.value)}
-                      placeholder="Explain why you're adjusting this risk score... (optional)"
-                      rows={3}
-                      className="w-full"
-                    />
-                  </div>
+                    {/* Overall Tab - Risk Score & Comments */}
+                    <TabsContent value="overall" className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Adjust Risk Score: {tempRiskScore}
+                        </label>
+                        <Slider
+                          value={[tempRiskScore]}
+                          onValueChange={(value) => setTempRiskScore(value[0])}
+                          min={0}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                          <span>Low Risk (0)</span>
+                          <span>Medium Risk (50)</span>
+                          <span>High Risk (100)</span>
+                        </div>
+                      </div>
 
-                  <div className="flex gap-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4" />
+                          Your Assessment Comments
+                        </label>
+                        <Textarea
+                          value={tempComment}
+                          onChange={(e) => setTempComment(e.target.value)}
+                          placeholder="Explain your assessment... (optional)"
+                          rows={3}
+                          className="w-full"
+                        />
+                      </div>
+                    </TabsContent>
+
+                    {/* Claim Text Tab */}
+                    <TabsContent value="claim" className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium flex items-center gap-2">
+                          <Edit className="h-4 w-4" />
+                          Edit Claim Wording
+                        </label>
+                        <Textarea
+                          value={tempClaimText}
+                          onChange={(e) => setTempClaimText(e.target.value)}
+                          placeholder="Edit the claim text..."
+                          rows={4}
+                          className="w-full font-medium"
+                        />
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Refine the claim wording to be more precise or correct any errors.
+                        </p>
+                      </div>
+                    </TabsContent>
+
+                    {/* Method Scores Tab */}
+                    <TabsContent value="methods" className="space-y-6 mt-4 max-h-96 overflow-y-auto">
+                      {/* Internal Consistency */}
+                      <div className="space-y-2 pb-4 border-b">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <Target className="h-4 w-4" />
+                            Internal Consistency
+                          </label>
+                          <span className="text-sm font-bold">{tempMethods.internal_consistency.score}</span>
+                        </div>
+                        <Slider
+                          value={[tempMethods.internal_consistency.score]}
+                          onValueChange={(value) => setTempMethods({
+                            ...tempMethods,
+                            internal_consistency: { ...tempMethods.internal_consistency, score: value[0] }
+                          })}
+                          min={0}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                        <Textarea
+                          value={tempMethods.internal_consistency.reasoning}
+                          onChange={(e) => setTempMethods({
+                            ...tempMethods,
+                            internal_consistency: { ...tempMethods.internal_consistency, reasoning: e.target.value }
+                          })}
+                          placeholder="Reasoning..."
+                          rows={2}
+                          className="text-xs"
+                        />
+                      </div>
+
+                      {/* Source Credibility */}
+                      <div className="space-y-2 pb-4 border-b">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <Shield className="h-4 w-4" />
+                            Source Credibility
+                          </label>
+                          <span className="text-sm font-bold">{tempMethods.source_credibility.score}</span>
+                        </div>
+                        <Slider
+                          value={[tempMethods.source_credibility.score]}
+                          onValueChange={(value) => setTempMethods({
+                            ...tempMethods,
+                            source_credibility: { ...tempMethods.source_credibility, score: value[0] }
+                          })}
+                          min={0}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                        <Textarea
+                          value={tempMethods.source_credibility.reasoning}
+                          onChange={(e) => setTempMethods({
+                            ...tempMethods,
+                            source_credibility: { ...tempMethods.source_credibility, reasoning: e.target.value }
+                          })}
+                          placeholder="Reasoning..."
+                          rows={2}
+                          className="text-xs"
+                        />
+                      </div>
+
+                      {/* Evidence Quality */}
+                      <div className="space-y-2 pb-4 border-b">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            Evidence Quality
+                          </label>
+                          <span className="text-sm font-bold">{tempMethods.evidence_quality.score}</span>
+                        </div>
+                        <Slider
+                          value={[tempMethods.evidence_quality.score]}
+                          onValueChange={(value) => setTempMethods({
+                            ...tempMethods,
+                            evidence_quality: { ...tempMethods.evidence_quality, score: value[0] }
+                          })}
+                          min={0}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                        <Textarea
+                          value={tempMethods.evidence_quality.reasoning}
+                          onChange={(e) => setTempMethods({
+                            ...tempMethods,
+                            evidence_quality: { ...tempMethods.evidence_quality, reasoning: e.target.value }
+                          })}
+                          placeholder="Reasoning..."
+                          rows={2}
+                          className="text-xs"
+                        />
+                      </div>
+
+                      {/* Logical Coherence */}
+                      <div className="space-y-2 pb-4 border-b">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4" />
+                            Logical Coherence
+                          </label>
+                          <span className="text-sm font-bold">{tempMethods.logical_coherence.score}</span>
+                        </div>
+                        <Slider
+                          value={[tempMethods.logical_coherence.score]}
+                          onValueChange={(value) => setTempMethods({
+                            ...tempMethods,
+                            logical_coherence: { ...tempMethods.logical_coherence, score: value[0] }
+                          })}
+                          min={0}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                        <Textarea
+                          value={tempMethods.logical_coherence.reasoning}
+                          onChange={(e) => setTempMethods({
+                            ...tempMethods,
+                            logical_coherence: { ...tempMethods.logical_coherence, reasoning: e.target.value }
+                          })}
+                          placeholder="Reasoning..."
+                          rows={2}
+                          className="text-xs"
+                        />
+                      </div>
+
+                      {/* Temporal Consistency */}
+                      <div className="space-y-2 pb-4 border-b">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            Temporal Consistency
+                          </label>
+                          <span className="text-sm font-bold">{tempMethods.temporal_consistency.score}</span>
+                        </div>
+                        <Slider
+                          value={[tempMethods.temporal_consistency.score]}
+                          onValueChange={(value) => setTempMethods({
+                            ...tempMethods,
+                            temporal_consistency: { ...tempMethods.temporal_consistency, score: value[0] }
+                          })}
+                          min={0}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                        <Textarea
+                          value={tempMethods.temporal_consistency.reasoning}
+                          onChange={(e) => setTempMethods({
+                            ...tempMethods,
+                            temporal_consistency: { ...tempMethods.temporal_consistency, reasoning: e.target.value }
+                          })}
+                          placeholder="Reasoning..."
+                          rows={2}
+                          className="text-xs"
+                        />
+                      </div>
+
+                      {/* Specificity */}
+                      <div className="space-y-2 pb-4">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <Info className="h-4 w-4" />
+                            Specificity
+                          </label>
+                          <span className="text-sm font-bold">{tempMethods.specificity.score}</span>
+                        </div>
+                        <Slider
+                          value={[tempMethods.specificity.score]}
+                          onValueChange={(value) => setTempMethods({
+                            ...tempMethods,
+                            specificity: { ...tempMethods.specificity, score: value[0] }
+                          })}
+                          min={0}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                        <Textarea
+                          value={tempMethods.specificity.reasoning}
+                          onChange={(e) => setTempMethods({
+                            ...tempMethods,
+                            specificity: { ...tempMethods.specificity, reasoning: e.target.value }
+                          })}
+                          placeholder="Reasoning..."
+                          rows={2}
+                          className="text-xs"
+                        />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
+                  <div className="flex gap-2 pt-2 border-t">
                     <Button
                       size="sm"
                       onClick={() => saveAdjustment(index)}
@@ -513,7 +816,7 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                       ) : (
                         <>
                           <Save className="h-4 w-4 mr-2" />
-                          Save Adjustment
+                          Save All Changes
                         </>
                       )}
                     </Button>
