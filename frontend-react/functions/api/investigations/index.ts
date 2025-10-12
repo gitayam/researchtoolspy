@@ -32,8 +32,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     `).bind(userId).first()
 
     if (!workspace) {
-      return new Response(JSON.stringify({ error: 'No workspace found' }), {
-        status: 404,
+      // User has no workspace yet - return empty list
+      return new Response(JSON.stringify({
+        investigations: [],
+        total: 0
+      }), {
         headers: { 'Content-Type': 'application/json' }
       })
     }
