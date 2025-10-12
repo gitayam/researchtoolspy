@@ -443,6 +443,10 @@ export const router = createBrowserRouter([
         element: <LazyPage Component={NetworkGraphPage} />,
       },
       {
+        path: 'network-graph',
+        element: <Navigate to="/dashboard/network" replace />,
+      },
+      {
         path: 'reports',
         element: <LazyPage Component={ReportsPage} />,
       },
