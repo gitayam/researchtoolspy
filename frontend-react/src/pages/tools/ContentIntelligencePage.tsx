@@ -2392,17 +2392,17 @@ export default function ContentIntelligencePage() {
 
           <TabsContent value="overview" className="mt-4">
             <Card className="p-6 space-y-4">
-              <div className="space-y-4">
-                <div className="flex-1">
+              <div className="space-y-6">
+                <div>
                   <h2 className="text-2xl font-bold break-words">{analysis.title || 'Untitled'}</h2>
                   {analysis.author && (
-                    <p className="text-sm text-muted-foreground">By {analysis.author}</p>
+                    <p className="text-sm text-muted-foreground mt-1">By {analysis.author}</p>
                   )}
                   {analysis.publish_date && (
-                    <p className="text-sm text-muted-foreground">Published: {analysis.publish_date}</p>
+                    <p className="text-sm text-muted-foreground mt-1">Published: {analysis.publish_date}</p>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 pt-2 border-t">
                   <Button
                     variant="outline"
                     size="sm"
