@@ -13,7 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
-  Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe, SmileIcon, FrownIcon, MehIcon, Grid3x3, Share2
+  Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe, SmileIcon, FrownIcon, MehIcon, Grid3x3, Share2,
+  Search, Sparkles, XCircle, MoreVertical
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -88,6 +89,13 @@ export default function ContentIntelligencePage() {
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
 
+  // Entity Interaction State
+  const [highlightedEntity, setHighlightedEntity] = useState<string | null>(null)
+  const [entitySummaries, setEntitySummaries] = useState<Record<string, string>>({})
+  const [summarizingEntity, setSummarizingEntity] = useState<string | null>(null)
+  const [showEntitySummary, setShowEntitySummary] = useState(false)
+  const [currentEntitySummary, setCurrentEntitySummary] = useState<{ entity: string, type: string, summary: string } | null>(null)
+
   // Format full text for better readability
   const formatFullText = (text: string): string => {
     if (!text) return ''
@@ -100,6 +108,127 @@ export default function ContentIntelligencePage() {
       // Clean up common artifacts
       .replace(/\n{3,}/g, '\n\n')
       .trim()
+  }
+
+  // Find entity in text and highlight
+  const handleFindInText = (entityName: string) => {
+    if (!analysis) return
+
+    // Set highlighted entity
+    setHighlightedEntity(entityName)
+
+    // Switch to overview tab to show full text
+    setActiveTab('overview')
+    setTextView('fulltext')
+
+    // Scroll to content section after a brief delay for tab switch
+    setTimeout(() => {
+      // Try to find and scroll to the first occurrence
+      const contentElement = document.getElementById('full-text-content')
+      if (contentElement) {
+        contentElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+
+      toast({
+        title: 'Entity Highlighted',
+        description: `All occurrences of "${entityName}" are now highlighted in yellow`,
+      })
+    }, 100)
+  }
+
+  // Clear entity highlighting
+  const handleClearHighlight = () => {
+    setHighlightedEntity(null)
+    toast({
+      title: 'Highlighting Cleared',
+      description: 'Entity highlighting has been removed',
+    })
+  }
+
+  // Summarize entity using AI
+  const handleSummarizeEntity = async (entityName: string, entityType: string) => {
+    if (!analysis) return
+
+    // Check if we already have a cached summary
+    const cacheKey = `${entityType}:${entityName}`
+    if (entitySummaries[cacheKey]) {
+      setCurrentEntitySummary({
+        entity: entityName,
+        type: entityType,
+        summary: entitySummaries[cacheKey]
+      })
+      setShowEntitySummary(true)
+      return
+    }
+
+    setSummarizingEntity(entityName)
+
+    try {
+      const response = await fetch('/api/content-intelligence/summarize-entity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: analysis.extracted_text,
+          entity_name: entityName,
+          entity_type: entityType,
+          content_title: analysis.title
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate summary')
+      }
+
+      const data = await response.json()
+      const summary = data.summary
+
+      // Cache the summary
+      setEntitySummaries(prev => ({ ...prev, [cacheKey]: summary }))
+
+      // Show in dialog
+      setCurrentEntitySummary({
+        entity: entityName,
+        type: entityType,
+        summary
+      })
+      setShowEntitySummary(true)
+
+      toast({
+        title: 'Summary Generated',
+        description: `AI summary for "${entityName}" is ready`,
+      })
+    } catch (error) {
+      console.error('Error summarizing entity:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to generate entity summary. Please try again.',
+        variant: 'destructive'
+      })
+    } finally {
+      setSummarizingEntity(null)
+    }
+  }
+
+  // Highlight text helper
+  const highlightEntityInText = (text: string, entityName: string): React.ReactNode => {
+    if (!entityName || !highlightedEntity || highlightedEntity !== entityName) {
+      return text
+    }
+
+    // Create case-insensitive regex
+    const regex = new RegExp(`(${entityName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+    const parts = text.split(regex)
+
+    return parts.map((part, index) => {
+      if (part.toLowerCase() === entityName.toLowerCase()) {
+        return (
+          <mark key={index} className="bg-yellow-300 dark:bg-yellow-600 px-0.5 rounded">
+            {part}
+          </mark>
+        )
+      }
+      return part
+    })
   }
 
   // Export comprehensive report
@@ -2415,13 +2544,34 @@ export default function ContentIntelligencePage() {
                 )}
 
                 {textView === 'fulltext' && analysis.extracted_text && (
-                  <div className="max-h-[600px] overflow-y-auto">
-                    <div className="text-sm leading-relaxed whitespace-pre-line bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-                      {formatFullText(analysis.extracted_text)}
+                  <div>
+                    {highlightedEntity && (
+                      <div className="mb-3 flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                        <div className="flex-1 text-sm">
+                          Highlighting: <span className="font-medium">{highlightedEntity}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleClearHighlight}
+                          className="h-7"
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Clear
+                        </Button>
+                      </div>
+                    )}
+                    <div id="full-text-content" className="max-h-[600px] overflow-y-auto">
+                      <div className="text-sm leading-relaxed whitespace-pre-line bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                        {highlightedEntity
+                          ? highlightEntityInText(formatFullText(analysis.extracted_text), highlightedEntity)
+                          : formatFullText(analysis.extracted_text)
+                        }
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {analysis.extracted_text.length.toLocaleString()} characters • {analysis.word_count.toLocaleString()} words
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {analysis.extracted_text.length.toLocaleString()} characters • {analysis.word_count.toLocaleString()} words
-                    </p>
                   </div>
                 )}
 
@@ -3066,15 +3216,36 @@ export default function ContentIntelligencePage() {
                         <span className="font-medium">{person.name}</span>
                         <span className="text-muted-foreground ml-2">({person.count}×)</span>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => saveEntityToEvidence(person.name, 'person')}
-                        className="h-7 px-2"
-                        title="Save to Actors"
-                      >
-                        <Save className="h-3 w-3" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            title="Entity actions"
+                          >
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleFindInText(person.name)}>
+                            <Search className="h-4 w-4 mr-2" />
+                            Find in Text
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleSummarizeEntity(person.name, 'person')}
+                            disabled={summarizingEntity === person.name}
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            {summarizingEntity === person.name ? 'Summarizing...' : 'Summarize'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => saveEntityToEvidence(person.name, 'person')}>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save to Actors
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   ))}
                   {(!analysis.entities?.people || analysis.entities.people.length === 0) && (
@@ -3096,15 +3267,36 @@ export default function ContentIntelligencePage() {
                         <span className="font-medium">{org.name}</span>
                         <span className="text-muted-foreground ml-2">({org.count}×)</span>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => saveEntityToEvidence(org.name, 'organization')}
-                        className="h-7 px-2"
-                        title="Save to Actors"
-                      >
-                        <Save className="h-3 w-3" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            title="Entity actions"
+                          >
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleFindInText(org.name)}>
+                            <Search className="h-4 w-4 mr-2" />
+                            Find in Text
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleSummarizeEntity(org.name, 'organization')}
+                            disabled={summarizingEntity === org.name}
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            {summarizingEntity === org.name ? 'Summarizing...' : 'Summarize'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => saveEntityToEvidence(org.name, 'organization')}>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save to Actors
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   ))}
                   {(!analysis.entities?.organizations || analysis.entities.organizations.length === 0) && (
@@ -3126,15 +3318,36 @@ export default function ContentIntelligencePage() {
                         <span className="font-medium">{loc.name}</span>
                         <span className="text-muted-foreground ml-2">({loc.count}×)</span>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => saveEntityToEvidence(loc.name, 'location')}
-                        className="h-7 px-2"
-                        title="Save to Places"
-                      >
-                        <Save className="h-3 w-3" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            title="Entity actions"
+                          >
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleFindInText(loc.name)}>
+                            <Search className="h-4 w-4 mr-2" />
+                            Find in Text
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleSummarizeEntity(loc.name, 'location')}
+                            disabled={summarizingEntity === loc.name}
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            {summarizingEntity === loc.name ? 'Summarizing...' : 'Summarize'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => saveEntityToEvidence(loc.name, 'location')}>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save to Places
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   ))}
                   {(!analysis.entities?.locations || analysis.entities.locations.length === 0) && (
@@ -3151,9 +3364,36 @@ export default function ContentIntelligencePage() {
                 </h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {(analysis.entities?.dates || []).slice(0, 10).map((date, i) => (
-                    <div key={i} className="text-sm">
-                      <span className="font-medium">{date.name}</span>
-                      <span className="text-muted-foreground ml-2">({date.count}×)</span>
+                    <div key={i} className="text-sm flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">{date.name}</span>
+                        <span className="text-muted-foreground ml-2">({date.count}×)</span>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            title="Entity actions"
+                          >
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleFindInText(date.name)}>
+                            <Search className="h-4 w-4 mr-2" />
+                            Find in Text
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleSummarizeEntity(date.name, 'date')}
+                            disabled={summarizingEntity === date.name}
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            {summarizingEntity === date.name ? 'Summarizing...' : 'Summarize'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   ))}
                   {(!analysis.entities?.dates || analysis.entities.dates.length === 0) && (
@@ -3189,9 +3429,36 @@ export default function ContentIntelligencePage() {
                 </h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {(analysis.entities?.events || []).slice(0, 10).map((event, i) => (
-                    <div key={i} className="text-sm">
-                      <span className="font-medium">{event.name}</span>
-                      <span className="text-muted-foreground ml-2">({event.count}×)</span>
+                    <div key={i} className="text-sm flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">{event.name}</span>
+                        <span className="text-muted-foreground ml-2">({event.count}×)</span>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            title="Entity actions"
+                          >
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleFindInText(event.name)}>
+                            <Search className="h-4 w-4 mr-2" />
+                            Find in Text
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleSummarizeEntity(event.name, 'event')}
+                            disabled={summarizingEntity === event.name}
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            {summarizingEntity === event.name ? 'Summarizing...' : 'Summarize'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   ))}
                   {(!analysis.entities?.events || analysis.entities.events.length === 0) && (
@@ -3208,9 +3475,36 @@ export default function ContentIntelligencePage() {
                 </h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {(analysis.entities?.products || []).slice(0, 10).map((product, i) => (
-                    <div key={i} className="text-sm">
-                      <span className="font-medium">{product.name}</span>
-                      <span className="text-muted-foreground ml-2">({product.count}×)</span>
+                    <div key={i} className="text-sm flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">{product.name}</span>
+                        <span className="text-muted-foreground ml-2">({product.count}×)</span>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            title="Entity actions"
+                          >
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleFindInText(product.name)}>
+                            <Search className="h-4 w-4 mr-2" />
+                            Find in Text
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleSummarizeEntity(product.name, 'product')}
+                            disabled={summarizingEntity === product.name}
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            {summarizingEntity === product.name ? 'Summarizing...' : 'Summarize'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   ))}
                   {(!analysis.entities?.products || analysis.entities.products.length === 0) && (
@@ -4054,6 +4348,68 @@ export default function ContentIntelligencePage() {
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View Full Report on VirusTotal
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Entity Summary Dialog */}
+      <Dialog open={showEntitySummary} onOpenChange={setShowEntitySummary}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              Entity Summary: {currentEntitySummary?.entity}
+            </DialogTitle>
+            <DialogDescription>
+              AI-generated summary based on the content
+            </DialogDescription>
+          </DialogHeader>
+          {currentEntitySummary && (
+            <div className="space-y-4">
+              <div className="bg-muted p-4 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-1">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium mb-1">
+                      {currentEntitySummary.type.charAt(0).toUpperCase() + currentEntitySummary.type.slice(1)}
+                    </p>
+                    <p className="text-sm leading-relaxed">{currentEntitySummary.summary}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    handleFindInText(currentEntitySummary.entity)
+                    setShowEntitySummary(false)
+                  }}
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Find in Text
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(currentEntitySummary.summary)
+                    toast({
+                      title: 'Copied',
+                      description: 'Summary copied to clipboard',
+                    })
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Summary
                 </Button>
               </div>
             </div>
