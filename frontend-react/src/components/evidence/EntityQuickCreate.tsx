@@ -88,15 +88,23 @@ export function EntityQuickCreate({
 
     setLoading(true)
     try {
-      const response = await fetch('/api/evidence', {
+      const response = await fetch('/api/evidence-items', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('omnicore_user_hash') || ''}`
         },
         body: JSON.stringify({
-          ...dataForm,
-          workspace_id: 1,
+          title: dataForm.title,
+          description: dataForm.what,
+          evidence_type: dataForm.evidence_type,
+          when_occurred: dataForm.when,
+          where_occurred: dataForm.where,
+          who_involved: dataForm.who,
+          credibility: '3',
+          reliability: 'C',
+          confidence_level: 'medium',
+          tags: [],
           status: 'active'
         })
       })
