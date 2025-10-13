@@ -217,7 +217,7 @@ export function ACHMatrix({
                           <div className={cn('p-2 rounded text-center', scoreOption.color)}>
                             <div className="font-bold">{scoreOption.value}</div>
                             <div className="text-xs">{scoreOption.label}</div>
-                            {quality && quality.weight !== 1.0 && weightedScore && (
+                            {quality && quality.weight !== 1.0 && weightedScore !== undefined && weightedScore !== null && (
                               <div className="text-xs mt-1 font-semibold">
                                 Weighted: {weightedScore.toFixed(1)}
                               </div>
