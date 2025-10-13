@@ -133,7 +133,7 @@ export function RelationshipForm({
       EVENT: '/api/events',
       PLACE: '/api/places',
       BEHAVIOR: '/api/behaviors',
-      EVIDENCE: '/api/evidence'
+      EVIDENCE: '/api/evidence-items'
     }
     return endpoints[type]
   }
