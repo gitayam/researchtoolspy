@@ -41,7 +41,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         id, url, url_normalized, title, author, publish_date, domain,
         summary, word_count, entities, created_at, updated_at,
         access_count, last_accessed_at
-      FROM content_analysis
+      FROM content_intelligence
       WHERE 1=1
     `
     const params: any[] = []

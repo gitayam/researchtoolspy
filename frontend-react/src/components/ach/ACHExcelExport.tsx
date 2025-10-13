@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button'
 import { FileSpreadsheet, Loader2 } from 'lucide-react'
-import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
 import type { ACHAnalysis } from '@/types/ach'
 import { useState } from 'react'
@@ -37,7 +36,9 @@ export function ACHExcelExport({
   const handleExport = async () => {
     setExporting(true)
     try {
-      const workbook = new ExcelJS.Workbook()
+      // Dynamic import to reduce initial bundle size
+      const ExcelJS = await import('exceljs')
+      const workbook = new ExcelJS.default.Workbook()
       workbook.creator = 'ACH Analysis Tool'
       workbook.created = new Date()
       workbook.modified = new Date()
@@ -57,7 +58,7 @@ export function ACHExcelExport({
       })
 
       // Define columns - Evidence column + one per hypothesis
-      const matrixColumns: Partial<ExcelJS.Column>[] = [
+      const matrixColumns: any[] = [
         { header: 'Evidence', key: 'evidence', width: 45 }
       ]
 

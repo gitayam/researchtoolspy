@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button'
 import { FileSpreadsheet, Loader2 } from 'lucide-react'
-import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
 import type { COGAnalysis, CriticalVulnerability, NetworkEdge } from '@/types/cog-analysis'
 import { useState } from 'react'
@@ -29,7 +28,9 @@ export function COGExcelExport({
   const handleExport = async () => {
     setExporting(true)
     try {
-      const workbook = new ExcelJS.Workbook()
+      // Dynamic import to reduce initial bundle size
+      const ExcelJS = await import('exceljs')
+      const workbook = new ExcelJS.default.Workbook()
       workbook.creator = 'COG Analysis Tool'
       workbook.created = new Date()
       workbook.modified = new Date()
