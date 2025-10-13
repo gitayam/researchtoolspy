@@ -68,6 +68,9 @@ const BatchProcessingPage = lazy(() => import('@/pages/tools/BatchProcessingPage
 const ContentIntelligencePage = lazy(() => import('@/pages/tools/ContentIntelligencePage'))
 const ResearchQuestionGeneratorPage = lazy(() => import('@/pages/ResearchQuestionGeneratorPage'))
 const ResearchWorkspacePage = lazy(() => import('@/pages/ResearchWorkspacePage'))
+const SubmissionFormsPage = lazy(() => import('@/pages/SubmissionFormsPage'))
+const CreateSubmissionFormPage = lazy(() => import('@/pages/CreateSubmissionFormPage'))
+const SubmissionsReviewPage = lazy(() => import('@/pages/SubmissionsReviewPage'))
 
 // Heavy pages (lazy loaded - only when needed)
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then(m => ({ default: m.ReportsPage })))
@@ -399,6 +402,18 @@ export const router = createBrowserRouter([
       {
         path: 'research/workspace/:id',
         element: <LazyPage Component={ResearchWorkspacePage} />,
+      },
+      {
+        path: 'research/forms',
+        element: <LazyPage Component={SubmissionFormsPage} />,
+      },
+      {
+        path: 'research/forms/new',
+        element: <LazyPage Component={CreateSubmissionFormPage} />,
+      },
+      {
+        path: 'research/submissions',
+        element: <LazyPage Component={SubmissionsReviewPage} />,
       },
       {
         path: 'tools/:toolId',
