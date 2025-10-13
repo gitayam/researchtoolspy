@@ -61,62 +61,63 @@
 ---
 
 ### Progressive Loading UX Improvement
-**Status**: Enhancement
+**Status**: 🔄 IN PROGRESS - Phase 0 Infrastructure Complete (2025-10-13)
 **Priority**: HIGH
 **Issue**: All-or-nothing loading bar creates poor UX, users wait for everything before seeing anything
-**Solution**:
-- [ ] **Phase 1: Show Summary First** (Fastest to display)
-  - Extract and display summary within 2-3 seconds
-  - Show skeleton loaders for other sections
-  - Allow user to read summary while other analysis runs
 
-- [ ] **Phase 2: Progressive Component Loading**
-  - Load in priority order:
-    1. Summary (immediate)
-    2. Word frequency (fast, no GPT)
-    3. Entities (moderate, spaCy/NER)
-    4. Sentiment (slower, GPT)
-    5. Claims (slower, GPT)
-    6. DIME (on-demand only)
-    7. Starbursting (on-demand only)
+**Progress So Far**:
+- [x] **Phase 0: Infrastructure Setup** (Completed 2025-10-13)
+  - ✅ Created `/api/content-intelligence/status/[id]` polling endpoint
+  - ✅ Added `processing_status` column to database (migration 043)
+  - ✅ Status endpoint returns component-level completion states
+  - ✅ Designed progressive loading architecture
 
-- [ ] **Phase 3: Independent Analysis States**
-  - Each component has own loading state
-  - Failed components don't block others
-  - Retry buttons for failed sections
-  - Cache successful analyses
+**Next Steps**:
+- [ ] **Phase 1: Simplified UX Improvements** (2-4 hours, recommended next)
+  - Frontend: Show skeleton loaders immediately when analysis starts
+  - Frontend: Display "Analyzing..." states for each component section
+  - Backend: Keep existing flow (no changes needed)
+  - **Benefit**: Eliminates blank screen, gives instant feedback
+  - **Risk**: Very low - only frontend changes
 
-- [ ] **Phase 4: Background Analysis**
-  - Start word/entity analysis immediately
-  - Queue GPT analyses (sentiment, claims) as background jobs
-  - Use WebSocket or polling to update UI when ready
-  - Show progress notifications
+- [ ] **Phase 2: True Progressive Loading** (8-10 hours, future enhancement)
+  - Backend: Split analyze endpoint into fast/slow analyses
+  - Backend: Return initial response within 2-3 seconds
+  - Backend: Use context.waitUntil() for background GPT processing
+  - Frontend: Poll status endpoint every 2 seconds
+  - Frontend: Render components as analyses complete
+  - **Benefit**: Users can read summary while sentiment/claims analyze
+  - **Risk**: Medium - requires background job handling in Cloudflare Workers
 
-**Implementation**:
+**Architecture Designed**:
 ```typescript
-// New loading states
-interface AnalysisProgress {
-  summary: 'pending' | 'loading' | 'complete' | 'error'
-  wordFrequency: 'pending' | 'loading' | 'complete' | 'error'
-  entities: 'pending' | 'loading' | 'complete' | 'error'
-  sentiment: 'pending' | 'loading' | 'complete' | 'error'
-  claims: 'pending' | 'loading' | 'complete' | 'error'
-  dime: 'idle' | 'loading' | 'complete' | 'error'
-  starbursting: 'idle' | 'loading' | 'complete' | 'error'
+// Status endpoint structure (already implemented)
+GET /api/content-intelligence/status/:analysisId
+Response: {
+  analysis: { /* full analysis data */ },
+  status: 'processing' | 'complete' | 'error',
+  componentStatus: {
+    basic: 'complete',
+    wordFrequency: 'complete' | 'pending',
+    entities: 'complete' | 'pending',
+    summary: 'complete' | 'pending',
+    sentiment: 'complete' | 'pending',
+    keyphrases: 'complete' | 'pending',
+    topics: 'complete' | 'pending',
+    claims: 'complete' | 'pending'
+  }
 }
 
-// API changes
-POST /api/content-intelligence/analyze
-→ Returns basic metadata + summary immediately
-→ Starts background jobs for other analyses
-→ Returns job IDs for polling
-
-GET /api/content-intelligence/status/:analysisId
-→ Returns completion status for each component
-→ Frontend polls this every 2 seconds
+// Future: Progressive analyze flow
+POST /api/content-intelligence/analyze?progressive=true
+1. Extract content (fast)
+2. Save partial analysis with processing_status='processing'
+3. Return analysis_id + basic data immediately
+4. Background: Run GPT analyses, update database
+5. Frontend: Poll /status/:id until complete
 ```
 
-**Estimated Effort**: 12 hours
+**Estimated Remaining Effort**: 2-4 hours (Phase 1) + 8-10 hours (Phase 2)
 
 ---
 
