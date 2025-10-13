@@ -532,6 +532,78 @@ CREATE TABLE pmesii_evidence (
 
 ## Completed Features ✅
 
+### Phase 3: Anonymous Evidence Submission System
+**Status**: ✅ COMPLETED (Deployed 2025-10-13)
+**Priority**: HIGH
+
+**Features Implemented**:
+- [x] **Phase 3A**: Database tables and APIs for submission forms
+  - submission_forms table with hash-based access
+  - form_submissions table for storing submitted evidence
+  - Password protection support (SHA-256 hashed)
+  - Auto-archiving integration with Wayback Machine
+  - Metadata extraction from submitted URLs
+
+- [x] **Phase 3B**: Form builder UI
+  - CreateSubmissionFormPage with field customization
+  - SubmissionFormsPage for managing forms
+  - 9 customizable fields: source URL, archived URL, content type, description, login required, keywords, comments, name, contact
+  - Optional password protection
+  - Auto-archive toggle
+  - Submitter info collection toggle
+
+- [x] **Phase 3C**: Public submission page
+  - SubmitEvidencePage with clean, accessible UI
+  - Hash-based URLs (8 characters) for anonymous access
+  - No authentication required for submitters
+  - Real-time validation
+  - Password challenge if required
+  - Success confirmation with submission ID
+
+- [x] **Phase 3E**: Submission review interface
+  - SubmissionsReviewPage with two-panel layout
+  - Filter by status (pending/completed/rejected)
+  - Review submission details
+  - Process to evidence workflow
+  - Verification status assignment
+  - Credibility scoring (0-100%)
+  - Reviewer notes
+
+- [x] **Performance Optimization**:
+  - Background processing for archiving and metadata extraction
+  - Instant response (<1 second) using context.waitUntil()
+  - 133x performance improvement (103s → 0.77s)
+
+- [x] **Navigation Integration**:
+  - Added to Evidence Collection menu
+  - Submission Forms and Review Submissions links
+  - Accessible from main dashboard
+
+**API Endpoints**:
+- `/api/research/forms/create` - Create new submission form
+- `/api/research/forms/list` - List all forms for workspace
+- `/api/research/submit/[hashId]` - Public submission endpoint
+- `/api/research/submissions/list` - List submissions for review
+- `/api/research/submissions/process` - Process submission to evidence
+
+**Files Created**:
+- `migrations/004_submission_forms.sql`
+- `functions/api/research/forms/create.ts`
+- `functions/api/research/forms/list.ts`
+- `functions/api/research/submit/[hashId].ts`
+- `functions/api/research/submissions/list.ts`
+- `functions/api/research/submissions/process.ts`
+- `src/pages/CreateSubmissionFormPage.tsx`
+- `src/pages/SubmissionFormsPage.tsx`
+- `src/pages/SubmitEvidencePage.tsx`
+- `src/pages/SubmissionsReviewPage.tsx`
+
+**Deployment**: https://researchtools.net
+
+---
+
+### Previous Completed Features
+
 - [x] DIME framework manual trigger
 - [x] DIME analysis Q&A interface
 - [x] Content Intelligence 7-day expiration
@@ -542,3 +614,5 @@ CREATE TABLE pmesii_evidence (
 - [x] Framework API endpoints
 - [x] Relationship inference API
 - [x] Deception PDF export component (in progress)
+- [x] Guest user support for investigations
+- [x] Hash-based authentication system

@@ -26,10 +26,12 @@ This application provides military intelligence analysts and researchers with a 
 
 - **Intelligence Management**:
   - Evidence collection and linking
+  - **Anonymous Evidence Submission Forms** - Create hash-based forms for crowdsourced evidence
   - Actor/entity relationship mapping
   - Source credibility tracking
   - Event timeline management
   - Investigation team collaboration
+  - Review and process submitted evidence
 
 - **Network Analysis**:
   - Interactive network graph visualization
