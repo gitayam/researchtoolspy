@@ -6,14 +6,9 @@
  * Includes methodology, timeline, resources, literature review strategy, data analysis plan.
  */
 
-import { requireAuth } from '../_shared/auth-helpers'
-import { callOpenAIViaGateway } from '../_shared/ai-gateway'
-
 interface Env {
-  DB: D1Database
-  SESSIONS?: KVNamespace
+  DB?: D1Database
   OPENAI_API_KEY: string
-  AI_GATEWAY_ACCOUNT_ID?: string
 }
 
 interface GeneratePlanRequest {
@@ -90,8 +85,6 @@ interface ResearchPlan {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const userId = await requireAuth(context.request, context.env)
-
     const body = await context.request.json() as GeneratePlanRequest
 
     if (!body.researchQuestion || !body.duration) {
@@ -200,28 +193,38 @@ Generate a detailed, actionable research plan that:
 
 Make the plan specific to THIS research question, not generic advice. Consider the ${body.experienceLevel} experience level and ${body.duration} duration.`
 
-    // Call OpenAI API
-    const response = await callOpenAIViaGateway(
-      context.env.OPENAI_API_KEY,
-      'gpt-4o', // Use GPT-4o for comprehensive planning
-      [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      {
-        temperature: 0.6, // Balance structure and creativity
+    // Call OpenAI API directly
+    const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${context.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.6,
         max_tokens: 3500,
         response_format: { type: 'json_object' }
-      },
-      context.env.AI_GATEWAY_ACCOUNT_ID
-    )
+      })
+    })
 
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text()
+      console.error('[generate-plan] OpenAI API error:', errorText)
+      throw new Error(`OpenAI API error ${apiResponse.status}: ${errorText}`)
+    }
+
+    const response = await apiResponse.json()
     const plan: ResearchPlan = JSON.parse(response.choices[0].message.content)
 
     console.log('[generate-plan] Plan generated successfully')
 
-    // Save plan to database if research question ID provided
-    if (body.researchQuestionId) {
+    // Save plan to database if research question ID provided and DB is available
+    if (body.researchQuestionId && context.env.DB) {
       try {
         await context.env.DB.prepare(`
           UPDATE research_questions
