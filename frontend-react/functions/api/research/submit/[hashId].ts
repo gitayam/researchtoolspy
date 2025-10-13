@@ -260,20 +260,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Auto-archive URL if enabled and not already provided
-    let archivedUrl = body.archivedUrl
-    if (form.auto_archive && body.sourceUrl && !archivedUrl) {
-      console.log('[submit-form] Auto-archiving URL:', body.sourceUrl)
-      archivedUrl = await autoArchiveUrl(body.sourceUrl) || undefined
-    }
-
-    // Extract metadata if URL provided
-    let metadata = null
-    if (body.sourceUrl) {
-      console.log('[submit-form] Extracting metadata from:', body.sourceUrl)
-      metadata = await extractMetadata(body.sourceUrl)
-    }
-
     // Collect submitter info if enabled
     let submitterIp = null
     let userAgent = null
@@ -284,9 +270,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       userAgent = context.request.headers.get('User-Agent')
     }
 
-    // Create submission
+    // Create submission immediately with provided data
     const submissionId = crypto.randomUUID()
     const now = new Date().toISOString()
+    const archivedUrl = body.archivedUrl || null
 
     await context.env.DB.prepare(`
       INSERT INTO form_submissions (
@@ -301,7 +288,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       submissionId,
       form.id,
       body.sourceUrl || null,
-      archivedUrl || null,
+      archivedUrl,
       body.contentType || null,
       body.contentDescription || null,
       body.loginRequired ? 1 : 0,
@@ -309,12 +296,49 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.submitterComments || null,
       body.submitterContact || null,
       body.submitterName || null,
-      metadata ? JSON.stringify(metadata) : null,
+      null, // metadata - will be updated async
       'pending',
       submitterIp,
       userAgent,
       now
     ).run()
+
+    // Process archiving and metadata extraction in background
+    if (body.sourceUrl) {
+      context.waitUntil(
+        (async () => {
+          try {
+            // Auto-archive if enabled and not already provided
+            let autoArchivedUrl = null
+            if (form.auto_archive && !body.archivedUrl) {
+              console.log('[submit-form] Background: Auto-archiving URL:', body.sourceUrl)
+              autoArchivedUrl = await autoArchiveUrl(body.sourceUrl!)
+            }
+
+            // Extract metadata
+            console.log('[submit-form] Background: Extracting metadata from:', body.sourceUrl)
+            const metadata = await extractMetadata(body.sourceUrl!)
+
+            // Update submission with extracted data
+            await context.env.DB.prepare(`
+              UPDATE form_submissions
+              SET archived_url = COALESCE(?, archived_url),
+                  metadata = ?
+              WHERE id = ?
+            `).bind(
+              autoArchivedUrl,
+              metadata ? JSON.stringify(metadata) : null,
+              submissionId
+            ).run()
+
+            console.log('[submit-form] Background: Updated submission', submissionId, 'with metadata')
+          } catch (error) {
+            console.error('[submit-form] Background processing failed:', error)
+            // Don't fail the submission - just log the error
+          }
+        })()
+      )
+    }
 
     // Increment submission count
     await context.env.DB.prepare(`
