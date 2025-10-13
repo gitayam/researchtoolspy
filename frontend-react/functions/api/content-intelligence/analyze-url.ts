@@ -376,16 +376,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Continue without summary rather than failing
     }
 
-    // Sentiment analysis
-    let sentimentData
+    // Sentiment analysis - initialize with fallback to ensure always available
+    let sentimentData = {
+      overall: 'neutral' as const,
+      score: 0,
+      confidence: 0,
+      emotions: { joy: 0, anger: 0, fear: 0, sadness: 0, surprise: 0 },
+      controversialClaims: [],
+      keyInsights: ['Sentiment analysis unavailable']
+    }
     try {
       console.log('[DEBUG] Calling analyzeSentiment with GPT...')
       sentimentData = await analyzeSentiment(contentData.text, env)
       console.log(`[DEBUG] Sentiment analyzed: ${sentimentData.overall} (score: ${sentimentData.score})`)
     } catch (error) {
       console.error('[DEBUG] Sentiment analysis failed:', error)
-      console.error('[DEBUG] Continuing without sentiment...')
-      // Continue without sentiment rather than failing
+      console.error('[DEBUG] Using fallback neutral sentiment')
+      // sentimentData already has fallback value
     }
 
     // Keyphrase extraction
@@ -412,8 +419,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Continue without topics rather than failing
     }
 
-    // Claim extraction and deception detection
-    let claimAnalysis
+    // Claim extraction and deception detection - initialize with null fallback
+    let claimAnalysis = null
     try {
       console.log('[DEBUG] Calling extractClaims with GPT...')
       const claims = await extractClaims(contentData.text, env, contentData.title)
@@ -431,8 +438,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch (error) {
       console.error('[DEBUG] Claim extraction/analysis failed:', error)
       console.error('[DEBUG] Error details:', error instanceof Error ? error.message : String(error))
-      console.error('[DEBUG] Continuing without claim analysis...')
-      // Continue without claim analysis rather than failing
+      console.error('[DEBUG] Using fallback (no claims)')
+      // claimAnalysis already set to null
     }
 
     // Save to database
