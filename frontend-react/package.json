@@ -7,10 +7,14 @@
     "dev": "wrangler pages dev --port 8788 --proxy 5173 -- vite",
     "dev:vite": "vite",
     "build": "tsc -b && vite build",
+    "type-check": "tsc -b --noEmit",
     "lint": "eslint .",
     "preview": "vite preview",
     "wrangler:dev": "npm run build && wrangler pages dev dist --compatibility-date=2025-09-30",
-    "wrangler:deploy": "npm run build && wrangler pages deploy dist --project-name=researchtoolspy"
+    "wrangler:deploy": "npm run build && wrangler pages deploy dist --project-name=researchtoolspy",
+    "validate:schema": "ts-node scripts/validate-schema.ts",
+    "validate:pre-deploy": "./scripts/pre-deployment-check.sh",
+    "migrate:prod": "wrangler d1 migrations apply researchtoolspy-prod --remote"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
