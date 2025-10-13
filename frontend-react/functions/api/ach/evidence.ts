@@ -51,7 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Verify evidence exists
     const evidence = await context.env.DB.prepare(
-      'SELECT id FROM evidence WHERE id = ?'
+      'SELECT id FROM evidence_items WHERE id = ?'
     ).bind(data.evidence_id).first()
 
     if (!evidence) {
