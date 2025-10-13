@@ -67,6 +67,7 @@ const URLProcessingPage = lazy(() => import('@/pages/tools/URLProcessingPage').t
 const BatchProcessingPage = lazy(() => import('@/pages/tools/BatchProcessingPage').then(m => ({ default: m.BatchProcessingPage })))
 const ContentIntelligencePage = lazy(() => import('@/pages/tools/ContentIntelligencePage'))
 const ResearchQuestionGeneratorPage = lazy(() => import('@/pages/ResearchQuestionGeneratorPage'))
+const ResearchWorkspacePage = lazy(() => import('@/pages/ResearchWorkspacePage'))
 
 // Heavy pages (lazy loaded - only when needed)
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then(m => ({ default: m.ReportsPage })))
@@ -389,6 +390,10 @@ export const router = createBrowserRouter([
       {
         path: 'tools/research-question-generator',
         element: <LazyPage Component={ResearchQuestionGeneratorPage} />,
+      },
+      {
+        path: 'research/workspace/:id',
+        element: <LazyPage Component={ResearchWorkspacePage} />,
       },
       {
         path: 'tools/:toolId',
