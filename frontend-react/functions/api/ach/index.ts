@@ -60,12 +60,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           ael.id as link_id,
           ael.evidence_id,
           e.title as evidence_title,
-          e.content as evidence_content,
-          e.source,
-          e.date,
-          e.credibility_score
+          e.description as evidence_content,
+          e.source_name as source,
+          e.when_occurred as date,
+          e.credibility as credibility_score
         FROM ach_evidence_links ael
-        JOIN evidence e ON ael.evidence_id = e.id
+        JOIN evidence_items e ON ael.evidence_id = e.id
         WHERE ael.ach_analysis_id = ?
       `).bind(id).all()
 
