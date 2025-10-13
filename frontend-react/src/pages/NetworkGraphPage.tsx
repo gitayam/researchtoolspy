@@ -208,7 +208,7 @@ export function NetworkGraphPage() {
           // Fetch evidence
           if (entityIdsByType.EVIDENCE.size > 0) {
             try {
-              const evidenceResponse = await fetch(`/api/evidence?workspace_id=${workspaceId}`)
+              const evidenceResponse = await fetch(`/api/evidence-items?workspace_id=${workspaceId}`)
               if (evidenceResponse.ok) {
                 const evidenceData = await evidenceResponse.json()
                 const evidenceIds = entityIdsByType.EVIDENCE

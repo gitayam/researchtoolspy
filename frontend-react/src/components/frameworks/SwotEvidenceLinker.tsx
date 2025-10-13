@@ -52,7 +52,7 @@ export function SwotEvidenceLinker({
     try {
       setLoading(true)
       // Load full evidence details for linked IDs
-      const response = await fetch(`/api/evidence/batch?ids=${linkedEvidenceIds.join(',')}`, {
+      const response = await fetch(`/api/evidence-items/batch?ids=${linkedEvidenceIds.join(',')}`, {
         credentials: 'include'
       })
 
