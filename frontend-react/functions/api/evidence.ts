@@ -224,6 +224,10 @@ export async function onRequest(context: any) {
 
   } catch (error: any) {
     console.error('Evidence API error:', error)
+    console.error('Error stack:', error.stack)
+    console.error('Request method:', request.method)
+    console.error('Request URL:', request.url)
+
     // If table doesn't exist, return empty array for GET requests
     if (request.method === 'GET' && error.message?.includes('no such table')) {
       return new Response(JSON.stringify({ evidence: [] }), {
@@ -231,7 +235,12 @@ export async function onRequest(context: any) {
         headers: corsHeaders,
       })
     }
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({
+      error: error.message,
+      details: error.stack,
+      method: request.method,
+      url: request.url
+    }), {
       status: 500,
       headers: corsHeaders,
     })
