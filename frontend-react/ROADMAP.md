@@ -184,32 +184,45 @@ Time: Dates, historical context, temporal patterns
 ---
 
 ### Phase 4: Geographic Context & Evidence Integration
-**Status**: NOT STARTED
+**Status**: 🔄 PARTIALLY COMPLETE - Infrastructure Done (2025-10-13)
 **Priority**: CRITICAL
 **Issue**: PMESII-PT is fundamentally geographic but lacks location context
 
-**Requirements**:
-- [ ] **Location Selector**: Add country, state/region, city fields to PMESII-PT
-  - Required field: At minimum country
-  - Optional: State/region, city for more specificity
-  - Auto-suggest locations (use existing location entities)
-  - Display location prominently in analysis header
+**Infrastructure Completed** ✅:
+- [x] **Location Selector Component**: `PMESIIPTLocationSelector.tsx` exists with country (required), region, city, time period, scope fields
+- [x] **Database Schema**: Migration 035 added location columns to `framework_sessions` table
+- [x] **Form Integration**: Location selector integrated in `GenericFrameworkForm` for PMESII-PT
+- [x] **Validation**: Country field is required, enforced in form submission
+- [x] **Data Saving**: Location data properly saved when creating/updating PMESII-PT analyses
+- [x] **Database Indexes**: Indexes on location_country, location_region for efficient queries
 
-- [ ] **Evidence Integration**: Transform PMESII-PT into evidence library
-  - Each Q&A item should link to evidence
-  - Tag evidence with:
-    - Location (country, region, city)
-    - PMESII-PT dimension (Political, Military, etc.)
-    - Source URL
-    - Date/temporal context
-  - Create "PMESII Evidence Library" page showing all evidence by dimension and location
+**Remaining Work**:
+- [ ] **Display Location in Analysis View** (2-3 hours)
+  - Show location prominently in analysis header/metadata
+  - Display as badge or card: "📍 Ukraine > Donbas > Mariupol"
+  - Show time period if specified
+  - Display scope/objectives
 
-- [ ] **Framework Integration**: Feed PMESII evidence into ACH and other frameworks
-  - PMESII evidence items appear as evidence options in ACH
-  - Filter evidence by location and dimension
-  - Cross-reference evidence across frameworks
+- [ ] **Evidence Integration** (4-6 hours)
+  - Tag Q&A items with PMESII-PT metadata when saved
+  - Store: location, dimension, source URL, date
+  - Link each Q&A item to evidence table
+  - Enable filtering by location and dimension
 
-**Estimated Effort**: 12 hours
+- [ ] **PMESII Evidence Library Page** (4-6 hours)
+  - New page: `/dashboard/evidence/pmesii`
+  - Filter by location (country/region/city)
+  - Filter by dimension (Political, Military, etc.)
+  - Filter by date range
+  - Search evidence text
+  - Export filtered evidence
+
+- [ ] **Framework Integration** (2-3 hours)
+  - PMESII evidence appears in ACH evidence selection
+  - Cross-reference between frameworks
+  - Location-based evidence suggestions
+
+**Estimated Remaining Effort**: 12-18 hours
 
 ---
 
