@@ -73,12 +73,16 @@
   - ✅ Designed progressive loading architecture
 
 **Next Steps**:
-- [ ] **Phase 1: Simplified UX Improvements** (2-4 hours, recommended next)
-  - Frontend: Show skeleton loaders immediately when analysis starts
-  - Frontend: Display "Analyzing..." states for each component section
-  - Backend: Keep existing flow (no changes needed)
+- [ ] **Phase 1: Simplified UX Improvements** (8-12 hours, requires significant refactoring)
+  - **Complexity Finding** (2025-10-13): ContentIntelligencePage is 1800+ lines with conditional rendering based on `processing` state
+  - **Required Changes**:
+    - Create skeleton loader components for each tab (overview, entities, sentiment, claims, etc.)
+    - Refactor all conditional rendering to show skeletons instead of hiding content
+    - Test across all tabs and analysis states
+    - Ensure error states still work correctly
   - **Benefit**: Eliminates blank screen, gives instant feedback
-  - **Risk**: Very low - only frontend changes
+  - **Risk**: Medium - Large refactor of complex component
+  - **Recommendation**: Defer until other HIGH/CRITICAL items complete
 
 - [ ] **Phase 2: True Progressive Loading** (8-10 hours, future enhancement)
   - Backend: Split analyze endpoint into fast/slow analyses
