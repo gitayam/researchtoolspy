@@ -350,9 +350,26 @@ export function ACHMatrix({
       <Dialog open={!!scoringCell} onOpenChange={() => setScoringCell(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Score Evidence</DialogTitle>
+            <DialogTitle>Score Evidence Against Hypothesis</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Show context of what's being scored */}
+            {scoringCell && (
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2 text-sm">
+                <div>
+                  <span className="font-semibold text-gray-600 dark:text-gray-400">Hypothesis:</span>
+                  <div className="mt-1 font-medium">
+                    {hypotheses.find(h => h.id === scoringCell.hypothesisId)?.text || 'Unknown'}
+                  </div>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-600 dark:text-gray-400">Evidence:</span>
+                  <div className="mt-1">
+                    {evidence.find(e => e.evidence_id === scoringCell.evidenceId)?.evidence_title || 'Unknown'}
+                  </div>
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium mb-2 block">
                 How does this evidence relate to the hypothesis?
