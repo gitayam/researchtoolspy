@@ -25,6 +25,10 @@ interface GeneratePlanRequest {
     when: { timePeriod: string; studyType: string }
     why: { importance: string; beneficiaries?: string }
   }
+  // NEW: Research context and team structure
+  researchContext?: 'academic' | 'osint' | 'investigation' | 'business' | 'journalism' | 'personal'
+  teamSize?: 'solo' | 'small-team' | 'large-team'
+  teamRoles?: string[]
 }
 
 interface Milestone {
@@ -81,6 +85,84 @@ interface ResearchPlan {
     stakeholders: string[]
     formats: string[]
   }
+  // NEW: Team collaboration (optional, for team-based research)
+  teamCollaboration?: {
+    roles: Array<{ role: string; responsibilities: string[] }>
+    communicationPlan: string
+    taskDistribution: string[]
+    collaborationTools: string[]
+  }
+}
+
+// Helper function to get context-specific prompts
+function getContextSpecificGuidance(context?: string): string {
+  switch (context) {
+    case 'osint':
+      return `
+OSINT-Specific Requirements:
+- Include source verification protocols and credibility assessment framework
+- Add OPSEC (Operational Security) considerations for researchers
+- Include digital footprint management guidelines
+- Provide attribution methodology for sources
+- Include threat modeling for sensitive investigations
+- Recommend specific OSINT tools and platforms (Maltego, Shodan, OSINT Framework, etc.)
+- Include data privacy and legal compliance measures`
+
+    case 'investigation':
+      return `
+Private Investigation Requirements:
+- Include legal compliance checklist (varying by jurisdiction)
+- Establish chain of custody procedures for evidence
+- Include client reporting schedules and deliverables
+- Add surveillance protocol guidelines (legal and ethical)
+- Include confidentiality and privacy protection measures
+- Provide documentation standards for court admissibility
+- Include risk assessment for investigator safety`
+
+    case 'business':
+      return `
+Business Research Requirements:
+- Include ROI (Return on Investment) projections
+- Add stakeholder analysis and engagement plan
+- Include competitive intelligence gathering methods
+- Provide risk mitigation strategies
+- Add executive summary requirements
+- Include market sizing and validation approaches
+- Provide actionable business recommendations framework`
+
+    case 'journalism':
+      return `
+Investigative Journalism Requirements:
+- Include source protection protocols
+- Add fact-checking and verification procedures
+- Include editorial standards compliance
+- Provide public interest justification
+- Add legal review checkpoints
+- Include ethical consideration for sensitive topics
+- Provide publication timeline and format recommendations`
+
+    case 'personal':
+      return `
+Personal/Hobby Research Requirements:
+- Allow flexible timeline with learning milestones
+- Recommend community resources and free tools
+- Include skill-building objectives
+- Provide low-cost or no-cost alternatives
+- Include passion-driven motivational elements
+- Suggest collaboration with hobbyist communities
+- Allow for exploratory and iterative approaches`
+
+    case 'academic':
+    default:
+      return `
+Academic Research Requirements:
+- Include IRB (Institutional Review Board) approval timeline if needed
+- Add comprehensive literature review strategy
+- Include peer review preparation guidelines
+- Provide academic publication targeting
+- Include conference presentation opportunities
+- Add academic rigor and methodology standards`
+  }
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -99,7 +181,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.log('[generate-plan] Generating research plan for:', body.researchQuestion)
 
     // Build AI prompt
-    const systemPrompt = `You are an expert research methodologist and project manager. Generate a comprehensive, actionable research plan that follows academic best practices and is tailored to the researcher's experience level and available resources.
+    const contextGuidance = getContextSpecificGuidance(body.researchContext)
+
+    const systemPrompt = `You are an expert research methodologist and project manager. Generate a comprehensive, actionable research plan that follows best practices and is tailored to the researcher's experience level and available resources.
 
 Your plan should be:
 - Realistic given the timeline and resources
@@ -107,6 +191,9 @@ Your plan should be:
 - Follows ethical research standards
 - Includes contingency planning
 - Appropriate for the experience level
+- Adapted to the specific research context
+
+${contextGuidance}
 
 Return ONLY valid JSON in this exact structure (no markdown, no explanation):
 {
@@ -162,19 +249,41 @@ Return ONLY valid JSON in this exact structure (no markdown, no explanation):
     "conferences": ["conference 1"],
     "stakeholders": ["stakeholder 1"],
     "formats": ["format 1"]
+  },
+  "teamCollaboration": {
+    "roles": [{"role": "role name", "responsibilities": ["responsibility 1", "responsibility 2"]}],
+    "communicationPlan": "how team will communicate and coordinate",
+    "taskDistribution": ["distribution strategy 1", "distribution strategy 2"],
+    "collaborationTools": ["tool 1", "tool 2"]
   }
-}`
+}
+
+NOTE: Only include "teamCollaboration" if this is team-based research (not solo). Omit it entirely for solo researchers.`
+
+    const contextLabel = body.researchContext
+      ? `${body.researchContext.charAt(0).toUpperCase() + body.researchContext.slice(1)}`
+      : 'General'
+
+    const teamInfo = body.teamSize && body.teamSize !== 'solo'
+      ? `
+TEAM STRUCTURE:
+- Team Size: ${body.teamSize === 'small-team' ? 'Small Team (2-5 people)' : 'Large Team (6+ people)'}
+${body.teamRoles && body.teamRoles.length > 0 ? `- Team Roles: ${body.teamRoles.join(', ')}` : ''}
+`
+      : '\nTEAM STRUCTURE: Solo Researcher\n'
 
     const userPrompt = `Generate a comprehensive research plan for:
 
 RESEARCH QUESTION: ${body.researchQuestion}
+
+RESEARCH TYPE: ${contextLabel}
 
 PROJECT DETAILS:
 - Type: ${body.projectType}
 - Duration: ${body.duration}
 - Experience Level: ${body.experienceLevel}
 - Available Resources: ${body.resources.join(', ')}
-
+${teamInfo}
 RESEARCH CONTEXT:
 - Population: ${body.fiveWs.who.population}${body.fiveWs.who.subgroups ? ` (subgroups: ${body.fiveWs.who.subgroups})` : ''}
 - Variables: ${body.fiveWs.what.variables}
@@ -190,8 +299,9 @@ Generate a detailed, actionable research plan that:
 5. Outlines data analysis approach
 6. Addresses ethical considerations
 7. Proposes dissemination strategy
+${body.teamSize && body.teamSize !== 'solo' ? '8. Includes team collaboration plan with role assignments and communication strategy' : ''}
 
-Make the plan specific to THIS research question, not generic advice. Consider the ${body.experienceLevel} experience level and ${body.duration} duration.`
+Make the plan specific to THIS research question and research type, not generic advice. Consider the ${body.experienceLevel} experience level and ${body.duration} duration.${body.teamSize && body.teamSize !== 'solo' ? ` Include specific guidance for coordinating a ${body.teamSize === 'small-team' ? 'small' : 'large'} team.` : ''}`
 
     // Call OpenAI API directly
     const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
