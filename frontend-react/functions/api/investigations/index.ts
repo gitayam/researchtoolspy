@@ -24,7 +24,20 @@ interface CreateInvestigationRequest {
 // GET - List investigations
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const userId = await requireAuth(context.request, context.env)
+    // Try to get auth, but don't require it - support guest users
+    let userId: number | null = null
+    try {
+      userId = await requireAuth(context.request, context.env)
+    } catch (error) {
+      // User is not authenticated - guest user
+      // Return empty list for now (guest investigations are not persisted across sessions)
+      return new Response(JSON.stringify({
+        investigations: [],
+        total: 0
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
 
     // Get user's workspace
     const workspace = await context.env.DB.prepare(`
