@@ -569,6 +569,16 @@ CREATE TABLE pmesii_evidence (
   - Credibility scoring (0-100%)
   - Reviewer notes
 
+- [x] **Phase 3F**: Consolidated Interface with Form Management (Deployed 2025-10-13)
+  - EvidenceSubmissionsPage with tabbed interface (Forms / Review)
+  - Merged "Submission Forms" and "Review Submissions" into single page
+  - Delete form functionality with cascade deletion of submissions
+  - Enable/disable toggle to stop accepting new submissions
+  - Full i18n support with 40+ translation keys
+  - URL state persistence for active tab
+  - Submission count badges on tabs
+  - Single navigation menu item in Evidence Collection
+
 - [x] **Performance Optimization**:
   - Background processing for archiving and metadata extraction
   - Instant response (<1 second) using context.waitUntil()
@@ -582,6 +592,9 @@ CREATE TABLE pmesii_evidence (
 **API Endpoints**:
 - `/api/research/forms/create` - Create new submission form
 - `/api/research/forms/list` - List all forms for workspace
+- `/api/research/forms/[id]` (GET) - Get form details
+- `/api/research/forms/[id]` (DELETE) - Delete form and cascade submissions
+- `/api/research/forms/[id]/toggle` (PATCH) - Toggle form active status
 - `/api/research/submit/[hashId]` - Public submission endpoint
 - `/api/research/submissions/list` - List submissions for review
 - `/api/research/submissions/process` - Process submission to evidence
@@ -590,13 +603,17 @@ CREATE TABLE pmesii_evidence (
 - `migrations/004_submission_forms.sql`
 - `functions/api/research/forms/create.ts`
 - `functions/api/research/forms/list.ts`
+- `functions/api/research/forms/[id]/index.ts` (GET, DELETE)
+- `functions/api/research/forms/[id]/toggle.ts` (PATCH)
 - `functions/api/research/submit/[hashId].ts`
 - `functions/api/research/submissions/list.ts`
 - `functions/api/research/submissions/process.ts`
 - `src/pages/CreateSubmissionFormPage.tsx`
-- `src/pages/SubmissionFormsPage.tsx`
+- `src/pages/SubmissionFormsPage.tsx` (deprecated by EvidenceSubmissionsPage)
+- `src/pages/SubmissionsReviewPage.tsx` (deprecated by EvidenceSubmissionsPage)
+- `src/pages/EvidenceSubmissionsPage.tsx` (consolidated interface)
 - `src/pages/SubmitEvidencePage.tsx`
-- `src/pages/SubmissionsReviewPage.tsx`
+- `src/locales/en/common.json` (evidenceSubmissions translations)
 
 **Deployment**: https://researchtools.net
 

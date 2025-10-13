@@ -49,8 +49,7 @@ const getNavigation = (t: (key: string) => string) => [
     icon: Archive,
     children: [
       { name: t('navigation.data'), href: '/dashboard/evidence' },
-      { name: 'Submission Forms', href: '/dashboard/research/forms', icon: Inbox },
-      { name: 'Review Submissions', href: '/dashboard/research/submissions', icon: ClipboardCheck },
+      { name: t('navigation.evidenceSubmissions'), href: '/dashboard/research/submissions', icon: ClipboardCheck },
       { name: 'Claims', href: '/dashboard/entities/claims', icon: AlertTriangle },
       { name: t('navigation.actors'), href: '/dashboard/entities/actors' },
       { name: t('navigation.sources'), href: '/dashboard/entities/sources' },
