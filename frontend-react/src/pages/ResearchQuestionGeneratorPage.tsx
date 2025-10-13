@@ -1,26 +1,33 @@
 import { useState } from 'react'
-import { Check, ArrowLeft, ArrowRight, Loader2, Sparkles, FileText, Upload, Wand2, BookOpen } from 'lucide-react'
+import { Check, ArrowLeft, ArrowRight, Loader2, Sparkles, FileText, Upload, Wand2, BookOpen, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Label } from '@/components/ui/label'
 import { useNavigate } from 'react-router-dom'
 import ResearchPlanDisplay from '@/components/research/ResearchPlanDisplay'
 
 interface FormData {
-  // Step 1: Basic Context
+  // Step 1: Research Context & Team
+  researchContext: 'academic' | 'osint' | 'investigation' | 'business' | 'journalism' | 'personal' | ''
+  teamSize: 'solo' | 'small-team' | 'large-team'
+  teamRoles: string[]
+
+  // Step 2: Topic & Purpose
   topic: string
   purpose: string[]
   projectType: string
 
-  // Step 2: 5 W's
+  // Step 3: 5 W's
   who: { population: string; subgroups?: string }
   what: { variables: string; expectedOutcome?: string }
   where: { location: string; specificSettings?: string }
   when: { timePeriod: string; studyType: 'cross-sectional' | 'longitudinal' | 'historical' | 'real-time' }
   why: { importance: string; beneficiaries?: string }
 
-  // Step 3: Constraints
+  // Step 4: Constraints
   duration: string
   resources: string[]
   experienceLevel: string
@@ -96,12 +103,58 @@ interface ResearchPlan {
   }
 }
 
+const RESEARCH_CONTEXTS = [
+  {
+    value: 'academic' as const,
+    label: 'Academic/Graduate Research',
+    description: 'Thesis, dissertation, or academic publication',
+    icon: '🎓',
+    emphasizes: ['IRB approval', 'Literature review', 'Peer review', 'Methodology rigor']
+  },
+  {
+    value: 'osint' as const,
+    label: 'Open Source Intelligence (OSINT)',
+    description: 'Open source research and intelligence analysis',
+    icon: '🔍',
+    emphasizes: ['Source verification', 'OPSEC', 'Digital footprint', 'Attribution']
+  },
+  {
+    value: 'investigation' as const,
+    label: 'Private Investigation',
+    description: 'Professional investigative research',
+    icon: '🕵️',
+    emphasizes: ['Legal boundaries', 'Evidence chain', 'Client confidentiality', 'Surveillance ethics']
+  },
+  {
+    value: 'business' as const,
+    label: 'Business Research',
+    description: 'Market research, competitive intelligence, due diligence',
+    icon: '💼',
+    emphasizes: ['ROI', 'Stakeholder analysis', 'Market trends', 'Risk assessment']
+  },
+  {
+    value: 'journalism' as const,
+    label: 'Investigative Journalism',
+    description: 'News investigation and fact-finding',
+    icon: '📰',
+    emphasizes: ['Source protection', 'Fact verification', 'Public interest', 'Editorial standards']
+  },
+  {
+    value: 'personal' as const,
+    label: 'Personal/Hobby Research',
+    description: 'Curiosity-driven or personal interest research',
+    icon: '🌱',
+    emphasizes: ['Flexible timeline', 'Community resources', 'Learning goals', 'Passion projects']
+  }
+]
+
 const STEPS = [
   { id: 0, title: 'Quick Start', description: 'Choose how to begin' },
-  { id: 1, title: 'Topic & Purpose', description: 'Define your research area' },
-  { id: 2, title: 'The 5 W\'s', description: 'Who, What, Where, When, Why' },
-  { id: 3, title: 'Resources & Constraints', description: 'Timeline and limitations' },
-  { id: 4, title: 'Review & Generate', description: 'Generate research questions' }
+  { id: 1, title: 'Research Context', description: 'Type of research & team' },
+  { id: 2, title: 'Topic & Purpose', description: 'Define your research area' },
+  { id: 3, title: 'The 5 W\'s', description: 'Who, What, Where, When, Why' },
+  { id: 4, title: 'Resources & Constraints', description: 'Timeline and limitations' },
+  { id: 5, title: 'Review & Generate', description: 'Generate research questions' }
 ]
 
 export default function ResearchQuestionGeneratorPage() {
@@ -118,6 +171,9 @@ export default function ResearchQuestionGeneratorPage() {
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
 
   const [formData, setFormData] = useState<FormData>({
+    researchContext: '',
+    teamSize: 'solo',
+    teamRoles: [],
     topic: '',
     purpose: [],
     projectType: '',
@@ -205,7 +261,10 @@ export default function ResearchQuestionGeneratorPage() {
             where: formData.where,
             when: formData.when,
             why: formData.why
-          }
+          },
+          researchContext: formData.researchContext,
+          teamSize: formData.teamSize,
+          teamRoles: formData.teamRoles
         })
       })
 
@@ -252,7 +311,10 @@ export default function ResearchQuestionGeneratorPage() {
             where: { location: 'To be determined based on research context' },
             when: { timePeriod: 'To be determined', studyType: 'cross-sectional' },
             why: { importance: 'As specified in research question' }
-          }
+          },
+          researchContext: 'academic', // Default to academic for imported questions
+          teamSize: 'solo',
+          teamRoles: []
         })
       })
 
@@ -388,15 +450,18 @@ export default function ResearchQuestionGeneratorPage() {
         />
       )}
       {currentStep === 1 && (
-        <Step1TopicContext formData={formData} updateFormData={updateFormData} />
+        <Step1ResearchContext formData={formData} updateFormData={updateFormData} />
       )}
       {currentStep === 2 && (
-        <Step2FiveWs formData={formData} updateFormData={updateFormData} />
+        <Step1TopicContext formData={formData} updateFormData={updateFormData} />
       )}
       {currentStep === 3 && (
-        <Step3Resources formData={formData} updateFormData={updateFormData} />
+        <Step2FiveWs formData={formData} updateFormData={updateFormData} />
       )}
       {currentStep === 4 && (
+        <Step3Resources formData={formData} updateFormData={updateFormData} />
+      )}
+      {currentStep === 5 && (
         <Step4Generate
           formData={formData}
           isGenerating={isGenerating}
@@ -411,7 +476,7 @@ export default function ResearchQuestionGeneratorPage() {
       )}
 
       {/* Navigation */}
-      {currentStep < 4 && currentStep !== 0 && (
+      {currentStep < 5 && currentStep !== 0 && (
         <div className="flex justify-between mt-6">
           <Button
             variant="outline"
@@ -424,8 +489,9 @@ export default function ResearchQuestionGeneratorPage() {
           <Button
             onClick={handleNext}
             disabled={
-              (currentStep === 1 && (!formData.topic || !formData.projectType)) ||
-              (currentStep === 2 && (!formData.who.population || !formData.what.variables || !formData.where.location || !formData.when.timePeriod || !formData.why.importance))
+              (currentStep === 1 && !formData.researchContext) ||
+              (currentStep === 2 && (!formData.topic || !formData.projectType)) ||
+              (currentStep === 3 && (!formData.who.population || !formData.what.variables || !formData.where.location || !formData.when.timePeriod || !formData.why.importance))
             }
           >
             Next
@@ -585,7 +651,103 @@ function Step0QuickStart({
   )
 }
 
-// Step 1: Topic & Purpose
+// Step 1: Research Context & Team
+function Step1ResearchContext({
+  formData,
+  updateFormData
+}: {
+  formData: FormData
+  updateFormData: (updates: Partial<FormData>) => void
+}) {
+  return (
+    <div className="space-y-6">
+      {/* Research Context Selection */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Select Research Type</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {RESEARCH_CONTEXTS.map(context => (
+            <Card
+              key={context.value}
+              className={`cursor-pointer transition-all ${
+                formData.researchContext === context.value
+                  ? 'border-purple-500 border-2 shadow-lg'
+                  : 'border-gray-200 hover:border-purple-300 dark:border-gray-700 dark:hover:border-purple-500'
+              }`}
+              onClick={() => updateFormData({ researchContext: context.value })}
+            >
+              <CardHeader>
+                <div className="text-4xl mb-2">{context.icon}</div>
+                <CardTitle>{context.label}</CardTitle>
+                <CardDescription>{context.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <strong>Emphasizes:</strong>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    {context.emphasizes.slice(0, 3).map(item => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Team Structure - Only show after context selected */}
+      {formData.researchContext && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold mb-2 flex items-center">
+              <Users className="h-5 w-5 mr-2" />
+              Team Structure
+            </h3>
+            <RadioGroup
+              value={formData.teamSize}
+              onValueChange={(v) => updateFormData({ teamSize: v as any })}
+            >
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="solo" id="solo" />
+                <Label htmlFor="solo">Solo Researcher</Label>
+              </div>
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="small-team" id="small-team" />
+                <Label htmlFor="small-team">Small Team (2-5 people)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="large-team" id="large-team" />
+                <Label htmlFor="large-team">Large Team (6+ people)</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Team Roles - Only for teams */}
+          {formData.teamSize !== 'solo' && (
+            <div>
+              <Label htmlFor="team-roles">Team Roles (one per line)</Label>
+              <Textarea
+                id="team-roles"
+                placeholder="Lead Researcher&#10;Data Analyst&#10;Field Investigator&#10;Documentation Specialist"
+                value={formData.teamRoles.join('\n')}
+                onChange={(e) => updateFormData({
+                  teamRoles: e.target.value.split('\n').filter(r => r.trim())
+                })}
+                rows={6}
+                className="mt-2"
+              />
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Define roles for your team members to help structure the research plan
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Step 2: Topic & Purpose (was Step 1)
 function Step1TopicContext({ formData, updateFormData }: {
   formData: FormData
   updateFormData: (updates: Partial<FormData>) => void
