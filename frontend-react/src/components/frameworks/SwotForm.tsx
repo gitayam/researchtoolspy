@@ -1,6 +1,6 @@
 import { useState, useCallback, memo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save, Plus, X, Sparkles, Info } from 'lucide-react'
+import { ArrowLeft, Save, Plus, X, Sparkles, Info, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,6 +40,7 @@ const QuadrantCard = memo(({
   setNewItem,
   onAdd,
   onRemove,
+  onEdit,
   color,
   icon,
   allData
@@ -51,10 +52,33 @@ const QuadrantCard = memo(({
   setNewItem: (value: string) => void
   onAdd: () => void
   onRemove: (id: string) => void
+  onEdit: (id: string, newText: string) => void
   color: string
   icon: string
   allData?: SwotData
-}) => (
+}) => {
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+
+  const handleStartEdit = (item: SwotItem) => {
+    setEditingId(item.id)
+    setEditText(item.text)
+  }
+
+  const handleSaveEdit = () => {
+    if (editingId && editText.trim()) {
+      onEdit(editingId, editText.trim())
+      setEditingId(null)
+      setEditText('')
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setEditText('')
+  }
+
+  return (
   <Card className={`border-l-4 ${color}`}>
     <CardHeader>
       <CardTitle className="flex items-center gap-2">
@@ -101,17 +125,62 @@ const QuadrantCard = memo(({
           items.map((item) => (
             <div
               key={item.id}
-              className="flex items-start gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800"
+              className="flex items-start gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
             >
-              <span className="flex-1 text-sm">{item.text}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onRemove(item.id)}
-                className="h-6 w-6 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              {editingId === item.id ? (
+                <>
+                  <Input
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') handleSaveEdit()
+                      if (e.key === 'Escape') handleCancelEdit()
+                    }}
+                    className="flex-1 text-sm"
+                    autoFocus
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSaveEdit}
+                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    title="Save"
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelEdit}
+                    className="h-8 w-8 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    title="Cancel"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 text-sm text-gray-900 dark:text-gray-100">{item.text}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleStartEdit(item)}
+                    className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                    title="Edit"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRemove(item.id)}
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    title="Delete"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
           ))
         )}
@@ -119,7 +188,8 @@ const QuadrantCard = memo(({
       <Badge variant="secondary">{items.length} items</Badge>
     </CardContent>
   </Card>
-))
+  )
+})
 
 export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   const navigate = useNavigate()
@@ -228,6 +298,17 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
     setter: React.Dispatch<React.SetStateAction<SwotItem[]>>
   ) => {
     setter(prev => prev.filter(item => item.id !== id))
+  }
+
+  const editItem = (
+    category: 'strengths' | 'weaknesses' | 'opportunities' | 'threats',
+    id: string,
+    newText: string,
+    setter: React.Dispatch<React.SetStateAction<SwotItem[]>>
+  ) => {
+    setter(prev => prev.map(item =>
+      item.id === id ? { ...item, text: newText } : item
+    ))
   }
 
   const handleAutoPopulate = async (contentIds: string[]) => {
@@ -487,6 +568,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           setNewItem={setNewStrength}
           onAdd={() => addItem('strengths', newStrength, setStrengths, () => setNewStrength(''))}
           onRemove={(id) => removeItem('strengths', id, setStrengths)}
+          onEdit={(id, newText) => editItem('strengths', id, newText, setStrengths)}
           color="border-green-500"
           icon="💪"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
@@ -499,6 +581,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           setNewItem={setNewWeakness}
           onAdd={() => addItem('weaknesses', newWeakness, setWeaknesses, () => setNewWeakness(''))}
           onRemove={(id) => removeItem('weaknesses', id, setWeaknesses)}
+          onEdit={(id, newText) => editItem('weaknesses', id, newText, setWeaknesses)}
           color="border-red-500"
           icon="⚠️"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
@@ -511,6 +594,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           setNewItem={setNewOpportunity}
           onAdd={() => addItem('opportunities', newOpportunity, setOpportunities, () => setNewOpportunity(''))}
           onRemove={(id) => removeItem('opportunities', id, setOpportunities)}
+          onEdit={(id, newText) => editItem('opportunities', id, newText, setOpportunities)}
           color="border-blue-500"
           icon="🎯"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
@@ -523,6 +607,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           setNewItem={setNewThreat}
           onAdd={() => addItem('threats', newThreat, setThreats, () => setNewThreat(''))}
           onRemove={(id) => removeItem('threats', id, setThreats)}
+          onEdit={(id, newText) => editItem('threats', id, newText, setThreats)}
           color="border-orange-500"
           icon="⚡"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
