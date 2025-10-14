@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Plus, Search, Users, AlertTriangle, Shield, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +13,7 @@ import { ActorDetailView } from '@/components/entities/ActorDetailView'
 import type { Actor, ActorType } from '@/types/entities'
 
 export function ActorsPage() {
+  const { t } = useTranslation(['entities', 'common'])
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
@@ -214,10 +216,10 @@ export function ActorsPage() {
     const means = profile.mom.means || 0
     const avgScore = (motive + opportunity + means) / 3
 
-    if (avgScore >= 4) return <Badge className="bg-red-100 text-red-800">High Risk</Badge>
-    if (avgScore >= 3) return <Badge className="bg-orange-100 text-orange-800">Medium Risk</Badge>
-    if (avgScore >= 1.5) return <Badge className="bg-yellow-100 text-yellow-800">Low Risk</Badge>
-    return <Badge className="bg-green-100 text-green-800">Minimal Risk</Badge>
+    if (avgScore >= 4) return <Badge className="bg-red-100 text-red-800">{t('entities:actors.risk.high')}</Badge>
+    if (avgScore >= 3) return <Badge className="bg-orange-100 text-orange-800">{t('entities:actors.risk.medium')}</Badge>
+    if (avgScore >= 1.5) return <Badge className="bg-yellow-100 text-yellow-800">{t('entities:actors.risk.low')}</Badge>
+    return <Badge className="bg-green-100 text-green-800">{t('entities:actors.risk.minimal')}</Badge>
   }
 
   // Detail view mode
@@ -250,7 +252,7 @@ export function ActorsPage() {
       <div className="p-6">
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">Loading actor...</p>
+            <p className="text-gray-500">{t('entities:actors.loadingActor')}</p>
           </CardContent>
         </Card>
       </div>
@@ -265,15 +267,15 @@ export function ActorsPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Users className="h-8 w-8" />
-            Actors
+            {t('entities:actors.title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            People, organizations, and entities with MOM-POP deception profiles
+            {t('entities:actors.description')}
           </p>
         </div>
         <Button onClick={openCreateForm}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Actor
+          {t('entities:actors.addButton')}
         </Button>
       </div>
 
@@ -282,7 +284,7 @@ export function ActorsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Total Actors
+              {t('entities:actors.stats.total')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -292,7 +294,7 @@ export function ActorsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              High Risk
+              {t('entities:actors.stats.highRisk')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -309,7 +311,7 @@ export function ActorsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Organizations
+              {t('entities:actors.stats.organizations')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -321,7 +323,7 @@ export function ActorsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Individuals
+              {t('entities:actors.stats.individuals')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -340,7 +342,7 @@ export function ActorsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search actors..."
+                  placeholder={t('entities:actors.search')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -349,16 +351,16 @@ export function ActorsPage() {
             </div>
             <Select value={filterType} onValueChange={(v) => setFilterType(v as ActorType | 'all')}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filter by type" />
+                <SelectValue placeholder={t('entities:actors.filterType')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="PERSON">Person</SelectItem>
-                <SelectItem value="ORGANIZATION">Organization</SelectItem>
-                <SelectItem value="UNIT">Unit</SelectItem>
-                <SelectItem value="GOVERNMENT">Government</SelectItem>
-                <SelectItem value="GROUP">Group</SelectItem>
-                <SelectItem value="OTHER">Other</SelectItem>
+                <SelectItem value="all">{t('entities:actors.types.all')}</SelectItem>
+                <SelectItem value="PERSON">{t('entities:actors.types.person')}</SelectItem>
+                <SelectItem value="ORGANIZATION">{t('entities:actors.types.organization')}</SelectItem>
+                <SelectItem value="UNIT">{t('entities:actors.types.unit')}</SelectItem>
+                <SelectItem value="GOVERNMENT">{t('entities:actors.types.government')}</SelectItem>
+                <SelectItem value="GROUP">{t('entities:actors.types.group')}</SelectItem>
+                <SelectItem value="OTHER">{t('entities:actors.types.other')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -369,17 +371,17 @@ export function ActorsPage() {
       {loading ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">Loading actors...</p>
+            <p className="text-gray-500">{t('entities:actors.loading')}</p>
           </CardContent>
         </Card>
       ) : filteredActors.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No actors found</p>
+            <p className="text-gray-500">{t('entities:actors.empty')}</p>
             <Button className="mt-4" onClick={openCreateForm}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Your First Actor
+              {t('entities:actors.addFirst')}
             </Button>
           </CardContent>
         </Card>
@@ -410,7 +412,7 @@ export function ActorsPage() {
 
                 {actor.aliases && actor.aliases.length > 0 && (
                   <div className="text-xs text-gray-500">
-                    <strong>Aliases:</strong> {actor.aliases.join(', ')}
+                    <strong>{t('entities:actors.aliases')}</strong> {actor.aliases.join(', ')}
                   </div>
                 )}
 
@@ -418,19 +420,19 @@ export function ActorsPage() {
                   <div className="pt-2 border-t space-y-1">
                     <div className="text-xs font-semibold flex items-center gap-1 text-gray-700 dark:text-gray-300">
                       <Shield className="h-3 w-3" />
-                      MOM-POP Profile
+                      {t('entities:actors.momProfile')}
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
-                        <div className="text-gray-500">Motive</div>
+                        <div className="text-gray-500">{t('entities:actors.mom.motive')}</div>
                         <div className="font-semibold">{actor.deception_profile.mom.motive || 0}/5</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">Opportunity</div>
+                        <div className="text-gray-500">{t('entities:actors.mom.opportunity')}</div>
                         <div className="font-semibold">{actor.deception_profile.mom.opportunity || 0}/5</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">Means</div>
+                        <div className="text-gray-500">{t('entities:actors.mom.means')}</div>
                         <div className="font-semibold">{actor.deception_profile.mom.means || 0}/5</div>
                       </div>
                     </div>
@@ -440,13 +442,13 @@ export function ActorsPage() {
                 {((actor as any)._event_count || (actor as any)._evidence_count || (actor as any)._relationship_count) && (
                   <div className="pt-2 border-t flex justify-between text-xs text-gray-500">
                     {(actor as any)._event_count !== undefined && (
-                      <span>{(actor as any)._event_count} events</span>
+                      <span>{(actor as any)._event_count} {t('entities:actors.counts.events')}</span>
                     )}
                     {(actor as any)._evidence_count !== undefined && (
-                      <span>{(actor as any)._evidence_count} evidence</span>
+                      <span>{(actor as any)._evidence_count} {t('entities:actors.counts.evidence')}</span>
                     )}
                     {(actor as any)._relationship_count !== undefined && (
-                      <span>{(actor as any)._relationship_count} links</span>
+                      <span>{(actor as any)._relationship_count} {t('entities:actors.counts.links')}</span>
                     )}
                   </div>
                 )}
@@ -464,7 +466,7 @@ export function ActorsPage() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingActor ? 'Edit Actor' : 'Create New Actor'}
+              {editingActor ? t('entities:actors.dialog.edit') : t('entities:actors.dialog.create')}
             </DialogTitle>
           </DialogHeader>
           <ActorFormEnhanced

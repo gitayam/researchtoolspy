@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Search, FileText, AlertTriangle, CheckCircle2, XCircle, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,6 +26,7 @@ interface Claim {
 }
 
 export function ClaimsPage() {
+  const { t } = useTranslation(['entities', 'common'])
   const { id } = useParams()
   const navigate = useNavigate()
   const [claims, setClaims] = useState<Claim[]>([])
@@ -103,7 +105,7 @@ export function ClaimsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading claims...</div>
+        <div className="text-muted-foreground">{t('entities:claims.loading')}</div>
       </div>
     )
   }
@@ -113,9 +115,9 @@ export function ClaimsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Claims</h1>
+          <h1 className="text-3xl font-bold">{t('entities:claims.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Track and verify factual claims from analyzed content
+            {t('entities:claims.description')}
           </p>
         </div>
       </div>
@@ -126,7 +128,7 @@ export function ClaimsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search claims..."
+              placeholder={t('entities:claims.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -136,28 +138,28 @@ export function ClaimsPage() {
 
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder={t('entities:claims.filterStatus')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="investigating">Investigating</SelectItem>
-            <SelectItem value="verified">Verified</SelectItem>
-            <SelectItem value="debunked">Debunked</SelectItem>
+            <SelectItem value="all">{t('entities:claims.status.all')}</SelectItem>
+            <SelectItem value="pending">{t('entities:claims.status.pending')}</SelectItem>
+            <SelectItem value="investigating">{t('entities:claims.status.investigating')}</SelectItem>
+            <SelectItem value="verified">{t('entities:claims.status.verified')}</SelectItem>
+            <SelectItem value="debunked">{t('entities:claims.status.debunked')}</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={filterCategory} onValueChange={setFilterCategory}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Category" />
+            <SelectValue placeholder={t('entities:claims.filterCategory')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="statement">Statement</SelectItem>
-            <SelectItem value="quote">Quote</SelectItem>
-            <SelectItem value="statistic">Statistic</SelectItem>
-            <SelectItem value="event">Event</SelectItem>
-            <SelectItem value="relationship">Relationship</SelectItem>
+            <SelectItem value="all">{t('entities:claims.categories.all')}</SelectItem>
+            <SelectItem value="statement">{t('entities:claims.categories.statement')}</SelectItem>
+            <SelectItem value="quote">{t('entities:claims.categories.quote')}</SelectItem>
+            <SelectItem value="statistic">{t('entities:claims.categories.statistic')}</SelectItem>
+            <SelectItem value="event">{t('entities:claims.categories.event')}</SelectItem>
+            <SelectItem value="relationship">{t('entities:claims.categories.relationship')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -166,13 +168,13 @@ export function ClaimsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Claims</CardDescription>
+            <CardDescription>{t('entities:claims.stats.total')}</CardDescription>
             <CardTitle className="text-2xl">{claims.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Verified</CardDescription>
+            <CardDescription>{t('entities:claims.stats.verified')}</CardDescription>
             <CardTitle className="text-2xl text-green-600">
               {claims.filter(c => c.verification_status === 'verified').length}
             </CardTitle>
@@ -180,7 +182,7 @@ export function ClaimsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Debunked</CardDescription>
+            <CardDescription>{t('entities:claims.stats.debunked')}</CardDescription>
             <CardTitle className="text-2xl text-red-600">
               {claims.filter(c => c.verification_status === 'debunked').length}
             </CardTitle>
@@ -188,7 +190,7 @@ export function ClaimsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Investigating</CardDescription>
+            <CardDescription>{t('entities:claims.stats.investigating')}</CardDescription>
             <CardTitle className="text-2xl text-blue-600">
               {claims.filter(c => c.verification_status === 'investigating').length}
             </CardTitle>
@@ -204,8 +206,8 @@ export function ClaimsPage() {
               <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground">
                 {searchQuery || filterStatus !== 'all' || filterCategory !== 'all'
-                  ? 'No claims match your filters'
-                  : 'No saved claims yet. Analyze content with claim detection to see claims here.'}
+                  ? t('entities:claims.empty')
+                  : t('entities:claims.emptyInitial')}
               </p>
             </CardContent>
           </Card>
@@ -220,10 +222,10 @@ export function ClaimsPage() {
                         {claim.claim_category}
                       </Badge>
                       <Badge className={getStatusColor(claim.verification_status)}>
-                        {claim.verification_status}
+                        {t(`entities:claims.status.${claim.verification_status}`)}
                       </Badge>
                       {claim.adjusted_claim_text && (
-                        <Badge variant="outline">Edited</Badge>
+                        <Badge variant="outline">{t('entities:claims.edited')}</Badge>
                       )}
                     </div>
                     <CardTitle className="text-lg leading-relaxed">
@@ -231,7 +233,7 @@ export function ClaimsPage() {
                     </CardTitle>
                     {claim.content_title && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>From:</span>
+                        <span>{t('entities:claims.from')}</span>
                         <a
                           href={claim.content_url}
                           target="_blank"
@@ -249,7 +251,7 @@ export function ClaimsPage() {
                       {getRiskIcon(claim.adjusted_risk_score)}
                       {claim.adjusted_risk_score}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">Risk Score</div>
+                    <div className="text-xs text-muted-foreground mt-1">{t('entities:claims.riskScore')}</div>
                     {claim.adjusted_risk_score !== claim.original_risk_score && (
                       <div className="text-xs text-muted-foreground line-through">
                         {claim.original_risk_score}
@@ -261,16 +263,16 @@ export function ClaimsPage() {
               {claim.user_comment && (
                 <CardContent>
                   <div className="bg-muted p-3 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Assessment:</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t('entities:claims.assessment')}</p>
                     <p className="text-sm">{claim.user_comment}</p>
                   </div>
                 </CardContent>
               )}
               <CardContent className="pt-0">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Updated {new Date(claim.updated_at).toLocaleDateString()}</span>
+                  <span>{t('entities:claims.updated')} {new Date(claim.updated_at).toLocaleDateString()}</span>
                   {claim.adjusted_by_username && (
-                    <span>By {claim.adjusted_by_username}</span>
+                    <span>{t('entities:claims.by')} {claim.adjusted_by_username}</span>
                   )}
                 </div>
               </CardContent>
