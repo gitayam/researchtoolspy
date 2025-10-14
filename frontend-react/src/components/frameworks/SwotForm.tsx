@@ -1,4 +1,4 @@
-import { useState, useCallback, memo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, X, Sparkles, Info, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -73,7 +73,7 @@ interface SwotFormProps {
   onSave: (data: SwotData) => Promise<void>
 }
 
-const QuadrantCard = memo(({
+function QuadrantCard({
   title: quadrantTitle,
   description: quadrantDesc,
   items,
@@ -99,7 +99,7 @@ const QuadrantCard = memo(({
   color: string
   icon: string
   allData?: SwotData
-}) => {
+}) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [editTags, setEditTags] = useState<string[]>([])
@@ -264,7 +264,7 @@ const QuadrantCard = memo(({
     </CardContent>
   </Card>
   )
-})
+}
 
 export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   const navigate = useNavigate()
