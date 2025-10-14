@@ -29,20 +29,28 @@ interface SwotData {
   tags?: string[]
 }
 
-// Suggested tags for autocomplete
+// Suggested tags for autocomplete - Decision-focused
 const SUGGESTED_ANALYSIS_TAGS = [
+  // Decision Types
+  'Location Decision', 'Vendor Selection', 'Product Choice', 'Contract Evaluation',
+  'Manufacturer Comparison', 'Investment Decision', 'Technology Stack',
+  // Specific Comparisons
+  'Office Location', 'Warehouse Site', 'Store Location', 'Data Center',
+  'Vehicle Fleet', 'Equipment Purchase', 'Software Platform', 'Service Provider',
+  // Candidates/Options (use as prefix: "Option A", "NYC", "Tesla Model 3", etc.)
+  'Option A', 'Option B', 'Option C', 'Option D', 'Option E',
+  'Candidate 1', 'Candidate 2', 'Candidate 3',
+  // Decision Context
+  'Final Decision', 'Preliminary Analysis', 'Due Diligence',
+  'Cost Analysis', 'Risk Assessment', 'Competitive Analysis',
   // Time-based
   'Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025',
-  'Short-term', 'Long-term', 'Annual Review',
-  // Location-based
-  'North America', 'Europe', 'Asia', 'Global',
-  'New York', 'London', 'Singapore', 'Remote',
-  // Topic-based
-  'Market Entry', 'Product Launch', 'Digital Transformation',
-  'Competitive Analysis', 'Strategic Planning', 'Risk Assessment',
-  // Business areas
-  'Technology', 'Marketing', 'Sales', 'Operations',
-  'Finance', 'HR', 'Customer Service', 'Supply Chain',
+  'Short-term', 'Long-term', 'Urgent Decision',
+  // Geographic (for location decisions)
+  'North America', 'Europe', 'Asia-Pacific', 'Latin America', 'Middle East',
+  'NYC', 'London', 'Singapore', 'Tokyo', 'Dubai', 'Berlin',
+  // Business Context
+  'Strategic', 'Operational', 'Tactical', 'Emergency Response',
 ]
 
 const SUGGESTED_ITEM_TAGS = [
@@ -641,19 +649,25 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
             <label className="block text-sm font-medium mb-2">
               Tags
               <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-2">
-                (Help organize and filter analyses)
+                (Organize for comparison & decision-making)
               </span>
             </label>
             <TagInput
               tags={tags}
               onChange={setTags}
               suggestions={SUGGESTED_ANALYSIS_TAGS}
-              placeholder="Add tags (e.g., Q4 2025, Europe, Product Launch)..."
+              placeholder="Add tags (e.g., Location Decision, NYC, Office Location)..."
               maxTags={10}
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Examples: Time periods (Q1 2025), locations (Europe), topics (Market Entry), departments (Marketing)
-            </p>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 space-y-1">
+              <p className="font-medium">💡 Decision-Making Tips:</p>
+              <ul className="list-disc list-inside pl-2 space-y-0.5">
+                <li><strong>Comparison sets:</strong> Tag with decision type (e.g., "Office Location") + specific option (e.g., "NYC")</li>
+                <li><strong>Multiple options:</strong> Create separate SWOT for each (NYC, London, Singapore) with shared tag</li>
+                <li><strong>Merge later:</strong> Use dashboard filter to compare all analyses with same tag</li>
+                <li><strong>Examples:</strong> "Vehicle Fleet" + "Tesla Model 3" | "Vendor Selection" + "Acme Corp" | "Contract Evaluation" + "Option A"</li>
+              </ul>
+            </div>
           </div>
         </CardContent>
       </Card>
