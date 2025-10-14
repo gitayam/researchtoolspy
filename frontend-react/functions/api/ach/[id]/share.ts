@@ -45,24 +45,42 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const now = new Date().toISOString()
 
     // Update analysis with sharing settings
-    await context.env.DB.prepare(`
-      UPDATE ach_analyses SET
-        is_public = ?,
-        share_token = ?,
-        domain = ?,
-        tags = ?,
-        shared_publicly_at = ?,
-        updated_at = ?
-      WHERE id = ?
-    `).bind(
-      data.is_public ? 1 : 0,
-      shareToken,
-      data.domain || null,
-      data.tags ? JSON.stringify(data.tags) : null,
-      data.is_public ? (existing.is_public ? existing.shared_publicly_at : now) : null,
-      now,
-      id
-    ).run()
+    // Try to update with all fields, fall back if columns don't exist
+    try {
+      await context.env.DB.prepare(`
+        UPDATE ach_analyses SET
+          is_public = ?,
+          share_token = ?,
+          domain = ?,
+          tags = ?,
+          shared_publicly_at = ?,
+          updated_at = ?
+        WHERE id = ?
+      `).bind(
+        data.is_public ? 1 : 0,
+        shareToken,
+        data.domain || null,
+        data.tags ? JSON.stringify(data.tags) : null,
+        data.is_public ? (existing.is_public ? existing.shared_publicly_at : now) : null,
+        now,
+        id
+      ).run()
+    } catch (updateError) {
+      // Fall back to basic update if columns don't exist
+      console.warn('Falling back to basic share update:', updateError)
+      await context.env.DB.prepare(`
+        UPDATE ach_analyses SET
+          is_public = ?,
+          share_token = ?,
+          updated_at = ?
+        WHERE id = ?
+      `).bind(
+        data.is_public ? 1 : 0,
+        shareToken,
+        now,
+        id
+      ).run()
+    }
 
     return new Response(JSON.stringify({
       success: true,

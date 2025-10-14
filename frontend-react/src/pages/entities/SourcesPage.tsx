@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Plus, Search, Database, Shield, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +13,7 @@ import { SourceDetailView } from '@/components/entities/SourceDetailView'
 import type { Source, SourceType } from '@/types/entities'
 
 export function SourcesPage() {
+  const { t } = useTranslation(['entities', 'common'])
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
@@ -214,10 +216,10 @@ export function SourcesPage() {
     const avg = scores.reduce((a, b) => a + b, 0) / scores.length
 
     // Lower scores = higher reliability (inverted)
-    if (avg <= 1) return <Badge className="bg-green-100 text-green-800">High Reliability</Badge>
-    if (avg <= 2) return <Badge className="bg-blue-100 text-blue-800">Medium Reliability</Badge>
-    if (avg <= 3.5) return <Badge className="bg-yellow-100 text-yellow-800">Low Reliability</Badge>
-    return <Badge className="bg-red-100 text-red-800">Unreliable</Badge>
+    if (avg <= 1) return <Badge className="bg-green-100 text-green-800">{t('entities:sources.reliability.high')}</Badge>
+    if (avg <= 2) return <Badge className="bg-blue-100 text-blue-800">{t('entities:sources.reliability.medium')}</Badge>
+    if (avg <= 3.5) return <Badge className="bg-yellow-100 text-yellow-800">{t('entities:sources.reliability.low')}</Badge>
+    return <Badge className="bg-red-100 text-red-800">{t('entities:sources.reliability.unreliable')}</Badge>
   }
 
   // Detail view mode
@@ -250,7 +252,7 @@ export function SourcesPage() {
       <div className="p-6">
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">Loading source...</p>
+            <p className="text-gray-500">{t('entities:sources.loadingSource')}</p>
           </CardContent>
         </Card>
       </div>
@@ -265,15 +267,15 @@ export function SourcesPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Database className="h-8 w-8" />
-            Sources
+            {t('entities:sources.title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Information sources with MOSES reliability assessment
+            {t('entities:sources.description')}
           </p>
         </div>
         <Button onClick={openCreateForm}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Source
+          {t('entities:sources.addButton')}
         </Button>
       </div>
 
@@ -282,7 +284,7 @@ export function SourcesPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Total Sources
+              {t('entities:sources.stats.total')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -292,36 +294,36 @@ export function SourcesPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              People
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {sources.filter(s => s.type === 'PERSON').length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Documents
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {sources.filter(s => s.type === 'DOCUMENT').length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              High Reliability (A-B)
+              {t('entities:sources.stats.reliable')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-green-600">
               {sources.filter(s => s.moses_assessment?.reliability === 'A' || s.moses_assessment?.reliability === 'B').length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              {t('entities:sources.stats.questionable')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-orange-600">
+              {sources.filter(s => s.moses_assessment?.reliability === 'D' || s.moses_assessment?.reliability === 'E').length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              {t('entities:sources.stats.active')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">
+              {sources.filter(s => (s as any)._evidence_count > 0).length}
             </p>
           </CardContent>
         </Card>
@@ -335,7 +337,7 @@ export function SourcesPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search sources..."
+                  placeholder={t('entities:sources.search')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -344,18 +346,18 @@ export function SourcesPage() {
             </div>
             <Select value={filterType} onValueChange={(v) => setFilterType(v as SourceType | 'all')}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filter by type" />
+                <SelectValue placeholder={t('entities:sources.filterType')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="PERSON">Person</SelectItem>
-                <SelectItem value="DOCUMENT">Document</SelectItem>
-                <SelectItem value="WEBSITE">Website</SelectItem>
-                <SelectItem value="DATABASE">Database</SelectItem>
-                <SelectItem value="MEDIA">Media</SelectItem>
-                <SelectItem value="SYSTEM">System</SelectItem>
-                <SelectItem value="ORGANIZATION">Organization</SelectItem>
-                <SelectItem value="OTHER">Other</SelectItem>
+                <SelectItem value="all">{t('entities:sources.types.all')}</SelectItem>
+                <SelectItem value="PERSON">{t('entities:sources.types.person')}</SelectItem>
+                <SelectItem value="DOCUMENT">{t('entities:sources.types.document')}</SelectItem>
+                <SelectItem value="WEBSITE">{t('entities:sources.types.website')}</SelectItem>
+                <SelectItem value="DATABASE">{t('entities:sources.types.database')}</SelectItem>
+                <SelectItem value="MEDIA">{t('entities:sources.types.media')}</SelectItem>
+                <SelectItem value="SYSTEM">{t('entities:sources.types.system')}</SelectItem>
+                <SelectItem value="ORGANIZATION">{t('entities:sources.types.organization')}</SelectItem>
+                <SelectItem value="OTHER">{t('entities:sources.types.other')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -366,17 +368,17 @@ export function SourcesPage() {
       {loading ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">Loading sources...</p>
+            <p className="text-gray-500">{t('entities:sources.loading')}</p>
           </CardContent>
         </Card>
       ) : filteredSources.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Database className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No sources found</p>
+            <p className="text-gray-500">{t('entities:sources.empty')}</p>
             <Button className="mt-4" onClick={openCreateForm}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Your First Source
+              {t('entities:sources.addFirst')}
             </Button>
           </CardContent>
         </Card>
@@ -413,7 +415,7 @@ export function SourcesPage() {
                   <div className="flex items-center gap-2 text-xs">
                     <Eye className="h-3 w-3 text-gray-500" />
                     <span className="text-gray-600 dark:text-gray-400">
-                      Access: {source.moses_assessment.access_level}
+                      {t('entities:sources.access')} {source.moses_assessment.access_level}
                     </span>
                   </div>
                 )}
@@ -423,7 +425,7 @@ export function SourcesPage() {
                     <div className="text-xs font-semibold flex items-center gap-1 text-gray-700 dark:text-gray-300 justify-between">
                       <span className="flex items-center gap-1">
                         <Shield className="h-3 w-3" />
-                        MOSES Assessment
+                        {t('entities:sources.mosesAssessment')}
                       </span>
                       {getMOSESBadge(source.moses_assessment)}
                     </div>
@@ -432,7 +434,7 @@ export function SourcesPage() {
 
                 {(source as any)._evidence_count !== undefined && (
                   <div className="pt-2 border-t text-xs text-gray-500">
-                    <span>{(source as any)._evidence_count} evidence items</span>
+                    <span>{(source as any)._evidence_count} {t('entities:sources.evidenceCount')}</span>
                   </div>
                 )}
               </CardContent>
@@ -449,7 +451,7 @@ export function SourcesPage() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingSource ? 'Edit Source' : 'Create New Source'}
+              {editingSource ? t('entities:sources.dialog.edit') : t('entities:sources.dialog.create')}
             </DialogTitle>
           </DialogHeader>
           <SourceForm
