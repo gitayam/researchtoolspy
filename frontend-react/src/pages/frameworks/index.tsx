@@ -1,12 +1,13 @@
 import { FrameworkPlaceholder } from './FrameworkPlaceholder'
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Plus, Search, Grid3x3, MoreVertical, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, Search, Grid3x3, MoreVertical, ExternalLink, CheckCircle, XCircle, Tag, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { safeJSONParse } from '@/utils/safe-json'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,11 +26,11 @@ import { COGWizard } from '@/components/frameworks/COGWizard'
 import { frameworkConfigs } from '@/config/framework-configs'
 import { COG_TEMPLATES, createAnalysisFromTemplate, type COGTemplate } from '@/data/cog-templates'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
 
 export const SwotPage = () => {
   const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
   const [loading, setLoading] = useState(false)
@@ -231,10 +232,29 @@ export const SwotPage = () => {
     )
   }
 
-  const filteredAnalyses = analyses.filter(analysis =>
-    analysis.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (analysis.description && analysis.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  )
+  // Extract all unique tags from analyses
+  const allTags = Array.from(new Set(
+    analyses.flatMap(analysis => {
+      const parsedData = typeof analysis.data === 'object' ? analysis.data : safeJSONParse(analysis.data, {})
+      return parsedData.tags || []
+    })
+  )).sort()
+
+  const filteredAnalyses = analyses.filter(analysis => {
+    // Text search filter
+    const matchesSearch = analysis.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (analysis.description && analysis.description.toLowerCase().includes(searchTerm.toLowerCase()))
+
+    // Tag filter
+    if (selectedTags.length > 0) {
+      const parsedData = typeof analysis.data === 'object' ? analysis.data : safeJSONParse(analysis.data, {})
+      const analysisTags = parsedData.tags || []
+      const matchesTags = selectedTags.every(tag => analysisTags.includes(tag))
+      return matchesSearch && matchesTags
+    }
+
+    return matchesSearch
+  })
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -313,7 +333,7 @@ export const SwotPage = () => {
         </CardContent>
       </Card>
 
-      <div className="mb-6">
+      <div className="mb-6 space-y-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
@@ -324,6 +344,58 @@ export const SwotPage = () => {
             className="pl-10"
           />
         </div>
+
+        {/* Tag Filter */}
+        {allTags.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <Tag className="h-4 w-4" />
+              <span>Filter by tags:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {allTags.map(tag => {
+                const isSelected = selectedTags.includes(tag)
+                return (
+                  <Badge
+                    key={tag}
+                    variant={isSelected ? "default" : "outline"}
+                    className={`cursor-pointer transition-all hover:scale-105 ${
+                      isSelected
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                    }`}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedTags(selectedTags.filter(t => t !== tag))
+                      } else {
+                        setSelectedTags([...selectedTags, tag])
+                      }
+                    }}
+                  >
+                    <Tag className="h-3 w-3 mr-1" />
+                    {tag}
+                    {isSelected && <X className="h-3 w-3 ml-1" />}
+                  </Badge>
+                )
+              })}
+            </div>
+            {selectedTags.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Filtering by {selectedTags.length} tag{selectedTags.length > 1 ? 's' : ''}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedTags([])}
+                  className="h-7 text-xs"
+                >
+                  Clear all
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4">
