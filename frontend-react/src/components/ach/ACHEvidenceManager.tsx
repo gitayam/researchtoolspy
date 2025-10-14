@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, Trash2, FileText, ExternalLink, CheckCircle2 } from 'lucide-react'
+import { Plus, Search, Trash2, FileText, ExternalLink, CheckCircle2, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,6 +24,7 @@ export function ACHEvidenceManager({
   const [searchTerm, setSearchTerm] = useState('')
   const [showSelector, setShowSelector] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [editingEvidence, setEditingEvidence] = useState<EvidenceItem | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -62,6 +63,25 @@ export function ACHEvidenceManager({
       setShowCreateForm(false)
     } catch (error) {
       console.error('Error creating evidence:', error)
+      throw error
+    }
+  }
+
+  const handleEditEvidence = async (formData: any) => {
+    if (!editingEvidence) return
+
+    try {
+      const response = await fetch(`/api/evidence-items?id=${editingEvidence.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+      if (!response.ok) throw new Error('Failed to update evidence')
+
+      await loadEvidence()
+      setEditingEvidence(null)
+    } catch (error) {
+      console.error('Error updating evidence:', error)
       throw error
     }
   }
@@ -163,15 +183,28 @@ export function ACHEvidenceManager({
                         ))}
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-600 hover:text-red-700 flex-shrink-0"
-                      onClick={() => handleRemoveEvidence(String(evidence.id))}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="text-blue-600 hover:text-blue-700"
+                        onClick={() => setEditingEvidence(evidence)}
+                        title="Edit evidence"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleRemoveEvidence(String(evidence.id))}
+                        title="Remove from analysis"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -278,6 +311,17 @@ export function ACHEvidenceManager({
           onClose={() => setShowCreateForm(false)}
           onSave={handleCreateEvidence}
           mode="create"
+        />
+      )}
+
+      {/* Edit Evidence Dialog */}
+      {editingEvidence && (
+        <EvidenceItemForm
+          open={!!editingEvidence}
+          onClose={() => setEditingEvidence(null)}
+          onSave={handleEditEvidence}
+          initialData={editingEvidence}
+          mode="edit"
         />
       )}
     </Card>
