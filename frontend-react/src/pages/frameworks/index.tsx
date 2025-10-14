@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SwotForm } from '@/components/frameworks/SwotForm'
 import { SwotView } from '@/components/frameworks/SwotView'
+import { SwotComparisonView } from '@/components/frameworks/SwotComparisonView'
 import { GenericFrameworkForm } from '@/components/frameworks/GenericFrameworkForm'
 import { GenericFrameworkView } from '@/components/frameworks/GenericFrameworkView'
 import { DeceptionForm } from '@/components/frameworks/DeceptionForm'
@@ -34,6 +35,8 @@ export const SwotPage = () => {
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
   const [loading, setLoading] = useState(false)
+  const [comparisonMode, setComparisonMode] = useState(false)
+  const [comparisonTag, setComparisonTag] = useState<string | null>(null)
   const navigate = useNavigate()
   const { id } = useParams()
   const location = useLocation()
@@ -240,6 +243,36 @@ export const SwotPage = () => {
     })
   )).sort()
 
+  // Show comparison view if in comparison mode
+  if (comparisonMode && comparisonTag) {
+    const comparisonAnalyses = analyses
+      .filter(analysis => {
+        const parsedData = typeof analysis.data === 'object' ? analysis.data : safeJSONParse(analysis.data, {})
+        const analysisTags = parsedData.tags || []
+        return analysisTags.includes(comparisonTag)
+      })
+      .map(analysis => {
+        const parsedData = typeof analysis.data === 'object' ? analysis.data : safeJSONParse(analysis.data, {})
+        return {
+          ...parsedData,
+          id: analysis.id,
+          title: analysis.title,
+          description: analysis.description
+        }
+      })
+
+    return (
+      <SwotComparisonView
+        analyses={comparisonAnalyses}
+        comparisonTag={comparisonTag}
+        onClose={() => {
+          setComparisonMode(false)
+          setComparisonTag(null)
+        }}
+      />
+    )
+  }
+
   const filteredAnalyses = analyses.filter(analysis => {
     // Text search filter
     const matchesSearch = analysis.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -355,27 +388,49 @@ export const SwotPage = () => {
             <div className="flex flex-wrap gap-2">
               {allTags.map(tag => {
                 const isSelected = selectedTags.includes(tag)
+                // Count how many analyses have this tag
+                const tagCount = analyses.filter(analysis => {
+                  const parsedData = typeof analysis.data === 'object' ? analysis.data : safeJSONParse(analysis.data, {})
+                  const analysisTags = parsedData.tags || []
+                  return analysisTags.includes(tag)
+                }).length
+                const canCompare = tagCount >= 2
+
                 return (
-                  <Badge
-                    key={tag}
-                    variant={isSelected ? "default" : "outline"}
-                    className={`cursor-pointer transition-all hover:scale-105 ${
-                      isSelected
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                    }`}
-                    onClick={() => {
-                      if (isSelected) {
-                        setSelectedTags(selectedTags.filter(t => t !== tag))
-                      } else {
-                        setSelectedTags([...selectedTags, tag])
-                      }
-                    }}
-                  >
-                    <Tag className="h-3 w-3 mr-1" />
-                    {tag}
-                    {isSelected && <X className="h-3 w-3 ml-1" />}
-                  </Badge>
+                  <div key={tag} className="flex items-center gap-1">
+                    <Badge
+                      variant={isSelected ? "default" : "outline"}
+                      className={`cursor-pointer transition-all hover:scale-105 ${
+                        isSelected
+                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          : 'bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                      }`}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedTags(selectedTags.filter(t => t !== tag))
+                        } else {
+                          setSelectedTags([...selectedTags, tag])
+                        }
+                      }}
+                    >
+                      <Tag className="h-3 w-3 mr-1" />
+                      {tag}
+                      {isSelected && <X className="h-3 w-3 ml-1" />}
+                    </Badge>
+                    {canCompare && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => {
+                          setComparisonTag(tag)
+                          setComparisonMode(true)
+                        }}
+                      >
+                        Compare ({tagCount})
+                      </Button>
+                    )}
+                  </div>
                 )
               })}
             </div>
