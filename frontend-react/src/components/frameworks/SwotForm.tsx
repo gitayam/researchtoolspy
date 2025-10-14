@@ -222,24 +222,20 @@ function QuadrantCard({
                 <>
                   <div className="flex items-start gap-2">
                     <span className="flex-1 text-sm text-gray-900 dark:text-gray-100">{item.text}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => handleStartEdit(item)}
-                      className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                      title="Edit"
+                      className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded border border-blue-300"
+                      style={{ flexShrink: 0 }}
                     >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                      Edit
+                    </button>
+                    <button
                       onClick={() => onRemove(item.id)}
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      title="Delete"
+                      className="px-3 py-1 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded border border-red-300"
+                      style={{ flexShrink: 0 }}
                     >
-                      <X className="h-4 w-4" />
-                    </Button>
+                      Delete
+                    </button>
                   </div>
                   {item.tags && item.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
