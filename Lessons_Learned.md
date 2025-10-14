@@ -1114,3 +1114,99 @@ cloudflared tunnel --url http://localhost:6780
 - Use for demos, feedback, and collaboration - not default deployment
 
 These lessons have been crucial for building a professional, privacy-focused research platform with government-standard export capabilities.
+
+---
+
+## Session: 2025-10-14 - Guest Mode Authentication Bug
+
+### Problem
+User showed as "Guest Mode" despite being successfully logged in via hash-based authentication. Header correctly displayed "Hash: 37561526..." but guest mode banner still appeared.
+
+### Root Cause
+**Conflicting authentication checks between two systems**:
+
+1. **GuestModeContext** (line 37): Checked for `auth_token` in localStorage
+2. **useAuthStore** (Zustand): Used `omnicore_user_hash` for hash-based auth
+
+The GuestModeContext was looking for the wrong localStorage key (`auth_token` instead of `omnicore_user_hash`), so it always defaulted to guest mode.
+
+### The Fix
+Updated `GuestModeContext.tsx:36-45` to check for hash-based authentication:
+
+```typescript
+// BEFORE (broken):
+const token = localStorage.getItem('auth_token')
+if (token) {
+  setModeState('authenticated')
+  return
+}
+
+// AFTER (fixed):
+const userHash = localStorage.getItem('omnicore_user_hash')
+const validHashesStr = localStorage.getItem('omnicore_valid_hashes')
+const validHashes: string[] = validHashesStr ? JSON.parse(validHashesStr) : []
+
+if (userHash && validHashes.includes(userHash)) {
+  setModeState('authenticated')
+  return
+}
+```
+
+Also updated logout logic to remove correct localStorage key.
+
+### Files Modified
+- `/frontend-react/src/contexts/GuestModeContext.tsx` - Lines 36-45, 74-76
+
+### Lessons Learned
+
+#### ✅ Do:
+1. **Ensure authentication checks match your auth system** - Don't assume token-based auth
+2. **Use consistent localStorage keys** across all contexts and stores
+3. **Test authentication state** in all contexts (header, sidebar, banners)
+4. **Document auth system clearly** - Hash-based vs token-based vs session-based
+5. **Validate auth state** against the source of truth (Zustand store in this case)
+
+#### ❌ Don't:
+1. **Hardcode assumed auth patterns** - Check what the actual auth system uses
+2. **Leave placeholder comments** like "implement this based on your auth system"
+3. **Mix authentication systems** without proper coordination
+4. **Forget to update all auth checks** when changing auth systems
+5. **Skip end-to-end auth testing** across all UI components
+
+### Prevention Strategy
+**Best Practice for Multi-Context Authentication**:
+
+```typescript
+// Option 1: Single source of truth (RECOMMENDED)
+// Use Zustand store everywhere, don't duplicate auth logic
+import { useAuthStore } from '@/stores/auth'
+const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+
+// Option 2: If contexts must check localStorage
+// Import the keys from a shared constants file
+const AUTH_USER_KEY = 'omnicore_user_hash'
+const AUTH_VALID_KEYS = 'omnicore_valid_hashes'
+
+// Option 3: Create a shared utility function
+function checkAuthStatus(): boolean {
+  const userHash = localStorage.getItem('omnicore_user_hash')
+  const validHashesStr = localStorage.getItem('omnicore_valid_hashes')
+  const validHashes = validHashesStr ? JSON.parse(validHashesStr) : []
+  return userHash !== null && validHashes.includes(userHash)
+}
+```
+
+### Key Takeaways
+1. **Hash-based authentication** requires different localStorage keys than traditional token auth
+2. **Guest mode detection** must align with actual authentication system
+3. **Context providers** should use the same auth state source as the main app
+4. **Multiple auth checks** need to be synchronized across the codebase
+5. **User experience inconsistency** is a red flag for state management issues
+
+### Impact
+- **Fixed**: Guest mode banner no longer appears for authenticated users
+- **Affected**: All logged-in users seeing incorrect guest mode banner
+- **Severity**: Medium - confusing UX but didn't break functionality
+- **Resolution Time**: ~15 minutes (diagnosis + fix + documentation)
+
+---
