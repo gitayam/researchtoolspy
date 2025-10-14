@@ -228,7 +228,7 @@ export function ACHShareButton({
                   Add
                 </Button>
               </div>
-              {tags.length > 0 && (
+              {tags && tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {tags.map(tag => (
                     <div
