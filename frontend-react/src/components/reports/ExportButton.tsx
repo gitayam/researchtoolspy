@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react'
-import { FileDown, FileText, FileSpreadsheet, Presentation, Loader2, Eye } from 'lucide-react'
+import { FileDown, FileText, FileSpreadsheet, Presentation, Loader2, Eye, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -78,6 +78,41 @@ export function ExportButton({
       alert(`Failed to generate report preview: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handleEnhancedSWOTExport = async () => {
+    setExporting(true)
+    setCurrentFormat('pdf')
+
+    try {
+      console.log('Loading enhanced SWOT export...')
+      const { generateEnhancedSWOTPDF } = await import('@/lib/reports')
+
+      // Transform data to match SWOTData interface
+      const swotData = {
+        strengths: data.strengths?.map((item: any) => item.text || item) || [],
+        weaknesses: data.weaknesses?.map((item: any) => item.text || item) || [],
+        opportunities: data.opportunities?.map((item: any) => item.text || item) || [],
+        threats: data.threats?.map((item: any) => item.text || item) || []
+      }
+
+      await generateEnhancedSWOTPDF({
+        title: data.title,
+        description: data.description,
+        swotData,
+        includeVisualizations: true,
+        includeTOWS: true,
+        includeExecutiveSummary: true
+      })
+
+      console.log('✓ Enhanced SWOT report exported successfully')
+    } catch (error) {
+      console.error('Enhanced export failed:', error)
+      alert(`Failed to export enhanced report: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setExporting(false)
+      setCurrentFormat(null)
     }
   }
 
@@ -158,6 +193,25 @@ export function ExportButton({
             <Eye className="h-4 w-4 mr-2" />
             View Report
           </DropdownMenuItem>
+
+          {/* Enhanced SWOT Export (Phase 1) */}
+          {frameworkType === 'swot' && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleEnhancedSWOTExport}
+                disabled={exporting || generating}
+                className="font-medium text-blue-600 dark:text-blue-400"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Enhanced SWOT Report
+                <span className="ml-auto text-xs bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 rounded">NEW</span>
+              </DropdownMenuItem>
+              <div className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
+                Includes visualizations, TOWS strategies & executive summary
+              </div>
+            </>
+          )}
 
           <DropdownMenuSeparator />
           <DropdownMenuLabel>Download As</DropdownMenuLabel>
