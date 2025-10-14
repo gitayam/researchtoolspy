@@ -31,10 +31,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Increment view count
-    await context.env.DB.prepare(
-      'UPDATE ach_analyses SET view_count = view_count + 1 WHERE id = ?'
-    ).bind(analysis.id).run()
+    // Increment view count (if column exists)
+    try {
+      await context.env.DB.prepare(
+        'UPDATE ach_analyses SET view_count = view_count + 1 WHERE id = ?'
+      ).bind(analysis.id).run()
+    } catch (err) {
+      // Column might not exist yet - skip view count increment
+      console.log('Could not increment view_count (column may not exist):', err)
+    }
 
     // Get hypotheses
     const hypotheses = await context.env.DB.prepare(
@@ -42,19 +47,43 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     ).bind(analysis.id).all()
 
     // Get evidence links with evidence details
-    const evidenceLinks = await context.env.DB.prepare(`
-      SELECT
-        ael.id as link_id,
-        ael.evidence_id,
-        e.title as evidence_title,
-        e.content as evidence_content,
-        e.source,
-        e.date,
-        e.credibility_score
-      FROM ach_evidence_links ael
-      JOIN evidence e ON ael.evidence_id = e.id
-      WHERE ael.ach_analysis_id = ?
-    `).bind(analysis.id).all()
+    // Try with evidence_items first, fallback to old evidence table
+    let evidenceLinks: any
+    try {
+      evidenceLinks = await context.env.DB.prepare(`
+        SELECT
+          ael.id as link_id,
+          ael.evidence_id,
+          e.title as evidence_title,
+          e.description as evidence_content,
+          e.source_url as source,
+          e.when_occurred as date,
+          e.credibility as credibility_score
+        FROM ach_evidence_links ael
+        JOIN evidence_items e ON ael.evidence_id = e.id
+        WHERE ael.ach_analysis_id = ?
+      `).bind(analysis.id).all()
+    } catch (err) {
+      console.log('Trying fallback to old evidence table:', err)
+      try {
+        evidenceLinks = await context.env.DB.prepare(`
+          SELECT
+            ael.id as link_id,
+            ael.evidence_id,
+            e.title as evidence_title,
+            e.content as evidence_content,
+            e.source,
+            e.date,
+            e.credibility_score
+          FROM ach_evidence_links ael
+          JOIN evidence e ON ael.evidence_id = e.id
+          WHERE ael.ach_analysis_id = ?
+        `).bind(analysis.id).all()
+      } catch (err2) {
+        console.error('Both evidence queries failed:', err2)
+        evidenceLinks = { results: [] }
+      }
+    }
 
     // Get scores
     const scores = await context.env.DB.prepare(
