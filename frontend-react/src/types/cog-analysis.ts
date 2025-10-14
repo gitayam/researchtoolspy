@@ -168,6 +168,10 @@ export interface COGAnalysis {
   updated_at: string
   created_by: number
   status: 'draft' | 'active' | 'archived'
+
+  // Sharing
+  is_public?: boolean
+  share_token?: string
 }
 
 // Network Edge (for edge list export)

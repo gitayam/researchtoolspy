@@ -18,6 +18,7 @@ import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/Be
 import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
 import { LocationBadge } from '@/components/behavior/LocationBadge'
 import { CommentThread } from '@/components/comments/CommentThread'
+import { ShareButton } from './ShareButton'
 import type { CreateRelationshipRequest } from '@/types/entities'
 import type { ComBDeficits, InterventionFunction } from '@/types/behavior-change-wheel'
 import type { LocationContext } from '@/types/behavior'
@@ -36,6 +37,8 @@ interface GenericFrameworkData {
   description: string
   created_at?: string
   updated_at?: string
+  is_public?: boolean
+  share_token?: string
   [key: string]: any
 }
 
@@ -568,6 +571,12 @@ export function GenericFrameworkView({
             <Network className="h-4 w-4 mr-2" />
             View in Network
           </Button>
+          <ShareButton
+            frameworkId={data.id}
+            frameworkType={frameworkType}
+            isPublic={data.is_public || false}
+            shareToken={data.share_token}
+          />
           <ExportButton
             frameworkType={frameworkType}
             frameworkTitle={frameworkTitle}
