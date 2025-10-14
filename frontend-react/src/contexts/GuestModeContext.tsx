@@ -33,9 +33,13 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
 
   // Initialize guest session
   useEffect(() => {
-    // Check if user is authenticated (you'll need to implement this based on your auth system)
-    const token = localStorage.getItem('auth_token')
-    if (token) {
+    // Check if user is authenticated via hash-based auth
+    const userHash = localStorage.getItem('omnicore_user_hash')
+    const validHashesStr = localStorage.getItem('omnicore_valid_hashes')
+    const validHashes: string[] = validHashesStr ? JSON.parse(validHashesStr) : []
+
+    // User is authenticated if they have a valid hash
+    if (userHash && validHashes.includes(userHash)) {
       setModeState('authenticated')
       return
     }
@@ -67,8 +71,8 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
   const setMode = (newMode: UserMode) => {
     setModeState(newMode)
     if (newMode === 'guest') {
-      // Remove auth token
-      localStorage.removeItem('auth_token')
+      // Remove hash-based auth
+      localStorage.removeItem('omnicore_user_hash')
     }
   }
 
