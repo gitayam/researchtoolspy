@@ -14,8 +14,9 @@ import { TagInput } from '@/components/ui/tag-input'
 interface SwotItem {
   id: string
   text: string
+  details?: string
+  confidence?: 'low' | 'medium' | 'high'
   evidence_ids?: string[]
-  confidence?: number
   tags?: string[]
 }
 
@@ -81,8 +82,8 @@ function QuadrantCard({
   setNewItem,
   onAdd,
   onRemove,
-  onEdit,
-  onEditTags,
+  onEditItem,
+  onMoveItem,
   color,
   icon,
   allData
@@ -94,28 +95,38 @@ function QuadrantCard({
   setNewItem: (value: string) => void
   onAdd: () => void
   onRemove: (id: string) => void
-  onEdit: (id: string, newText: string) => void
-  onEditTags: (id: string, tags: string[]) => void
+  onEditItem: (id: string, updates: Partial<SwotItem>) => void
+  onMoveItem: (id: string, toSection: 'strengths' | 'weaknesses' | 'opportunities' | 'threats') => void
   color: string
   icon: string
   allData?: SwotData
 }) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [editDetails, setEditDetails] = useState('')
+  const [editConfidence, setEditConfidence] = useState<'low' | 'medium' | 'high' | ''>('')
   const [editTags, setEditTags] = useState<string[]>([])
 
   const handleStartEdit = (item: SwotItem) => {
     setEditingId(item.id)
     setEditText(item.text)
+    setEditDetails(item.details || '')
+    setEditConfidence(item.confidence || '')
     setEditTags(item.tags || [])
   }
 
   const handleSaveEdit = () => {
     if (editingId && editText.trim()) {
-      onEdit(editingId, editText.trim())
-      onEditTags(editingId, editTags)
+      onEditItem(editingId, {
+        text: editText.trim(),
+        details: editDetails.trim() || undefined,
+        confidence: editConfidence || undefined,
+        tags: editTags
+      })
       setEditingId(null)
       setEditText('')
+      setEditDetails('')
+      setEditConfidence('')
       setEditTags([])
     }
   }
@@ -123,6 +134,8 @@ function QuadrantCard({
   const handleCancelEdit = () => {
     setEditingId(null)
     setEditText('')
+    setEditDetails('')
+    setEditConfidence('')
     setEditTags([])
   }
 
@@ -176,8 +189,12 @@ function QuadrantCard({
               className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 space-y-2"
             >
               {editingId === item.id ? (
-                <>
-                  <div className="flex items-start gap-2">
+                <div className="space-y-3 bg-white dark:bg-gray-900 p-3 rounded border-2 border-blue-300 dark:border-blue-700">
+                  {/* Text Input */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Item Text *
+                    </label>
                     <Input
                       value={editText}
                       onChange={(e) => setEditText(e.target.value)}
@@ -185,29 +202,47 @@ function QuadrantCard({
                         if (e.key === 'Enter' && !e.shiftKey) handleSaveEdit()
                         if (e.key === 'Escape') handleCancelEdit()
                       }}
-                      className="flex-1 text-sm"
+                      className="text-sm"
                       autoFocus
                     />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleSaveEdit}
-                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                      title="Save"
-                    >
-                      <Save className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancelEdit}
-                      className="h-8 w-8 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      title="Cancel"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
                   </div>
+
+                  {/* Details Textarea */}
                   <div>
+                    <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Additional Details
+                    </label>
+                    <Textarea
+                      value={editDetails}
+                      onChange={(e) => setEditDetails(e.target.value)}
+                      placeholder="Add notes, context, or supporting information..."
+                      className="text-sm"
+                      rows={2}
+                    />
+                  </div>
+
+                  {/* Confidence Selector */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Confidence / Certainty Level
+                    </label>
+                    <select
+                      value={editConfidence}
+                      onChange={(e) => setEditConfidence(e.target.value as 'low' | 'medium' | 'high' | '')}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="">No confidence level set</option>
+                      <option value="low">🔴 Low - Uncertain or speculative</option>
+                      <option value="medium">🟡 Medium - Reasonably confident</option>
+                      <option value="high">🟢 High - Very confident / proven</option>
+                    </select>
+                  </div>
+
+                  {/* Tags Input */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Tags
+                    </label>
                     <TagInput
                       tags={editTags}
                       onChange={setEditTags}
@@ -217,39 +252,107 @@ function QuadrantCard({
                       className="text-xs"
                     />
                   </div>
-                </>
+
+                  {/* Move to Section Dropdown */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Move to Section
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        const newSection = e.target.value as 'strengths' | 'weaknesses' | 'opportunities' | 'threats'
+                        if (newSection && editingId) {
+                          onMoveItem(editingId, newSection)
+                          handleCancelEdit()
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      defaultValue=""
+                    >
+                      <option value="">Keep in {quadrantTitle}</option>
+                      <option value="strengths">💪 Move to Strengths</option>
+                      <option value="weaknesses">⚠️ Move to Weaknesses</option>
+                      <option value="opportunities">🎯 Move to Opportunities</option>
+                      <option value="threats">⚡ Move to Threats</option>
+                    </select>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleSaveEdit}
+                      className="flex-1"
+                    >
+                      <Save className="h-3 w-3 mr-1" />
+                      Save Changes
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelEdit}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <>
                   <div className="flex items-start gap-2">
-                    <span className="flex-1 text-sm text-gray-900 dark:text-gray-100">{item.text}</span>
-                    <button
-                      onClick={() => handleStartEdit(item)}
-                      className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded border border-blue-300"
-                      style={{ flexShrink: 0 }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => onRemove(item.id)}
-                      className="px-3 py-1 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded border border-red-300"
-                      style={{ flexShrink: 0 }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                  {item.tags && item.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {item.tags.map((tag, idx) => (
-                        <Badge
-                          key={idx}
-                          variant="outline"
-                          className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
+                    <div className="flex-1 space-y-2">
+                      {/* Main text with confidence indicator */}
+                      <div className="flex items-start gap-2">
+                        {item.confidence && (
+                          <span className="text-lg" title={`Confidence: ${item.confidence}`}>
+                            {item.confidence === 'high' && '🟢'}
+                            {item.confidence === 'medium' && '🟡'}
+                            {item.confidence === 'low' && '🔴'}
+                          </span>
+                        )}
+                        <span className="text-sm text-gray-900 dark:text-gray-100 flex-1">{item.text}</span>
+                      </div>
+
+                      {/* Details if present */}
+                      {item.details && (
+                        <div className="pl-6 text-xs text-gray-600 dark:text-gray-400 border-l-2 border-gray-300 dark:border-gray-600">
+                          {item.details}
+                        </div>
+                      )}
+
+                      {/* Tags if present */}
+                      {item.tags && item.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {item.tags.map((tag, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    {/* Action buttons */}
+                    <div className="flex flex-col gap-1" style={{ flexShrink: 0 }}>
+                      <button
+                        onClick={() => handleStartEdit(item)}
+                        className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded border border-blue-300"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => onRemove(item.id)}
+                        className="px-3 py-1 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded border border-red-300"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
                 </>
               )}
             </div>
@@ -377,23 +480,51 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   const editItem = (
     category: 'strengths' | 'weaknesses' | 'opportunities' | 'threats',
     id: string,
-    newText: string,
+    updates: Partial<SwotItem>,
     setter: React.Dispatch<React.SetStateAction<SwotItem[]>>
   ) => {
     setter(prev => prev.map(item =>
-      item.id === id ? { ...item, text: newText } : item
+      item.id === id ? { ...item, ...updates } : item
     ))
   }
 
-  const editItemTags = (
-    category: 'strengths' | 'weaknesses' | 'opportunities' | 'threats',
+  const moveItem = (
+    fromCategory: 'strengths' | 'weaknesses' | 'opportunities' | 'threats',
     id: string,
-    tags: string[],
-    setter: React.Dispatch<React.SetStateAction<SwotItem[]>>
+    toCategory: 'strengths' | 'weaknesses' | 'opportunities' | 'threats'
   ) => {
-    setter(prev => prev.map(item =>
-      item.id === id ? { ...item, tags } : item
-    ))
+    if (fromCategory === toCategory) return
+
+    // Get the item from source category
+    const sourceGetter = {
+      strengths,
+      weaknesses,
+      opportunities,
+      threats
+    }[fromCategory]
+
+    const item = sourceGetter.find(i => i.id === id)
+    if (!item) return
+
+    // Remove from source
+    const sourceSetter = {
+      strengths: setStrengths,
+      weaknesses: setWeaknesses,
+      opportunities: setOpportunities,
+      threats: setThreats
+    }[fromCategory]
+
+    sourceSetter(prev => prev.filter(i => i.id !== id))
+
+    // Add to destination
+    const destSetter = {
+      strengths: setStrengths,
+      weaknesses: setWeaknesses,
+      opportunities: setOpportunities,
+      threats: setThreats
+    }[toCategory]
+
+    destSetter(prev => [...prev, item])
   }
 
   const handleAutoPopulate = async (contentIds: string[]) => {
@@ -678,8 +809,8 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           setNewItem={setNewStrength}
           onAdd={() => addItem('strengths', newStrength, setStrengths, () => setNewStrength(''))}
           onRemove={(id) => removeItem('strengths', id, setStrengths)}
-          onEdit={(id, newText) => editItem('strengths', id, newText, setStrengths)}
-          onEditTags={(id, tags) => editItemTags('strengths', id, tags, setStrengths)}
+          onEditItem={(id, updates) => editItem('strengths', id, updates, setStrengths)}
+          onMoveItem={(id, toSection) => moveItem('strengths', id, toSection)}
           color="border-green-500"
           icon="💪"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
@@ -692,8 +823,8 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           setNewItem={setNewWeakness}
           onAdd={() => addItem('weaknesses', newWeakness, setWeaknesses, () => setNewWeakness(''))}
           onRemove={(id) => removeItem('weaknesses', id, setWeaknesses)}
-          onEdit={(id, newText) => editItem('weaknesses', id, newText, setWeaknesses)}
-          onEditTags={(id, tags) => editItemTags('weaknesses', id, tags, setWeaknesses)}
+          onEditItem={(id, updates) => editItem('weaknesses', id, updates, setWeaknesses)}
+          onMoveItem={(id, toSection) => moveItem('weaknesses', id, toSection)}
           color="border-red-500"
           icon="⚠️"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
@@ -706,8 +837,8 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           setNewItem={setNewOpportunity}
           onAdd={() => addItem('opportunities', newOpportunity, setOpportunities, () => setNewOpportunity(''))}
           onRemove={(id) => removeItem('opportunities', id, setOpportunities)}
-          onEdit={(id, newText) => editItem('opportunities', id, newText, setOpportunities)}
-          onEditTags={(id, tags) => editItemTags('opportunities', id, tags, setOpportunities)}
+          onEditItem={(id, updates) => editItem('opportunities', id, updates, setOpportunities)}
+          onMoveItem={(id, toSection) => moveItem('opportunities', id, toSection)}
           color="border-blue-500"
           icon="🎯"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
@@ -720,8 +851,8 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           setNewItem={setNewThreat}
           onAdd={() => addItem('threats', newThreat, setThreats, () => setNewThreat(''))}
           onRemove={(id) => removeItem('threats', id, setThreats)}
-          onEdit={(id, newText) => editItem('threats', id, newText, setThreats)}
-          onEditTags={(id, tags) => editItemTags('threats', id, tags, setThreats)}
+          onEditItem={(id, updates) => editItem('threats', id, updates, setThreats)}
+          onMoveItem={(id, toSection) => moveItem('threats', id, toSection)}
           color="border-orange-500"
           icon="⚡"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
