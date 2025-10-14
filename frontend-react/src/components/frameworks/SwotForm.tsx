@@ -9,12 +9,14 @@ import { Badge } from '@/components/ui/badge'
 import { AIFieldAssistant } from '@/components/ai'
 import { ContentPickerDialog } from './ContentPickerDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { TagInput } from '@/components/ui/tag-input'
 
 interface SwotItem {
   id: string
   text: string
   evidence_ids?: string[]
   confidence?: number
+  tags?: string[]
 }
 
 interface SwotData {
@@ -24,7 +26,38 @@ interface SwotData {
   weaknesses: SwotItem[]
   opportunities: SwotItem[]
   threats: SwotItem[]
+  tags?: string[]
 }
+
+// Suggested tags for autocomplete
+const SUGGESTED_ANALYSIS_TAGS = [
+  // Time-based
+  'Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025',
+  'Short-term', 'Long-term', 'Annual Review',
+  // Location-based
+  'North America', 'Europe', 'Asia', 'Global',
+  'New York', 'London', 'Singapore', 'Remote',
+  // Topic-based
+  'Market Entry', 'Product Launch', 'Digital Transformation',
+  'Competitive Analysis', 'Strategic Planning', 'Risk Assessment',
+  // Business areas
+  'Technology', 'Marketing', 'Sales', 'Operations',
+  'Finance', 'HR', 'Customer Service', 'Supply Chain',
+]
+
+const SUGGESTED_ITEM_TAGS = [
+  // Departments
+  'Finance', 'HR', 'IT', 'Operations', 'Marketing', 'Sales',
+  'R&D', 'Legal', 'Compliance', 'Customer Support',
+  // Categories
+  'Technology', 'Process', 'People', 'Strategy', 'Innovation',
+  'Culture', 'Infrastructure', 'Data', 'Security', 'Quality',
+  // Priority
+  'Critical', 'High Priority', 'Medium Priority', 'Low Priority',
+  'Quick Win', 'Long-term Investment',
+  // Status
+  'Active', 'Planned', 'In Progress', 'Completed', 'On Hold',
+]
 
 interface SwotFormProps {
   initialData?: SwotData
@@ -41,6 +74,7 @@ const QuadrantCard = memo(({
   onAdd,
   onRemove,
   onEdit,
+  onEditTags,
   color,
   icon,
   allData
@@ -53,29 +87,35 @@ const QuadrantCard = memo(({
   onAdd: () => void
   onRemove: (id: string) => void
   onEdit: (id: string, newText: string) => void
+  onEditTags: (id: string, tags: string[]) => void
   color: string
   icon: string
   allData?: SwotData
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [editTags, setEditTags] = useState<string[]>([])
 
   const handleStartEdit = (item: SwotItem) => {
     setEditingId(item.id)
     setEditText(item.text)
+    setEditTags(item.tags || [])
   }
 
   const handleSaveEdit = () => {
     if (editingId && editText.trim()) {
       onEdit(editingId, editText.trim())
+      onEditTags(editingId, editTags)
       setEditingId(null)
       setEditText('')
+      setEditTags([])
     }
   }
 
   const handleCancelEdit = () => {
     setEditingId(null)
     setEditText('')
+    setEditTags([])
   }
 
   return (
@@ -125,60 +165,87 @@ const QuadrantCard = memo(({
           items.map((item) => (
             <div
               key={item.id}
-              className="flex items-start gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+              className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 space-y-2"
             >
               {editingId === item.id ? (
                 <>
-                  <Input
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') handleSaveEdit()
-                      if (e.key === 'Escape') handleCancelEdit()
-                    }}
-                    className="flex-1 text-sm"
-                    autoFocus
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSaveEdit}
-                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                    title="Save"
-                  >
-                    <Save className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCancelEdit}
-                    className="h-8 w-8 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    title="Cancel"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-start gap-2">
+                    <Input
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) handleSaveEdit()
+                        if (e.key === 'Escape') handleCancelEdit()
+                      }}
+                      className="flex-1 text-sm"
+                      autoFocus
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleSaveEdit}
+                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                      title="Save"
+                    >
+                      <Save className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelEdit}
+                      className="h-8 w-8 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      title="Cancel"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div>
+                    <TagInput
+                      tags={editTags}
+                      onChange={setEditTags}
+                      suggestions={SUGGESTED_ITEM_TAGS}
+                      placeholder="Add tags (e.g., Finance, High Priority, In Progress)..."
+                      maxTags={5}
+                      className="text-xs"
+                    />
+                  </div>
                 </>
               ) : (
                 <>
-                  <span className="flex-1 text-sm text-gray-900 dark:text-gray-100">{item.text}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleStartEdit(item)}
-                    className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                    title="Edit"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRemove(item.id)}
-                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    title="Delete"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-start gap-2">
+                    <span className="flex-1 text-sm text-gray-900 dark:text-gray-100">{item.text}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleStartEdit(item)}
+                      className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                      title="Edit"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRemove(item.id)}
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      title="Delete"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {item.tags && item.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {item.tags.map((tag, idx) => (
+                        <Badge
+                          key={idx}
+                          variant="outline"
+                          className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -198,6 +265,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [title, setTitle] = useState(initialData?.title || '')
   const [description, setDescription] = useState(initialData?.description || '')
+  const [tags, setTags] = useState<string[]>(initialData?.tags || [])
   const [strengths, setStrengths] = useState<SwotItem[]>(initialData?.strengths || [])
   const [weaknesses, setWeaknesses] = useState<SwotItem[]>(initialData?.weaknesses || [])
   const [opportunities, setOpportunities] = useState<SwotItem[]>(initialData?.opportunities || [])
@@ -221,6 +289,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
       const draftData = {
         title,
         description,
+        tags,
         strengths,
         weaknesses,
         opportunities,
@@ -256,6 +325,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
             if (confirm(message)) {
               setTitle(draft.title || '')
               setDescription(draft.description || '')
+              setTags(draft.tags || [])
               setStrengths(draft.strengths || [])
               setWeaknesses(draft.weaknesses || [])
               setOpportunities(draft.opportunities || [])
@@ -308,6 +378,17 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   ) => {
     setter(prev => prev.map(item =>
       item.id === id ? { ...item, text: newText } : item
+    ))
+  }
+
+  const editItemTags = (
+    category: 'strengths' | 'weaknesses' | 'opportunities' | 'threats',
+    id: string,
+    tags: string[],
+    setter: React.Dispatch<React.SetStateAction<SwotItem[]>>
+  ) => {
+    setter(prev => prev.map(item =>
+      item.id === id ? { ...item, tags } : item
     ))
   }
 
@@ -397,6 +478,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
       const data = {
         title: title.trim(),
         description: description.trim(),
+        tags,
         strengths,
         weaknesses,
         opportunities,
@@ -535,7 +617,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>Basic Information</CardTitle>
-          <CardDescription>Provide a title and description for your analysis</CardDescription>
+          <CardDescription>Provide a title, description, and tags for your analysis</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -555,6 +637,24 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
               rows={3}
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Tags
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-2">
+                (Help organize and filter analyses)
+              </span>
+            </label>
+            <TagInput
+              tags={tags}
+              onChange={setTags}
+              suggestions={SUGGESTED_ANALYSIS_TAGS}
+              placeholder="Add tags (e.g., Q4 2025, Europe, Product Launch)..."
+              maxTags={10}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Examples: Time periods (Q1 2025), locations (Europe), topics (Market Entry), departments (Marketing)
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -569,6 +669,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           onAdd={() => addItem('strengths', newStrength, setStrengths, () => setNewStrength(''))}
           onRemove={(id) => removeItem('strengths', id, setStrengths)}
           onEdit={(id, newText) => editItem('strengths', id, newText, setStrengths)}
+          onEditTags={(id, tags) => editItemTags('strengths', id, tags, setStrengths)}
           color="border-green-500"
           icon="💪"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
@@ -582,6 +683,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           onAdd={() => addItem('weaknesses', newWeakness, setWeaknesses, () => setNewWeakness(''))}
           onRemove={(id) => removeItem('weaknesses', id, setWeaknesses)}
           onEdit={(id, newText) => editItem('weaknesses', id, newText, setWeaknesses)}
+          onEditTags={(id, tags) => editItemTags('weaknesses', id, tags, setWeaknesses)}
           color="border-red-500"
           icon="⚠️"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
@@ -595,6 +697,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           onAdd={() => addItem('opportunities', newOpportunity, setOpportunities, () => setNewOpportunity(''))}
           onRemove={(id) => removeItem('opportunities', id, setOpportunities)}
           onEdit={(id, newText) => editItem('opportunities', id, newText, setOpportunities)}
+          onEditTags={(id, tags) => editItemTags('opportunities', id, tags, setOpportunities)}
           color="border-blue-500"
           icon="🎯"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
@@ -608,6 +711,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           onAdd={() => addItem('threats', newThreat, setThreats, () => setNewThreat(''))}
           onRemove={(id) => removeItem('threats', id, setThreats)}
           onEdit={(id, newText) => editItem('threats', id, newText, setThreats)}
+          onEditTags={(id, tags) => editItemTags('threats', id, tags, setThreats)}
           color="border-orange-500"
           icon="⚡"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
