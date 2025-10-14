@@ -23,6 +23,7 @@ import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type L
 import { AutoGenerateButton } from '@/components/network'
 import { generateRelationshipsFromMOM } from '@/utils/framework-relationships'
 import { CommentThread } from '@/components/comments/CommentThread'
+import { ShareButton } from './ShareButton'
 import type { CreateRelationshipRequest } from '@/types/entities'
 
 interface DeceptionViewProps {
@@ -41,6 +42,8 @@ interface DeceptionViewProps {
     calculatedAssessment?: DeceptionAssessment
     created_at: string
     updated_at: string
+    is_public?: boolean
+    share_token?: string
   }
   onEdit: () => void
   onDelete: () => void
@@ -173,11 +176,6 @@ export function DeceptionView({
     } finally {
       setExporting(false)
     }
-  }
-
-  const handleShare = () => {
-    // TODO: Implement sharing functionality
-    console.log('Share functionality coming soon')
   }
 
   const handleLinkEvidence = async (selected: LinkedEvidence[]) => {
@@ -313,10 +311,12 @@ export function DeceptionView({
               disabled={generatedRelationships.length === 0}
             />
 
-            <Button variant="outline" onClick={handleShare}>
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
+            <ShareButton
+              frameworkId={data.id}
+              frameworkType="deception"
+              isPublic={data.is_public || false}
+              shareToken={data.share_token}
+            />
 
             {/* Export Dialog */}
             <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
