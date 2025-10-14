@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Plus, Search, Calendar, MapPin, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +13,7 @@ import { EventDetailView } from '@/components/entities/EventDetailView'
 import type { Event, EventType } from '@/types/entities'
 
 export function EventsPage() {
+  const { t } = useTranslation(['entities', 'common'])
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
@@ -216,7 +218,7 @@ export function EventsPage() {
       <div className="p-6">
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">Loading event...</p>
+            <p className="text-gray-500">{t('entities:events.loadingEvent')}</p>
           </CardContent>
         </Card>
       </div>
@@ -231,15 +233,15 @@ export function EventsPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Calendar className="h-8 w-8" />
-            Events
+            {t('entities:events.title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Operations, incidents, meetings, and activities timeline
+            {t('entities:events.description')}
           </p>
         </div>
         <Button onClick={openCreateForm}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Event
+          {t('entities:events.addButton')}
         </Button>
       </div>
 
@@ -248,7 +250,7 @@ export function EventsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Total Events
+              {t('entities:events.stats.total')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -258,7 +260,7 @@ export function EventsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Critical
+              {t('entities:events.stats.critical')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -270,7 +272,7 @@ export function EventsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Operations
+              {t('entities:events.stats.operations')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -282,7 +284,7 @@ export function EventsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              This Month
+              {t('entities:events.stats.thisMonth')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -307,7 +309,7 @@ export function EventsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search events..."
+                  placeholder={t('entities:events.search')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -316,15 +318,15 @@ export function EventsPage() {
             </div>
             <Select value={filterType} onValueChange={(v) => setFilterType(v as EventType | 'all')}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filter by type" />
+                <SelectValue placeholder={t('entities:events.filterType')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="OPERATION">Operation</SelectItem>
-                <SelectItem value="INCIDENT">Incident</SelectItem>
-                <SelectItem value="MEETING">Meeting</SelectItem>
-                <SelectItem value="ACTIVITY">Activity</SelectItem>
-                <SelectItem value="OTHER">Other</SelectItem>
+                <SelectItem value="all">{t('entities:events.types.all')}</SelectItem>
+                <SelectItem value="OPERATION">{t('entities:events.types.operation')}</SelectItem>
+                <SelectItem value="INCIDENT">{t('entities:events.types.incident')}</SelectItem>
+                <SelectItem value="MEETING">{t('entities:events.types.meeting')}</SelectItem>
+                <SelectItem value="ACTIVITY">{t('entities:events.types.activity')}</SelectItem>
+                <SelectItem value="OTHER">{t('entities:events.types.other')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -335,17 +337,17 @@ export function EventsPage() {
       {loading ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">Loading events...</p>
+            <p className="text-gray-500">{t('entities:events.loading')}</p>
           </CardContent>
         </Card>
       ) : filteredEvents.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No events found</p>
+            <p className="text-gray-500">{t('entities:events.empty')}</p>
             <Button className="mt-4" onClick={openCreateForm}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Your First Event
+              {t('entities:events.addFirst')}
             </Button>
           </CardContent>
         </Card>
@@ -360,9 +362,9 @@ export function EventsPage() {
                     <div>
                       <CardTitle className="text-lg">{event.name}</CardTitle>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline">{event.event_type}</Badge>
+                        <Badge variant="outline">{t(`entities:events.types.${event.event_type.toLowerCase()}`)}</Badge>
                         <Badge className={getSignificanceBadge(event.significance)}>
-                          {event.significance}
+                          {t(`entities:events.significance.${event.significance.toLowerCase()}`)}
                         </Badge>
                         {event.confidence && (
                           <Badge variant="secondary">{event.confidence}</Badge>
@@ -393,13 +395,13 @@ export function EventsPage() {
 
                 <div className="flex flex-wrap gap-4 text-xs text-gray-500">
                   {(event as any)._actor_count !== undefined && (
-                    <span>{(event as any)._actor_count} actors</span>
+                    <span>{(event as any)._actor_count} {t('entities:events.counts.actors')}</span>
                   )}
                   {(event as any)._evidence_count !== undefined && (
-                    <span>{(event as any)._evidence_count} evidence</span>
+                    <span>{(event as any)._evidence_count} {t('entities:events.counts.evidence')}</span>
                   )}
                   {event.duration && (
-                    <span>Duration: {Math.round(event.duration / 60 / 24)} days</span>
+                    <span>{t('entities:events.counts.duration')} {Math.round(event.duration / 60 / 24)} {t('entities:events.days')}</span>
                   )}
                 </div>
               </CardContent>
@@ -416,7 +418,7 @@ export function EventsPage() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingEvent ? 'Edit Event' : 'Create New Event'}
+              {editingEvent ? t('entities:events.dialog.edit') : t('entities:events.dialog.create')}
             </DialogTitle>
           </DialogHeader>
           <EventForm
