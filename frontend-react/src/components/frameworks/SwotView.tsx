@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Network, Database, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Network, Database, CheckCircle, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,7 @@ interface SwotItem {
   text: string
   evidence_ids?: string[]
   confidence?: number
+  tags?: string[]
 }
 
 interface SwotData {
@@ -27,6 +28,7 @@ interface SwotData {
   updated_at?: string
   is_public?: boolean
   share_token?: string
+  tags?: string[]
 }
 
 interface SwotViewProps {
@@ -76,7 +78,7 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
               return (
                 <li
                   key={item.id}
-                  className={`p-3 rounded-lg ${bgColor} text-sm`}
+                  className={`p-3 rounded-lg ${bgColor} text-sm space-y-2`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
@@ -112,6 +114,19 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
                       )}
                     </div>
                   </div>
+                  {item.tags && item.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pl-5">
+                      {item.tags.map((tag, tagIdx) => (
+                        <Badge
+                          key={tagIdx}
+                          variant="outline"
+                          className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </li>
               )
             })}
@@ -141,6 +156,20 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
               <p className="text-gray-600 dark:text-gray-400 mt-1">
                 {data.description}
               </p>
+            )}
+            {data.tags && data.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {data.tags.map((tag, idx) => (
+                  <Badge
+                    key={idx}
+                    variant="outline"
+                    className="text-xs px-2 py-1 bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300"
+                  >
+                    <Tag className="h-3 w-3 mr-1" />
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
             )}
           </div>
         </div>
