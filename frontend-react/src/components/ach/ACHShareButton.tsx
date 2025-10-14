@@ -50,7 +50,7 @@ export function ACHShareButton({
   const [isPublic, setIsPublic] = useState(initialIsPublic)
   const [shareToken, setShareToken] = useState(initialShareToken)
   const [domain, setDomain] = useState<ACHDomain | ''>(initialDomain || '')
-  const [tags, setTags] = useState<string[]>(initialTags || [])
+  const [tags, setTags] = useState<string[]>(initialTags && Array.isArray(initialTags) ? initialTags : [])
   const [newTag, setNewTag] = useState('')
   const [copied, setCopied] = useState(false)
   const [sharing, setSharing] = useState(false)
