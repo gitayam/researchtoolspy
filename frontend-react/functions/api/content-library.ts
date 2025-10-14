@@ -39,8 +39,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     let query = `
       SELECT
         id, url, url_normalized, title, author, publish_date, domain,
-        summary, word_count, entities, created_at, updated_at,
-        access_count, last_accessed_at
+        summary, word_count, key_entities, created_at, updated_at,
+        last_accessed_at
       FROM content_intelligence
       WHERE 1=1
     `
@@ -52,7 +52,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Filter by user authentication
     if (userHash && userHash !== 'guest') {
-      query += ` AND bookmark_hash = ?`
+      query += ` AND user_hash = ?`
       params.push(userHash)
     } else if (authToken) {
       // TODO: Get user_id from session token
@@ -68,7 +68,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const content = (results.results || []).map((row: any) => ({
       ...row,
-      entities: row.entities ? JSON.parse(row.entities) : {},
+      key_entities: row.key_entities ? JSON.parse(row.key_entities) : [],
       from_cache: false // Add cache indicator if needed
     }))
 
