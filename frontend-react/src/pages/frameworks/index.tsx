@@ -1,7 +1,7 @@
 import { FrameworkPlaceholder } from './FrameworkPlaceholder'
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Plus, Search, Grid3x3, MoreVertical, ExternalLink, CheckCircle, XCircle, Tag, X } from 'lucide-react'
+import { Plus, Search, Grid3x3, MoreVertical, ExternalLink, CheckCircle, XCircle, Tag, X, Merge } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { safeJSONParse } from '@/utils/safe-json'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ import {
 import { SwotForm } from '@/components/frameworks/SwotForm'
 import { SwotView } from '@/components/frameworks/SwotView'
 import { SwotComparisonView } from '@/components/frameworks/SwotComparisonView'
+import { SwotMergeDialog } from '@/components/frameworks/SwotMergeDialog'
 import { GenericFrameworkForm } from '@/components/frameworks/GenericFrameworkForm'
 import { GenericFrameworkView } from '@/components/frameworks/GenericFrameworkView'
 import { DeceptionForm } from '@/components/frameworks/DeceptionForm'
@@ -37,6 +38,7 @@ export const SwotPage = () => {
   const [loading, setLoading] = useState(false)
   const [comparisonMode, setComparisonMode] = useState(false)
   const [comparisonTag, setComparisonTag] = useState<string | null>(null)
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false)
   const navigate = useNavigate()
   const { id } = useParams()
   const location = useLocation()
@@ -148,6 +150,18 @@ export const SwotPage = () => {
       console.error('Failed to delete:', error)
       alert('Failed to delete analysis')
     }
+  }
+
+  const handleMerge = async (mergedData: any) => {
+    await handleSave(mergedData)
+    await loadAnalyses()
+    alert('Analyses merged successfully!')
+  }
+
+  const handleExtract = async (extractedData: any, selectedTags: string[]) => {
+    await handleSave(extractedData)
+    await loadAnalyses()
+    alert(`Extracted items with tags: ${selectedTags.join(', ')}`)
   }
 
   // Show form for create mode
@@ -311,13 +325,24 @@ export const SwotPage = () => {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">SWOT Analysis</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">Strengths, Weaknesses, Opportunities, and Threats</p>
         </div>
-        <Button onClick={() => {
-          console.log('SWOT New Analysis button clicked, navigating to:', '/dashboard/analysis-frameworks/swot-dashboard/create')
-          navigate('/dashboard/analysis-frameworks/swot-dashboard/create')
-        }}>
-          <Plus className="h-4 w-4 mr-2" />
-          {t('frameworkPages.newAnalysis')}
-        </Button>
+        <div className="flex gap-2">
+          {analyses.length >= 2 && (
+            <Button
+              variant="outline"
+              onClick={() => setMergeDialogOpen(true)}
+            >
+              <Merge className="h-4 w-4 mr-2" />
+              Merge/Split
+            </Button>
+          )}
+          <Button onClick={() => {
+            console.log('SWOT New Analysis button clicked, navigating to:', '/dashboard/analysis-frameworks/swot-dashboard/create')
+            navigate('/dashboard/analysis-frameworks/swot-dashboard/create')
+          }}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('frameworkPages.newAnalysis')}
+          </Button>
+        </div>
       </div>
 
       {/* Framework Context */}
@@ -552,6 +577,23 @@ export const SwotPage = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Merge/Split Dialog */}
+      <SwotMergeDialog
+        open={mergeDialogOpen}
+        onClose={() => setMergeDialogOpen(false)}
+        analyses={analyses.map(analysis => {
+          const parsedData = typeof analysis.data === 'object' ? analysis.data : safeJSONParse(analysis.data, {})
+          return {
+            ...parsedData,
+            id: analysis.id,
+            title: analysis.title,
+            description: analysis.description
+          }
+        })}
+        onMerge={handleMerge}
+        onExtract={handleExtract}
+      />
     </div>
   )
 }
