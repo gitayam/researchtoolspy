@@ -23,10 +23,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserIdOrDefault(context.request, context.env)
     const data = await context.request.json() as ShareRequest
 
-    // Verify ownership
-    const existing = await context.env.DB.prepare(
-      'SELECT id, share_token, is_public FROM ach_analyses WHERE id = ? AND user_id = ?'
-    ).bind(id, userId).first()
+    // Verify ownership - try with new columns first, fallback to basic
+    let existing: any
+    try {
+      existing = await context.env.DB.prepare(
+        'SELECT id, share_token, is_public, domain, tags, shared_publicly_at FROM ach_analyses WHERE id = ? AND user_id = ?'
+      ).bind(id, userId).first()
+    } catch (err) {
+      // Columns might not exist yet, try basic query
+      console.log('Falling back to basic SELECT:', err)
+      existing = await context.env.DB.prepare(
+        'SELECT id FROM ach_analyses WHERE id = ? AND user_id = ?'
+      ).bind(id, userId).first()
+    }
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Analysis not found or access denied' }), {
@@ -46,6 +55,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Update analysis with sharing settings
     // Try to update with all fields, fall back if columns don't exist
+    let updateSuccess = false
+
     try {
       await context.env.DB.prepare(`
         UPDATE ach_analyses SET
@@ -65,21 +76,34 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         now,
         id
       ).run()
+      updateSuccess = true
     } catch (updateError) {
       // Fall back to basic update if columns don't exist
-      console.warn('Falling back to basic share update:', updateError)
-      await context.env.DB.prepare(`
-        UPDATE ach_analyses SET
-          is_public = ?,
-          share_token = ?,
-          updated_at = ?
-        WHERE id = ?
-      `).bind(
-        data.is_public ? 1 : 0,
-        shareToken,
-        now,
-        id
-      ).run()
+      console.warn('Falling back to basic share update. Columns may not exist yet:', updateError)
+      console.warn('Error details:', updateError instanceof Error ? updateError.message : String(updateError))
+
+      try {
+        await context.env.DB.prepare(`
+          UPDATE ach_analyses SET
+            is_public = ?,
+            share_token = ?,
+            updated_at = ?
+          WHERE id = ?
+        `).bind(
+          data.is_public ? 1 : 0,
+          shareToken,
+          now,
+          id
+        ).run()
+        updateSuccess = true
+      } catch (fallbackError) {
+        console.error('Even basic update failed:', fallbackError)
+        throw new Error(`Failed to update analysis sharing: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`)
+      }
+    }
+
+    if (!updateSuccess) {
+      throw new Error('Failed to update analysis sharing settings')
     }
 
     return new Response(JSON.stringify({
