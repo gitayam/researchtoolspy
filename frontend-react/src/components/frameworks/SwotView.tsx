@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ExportButton } from '@/components/reports/ExportButton'
 import { CommentThread } from '@/components/comments/CommentThread'
+import { SwotInsights } from './SwotInsights'
 
 interface SwotItem {
   id: string
@@ -288,6 +289,14 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
           icon="⚡"
         />
       </div>
+
+      {/* Strategic Insights & TOWS Analysis */}
+      <SwotInsights
+        strengths={data.strengths}
+        weaknesses={data.weaknesses}
+        opportunities={data.opportunities}
+        threats={data.threats}
+      />
 
       {/* Comments Section */}
       <CommentThread
