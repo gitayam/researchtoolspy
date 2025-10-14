@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { ExportButton } from '@/components/reports/ExportButton'
 import { CommentThread } from '@/components/comments/CommentThread'
 import { SwotInsights } from './SwotInsights'
+import { ShareButton } from './ShareButton'
 
 interface SwotItem {
   id: string
@@ -24,6 +25,8 @@ interface SwotData {
   threats: SwotItem[]
   created_at?: string
   updated_at?: string
+  is_public?: boolean
+  share_token?: string
 }
 
 interface SwotViewProps {
@@ -176,6 +179,12 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
             <Network className="h-4 w-4 mr-2" />
             View in Network
           </Button>
+          <ShareButton
+            frameworkId={data.id}
+            frameworkType="swot"
+            isPublic={data.is_public || false}
+            shareToken={data.share_token}
+          />
           <ExportButton
             frameworkType="swot"
             frameworkTitle="SWOT Analysis"

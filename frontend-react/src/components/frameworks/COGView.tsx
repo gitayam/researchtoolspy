@@ -14,6 +14,7 @@ import { COGPowerPointExport } from '@/components/frameworks/COGPowerPointExport
 import { COGExcelExport } from '@/components/frameworks/COGExcelExport'
 import { COGPDFExport } from '@/components/frameworks/COGPDFExport'
 import { PublishDialog } from '@/components/library/PublishDialog'
+import { ShareButton } from './ShareButton'
 import {
   type COGAnalysis,
   type CenterOfGravity,
@@ -290,6 +291,12 @@ ${Object.entries(centralityMeasures.degree_centrality)
             <Network className="h-4 w-4 mr-2" />
             {t('view.header.viewInNetwork')}
           </Button>
+          <ShareButton
+            frameworkId={data.id}
+            frameworkType="cog"
+            isPublic={data.is_public || false}
+            shareToken={data.share_token}
+          />
           <Button variant="outline" onClick={() => setPublishDialogOpen(true)}>
             <Share2 className="h-4 w-4 mr-2" />
             {t('view.header.publishToLibrary')}
