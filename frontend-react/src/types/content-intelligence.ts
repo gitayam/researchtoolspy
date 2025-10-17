@@ -91,6 +91,7 @@ export interface LinkInfo {
   count: number // How many times this link appears
   domain: string
   is_external: boolean
+  first_occurrence_index: number // Position where this link first appears (for chronological sorting)
 }
 
 export interface ContentAnalysis {

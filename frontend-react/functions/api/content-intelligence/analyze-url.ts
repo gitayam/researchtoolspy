@@ -1484,6 +1484,7 @@ interface LinkInfo {
   count: number  // How many times this link appears
   domain: string
   is_external: boolean
+  first_occurrence_index: number  // Position where this link first appears (for chronological sorting)
 }
 
 function extractBodyLinks(html: string, sourceUrl: string): LinkInfo[] {
@@ -1509,10 +1510,11 @@ function extractBodyLinks(html: string, sourceUrl: string): LinkInfo[] {
 
   // Find all anchor tags with href
   const linkPattern = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi
-  const linkMap = new Map<string, { texts: Set<string>, count: number }>()
+  const linkMap = new Map<string, { texts: Set<string>, count: number, firstIndex: number }>()
 
   let match
   let totalLinksFound = 0
+  let validLinkIndex = 0  // Track the index of valid links for chronological sorting
   while ((match = linkPattern.exec(bodyHtml)) !== null) {
     totalLinksFound++
     let url = match[1].trim()
@@ -1554,11 +1556,12 @@ function extractBodyLinks(html: string, sourceUrl: string): LinkInfo[] {
 
     // Track this link
     if (!linkMap.has(url)) {
-      linkMap.set(url, { texts: new Set(), count: 0 })
+      linkMap.set(url, { texts: new Set(), count: 0, firstIndex: validLinkIndex })
     }
     const linkData = linkMap.get(url)!
     linkData.count++
     linkData.texts.add(anchorText)
+    validLinkIndex++
   }
 
   // Convert to array and add domain/external info
@@ -1574,7 +1577,8 @@ function extractBodyLinks(html: string, sourceUrl: string): LinkInfo[] {
         anchor_text: Array.from(data.texts),
         count: data.count,
         domain,
-        is_external: isExternal
+        is_external: isExternal,
+        first_occurrence_index: data.firstIndex
       })
     } catch (e) {
       // Skip invalid URLs
