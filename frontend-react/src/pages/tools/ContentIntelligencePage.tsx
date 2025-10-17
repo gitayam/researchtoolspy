@@ -3092,9 +3092,10 @@ ${shortSummary}${
                 })()}
 
                 {wordCloudView === 'phrases' && analysis.top_phrases
+                  .filter(item => item.phrase.includes(' ')) // Only show phrases with 2+ words
                   .slice(0, 10)
                   .map((item, index) => {
-                    const maxCount = Math.max(...analysis.top_phrases.map(p => p.count))
+                    const maxCount = Math.max(...analysis.top_phrases.filter(p => p.phrase.includes(' ')).map(p => p.count))
                     const minSize = 16
                     const maxSize = 48
                     const fontSize = minSize + ((item.count / maxCount) * (maxSize - minSize))
@@ -3218,7 +3219,7 @@ ${shortSummary}${
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Top Phrases (2-10 words)</h3>
               <div className="grid md:grid-cols-2 gap-4">
-                {analysis.top_phrases.slice(0, 20).map((item, index) => (
+                {analysis.top_phrases.filter(item => item.phrase.includes(' ')).slice(0, 20).map((item, index) => (
                   <div key={index} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                     <div className="flex items-start gap-3">
                       <span className="text-lg font-bold text-muted-foreground/50 min-w-[32px]">
@@ -3240,9 +3241,9 @@ ${shortSummary}${
                   </div>
                 ))}
               </div>
-              {analysis.top_phrases.length > 20 && (
+              {analysis.top_phrases.filter(item => item.phrase.includes(' ')).length > 20 && (
                 <p className="text-sm text-muted-foreground mt-4 text-center">
-                  Showing top 20 of {analysis.top_phrases.length} phrases
+                  Showing top 20 of {analysis.top_phrases.filter(item => item.phrase.includes(' ')).length} phrases
                 </p>
               )}
             </Card>
