@@ -4,7 +4,7 @@
  * Returns all user adjustments for a specific content analysis
  */
 
-import { requireAuth } from '../_shared/auth-helpers'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -13,13 +13,8 @@ interface Env {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    // Get user ID (supports hash-based auth and session auth)
+    const userId = await getUserIdOrDefault(context.request, context.env)
 
     // Get content_analysis_id from URL path
     // URL format: /api/claims/get-adjustments/:id
@@ -48,8 +43,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (analysis.user_id !== auth.user.id) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    // Allow access if user owns the analysis
+    if (analysis.user_id !== userId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized - you can only view your own adjustments' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' }
       })

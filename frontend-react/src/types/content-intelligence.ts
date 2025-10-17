@@ -70,6 +70,7 @@ export interface EntitiesData {
   events?: EntityMention[]
   products?: EntityMention[]
   percentages?: EntityMention[]
+  emails?: Array<{ email: string; count: number }>
 }
 
 export interface ArchiveUrls {
@@ -82,6 +83,14 @@ export interface BypassUrls {
   '12ft': string
   wayback?: string
   archive_is?: string
+}
+
+export interface LinkInfo {
+  url: string
+  anchor_text: string[] // All different anchor texts used for this URL
+  count: number // How many times this link appears
+  domain: string
+  is_external: boolean
 }
 
 export interface ContentAnalysis {
@@ -130,6 +139,9 @@ export interface ContentAnalysis {
 
   // Entity Extraction
   entities: EntitiesData
+
+  // Link Analysis (helps researchers discover sources and references)
+  links_analysis?: LinkInfo[]
 
   // Sentiment Analysis
   sentiment_analysis?: {
@@ -290,6 +302,7 @@ export type AnalysisTab =
   | 'word-analysis'
   | 'sentiment'
   | 'entities'
+  | 'links'
   | 'claims'
   | 'qa'
   | 'starbursting'

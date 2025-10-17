@@ -5,11 +5,13 @@
  * POST: Generate COG components (identification, capabilities, requirements, vulnerabilities, impact)
  */
 
+import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+
 interface Env {
   AI_CONFIG: KVNamespace
   OPENAI_API_KEY?: string
   OPENAI_ORGANIZATION?: string
-  ENABLE_AI_FEATURES?: string
+  AI_GATEWAY_ACCOUNT_ID?: string
 }
 
 type AnalysisMode =
@@ -107,7 +109,7 @@ Based on the operational context above, suggest 2-3 potential Centers of Gravity
 3. Primary DIMEFIL domain (Diplomatic/Information/Military/Economic/Financial/Intelligence/Law Enforcement/Cyber/Space)
 4. Brief rationale (why this is a COG)
 
-Format your response as a JSON array:
+Format your response as JSON (return an array directly):
 [
   {
     "description": "COG description here",
@@ -193,7 +195,7 @@ Requirements:
 - Be specific to this COG and domain
 - Consider DIMEFIL aspects relevant to the domain
 
-Format your response as a JSON array:
+Format your response as JSON (return an array directly):
 [
   {
     "capability": "Verb-focused capability statement",
@@ -235,7 +237,7 @@ Requirements:
 - Classify by type: Personnel, Equipment, Logistics, Information, Infrastructure, Other
 - Be specific and targetable
 
-Format your response as a JSON array:
+Format your response as JSON (return an array directly):
 [
   {
     "requirement": "Specific noun-focused requirement",
@@ -282,7 +284,7 @@ Requirements:
 - Provide realistic assessment of exploitability
 - Include both direct and indirect approaches
 
-Format your response as a JSON array:
+Format your response as JSON (return an array directly):
 [
   {
     "vulnerability": "Specific exploitable weakness",
@@ -356,16 +358,9 @@ Format your response as JSON:
  */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    // Check if AI features are enabled
-    if (context.env.ENABLE_AI_FEATURES !== 'true') {
-      return Response.json({
-        error: 'AI features are disabled'
-      }, { status: 403 })
-    }
-
-    // Get API key
-    const apiKey = context.env.OPENAI_API_KEY
-    if (!apiKey) {
+    // Check API key availability (same as content-intelligence)
+    if (!context.env.OPENAI_API_KEY) {
+      console.error('[COG AI] OpenAI API key not available')
       return Response.json({
         error: 'OpenAI API key not configured'
       }, { status: 500 })
@@ -419,38 +414,30 @@ Always provide specific, targetable recommendations that support operational pla
       response_format: { type: 'json_object' } // Ensure JSON responses for structured modes
     }
 
-    // Call OpenAI API with timeout
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000) // 15s timeout
+    // Call OpenAI via AI Gateway (same approach as content-intelligence)
+    console.log('[COG AI] Calling OpenAI via gateway for mode:', request.mode)
 
-    let response: Response
+    let data
     try {
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          ...(context.env.OPENAI_ORGANIZATION && {
-            'OpenAI-Organization': context.env.OPENAI_ORGANIZATION
-          })
-        },
-        body: JSON.stringify(openaiRequest),
-        signal: controller.signal
-      })
-    } finally {
-      clearTimeout(timeout)
-    }
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Unknown error' } }))
-      console.error('OpenAI API error:', error)
+      data = await callOpenAIViaGateway(
+        context.env,
+        openaiRequest,
+        {
+          cacheTTL: getOptimalCacheTTL('cog-analysis'),
+          metadata: {
+            endpoint: 'cog-analysis',
+            mode: request.mode
+          },
+          timeout: 30000 // 30s timeout for COG analysis
+        }
+      )
+    } catch (error) {
+      console.error('[COG AI] OpenAI API error:', error)
       return Response.json({
         error: 'AI generation failed',
-        message: error.error?.message || response.statusText
-      }, { status: response.status })
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 500 })
     }
-
-    const data = await response.json()
 
     // Extract response
     const content = data.choices[0].message.content
@@ -476,6 +463,29 @@ Always provide specific, targetable recommendations that support operational pla
       }, { status: 500 })
     }
 
+    // Normalize response format - GPT sometimes wraps arrays in objects
+    // Extract the actual data from wrapper objects
+    if (result && typeof result === 'object') {
+      // Check if it's wrapped in a common key name
+      const wrapperKeys = [
+        'COGs',
+        'capabilities',
+        'requirements',
+        'vulnerabilities',
+        'potential_centers_of_gravity',
+        'critical_capabilities',
+        'critical_requirements',
+        'critical_vulnerabilities'
+      ]
+      for (const key of wrapperKeys) {
+        if (Array.isArray(result[key])) {
+          console.log(`[COG AI] Unwrapping array from "${key}" key`)
+          result = result[key]
+          break
+        }
+      }
+    }
+
     // Update usage statistics (async, don't wait)
     context.waitUntil(updateUsageStats(context.env.AI_CONFIG, tokensUsed.total, cost))
 
@@ -490,11 +500,11 @@ Always provide specific, targetable recommendations that support operational pla
   } catch (error) {
     console.error('COG Analysis error:', error)
 
-    // Handle timeout
+    // Handle timeout and other errors
     if (error instanceof Error && error.name === 'AbortError') {
       return Response.json({
         error: 'Request timeout',
-        message: 'AI analysis took too long (>15s). Please try again.'
+        message: 'AI analysis took too long (>30s). Please try again.'
       }, { status: 504 })
     }
 
