@@ -57,6 +57,10 @@ export default function ContentIntelligencePage() {
   const [citationSaved, setCitationSaved] = useState(false)
   const [currentCitationData, setCurrentCitationData] = useState<any>(null)
 
+  // Links Analysis State
+  const [linkFilter, setLinkFilter] = useState<'all' | 'external' | 'internal'>('all')
+  const [linkSort, setLinkSort] = useState<'references' | 'chronological'>('references')
+
   // Country Origin State
   const [countryInfo, setCountryInfo] = useState<any>(null)
   const [countryLoading, setCountryLoading] = useState(false)
@@ -3870,59 +3874,151 @@ ${shortSummary}${
                         </div>
                       </div>
 
+                      {/* Filter and Sort Controls */}
+                      <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        {/* Filter Controls */}
+                        <div className="flex-1">
+                          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                            Filter by Type
+                          </label>
+                          <div className="flex gap-2">
+                            <Button
+                              variant={linkFilter === 'all' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setLinkFilter('all')}
+                              className="flex-1"
+                            >
+                              All ({analysis.links_analysis.length})
+                            </Button>
+                            <Button
+                              variant={linkFilter === 'external' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setLinkFilter('external')}
+                              className="flex-1"
+                            >
+                              External ({analysis.links_analysis.filter(l => l.is_external).length})
+                            </Button>
+                            <Button
+                              variant={linkFilter === 'internal' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setLinkFilter('internal')}
+                              className="flex-1"
+                            >
+                              Internal ({analysis.links_analysis.filter(l => !l.is_external).length})
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Sort Controls */}
+                        <div className="flex-1">
+                          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                            Sort by
+                          </label>
+                          <div className="flex gap-2">
+                            <Button
+                              variant={linkSort === 'references' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setLinkSort('references')}
+                              className="flex-1"
+                            >
+                              Most Referenced
+                            </Button>
+                            <Button
+                              variant={linkSort === 'chronological' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setLinkSort('chronological')}
+                              className="flex-1"
+                            >
+                              Chronological
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Links List */}
                       <div className="space-y-3">
-                        {analysis.links_analysis.map((link, idx) => (
-                          <div
-                            key={idx}
-                            className="border-l-4 border-blue-500 dark:border-blue-400 pl-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <a
-                                    href={link.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium break-all flex items-center gap-1"
-                                  >
-                                    <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                                    {link.url}
-                                  </a>
-                                </div>
-                                <div className="flex flex-wrap items-center gap-2 mt-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    {link.domain}
-                                  </Badge>
-                                  <Badge variant={link.is_external ? "default" : "secondary"} className="text-xs">
-                                    {link.is_external ? "External" : "Internal"}
-                                  </Badge>
-                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                    Referenced {link.count}× in article
-                                  </span>
-                                </div>
-                                {link.anchor_text.length > 0 && (
-                                  <div className="mt-2">
-                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                      Anchor text:{' '}
-                                    </span>
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                      {link.anchor_text.map((text, i) => (
-                                        <Badge
-                                          key={i}
-                                          variant="outline"
-                                          className="text-xs bg-white dark:bg-gray-900"
-                                        >
-                                          "{text}"
-                                        </Badge>
-                                      ))}
+                        {(() => {
+                          // Apply filtering
+                          let filteredLinks = analysis.links_analysis
+                          if (linkFilter === 'external') {
+                            filteredLinks = filteredLinks.filter(l => l.is_external)
+                          } else if (linkFilter === 'internal') {
+                            filteredLinks = filteredLinks.filter(l => !l.is_external)
+                          }
+
+                          // Apply sorting
+                          const sortedLinks = [...filteredLinks].sort((a, b) => {
+                            if (linkSort === 'chronological') {
+                              return (a.first_occurrence_index || 0) - (b.first_occurrence_index || 0)
+                            } else {
+                              // Sort by references (count) - default
+                              return b.count - a.count
+                            }
+                          })
+
+                          return sortedLinks.length > 0 ? (
+                            sortedLinks.map((link, idx) => (
+                              <div
+                                key={idx}
+                                className="border-l-4 border-blue-500 dark:border-blue-400 pl-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <a
+                                        href={link.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium break-all flex items-center gap-1"
+                                      >
+                                        <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                        {link.url}
+                                      </a>
                                     </div>
+                                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                                      <Badge variant="outline" className="text-xs">
+                                        {link.domain}
+                                      </Badge>
+                                      <Badge variant={link.is_external ? "default" : "secondary"} className="text-xs">
+                                        {link.is_external ? "External" : "Internal"}
+                                      </Badge>
+                                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                        Referenced {link.count}× in article
+                                      </span>
+                                      {linkSort === 'chronological' && (
+                                        <Badge variant="outline" className="text-xs">
+                                          Position #{(link.first_occurrence_index || 0) + 1}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {link.anchor_text.length > 0 && (
+                                      <div className="mt-2">
+                                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                          Anchor text:{' '}
+                                        </span>
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {link.anchor_text.map((text, i) => (
+                                            <Badge
+                                              key={i}
+                                              variant="outline"
+                                              className="text-xs bg-white dark:bg-gray-900"
+                                            >
+                                              "{text}"
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
+                                </div>
                               </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                              No {linkFilter === 'all' ? '' : linkFilter} links found
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })()}
                       </div>
                     </div>
                   </CardContent>
