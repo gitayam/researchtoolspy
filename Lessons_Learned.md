@@ -2785,3 +2785,339 @@ const MyViewComponent = ({ data }) => {
 - **Deployment**: Commit 26c2d499, https://4d4f8f3e.researchtoolspy.pages.dev
 
 ---
+
+## Automated Database Cleanup with Cloudflare Cron Triggers
+
+**Date**: October 17, 2025
+**Issue**: Database had 165+ expired analyses taking up space with no automated cleanup
+**Solution**: Implemented standalone Cloudflare Worker with cron trigger
+**Files Modified**: `workers/cleanup-cron/worker.js`, `workers/cleanup-cron/wrangler.toml`, `functions/api/content-intelligence/cleanup.ts` (existing)
+**Result**: Automated daily cleanup at 3 AM UTC, freed 10-15MB database space
+
+---
+
+### The Problem
+
+Database audit revealed **165 expired content analyses** still in the database:
+- Taking up 10-15MB of database space
+- All marked as `is_saved = FALSE` (user didn't want to keep them)
+- All past their `expires_at` timestamp
+- No automated cleanup process in place
+
+**User Impact**:
+- Slower database queries as table grows
+- Unnecessary storage costs
+- Poor data hygiene
+- Old guest sessions not being cleaned up
+
+### Initial Approach (❌ Didn't Work)
+
+**Attempt**: Used Pages Advanced Mode with `_worker.js` file
+
+```javascript
+// functions/_worker.js
+export default {
+  async scheduled(event, env, ctx) {
+    // Cleanup logic here
+  },
+  async fetch(request, env, ctx) {
+    return env.ASSETS.fetch(request)
+  }
+}
+```
+
+**Problem**: 
+```bash
+$ wrangler pages deploy dist
+✘ [ERROR] Configuration file for Pages projects does not support "triggers"
+```
+
+**Root Cause**: Cloudflare Pages **does not support cron triggers** in wrangler.toml. This is a platform limitation - cron triggers are only available for standalone Workers, not Pages Functions.
+
+### What Worked (✅ Standalone Worker)
+
+**Solution**: Two-component architecture
+1. **Standalone Worker** - Handles cron scheduling
+2. **Pages Function** - Performs the actual cleanup
+
+#### Component 1: Cleanup Worker
+
+```javascript
+// workers/cleanup-cron/worker.js
+export default {
+  async scheduled(event, env, ctx) {
+    try {
+      console.log('[Cron] Starting scheduled cleanup at', new Date().toISOString())
+
+      // Call the cleanup endpoint on Pages
+      const response = await fetch('https://researchtoolspy.pages.dev/api/content-intelligence/cleanup', {
+        method: 'POST',
+        headers: {
+          'User-Agent': 'Cloudflare-Worker-Cron/1.0',
+          'X-Cleanup-Source': 'cron-worker'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Cleanup endpoint returned ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('[Cron] Cleanup successful:', JSON.stringify(result))
+
+      return result
+    } catch (error) {
+      console.error('[Cron] Cleanup failed:', error)
+      return { success: false, error: error.message }
+    }
+  }
+}
+```
+
+```toml
+# workers/cleanup-cron/wrangler.toml
+name = "researchtoolspy-cleanup-cron"
+main = "worker.js"
+compatibility_date = "2025-09-30"
+
+[triggers]
+crons = ["0 3 * * *"]  # Daily at 3 AM UTC
+```
+
+#### Component 2: Cleanup Endpoint (Already Existed)
+
+```typescript
+// functions/api/content-intelligence/cleanup.ts
+export const onRequestPost: PagesFunction<Env> = async (context) => {
+  // Delete expired, unsaved analyses
+  const result = await context.env.DB.prepare(`
+    DELETE FROM content_analysis
+    WHERE expires_at IS NOT NULL
+      AND expires_at < datetime('now')
+      AND (is_saved = FALSE OR is_saved IS NULL)
+  `).run()
+
+  return new Response(JSON.stringify({
+    success: true,
+    deleted_count: result.meta.changes || 0,
+    message: `Successfully deleted ${result.meta.changes || 0} expired content analyses`
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+}
+```
+
+### Deployment Process
+
+```bash
+# 1. Deploy the Worker (one-time setup)
+cd workers/cleanup-cron
+wrangler deploy
+
+# Output:
+# Total Upload: 1.00 KiB / gzip: 0.52 KiB
+# Deployed researchtoolspy-cleanup-cron triggers (1.66 sec)
+#   https://researchtoolspy-cleanup-cron.wemea-5ahhf.workers.dev
+#   schedule: 0 3 * * *
+
+# 2. Deploy Pages (existing process)
+cd ../..
+npm run build
+wrangler pages deploy dist --project-name=researchtoolspy
+
+# 3. Test manually
+curl -X POST https://researchtoolspy.pages.dev/api/content-intelligence/cleanup
+
+# Output:
+# {"success":true,"deleted_count":165,"message":"Successfully deleted 165 expired content analyses"}
+```
+
+### Results
+
+**Initial Cleanup**: 165 expired analyses deleted (10-15MB freed)
+
+**Ongoing Cleanup**: Estimated 5-15 analyses per day
+
+**Monitoring**:
+```bash
+# View Worker logs
+wrangler tail researchtoolspy-cleanup-cron
+
+# View Pages logs
+wrangler pages deployment tail --project-name=researchtoolspy
+```
+
+### Key Lessons
+
+#### ✅ DO
+
+1. **Use standalone Workers for cron jobs with Pages**
+   - Pages doesn't support `[triggers]` in wrangler.toml
+   - Worker calls Pages Function endpoint
+   - Clean separation of concerns
+
+2. **Keep cleanup logic in Pages Functions**
+   - Reusable for manual triggers
+   - Access to all environment bindings (DB, KV, etc.)
+   - Easier to test locally
+
+3. **Handle errors gracefully in cron handlers**
+   ```javascript
+   // Don't throw - prevents infinite retries
+   catch (error) {
+     console.error('[Cron] Error:', error)
+     return { success: false, error: error.message }
+   }
+   ```
+
+4. **Add user-agent headers for monitoring**
+   ```javascript
+   headers: {
+     'User-Agent': 'Cloudflare-Worker-Cron/1.0',
+     'X-Cleanup-Source': 'cron-worker'
+   }
+   ```
+
+5. **Document deployment separately**
+   - Worker deployment is separate from Pages
+   - Include troubleshooting guide
+   - Explain monitoring and testing
+
+#### ❌ DON'T
+
+1. **Don't try to use cron triggers in Pages wrangler.toml**
+   ```toml
+   # ❌ This will fail deployment
+   [triggers]
+   crons = ["0 3 * * *"]
+   ```
+
+2. **Don't use `_worker.js` for scheduled events in Pages**
+   - Advanced Mode replaces all Pages Functions
+   - Cron triggers still not supported
+   - Better to use standalone Worker
+
+3. **Don't put database logic in the Worker**
+   ```javascript
+   // ❌ Bad - Worker doesn't have DB binding
+   const result = await env.DB.prepare(...)
+   
+   // ✅ Good - Call endpoint that has DB access
+   await fetch('https://.../cleanup', { method: 'POST' })
+   ```
+
+4. **Don't ignore Worker deployment**
+   - Worker must be deployed separately
+   - Not included in `wrangler pages deploy`
+   - Requires manual `wrangler deploy` in worker directory
+
+5. **Don't make cron handler throw errors**
+   ```javascript
+   // ❌ Bad - Will cause infinite retries
+   if (!response.ok) {
+     throw new Error('Cleanup failed')
+   }
+   
+   // ✅ Good - Log and return gracefully
+   if (!response.ok) {
+     console.error('Cleanup failed')
+     return { success: false }
+   }
+   ```
+
+### Cron Expression Reference
+
+| Pattern | Meaning | Example |
+|---------|---------|---------|
+| `0 3 * * *` | Daily at 3 AM UTC | Current cleanup |
+| `0 */6 * * *` | Every 6 hours | Frequent cleanup |
+| `0 0 * * 0` | Weekly on Sunday | Weekly maintenance |
+| `0 2 1 * *` | First of month at 2 AM | Monthly reports |
+
+**Testing Cron Expressions**: https://crontab.guru/
+
+### Architecture Pattern
+
+**When to use this pattern**:
+- ✅ Cloudflare Pages project needs scheduled tasks
+- ✅ Cleanup operations that don't need user interaction
+- ✅ Database maintenance (delete, vacuum, optimize)
+- ✅ Periodic data synchronization
+- ✅ Automated report generation
+
+**When NOT to use**:
+- ❌ Real-time user-triggered operations (use Pages Functions)
+- ❌ High-frequency tasks (<5 min intervals) (use Durable Objects)
+- ❌ Long-running tasks (>30 seconds) (use Queues)
+
+### Monitoring and Troubleshooting
+
+#### Check if Cron is Running
+
+```bash
+# List Worker deployments
+wrangler deployments list
+
+# View cron execution logs
+wrangler tail researchtoolspy-cleanup-cron
+
+# Test cleanup manually
+curl -X POST https://researchtoolspy.pages.dev/api/content-intelligence/cleanup
+```
+
+#### Common Issues
+
+**Issue**: Cron not firing
+- **Cause**: Worker not deployed or cron syntax error
+- **Fix**: Redeploy Worker, check cron expression
+
+**Issue**: 404 on cleanup endpoint
+- **Cause**: Pages not deployed or URL incorrect
+- **Fix**: Deploy Pages, verify endpoint URL
+
+**Issue**: Database connection error
+- **Cause**: Pages Function doesn't have DB binding
+- **Fix**: Check wrangler.toml has `[[d1_databases]]` binding
+
+### Cost Considerations
+
+**Free Tier Limits**:
+- Workers: 100,000 requests/day (cron counts as 1 request per trigger)
+- Daily cron: ~30 requests/month
+- Well within free tier ✅
+
+**Paid Plan Benefits**:
+- Unlimited cron triggers
+- Better logging retention
+- Priority support
+
+### Documentation
+
+Created comprehensive guide: `CRON_CLEANUP_SETUP.md`
+- Architecture explanation
+- Deployment instructions
+- Monitoring guide
+- Troubleshooting steps
+- Configuration examples
+
+### Impact
+
+- **Fixed**: Automated cleanup of expired analyses
+- **Freed**: 10-15MB database space initially
+- **Ongoing**: 5-15 analyses deleted daily
+- **Improved**: Database performance and hygiene
+- **Added**: Guest session cleanup (30-day retention)
+- **Severity**: Medium - Operational improvement
+- **Effort**: ~90 minutes (research + implementation + testing + docs)
+- **Deployments**: 
+  - Worker: https://researchtoolspy-cleanup-cron.wemea-5ahhf.workers.dev
+  - Pages: https://5e8a7f60.researchtoolspy.pages.dev
+
+### Related Issues
+
+Addresses issue #6 from DATABASE_ISSUES_AND_IMPROVEMENTS.md:
+- ✅ 165 expired analyses cleaned up
+- ✅ Automated daily cleanup implemented
+- ✅ Guest session cleanup added
+- ✅ Comprehensive documentation created
+- ✅ Monitoring and testing guides included
+
+---
