@@ -476,18 +476,61 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
       console.log(`[DEBUG] Saved to database with ID: ${analysisId}`)
 
-      // Create deduplication entry for new content
-      await env.DB.prepare(`
-        INSERT INTO content_deduplication (
-          content_hash, canonical_content_id, duplicate_count,
-          total_access_count, first_analyzed_at, last_accessed_at
-        ) VALUES (?, ?, 1, 1, datetime('now'), datetime('now'))
-      `).bind(contentHash, analysisId).run()
+      // Create deduplication entry for new content (use INSERT OR IGNORE to handle race conditions)
+      try {
+        await env.DB.prepare(`
+          INSERT OR IGNORE INTO content_deduplication (
+            content_hash, canonical_content_id, duplicate_count,
+            total_access_count, first_analyzed_at, last_accessed_at
+          ) VALUES (?, ?, 1, 1, datetime('now'), datetime('now'))
+        `).bind(contentHash, analysisId).run()
 
-      console.log('[DEBUG] Deduplication entry created')
+        console.log('[DEBUG] Deduplication entry created (or already exists)')
+      } catch (dedupError) {
+        // Non-fatal: deduplication is an optimization, not critical
+        console.error('[DEBUG] Deduplication insert failed (non-fatal):', dedupError)
+      }
     } catch (error) {
       console.error('[DEBUG] Database save failed:', error)
       console.error('[DEBUG] Error details:', error instanceof Error ? error.message : String(error))
+
+      // Check if this is a duplicate content error
+      if (error instanceof Error && error.message.includes('UNIQUE constraint failed: content_deduplication.content_hash')) {
+        // This is a race condition - content was analyzed simultaneously
+        // Find and return the existing analysis
+        console.log('[DEBUG] Duplicate content detected via race condition, finding existing analysis...')
+        const existingDedup = await env.DB.prepare(`
+          SELECT canonical_content_id FROM content_deduplication WHERE content_hash = ?
+        `).bind(contentHash).first()
+
+        if (existingDedup) {
+          const existingAnalysis = await env.DB.prepare(`
+            SELECT * FROM content_analysis WHERE id = ?
+          `).bind(existingDedup.canonical_content_id).first()
+
+          if (existingAnalysis) {
+            console.log('[DEBUG] Returning existing analysis from race condition')
+            return new Response(JSON.stringify({
+              ...existingAnalysis,
+              entities: JSON.parse(existingAnalysis.entities as string || '{}'),
+              word_frequency: JSON.parse(existingAnalysis.word_frequency as string || '{}'),
+              top_phrases: JSON.parse(existingAnalysis.top_phrases as string || '[]'),
+              sentiment_analysis: existingAnalysis.sentiment_analysis ? JSON.parse(existingAnalysis.sentiment_analysis as string) : null,
+              keyphrases: existingAnalysis.keyphrases ? JSON.parse(existingAnalysis.keyphrases as string) : null,
+              topics: existingAnalysis.topics ? JSON.parse(existingAnalysis.topics as string) : null,
+              claim_analysis: existingAnalysis.claim_analysis ? JSON.parse(existingAnalysis.claim_analysis as string) : null,
+              archive_urls: JSON.parse(existingAnalysis.archive_urls as string || '{}'),
+              bypass_urls: JSON.parse(existingAnalysis.bypass_urls as string || '{}'),
+              from_cache: true,
+              race_condition_recovery: true
+            }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' }
+            })
+          }
+        }
+      }
+
       throw new Error(`Database save failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 
@@ -674,6 +717,9 @@ function detectSocialMedia(url: string): { platform: string } | null {
   if (urlLower.includes('reddit.com')) {
     return { platform: 'reddit' }
   }
+  if (urlLower.includes('spotify.com') || urlLower.includes('spotify.link')) {
+    return { platform: 'spotify' }
+  }
 
   return null
 }
@@ -694,6 +740,38 @@ function generateArchiveUrls(url: string): Record<string, string> {
   }
 }
 
+/**
+ * Resolve Spotify shortened links (spotify.link) to actual Spotify URLs
+ */
+async function resolveSpotifyRedirect(url: string): Promise<string> {
+  const urlLower = url.toLowerCase()
+
+  // Only process spotify.link URLs
+  if (!urlLower.includes('spotify.link')) {
+    return url
+  }
+
+  console.log('[Spotify Redirect] Resolving spotify.link URL:', url)
+
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
+      }
+    })
+
+    const finalUrl = response.url
+    console.log('[Spotify Redirect] Resolved to:', finalUrl)
+    return finalUrl
+  } catch (error) {
+    console.error('[Spotify Redirect] Failed to resolve:', error)
+    // Return original URL if resolution fails
+    return url
+  }
+}
+
 async function extractUrlContent(url: string, apiKey?: string): Promise<{
   success: boolean
   error?: string
@@ -709,11 +787,18 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
     keyPoints?: string[]
   }
 }> {
+  // Resolve Spotify redirect links first
+  let resolvedUrl = url
+  if (url.toLowerCase().includes('spotify.link')) {
+    resolvedUrl = await resolveSpotifyRedirect(url)
+    console.log('[Content Extract] Spotify URL resolved from', url, 'to', resolvedUrl)
+  }
+
   // Check if URL is a PDF
-  if (isPDFUrl(url)) {
+  if (isPDFUrl(resolvedUrl)) {
     console.log('[Content Extract] Detected PDF URL, using PDF extractor')
     try {
-      const pdfResult = await extractPDFText(url)
+      const pdfResult = await extractPDFText(resolvedUrl)
 
       return {
         success: true,
@@ -742,7 +827,7 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
   const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(resolvedUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
       },
@@ -760,6 +845,14 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
     }
 
     const html = await response.text()
+
+    // Detect if this is Spotify content and use specialized extraction
+    const isSpotify = resolvedUrl.toLowerCase().includes('spotify.com')
+
+    if (isSpotify) {
+      console.log('[Content Extract] Detected Spotify content, using specialized extraction')
+      return extractSpotifyContent(html, resolvedUrl)
+    }
 
     // Parse HTML (simple extraction, can be enhanced)
     const title = extractMetaTag(html, 'title')
@@ -794,6 +887,89 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
       error: error instanceof Error ? error.message : 'Unknown error',
       text: ''
     }
+  }
+}
+
+/**
+ * Extract Spotify-specific metadata from Open Graph tags
+ */
+function extractSpotifyContent(html: string, url: string): {
+  success: boolean
+  text: string
+  title?: string
+  author?: string
+  publishDate?: string
+} {
+  console.log('[Spotify Extract] Extracting Spotify metadata from Open Graph tags')
+
+  // Extract Open Graph metadata specific to Spotify
+  const ogTitle = extractMetaTag(html, 'og:title') || extractMetaTag(html, 'title')
+  const ogDescription = extractMetaTag(html, 'og:description') || extractMetaTag(html, 'description')
+  const ogAudio = extractMetaTag(html, 'og:audio')
+  const ogAudioType = extractMetaTag(html, 'og:audio:type')
+  const ogImage = extractMetaTag(html, 'og:image')
+  const ogType = extractMetaTag(html, 'og:type')
+  const ogUrl = extractMetaTag(html, 'og:url') || url
+
+  // Extract Spotify-specific metadata
+  const spotifyType = extractMetaTag(html, 'music:musician') ? 'artist' :
+                      extractMetaTag(html, 'music:album') ? 'album' :
+                      extractMetaTag(html, 'music:song') ? 'track' :
+                      url.includes('/episode/') ? 'podcast episode' :
+                      url.includes('/show/') ? 'podcast show' : 'content'
+
+  // Build structured text content from metadata
+  const contentParts = []
+
+  contentParts.push(`Spotify ${spotifyType.charAt(0).toUpperCase() + spotifyType.slice(1)}`)
+
+  if (ogTitle) {
+    contentParts.push(`Title: ${ogTitle}`)
+  }
+
+  if (ogDescription) {
+    contentParts.push(`Description: ${ogDescription}`)
+  }
+
+  // Extract artist/creator information from URL or metadata
+  const urlParts = url.split('/')
+  const spotifyId = urlParts[urlParts.length - 1]?.split('?')[0]
+
+  if (spotifyId) {
+    contentParts.push(`Spotify ID: ${spotifyId}`)
+  }
+
+  if (ogUrl) {
+    contentParts.push(`URL: ${ogUrl}`)
+  }
+
+  if (ogAudio) {
+    contentParts.push(`Audio URL: ${ogAudio}`)
+  }
+
+  if (ogAudioType) {
+    contentParts.push(`Audio Type: ${ogAudioType}`)
+  }
+
+  if (ogImage) {
+    contentParts.push(`Cover Art: ${ogImage}`)
+  }
+
+  const text = contentParts.join('\n')
+
+  console.log('[Spotify Extract] Extracted metadata:', {
+    title: ogTitle,
+    type: spotifyType,
+    hasDescription: !!ogDescription,
+    hasAudio: !!ogAudio
+  })
+
+  return {
+    success: true,
+    text,
+    title: ogTitle,
+    author: undefined, // Spotify doesn't always provide author in OG tags
+    publishDate: undefined
   }
 }
 
