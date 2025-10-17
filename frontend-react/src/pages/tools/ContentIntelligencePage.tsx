@@ -8,7 +8,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
@@ -2777,19 +2779,42 @@ ${shortSummary}${
                     )}
                     DIME Analysis
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={saveAnalysisPermanently}
-                    disabled={saveLoading || analysis.is_saved}
-                  >
-                    {saveLoading ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4 mr-2" />
-                    )}
-                    {analysis.is_saved ? 'Saved' : 'Save Permanently'}
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={analysis.is_saved ? "outline" : "default"}
+                          size="sm"
+                          onClick={saveAnalysisPermanently}
+                          disabled={saveLoading || analysis.is_saved}
+                          className={analysis.is_saved ? '' : 'bg-green-600 hover:bg-green-700 text-white'}
+                        >
+                          {saveLoading ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4 mr-2" />
+                          )}
+                          {analysis.is_saved ? 'Saved' : 'Save Permanently'}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs">
+                        <div className="space-y-1">
+                          <p className="font-semibold">Save this analysis to:</p>
+                          <ul className="text-sm space-y-0.5 ml-4 list-disc">
+                            <li>Keep it forever (no auto-deletion)</li>
+                            <li>Access it anytime from your dashboard</li>
+                            <li>Share with others via link</li>
+                            <li>Build upon it in future investigations</li>
+                          </ul>
+                          {!analysis.is_saved && analysis.expires_at && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                              ⚠️ Will be deleted in {Math.ceil((new Date(analysis.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days if not saved!
+                            </p>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <Button
                     variant="default"
                     size="sm"
@@ -2823,38 +2848,48 @@ ${shortSummary}${
               </div>
 
               {/* Expiration Warning & Share Link */}
-              <div className="flex items-center gap-3">
+              <div className="space-y-3">
                 {analysis.expires_at && !analysis.is_saved && (
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-800">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Auto-deletes in {Math.ceil((new Date(analysis.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days - Save to keep permanently
-                  </Badge>
+                  <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800 dark:text-amber-200">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <strong>Temporary Analysis:</strong> This will be automatically deleted in{' '}
+                          <strong>{Math.ceil((new Date(analysis.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days</strong>.
+                          Click "Save Permanently" to keep it forever.
+                        </div>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
                 )}
-                {analysis.is_saved && (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    <Check className="h-3 w-3 mr-1" />
-                    Saved Permanently
-                  </Badge>
-                )}
-                {shareUrl && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                      <Link2 className="h-3 w-3 mr-1" />
-                      Shareable
+                <div className="flex items-center gap-3">
+                  {analysis.is_saved && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      <Check className="h-3 w-3 mr-1" />
+                      Saved Permanently - Never Expires
                     </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(shareUrl)
-                        toast({ title: 'Link Copied', description: 'Share URL copied to clipboard' })
-                      }}
-                    >
-                      <Copy className="h-4 w-4 mr-1" />
-                      Copy Link
-                    </Button>
-                  </div>
-                )}
+                  )}
+                  {shareUrl && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                        <Link2 className="h-3 w-3 mr-1" />
+                        Shareable
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(shareUrl)
+                          toast({ title: 'Link Copied', description: 'Share URL copied to clipboard' })
+                        }}
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy Link
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Text Content with Toggle */}
