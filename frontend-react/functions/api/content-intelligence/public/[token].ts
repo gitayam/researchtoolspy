@@ -54,10 +54,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       word_frequency: parseJsonField(analysis.word_frequency),
       top_phrases: parseJsonField(analysis.top_phrases),
       entities: parseJsonField(analysis.entities),
+      links_analysis: parseJsonField(analysis.links_analysis),
       sentiment_analysis: parseJsonField(analysis.sentiment_analysis),
       keyphrases: parseJsonField(analysis.keyphrases),
       topics: parseJsonField(analysis.topics),
       claim_analysis: parseJsonField(analysis.claim_analysis),
+      dime_analysis: parseJsonField(analysis.dime_analysis),
       archive_urls: parseJsonField(analysis.archive_urls),
       bypass_urls: parseJsonField(analysis.bypass_urls)
     }), {

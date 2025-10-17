@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import html2canvas from 'html2canvas'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -17,10 +16,12 @@ import {
   Search, Sparkles, XCircle, MoreVertical, Mail
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
+import type { ContentAnalysis, ProcessingStatus, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
+import type { AnalysisTab } from '@/components/content-intelligence/AnalysisSidebar'
 import { extractCitationData, createCitationParams } from '@/utils/content-to-citation'
 import { addCitation, generateCitationId } from '@/utils/citation-library'
 import { ClaimAnalysisDisplay } from '@/components/content-intelligence/ClaimAnalysisDisplay'
+import { AnalysisLayout } from '@/components/content-intelligence/AnalysisLayout'
 
 export default function ContentIntelligencePage() {
   const { toast } = useToast()
@@ -103,6 +104,92 @@ export default function ContentIntelligencePage() {
   const [summarizingEntity, setSummarizingEntity] = useState<string | null>(null)
   const [showEntitySummary, setShowEntitySummary] = useState(false)
   const [currentEntitySummary, setCurrentEntitySummary] = useState<{ entity: string, type: string, summary: string } | null>(null)
+
+  // Section Configuration for Sidebar Navigation
+  const sections = analysis ? [
+    // Automatic Sections
+    {
+      id: 'overview' as AnalysisTab,
+      label: 'Overview',
+      icon: FileText,
+      description: 'Summary, metadata, and key information',
+      isAutomatic: true,
+      status: 'complete' as const,
+    },
+    {
+      id: 'entities' as AnalysisTab,
+      label: 'Entities',
+      icon: Users,
+      description: 'People, organizations, locations, and more',
+      isAutomatic: true,
+      status: 'complete' as const,
+    },
+    {
+      id: 'sentiment' as AnalysisTab,
+      label: 'Sentiment',
+      icon: SmileIcon,
+      description: 'Emotional tone and sentiment analysis',
+      isAutomatic: true,
+      status: analysis?.sentiment_analysis ? ('complete' as const) : ('idle' as const),
+    },
+    {
+      id: 'links' as AnalysisTab,
+      label: 'Links',
+      icon: Link2,
+      description: 'External and internal link analysis',
+      isAutomatic: true,
+      status: 'complete' as const,
+    },
+    {
+      id: 'word-analysis' as AnalysisTab,
+      label: 'Word Analysis',
+      icon: BarChart3,
+      description: 'Word frequency and phrase analysis',
+      isAutomatic: true,
+      status: 'complete' as const,
+    },
+    // Framework Sections
+    {
+      id: 'claims' as AnalysisTab,
+      label: 'Claims Analysis',
+      icon: Shield,
+      description: '6-method deception detection framework',
+      isAutomatic: false,
+      status: claimsLoading
+        ? ('processing' as const)
+        : (analysis?.claim_analysis || claimsAnalysis)
+        ? ('complete' as const)
+        : ('idle' as const),
+    },
+    {
+      id: 'dime' as AnalysisTab,
+      label: 'DIME Framework',
+      icon: Grid3x3,
+      description: 'Diplomatic, Information, Military, Economic',
+      isAutomatic: false,
+      status: dimeLoading
+        ? ('processing' as const)
+        : (analysis?.dime_analysis || dimeAnalysis)
+        ? ('complete' as const)
+        : ('idle' as const),
+    },
+    {
+      id: 'starbursting' as AnalysisTab,
+      label: 'Starbursting',
+      icon: Star,
+      description: '5W1H critical question generation',
+      isAutomatic: false,
+      status: starburstingStatus,
+    },
+    {
+      id: 'qa' as AnalysisTab,
+      label: 'Q&A',
+      icon: MessageSquare,
+      description: 'Ask questions about the content',
+      isAutomatic: false,
+      status: 'ready' as const,
+    },
+  ] : []
 
   // Format full text for better readability
   const formatFullText = (text: string): string => {
@@ -951,6 +1038,36 @@ ${shortSummary}${
       })
     } finally {
       setClaimsLoading(false)
+    }
+  }
+
+  // Framework Runner Handler - triggers framework analyses from sidebar
+  const handleRunFramework = async (framework: AnalysisTab) => {
+    if (!analysis) return
+
+    switch (framework) {
+      case 'claims':
+        await runClaimsAnalysis()
+        setActiveTab('claims')
+        break
+      case 'dime':
+        await runDIMEAnalysis()
+        setActiveTab('dime')
+        break
+      case 'starbursting':
+        if (analysis.id) {
+          await startStarburstingInBackground(analysis.id)
+          setActiveTab('starbursting')
+        }
+        break
+      case 'qa':
+        setActiveTab('qa')
+        break
+      default:
+        toast({
+          title: 'Coming Soon',
+          description: `${framework} framework will be available soon.`,
+        })
     }
   }
 
