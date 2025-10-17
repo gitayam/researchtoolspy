@@ -2220,6 +2220,8 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
   // Size limits to prevent SQLITE_TOOBIG errors
   const MAX_TEXT_SIZE = 100 * 1024  // 100KB for extracted_text
   const MAX_CLAIMS = 50  // Maximum number of claims
+  const MAX_WORD_FREQ_ENTRIES = 500  // Maximum word frequency entries
+  const MAX_LINKS = 100  // Maximum links to store
   const CHUNK_SIZE = 50 * 1024  // 50KB chunks for content_chunks table
 
   // Track original sizes for logging
@@ -2233,6 +2235,27 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     console.log(`[DEBUG] Truncating extracted_text from ${data.extracted_text.length} to ${MAX_TEXT_SIZE} bytes`)
     truncatedText = data.extracted_text.substring(0, MAX_TEXT_SIZE) + '\n\n[Content truncated - see content_chunks table for full text]'
     wasTextTruncated = true
+  }
+
+  // Limit word_frequency to top entries (THIS IS THE KEY FIX)
+  let wordFrequency = data.word_frequency
+  if (wordFrequency && typeof wordFrequency === 'object') {
+    const originalCount = Object.keys(wordFrequency).length
+    if (originalCount > MAX_WORD_FREQ_ENTRIES) {
+      console.log(`[DEBUG] Limiting word_frequency from ${originalCount} to ${MAX_WORD_FREQ_ENTRIES} entries`)
+      // Sort by frequency and keep only top N
+      const sortedEntries = Object.entries(wordFrequency)
+        .sort(([, a], [, b]) => (b as number) - (a as number))
+        .slice(0, MAX_WORD_FREQ_ENTRIES)
+      wordFrequency = Object.fromEntries(sortedEntries)
+    }
+  }
+
+  // Limit links_analysis
+  let linksAnalysis = data.links_analysis
+  if (linksAnalysis && Array.isArray(linksAnalysis) && linksAnalysis.length > MAX_LINKS) {
+    console.log(`[DEBUG] Limiting links_analysis from ${linksAnalysis.length} to ${MAX_LINKS}`)
+    linksAnalysis = linksAnalysis.slice(0, MAX_LINKS)
   }
 
   // Limit claims to prevent oversized JSON
@@ -2250,13 +2273,13 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     }
   }
 
-  // Log sizes for debugging
+  // Log sizes for debugging (using limited variables)
   const estimatedSize =
     (truncatedText?.length || 0) +
-    JSON.stringify(data.word_frequency || {}).length +
+    JSON.stringify(wordFrequency || {}).length +
     JSON.stringify(data.top_phrases || []).length +
     JSON.stringify(data.entities || {}).length +
-    JSON.stringify(data.links_analysis || []).length +
+    JSON.stringify(linksAnalysis || []).length +
     JSON.stringify(claimAnalysis || null).length +
     JSON.stringify(data.sentiment_analysis || null).length +
     JSON.stringify(data.keyphrases || null).length +
@@ -2292,10 +2315,10 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     truncatedText,  // Use truncated version
     toNullable(data.summary),
     data.word_count,
-    JSON.stringify(data.word_frequency || {}),
+    JSON.stringify(wordFrequency || {}),  // Use limited version
     JSON.stringify(data.top_phrases || []),
     JSON.stringify(data.entities || {}),
-    JSON.stringify(data.links_analysis || []),
+    JSON.stringify(linksAnalysis || []),  // Use limited version
     toNullable(data.sentiment_analysis ? JSON.stringify(data.sentiment_analysis) : null),
     toNullable(data.keyphrases ? JSON.stringify(data.keyphrases) : null),
     toNullable(data.topics ? JSON.stringify(data.topics) : null),
