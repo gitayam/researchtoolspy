@@ -3,9 +3,9 @@ compatibility_date = "2025-09-30"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
-# Cron triggers for scheduled tasks
-[triggers]
-crons = ["0 3 * * *"]  # Daily at 3 AM UTC - cleanup expired analyses
+# Note: Cron triggers for Pages must be configured via Cloudflare Dashboard
+# or using a separate Worker that calls the cleanup endpoint
+# See CRON_CLEANUP_SETUP.md for instructions
 
 # D1 Database binding
 [[d1_databases]]
