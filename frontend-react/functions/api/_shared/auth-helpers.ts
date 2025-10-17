@@ -59,10 +59,17 @@ export async function getUserFromRequest(
 
       // Create new guest user with hash
       const result = await env.DB.prepare(`
-        INSERT INTO users (user_hash, is_active, is_verified, role)
-        VALUES (?, 1, 0, 'guest')
+        INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at, is_active, is_verified, role)
+        VALUES (?, ?, ?, ?, ?, ?, 1, 0, 'guest')
         RETURNING id
-      `).bind(token).first()
+      `).bind(
+        `guest_${token.substring(0, 8)}`,
+        `${token.substring(0, 8)}@guest.local`,
+        token,
+        'Guest User',
+        '',
+        new Date().toISOString()
+      ).first()
 
       if (result?.id) {
         return Number(result.id)

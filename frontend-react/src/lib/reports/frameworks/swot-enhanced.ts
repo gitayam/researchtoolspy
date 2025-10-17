@@ -9,6 +9,8 @@ import {
   createSWOTMatrixSVG,
   analyzeSWOTData,
   generateTOWSStrategies,
+  generateDecisionRecommendation,
+  itemToString,
   type SWOTData
 } from '../visualizations/swot-visuals'
 import {
@@ -77,6 +79,23 @@ export async function generateEnhancedSWOTPDF(options: EnhancedSWOTReportOptions
   pdf.setFontSize(24)
   pdf.setFont('helvetica', 'normal')
   pdf.text(title, 105, 120, { align: 'center', maxWidth: 170 })
+
+  // Goal display if provided
+  if (swotData.goal) {
+    pdf.setFontSize(14)
+    pdf.setFont('helvetica', 'italic')
+    pdf.text(`Goal: ${swotData.goal}`, 105, 145, { align: 'center', maxWidth: 170 })
+  }
+
+  // Options display if provided
+  if (swotData.options && swotData.options.length > 0) {
+    pdf.setFontSize(12)
+    pdf.setFont('helvetica', 'normal')
+    const optionsText = swotData.options.length <= 3
+      ? `Options: ${swotData.options.join(' | ')}`
+      : `Comparing ${swotData.options.length} Options`
+    pdf.text(optionsText, 105, swotData.goal ? 160 : 145, { align: 'center', maxWidth: 170 })
+  }
 
   pdf.setFontSize(12)
   pdf.text(new Date().toLocaleDateString(), 105, 250, { align: 'center' })
@@ -169,6 +188,142 @@ export async function generateEnhancedSWOTPDF(options: EnhancedSWOTReportOptions
     })
   }
 
+  // Decision Recommendation (if options are provided)
+  const decision = generateDecisionRecommendation(swotData)
+  if (decision) {
+    checkPageBreak(45)
+
+    pdf.setFontSize(16)
+    pdf.setFont('helvetica', 'bold')
+    pdf.setTextColor(0, 0, 0)
+    pdf.text('Decision Recommendation', 20, yPos)
+    yPos += 10
+
+    if (decision.goal) {
+      pdf.setFontSize(11)
+      pdf.setFont('helvetica', 'italic')
+      pdf.setTextColor(100, 100, 100)
+      pdf.text(`Goal: ${decision.goal}`, 20, yPos)
+      yPos += 8
+    }
+
+    // Top recommendation
+    checkPageBreak(35)
+    pdf.setFillColor(34, 197, 94)
+    pdf.rect(15, yPos - 5, 180, 25, 'F')
+
+    pdf.setFontSize(14)
+    pdf.setFont('helvetica', 'bold')
+    pdf.setTextColor(255, 255, 255)
+    pdf.text(`Recommended: ${decision.topChoice}`, 20, yPos + 3)
+    yPos += 12
+
+    const topScore = decision.scores[0]
+    pdf.setFontSize(10)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(`Score: ${topScore.netScore.toFixed(1)} | ${topScore.recommendation.replace('_', ' ').toUpperCase()}`, 20, yPos + 3)
+    yPos += 18
+
+    pdf.setTextColor(0, 0, 0)
+
+    // Reasoning
+    checkPageBreak(20)
+    pdf.setFontSize(11)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Key Reasoning:', 20, yPos)
+    yPos += 7
+
+    pdf.setFontSize(10)
+    pdf.setFont('helvetica', 'normal')
+    decision.reasoning.forEach(reason => {
+      checkPageBreak(12)
+      const lines = pdf.splitTextToSize(`• ${reason}`, 165)
+      pdf.text(lines, 25, yPos)
+      yPos += lines.length * 5 + 3
+    })
+    yPos += 5
+
+    // Comparison Matrix
+    checkPageBreak(30)
+    pdf.setFontSize(12)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Options Comparison Matrix', 20, yPos)
+    yPos += 8
+
+    // Table header
+    pdf.setFillColor(240, 240, 240)
+    pdf.rect(20, yPos - 3, 170, 8, 'F')
+    pdf.setFontSize(9)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Option', 22, yPos + 2)
+    pdf.text('Str', 70, yPos + 2)
+    pdf.text('Weak', 90, yPos + 2)
+    pdf.text('Opp', 115, yPos + 2)
+    pdf.text('Threat', 135, yPos + 2)
+    pdf.text('Score', 165, yPos + 2)
+    yPos += 10
+
+    // Table rows
+    pdf.setFont('helvetica', 'normal')
+    decision.comparisonMatrix.forEach((row, idx) => {
+      checkPageBreak(8)
+
+      // Highlight top choice
+      if (idx === 0) {
+        pdf.setFillColor(34, 197, 94, 0.2)
+        pdf.rect(20, yPos - 3, 170, 8, 'F')
+      } else if (idx % 2 === 0) {
+        pdf.setFillColor(250, 250, 250)
+        pdf.rect(20, yPos - 3, 170, 8, 'F')
+      }
+
+      pdf.setFontSize(9)
+      const optionText = row.option.length > 20 ? row.option.substring(0, 17) + '...' : row.option
+      pdf.text(optionText, 22, yPos + 2)
+      pdf.text(row.strengths.toString(), 72, yPos + 2)
+      pdf.text(row.weaknesses.toString(), 92, yPos + 2)
+      pdf.text(row.opportunities.toString(), 117, yPos + 2)
+      pdf.text(row.threats.toString(), 137, yPos + 2)
+
+      pdf.setFont('helvetica', 'bold')
+      const scoreColor = row.score > 5 ? [34, 197, 94] : row.score > 2 ? [59, 130, 246] : row.score > 0 ? [245, 158, 11] : [239, 68, 68]
+      pdf.setTextColor(...(scoreColor as [number, number, number]))
+      pdf.text(row.score.toFixed(1), 167, yPos + 2)
+      pdf.setTextColor(0, 0, 0)
+      pdf.setFont('helvetica', 'normal')
+
+      yPos += 8
+    })
+    yPos += 10
+
+    // Detailed scores for each option
+    pdf.setFontSize(11)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Detailed Option Analysis', 20, yPos)
+    yPos += 8
+
+    decision.scores.forEach((score, idx) => {
+      checkPageBreak(30)
+
+      pdf.setFontSize(11)
+      pdf.setFont('helvetica', 'bold')
+      const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`
+      pdf.text(`${rankEmoji} ${score.option}`, 20, yPos)
+      yPos += 7
+
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
+      score.reasoning.forEach(reason => {
+        checkPageBreak(10)
+        const lines = pdf.splitTextToSize(`  • ${reason}`, 165)
+        pdf.text(lines, 22, yPos)
+        yPos += lines.length * 4.5 + 2
+      })
+      yPos += 4
+    })
+    yPos += 10
+  }
+
   // Page 3: SWOT Matrix Visualization
   if (includeVisualizations) {
     pdf.addPage()
@@ -239,11 +394,58 @@ export async function generateEnhancedSWOTPDF(options: EnhancedSWOTReportOptions
       pdf.setTextColor(0, 0, 0)
 
       section.data.slice(0, 10).forEach((item, idx) => {
-        checkPageBreak(15)
-        const itemText = `${idx + 1}. ${item}`
+        checkPageBreak(20)
+
+        // Main item text
+        const itemText = `${idx + 1}. ${itemToString(item)}`
         const lines = pdf.splitTextToSize(itemText, 165)
+        pdf.setFontSize(11)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setTextColor(0, 0, 0)
         pdf.text(lines, 25, yPos)
-        yPos += lines.length * 6 + 3
+        yPos += lines.length * 6 + 2
+
+        // Display metadata if item is a SwotItem object
+        if (typeof item !== 'string') {
+          const metadata: string[] = []
+
+          // Confidence level
+          if (item.confidence) {
+            metadata.push(`Confidence: ${item.confidence}`)
+          }
+
+          // Evidence count
+          if (item.evidence_ids && item.evidence_ids.length > 0) {
+            metadata.push(`${item.evidence_ids.length} evidence item${item.evidence_ids.length > 1 ? 's' : ''}`)
+          }
+
+          // Tags
+          if (item.tags && item.tags.length > 0) {
+            metadata.push(`Tags: ${item.tags.join(', ')}`)
+          }
+
+          // Options this applies to (only if multiple options exist)
+          if (swotData.options && swotData.options.length > 1 && item.appliesTo && item.appliesTo.length > 0) {
+            const appliesToText = item.appliesTo.length === swotData.options.length
+              ? 'Applies to: All options'
+              : `Applies to: ${item.appliesTo.join(', ')}`
+            metadata.push(appliesToText)
+          }
+
+          // Display metadata if any exists
+          if (metadata.length > 0) {
+            pdf.setFontSize(9)
+            pdf.setFont('helvetica', 'italic')
+            pdf.setTextColor(100, 100, 100)
+            const metaText = `   [${metadata.join(' | ')}]`
+            const metaLines = pdf.splitTextToSize(metaText, 160)
+            pdf.text(metaLines, 27, yPos)
+            yPos += metaLines.length * 4.5 + 1
+            pdf.setTextColor(0, 0, 0)
+          }
+        }
+
+        yPos += 3
       })
 
       if (section.data.length > 10) {

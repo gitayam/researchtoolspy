@@ -3,24 +3,19 @@
  * POST /api/content-intelligence/share - Generate or update share token for analysis
  */
 
-import { requireAuth } from '../_shared/auth-helpers'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 import crypto from 'crypto'
 
 interface Env {
   DB: D1Database
-  SESSIONS: KVNamespace
+  SESSIONS?: KVNamespace
 }
 
 // POST /api/content-intelligence/share - Make analysis public and get share link
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    // Get user ID (supports hash-based auth and session auth)
+    const userId = await getUserIdOrDefault(context.request, context.env)
 
     const { analysisId } = await context.request.json() as { analysisId: number }
 
@@ -43,8 +38,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (analysis.user_id !== auth.user.id) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    // Allow sharing if user owns the analysis
+    if (analysis.user_id !== userId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized - you can only share your own analyses' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' }
       })

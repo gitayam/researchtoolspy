@@ -923,6 +923,57 @@
     }
   },
 
+  "templates": {
+    "dialog": {
+      "title": "Start New COG Analysis",
+      "description": "Choose how to create your analysis: guided wizard or advanced mode. You can also start from a template or blank.",
+      "blankAnalysis": "Blank Analysis",
+      "blankDescription": "Start from scratch with an empty COG analysis framework",
+      "startWithWizard": "Start with Wizard",
+      "advancedMode": "Advanced Mode",
+      "orStartFromTemplate": "Or start from a template:",
+      "wizard": "Wizard",
+      "advanced": "Advanced"
+    },
+    "list": {
+      "adversaryC2": {
+        "name": "Adversary Command & Control",
+        "description": "Template for analyzing adversary command and control structures and identifying vulnerabilities in military decision-making processes"
+      },
+      "adversaryInfoOps": {
+        "name": "Adversary Information Operations",
+        "description": "Template for analyzing adversary information warfare capabilities and identifying weaknesses in propaganda and influence networks"
+      },
+      "friendlyLogistics": {
+        "name": "Friendly Logistics COG",
+        "description": "Template for analyzing friendly forces logistics to identify and protect critical vulnerabilities in supply chains"
+      },
+      "cyberDomain": {
+        "name": "Cyber Domain COG",
+        "description": "Template for analyzing adversary cyber capabilities and critical infrastructure dependencies"
+      },
+      "hostNationInfrastructure": {
+        "name": "Host Nation Critical Infrastructure",
+        "description": "Template for analyzing host nation critical infrastructure to identify protection priorities during operations"
+      }
+    },
+    "categories": {
+      "adversary": "Adversary",
+      "friendly": "Friendly",
+      "information": "Information",
+      "cyber": "Cyber",
+      "host_nation": "Host Nation"
+    },
+    "stats": {
+      "cog": "COG",
+      "cogs": "COGs",
+      "capability": "Capability",
+      "capabilities": "Capabilities",
+      "vulnerability": "Vulnerability",
+      "vulnerabilities": "Vulnerabilities"
+    }
+  },
+
   "wizard": {
     "title": "COG Analysis Wizard",
     "subtitle": "Step-by-step guided analysis",

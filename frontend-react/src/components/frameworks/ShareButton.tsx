@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Share2, Copy, Check, Globe, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -18,6 +19,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+
+// Helper function to get authentication headers
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  }
+
+  // Try to get bearer token first (authenticated users)
+  const token = localStorage.getItem('omnicore_token')
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  // Try to get user hash (guest mode)
+  const userHash = localStorage.getItem('user_hash')
+  if (userHash) {
+    headers['X-User-Hash'] = userHash
+  }
+
+  return headers
+}
 
 interface ShareButtonProps {
   frameworkId: string
@@ -45,6 +67,7 @@ export function ShareButton({
   category: initialCategory,
   onUpdate
 }: ShareButtonProps) {
+  const { currentWorkspaceId } = useWorkspace()
   const [isPublic, setIsPublic] = useState(initialIsPublic)
   const [shareToken, setShareToken] = useState(initialShareToken)
   const [category, setCategory] = useState(initialCategory || '')
@@ -58,10 +81,10 @@ export function ShareButton({
   const handleTogglePublic = async (newIsPublic: boolean) => {
     setSharing(true)
     try {
-      const response = await fetch(`/api/frameworks/${frameworkId}/share`, {
+      const response = await fetch(`/api/frameworks/${frameworkId}/share?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_public: newIsPublic, category })
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ is_public: newIsPublic, category, workspace_id: currentWorkspaceId })
       })
 
       if (!response.ok) {
@@ -93,10 +116,10 @@ export function ShareButton({
     // If public, update category on server
     if (isPublic) {
       try {
-        await fetch(`/api/frameworks/${frameworkId}/share`, {
+        await fetch(`/api/frameworks/${frameworkId}/share?workspace_id=${currentWorkspaceId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ is_public: true, category: newCategory })
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ is_public: true, category: newCategory, workspace_id: currentWorkspaceId })
         })
 
         if (onUpdate) {

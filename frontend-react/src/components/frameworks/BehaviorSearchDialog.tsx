@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, Link as LinkIcon, MapPin, Calendar, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -12,6 +13,27 @@ import {
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { BehaviorMetadata } from '@/types/behavior'
+
+// Helper function to get authentication headers
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  }
+
+  // Try to get bearer token first (authenticated users)
+  const token = localStorage.getItem('omnicore_token')
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  // Try to get user hash (guest mode)
+  const userHash = localStorage.getItem('user_hash')
+  if (userHash) {
+    headers['X-User-Hash'] = userHash
+  }
+
+  return headers
+}
 
 interface BehaviorSearchDialogProps {
   open: boolean
@@ -31,6 +53,7 @@ export function BehaviorSearchDialog({
   onOpenChange,
   onSelect
 }: BehaviorSearchDialogProps) {
+  const { currentWorkspaceId } = useWorkspace()
   const [search, setSearch] = useState('')
   const [behaviors, setBehaviors] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -43,7 +66,9 @@ export function BehaviorSearchDialog({
       try {
         // TODO: Create /api/behaviors/search endpoint
         // For now, get from framework sessions
-        const response = await fetch('/api/frameworks?type=behavior&limit=50')
+        const response = await fetch(`/api/frameworks?type=behavior&limit=50&workspace_id=${currentWorkspaceId}`, {
+          headers: getAuthHeaders()
+        })
         if (response.ok) {
           const data = await response.json()
           setBehaviors(data.sessions || [])

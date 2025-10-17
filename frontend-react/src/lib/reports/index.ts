@@ -59,9 +59,16 @@ export {
   createSWOTMatrixSVG,
   analyzeSWOTData,
   generateTOWSStrategies,
+  generateDecisionRecommendation,
+  itemToString,
+  getConfidenceWeight,
+  getEvidenceBonus,
   type SWOTData,
+  type SwotItem,
   type SWOTInsights,
   type TOWSStrategies,
+  type OptionScore,
+  type DecisionRecommendation,
 } from './visualizations/swot-visuals'
 
 export {

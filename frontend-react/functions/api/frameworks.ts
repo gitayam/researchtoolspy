@@ -1,6 +1,69 @@
 // Cloudflare Pages Function for Framework API
 import { logActivity } from '../utils/activity-logger'
 
+// Helper to get user ID from request (creates guest users automatically)
+async function getUserFromRequest(request: Request, env: any): Promise<number | null> {
+  // Try bearer token first (authenticated users)
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return null
+  }
+
+  const token = authHeader.substring(7)
+
+  // Try session-based auth first (KV store)
+  if (env.SESSIONS) {
+    const sessionData = await env.SESSIONS.get(token)
+    if (sessionData) {
+      try {
+        const session = JSON.parse(sessionData)
+        if (session.user_id) {
+          return Number(session.user_id)
+        }
+      } catch (err) {
+        console.error('[Auth] Failed to parse session data:', err)
+      }
+    }
+  }
+
+  // Fallback to hash-based auth (16+ char tokens)
+  if (token.length >= 16 && env.DB) {
+    try {
+      // Try to find existing user with this hash
+      const existingUser = await env.DB.prepare(
+        'SELECT id FROM users WHERE user_hash = ?'
+      ).bind(token).first()
+
+      if (existingUser) {
+        return Number(existingUser.id)
+      }
+
+      // Create new guest user with hash
+      const result = await env.DB.prepare(`
+        INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at, is_active, is_verified, role)
+        VALUES (?, ?, ?, ?, ?, ?, 1, 0, 'guest')
+        RETURNING id
+      `).bind(
+        `guest_${token.substring(0, 8)}`,
+        `${token.substring(0, 8)}@guest.local`,
+        token,
+        'Guest User',
+        '',
+        new Date().toISOString()
+      ).first()
+
+      if (result?.id) {
+        console.log('[Auth] Created new guest user:', result.id)
+        return Number(result.id)
+      }
+    } catch (err) {
+      console.error('[Auth] Failed to create/retrieve hash-based user:', err)
+    }
+  }
+
+  return null
+}
+
 export async function onRequest(context: any) {
   const { request, env } = context
 
@@ -27,9 +90,8 @@ export async function onRequest(context: any) {
     // GET - List frameworks or get single framework
     if (request.method === 'GET') {
       if (frameworkId) {
-        // Get user_id from auth (for now, default to user 1)
-        // TODO: Implement proper authentication
-        const userId = 1 // Placeholder - should come from auth
+        // Get authenticated user (supports both token and hash auth)
+        const userId = await getUserFromRequest(request, env)
 
         // Get single framework from D1 - WORKSPACE ISOLATION
         const framework = await env.DB.prepare(
@@ -44,7 +106,8 @@ export async function onRequest(context: any) {
         }
 
         // CRITICAL FIX: Verify user owns this framework OR it's public
-        if (framework.user_id !== userId && !framework.is_public) {
+        // Allow access if: user owns it, it's public, or user is not authenticated (guest viewing public)
+        if (userId && framework.user_id !== userId && !framework.is_public) {
           return new Response(JSON.stringify({ error: 'Unauthorized access to private framework' }), {
             status: 403,
             headers: corsHeaders,
@@ -72,9 +135,8 @@ export async function onRequest(context: any) {
       // List all frameworks with optional public filter
       const publicOnly = url.searchParams.get('public') === 'true'
 
-      // Get user_id from auth header or cookie (for now, default to user 1 for logged-in users)
-      // TODO: Implement proper authentication
-      const userId = 1 // Placeholder - should come from auth
+      // Get authenticated user (supports both token and hash auth)
+      const userId = await getUserFromRequest(request, env)
 
       let query = 'SELECT * FROM framework_sessions WHERE 1=1'
 
@@ -132,6 +194,15 @@ export async function onRequest(context: any) {
         })
       }
 
+      // Get authenticated user (supports both token and hash auth)
+      // getUserFromRequest now handles guest user creation automatically
+      let userId = await getUserFromRequest(request, env)
+
+      // Default to user 1 if no auth provided (backward compatibility)
+      if (!userId) {
+        userId = 1
+      }
+
       // Validate and sanitize data field
       let dataJson
       try {
@@ -151,7 +222,7 @@ export async function onRequest(context: any) {
         `INSERT INTO framework_sessions (user_id, title, description, framework_type, data, status, is_public, shared_publicly_at, workspace_id, original_workspace_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
-        body.user_id || 1,
+        userId,
         body.title,
         body.description || '',
         body.framework_type,
