@@ -1639,6 +1639,7 @@ function analyzeWordFrequency(text: string): Record<string, number> {
   const frequency: Record<string, number> = {}
 
   const stopWords = new Set([
+    // Articles, pronouns, conjunctions
     'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i',
     'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
     'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
@@ -1648,7 +1649,23 @@ function analyzeWordFrequency(text: string): Record<string, number> {
     'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other',
     'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also',
     'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way',
-    'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us'
+    'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us',
+    // Additional common words
+    'may', 'such', 'been', 'said', 'more', 'has', 'was', 'were', 'are', 'had',
+    'did', 'does', 'being', 'each', 'few', 'many', 'much', 'own', 'same', 'very',
+    'still', 'too', 'yet', 'both', 'either', 'neither', 'whether', 'since', 'while',
+    'where', 'here', 'once', 'during', 'before', 'between', 'under', 'above', 'below',
+    'through', 'off', 'down', 'again', 'further', 'each', 'every', 'several', 'per',
+    'via', 'however', 'therefore', 'thus', 'moreover', 'nevertheless', 'meanwhile',
+    // Numbers and quantifiers
+    'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+    'hundred', 'thousand', 'million', 'billion', 'first', 'second', 'third',
+    // Time-related
+    'today', 'yesterday', 'tomorrow', 'week', 'month', 'year', 'monday', 'tuesday',
+    'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'january', 'february',
+    // Common verbs
+    'become', 'became', 'go', 'went', 'gone', 'going', 'come', 'came', 'coming',
+    'tell', 'told', 'telling', 'ask', 'asked', 'asking', 'find', 'found', 'finding'
   ])
 
   // Count single words (excluding stop words)
@@ -1675,10 +1692,19 @@ function analyzeWordFrequency(text: string): Record<string, number> {
 
 function isStopWordsOnly(phrase: string): boolean {
   const stopWords = new Set([
+    // Articles, pronouns, conjunctions
     'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i',
     'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
     'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
-    'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what'
+    'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what',
+    'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me',
+    'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know', 'take',
+    // Additional common words
+    'may', 'such', 'been', 'said', 'more', 'has', 'was', 'were', 'are', 'had',
+    'did', 'does', 'being', 'each', 'few', 'many', 'much', 'own', 'same', 'very',
+    'still', 'too', 'yet', 'both', 'either', 'neither', 'whether', 'since', 'while',
+    'where', 'here', 'once', 'during', 'before', 'between', 'under', 'above', 'below',
+    'through', 'off', 'down', 'again', 'further', 'each', 'every', 'several', 'per'
   ])
 
   const words = phrase.split(' ')
@@ -1731,15 +1757,19 @@ function getTopPhrases(frequency: Record<string, number>, limit: number): Array<
   count: number
   percentage: number
 }> {
-  // Get top phrases sorted by frequency (3x limit to allow for deduplication)
-  const sorted = Object.entries(frequency)
+  // IMPORTANT: Filter to ONLY multi-word phrases (must contain at least one space)
+  // This excludes all single words from the phrase cloud
+  const phrasesOnly = Object.entries(frequency)
+    .filter(([phrase]) => phrase.includes(' ')) // Only phrases with 2+ words
     .sort(([, a], [, b]) => b - a)
-    .slice(0, limit * 3)
+    .slice(0, limit * 3) // Get top phrases sorted by frequency (3x limit to allow for deduplication)
+
+  if (phrasesOnly.length === 0) return []
 
   // Calculate percentage relative to the maximum count (so top item = 100%)
-  const maxCount = sorted[0]?.[1] || 1
+  const maxCount = phrasesOnly[0]?.[1] || 1
 
-  const candidates = sorted.map(([phrase, count]) => ({
+  const candidates = phrasesOnly.map(([phrase, count]) => ({
     phrase,
     count,
     percentage: Math.round((count / maxCount) * 100)
