@@ -17,6 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { DeceptionDashboard } from './DeceptionDashboard'
 import { DeceptionPredictions } from './DeceptionPredictions'
 import type { DeceptionAssessment, DeceptionScores } from '@/lib/deception-scoring'
+import { calculateDeceptionLikelihood } from '@/lib/deception-scoring'
 import type { AIDeceptionAnalysis } from '@/lib/ai-deception-analysis'
 import { generatePDFReport, generateDOCXReport, generateExecutiveBriefing, type ReportOptions } from '@/lib/deception-report-generator'
 import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type LinkedEvidence, type EvidenceEntityType } from '@/components/evidence'
@@ -73,6 +74,12 @@ export function DeceptionView({
   // Relationship generation state
   const [generatedRelationships, setGeneratedRelationships] = useState<CreateRelationshipRequest[]>([])
 
+  // Calculate assessment on-the-fly if missing (for backward compatibility with old analyses)
+  const calculatedAssessment = data.calculatedAssessment ||
+    (data.scores && Object.keys(data.scores).length > 0
+      ? calculateDeceptionLikelihood(data.scores)
+      : null)
+
   // TODO: Generate relationships from linked evidence when actors/events are linked
   // For now, this is a placeholder for when entity linking with MOM is implemented
   useEffect(() => {
@@ -80,12 +87,12 @@ export function DeceptionView({
     const actors = linkedEvidence.filter(e => e.entity_type === 'actor')
     const events = linkedEvidence.filter(e => e.entity_type === 'event')
 
-    if (actors.length > 0 && events.length > 0 && data.calculatedAssessment) {
+    if (actors.length > 0 && events.length > 0 && calculatedAssessment) {
       // TODO: Map deception analysis to MOMAssessment structure
       // This will be implemented when entity linking is fully integrated
       setGeneratedRelationships([])
     }
-  }, [linkedEvidence, data.calculatedAssessment])
+  }, [linkedEvidence, calculatedAssessment])
 
   // Load linked evidence on mount
   useEffect(() => {
@@ -150,7 +157,8 @@ export function DeceptionView({
         ...data,
         id: data.id,
         created_at: data.created_at,
-        updated_at: data.updated_at
+        updated_at: data.updated_at,
+        calculatedAssessment: calculatedAssessment // Use the calculated assessment
       }
 
       const options: ReportOptions = {
@@ -571,14 +579,26 @@ export function DeceptionView({
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Bottom Line */}
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    Bottom Line Up Front (BLUF)
-                  </h4>
-                  <p className="text-sm">{data.aiAnalysis.bottomLine}</p>
-                </div>
+                {data.aiAnalysis.bottomLine && (
+                  <>
+                    <div>
+                      <h4 className="font-semibold mb-2 flex items-center gap-2">
+                        Bottom Line Up Front (BLUF)
+                      </h4>
+                      <p className="text-sm">{data.aiAnalysis.bottomLine}</p>
+                    </div>
+                    <Separator />
+                  </>
+                )}
 
-                <Separator />
+                {!data.aiAnalysis.bottomLine && (
+                  <>
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      <p>BLUF not generated. Run AI Analysis to generate comprehensive deception assessment.</p>
+                    </div>
+                    <Separator />
+                  </>
+                )}
 
                 {/* Executive Summary */}
                 <div>
@@ -703,18 +723,18 @@ export function DeceptionView({
         {/* Dashboard Sidebar */}
         <div className="lg:col-span-1">
           <div className="sticky top-8">
-            {data.scores && data.calculatedAssessment && (
+            {data.scores && calculatedAssessment && (
               <DeceptionDashboard
                 scores={data.scores}
-                assessment={data.calculatedAssessment}
+                assessment={calculatedAssessment}
               />
             )}
 
-            {(!data.scores || !data.calculatedAssessment) && (
+            {(!data.scores || !calculatedAssessment) && (
               <Card>
                 <CardContent className="text-center py-12">
                   <p className="text-sm text-muted-foreground">
-                    No scoring data available for this analysis
+                    No scoring data available for this analysis. Complete the scoring section to see risk assessment dashboard.
                   </p>
                 </CardContent>
               </Card>
