@@ -3121,3 +3121,346 @@ Addresses issue #6 from DATABASE_ISSUES_AND_IMPROVEMENTS.md:
 - ✅ Monitoring and testing guides included
 
 ---
+
+## Improving Feature Adoption Through Prominent UI Design
+
+**Date**: October 17, 2025
+**Issue**: 100% of content analyses were unsaved despite save feature existing
+**Solution**: Made save button more prominent with tooltip and enhanced warnings
+**Files Modified**: `src/pages/tools/ContentIntelligencePage.tsx`
+**Result**: Increased visibility and explanation of save functionality
+
+---
+
+### The Problem
+
+Database audit revealed **0% adoption rate** for the save feature:
+- ALL 142 content analyses were unsaved (`is_saved = FALSE`)
+- Save button existed but was not being used
+- Users didn't understand the benefits of saving
+- Expiration warning was too subtle (small badge)
+- No explanation of what happens if not saved
+
+**User Impact**:
+- Valuable analyses being auto-deleted after 7 days
+- Users losing work they wanted to keep
+- No historical record for ongoing investigations
+- Poor user retention (lost work = frustration)
+
+### Root Cause Analysis
+
+**Why users weren't saving**:
+1. **Button not prominent** - Gray outline button blended in with other actions
+2. **No explanation** - Users didn't know WHY to save
+3. **Subtle warning** - Small badge didn't convey urgency
+4. **Feature ignorance** - No education about temporary vs. permanent
+
+**Visual hierarchy problem**:
+```
+Before:
+[DIME Analysis] [Save Permanently] [Export Report] [Copy Summary] [Share]
+   (outline)         (outline)          (default)       (outline)     (outline)
+
+All buttons looked the same → Save didn't stand out
+```
+
+### What Worked (✅ Prominent Green Button + Tooltip)
+
+#### 1. Changed Button Visual Hierarchy
+
+```typescript
+// Before: Blended in
+<Button variant="outline" size="sm" onClick={saveAnalysisPermanently}>
+  <Save className="h-4 w-4 mr-2" />
+  Save Permanently
+</Button>
+
+// After: Stands out with green primary color
+<Button
+  variant={analysis.is_saved ? "outline" : "default"}
+  className={analysis.is_saved ? '' : 'bg-green-600 hover:bg-green-700 text-white'}
+  onClick={saveAnalysisPermanently}
+  disabled={saveLoading || analysis.is_saved}
+>
+  {saveLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+  {analysis.is_saved ? 'Saved' : 'Save Permanently'}
+</Button>
+```
+
+**Why green?**
+- Universal color for "save/keep/confirm"
+- Contrasts with other outline buttons
+- Signals positive action
+- Matches user expectations
+
+#### 2. Added Informative Tooltip
+
+```typescript
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button className="bg-green-600 hover:bg-green-700 text-white">
+        Save Permanently
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent side="bottom" className="max-w-xs">
+      <div className="space-y-1">
+        <p className="font-semibold">Save this analysis to:</p>
+        <ul className="text-sm space-y-0.5 ml-4 list-disc">
+          <li>Keep it forever (no auto-deletion)</li>
+          <li>Access it anytime from your dashboard</li>
+          <li>Share with others via link</li>
+          <li>Build upon it in future investigations</li>
+        </ul>
+        {!analysis.is_saved && analysis.expires_at && (
+          <p className="text-xs text-amber-600 mt-2">
+            ⚠️ Will be deleted in {daysUntilExpiration} days if not saved!
+          </p>
+        )}
+      </div>
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
+```
+
+**Benefits explained clearly**:
+- Keep forever (addresses: "Why save?")
+- Access anytime (addresses: "Where can I find it?")
+- Share with others (addresses: "Can I collaborate?")
+- Build upon in future (addresses: "Can I reuse this?")
+
+#### 3. Enhanced Expiration Warning
+
+```typescript
+// Before: Small subtle badge
+<Badge variant="secondary" className="bg-amber-100 text-amber-800">
+  <Clock className="h-3 w-3 mr-1" />
+  Auto-deletes in {days} days - Save to keep permanently
+</Badge>
+
+// After: Prominent Alert component
+<Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800">
+  <AlertCircle className="h-4 w-4 text-amber-600" />
+  <AlertDescription className="text-amber-800 dark:text-amber-200">
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <strong>Temporary Analysis:</strong> This will be automatically deleted in{' '}
+        <strong>{days} days</strong>.
+        Click "Save Permanently" to keep it forever.
+      </div>
+    </div>
+  </AlertDescription>
+</Alert>
+```
+
+**Why Alert is better**:
+- Full-width component (can't be missed)
+- Amber background conveys urgency
+- Icon draws attention (AlertCircle)
+- Bold text highlights key information
+- Explicit call-to-action ("Click 'Save Permanently'")
+
+#### 4. Improved Saved Confirmation
+
+```typescript
+// Clear visual feedback when saved
+<Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+  <Check className="h-3 w-3 mr-1" />
+  Saved Permanently - Never Expires
+</Badge>
+```
+
+### Visual Comparison
+
+**Before**:
+```
+┌──────────────────────────────────────────────────┐
+│ [DIME] [Save] [Export] [Copy] [Share]           │
+│  ────   ────   ─────   ────   ─────             │
+│                                                   │
+│ ⏰ Auto-deletes in 6 days - Save to keep         │ ← Small badge
+└──────────────────────────────────────────────────┘
+```
+
+**After**:
+```
+┌──────────────────────────────────────────────────┐
+│ [DIME] [Save Permanently] [Export] [Copy] [Share]│
+│  ────   █████████████    ─────   ────   ─────   │ ← Green stands out
+│         (hover shows:                            │
+│          • Keep forever                          │
+│          • Access anytime                        │
+│          • Share with others                     │
+│          • Build upon later)                     │
+│                                                   │
+│ ⚠️ TEMPORARY ANALYSIS                            │ ← Full-width alert
+│ This will be automatically deleted in 6 days.    │
+│ Click "Save Permanently" to keep it forever.     │
+└──────────────────────────────────────────────────┘
+```
+
+### Key Lessons
+
+#### ✅ DO
+
+1. **Use color psychology for CTAs**
+   - Green = save/confirm/keep
+   - Red = delete/danger
+   - Blue = action/info
+   - Amber/Yellow = warning/caution
+
+2. **Provide context through tooltips**
+   - Explain WHY to use the feature
+   - List specific benefits
+   - Show consequences of NOT using it
+
+3. **Make warnings prominent**
+   - Use Alert components for important messages
+   - Full-width beats small badges
+   - Icons + bold text = attention
+
+4. **Test with real user behavior**
+   - 0% adoption = UX problem, not feature problem
+   - Users skip features they don't understand
+   - Visual hierarchy matters
+
+5. **Educate in-context**
+   - Tooltip appears on hover (when user is interested)
+   - Warning appears when relevant (unsaved analysis)
+   - No separate documentation needed
+
+#### ❌ DON'T
+
+1. **Don't make all buttons the same**
+   ```tsx
+   // ❌ Bad - Everything blends together
+   <Button variant="outline">Action 1</Button>
+   <Button variant="outline">Action 2</Button>
+   <Button variant="outline">Save</Button>
+   ```
+
+2. **Don't assume users know benefits**
+   ```tsx
+   // ❌ Bad - No explanation
+   <Button>Save</Button>
+   
+   // ✅ Good - Tooltip explains why
+   <Tooltip><Button>Save Permanently</Button></Tooltip>
+   ```
+
+3. **Don't use subtle warnings for critical info**
+   ```tsx
+   // ❌ Bad - Easy to miss
+   <small>Will be deleted in 7 days</small>
+   
+   // ✅ Good - Impossible to miss
+   <Alert>⚠️ TEMPORARY: Will be deleted in 7 days</Alert>
+   ```
+
+4. **Don't hide important features**
+   - Critical actions deserve prominent placement
+   - Visual hierarchy guides user behavior
+   - "Save" is more important than "Copy Summary"
+
+5. **Don't rely on users discovering features**
+   - If 0% use a feature, it's a design failure
+   - Make important features obvious
+   - Provide in-context education
+
+### UI/UX Patterns for Feature Adoption
+
+**Progressive Disclosure Hierarchy**:
+1. **Primary action** - Bold, colored, prominent (Save Permanently)
+2. **Secondary actions** - Outline, neutral (Export, Share, Copy)
+3. **Tertiary actions** - Ghost, subtle (Close, Cancel)
+
+**Information Architecture**:
+- **Button label** - What it does ("Save Permanently")
+- **Tooltip** - Why to do it (benefits list)
+- **Warning** - What happens if you don't (auto-deletion)
+- **Confirmation** - Feedback that it worked (green badge)
+
+### Expected Impact
+
+**Before improvements**:
+- Save rate: 0% (0/142 analyses saved)
+- User awareness: Low
+- Data retention: Poor
+- User frustration: Losing work
+
+**After improvements** (estimated):
+- Save rate: 20-40% initially
+- User awareness: High (tooltip + warning)
+- Data retention: Improved
+- User satisfaction: Better (work protected)
+
+**Measurement strategy**:
+- Track save button click rate
+- Monitor saved vs. unsaved ratio
+- Survey users about awareness
+- Check if users return to saved analyses
+
+### Related Patterns
+
+**Button Visual Hierarchy**:
+```tsx
+// Primary (most important)
+<Button variant="default" className="bg-blue-600">Primary Action</Button>
+
+// Secondary (important)
+<Button variant="outline">Secondary Action</Button>
+
+// Tertiary (nice to have)
+<Button variant="ghost">Tertiary Action</Button>
+
+// Destructive (dangerous)
+<Button variant="destructive">Delete</Button>
+```
+
+**Tooltip Best Practices**:
+```tsx
+<Tooltip>
+  <TooltipTrigger>Button</TooltipTrigger>
+  <TooltipContent>
+    {/* Keep it concise */}
+    <p className="font-semibold">Action Description</p>
+    <ul className="text-sm">
+      {/* List 3-5 benefits */}
+      <li>Benefit 1</li>
+      <li>Benefit 2</li>
+    </ul>
+    {/* Add urgency if applicable */}
+    <p className="text-xs text-amber-600">⚠️ Warning</p>
+  </TooltipContent>
+</Tooltip>
+```
+
+### Impact
+
+- **Fixed**: Save button now stands out visually
+- **Added**: Tooltip explaining save benefits
+- **Enhanced**: Expiration warning from badge to Alert
+- **Improved**: User education through in-context information
+- **Expected**: 20-40% save rate (from 0%)
+- **Severity**: Medium - User retention issue
+- **Effort**: ~45 minutes (design + implementation + testing)
+- **Deployment**: https://868ae588.researchtoolspy.pages.dev
+
+### Related Issues
+
+Addresses issue #7 from DATABASE_ISSUES_AND_IMPROVEMENTS.md:
+- ✅ Added prominent "Save Analysis" button (green, stands out)
+- ✅ Show expiration warning (full Alert component)
+- ✅ Added "Save" tooltip explaining benefits
+- ✅ Clear visual hierarchy for user actions
+- ⏳ Analytics to track save button clicks (future enhancement)
+
+### Next Steps
+
+1. **Monitor adoption rate** - Check database in 1 week
+2. **A/B test variations** - Try different tooltip content
+3. **Add first-time user flow** - Dialog explaining save feature
+4. **Track analytics** - Log save button impressions/clicks
+5. **User feedback** - Survey about feature awareness
+
+---
