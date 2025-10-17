@@ -12,14 +12,17 @@ interface SwotItem {
   id: string
   text: string
   evidence_ids?: string[]
-  confidence?: number
+  confidence?: 'low' | 'medium' | 'high'
   tags?: string[]
+  appliesTo?: string[]  // Which option(s) this item applies to
 }
 
 interface SwotData {
   id: string
   title: string
   description: string
+  goal?: string  // Overall goal or decision being made
+  options?: string[]  // Options being considered
   strengths: SwotItem[]
   weaknesses: SwotItem[]
   opportunities: SwotItem[]
@@ -73,7 +76,6 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
             {items.map((item, index) => {
               const evidenceCount = item.evidence_ids?.length || 0
               const hasEvidence = evidenceCount > 0
-              const confidence = item.confidence || (hasEvidence ? 50 + (evidenceCount * 10) : 0)
 
               return (
                 <li
@@ -89,25 +91,28 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
                     </div>
                     <div className="flex items-center gap-1">
                       {hasEvidence && (
-                        <>
-                          <Badge variant="outline" className="text-xs flex items-center gap-1">
-                            <Database className="h-3 w-3" />
-                            {evidenceCount}
-                          </Badge>
-                          {confidence >= 75 && (
-                            <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              {confidence}%
-                            </Badge>
-                          )}
-                          {confidence >= 50 && confidence < 75 && (
-                            <Badge className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
-                              {confidence}%
-                            </Badge>
-                          )}
-                        </>
+                        <Badge variant="outline" className="text-xs flex items-center gap-1">
+                          <Database className="h-3 w-3" />
+                          {evidenceCount}
+                        </Badge>
                       )}
-                      {!hasEvidence && (
+                      {item.confidence === 'high' && (
+                        <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          High
+                        </Badge>
+                      )}
+                      {item.confidence === 'medium' && (
+                        <Badge className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+                          Medium
+                        </Badge>
+                      )}
+                      {item.confidence === 'low' && (
+                        <Badge className="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400">
+                          Low
+                        </Badge>
+                      )}
+                      {!hasEvidence && !item.confidence && (
                         <Badge variant="outline" className="text-xs text-gray-500">
                           No evidence
                         </Badge>
@@ -115,14 +120,26 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
                     </div>
                   </div>
                   {item.tags && item.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pl-5">
-                      {item.tags.map((tag, tagIdx) => (
+                    <div className="flex flex-wrap gap-1.5 pl-5">
+                      {item.tags.map((tagIdx, idx) => (
                         <Badge
-                          key={tagIdx}
-                          variant="outline"
-                          className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                          key={idx}
+                          className="text-xs px-2.5 py-0.5 font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700"
                         >
-                          {tag}
+                          🏷️ {tagIdx}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  {item.appliesTo && item.appliesTo.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pl-5">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">Applies to:</span>
+                      {item.appliesTo.map((option, idx) => (
+                        <Badge
+                          key={idx}
+                          className="text-xs px-2.5 py-0.5 font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 border border-purple-300 dark:border-purple-700"
+                        >
+                          ✓ {option}
                         </Badge>
                       ))}
                     </div>
@@ -157,15 +174,34 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
                 {data.description}
               </p>
             )}
+            {data.goal && (
+              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">🎯 Goal: </span>
+                <span className="text-sm text-blue-800 dark:text-blue-300">{data.goal}</span>
+              </div>
+            )}
+            {data.options && data.options.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 mr-1">Options Considered:</span>
+                {data.options.map((option, idx) => (
+                  <Badge
+                    key={idx}
+                    className="text-sm px-3 py-1 font-medium bg-gradient-to-r from-purple-100 to-purple-50 dark:from-purple-900/40 dark:to-purple-900/20 border border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-200 shadow-sm"
+                  >
+                    ✓ {option}
+                  </Badge>
+                ))}
+              </div>
+            )}
             {data.tags && data.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-3">
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 mr-1">Tags:</span>
                 {data.tags.map((tag, idx) => (
                   <Badge
                     key={idx}
-                    variant="outline"
-                    className="text-xs px-2 py-1 bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300"
+                    className="text-sm px-3 py-1 font-medium bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-900/40 dark:to-blue-900/20 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200 shadow-sm"
                   >
-                    <Tag className="h-3 w-3 mr-1" />
+                    <Tag className="h-3.5 w-3.5 mr-1.5" />
                     {tag}
                   </Badge>
                 ))}
@@ -334,6 +370,8 @@ export function SwotView({ data, onEdit, onDelete }: SwotViewProps) {
         weaknesses={data.weaknesses}
         opportunities={data.opportunities}
         threats={data.threats}
+        goal={data.goal}
+        options={data.options}
       />
 
       {/* Comments Section */}

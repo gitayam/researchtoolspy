@@ -14,7 +14,7 @@ import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
   Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe, SmileIcon, FrownIcon, MehIcon, Grid3x3, Share2,
-  Search, Sparkles, XCircle, MoreVertical
+  Search, Sparkles, XCircle, MoreVertical, Mail
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, AnalysisTab, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -28,7 +28,7 @@ export default function ContentIntelligencePage() {
 
   // State
   const [url, setUrl] = useState('')
-  const [mode, setMode] = useState<'quick' | 'full' | 'forensic'>('full')
+  const [mode, setMode] = useState<'quick' | 'normal' | 'full'>('normal')
   const [processing, setProcessing] = useState(false)
   const [status, setStatus] = useState<ProcessingStatus>('idle')
   const [progress, setProgress] = useState(0)
@@ -83,6 +83,10 @@ export default function ContentIntelligencePage() {
   // DIME Analysis State
   const [dimeLoading, setDimeLoading] = useState(false)
   const [dimeAnalysis, setDimeAnalysis] = useState<any>(null)
+
+  // Claims Analysis State
+  const [claimsLoading, setClaimsLoading] = useState(false)
+  const [claimsAnalysis, setClaimsAnalysis] = useState<any>(null)
 
   // Save/Share State
   const [saveLoading, setSaveLoading] = useState(false)
@@ -363,6 +367,15 @@ export default function ContentIntelligencePage() {
               ).join('')}
             </div>
           ` : ''}
+
+          ${analysis.entities.emails && analysis.entities.emails.length > 0 ? `
+            <h3>Emails (${analysis.entities.emails.length})</h3>
+            <div class="entity-list">
+              ${analysis.entities.emails.slice(0, 20).map((e: any) =>
+                `<div class="entity-item"><a href="mailto:${e.email}">${e.email}</a> ${e.count > 1 ? `(${e.count}×)` : ''}</div>`
+              ).join('')}
+            </div>
+          ` : ''}
         ` : ''}
 
         <!-- Q&A History -->
@@ -509,6 +522,151 @@ export default function ContentIntelligencePage() {
       toast({
         title: 'Share Failed',
         description: error instanceof Error ? error.message : 'Failed to create share link',
+        variant: 'destructive'
+      })
+    } finally {
+      setSaveLoading(false)
+    }
+  }
+
+  // Fallback clipboard copy function (works without user gesture)
+  const copyToClipboardFallback = (text: string): boolean => {
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      textarea.style.pointerEvents = 'none'
+      document.body.appendChild(textarea)
+      textarea.select()
+      const success = document.execCommand('copy')
+      document.body.removeChild(textarea)
+      return success
+    } catch (err) {
+      console.error('Fallback copy failed:', err)
+      return false
+    }
+  }
+
+  // Copy formatted summary for Signal messenger
+  const copySummaryForSignal = async () => {
+    if (!analysis) return
+
+    setSaveLoading(true)
+
+    try {
+      // Create Signal-optimized summary (use existing share link if available)
+      const title = analysis.title || 'Content Analysis'
+      const summary = analysis.summary || 'No summary available'
+
+      // Get first 280 characters of summary (like Twitter limit) for sharing
+      const shortSummary = summary.length > 280
+        ? summary.substring(0, 277) + '...'
+        : summary
+
+      // Format bypass and archive URLs
+      const archiveUrls = analysis.archive_urls || {}
+
+      // Build Signal-formatted message with share link at top (only if already exists)
+      const signalMessage = `📊 *${title}*
+${shareUrl ? `\n📖 Full Analysis: ${shareUrl}\n` : ''}
+${shortSummary}${
+  archiveUrls['wayback'] ? `\n\n🚀 Quick Access:\n• Wayback Machine: ${archiveUrls['wayback']}` : ''
+}`
+
+      // Try modern clipboard API first (works immediately in user gesture)
+      let copySuccess = false
+      let copyMethod = ''
+
+      try {
+        await navigator.clipboard.writeText(signalMessage)
+        copySuccess = true
+        copyMethod = 'Modern Clipboard API'
+      } catch (clipboardError) {
+        console.warn('Modern clipboard failed, trying fallback:', clipboardError)
+
+        // Fallback: execCommand (also requires user gesture but sometimes works)
+        try {
+          const textarea = document.createElement('textarea')
+          textarea.value = signalMessage
+          textarea.style.position = 'fixed'
+          textarea.style.left = '-999999px'
+          textarea.style.top = '-999999px'
+          document.body.appendChild(textarea)
+          textarea.focus()
+          textarea.select()
+
+          const successful = document.execCommand('copy')
+          document.body.removeChild(textarea)
+
+          if (successful) {
+            copySuccess = true
+            copyMethod = 'execCommand fallback'
+          }
+        } catch (fallbackError) {
+          console.warn('Fallback clipboard also failed:', fallbackError)
+        }
+      }
+
+      if (!copySuccess) {
+        // Manual copy modal as last resort
+        const modal = document.createElement('div')
+        modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);z-index:9999;max-width:90%;max-height:80%;overflow:auto;'
+
+        const titleEl = document.createElement('h3')
+        titleEl.textContent = 'Copy this text manually:'
+        titleEl.style.cssText = 'margin:0 0 10px 0;font-size:16px;font-weight:600;'
+
+        const textarea = document.createElement('textarea')
+        textarea.value = signalMessage
+        textarea.style.cssText = 'width:100%;min-height:200px;padding:10px;border:1px solid #ccc;border-radius:4px;font-family:monospace;font-size:12px;'
+        textarea.readOnly = true
+
+        const buttonContainer = document.createElement('div')
+        buttonContainer.style.cssText = 'margin-top:10px;display:flex;gap:10px;'
+
+        const selectBtn = document.createElement('button')
+        selectBtn.textContent = 'Select All'
+        selectBtn.style.cssText = 'padding:8px 16px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;'
+        selectBtn.onclick = () => textarea.select()
+
+        const closeBtn = document.createElement('button')
+        closeBtn.textContent = 'Close'
+        closeBtn.style.cssText = 'padding:8px 16px;background:#6b7280;color:white;border:none;border-radius:4px;cursor:pointer;'
+        closeBtn.onclick = () => document.body.removeChild(modal)
+
+        buttonContainer.appendChild(selectBtn)
+        buttonContainer.appendChild(closeBtn)
+        modal.appendChild(titleEl)
+        modal.appendChild(textarea)
+        modal.appendChild(buttonContainer)
+        document.body.appendChild(modal)
+
+        textarea.select()
+
+        toast({
+          title: 'Manual Copy Required',
+          description: 'Browser blocked auto-copy. Please copy from the dialog.'
+        })
+
+        setSaveLoading(false)
+        return
+      }
+
+      // Show success message
+      console.log(`Copy successful using: ${copyMethod}`)
+      toast({
+        title: 'Summary Copied! 🎉',
+        description: shareUrl
+          ? 'Signal-formatted summary with full analysis link copied!'
+          : 'Summary copied! Click "Share Analysis" first to include a shareable link.'
+      })
+
+    } catch (error) {
+      console.error('Copy summary error:', error)
+      toast({
+        title: 'Copy Failed',
+        description: error instanceof Error ? error.message : 'Failed to copy summary',
         variant: 'destructive'
       })
     } finally {
@@ -745,6 +903,53 @@ export default function ContentIntelligencePage() {
     }
   }
 
+  // Run Claims Analysis
+  const runClaimsAnalysis = async () => {
+    if (!analysis) {
+      toast({ title: 'Error', description: 'No analysis available', variant: 'destructive' })
+      return
+    }
+
+    if (!analysis.id) {
+      toast({ title: 'Error', description: 'Analysis must be saved first', variant: 'destructive' })
+      return
+    }
+
+    setClaimsLoading(true)
+    try {
+      const userHash = localStorage.getItem('omnicore_user_hash')
+      const response = await fetch(`/api/claims/analyze/${analysis.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userHash}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Claims analysis failed')
+      }
+
+      const data = await response.json()
+      setClaimsAnalysis(data.claim_analysis)
+      setAnalysis({ ...analysis, claim_analysis: data.claim_analysis })
+
+      toast({
+        title: 'Claims Analysis Complete',
+        description: `${data.claim_analysis?.summary?.total_claims || 0} claims analyzed successfully`
+      })
+    } catch (error) {
+      console.error('Claims analysis error:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to run claims analysis',
+        variant: 'destructive'
+      })
+    } finally {
+      setClaimsLoading(false)
+    }
+  }
+
   // Save analysis permanently and generate share link
   const saveAnalysisPermanently = async () => {
     if (!analysis) {
@@ -966,7 +1171,17 @@ export default function ContentIntelligencePage() {
         const contentType = response.headers.get('content-type')
         if (contentType && contentType.includes('application/json')) {
           const error = await response.json()
-          throw new Error(error.error || `Analysis failed with status ${response.status}`)
+          // Log full error details for debugging
+          console.error('[DEBUG] Backend error details:', {
+            error: error.error,
+            details: error.details,
+            errorName: error.errorName,
+            technical_error: error.technical_error,
+            stack: error.stack
+          })
+          // Show comprehensive error message
+          const errorMsg = error.details || error.error || `Analysis failed with status ${response.status}`
+          throw new Error(`${errorMsg}${error.errorName ? ` (${error.errorName})` : ''}`)
         } else {
           // Non-JSON response (likely HTML error page)
           throw new Error(`Analysis failed with status ${response.status}. The server may be overloaded or the request timed out.`)
@@ -989,10 +1204,27 @@ export default function ContentIntelligencePage() {
         checkEntityDuplicates(data.entities)
       }
 
-      // NOTE: Starbursting is now manual-trigger only (like DIME analysis)
-      // Users must click "Create Starbursting Session" button to generate
+      // Auto-trigger DIME and Starbursting for Full mode
+      if (mode === 'full' && data.id) {
+        toast({
+          title: 'Analysis Complete!',
+          description: 'Starting DIME and Starbursting analysis (Full mode)...'
+        })
 
-      toast({ title: 'Success', description: 'Analysis complete!' })
+        // Start DIME analysis
+        if (data.extracted_text) {
+          runDIMEAnalysis().catch(err => {
+            console.error('[Full Mode] DIME analysis failed:', err)
+          })
+        }
+
+        // Start Starbursting in background
+        startStarburstingInBackground(data.id).catch(err => {
+          console.error('[Full Mode] Starbursting failed:', err)
+        })
+      } else {
+        toast({ title: 'Success', description: 'Analysis complete!' })
+      }
     } catch (error) {
       // Clear progress interval on error
       if (progressInterval) clearInterval(progressInterval)
@@ -1839,18 +2071,18 @@ export default function ContentIntelligencePage() {
                 Quick
               </Button>
               <Button
+                variant={mode === 'normal' ? 'default' : 'outline'}
+                onClick={() => setMode('normal')}
+                size="sm"
+              >
+                Normal
+              </Button>
+              <Button
                 variant={mode === 'full' ? 'default' : 'outline'}
                 onClick={() => setMode('full')}
                 size="sm"
               >
                 Full
-              </Button>
-              <Button
-                variant={mode === 'forensic' ? 'default' : 'outline'}
-                onClick={() => setMode('forensic')}
-                size="sm"
-              >
-                Forensic
               </Button>
             </div>
 
@@ -2350,9 +2582,25 @@ export default function ContentIntelligencePage() {
               <Users className="h-4 w-4 mr-2" />
               Entities
             </TabsTrigger>
-            <TabsTrigger value="claims">
+            <TabsTrigger value="links">
+              <Link2 className="h-4 w-4 mr-2" />
+              Links
+            </TabsTrigger>
+            <TabsTrigger value="claims" className="relative">
               <Shield className="h-4 w-4 mr-2" />
               Claims
+              {claimsLoading && (
+                <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Analyzing
+                </Badge>
+              )}
+              {(analysis?.claim_analysis || claimsAnalysis) && !claimsLoading && (
+                <Badge variant="default" className="ml-2 bg-green-100 text-green-700">
+                  <Check className="h-3 w-3 mr-1" />
+                  Ready
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="qa">
               <MessageSquare className="h-4 w-4 mr-2" />
@@ -2477,6 +2725,16 @@ export default function ContentIntelligencePage() {
                   >
                     <FileDown className="h-4 w-4 mr-2" />
                     Export Report
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copySummaryForSignal}
+                    disabled={saveLoading}
+                    className="bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Summary
                   </Button>
                   {!shareUrl && (
                     <Button
@@ -3543,20 +3801,166 @@ export default function ContentIntelligencePage() {
                   )}
                 </div>
               </Card>
+
+              {/* Emails */}
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span>Emails ({analysis.entities?.emails?.length || 0})</span>
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {(analysis.entities?.emails || []).slice(0, 10).map((email, i) => (
+                    <div key={i} className="text-sm">
+                      <a
+                        href={`mailto:${email.email}`}
+                        className="font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        {email.email}
+                      </a>
+                      <span className="text-muted-foreground ml-2">({email.count}×)</span>
+                    </div>
+                  ))}
+                  {(!analysis.entities?.emails || analysis.entities.emails.length === 0) && (
+                    <p className="text-sm text-muted-foreground">None found</p>
+                  )}
+                </div>
+              </Card>
             </div>
           </TabsContent>
 
+          <TabsContent value="links" className="mt-4">
+            {analysis.links_analysis && analysis.links_analysis.length > 0 ? (
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Link2 className="h-5 w-5" />
+                      Link Analysis ({analysis.links_analysis.length} unique links)
+                    </CardTitle>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      All links found in the article body (excluding navigation, headers, and footers).
+                      Helps identify sources, references, and related content.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1">
+                      {/* Summary Statistics */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Total Links</p>
+                          <p className="text-2xl font-bold">{analysis.links_analysis.length}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">External Links</p>
+                          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            {analysis.links_analysis.filter(l => l.is_external).length}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Internal Links</p>
+                          <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {analysis.links_analysis.filter(l => !l.is_external).length}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Unique Domains</p>
+                          <p className="text-2xl font-bold">
+                            {new Set(analysis.links_analysis.map(l => l.domain)).size}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Links List */}
+                      <div className="space-y-3">
+                        {analysis.links_analysis.map((link, idx) => (
+                          <div
+                            key={idx}
+                            className="border-l-4 border-blue-500 dark:border-blue-400 pl-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <a
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium break-all flex items-center gap-1"
+                                  >
+                                    <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                    {link.url}
+                                  </a>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2 mt-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {link.domain}
+                                  </Badge>
+                                  <Badge variant={link.is_external ? "default" : "secondary"} className="text-xs">
+                                    {link.is_external ? "External" : "Internal"}
+                                  </Badge>
+                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                    Referenced {link.count}× in article
+                                  </span>
+                                </div>
+                                {link.anchor_text.length > 0 && (
+                                  <div className="mt-2">
+                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                      Anchor text:{' '}
+                                    </span>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {link.anchor_text.map((text, i) => (
+                                        <Badge
+                                          key={i}
+                                          variant="outline"
+                                          className="text-xs bg-white dark:bg-gray-900"
+                                        >
+                                          "{text}"
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <Card className="p-6">
+                <p className="text-center text-muted-foreground">
+                  No links were found in the article body
+                </p>
+              </Card>
+            )}
+          </TabsContent>
+
           <TabsContent value="claims" className="mt-4">
-            {analysis.claim_analysis ? (
+            {(analysis?.claim_analysis || claimsAnalysis) ? (
               <ClaimAnalysisDisplay
                 contentAnalysisId={analysis.id}
-                claimAnalysis={analysis.claim_analysis}
+                claimAnalysis={analysis.claim_analysis || claimsAnalysis}
               />
             ) : (
-              <Card className="p-6 text-center">
-                <p className="text-muted-foreground">
-                  No claim analysis available for this content.
-                </p>
+              <Card className="p-6">
+                <div className="text-center py-8">
+                  <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="font-semibold text-lg mb-2">Claims Deception Analysis</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Extract factual claims and analyze them for potential deception using multiple detection methods: internal consistency, source credibility, evidence quality, logical coherence, temporal consistency, and specificity.
+                  </p>
+                  <Button onClick={runClaimsAnalysis} disabled={claimsLoading || !analysis} size="lg">
+                    <Shield className="h-4 w-4 mr-2" />
+                    {claimsLoading ? 'Analyzing Claims...' : 'Run Claims Analysis'}
+                  </Button>
+                  {!analysis && (
+                    <p className="text-sm text-muted-foreground mt-4">
+                      Analyze content first before running claims analysis
+                    </p>
+                  )}
+                </div>
               </Card>
             )}
           </TabsContent>

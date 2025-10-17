@@ -10,6 +10,28 @@ import { AIFieldAssistant } from '@/components/ai'
 import { ContentPickerDialog } from './ContentPickerDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { TagInput } from '@/components/ui/tag-input'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
+
+// Helper function to get authentication headers
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  }
+
+  // Try to get bearer token first (authenticated users)
+  const token = localStorage.getItem('omnicore_token')
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  // Try to get user hash (guest mode)
+  const userHash = localStorage.getItem('user_hash')
+  if (userHash) {
+    headers['X-User-Hash'] = userHash
+  }
+
+  return headers
+}
 
 interface SwotItem {
   id: string
@@ -18,11 +40,14 @@ interface SwotItem {
   confidence?: 'low' | 'medium' | 'high'
   evidence_ids?: string[]
   tags?: string[]
+  appliesTo?: string[]  // Which option(s) this item applies to
 }
 
 interface SwotData {
   title: string
   description: string
+  goal?: string  // Overall goal or decision being made
+  options?: string[]  // Options being considered (e.g., ["NYC Office", "London Office"])
   strengths: SwotItem[]
   weaknesses: SwotItem[]
   opportunities: SwotItem[]
@@ -80,19 +105,32 @@ function QuadrantCard({
   items,
   newItem,
   setNewItem,
+  newItemAppliesTo,
+  setNewItemAppliesTo,
+  newItemTags,
+  setNewItemTags,
+  newItemConfidence,
+  setNewItemConfidence,
   onAdd,
   onRemove,
   onEditItem,
   onMoveItem,
   color,
   icon,
-  allData
+  allData,
+  options
 }: {
   title: string
   description: string
   items: SwotItem[]
   newItem: string
   setNewItem: (value: string) => void
+  newItemAppliesTo: string[]
+  setNewItemAppliesTo: (value: string[]) => void
+  newItemTags: string[]
+  setNewItemTags: (value: string[]) => void
+  newItemConfidence: 'low' | 'medium' | 'high' | ''
+  setNewItemConfidence: (value: 'low' | 'medium' | 'high' | '') => void
   onAdd: () => void
   onRemove: (id: string) => void
   onEditItem: (id: string, updates: Partial<SwotItem>) => void
@@ -100,12 +138,14 @@ function QuadrantCard({
   color: string
   icon: string
   allData?: SwotData
+  options?: string[]
 }) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [editDetails, setEditDetails] = useState('')
   const [editConfidence, setEditConfidence] = useState<'low' | 'medium' | 'high' | ''>('')
   const [editTags, setEditTags] = useState<string[]>([])
+  const [editAppliesTo, setEditAppliesTo] = useState<string[]>([])
 
   const handleStartEdit = (item: SwotItem) => {
     setEditingId(item.id)
@@ -113,6 +153,7 @@ function QuadrantCard({
     setEditDetails(item.details || '')
     setEditConfidence(item.confidence || '')
     setEditTags(item.tags || [])
+    setEditAppliesTo(item.appliesTo || [])
   }
 
   const handleSaveEdit = () => {
@@ -121,13 +162,15 @@ function QuadrantCard({
         text: editText.trim(),
         details: editDetails.trim() || undefined,
         confidence: editConfidence || undefined,
-        tags: editTags
+        tags: editTags,
+        appliesTo: editAppliesTo.length > 0 ? editAppliesTo : undefined
       })
       setEditingId(null)
       setEditText('')
       setEditDetails('')
       setEditConfidence('')
       setEditTags([])
+      setEditAppliesTo([])
     }
   }
 
@@ -137,6 +180,7 @@ function QuadrantCard({
     setEditDetails('')
     setEditConfidence('')
     setEditTags([])
+    setEditAppliesTo([])
   }
 
   return (
@@ -149,33 +193,170 @@ function QuadrantCard({
       <CardDescription>{quadrantDesc}</CardDescription>
     </CardHeader>
     <CardContent className="space-y-4">
-      <div className="flex gap-2">
-        <Input
-          placeholder={`Add a ${quadrantTitle.toLowerCase()}...`}
-          value={newItem}
-          onChange={(e) => setNewItem(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && onAdd()}
-        />
-        <AIFieldAssistant
-          fieldName={quadrantTitle}
-          currentValue={newItem}
-          onAccept={(value) => setNewItem(value)}
-          context={{
-            framework: 'SWOT Analysis',
-            relatedFields: allData ? {
-              title: allData.title,
-              description: allData.description,
-              strengths: allData.strengths,
-              weaknesses: allData.weaknesses,
-              opportunities: allData.opportunities,
-              threats: allData.threats
-            } : undefined
-          }}
-          placeholder={`Add a ${quadrantTitle.toLowerCase()}...`}
-        />
-        <Button onClick={onAdd} size="sm">
-          <Plus className="h-4 w-4" />
-        </Button>
+      {/* Enhanced inline add form */}
+      <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
+        {/* Main text input */}
+        <div className="flex gap-2">
+          <Input
+            placeholder={`Add a ${quadrantTitle.toLowerCase()}...`}
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && (newItemTags.length === 0 && !newItemConfidence)) {
+                // Only auto-add on Enter if no metadata is being set
+                e.preventDefault()
+                onAdd()
+              }
+            }}
+            className="flex-1"
+          />
+          <AIFieldAssistant
+            fieldName={quadrantTitle}
+            currentValue={newItem}
+            onAccept={(value) => setNewItem(value)}
+            context={{
+              framework: 'SWOT Analysis',
+              relatedFields: allData ? {
+                title: allData.title,
+                description: allData.description,
+                strengths: allData.strengths,
+                weaknesses: allData.weaknesses,
+                opportunities: allData.opportunities,
+                threats: allData.threats
+              } : undefined
+            }}
+            placeholder={`Add a ${quadrantTitle.toLowerCase()}...`}
+          />
+        </div>
+
+        {/* Metadata fields - show when item text exists or options are defined */}
+        {(newItem.trim() || (options && options.length > 0)) && (
+          <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+            {/* Quick Option Selector - Only show if options are defined */}
+            {options && options.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  📋 Applies To (Options)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {options.map((option, idx) => (
+                    <label
+                      key={idx}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-all ${
+                        newItemAppliesTo.includes(option)
+                          ? 'bg-purple-600 text-white border-2 border-purple-700 shadow-sm'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={newItemAppliesTo.includes(option)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNewItemAppliesTo([...newItemAppliesTo, option])
+                          } else {
+                            setNewItemAppliesTo(newItemAppliesTo.filter(o => o !== option))
+                          }
+                        }}
+                        className="sr-only"
+                      />
+                      {newItemAppliesTo.includes(option) && <span>✓</span>}
+                      {option}
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                  {newItemAppliesTo.length === 0
+                    ? '💡 None selected = applies to all options'
+                    : `Selected: ${newItemAppliesTo.join(', ')}`}
+                </p>
+              </div>
+            )}
+
+            {/* Tags Input */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                🏷️ Tags (Optional)
+              </label>
+              <TagInput
+                tags={newItemTags}
+                onChange={setNewItemTags}
+                suggestions={SUGGESTED_ITEM_TAGS}
+                placeholder="Add tags (e.g., Finance, High Priority)..."
+                maxTags={5}
+                className="text-xs"
+              />
+            </div>
+
+            {/* Confidence Selector */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                🎯 Confidence Level (Optional)
+              </label>
+              <div className="flex gap-2">
+                {[
+                  { value: '', label: 'Not Set', emoji: '⚪' },
+                  { value: 'low', label: 'Low', emoji: '🔴' },
+                  { value: 'medium', label: 'Medium', emoji: '🟡' },
+                  { value: 'high', label: 'High', emoji: '🟢' },
+                ].map((conf) => (
+                  <button
+                    key={conf.value}
+                    type="button"
+                    onClick={() => setNewItemConfidence(conf.value as any)}
+                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md border-2 transition-all ${
+                      newItemConfidence === conf.value
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-500'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-base">{conf.emoji}</span>
+                      <span>{conf.label}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Add Item Button - Clearly at the bottom */}
+            <div className="pt-2 border-t border-gray-300 dark:border-gray-600">
+              <Button
+                onClick={onAdd}
+                disabled={!newItem.trim()}
+                className="w-full"
+                size="lg"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add {quadrantTitle.slice(0, -1)}
+                {(newItemAppliesTo.length > 0 || newItemTags.length > 0 || newItemConfidence) && (
+                  <span className="ml-2 text-xs opacity-80">
+                    ({[
+                      newItemAppliesTo.length > 0 && `${newItemAppliesTo.length} option${newItemAppliesTo.length > 1 ? 's' : ''}`,
+                      newItemTags.length > 0 && `${newItemTags.length} tag${newItemTags.length > 1 ? 's' : ''}`,
+                      newItemConfidence && newItemConfidence
+                    ].filter(Boolean).join(', ')})
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Add Button - Show only when no metadata is visible */}
+        {!newItem.trim() && !(options && options.length > 0) && (
+          <div className="flex justify-end">
+            <Button
+              onClick={onAdd}
+              disabled={!newItem.trim()}
+              size="sm"
+              variant="outline"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Quick Add
+            </Button>
+          </div>
+        )}
       </div>
       <div className="space-y-2">
         {items.length === 0 ? (
@@ -253,6 +434,39 @@ function QuadrantCard({
                     />
                   </div>
 
+                  {/* Applies To Options - Only show if options are defined */}
+                  {options && options.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">
+                        Applies To (Options)
+                      </label>
+                      <div className="space-y-1.5">
+                        {options.map((option, idx) => (
+                          <label key={idx} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editAppliesTo.includes(option)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditAppliesTo([...editAppliesTo, option])
+                                } else {
+                                  setEditAppliesTo(editAppliesTo.filter(o => o !== option))
+                                }
+                              }}
+                              className="rounded border-gray-300 dark:border-gray-600"
+                            />
+                            <span className="text-gray-900 dark:text-gray-100">{option}</span>
+                          </label>
+                        ))}
+                        {editAppliesTo.length === 0 && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                            Not selected = applies to all options
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Move to Section Dropdown */}
                   <div>
                     <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">
@@ -323,14 +537,28 @@ function QuadrantCard({
 
                       {/* Tags if present */}
                       {item.tags && item.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1.5 pl-6">
                           {item.tags.map((tag, idx) => (
                             <Badge
                               key={idx}
-                              variant="outline"
-                              className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                              className="text-xs px-2.5 py-0.5 font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700"
                             >
-                              {tag}
+                              🏷️ {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Applies To if present */}
+                      {item.appliesTo && item.appliesTo.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pl-6">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">Applies to:</span>
+                          {item.appliesTo.map((option, idx) => (
+                            <Badge
+                              key={idx}
+                              className="text-xs px-2.5 py-0.5 font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 border border-purple-300 dark:border-purple-700"
+                            >
+                              ✓ {option}
                             </Badge>
                           ))}
                         </div>
@@ -367,11 +595,14 @@ function QuadrantCard({
 
 export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   const navigate = useNavigate()
+  const { currentWorkspaceId } = useWorkspace()
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [title, setTitle] = useState(initialData?.title || '')
   const [description, setDescription] = useState(initialData?.description || '')
+  const [goal, setGoal] = useState(initialData?.goal || '')
+  const [options, setOptions] = useState<string[]>(initialData?.options || [])
   const [tags, setTags] = useState<string[]>(initialData?.tags || [])
   const [strengths, setStrengths] = useState<SwotItem[]>(initialData?.strengths || [])
   const [weaknesses, setWeaknesses] = useState<SwotItem[]>(initialData?.weaknesses || [])
@@ -382,6 +613,24 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   const [newWeakness, setNewWeakness] = useState('')
   const [newOpportunity, setNewOpportunity] = useState('')
   const [newThreat, setNewThreat] = useState('')
+
+  // Track which options each new item applies to
+  const [newStrengthAppliesTo, setNewStrengthAppliesTo] = useState<string[]>([])
+  const [newWeaknessAppliesTo, setNewWeaknessAppliesTo] = useState<string[]>([])
+  const [newOpportunityAppliesTo, setNewOpportunityAppliesTo] = useState<string[]>([])
+  const [newThreatAppliesTo, setNewThreatAppliesTo] = useState<string[]>([])
+
+  // Track tags for each new item
+  const [newStrengthTags, setNewStrengthTags] = useState<string[]>([])
+  const [newWeaknessTags, setNewWeaknessTags] = useState<string[]>([])
+  const [newOpportunityTags, setNewOpportunityTags] = useState<string[]>([])
+  const [newThreatTags, setNewThreatTags] = useState<string[]>([])
+
+  // Track confidence for each new item
+  const [newStrengthConfidence, setNewStrengthConfidence] = useState<'low' | 'medium' | 'high' | ''>('')
+  const [newWeaknessConfidence, setNewWeaknessConfidence] = useState<'low' | 'medium' | 'high' | ''>('')
+  const [newOpportunityConfidence, setNewOpportunityConfidence] = useState<'low' | 'medium' | 'high' | ''>('')
+  const [newThreatConfidence, setNewThreatConfidence] = useState<'low' | 'medium' | 'high' | ''>('')
 
   // Auto-populate state
   const [contentPickerOpen, setContentPickerOpen] = useState(false)
@@ -396,6 +645,8 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
       const draftData = {
         title,
         description,
+        goal,
+        options,
         tags,
         strengths,
         weaknesses,
@@ -412,7 +663,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
     }, 30000) // 30 seconds
 
     return () => clearInterval(interval)
-  }, [title, description, strengths, weaknesses, opportunities, threats, mode, initialData])
+  }, [title, description, goal, options, tags, strengths, weaknesses, opportunities, threats, mode, initialData])
 
   // Restore draft on mount if available
   useEffect(() => {
@@ -432,6 +683,8 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
             if (confirm(message)) {
               setTitle(draft.title || '')
               setDescription(draft.description || '')
+              setGoal(draft.goal || '')
+              setOptions(draft.options || [])
               setTags(draft.tags || [])
               setStrengths(draft.strengths || [])
               setWeaknesses(draft.weaknesses || [])
@@ -455,18 +708,30 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   const addItem = (
     category: 'strengths' | 'weaknesses' | 'opportunities' | 'threats',
     text: string,
+    appliesTo: string[],
+    tags: string[],
+    confidence: 'low' | 'medium' | 'high' | '',
     setter: React.Dispatch<React.SetStateAction<SwotItem[]>>,
-    clearInput: () => void
+    clearInput: () => void,
+    clearAppliesTo: () => void,
+    clearTags: () => void,
+    clearConfidence: () => void
   ) => {
     if (!text.trim()) return
 
     const newItem: SwotItem = {
       id: crypto.randomUUID(),
-      text: text.trim()
+      text: text.trim(),
+      appliesTo: appliesTo.length > 0 ? appliesTo : undefined,
+      tags: tags.length > 0 ? tags : undefined,
+      confidence: confidence || undefined
     }
 
     setter(prev => [...prev, newItem])
     clearInput()
+    clearAppliesTo()
+    clearTags()
+    clearConfidence()
   }
 
   const removeItem = (
@@ -535,12 +800,13 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
     try {
       console.log('[SWOT Auto-Populate] Requesting auto-population for', contentIds.length, 'content sources')
 
-      const response = await fetch('/api/frameworks/swot-auto-populate', {
+      const response = await fetch(`/api/frameworks/swot-auto-populate?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           contentIds,
-          title: title || undefined
+          title: title || undefined,
+          workspace_id: currentWorkspaceId
         })
       })
 
@@ -613,6 +879,8 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
       const data = {
         title: title.trim(),
         description: description.trim(),
+        goal: goal.trim() || undefined,
+        options: options.length > 0 ? options : undefined,
         tags,
         strengths,
         weaknesses,
@@ -774,6 +1042,50 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">
+              Goal / Decision
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-2">
+                (What are you trying to decide or accomplish?)
+              </span>
+            </label>
+            <Input
+              placeholder="e.g., Select office location, Choose vendor, Pick technology stack..."
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              💡 Tip: A clear goal helps focus your analysis and makes comparisons more meaningful
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Options Being Considered
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-2">
+                (List the choices you're evaluating)
+              </span>
+            </label>
+            <TagInput
+              tags={options}
+              onChange={setOptions}
+              suggestions={[
+                'Option A', 'Option B', 'Option C',
+                'NYC Office', 'London Office', 'Remote Only',
+                'Vendor 1', 'Vendor 2', 'In-House',
+                'Product A', 'Product B', 'Build Custom'
+              ]}
+              placeholder="Add options (e.g., NYC Office, London Office, Remote Only)..."
+              maxTags={10}
+            />
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              <p className="font-medium">💡 Decision-Making Workflow:</p>
+              <ul className="list-disc list-inside pl-2 space-y-0.5 mt-1">
+                <li><strong>Single SWOT:</strong> List all options here, then tag each item with which option(s) it applies to</li>
+                <li><strong>Multiple SWOTs:</strong> Create separate SWOT for each option, add shared tags for comparison</li>
+                <li><strong>Example:</strong> Goal: "Choose office location" | Options: "NYC", "London", "Singapore"</li>
+              </ul>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">
               Tags
               <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-2">
                 (Organize for comparison & decision-making)
@@ -807,13 +1119,20 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           items={strengths}
           newItem={newStrength}
           setNewItem={setNewStrength}
-          onAdd={() => addItem('strengths', newStrength, setStrengths, () => setNewStrength(''))}
+          newItemAppliesTo={newStrengthAppliesTo}
+          setNewItemAppliesTo={setNewStrengthAppliesTo}
+          newItemTags={newStrengthTags}
+          setNewItemTags={setNewStrengthTags}
+          newItemConfidence={newStrengthConfidence}
+          setNewItemConfidence={setNewStrengthConfidence}
+          onAdd={() => addItem('strengths', newStrength, newStrengthAppliesTo, newStrengthTags, newStrengthConfidence, setStrengths, () => setNewStrength(''), () => setNewStrengthAppliesTo([]), () => setNewStrengthTags([]), () => setNewStrengthConfidence(''))}
           onRemove={(id) => removeItem('strengths', id, setStrengths)}
           onEditItem={(id, updates) => editItem('strengths', id, updates, setStrengths)}
           onMoveItem={(id, toSection) => moveItem('strengths', id, toSection)}
           color="border-green-500"
           icon="💪"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
+          options={options}
         />
         <QuadrantCard
           title="Weaknesses"
@@ -821,13 +1140,20 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           items={weaknesses}
           newItem={newWeakness}
           setNewItem={setNewWeakness}
-          onAdd={() => addItem('weaknesses', newWeakness, setWeaknesses, () => setNewWeakness(''))}
+          newItemAppliesTo={newWeaknessAppliesTo}
+          setNewItemAppliesTo={setNewWeaknessAppliesTo}
+          newItemTags={newWeaknessTags}
+          setNewItemTags={setNewWeaknessTags}
+          newItemConfidence={newWeaknessConfidence}
+          setNewItemConfidence={setNewWeaknessConfidence}
+          onAdd={() => addItem('weaknesses', newWeakness, newWeaknessAppliesTo, newWeaknessTags, newWeaknessConfidence, setWeaknesses, () => setNewWeakness(''), () => setNewWeaknessAppliesTo([]), () => setNewWeaknessTags([]), () => setNewWeaknessConfidence(''))}
           onRemove={(id) => removeItem('weaknesses', id, setWeaknesses)}
           onEditItem={(id, updates) => editItem('weaknesses', id, updates, setWeaknesses)}
           onMoveItem={(id, toSection) => moveItem('weaknesses', id, toSection)}
           color="border-red-500"
           icon="⚠️"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
+          options={options}
         />
         <QuadrantCard
           title="Opportunities"
@@ -835,13 +1161,20 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           items={opportunities}
           newItem={newOpportunity}
           setNewItem={setNewOpportunity}
-          onAdd={() => addItem('opportunities', newOpportunity, setOpportunities, () => setNewOpportunity(''))}
+          newItemAppliesTo={newOpportunityAppliesTo}
+          setNewItemAppliesTo={setNewOpportunityAppliesTo}
+          newItemTags={newOpportunityTags}
+          setNewItemTags={setNewOpportunityTags}
+          newItemConfidence={newOpportunityConfidence}
+          setNewItemConfidence={setNewOpportunityConfidence}
+          onAdd={() => addItem('opportunities', newOpportunity, newOpportunityAppliesTo, newOpportunityTags, newOpportunityConfidence, setOpportunities, () => setNewOpportunity(''), () => setNewOpportunityAppliesTo([]), () => setNewOpportunityTags([]), () => setNewOpportunityConfidence(''))}
           onRemove={(id) => removeItem('opportunities', id, setOpportunities)}
           onEditItem={(id, updates) => editItem('opportunities', id, updates, setOpportunities)}
           onMoveItem={(id, toSection) => moveItem('opportunities', id, toSection)}
           color="border-blue-500"
           icon="🎯"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
+          options={options}
         />
         <QuadrantCard
           title="Threats"
@@ -849,13 +1182,20 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
           items={threats}
           newItem={newThreat}
           setNewItem={setNewThreat}
-          onAdd={() => addItem('threats', newThreat, setThreats, () => setNewThreat(''))}
+          newItemAppliesTo={newThreatAppliesTo}
+          setNewItemAppliesTo={setNewThreatAppliesTo}
+          newItemTags={newThreatTags}
+          setNewItemTags={setNewThreatTags}
+          newItemConfidence={newThreatConfidence}
+          setNewItemConfidence={setNewThreatConfidence}
+          onAdd={() => addItem('threats', newThreat, newThreatAppliesTo, newThreatTags, newThreatConfidence, setThreats, () => setNewThreat(''), () => setNewThreatAppliesTo([]), () => setNewThreatTags([]), () => setNewThreatConfidence(''))}
           onRemove={(id) => removeItem('threats', id, setThreats)}
           onEditItem={(id, updates) => editItem('threats', id, updates, setThreats)}
           onMoveItem={(id, toSection) => moveItem('threats', id, toSection)}
           color="border-orange-500"
           icon="⚡"
           allData={{ title, description, strengths, weaknesses, opportunities, threats }}
+          options={options}
         />
       </div>
 

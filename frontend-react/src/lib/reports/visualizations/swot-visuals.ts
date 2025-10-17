@@ -6,11 +6,23 @@
 import { create2x2Matrix, createBarChart, defaultColors } from './chart-utils'
 import type { ChartConfiguration } from 'chart.js'
 
+export interface SwotItem {
+  id?: string
+  text: string
+  details?: string
+  confidence?: 'low' | 'medium' | 'high'
+  evidence_ids?: string[]
+  tags?: string[]
+  appliesTo?: string[]  // Which option(s) this item applies to
+}
+
 export interface SWOTData {
-  strengths: string[]
-  weaknesses: string[]
-  opportunities: string[]
-  threats: string[]
+  strengths: string[] | SwotItem[]
+  weaknesses: string[] | SwotItem[]
+  opportunities: string[] | SwotItem[]
+  threats: string[] | SwotItem[]
+  goal?: string  // Overall goal or decision being made
+  options?: string[]  // Options being considered
 }
 
 /**
@@ -21,22 +33,22 @@ export function createSWOTMatrix(data: SWOTData, title: string = 'SWOT Analysis 
     {
       topLeft: {
         label: 'Strengths (Internal Positive)',
-        items: data.strengths,
+        items: data.strengths.map(itemToString),
         color: defaultColors.success,
       },
       topRight: {
         label: 'Opportunities (External Positive)',
-        items: data.opportunities,
+        items: data.opportunities.map(itemToString),
         color: defaultColors.info,
       },
       bottomLeft: {
         label: 'Weaknesses (Internal Negative)',
-        items: data.weaknesses,
+        items: data.weaknesses.map(itemToString),
         color: defaultColors.warning,
       },
       bottomRight: {
         label: 'Threats (External Negative)',
-        items: data.threats,
+        items: data.threats.map(itemToString),
         color: defaultColors.danger,
       },
     },
@@ -91,12 +103,13 @@ export function createSWOTMatrixSVG(
   }
 
   // Helper to create text elements with word wrapping
-  const createTextList = (items: string[], x: number, y: number, maxWidth: number): string => {
+  const createTextList = (items: (string | SwotItem)[], x: number, y: number, maxWidth: number): string => {
     let yOffset = y + 25
     return items
       .slice(0, 5) // Limit to 5 items per quadrant for readability
       .map((item, i) => {
-        const truncated = item.length > 40 ? item.substring(0, 37) + '...' : item
+        const itemText = itemToString(item)
+        const truncated = itemText.length > 40 ? itemText.substring(0, 37) + '...' : itemText
         const text = `<text x="${x + 10}" y="${yOffset}" font-size="11" fill="#1e293b">• ${truncated}</text>`
         yOffset += 18
         return text
@@ -232,5 +245,230 @@ export function generateTOWSStrategies(data: SWOTData): TOWSStrategies {
       'Implement defensive strategies to minimize weaknesses and avoid threats',
       'Consider strategic partnerships to address critical vulnerabilities',
     ],
+  }
+}
+
+/**
+ * Helper: Convert SwotItem to string for visualization
+ */
+export function itemToString(item: string | SwotItem): string {
+  return typeof item === 'string' ? item : item.text
+}
+
+/**
+ * Helper: Get confidence weight for scoring
+ */
+export function getConfidenceWeight(item: string | SwotItem): number {
+  if (typeof item === 'string') return 1.0
+
+  switch (item.confidence) {
+    case 'high': return 1.0
+    case 'medium': return 0.7
+    case 'low': return 0.4
+    default: return 0.5
+  }
+}
+
+/**
+ * Helper: Get evidence bonus for scoring
+ */
+export function getEvidenceBonus(item: string | SwotItem): number {
+  if (typeof item === 'string') return 0
+  return (item.evidence_ids?.length || 0) * 0.15
+}
+
+/**
+ * Decision Recommendation Algorithm
+ * Analyzes SWOT data for multiple options and recommends the best choice
+ */
+export interface OptionScore {
+  option: string
+  strengthScore: number
+  weaknessScore: number
+  opportunityScore: number
+  threatScore: number
+  totalPositive: number
+  totalNegative: number
+  netScore: number
+  confidenceScore: number
+  evidenceCount: number
+  recommendation: 'highly_recommended' | 'recommended' | 'viable' | 'not_recommended'
+  reasoning: string[]
+}
+
+export interface DecisionRecommendation {
+  goal?: string
+  topChoice: string
+  scores: OptionScore[]
+  comparisonMatrix: {
+    option: string
+    strengths: number
+    weaknesses: number
+    opportunities: number
+    threats: number
+    score: number
+  }[]
+  reasoning: string[]
+}
+
+export function generateDecisionRecommendation(data: SWOTData): DecisionRecommendation | null {
+  if (!data.options || data.options.length === 0) {
+    return null
+  }
+
+  // Helper to filter items by option and calculate score
+  const scoreItemsForOption = (items: (string | SwotItem)[], option: string) => {
+    const relevantItems = items.filter(item => {
+      if (typeof item === 'string') return true // All items if no options specified on items
+      if (!item.appliesTo || item.appliesTo.length === 0) return true // Applies to all
+      return item.appliesTo.includes(option)
+    })
+
+    const score = relevantItems.reduce((sum, item) => {
+      const confidenceWeight = getConfidenceWeight(item)
+      const evidenceBonus = getEvidenceBonus(item)
+      return sum + confidenceWeight + evidenceBonus
+    }, 0)
+
+    return { count: relevantItems.length, score }
+  }
+
+  // Calculate scores for each option
+  const scores: OptionScore[] = data.options.map(option => {
+    const strengths = scoreItemsForOption(data.strengths, option)
+    const weaknesses = scoreItemsForOption(data.weaknesses, option)
+    const opportunities = scoreItemsForOption(data.opportunities, option)
+    const threats = scoreItemsForOption(data.threats, option)
+
+    const totalPositive = strengths.score + opportunities.score
+    const totalNegative = weaknesses.score + threats.score
+    const netScore = (totalPositive * 2.0) - (totalNegative * 1.5)
+
+    // Calculate confidence score (based on evidence)
+    const allItems = [
+      ...data.strengths,
+      ...data.weaknesses,
+      ...data.opportunities,
+      ...data.threats
+    ].filter(item => {
+      if (typeof item === 'string') return true
+      if (!item.appliesTo || item.appliesTo.length === 0) return true
+      return item.appliesTo.includes(option)
+    })
+
+    const evidenceCount = allItems.reduce((sum, item) => {
+      if (typeof item === 'string') return sum
+      return sum + (item.evidence_ids?.length || 0)
+    }, 0)
+
+    const highConfidenceCount = allItems.filter(item => {
+      if (typeof item === 'string') return false
+      return item.confidence === 'high'
+    }).length
+
+    const confidenceScore = highConfidenceCount * 0.3 + (evidenceCount * 0.1)
+
+    // Determine recommendation level
+    let recommendation: OptionScore['recommendation']
+    if (netScore > 5 && totalPositive > totalNegative * 2) {
+      recommendation = 'highly_recommended'
+    } else if (netScore > 2 && totalPositive > totalNegative) {
+      recommendation = 'recommended'
+    } else if (netScore > -2) {
+      recommendation = 'viable'
+    } else {
+      recommendation = 'not_recommended'
+    }
+
+    // Generate reasoning
+    const reasoning: string[] = []
+    if (strengths.count > 0) {
+      reasoning.push(`${strengths.count} strengths identified (score: ${strengths.score.toFixed(1)})`)
+    }
+    if (opportunities.count > 0) {
+      reasoning.push(`${opportunities.count} opportunities available (score: ${opportunities.score.toFixed(1)})`)
+    }
+    if (weaknesses.count > 0) {
+      reasoning.push(`${weaknesses.count} weaknesses to address (score: ${weaknesses.score.toFixed(1)})`)
+    }
+    if (threats.count > 0) {
+      reasoning.push(`${threats.count} threats to mitigate (score: ${threats.score.toFixed(1)})`)
+    }
+    if (totalPositive > totalNegative * 1.5) {
+      reasoning.push('Strong positive outlook')
+    } else if (totalNegative > totalPositive) {
+      reasoning.push('Challenging factors outweigh positives')
+    }
+    if (evidenceCount > 5) {
+      reasoning.push(`Well-evidenced with ${evidenceCount} supporting items`)
+    }
+
+    return {
+      option,
+      strengthScore: strengths.score,
+      weaknessScore: weaknesses.score,
+      opportunityScore: opportunities.score,
+      threatScore: threats.score,
+      totalPositive,
+      totalNegative,
+      netScore,
+      confidenceScore,
+      evidenceCount,
+      recommendation,
+      reasoning
+    }
+  })
+
+  // Sort by net score (descending)
+  scores.sort((a, b) => b.netScore - a.netScore)
+
+  // Build comparison matrix
+  const comparisonMatrix = scores.map(score => ({
+    option: score.option,
+    strengths: Math.round(score.strengthScore * 10) / 10,
+    weaknesses: Math.round(score.weaknessScore * 10) / 10,
+    opportunities: Math.round(score.opportunityScore * 10) / 10,
+    threats: Math.round(score.threatScore * 10) / 10,
+    score: Math.round(score.netScore * 10) / 10
+  }))
+
+  // Overall recommendation reasoning
+  const overallReasoning: string[] = []
+  const topChoice = scores[0]
+  const secondChoice = scores[1]
+
+  if (topChoice.recommendation === 'highly_recommended') {
+    overallReasoning.push(`${topChoice.option} is the clear leader with strong positive factors and minimal risks`)
+  } else if (topChoice.recommendation === 'recommended') {
+    overallReasoning.push(`${topChoice.option} emerges as the best option with favorable characteristics`)
+  } else if (topChoice.recommendation === 'viable') {
+    overallReasoning.push(`${topChoice.option} is viable but requires careful risk management`)
+  } else {
+    overallReasoning.push(`No option is strongly recommended - all have significant challenges`)
+  }
+
+  if (secondChoice && Math.abs(topChoice.netScore - secondChoice.netScore) < 1) {
+    overallReasoning.push(`Close competition with ${secondChoice.option} (difference: ${Math.abs(topChoice.netScore - secondChoice.netScore).toFixed(1)})`)
+  } else if (secondChoice) {
+    overallReasoning.push(`${topChoice.option} leads by ${(topChoice.netScore - secondChoice.netScore).toFixed(1)} points`)
+  }
+
+  // Highlight differentiators
+  if (topChoice.strengthScore > (secondChoice?.strengthScore || 0) * 1.5) {
+    overallReasoning.push(`${topChoice.option} has significantly stronger capabilities`)
+  }
+  if (topChoice.opportunityScore > (secondChoice?.opportunityScore || 0) * 1.5) {
+    overallReasoning.push(`${topChoice.option} has better growth opportunities`)
+  }
+  if (secondChoice && topChoice.threatScore < secondChoice.threatScore * 0.7) {
+    overallReasoning.push(`${topChoice.option} faces fewer external risks`)
+  }
+
+  return {
+    goal: data.goal,
+    topChoice: topChoice.option,
+    scores,
+    comparisonMatrix,
+    reasoning: overallReasoning
   }
 }

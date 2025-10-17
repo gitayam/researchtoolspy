@@ -90,11 +90,14 @@ export function ExportButton({
       const { generateEnhancedSWOTPDF } = await import('@/lib/reports')
 
       // Transform data to match SWOTData interface
+      // Keep full SwotItem objects for rich metadata (confidence, evidence, tags, appliesTo)
       const swotData = {
-        strengths: data.strengths?.map((item: any) => item.text || item) || [],
-        weaknesses: data.weaknesses?.map((item: any) => item.text || item) || [],
-        opportunities: data.opportunities?.map((item: any) => item.text || item) || [],
-        threats: data.threats?.map((item: any) => item.text || item) || []
+        strengths: data.strengths || [],
+        weaknesses: data.weaknesses || [],
+        opportunities: data.opportunities || [],
+        threats: data.threats || [],
+        goal: data.goal,
+        options: data.options
       }
 
       await generateEnhancedSWOTPDF({

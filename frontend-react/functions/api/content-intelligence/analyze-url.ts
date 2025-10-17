@@ -432,28 +432,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Continue without topics rather than failing
     }
 
-    // Claim extraction and deception detection - initialize with null fallback
+    // Claim extraction and deception detection - DISABLED for performance
+    // Claims analysis is now a manual tool (like DIME/Starbursting) to improve initial analysis speed
+    // Users can run claims analysis separately via the Claims tab
     let claimAnalysis = null
-    try {
-      console.log('[DEBUG] Calling extractClaims with GPT...')
-      const claims = await extractClaims(contentData.text, env, contentData.title)
-      console.log(`[DEBUG] Claims extracted: ${claims.length} claims`)
-
-      // Only run deception detection if we have claims
-      if (claims.length > 0) {
-        console.log('[DEBUG] Running deception detection on claims...')
-        claimAnalysis = await analyzeClaimsForDeception(claims, contentData.text, env)
-        console.log(`[DEBUG] Claim deception analysis complete`)
-      } else {
-        console.log('[DEBUG] No claims extracted, skipping deception analysis')
-        claimAnalysis = null
-      }
-    } catch (error) {
-      console.error('[DEBUG] Claim extraction/analysis failed:', error)
-      console.error('[DEBUG] Error details:', error instanceof Error ? error.message : String(error))
-      console.error('[DEBUG] Using fallback (no claims)')
-      // claimAnalysis already set to null
-    }
+    console.log('[DEBUG] Claims analysis disabled in automatic mode - run manually via Claims tab')
 
     // Save to database
     console.log('[DEBUG] Saving to database...')
@@ -477,6 +460,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       word_frequency: wordFrequency,
       top_phrases: topPhrases,
       entities: entitiesData,
+      links_analysis: contentData.links || [],
       sentiment_analysis: sentimentData,
       keyphrases: keyphrases,
       topics: topics,
@@ -651,6 +635,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       word_frequency: wordFrequency,
       top_phrases: topPhrases,
       entities: entitiesData,
+      links_analysis: contentData.links || [],
       sentiment_analysis: sentimentData,
       keyphrases: keyphrases,
       topics: topics,
@@ -956,6 +941,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string): Prom
   }
   source?: 'original' | 'archive.ph' | 'wayback' | 'smry.ai'
   fallback_attempts?: string[]
+  links?: LinkInfo[]
 }> {
   const fallbackAttempts: string[] = []
 
@@ -1100,6 +1086,7 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
     chapters?: string[]
     keyPoints?: string[]
   }
+  links?: LinkInfo[]
 }> {
   // Resolve Spotify redirect links first
   let resolvedUrl = url
@@ -1207,12 +1194,16 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
     // Extract main text (remove scripts, styles, nav, footer)
     const cleanText = cleanHtmlText(html)
 
+    // Extract links from HTML body (excluding nav, header, footer, sidebar)
+    const links = extractBodyLinks(html, resolvedUrl)
+
     return {
       success: true,
       text: cleanText,
       title,
       author,
-      publishDate
+      publishDate,
+      links
     }
 
   } catch (error) {
@@ -1477,6 +1468,152 @@ function cleanHtmlText(html: string): string {
   return text
 }
 
+/**
+ * Extract all links from HTML body content (excluding nav, header, footer, sidebar)
+ * Returns structured data about links: URL, anchor text, count
+ *
+ * This helps researchers:
+ * - Identify sources and references cited in the article
+ * - Discover related content and follow-up leads
+ * - Analyze linking patterns and information flow
+ * - Verify external source credibility
+ */
+interface LinkInfo {
+  url: string
+  anchor_text: string[]  // All different anchor texts used for this URL
+  count: number  // How many times this link appears
+  domain: string
+  is_external: boolean
+}
+
+function extractBodyLinks(html: string, sourceUrl: string): LinkInfo[] {
+  console.log('[Link Extraction] Starting body link extraction')
+
+  // Remove non-body content (nav, header, footer, sidebar, aside)
+  let bodyHtml = html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+    .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, '')
+    .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, '')
+    .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '')
+    .replace(/<aside\b[^<]*(?:(?!<\/aside>)<[^<]*)*<\/aside>/gi, '')
+    .replace(/<div[^>]*class=["'][^"']*(?:sidebar|menu|nav)[^"']*["'][^>]*>.*?<\/div>/gi, '')
+
+  // Extract source domain for external link detection
+  let sourceDomain = ''
+  try {
+    sourceDomain = new URL(sourceUrl).hostname.replace('www.', '')
+  } catch (e) {
+    console.error('[Link Extraction] Failed to parse source URL:', e)
+  }
+
+  // Find all anchor tags with href
+  const linkPattern = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi
+  const linkMap = new Map<string, { texts: Set<string>, count: number }>()
+
+  let match
+  let totalLinksFound = 0
+  while ((match = linkPattern.exec(bodyHtml)) !== null) {
+    totalLinksFound++
+    let url = match[1].trim()
+    const anchorHtml = match[2]
+
+    // Skip empty, anchor-only (#), javascript:, and mailto: links initially (we'll handle mailto separately)
+    if (!url || url.startsWith('#') || url.startsWith('javascript:')) {
+      continue
+    }
+
+    // Extract plain text from anchor (remove HTML tags)
+    const anchorText = anchorHtml
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&[a-z]+;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    // Skip if no anchor text (likely an image-only link)
+    if (!anchorText || anchorText.length === 0) {
+      continue
+    }
+
+    // Normalize URL (resolve relative URLs)
+    try {
+      if (url.startsWith('//')) {
+        url = 'https:' + url
+      } else if (url.startsWith('/')) {
+        const sourceUrlObj = new URL(sourceUrl)
+        url = `${sourceUrlObj.protocol}//${sourceUrlObj.host}${url}`
+      } else if (!url.startsWith('http') && !url.startsWith('mailto:')) {
+        const sourceUrlObj = new URL(sourceUrl)
+        url = `${sourceUrlObj.protocol}//${sourceUrlObj.host}/${url}`
+      }
+    } catch (e) {
+      // If URL normalization fails, skip this link
+      continue
+    }
+
+    // Track this link
+    if (!linkMap.has(url)) {
+      linkMap.set(url, { texts: new Set(), count: 0 })
+    }
+    const linkData = linkMap.get(url)!
+    linkData.count++
+    linkData.texts.add(anchorText)
+  }
+
+  // Convert to array and add domain/external info
+  const links: LinkInfo[] = []
+  linkMap.forEach((data, url) => {
+    try {
+      const urlObj = new URL(url)
+      const domain = urlObj.hostname.replace('www.', '')
+      const isExternal = domain !== sourceDomain
+
+      links.push({
+        url,
+        anchor_text: Array.from(data.texts),
+        count: data.count,
+        domain,
+        is_external: isExternal
+      })
+    } catch (e) {
+      // Skip invalid URLs
+      console.error('[Link Extraction] Invalid URL:', url)
+    }
+  })
+
+  // Sort by count (most linked first)
+  links.sort((a, b) => b.count - a.count)
+
+  console.log(`[Link Extraction] Found ${totalLinksFound} total anchor tags, ${links.length} unique valid links`)
+  console.log(`[Link Extraction] External links: ${links.filter(l => l.is_external).length}`)
+
+  return links
+}
+
+/**
+ * Extract email addresses from text content
+ * Helps researchers identify contact information and sources
+ */
+function extractEmails(text: string): Array<{ email: string; count: number }> {
+  const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g
+  const emails = text.match(emailPattern) || []
+
+  // Count occurrences
+  const emailMap = new Map<string, number>()
+  emails.forEach(email => {
+    const normalized = email.toLowerCase()
+    emailMap.set(normalized, (emailMap.get(normalized) || 0) + 1)
+  })
+
+  // Convert to array and sort by count
+  const result = Array.from(emailMap.entries()).map(([email, count]) => ({ email, count }))
+  result.sort((a, b) => b.count - a.count)
+
+  console.log(`[Email Extraction] Found ${result.length} unique email addresses`)
+  return result
+}
+
 function countWords(text: string): number {
   return text.split(/\s+/).filter(w => w.length > 0).length
 }
@@ -1620,7 +1757,11 @@ async function extractEntities(text: string, env: Env, articleAuthor?: string): 
   events: Array<{ name: string; count: number }>
   products: Array<{ name: string; count: number }>
   percentages: Array<{ name: string; count: number }>
+  emails: Array<{ email: string; count: number }>
 }> {
+  // Extract emails first using regex (faster and more reliable than GPT)
+  const emails = extractEmails(text)
+
   // Truncate text for GPT
   const truncated = text.substring(0, 10000)
 
@@ -1696,7 +1837,11 @@ Return ONLY valid JSON in this exact format:
     console.log('[DEBUG] Parsing entities JSON...')
     const result = JSON.parse(jsonText)
     console.log('[DEBUG] Entities parsed successfully')
-    return result
+    console.log('[DEBUG] Emails extracted:', emails.length)
+    return {
+      ...result,
+      emails: emails
+    }
 
   } catch (error) {
     console.error('[DEBUG] Entity Extraction Error:', error)
@@ -1709,7 +1854,8 @@ Return ONLY valid JSON in this exact format:
       money: [],
       events: [],
       products: [],
-      percentages: []
+      percentages: [],
+      emails: emails  // Return emails even if GPT extraction fails
     }
   }
 }
@@ -2041,11 +2187,11 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     INSERT INTO content_analysis (
       user_id, workspace_id, bookmark_hash, url, url_normalized, content_hash,
       title, author, publish_date, domain, is_social_media, social_platform,
-      extracted_text, summary, word_count, word_frequency, top_phrases, entities,
+      extracted_text, summary, word_count, word_frequency, top_phrases, entities, links_analysis,
       sentiment_analysis, keyphrases, topics, claim_analysis,
       archive_urls, bypass_urls, processing_mode, processing_duration_ms, gpt_model_used,
       access_count, last_accessed_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
   `).bind(
     toNullable(data.user_id),
     toNullable(data.workspace_id),
@@ -2065,6 +2211,7 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     JSON.stringify(data.word_frequency || {}),
     JSON.stringify(data.top_phrases || []),
     JSON.stringify(data.entities || {}),
+    JSON.stringify(data.links_analysis || []),
     toNullable(data.sentiment_analysis ? JSON.stringify(data.sentiment_analysis) : null),
     toNullable(data.keyphrases ? JSON.stringify(data.keyphrases) : null),
     toNullable(data.topics ? JSON.stringify(data.topics) : null),

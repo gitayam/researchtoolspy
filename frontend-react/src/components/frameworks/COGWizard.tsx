@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ArrowRight, Check, AlertCircle, Lightbulb, FileEdit, Network } from 'lucide-react'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { AICOGAssistant } from '@/components/ai/AICOGAssistant'
 import { ActorPicker } from '@/components/content-intelligence/ActorPicker'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,27 @@ import type {
   ScoringSystem,
 } from '@/types/cog-analysis'
 
+// Helper function to get authentication headers
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  }
+
+  // Try to get bearer token first (authenticated users)
+  const token = localStorage.getItem('omnicore_token')
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  // Try to get user hash (guest mode)
+  const userHash = localStorage.getItem('user_hash')
+  if (userHash) {
+    headers['X-User-Hash'] = userHash
+  }
+
+  return headers
+}
+
 interface COGWizardProps {
   initialData?: Partial<COGAnalysis>
   onSave: (data: COGAnalysis) => Promise<void>
@@ -36,6 +58,7 @@ interface COGWizardProps {
 export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
   const navigate = useNavigate()
   const { t } = useTranslation('cog')
+  const { currentWorkspaceId } = useWorkspace()
 
   const STEPS = [
     { id: 1, name: t('wizard.steps.context.name'), description: t('wizard.steps.context.description') },
@@ -185,12 +208,9 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
 
     setGeneratingEntities(true)
     try {
-      const response = await fetch(`/api/frameworks/${savedFrameworkId}/generate-entities`, {
+      const response = await fetch(`/api/frameworks/${savedFrameworkId}/generate-entities?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-        }
+        headers: getAuthHeaders()
       })
 
       if (!response.ok) {

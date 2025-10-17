@@ -4,6 +4,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Plus, Search, Grid3x3, MoreVertical, ExternalLink, CheckCircle, XCircle, Tag, X, Merge } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { safeJSONParse } from '@/utils/safe-json'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -29,8 +30,38 @@ import { frameworkConfigs } from '@/config/framework-configs'
 import { COG_TEMPLATES, createAnalysisFromTemplate, type COGTemplate } from '@/data/cog-templates'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
+// Helper to get authentication headers
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  }
+
+  // Try bearer token first (authenticated users)
+  const token = localStorage.getItem('omnicore_token')
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+    return headers
+  }
+
+  // Fall back to user hash (guest mode)
+  let userHash = localStorage.getItem('omnicore_user_hash')
+
+  // Generate a user hash for guest users if one doesn't exist
+  if (!userHash) {
+    userHash = crypto.randomUUID().substring(0, 16)
+    localStorage.setItem('omnicore_user_hash', userHash)
+    console.log('Generated new guest user hash:', userHash)
+  }
+
+  // Send hash as Bearer token (backend expects it in Authorization header)
+  headers['Authorization'] = `Bearer ${userHash}`
+
+  return headers
+}
+
 export const SwotPage = () => {
   const { t } = useTranslation()
+  const { currentWorkspaceId } = useWorkspace()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [analyses, setAnalyses] = useState<any[]>([])
@@ -62,12 +93,16 @@ export const SwotPage = () => {
 
   const loadAnalyses = async () => {
     try {
-      const response = await fetch('/api/frameworks')
+      const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
+        headers: getAuthHeaders()
+      })
       if (response.ok) {
         const data = await response.json()
         // Filter for SWOT analyses only
         const swotAnalyses = (data.frameworks || []).filter((f: any) => f.framework_type === 'swot')
         setAnalyses(swotAnalyses)
+      } else {
+        console.error('Failed to load analyses:', response.status, response.statusText)
       }
     } catch (error) {
       console.error('Failed to load analyses:', error)
@@ -77,7 +112,9 @@ export const SwotPage = () => {
   const loadAnalysis = async (analysisId: string) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/frameworks?id=${analysisId}`)
+      const response = await fetch(`/api/frameworks?id=${analysisId}&workspace_id=${currentWorkspaceId}`, {
+        headers: getAuthHeaders()
+      })
       if (response.ok) {
         const data = await response.json()
 
@@ -91,6 +128,8 @@ export const SwotPage = () => {
         }
 
         setCurrentAnalysis(data)
+      } else {
+        console.error('Failed to load analysis:', response.status, response.statusText)
       }
     } catch (error) {
       console.error('Failed to load analysis:', error)
@@ -106,25 +145,33 @@ export const SwotPage = () => {
       description: data.description,
       data: data,
       status: 'active',
-      is_public: false // CRITICAL: Default to private for privacy
+      is_public: false, // CRITICAL: Default to private for privacy
+      workspace_id: currentWorkspaceId
     }
 
     if (isEditMode && id) {
       // Update existing
-      const response = await fetch(`/api/frameworks?id=${id}`, {
+      const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       })
-      if (!response.ok) throw new Error('Failed to update')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || errorData.message || 'Failed to update')
+      }
     } else {
       // Create new
-      const response = await fetch('/api/frameworks', {
+      const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       })
-      if (!response.ok) throw new Error('Failed to create')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('API Error:', errorData)
+        throw new Error(errorData.error || errorData.message || 'Failed to create')
+      }
     }
   }
 
@@ -134,8 +181,9 @@ export const SwotPage = () => {
     if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
 
     try {
-      const response = await fetch(`/api/frameworks?id=${targetId}`, {
-        method: 'DELETE'
+      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
       })
       if (response.ok) {
         if (deleteId) {
@@ -601,6 +649,7 @@ export const SwotPage = () => {
 // Generic Framework Page with full CRUD
 const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   const { t } = useTranslation()
+  const { currentWorkspaceId } = useWorkspace()
   const config = frameworkConfigs[frameworkKey]
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
@@ -627,7 +676,9 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
 
   const loadAnalyses = async () => {
     try {
-      const response = await fetch('/api/frameworks')
+      const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
+        headers: getAuthHeaders()
+      })
       if (response.ok) {
         const data = await response.json()
         const filtered = (data.frameworks || []).filter((f: any) => f.framework_type === frameworkKey)
@@ -641,7 +692,9 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   const loadAnalysis = async (analysisId: string) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/frameworks?id=${analysisId}`)
+      const response = await fetch(`/api/frameworks?id=${analysisId}&workspace_id=${currentWorkspaceId}`, {
+        headers: getAuthHeaders()
+      })
       if (response.ok) {
         const data = await response.json()
 
@@ -670,20 +723,21 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
       description: data.description,
       data: data,
       status: 'active',
-      is_public: false // CRITICAL: Default to private for privacy
+      is_public: false, // CRITICAL: Default to private for privacy
+      workspace_id: currentWorkspaceId
     }
 
     if (isEditMode && id) {
-      const response = await fetch(`/api/frameworks?id=${id}`, {
+      const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       })
       if (!response.ok) throw new Error('Failed to update')
     } else {
-      const response = await fetch('/api/frameworks', {
+      const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       })
       if (!response.ok) throw new Error('Failed to create')
@@ -696,8 +750,9 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
 
     try {
-      const response = await fetch(`/api/frameworks?id=${targetId}`, {
-        method: 'DELETE'
+      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
       })
       if (response.ok) {
         if (deleteId) {
@@ -1029,6 +1084,7 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
 
 export const CogPage = () => {
   const { t } = useTranslation()
+  const { currentWorkspaceId } = useWorkspace()
   const config = frameworkConfigs['cog']
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
@@ -1058,7 +1114,9 @@ export const CogPage = () => {
 
   const loadAnalyses = async () => {
     try {
-      const response = await fetch('/api/frameworks')
+      const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
+        headers: getAuthHeaders()
+      })
       if (response.ok) {
         const data = await response.json()
         const filtered = (data.frameworks || []).filter((f: any) => f.framework_type === 'cog')
@@ -1078,7 +1136,9 @@ export const CogPage = () => {
   const loadAnalysis = async (analysisId: string) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/frameworks?id=${analysisId}`)
+      const response = await fetch(`/api/frameworks?id=${analysisId}&workspace_id=${currentWorkspaceId}`, {
+        headers: getAuthHeaders()
+      })
       if (response.ok) {
         const data = await response.json()
         setCurrentAnalysis(data)
@@ -1108,22 +1168,23 @@ export const CogPage = () => {
       data: data,
       status: 'active',
       is_public: false, // CRITICAL: Default to private for privacy
+      workspace_id: currentWorkspaceId,
       created_at: data.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
 
     try {
       if (isEditMode && id) {
-        const response = await fetch(`/api/frameworks?id=${id}`, {
+        const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify(payload)
         })
         if (!response.ok) throw new Error('API not available')
       } else {
-        const response = await fetch('/api/frameworks', {
+        const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify(payload)
         })
         if (!response.ok) throw new Error('API not available')
@@ -1153,8 +1214,9 @@ export const CogPage = () => {
     if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
 
     try {
-      const response = await fetch(`/api/frameworks?id=${targetId}`, {
-        method: 'DELETE'
+      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
       })
       if (response.ok) {
         if (deleteId) {
@@ -1493,9 +1555,9 @@ export const CogPage = () => {
                             {t(`cog:templates.list.${template.i18nKey}.description`)}
                           </p>
                           <div className="flex gap-4 text-xs text-gray-500 mb-3">
-                            <span>• {template.template_data.centers_of_gravity.length} COG(s)</span>
-                            <span>• {template.template_data.critical_capabilities.length} Capability(s)</span>
-                            <span>• {template.template_data.critical_vulnerabilities.length} Vulnerability(s)</span>
+                            <span>• {template.template_data.centers_of_gravity.length} {t('cog:templates.stats.cogs')}</span>
+                            <span>• {template.template_data.critical_capabilities.length} {t('cog:templates.stats.capabilities')}</span>
+                            <span>• {template.template_data.critical_vulnerabilities.length} {t('cog:templates.stats.vulnerabilities')}</span>
                           </div>
                           <div className="flex gap-2">
                             <Button size="sm" variant="default" onClick={() => handleTemplateSelect(template, 'wizard')}>
@@ -1525,6 +1587,7 @@ export const DotmlpfPage = () => <GenericFrameworkPage frameworkKey="dotmlpf" />
 
 export const DeceptionPage = () => {
   const { t } = useTranslation()
+  const { currentWorkspaceId } = useWorkspace()
   const config = frameworkConfigs['deception']
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
@@ -1551,7 +1614,9 @@ export const DeceptionPage = () => {
 
   const loadAnalyses = async () => {
     try {
-      const response = await fetch('/api/frameworks')
+      const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
+        headers: getAuthHeaders()
+      })
       if (response.ok) {
         const data = await response.json()
         const filtered = (data.frameworks || []).filter((f: any) => f.framework_type === 'deception')
@@ -1565,7 +1630,9 @@ export const DeceptionPage = () => {
   const loadAnalysis = async (analysisId: string) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/frameworks?id=${analysisId}`)
+      const response = await fetch(`/api/frameworks?id=${analysisId}&workspace_id=${currentWorkspaceId}`, {
+        headers: getAuthHeaders()
+      })
       if (response.ok) {
         const data = await response.json()
 
@@ -1594,20 +1661,21 @@ export const DeceptionPage = () => {
       description: data.description,
       data: data,
       status: 'active',
-      is_public: false // CRITICAL: Default to private for privacy
+      is_public: false, // CRITICAL: Default to private for privacy
+      workspace_id: currentWorkspaceId
     }
 
     if (isEditMode && id) {
-      const response = await fetch(`/api/frameworks?id=${id}`, {
+      const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       })
       if (!response.ok) throw new Error('Failed to update')
     } else {
-      const response = await fetch('/api/frameworks', {
+      const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       })
       if (!response.ok) throw new Error('Failed to create')
@@ -1620,8 +1688,9 @@ export const DeceptionPage = () => {
     if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
 
     try {
-      const response = await fetch(`/api/frameworks?id=${targetId}`, {
-        method: 'DELETE'
+      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
       })
       if (response.ok) {
         if (deleteId) {

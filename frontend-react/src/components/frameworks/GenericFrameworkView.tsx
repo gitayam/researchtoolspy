@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink, MoreVertical, BookOpen, Trash, Network } from 'lucide-react'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import type { FrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
@@ -22,6 +23,27 @@ import { ShareButton } from './ShareButton'
 import type { CreateRelationshipRequest } from '@/types/entities'
 import type { ComBDeficits, InterventionFunction } from '@/types/behavior-change-wheel'
 import type { LocationContext } from '@/types/behavior'
+
+// Helper function to get authentication headers
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  }
+
+  // Try to get bearer token first (authenticated users)
+  const token = localStorage.getItem('omnicore_token')
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  // Try to get user hash (guest mode)
+  const userHash = localStorage.getItem('user_hash')
+  if (userHash) {
+    headers['X-User-Hash'] = userHash
+  }
+
+  return headers
+}
 
 interface FrameworkSection {
   key: string
@@ -60,6 +82,7 @@ export function GenericFrameworkView({
   backPath
 }: GenericFrameworkViewProps) {
   const navigate = useNavigate()
+  const { currentWorkspaceId } = useWorkspace()
 
   // Evidence linking state
   const [linkedEvidence, setLinkedEvidence] = useState<LinkedEvidence[]>([])
@@ -101,7 +124,9 @@ export function GenericFrameworkView({
       if (!data.id) return
 
       try {
-        const response = await fetch(`/api/framework-evidence?framework_id=${data.id}`)
+        const response = await fetch(`/api/framework-evidence?framework_id=${data.id}&workspace_id=${currentWorkspaceId}`, {
+          headers: getAuthHeaders()
+        })
         if (response.ok) {
           const result = await response.json()
           // Transform API response to LinkedEvidence format
@@ -178,12 +203,13 @@ export function GenericFrameworkView({
       // Extract evidence IDs from selected items
       const evidenceIds = selected.map(item => item.entity_id)
 
-      const response = await fetch('/api/framework-evidence', {
+      const response = await fetch(`/api/framework-evidence?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           framework_id: data.id,
-          evidence_ids: evidenceIds
+          evidence_ids: evidenceIds,
+          workspace_id: currentWorkspaceId
         })
       })
 
@@ -206,8 +232,11 @@ export function GenericFrameworkView({
 
     try {
       const response = await fetch(
-        `/api/framework-evidence?framework_id=${data.id}&evidence_id=${entity_id}`,
-        { method: 'DELETE' }
+        `/api/framework-evidence?framework_id=${data.id}&evidence_id=${entity_id}&workspace_id=${currentWorkspaceId}`,
+        {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        }
       )
 
       if (response.ok) {
@@ -277,15 +306,16 @@ export function GenericFrameworkView({
       }
 
       // Save to API
-      const response = await fetch(`/api/frameworks?id=${data.id}`, {
+      const response = await fetch(`/api/frameworks?id=${data.id}&workspace_id=${currentWorkspaceId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           title: data.title,
           description: data.description,
           data: updatedData,
           status: data.status || 'draft',
-          is_public: data.is_public || false
+          is_public: data.is_public || false,
+          workspace_id: currentWorkspaceId
         })
       })
 
@@ -325,15 +355,16 @@ export function GenericFrameworkView({
       }
 
       // Save to API
-      const response = await fetch(`/api/frameworks?id=${data.id}`, {
+      const response = await fetch(`/api/frameworks?id=${data.id}&workspace_id=${currentWorkspaceId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           title: data.title,
           description: data.description,
           data: updatedData,
           status: data.status || 'draft',
-          is_public: data.is_public || false
+          is_public: data.is_public || false,
+          workspace_id: currentWorkspaceId
         })
       })
 

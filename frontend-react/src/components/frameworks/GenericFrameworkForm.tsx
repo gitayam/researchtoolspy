@@ -1,6 +1,7 @@
 import { useState, memo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check, Download, FileJson, Users, MapPin, Calendar } from 'lucide-react'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,6 +28,27 @@ import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/typ
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
 import type { ComBComponent, ComBDeficits, DeficitLevel, InterventionFunction } from '@/types/behavior-change-wheel'
+
+// Helper function to get authentication headers
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  }
+
+  // Try to get bearer token first (authenticated users)
+  const token = localStorage.getItem('omnicore_token')
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  // Try to get user hash (guest mode)
+  const userHash = localStorage.getItem('user_hash')
+  if (userHash) {
+    headers['X-User-Hash'] = userHash
+  }
+
+  return headers
+}
 
 interface FrameworkSection {
   key: string
@@ -611,6 +633,7 @@ export function GenericFrameworkForm({
   frameworkId
 }: GenericFrameworkFormProps) {
   const navigate = useNavigate()
+  const { currentWorkspaceId } = useWorkspace()
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -822,7 +845,9 @@ export function GenericFrameworkForm({
   const loadLinkedEvidence = async () => {
     if (!frameworkId) return
     try {
-      const response = await fetch(`/api/framework-evidence?framework_id=${frameworkId}&framework_type=${frameworkType}`)
+      const response = await fetch(`/api/framework-evidence?framework_id=${frameworkId}&framework_type=${frameworkType}&workspace_id=${currentWorkspaceId}`, {
+        headers: getAuthHeaders()
+      })
       if (response.ok) {
         const data = await response.json()
         // Group evidence by section using framework_item_id
@@ -919,9 +944,9 @@ export function GenericFrameworkForm({
     try {
       // Link each evidence item
       for (const evidence of selected) {
-        await fetch('/api/framework-evidence', {
+        await fetch(`/api/framework-evidence?workspace_id=${currentWorkspaceId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             framework_type: frameworkType,
             framework_id: frameworkId,
@@ -929,7 +954,8 @@ export function GenericFrameworkForm({
             entity_type: evidence.entity_type,
             entity_id: evidence.entity_id,
             relation: evidence.relation,
-            notes: evidence.notes
+            notes: evidence.notes,
+            workspace_id: currentWorkspaceId
           })
         })
       }
@@ -955,8 +981,11 @@ export function GenericFrameworkForm({
     // Remove via API
     try {
       await fetch(
-        `/api/framework-evidence?framework_type=${frameworkType}&framework_id=${frameworkId}&framework_item_id=${sectionKey}&entity_type=${evidence.entity_type}&entity_id=${evidence.entity_id}`,
-        { method: 'DELETE' }
+        `/api/framework-evidence?framework_type=${frameworkType}&framework_id=${frameworkId}&framework_item_id=${sectionKey}&entity_type=${evidence.entity_type}&entity_id=${evidence.entity_id}&workspace_id=${currentWorkspaceId}`,
+        {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        }
       )
       setSectionEvidence(prev => ({
         ...prev,
@@ -1166,13 +1195,14 @@ export function GenericFrameworkForm({
   const generateTitle = async () => {
     setGeneratingTitle(true)
     try {
-      const response = await fetch('/api/ai/generate-title', {
+      const response = await fetch(`/api/ai/generate-title?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           frameworkType,
           data: sectionData,
-          description
+          description,
+          workspace_id: currentWorkspaceId
         })
       })
 
@@ -1195,13 +1225,14 @@ export function GenericFrameworkForm({
 
     setGeneratingQuestions(true)
     try {
-      const response = await fetch('/api/ai/generate-questions', {
+      const response = await fetch(`/api/ai/generate-questions?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           framework: frameworkType,
           existingData: sectionData,
-          context: description
+          context: description,
+          workspace_id: currentWorkspaceId
         })
       })
 
@@ -1247,11 +1278,12 @@ export function GenericFrameworkForm({
     try {
       // Use dedicated PMESII-PT import endpoint if available
       if (frameworkType === 'pmesii-pt') {
-        const response = await fetch('/api/frameworks/pmesii-pt/import-url', {
+        const response = await fetch(`/api/frameworks/pmesii-pt/import-url?workspace_id=${currentWorkspaceId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
-            url: importUrl.trim()
+            url: importUrl.trim(),
+            workspace_id: currentWorkspaceId
           })
         })
 
@@ -1290,12 +1322,13 @@ export function GenericFrameworkForm({
         }
       } else {
         // Fallback to generic Content Intelligence analysis
-        const response = await fetch('/api/content-intelligence/analyze', {
+        const response = await fetch(`/api/content-intelligence/analyze?workspace_id=${currentWorkspaceId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             url: importUrl.trim(),
-            mode: 'quick'
+            mode: 'quick',
+            workspace_id: currentWorkspaceId
           })
         })
 

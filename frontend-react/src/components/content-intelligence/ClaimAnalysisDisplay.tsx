@@ -36,11 +36,16 @@ import {
   X as XIcon,
   MessageSquare,
   Loader2,
-  Download
+  Download,
+  RefreshCw,
+  Share2,
+  Copy,
+  Check
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ClaimEvidenceLinker } from './ClaimEvidenceLinker'
 import { ClaimEntityLinker } from './ClaimEntityLinker'
+import { useToast } from '@/components/ui/use-toast'
 
 interface ClaimAnalysisDisplayProps {
   contentAnalysisId: number
@@ -100,12 +105,22 @@ interface SavedAdjustment {
   updated_at: string
 }
 
-export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: ClaimAnalysisDisplayProps) {
-  if (!claimAnalysis || !claimAnalysis.claims || claimAnalysis.claims.length === 0) {
+export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initialClaimAnalysis }: ClaimAnalysisDisplayProps) {
+  const { toast } = useToast()
+
+  if (!initialClaimAnalysis || !initialClaimAnalysis.claims || initialClaimAnalysis.claims.length === 0) {
     return null
   }
 
+  // Use local state to allow updating after retry
+  const [claimAnalysis, setClaimAnalysis] = useState(initialClaimAnalysis)
   const { claims, summary } = claimAnalysis
+
+  // Check if analysis failed (has null scores)
+  const analysisFailure = claims.some(c =>
+    c.deception_analysis.risk_score === null ||
+    c.deception_analysis.methods.internal_consistency.score === null
+  )
 
   // State for claim adjustments
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
@@ -131,6 +146,10 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [isRetrying, setIsRetrying] = useState(false)
+  const [shareLoading, setShareLoading] = useState<Record<string, boolean>>({})
+  const [shareUrls, setShareUrls] = useState<Record<string, string>>({})
+  const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({})
 
   // Load existing adjustments on mount
   useEffect(() => {
@@ -384,6 +403,106 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
     }
   }
 
+  // Retry AI analysis
+  const retryAnalysis = async () => {
+    try {
+      setIsRetrying(true)
+
+      const response = await fetch(`/api/claims/retry-analysis/${contentAnalysisId}`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to retry analysis')
+      }
+
+      const data = await response.json()
+
+      if (data.success && data.claim_analysis) {
+        // Update local state with new analysis
+        setClaimAnalysis(data.claim_analysis)
+        toast({
+          title: 'Analysis Complete',
+          description: 'AI claim analysis has been successfully re-run',
+          variant: 'default'
+        })
+      }
+    } catch (error) {
+      console.error('Error retrying analysis:', error)
+      toast({
+        title: 'Retry Failed',
+        description: error instanceof Error ? error.message : 'Failed to retry AI analysis',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsRetrying(false)
+    }
+  }
+
+  // Share claim
+  const shareClaim = async (claimAdjustmentId: string) => {
+    try {
+      setShareLoading({ ...shareLoading, [claimAdjustmentId]: true })
+
+      const response = await fetch(`/api/claims/share/${claimAdjustmentId}`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create share link')
+      }
+
+      const data = await response.json()
+
+      if (data.success && data.share_url) {
+        setShareUrls({ ...shareUrls, [claimAdjustmentId]: data.share_url })
+        toast({
+          title: 'Share Link Created',
+          description: 'Public link has been generated for this claim',
+          variant: 'default'
+        })
+      }
+    } catch (error) {
+      console.error('Error sharing claim:', error)
+      toast({
+        title: 'Share Failed',
+        description: error instanceof Error ? error.message : 'Failed to create share link',
+        variant: 'destructive'
+      })
+    } finally {
+      setShareLoading({ ...shareLoading, [claimAdjustmentId]: false })
+    }
+  }
+
+  // Copy share URL to clipboard
+  const copyShareUrl = async (claimAdjustmentId: string, shareUrl: string) => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopiedStates({ ...copiedStates, [claimAdjustmentId]: true })
+      toast({
+        title: 'Link Copied',
+        description: 'Share link has been copied to clipboard',
+        variant: 'default'
+      })
+
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedStates({ ...copiedStates, [claimAdjustmentId]: false })
+      }, 2000)
+    } catch (error) {
+      console.error('Error copying to clipboard:', error)
+      toast({
+        title: 'Copy Failed',
+        description: 'Failed to copy link to clipboard',
+        variant: 'destructive'
+      })
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Loading/Error State for Adjustments */}
@@ -399,6 +518,39 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             Failed to load saved adjustments: {loadError}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* AI Analysis Failure Alert with Retry Button */}
+      {analysisFailure && (
+        <Alert variant="destructive" className="border-2">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertDescription className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="font-semibold mb-1">AI Analysis Failed</p>
+              <p className="text-sm">
+                Automated claim analysis could not be completed. You can retry the analysis or manually assess each claim below.
+              </p>
+            </div>
+            <Button
+              onClick={retryAnalysis}
+              disabled={isRetrying}
+              className="ml-4 shrink-0"
+              variant="outline"
+            >
+              {isRetrying ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Retrying...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry AI Analysis
+                </>
+              )}
+            </Button>
           </AlertDescription>
         </Alert>
       )}
@@ -520,9 +672,9 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                   </p>
                 </div>
                 <div className="text-center min-w-[80px]">
-                  <div className={`text-3xl font-bold ${getScoreColor(100 - effectiveRiskScore)}`}>
-                    {effectiveRiskScore}
-                    {hasAdjustment && effectiveRiskScore !== claimData.deception_analysis.risk_score && (
+                  <div className={`text-3xl font-bold ${effectiveRiskScore !== null ? getScoreColor(100 - effectiveRiskScore) : 'text-gray-400'}`}>
+                    {effectiveRiskScore !== null ? effectiveRiskScore : 'N/A'}
+                    {hasAdjustment && effectiveRiskScore !== claimData.deception_analysis.risk_score && claimData.deception_analysis.risk_score !== null && (
                       <span className="text-xs block text-gray-500 line-through">
                         {claimData.deception_analysis.risk_score}
                       </span>
@@ -859,22 +1011,71 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
 
               {/* Evidence & Entity Linking - Only available after claim is saved */}
               {hasAdjustment && adjustments[index].id && (
-                <div className="mt-4 flex gap-2">
-                  <ClaimEvidenceLinker
-                    claimAdjustmentId={adjustments[index].id!}
-                  />
-                  <ClaimEntityLinker
-                    claimAdjustmentId={adjustments[index].id!}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => exportToMarkdown(adjustments[index].id!)}
-                  >
-                    <Download className="h-4 w-4" />
-                    Export to Markdown
-                  </Button>
+                <div className="mt-4 space-y-2">
+                  <div className="flex gap-2 flex-wrap">
+                    <ClaimEvidenceLinker
+                      claimAdjustmentId={adjustments[index].id!}
+                    />
+                    <ClaimEntityLinker
+                      claimAdjustmentId={adjustments[index].id!}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => exportToMarkdown(adjustments[index].id!)}
+                    >
+                      <Download className="h-4 w-4" />
+                      Export to Markdown
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => shareClaim(adjustments[index].id!)}
+                      disabled={shareLoading[adjustments[index].id!]}
+                    >
+                      {shareLoading[adjustments[index].id!] ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="h-4 w-4" />
+                          Share Claim
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Show share URL if available */}
+                  {shareUrls[adjustments[index].id!] && (
+                    <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                      <Input
+                        value={shareUrls[adjustments[index].id!]}
+                        readOnly
+                        className="flex-1 text-sm font-mono"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => copyShareUrl(adjustments[index].id!, shareUrls[adjustments[index].id!])}
+                      >
+                        {copiedStates[adjustments[index].id!] ? (
+                          <>
+                            <Check className="h-4 w-4 mr-1" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copy Link
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardHeader>
@@ -893,11 +1094,15 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         <Target className="h-4 w-4" />
                         Internal Consistency
                       </span>
-                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.internal_consistency.score)}`}>
+                      <span className={`font-bold ${claimData.deception_analysis.methods.internal_consistency.score !== null ? getScoreColor(claimData.deception_analysis.methods.internal_consistency.score) : 'text-gray-400'}`}>
                         {claimData.deception_analysis.methods.internal_consistency.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.internal_consistency.score ?? 0} className="h-2" />
+                    {claimData.deception_analysis.methods.internal_consistency.score !== null ? (
+                      <Progress value={claimData.deception_analysis.methods.internal_consistency.score} className="h-2" />
+                    ) : (
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded" />
+                    )}
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.internal_consistency.reasoning}
                     </p>
@@ -910,11 +1115,15 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         <Shield className="h-4 w-4" />
                         Source Credibility
                       </span>
-                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.source_credibility.score)}`}>
+                      <span className={`font-bold ${claimData.deception_analysis.methods.source_credibility.score !== null ? getScoreColor(claimData.deception_analysis.methods.source_credibility.score) : 'text-gray-400'}`}>
                         {claimData.deception_analysis.methods.source_credibility.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.source_credibility.score ?? 0} className="h-2" />
+                    {claimData.deception_analysis.methods.source_credibility.score !== null ? (
+                      <Progress value={claimData.deception_analysis.methods.source_credibility.score} className="h-2" />
+                    ) : (
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded" />
+                    )}
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.source_credibility.reasoning}
                     </p>
@@ -927,11 +1136,15 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         <FileText className="h-4 w-4" />
                         Evidence Quality
                       </span>
-                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.evidence_quality.score)}`}>
+                      <span className={`font-bold ${claimData.deception_analysis.methods.evidence_quality.score !== null ? getScoreColor(claimData.deception_analysis.methods.evidence_quality.score) : 'text-gray-400'}`}>
                         {claimData.deception_analysis.methods.evidence_quality.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.evidence_quality.score ?? 0} className="h-2" />
+                    {claimData.deception_analysis.methods.evidence_quality.score !== null ? (
+                      <Progress value={claimData.deception_analysis.methods.evidence_quality.score} className="h-2" />
+                    ) : (
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded" />
+                    )}
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.evidence_quality.reasoning}
                     </p>
@@ -944,11 +1157,15 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         <TrendingUp className="h-4 w-4" />
                         Logical Coherence
                       </span>
-                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.logical_coherence.score)}`}>
+                      <span className={`font-bold ${claimData.deception_analysis.methods.logical_coherence.score !== null ? getScoreColor(claimData.deception_analysis.methods.logical_coherence.score) : 'text-gray-400'}`}>
                         {claimData.deception_analysis.methods.logical_coherence.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.logical_coherence.score ?? 0} className="h-2" />
+                    {claimData.deception_analysis.methods.logical_coherence.score !== null ? (
+                      <Progress value={claimData.deception_analysis.methods.logical_coherence.score} className="h-2" />
+                    ) : (
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded" />
+                    )}
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.logical_coherence.reasoning}
                     </p>
@@ -961,11 +1178,15 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         <Clock className="h-4 w-4" />
                         Temporal Consistency
                       </span>
-                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.temporal_consistency.score)}`}>
+                      <span className={`font-bold ${claimData.deception_analysis.methods.temporal_consistency.score !== null ? getScoreColor(claimData.deception_analysis.methods.temporal_consistency.score) : 'text-gray-400'}`}>
                         {claimData.deception_analysis.methods.temporal_consistency.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.temporal_consistency.score ?? 0} className="h-2" />
+                    {claimData.deception_analysis.methods.temporal_consistency.score !== null ? (
+                      <Progress value={claimData.deception_analysis.methods.temporal_consistency.score} className="h-2" />
+                    ) : (
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded" />
+                    )}
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.temporal_consistency.reasoning}
                     </p>
@@ -978,11 +1199,15 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis }: Claim
                         <Info className="h-4 w-4" />
                         Specificity
                       </span>
-                      <span className={`font-bold ${getScoreColor(claimData.deception_analysis.methods.specificity.score)}`}>
+                      <span className={`font-bold ${claimData.deception_analysis.methods.specificity.score !== null ? getScoreColor(claimData.deception_analysis.methods.specificity.score) : 'text-gray-400'}`}>
                         {claimData.deception_analysis.methods.specificity.score ?? 'N/A'}
                       </span>
                     </div>
-                    <Progress value={claimData.deception_analysis.methods.specificity.score ?? 0} className="h-2" />
+                    {claimData.deception_analysis.methods.specificity.score !== null ? (
+                      <Progress value={claimData.deception_analysis.methods.specificity.score} className="h-2" />
+                    ) : (
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded" />
+                    )}
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {claimData.deception_analysis.methods.specificity.reasoning}
                     </p>
