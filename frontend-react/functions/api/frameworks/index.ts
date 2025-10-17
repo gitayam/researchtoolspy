@@ -100,24 +100,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 }
 
 /**
- * GET - List framework sessions for current user
- * Supports hash-based auth
+ * GET - List framework sessions for current user (or public ones if not authenticated)
+ * Supports hash-based auth and guest access
  */
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
+    // Allow unauthenticated access - will show only public frameworks if not logged in
     const userId = await getUserFromRequest(context.request, context.env)
-
-    if (!userId) {
-      return new Response(JSON.stringify({
-        error: 'Authentication required'
-      }), {
-        status: 401,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      })
-    }
 
     const url = new URL(context.request.url)
     const frameworkType = url.searchParams.get('type')
@@ -127,11 +116,20 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     let query = `
       SELECT
         id, title, description, framework_type, status,
-        source_url, created_at, updated_at
+        source_url, created_at, updated_at, user_id
       FROM framework_sessions
-      WHERE user_id = ?
+      WHERE 1=1
     `
-    const params = [userId]
+    const params: any[] = []
+
+    // If authenticated, show user's frameworks OR public ones
+    // If not authenticated, show only public ones
+    if (userId) {
+      query += ` AND (user_id = ? OR is_public = 1)`
+      params.push(userId)
+    } else {
+      query += ` AND is_public = 1`
+    }
 
     if (frameworkType) {
       query += ` AND framework_type = ?`
