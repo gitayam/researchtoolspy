@@ -29,7 +29,7 @@ interface Env {
 
 interface AnalyzeUrlRequest {
   url: string
-  mode?: 'quick' | 'full' | 'forensic'
+  mode?: 'quick' | 'normal' | 'full'
   save_link?: boolean
   link_note?: string
   link_tags?: string[]
@@ -91,7 +91,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const { url, mode = 'full', save_link = false, link_note, link_tags, load_existing = false, analysis_id } = body
+    const { url, mode = 'normal', save_link = false, link_note, link_tags, load_existing = false, analysis_id } = body
 
     // If load_existing is true, fetch and return existing analysis
     if (load_existing && analysis_id) {
@@ -164,10 +164,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const archiveUrls = generateArchiveUrls(normalizedUrl)
     console.log('[DEBUG] Bypass/archive URLs generated')
 
-    // Extract content with timeout
-    console.log('[DEBUG] Extracting URL content...')
-    const contentData = await extractUrlContent(normalizedUrl, env.OPENAI_API_KEY)
-    console.log(`[DEBUG] Content extraction result: success=${contentData.success}, isPDF=${contentData.isPDF}`)
+    // Extract content with automatic fallback to archives if blocked
+    console.log('[DEBUG] Extracting URL content with fallback support...')
+    const contentData = await extractUrlContentWithFallback(normalizedUrl, env.OPENAI_API_KEY)
+    console.log(`[DEBUG] Content extraction result: success=${contentData.success}, source=${contentData.source}, isPDF=${contentData.isPDF}`)
 
     if (!contentData.success) {
       console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
@@ -260,9 +260,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const wordFrequency = analyzeWordFrequency(contentData.text)
     const topPhrases = getTopPhrases(wordFrequency, 10)
 
-    // For quick mode, return basic results immediately
+    // For quick mode, return only summary (skip wordcloud, entities, claims, etc.)
     if (mode === 'quick') {
-      console.log('[DEBUG] Quick mode - saving link if requested...')
+      console.log('[DEBUG] Quick mode - generating summary only...')
+
+      // Generate summary with GPT
+      let summary = ''
+      try {
+        console.log('[DEBUG] Quick mode: Calling generateSummary with GPT...')
+        summary = await generateSummary(contentData.text, env)
+        console.log(`[DEBUG] Quick mode: Summary generated`)
+      } catch (error) {
+        console.error('[DEBUG] Quick mode: Summary generation failed:', error)
+        summary = 'Summary generation failed in quick mode.'
+      }
 
       // Optionally save link for quick mode
       let savedLinkId: number | undefined
@@ -296,27 +307,29 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         author: contentData.author,
         publish_date: contentData.publishDate,
         domain: new URL(normalizedUrl).hostname,
-        extracted_text: contentData.text.substring(0, 5000), // First 5KB
+        extracted_text: contentData.text,
+        summary: summary,
         word_count: countWords(contentData.text),
         content_hash: contentHash,
-        top_phrases: topPhrases.slice(0, 5),
         bypass_urls: bypassUrls,
         archive_urls: archiveUrls,
         is_social_media: !!socialMediaInfo,
         social_platform: socialMediaInfo?.platform,
         processing_mode: mode,
         processing_duration_ms: Date.now() - startTime,
-        saved_link_id: savedLinkId
+        saved_link_id: savedLinkId,
+        content_source: contentData.source || 'original',
+        fallback_attempts: contentData.fallback_attempts || []
       }
 
-      console.log('[DEBUG] Quick mode complete, returning result')
+      console.log('[DEBUG] Quick mode complete (summary only), returning result')
       return new Response(JSON.stringify(quickResult), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    // Full mode: Extract entities and generate summary with GPT
+    // Normal/Full mode: Extract entities, generate summary, and run full analysis with GPT
     let entitiesData = {
       people: [],
       organizations: [],
@@ -646,7 +659,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       bypass_urls: bypassUrls,
       processing_mode: mode,
       processing_duration_ms: Date.now() - startTime,
-      gpt_model_used: 'gpt-4o-mini'
+      gpt_model_used: 'gpt-4o-mini',
+      content_source: contentData.source || 'original',
+      fallback_attempts: contentData.fallback_attempts || []
     }
 
     return new Response(JSON.stringify(result), {
@@ -728,7 +743,8 @@ function detectSocialMedia(url: string): { platform: string } | null {
 function generateBypassUrls(url: string): Record<string, string> {
   const encoded = encodeURIComponent(url)
   return {
-    '12ft': `https://12ft.io/proxy?q=${encoded}`
+    'smry_ai': `https://smry.ai/${encoded}`,
+    'archive_ph': `https://archive.ph/newest/${url}`
   }
 }
 
@@ -802,6 +818,231 @@ async function resolveFacebookRedirect(url: string): Promise<string> {
     console.error('[Facebook Redirect] Failed to resolve:', error)
     // Return original URL if resolution fails
     return url
+  }
+}
+
+/**
+ * Check if Archive.ph has an archived version of the URL
+ * Returns the archived URL if found, null otherwise
+ */
+async function checkArchivePh(url: string): Promise<string | null> {
+  try {
+    // Check archive.ph for newest snapshot
+    const archiveUrl = `https://archive.ph/newest/${url}`
+    console.log('[Archive.ph] Checking for archived version:', archiveUrl)
+
+    const response = await fetch(archiveUrl, {
+      method: 'HEAD',
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    })
+
+    // If we got redirected to an archive snapshot, return it
+    if (response.ok && response.url !== archiveUrl && response.url.includes('archive.ph/')) {
+      console.log('[Archive.ph] Found archived version:', response.url)
+      return response.url
+    }
+
+    return null
+  } catch (error) {
+    console.error('[Archive.ph] Check failed:', error)
+    return null
+  }
+}
+
+/**
+ * Check Wayback Machine for the most recent snapshot
+ * Uses CDX API to find latest archived version
+ */
+async function checkWaybackMachine(url: string): Promise<string | null> {
+  try {
+    // Use Wayback CDX API to get the most recent snapshot
+    const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(url)}&limit=1&sort=reverse`
+    console.log('[Wayback] Checking for archived version via CDX API')
+
+    const response = await fetch(cdxUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    const text = await response.text()
+
+    // CDX format: urlkey timestamp original mimetype statuscode digest length
+    // We need the timestamp to construct the wayback URL
+    const lines = text.trim().split('\n')
+    if (lines.length === 0 || !lines[0]) {
+      return null
+    }
+
+    const parts = lines[0].split(' ')
+    if (parts.length < 2) {
+      return null
+    }
+
+    const timestamp = parts[1]
+    const waybackUrl = `https://web.archive.org/web/${timestamp}/${url}`
+    console.log('[Wayback] Found archived version:', waybackUrl)
+    return waybackUrl
+  } catch (error) {
+    console.error('[Wayback] Check failed:', error)
+    return null
+  }
+}
+
+/**
+ * Detect if content extraction was blocked/paywalled
+ * Returns true if the content appears to be blocked
+ */
+function isContentBlocked(result: {
+  success: boolean
+  error?: string
+  text: string
+}): boolean {
+  // Check for explicit errors indicating blocking
+  if (!result.success && result.error) {
+    const errorLower = result.error.toLowerCase()
+    if (errorLower.includes('403') || errorLower.includes('401') ||
+        errorLower.includes('402') || errorLower.includes('blocked')) {
+      return true
+    }
+  }
+
+  // Check for minimal/suspicious content
+  if (result.success) {
+    const textLower = result.text.toLowerCase()
+    const wordCount = result.text.split(/\s+/).length
+
+    // Paywall/login keywords
+    const paywallKeywords = [
+      'paywall', 'subscribe', 'subscription', 'login required',
+      'sign in to continue', 'create account', 'register to read',
+      'this content is exclusive', 'premium content'
+    ]
+
+    const hasPaywallKeyword = paywallKeywords.some(kw => textLower.includes(kw))
+
+    // If content is very short and contains paywall keywords, it's likely blocked
+    if (wordCount < 100 && hasPaywallKeyword) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
+ * Extract URL content with automatic fallback to archives if blocked
+ */
+async function extractUrlContentWithFallback(url: string, apiKey?: string): Promise<{
+  success: boolean
+  error?: string
+  text: string
+  title?: string
+  author?: string
+  publishDate?: string
+  isPDF?: boolean
+  pdfMetadata?: {
+    pageCount?: number
+    keywords?: string[]
+    chapters?: string[]
+    keyPoints?: string[]
+  }
+  source?: 'original' | 'archive.ph' | 'wayback' | 'smry.ai'
+  fallback_attempts?: string[]
+}> {
+  const fallbackAttempts: string[] = []
+
+  // Try original URL first
+  console.log('[Fallback] Attempting original URL:', url)
+  fallbackAttempts.push('original')
+  const originalResult = await extractUrlContent(url, apiKey)
+
+  // If successful and not blocked, return immediately
+  if (originalResult.success && !isContentBlocked(originalResult)) {
+    console.log('[Fallback] Original URL succeeded')
+    return {
+      ...originalResult,
+      source: 'original',
+      fallback_attempts: fallbackAttempts
+    }
+  }
+
+  console.log('[Fallback] Original URL blocked or failed, trying fallbacks...')
+
+  // Try Archive.ph
+  try {
+    const archivePhUrl = await checkArchivePh(url)
+    if (archivePhUrl) {
+      console.log('[Fallback] Attempting Archive.ph:', archivePhUrl)
+      fallbackAttempts.push('archive.ph')
+      const archivePhResult = await extractUrlContent(archivePhUrl, apiKey)
+
+      if (archivePhResult.success && !isContentBlocked(archivePhResult)) {
+        console.log('[Fallback] Archive.ph succeeded')
+        return {
+          ...archivePhResult,
+          source: 'archive.ph',
+          fallback_attempts: fallbackAttempts
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[Fallback] Archive.ph attempt failed:', error)
+  }
+
+  // Try Wayback Machine
+  try {
+    const waybackUrl = await checkWaybackMachine(url)
+    if (waybackUrl) {
+      console.log('[Fallback] Attempting Wayback Machine:', waybackUrl)
+      fallbackAttempts.push('wayback')
+      const waybackResult = await extractUrlContent(waybackUrl, apiKey)
+
+      if (waybackResult.success && !isContentBlocked(waybackResult)) {
+        console.log('[Fallback] Wayback Machine succeeded')
+        return {
+          ...waybackResult,
+          source: 'wayback',
+          fallback_attempts: fallbackAttempts
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[Fallback] Wayback Machine attempt failed:', error)
+  }
+
+  // Try SMRY.ai as last resort
+  try {
+    const smryUrl = `https://smry.ai/${encodeURIComponent(url)}`
+    console.log('[Fallback] Attempting SMRY.ai:', smryUrl)
+    fallbackAttempts.push('smry.ai')
+    const smryResult = await extractUrlContent(smryUrl, apiKey)
+
+    if (smryResult.success && !isContentBlocked(smryResult)) {
+      console.log('[Fallback] SMRY.ai succeeded')
+      return {
+        ...smryResult,
+        source: 'smry.ai',
+        fallback_attempts: fallbackAttempts
+      }
+    }
+  } catch (error) {
+    console.error('[Fallback] SMRY.ai attempt failed:', error)
+  }
+
+  // All fallbacks failed, return original result with fallback info
+  console.log('[Fallback] All fallback methods failed')
+  return {
+    ...originalResult,
+    source: 'original',
+    fallback_attempts: fallbackAttempts
   }
 }
 
