@@ -8,9 +8,21 @@ This project includes an automated cleanup system that runs daily at 3 AM UTC to
 
 ### Files
 
-1. **`functions/_worker.js`** - Advanced Worker that handles scheduled events
-2. **`wrangler.toml`** - Cron trigger configuration
-3. **`functions/api/content-intelligence/cleanup.ts`** - Manual cleanup endpoint (still available)
+1. **`workers/cleanup-cron/worker.js`** - Standalone Cloudflare Worker for cron
+2. **`workers/cleanup-cron/wrangler.toml`** - Worker configuration with cron trigger
+3. **`functions/api/content-intelligence/cleanup.ts`** - Cleanup endpoint (called by Worker)
+
+### Architecture
+
+The cleanup system uses a **two-component architecture**:
+
+1. **Cleanup Worker** (`workers/cleanup-cron/`) - Scheduled Worker that runs on cron
+2. **Cleanup Endpoint** (`functions/api/content-intelligence/cleanup.ts`) - Pages Function that performs the actual cleanup
+
+Why this architecture?
+- Cloudflare Pages doesn't support cron triggers directly
+- Separating concerns: Worker handles scheduling, Pages Function handles logic
+- Cleanup endpoint remains manually callable for testing/emergencies
 
 ### What Gets Cleaned Up
 
@@ -133,26 +145,30 @@ Possible causes:
 
 ### Testing Locally
 
-The cron trigger cannot be tested locally with `wrangler pages dev`. To test:
+#### Test the Cleanup Endpoint
 
-1. **Test the cleanup logic manually**:
 ```bash
-# Deploy to preview
-npm run build
-wrangler pages deploy dist
+# Start local Pages dev server
+npm run dev
 
-# Trigger manually
-curl https://[preview-url]/api/content-intelligence/cleanup
+# In another terminal, call the cleanup endpoint
+curl -X POST http://localhost:8788/api/content-intelligence/cleanup
 ```
 
-2. **Test cron in production**:
-```bash
-# View cron schedules
-wrangler pages deployment list --project-name=researchtoolspy
+#### Test the Worker Locally
 
-# Check logs
-wrangler pages deployment tail --project-name=researchtoolspy
+```bash
+# Navigate to worker directory
+cd workers/cleanup-cron
+
+# Test locally (note: cron trigger won't fire locally)
+wrangler dev
+
+# In another terminal, manually trigger the scheduled handler
+# (This requires using the Workers API directly)
 ```
+
+**Note**: Cron triggers cannot be tested locally. You must deploy to preview/production to test scheduled execution.
 
 ## Configuration Changes
 
@@ -179,17 +195,61 @@ WHERE created_at < datetime('now', '-60 days')
 
 ## Deployment
 
-The cron job is automatically deployed with the Pages project:
+### Deploy the Cleanup Worker
+
+The cron Worker must be deployed separately from the Pages project:
 
 ```bash
+# Navigate to worker directory
+cd workers/cleanup-cron
+
+# Deploy the worker
+wrangler deploy
+
+# Verify deployment
+wrangler tail researchtoolspy-cleanup-cron
+```
+
+### Deploy the Pages Project
+
+The cleanup endpoint is deployed with the Pages project:
+
+```bash
+# From frontend-react directory
 npm run build
 wrangler pages deploy dist --project-name=researchtoolspy
 ```
 
-Verify deployment:
-```bash
-wrangler pages deployment tail --project-name=researchtoolspy
-```
+### First-Time Setup
+
+1. **Deploy the Worker** (one-time):
+   ```bash
+   cd workers/cleanup-cron
+   wrangler deploy
+   ```
+
+2. **Verify cron schedule**:
+   ```bash
+   wrangler deployments list
+   ```
+
+3. **Test manually** (before waiting for cron):
+   ```bash
+   # Option 1: Call endpoint directly
+   curl -X POST https://researchtoolspy.pages.dev/api/content-intelligence/cleanup
+
+   # Option 2: Trigger worker manually (if supported)
+   wrangler tail researchtoolspy-cleanup-cron
+   ```
+
+4. **Monitor logs**:
+   ```bash
+   # Worker logs
+   wrangler tail researchtoolspy-cleanup-cron
+
+   # Pages logs
+   wrangler pages deployment tail --project-name=researchtoolspy
+   ```
 
 ## Resources
 
