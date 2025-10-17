@@ -155,8 +155,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Detect social media
     console.log('[DEBUG] Detecting social media...')
+    console.log(`[DEBUG] Input URL for detection: ${url}`)
+    console.log(`[DEBUG] Normalized URL: ${normalizedUrl}`)
     const socialMediaInfo = detectSocialMedia(url)
     console.log(`[DEBUG] Social media detected: ${JSON.stringify(socialMediaInfo)}`)
+    if (socialMediaInfo) {
+      console.log(`[DEBUG] Platform identified as: ${socialMediaInfo.platform}`)
+    } else {
+      console.log(`[DEBUG] No social media platform detected - treating as regular web content`)
+    }
 
     // Generate bypass/archive links immediately (no API calls needed)
     console.log('[DEBUG] Generating bypass/archive URLs...')
@@ -696,6 +703,22 @@ function normalizeUrl(url: string): string {
 function detectSocialMedia(url: string): { platform: string } | null {
   const urlLower = url.toLowerCase()
 
+  // Explicitly exclude news and traditional media domains
+  // These should NEVER be detected as social media, even if URL contains social media keywords
+  const newsDomainsToExclude = [
+    'nytimes.com', 'washingtonpost.com', 'wsj.com', 'cnn.com', 'bbc.com', 'reuters.com',
+    'apnews.com', 'bloomberg.com', 'theguardian.com', 'forbes.com', 'techcrunch.com',
+    'wired.com', 'theverge.com', 'arstechnica.com', 'medium.com', 'substack.com'
+  ]
+
+  for (const domain of newsDomainsToExclude) {
+    if (urlLower.includes(domain)) {
+      console.log(`[Social Detection] Excluded ${domain} from social media detection`)
+      return null
+    }
+  }
+
+  // Check for actual social media platforms
   if (urlLower.includes('twitter.com') || urlLower.includes('x.com')) {
     return { platform: 'twitter' }
   }
