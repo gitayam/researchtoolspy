@@ -2685,93 +2685,14 @@ ${shortSummary}${
 
       {/* Results */}
       {analysis && (
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AnalysisTab)}>
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
-            <TabsTrigger value="overview">
-              <FileText className="h-4 w-4 mr-2" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="word-analysis">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Word Analysis
-            </TabsTrigger>
-            <TabsTrigger value="sentiment">
-              <SmileIcon className="h-4 w-4 mr-2" />
-              Sentiment
-            </TabsTrigger>
-            <TabsTrigger value="entities">
-              <Users className="h-4 w-4 mr-2" />
-              Entities
-            </TabsTrigger>
-            <TabsTrigger value="links">
-              <Link2 className="h-4 w-4 mr-2" />
-              Links
-            </TabsTrigger>
-            <TabsTrigger value="claims" className="relative">
-              <Shield className="h-4 w-4 mr-2" />
-              Claims
-              {claimsLoading && (
-                <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  Analyzing
-                </Badge>
-              )}
-              {(analysis?.claim_analysis || claimsAnalysis) && !claimsLoading && (
-                <Badge variant="default" className="ml-2 bg-green-100 text-green-700">
-                  <Check className="h-3 w-3 mr-1" />
-                  Ready
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="qa">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Q&A
-            </TabsTrigger>
-            <TabsTrigger value="dime" className="relative">
-              <Grid3x3 className="h-4 w-4 mr-2" />
-              DIME
-              {dimeLoading && (
-                <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  Analyzing
-                </Badge>
-              )}
-              {(analysis.dime_analysis || dimeAnalysis) && !dimeLoading && (
-                <Badge variant="default" className="ml-2 bg-green-100 text-green-700">
-                  <Check className="h-3 w-3 mr-1" />
-                  Ready
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="starbursting" className="relative">
-              <Star className="h-4 w-4 mr-2" />
-              Starbursting
-              {starburstingStatus === 'idle' && (
-                <Badge variant="outline" className="ml-2 text-gray-600 dark:text-gray-400">
-                  Not Run
-                </Badge>
-              )}
-              {starburstingStatus === 'processing' && (
-                <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  Processing
-                </Badge>
-              )}
-              {starburstingStatus === 'complete' && (
-                <Badge variant="default" className="ml-2 bg-green-100 text-green-700">
-                  <Check className="h-3 w-3 mr-1" />
-                  Ready
-                </Badge>
-              )}
-              {starburstingStatus === 'error' && (
-                <Badge variant="destructive" className="ml-2">
-                  Error
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="mt-4">
+        <AnalysisLayout
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          sections={sections}
+          onRunFramework={handleRunFramework}
+        >
+          {/* Overview */}
+          {activeTab === 'overview' && (
             <Card className="p-6 space-y-4">
               <div className="space-y-6">
                 <div>
@@ -3042,9 +2963,11 @@ ${shortSummary}${
                 </div>
               </div>
             </Card>
-          </TabsContent>
+          )}
 
-          <TabsContent value="word-analysis" className="mt-4 space-y-6">
+          {/* Word Analysis */}
+          {activeTab === 'word-analysis' && (
+            <div className="space-y-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="p-4">
@@ -3452,10 +3375,12 @@ ${shortSummary}${
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
+            </div>
+          )}
 
-          <TabsContent value="sentiment" className="mt-4">
-            {analysis.sentiment_analysis ? (
+          {/* Sentiment */}
+          {activeTab === 'sentiment' && (
+            analysis.sentiment_analysis ? (
               <div className="space-y-6">
                 {/* Overall Sentiment Card */}
                 <Card className="p-6">
@@ -3575,11 +3500,13 @@ ${shortSummary}${
                   Sentiment analysis not available for this content
                 </p>
               </Card>
-            )}
-          </TabsContent>
+            )
+          )}
 
-          <TabsContent value="entities" className="mt-4">
-            <div className="flex justify-between items-center mb-4">
+          {/* Entities */}
+          {activeTab === 'entities' && (
+            <div className="space-y-4">
+            <div className="flex justify-between items-center">
               <h3 className="font-semibold">Extracted Entities</h3>
               <div className="flex gap-2">
                 <Button onClick={autoExtractEntities} variant="default" size="sm" disabled={processing}>
@@ -3947,10 +3874,12 @@ ${shortSummary}${
                 </div>
               </Card>
             </div>
-          </TabsContent>
+            </div>
+          )}
 
-          <TabsContent value="links" className="mt-4">
-            {analysis.links_analysis && analysis.links_analysis.length > 0 ? (
+          {/* Links */}
+          {activeTab === 'links' && (
+            analysis.links_analysis && analysis.links_analysis.length > 0 ? (
               <div className="space-y-4">
                 <Card>
                   <CardHeader>
@@ -4147,11 +4076,12 @@ ${shortSummary}${
                   No links were found in the article body
                 </p>
               </Card>
-            )}
-          </TabsContent>
+            )
+          )}
 
-          <TabsContent value="claims" className="mt-4">
-            {(analysis?.claim_analysis || claimsAnalysis) ? (
+          {/* Claims */}
+          {activeTab === 'claims' && (
+            (analysis?.claim_analysis || claimsAnalysis) ? (
               <ClaimAnalysisDisplay
                 contentAnalysisId={analysis.id}
                 claimAnalysis={analysis.claim_analysis || claimsAnalysis}
@@ -4175,10 +4105,12 @@ ${shortSummary}${
                   )}
                 </div>
               </Card>
-            )}
-          </TabsContent>
+            )
+          )}
 
-          <TabsContent value="qa" className="mt-4 space-y-4">
+          {/* Q&A */}
+          {activeTab === 'qa' && (
+            <div className="space-y-4">
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Ask Questions About This Content</h3>
               <p className="text-sm text-muted-foreground mb-4">
@@ -4297,9 +4229,11 @@ ${shortSummary}${
                 <p className="text-sm mt-1">Ask a question above to get started.</p>
               </Card>
             )}
-          </TabsContent>
+            </div>
+          )}
 
-          <TabsContent value="starbursting" className="mt-4">
+          {/* Starbursting */}
+          {activeTab === 'starbursting' && (
             <Card className="p-6">
               <h3 className="font-semibold mb-4">🌟 Starbursting Analysis</h3>
 
@@ -4483,11 +4417,11 @@ ${shortSummary}${
                 </div>
               )}
             </Card>
-          </TabsContent>
+          )}
 
-          {/* DIME Framework Analysis Tab */}
-          <TabsContent value="dime" className="mt-4">
-            {(analysis?.dime_analysis || dimeAnalysis) ? (
+          {/* DIME Framework Analysis */}
+          {activeTab === 'dime' && (
+            (analysis?.dime_analysis || dimeAnalysis) ? (
               <div className="space-y-6">
                 {/* Summary Card */}
                 {((analysis?.dime_analysis || dimeAnalysis)?.summary) && (
@@ -4643,9 +4577,9 @@ ${shortSummary}${
                   )}
                 </div>
               </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+            )
+          )}
+        </AnalysisLayout>
       )}
 
       {/* Saved Links Library */}
