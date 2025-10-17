@@ -346,21 +346,24 @@ export function PublicContentAnalysisPage() {
           )}
 
           {/* Claims */}
-          {analysis.claim_analysis && analysis.claim_analysis.length > 0 && (
+          {analysis.claim_analysis?.claims && analysis.claim_analysis.claims.length > 0 && (
             <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle>Claims Analysis</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {analysis.claim_analysis.map((claim, i) => (
+                  {analysis.claim_analysis.claims.map((claim, i) => (
                     <div key={i} className="border-l-4 border-blue-500 pl-4 space-y-2">
                       <div className="flex items-start justify-between gap-4">
                         <p className="text-sm flex-1">{claim.claim}</p>
                         <div className="flex items-center gap-2">
                           <Badge>{claim.category}</Badge>
-                          <Badge variant="outline">
-                            {(claim.probability * 100).toFixed(0)}%
+                          <Badge variant={
+                            claim.deception_analysis.overall_risk === 'high' ? 'destructive' :
+                            claim.deception_analysis.overall_risk === 'medium' ? 'default' : 'secondary'
+                          }>
+                            {claim.deception_analysis.overall_risk}
                           </Badge>
                         </div>
                       </div>
