@@ -906,9 +906,24 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
   const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
 
   try {
+    // Detect if this is Facebook content to use specialized User-Agent
+    const isFacebookUrl = resolvedUrl.toLowerCase().includes('facebook.com') ||
+                          resolvedUrl.toLowerCase().includes('m.facebook.com')
+
+    // Use Facebook's own crawler user-agent for Facebook URLs to bypass login walls
+    // Facebook allows facebookexternalhit to access Open Graph metadata without authentication
+    const userAgent = isFacebookUrl
+      ? 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
+      : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+
     const response = await fetch(resolvedUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
+        'User-Agent': userAgent,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
       signal: controller.signal
     })
