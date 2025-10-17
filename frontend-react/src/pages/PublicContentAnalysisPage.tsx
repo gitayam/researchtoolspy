@@ -1,53 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Copy, Download, Eye, ArrowLeft } from 'lucide-react'
+import { Copy, Download, Eye, ArrowLeft, ExternalLink, Link2, Mail, Archive, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
+import type { ContentAnalysis } from '@/types/content-intelligence'
 
-interface ContentAnalysis {
-  id: number
-  title: string
-  url: string
-  domain: string
-  author?: string
-  publish_date?: string
-  summary: string
-  word_count: number
-  is_social_media: boolean
-  social_platform?: string
-  word_frequency: Record<string, number>
-  top_phrases: Array<{ phrase: string; count: number }>
-  entities: {
-    people?: string[]
-    organizations?: string[]
-    locations?: string[]
-    dates?: string[]
-    money?: string[]
-    events?: string[]
-  }
-  sentiment_analysis?: {
-    overall: string
-    score: number
-    confidence: number
-  }
-  keyphrases?: Array<{ phrase: string; score: number }>
-  topics?: Array<{ name: string; keywords: string[]; coverage: number }>
-  claim_analysis?: Array<{
-    claim: string
-    category: string
-    probability: number
-    supporting_evidence?: string[]
-    counterevidence?: string[]
-  }>
+interface PublicContentAnalysis extends Omit<ContentAnalysis, 'user_id' | 'saved_link_id' | 'content_hash'> {
   view_count: number
-  created_at: string
 }
 
 export function PublicContentAnalysisPage() {
   const { token } = useParams<{ token: string }>()
-  const [analysis, setAnalysis] = useState<ContentAnalysis | null>(null)
+  const [analysis, setAnalysis] = useState<PublicContentAnalysis | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
@@ -184,43 +150,138 @@ export function PublicContentAnalysisPage() {
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Word Frequency & Top Phrases */}
+          {analysis.top_phrases && analysis.top_phrases.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Phrases</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {analysis.top_phrases.slice(0, 10).map((phrase, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <span className="flex-1">{phrase.phrase}</span>
+                      <Badge variant="outline">{phrase.count}×</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Keyphrases */}
+          {analysis.keyphrases && analysis.keyphrases.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Key Phrases</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.keyphrases.slice(0, 15).map((kp, i) => (
+                    <Badge key={i} variant="secondary">
+                      {kp.phrase}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Entities */}
           {analysis.entities && (
-            <Card>
+            <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle>Key Entities</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {analysis.entities.people && analysis.entities.people.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">People</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {analysis.entities.people.slice(0, 10).map((person, i) => (
-                        <Badge key={i} variant="secondary">{person}</Badge>
-                      ))}
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {analysis.entities.people && analysis.entities.people.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">👤 People ({analysis.entities.people.length})</h4>
+                      <div className="space-y-1">
+                        {analysis.entities.people.slice(0, 8).map((person, i) => (
+                          <div key={i} className="text-sm flex items-center justify-between">
+                            <span>{person.name}</span>
+                            <span className="text-muted-foreground">({person.count}×)</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-                {analysis.entities.organizations && analysis.entities.organizations.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">Organizations</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {analysis.entities.organizations.slice(0, 10).map((org, i) => (
-                        <Badge key={i} variant="outline">{org}</Badge>
-                      ))}
+                  )}
+                  {analysis.entities.organizations && analysis.entities.organizations.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">🏢 Organizations ({analysis.entities.organizations.length})</h4>
+                      <div className="space-y-1">
+                        {analysis.entities.organizations.slice(0, 8).map((org, i) => (
+                          <div key={i} className="text-sm flex items-center justify-between">
+                            <span>{org.name}</span>
+                            <span className="text-muted-foreground">({org.count}×)</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-                {analysis.entities.locations && analysis.entities.locations.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">Locations</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {analysis.entities.locations.slice(0, 10).map((loc, i) => (
-                        <Badge key={i} variant="outline">{loc}</Badge>
-                      ))}
+                  )}
+                  {analysis.entities.locations && analysis.entities.locations.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">📍 Locations ({analysis.entities.locations.length})</h4>
+                      <div className="space-y-1">
+                        {analysis.entities.locations.slice(0, 8).map((loc, i) => (
+                          <div key={i} className="text-sm flex items-center justify-between">
+                            <span>{loc.name}</span>
+                            <span className="text-muted-foreground">({loc.count}×)</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                  {analysis.entities.dates && analysis.entities.dates.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">📅 Dates ({analysis.entities.dates.length})</h4>
+                      <div className="space-y-1">
+                        {analysis.entities.dates.slice(0, 8).map((date, i) => (
+                          <div key={i} className="text-sm flex items-center justify-between">
+                            <span>{date.name}</span>
+                            <span className="text-muted-foreground">({date.count}×)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {analysis.entities.money && analysis.entities.money.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">💰 Money ({analysis.entities.money.length})</h4>
+                      <div className="space-y-1">
+                        {analysis.entities.money.slice(0, 8).map((money, i) => (
+                          <div key={i} className="text-sm flex items-center justify-between">
+                            <span>{money.name}</span>
+                            <span className="text-muted-foreground">({money.count}×)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {analysis.entities.emails && analysis.entities.emails.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                        <Mail className="h-4 w-4" />
+                        Emails ({analysis.entities.emails.length})
+                      </h4>
+                      <div className="space-y-1">
+                        {analysis.entities.emails.slice(0, 5).map((email, i) => (
+                          <div key={i} className="text-sm">
+                            <a
+                              href={`mailto:${email.email}`}
+                              className="text-blue-600 hover:underline flex items-center justify-between"
+                            >
+                              <span className="truncate">{email.email}</span>
+                              <span className="text-muted-foreground ml-2">({email.count}×)</span>
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -305,6 +366,157 @@ export function PublicContentAnalysisPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Links Analysis */}
+          {analysis.links_analysis && analysis.links_analysis.length > 0 && (
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link2 className="h-5 w-5" />
+                  Link Analysis ({analysis.links_analysis.length} unique links)
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  All links found in the article body (excluding navigation, headers, and footers)
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Statistics */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Links</p>
+                      <p className="text-2xl font-bold">{analysis.links_analysis.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">External</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {analysis.links_analysis.filter(l => l.is_external).length}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Internal</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        {analysis.links_analysis.filter(l => !l.is_external).length}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Unique Domains</p>
+                      <p className="text-2xl font-bold">
+                        {new Set(analysis.links_analysis.map(l => l.domain)).size}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Links List */}
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {analysis.links_analysis.map((link, idx) => (
+                      <div
+                        key={idx}
+                        className="border-l-4 border-blue-500 pl-4 py-2 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline text-sm font-medium break-all flex items-center gap-1"
+                            >
+                              <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              {link.url}
+                            </a>
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <Badge variant="outline" className="text-xs">{link.domain}</Badge>
+                              <Badge variant={link.is_external ? "default" : "secondary"} className="text-xs">
+                                {link.is_external ? "External" : "Internal"}
+                              </Badge>
+                              <span className="text-xs text-gray-600">
+                                Referenced {link.count}× in article
+                              </span>
+                            </div>
+                            {link.anchor_text && link.anchor_text.length > 0 && (
+                              <div className="mt-2">
+                                <span className="text-xs font-semibold text-gray-500">Anchor text: </span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {link.anchor_text.map((text, i) => (
+                                    <Badge key={i} variant="outline" className="text-xs">
+                                      "{text}"
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Archive & Bypass URLs */}
+          {(analysis.archive_urls || analysis.bypass_urls) && (
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Archive className="h-5 w-5" />
+                  Archive & Bypass Links
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Alternative ways to access this content
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {analysis.archive_urls && (
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-sm">Archive Services</h4>
+                      {analysis.archive_urls.wayback && (
+                        <a
+                          href={analysis.archive_urls.wayback}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                        >
+                          <Globe className="h-4 w-4" />
+                          Wayback Machine
+                        </a>
+                      )}
+                      {analysis.archive_urls.archive_is && (
+                        <a
+                          href={analysis.archive_urls.archive_is}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                        >
+                          <Globe className="h-4 w-4" />
+                          Archive.is
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  {analysis.bypass_urls && (
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-sm">Paywall Bypass</h4>
+                      {analysis.bypass_urls['12ft'] && (
+                        <a
+                          href={analysis.bypass_urls['12ft']}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          12ft Ladder
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
