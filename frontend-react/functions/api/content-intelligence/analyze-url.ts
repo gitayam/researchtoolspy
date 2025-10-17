@@ -699,7 +699,8 @@ function detectSocialMedia(url: string): { platform: string } | null {
   if (urlLower.includes('twitter.com') || urlLower.includes('x.com')) {
     return { platform: 'twitter' }
   }
-  if (urlLower.includes('facebook.com')) {
+  if (urlLower.includes('facebook.com') || urlLower.includes('fb.me') ||
+      urlLower.includes('fb.watch') || urlLower.includes('m.facebook.com')) {
     return { platform: 'facebook' }
   }
   if (urlLower.includes('instagram.com')) {
@@ -772,6 +773,78 @@ async function resolveSpotifyRedirect(url: string): Promise<string> {
   }
 }
 
+/**
+ * Resolve Facebook shortened links (fb.me, fb.watch) to actual Facebook URLs
+ */
+async function resolveFacebookRedirect(url: string): Promise<string> {
+  const urlLower = url.toLowerCase()
+
+  // Only process fb.me and fb.watch URLs
+  if (!urlLower.includes('fb.me') && !urlLower.includes('fb.watch')) {
+    return url
+  }
+
+  console.log('[Facebook Redirect] Resolving shortened Facebook URL:', url)
+
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
+      }
+    })
+
+    const finalUrl = response.url
+    console.log('[Facebook Redirect] Resolved to:', finalUrl)
+    return finalUrl
+  } catch (error) {
+    console.error('[Facebook Redirect] Failed to resolve:', error)
+    // Return original URL if resolution fails
+    return url
+  }
+}
+
+/**
+ * Classify Facebook content type from URL structure
+ */
+function classifyFacebookContentType(url: string): string {
+  const urlLower = url.toLowerCase()
+
+  // Video content
+  if (urlLower.includes('/watch') || urlLower.includes('/videos/') || urlLower.includes('fb.watch')) {
+    return 'video'
+  }
+
+  // Photo content
+  if (urlLower.includes('/photo.php') || urlLower.includes('/photos/')) {
+    return 'photo'
+  }
+
+  // Post content
+  if (urlLower.includes('/posts/') || urlLower.includes('/permalink.php') || urlLower.includes('/pfbid')) {
+    return 'post'
+  }
+
+  // Group content
+  if (urlLower.includes('/groups/')) {
+    return 'group'
+  }
+
+  // Event content
+  if (urlLower.includes('/events/')) {
+    return 'event'
+  }
+
+  // Profile or page
+  if (urlLower.includes('/profile.php') || urlLower.includes('/people/')) {
+    return 'profile'
+  }
+
+  // Default to page (could be a page or profile with custom username)
+  return 'page'
+}
+
 async function extractUrlContent(url: string, apiKey?: string): Promise<{
   success: boolean
   error?: string
@@ -792,6 +865,12 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
   if (url.toLowerCase().includes('spotify.link')) {
     resolvedUrl = await resolveSpotifyRedirect(url)
     console.log('[Content Extract] Spotify URL resolved from', url, 'to', resolvedUrl)
+  }
+
+  // Resolve Facebook redirect links (fb.me, fb.watch)
+  if (url.toLowerCase().includes('fb.me') || url.toLowerCase().includes('fb.watch')) {
+    resolvedUrl = await resolveFacebookRedirect(url)
+    console.log('[Content Extract] Facebook URL resolved from', url, 'to', resolvedUrl)
   }
 
   // Check if URL is a PDF
@@ -852,6 +931,15 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
     if (isSpotify) {
       console.log('[Content Extract] Detected Spotify content, using specialized extraction')
       return extractSpotifyContent(html, resolvedUrl)
+    }
+
+    // Detect if this is Facebook content and use specialized extraction
+    const isFacebook = resolvedUrl.toLowerCase().includes('facebook.com') ||
+                       resolvedUrl.toLowerCase().includes('m.facebook.com')
+
+    if (isFacebook) {
+      console.log('[Content Extract] Detected Facebook content, using specialized extraction')
+      return extractFacebookContent(html, resolvedUrl)
     }
 
     // Parse HTML (simple extraction, can be enhanced)
@@ -970,6 +1058,124 @@ function extractSpotifyContent(html: string, url: string): {
     title: ogTitle,
     author: undefined, // Spotify doesn't always provide author in OG tags
     publishDate: undefined
+  }
+}
+
+/**
+ * Extract Facebook-specific metadata from Open Graph tags
+ */
+function extractFacebookContent(html: string, url: string): {
+  success: boolean
+  text: string
+  title?: string
+  author?: string
+  publishDate?: string
+} {
+  console.log('[Facebook Extract] Extracting Facebook metadata from Open Graph tags')
+
+  // Classify content type
+  const contentType = classifyFacebookContentType(url)
+
+  // Extract Open Graph metadata
+  const ogTitle = extractMetaTag(html, 'og:title') || extractMetaTag(html, 'title')
+  const ogDescription = extractMetaTag(html, 'og:description') || extractMetaTag(html, 'description')
+  const ogImage = extractMetaTag(html, 'og:image')
+  const ogType = extractMetaTag(html, 'og:type')
+  const ogUrl = extractMetaTag(html, 'og:url') || url
+  const ogSiteName = extractMetaTag(html, 'og:site_name')
+
+  // Article-specific tags
+  const articleAuthor = extractMetaTag(html, 'article:author')
+  const articlePublishedTime = extractMetaTag(html, 'article:published_time')
+  const articleModifiedTime = extractMetaTag(html, 'article:modified_time')
+
+  // Video-specific tags
+  const ogVideo = extractMetaTag(html, 'og:video') || extractMetaTag(html, 'og:video:url')
+  const videoDuration = extractMetaTag(html, 'video:duration')
+  const videoReleaseDate = extractMetaTag(html, 'video:release_date')
+
+  // Profile-specific tags
+  const profileFirstName = extractMetaTag(html, 'profile:first_name')
+  const profileLastName = extractMetaTag(html, 'profile:last_name')
+  const profileUsername = extractMetaTag(html, 'profile:username')
+
+  // Build structured text content
+  const contentParts = []
+
+  contentParts.push(`Facebook ${contentType.charAt(0).toUpperCase() + contentType.slice(1)}`)
+
+  if (ogTitle) {
+    contentParts.push(`Title: ${ogTitle}`)
+  }
+
+  if (ogDescription) {
+    contentParts.push(`Description: ${ogDescription}`)
+  }
+
+  // Add author information
+  if (articleAuthor) {
+    contentParts.push(`Author: ${articleAuthor}`)
+  } else if (profileFirstName || profileLastName) {
+    const fullName = [profileFirstName, profileLastName].filter(Boolean).join(' ')
+    if (fullName) {
+      contentParts.push(`Profile Name: ${fullName}`)
+    }
+  } else if (profileUsername) {
+    contentParts.push(`Username: ${profileUsername}`)
+  }
+
+  // Add publication date
+  if (articlePublishedTime) {
+    contentParts.push(`Published: ${articlePublishedTime}`)
+  }
+
+  if (articleModifiedTime) {
+    contentParts.push(`Modified: ${articleModifiedTime}`)
+  }
+
+  // Add video information
+  if (ogVideo) {
+    contentParts.push(`Video URL: ${ogVideo}`)
+  }
+
+  if (videoDuration) {
+    contentParts.push(`Duration: ${videoDuration} seconds`)
+  }
+
+  if (videoReleaseDate) {
+    contentParts.push(`Release Date: ${videoReleaseDate}`)
+  }
+
+  // Add metadata
+  if (ogType) {
+    contentParts.push(`Content Type: ${ogType}`)
+  }
+
+  if (ogUrl) {
+    contentParts.push(`URL: ${ogUrl}`)
+  }
+
+  if (ogImage) {
+    contentParts.push(`Image: ${ogImage}`)
+  }
+
+  const text = contentParts.join('\n')
+
+  console.log('[Facebook Extract] Extracted metadata:', {
+    title: ogTitle,
+    contentType,
+    hasDescription: !!ogDescription,
+    hasAuthor: !!(articleAuthor || profileFirstName || profileLastName),
+    hasPublishDate: !!articlePublishedTime,
+    hasVideo: !!ogVideo
+  })
+
+  return {
+    success: true,
+    text,
+    title: ogTitle,
+    author: articleAuthor || (profileUsername ? `@${profileUsername}` : undefined),
+    publishDate: articlePublishedTime || videoReleaseDate
   }
 }
 
