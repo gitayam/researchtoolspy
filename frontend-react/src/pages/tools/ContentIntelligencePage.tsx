@@ -3879,14 +3879,17 @@ ${shortSummary}${
           )}
 
           {/* Links */}
-          {activeTab === 'links' && (
-            analysis.links_analysis && analysis.links_analysis.length > 0 ? (
+          {activeTab === 'links' && (() => {
+            // Safely get links_analysis as an array
+            const linksArray = Array.isArray(analysis.links_analysis) ? analysis.links_analysis : []
+
+            return linksArray.length > 0 ? (
               <div className="space-y-4">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Link2 className="h-5 w-5" />
-                      Link Analysis ({analysis.links_analysis.length} unique links)
+                      Link Analysis ({linksArray.length} unique links)
                     </CardTitle>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       All links found in the article body (excluding navigation, headers, and footers).
@@ -3899,24 +3902,24 @@ ${shortSummary}${
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <div>
                           <p className="text-sm text-gray-600 dark:text-gray-400">Total Links</p>
-                          <p className="text-2xl font-bold">{analysis.links_analysis.length}</p>
+                          <p className="text-2xl font-bold">{linksArray.length}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600 dark:text-gray-400">External Links</p>
                           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                            {analysis.links_analysis.filter(l => l.is_external).length}
+                            {linksArray.filter(l => l.is_external).length}
                           </p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600 dark:text-gray-400">Internal Links</p>
                           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {analysis.links_analysis.filter(l => !l.is_external).length}
+                            {linksArray.filter(l => !l.is_external).length}
                           </p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600 dark:text-gray-400">Unique Domains</p>
                           <p className="text-2xl font-bold">
-                            {new Set(analysis.links_analysis.map(l => l.domain)).size}
+                            {new Set(linksArray.map(l => l.domain)).size}
                           </p>
                         </div>
                       </div>
@@ -3935,7 +3938,7 @@ ${shortSummary}${
                               onClick={() => setLinkFilter('all')}
                               className="flex-1"
                             >
-                              All ({analysis.links_analysis.length})
+                              All ({linksArray.length})
                             </Button>
                             <Button
                               variant={linkFilter === 'external' ? 'default' : 'outline'}
@@ -3943,7 +3946,7 @@ ${shortSummary}${
                               onClick={() => setLinkFilter('external')}
                               className="flex-1"
                             >
-                              External ({analysis.links_analysis.filter(l => l.is_external).length})
+                              External ({linksArray.filter(l => l.is_external).length})
                             </Button>
                             <Button
                               variant={linkFilter === 'internal' ? 'default' : 'outline'}
@@ -3951,7 +3954,7 @@ ${shortSummary}${
                               onClick={() => setLinkFilter('internal')}
                               className="flex-1"
                             >
-                              Internal ({analysis.links_analysis.filter(l => !l.is_external).length})
+                              Internal ({linksArray.filter(l => !l.is_external).length})
                             </Button>
                           </div>
                         </div>
@@ -3986,7 +3989,7 @@ ${shortSummary}${
                       <div className="space-y-3">
                         {(() => {
                           // Apply filtering
-                          let filteredLinks = analysis.links_analysis
+                          let filteredLinks = linksArray
                           if (linkFilter === 'external') {
                             filteredLinks = filteredLinks.filter(l => l.is_external)
                           } else if (linkFilter === 'internal') {
@@ -4078,7 +4081,7 @@ ${shortSummary}${
                 </p>
               </Card>
             )
-          )}
+          })()}
 
           {/* Claims */}
           {activeTab === 'claims' && (

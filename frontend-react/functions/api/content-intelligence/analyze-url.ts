@@ -2217,6 +2217,56 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
   // D1 doesn't accept undefined, convert to null
   const toNullable = (val: any) => val === undefined ? null : val
 
+  // Size limits to prevent SQLITE_TOOBIG errors
+  const MAX_TEXT_SIZE = 100 * 1024  // 100KB for extracted_text
+  const MAX_CLAIMS = 50  // Maximum number of claims
+  const CHUNK_SIZE = 50 * 1024  // 50KB chunks for content_chunks table
+
+  // Track original sizes for logging
+  const originalTextSize = data.extracted_text?.length || 0
+  const fullText = data.extracted_text || ''
+
+  // Truncate extracted_text if too large
+  let truncatedText = data.extracted_text
+  let wasTextTruncated = false
+  if (data.extracted_text && data.extracted_text.length > MAX_TEXT_SIZE) {
+    console.log(`[DEBUG] Truncating extracted_text from ${data.extracted_text.length} to ${MAX_TEXT_SIZE} bytes`)
+    truncatedText = data.extracted_text.substring(0, MAX_TEXT_SIZE) + '\n\n[Content truncated - see content_chunks table for full text]'
+    wasTextTruncated = true
+  }
+
+  // Limit claims to prevent oversized JSON
+  let claimAnalysis = data.claim_analysis
+  if (claimAnalysis && claimAnalysis.claims && Array.isArray(claimAnalysis.claims)) {
+    const originalClaimCount = claimAnalysis.claims.length
+    if (originalClaimCount > MAX_CLAIMS) {
+      console.log(`[DEBUG] Limiting claims from ${originalClaimCount} to ${MAX_CLAIMS}`)
+      claimAnalysis = {
+        ...claimAnalysis,
+        claims: claimAnalysis.claims.slice(0, MAX_CLAIMS),
+        truncated: true,
+        original_claim_count: originalClaimCount
+      }
+    }
+  }
+
+  // Log sizes for debugging
+  const estimatedSize =
+    (truncatedText?.length || 0) +
+    JSON.stringify(data.word_frequency || {}).length +
+    JSON.stringify(data.top_phrases || []).length +
+    JSON.stringify(data.entities || {}).length +
+    JSON.stringify(data.links_analysis || []).length +
+    JSON.stringify(claimAnalysis || null).length +
+    JSON.stringify(data.sentiment_analysis || null).length +
+    JSON.stringify(data.keyphrases || null).length +
+    JSON.stringify(data.topics || null).length
+
+  console.log(`[DEBUG] Estimated INSERT size: ${estimatedSize} bytes`)
+  if (estimatedSize > 200 * 1024) {
+    console.warn(`[WARNING] Large INSERT detected: ${estimatedSize} bytes - may cause performance issues`)
+  }
+
   const result = await db.prepare(`
     INSERT INTO content_analysis (
       user_id, workspace_id, bookmark_hash, url, url_normalized, content_hash,
@@ -2239,7 +2289,7 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     data.domain,
     data.is_social_media ? 1 : 0,
     toNullable(data.social_platform),
-    data.extracted_text,
+    truncatedText,  // Use truncated version
     toNullable(data.summary),
     data.word_count,
     JSON.stringify(data.word_frequency || {}),
@@ -2249,7 +2299,7 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     toNullable(data.sentiment_analysis ? JSON.stringify(data.sentiment_analysis) : null),
     toNullable(data.keyphrases ? JSON.stringify(data.keyphrases) : null),
     toNullable(data.topics ? JSON.stringify(data.topics) : null),
-    toNullable(data.claim_analysis ? JSON.stringify(data.claim_analysis) : null),
+    toNullable(claimAnalysis ? JSON.stringify(claimAnalysis) : null),  // Use limited claims
     JSON.stringify(data.archive_urls || {}),
     JSON.stringify(data.bypass_urls || {}),
     data.processing_mode,
@@ -2257,7 +2307,55 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     toNullable(data.gpt_model_used)
   ).run()
 
-  return result.meta.last_row_id as number
+  const analysisId = result.meta.last_row_id as number
+
+  // If text was truncated, save full text to content_chunks table
+  if (wasTextTruncated && fullText.length > 0) {
+    console.log(`[DEBUG] Saving full text (${originalTextSize} bytes) to content_chunks table`)
+    await saveContentChunks(db, analysisId, fullText, CHUNK_SIZE)
+  }
+
+  return analysisId
+}
+
+// Save large content in chunks
+async function saveContentChunks(
+  db: D1Database,
+  contentAnalysisId: number,
+  fullText: string,
+  chunkSize: number
+): Promise<void> {
+  try {
+    const chunks: string[] = []
+    for (let i = 0; i < fullText.length; i += chunkSize) {
+      chunks.push(fullText.substring(i, i + chunkSize))
+    }
+
+    console.log(`[DEBUG] Splitting content into ${chunks.length} chunks of ~${chunkSize} bytes each`)
+
+    // Save each chunk
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i]
+      const chunkHash = await generateHash(chunk)  // Use existing hash function
+
+      await db.prepare(`
+        INSERT INTO content_chunks (
+          content_analysis_id, chunk_index, chunk_size, chunk_hash, chunk_text, created_at
+        ) VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        contentAnalysisId,
+        i,
+        chunk.length,
+        chunkHash,
+        chunk
+      ).run()
+    }
+
+    console.log(`[DEBUG] Successfully saved ${chunks.length} chunks`)
+  } catch (error) {
+    console.error('[ERROR] Failed to save content chunks:', error)
+    // Non-fatal: main analysis is already saved
+  }
 }
 
 // Update specific fields in an existing analysis
