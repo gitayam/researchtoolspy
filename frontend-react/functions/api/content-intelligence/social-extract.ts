@@ -491,7 +491,7 @@ function extractMentions(text: string): string[] {
 }
 
 /**
- * Twitter/X extraction
+ * Twitter/X extraction using oEmbed API
  */
 async function extractTwitter(url: string, mode: string, options: any): Promise<any> {
   try {
@@ -507,8 +507,78 @@ async function extractTwitter(url: string, mode: string, options: any): Promise<
 
     const tweetId = tweetIdMatch[1]
 
+    // Try Twitter oEmbed API (public, no auth required)
+    try {
+      const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}&omit_script=true&dnt=true`
+      const oembedResponse = await fetch(oembedUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      })
+
+      if (oembedResponse.ok) {
+        const oembedData = await oembedResponse.json() as any
+
+        // Extract text from HTML (remove HTML tags)
+        let tweetText = ''
+        if (oembedData.html) {
+          // Extract text content from the HTML, removing tags
+          tweetText = oembedData.html
+            .replace(/<script[^>]*>.*?<\/script>/gi, '') // Remove scripts
+            .replace(/<style[^>]*>.*?<\/style>/gi, '') // Remove styles
+            .replace(/<br\s*\/?>/gi, '\n') // Convert breaks to newlines
+            .replace(/<\/p>/gi, '\n') // Convert paragraph ends to newlines
+            .replace(/<[^>]+>/g, '') // Remove all other HTML tags
+            .replace(/&nbsp;/g, ' ') // Decode nbsp
+            .replace(/&amp;/g, '&') // Decode ampersand
+            .replace(/&lt;/g, '<') // Decode lt
+            .replace(/&gt;/g, '>') // Decode gt
+            .replace(/&quot;/g, '"') // Decode quot
+            .replace(/&#39;/g, "'") // Decode apos
+            .replace(/\n\s*\n/g, '\n') // Collapse multiple newlines
+            .trim()
+        }
+
+        // Extract username from author_url
+        const username = oembedData.author_url?.split('/').pop() || 'unknown'
+
+        return {
+          success: true,
+          platform: 'twitter',
+          post_type: 'tweet',
+          extraction_method: 'oEmbed API',
+          metadata: {
+            post_url: url,
+            tweet_id: tweetId,
+            platform: 'twitter',
+            author: oembedData.author_name || username,
+            author_url: oembedData.author_url,
+            author_username: username
+          },
+          content: {
+            text: tweetText,
+            html: oembedData.html,
+            word_count: tweetText.split(/\s+/).filter(w => w.length > 0).length
+          },
+          media: {
+            // Twitter oEmbed doesn't provide direct media URLs
+            // but the HTML contains embedded content
+          },
+          limitations: [
+            'oEmbed API provides tweet text but limited media access',
+            'For full media downloads, use yt-dlp or download manually',
+            'Thread context not included - only this tweet'
+          ]
+        }
+      }
+    } catch (oembedError) {
+      console.warn('[Twitter] oEmbed extraction failed:', oembedError)
+    }
+
+    // Fallback if oEmbed fails
     return {
-      success: true,
+      success: false,
+      error: 'Twitter oEmbed extraction failed. Tweet may be deleted, private, or from suspended account.',
       platform: 'twitter',
       post_type: 'tweet',
       metadata: {
@@ -516,13 +586,12 @@ async function extractTwitter(url: string, mode: string, options: any): Promise<
         tweet_id: tweetId,
         platform: 'twitter'
       },
-      content: {
-        note: 'Twitter/X requires authentication for full content extraction. Use yt-dlp service or nitter for complete data.'
-      },
       suggestions: [
-        'For full extraction, use the Social Media page',
+        'Tweet may be deleted, private, or from suspended account',
+        'Try viewing directly on Twitter/X',
         `View on Twitter: ${url}`,
-        `View on Nitter (privacy-friendly): https://nitter.net/i/status/${tweetId}`
+        `View on Nitter (privacy-friendly): https://nitter.net/i/status/${tweetId}`,
+        'For authenticated access, use the Social Media page'
       ]
     }
 
