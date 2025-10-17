@@ -2560,3 +2560,228 @@ export type AnalysisTab =
 - **Resolution Time**: ~120 minutes (implementation + database + UI + testing + documentation)
 
 ---
+## Session: 2025-10-17 - Deception Framework Dashboard Not Displaying (Backward Compatibility)
+
+### Problem
+User reported that Deception Detection framework was not displaying frames/gauges/BLUF:
+> "it doesn't populate the frames and gauges. it does give you the SATS (ONLY) and each of them except the BLUF."
+
+When viewing saved deception analyses:
+- ✅ SATS text sections (MOM, POP, MOSES, EVE) displayed correctly
+- ❌ Dashboard with gauges/frames not showing
+- ❌ BLUF (Bottom Line Up Front) missing or showing error
+
+### Root Cause
+**Backward compatibility issue with saved analyses**:
+
+Older deception analyses (or analyses where scoring wasn't completed) were missing `calculatedAssessment` field in the saved data. The DeceptionView component had a strict check:
+
+```typescript
+// BEFORE (DeceptionView.tsx:706-721):
+{data.scores && data.calculatedAssessment && (
+  <DeceptionDashboard scores={data.scores} assessment={data.calculatedAssessment} />
+)}
+
+{(!data.scores || !data.calculatedAssessment) && (
+  <Card>No scoring data available for this analysis</Card>
+)}
+```
+
+If EITHER `data.scores` OR `data.calculatedAssessment` was missing, the dashboard wouldn't render. Additionally, if `data.aiAnalysis.bottomLine` was missing, BLUF section would show undefined.
+
+**Why this happened**:
+1. Analyses created before `calculatedAssessment` was added to the save flow
+2. Analyses where user didn't complete scoring section
+3. Analyses with partial scoring data
+
+### The Fix
+
+**Solution 1: Calculate assessment on-the-fly** (DeceptionView.tsx:76-80):
+```typescript
+// Calculate assessment dynamically if missing (backward compatibility)
+const calculatedAssessment = data.calculatedAssessment ||
+  (data.scores && Object.keys(data.scores).length > 0
+    ? calculateDeceptionLikelihood(data.scores)
+    : null)
+```
+
+**Solution 2: Add missing import**:
+```typescript
+import { calculateDeceptionLikelihood } from '@/lib/deception-scoring'
+```
+
+**Solution 3: Use calculated assessment everywhere**:
+```typescript
+// Use the calculated value (DeceptionView.tsx:713-729)
+{data.scores && calculatedAssessment && (
+  <DeceptionDashboard scores={data.scores} assessment={calculatedAssessment} />
+)}
+
+{(!data.scores || !calculatedAssessment) && (
+  <Card>
+    <CardContent className="text-center py-12">
+      <p className="text-sm text-muted-foreground">
+        No scoring data available for this analysis. Complete the scoring section to see risk assessment dashboard.
+      </p>
+    </CardContent>
+  </Card>
+)}
+```
+
+**Solution 4: Handle missing BLUF gracefully** (DeceptionView.tsx:582-601):
+```typescript
+{/* Bottom Line */}
+{data.aiAnalysis.bottomLine && (
+  <>
+    <div>
+      <h4 className="font-semibold mb-2">Bottom Line Up Front (BLUF)</h4>
+      <p className="text-sm">{data.aiAnalysis.bottomLine}</p>
+    </div>
+    <Separator />
+  </>
+)}
+
+{!data.aiAnalysis.bottomLine && (
+  <>
+    <div className="text-center py-4 text-sm text-muted-foreground">
+      <p>BLUF not generated. Run AI Analysis to generate comprehensive deception assessment.</p>
+    </div>
+    <Separator />
+  </>
+)}
+```
+
+**Solution 5: Include calculated assessment in export**:
+```typescript
+const reportData = {
+  ...data,
+  calculatedAssessment: calculatedAssessment  // Use the calculated assessment
+}
+```
+
+### Files Modified
+- **Frontend Component**:
+  - `/frontend-react/src/components/frameworks/DeceptionView.tsx`
+    - Lines 20: Add import for calculateDeceptionLikelihood
+    - Lines 76-80: Calculate assessment on-the-fly
+    - Lines 89: Update useEffect dependency
+    - Lines 161: Include in export data
+    - Lines 582-601: Safe BLUF rendering with fallback
+    - Lines 713-729: Use calculated assessment
+
+### Lessons Learned
+
+#### ✅ Do:
+1. **Calculate derived data on-the-fly** - Don't rely solely on saved calculations
+2. **Handle missing data gracefully** - Provide clear fallback messages
+3. **Support backward compatibility** - Old data structures should still work
+4. **Check for undefined before rendering** - Use conditional rendering for optional fields
+5. **Calculate from scores when available** - If scores exist, assessment can be computed
+6. **Provide helpful error messages** - Tell users what they need to do ("Complete scoring section")
+7. **Test with old data** - Verify new code works with legacy saved data
+
+#### ❌ Don't:
+1. **Assume saved data is always complete** - Fields can be null/undefined/missing
+2. **Fail silently with empty displays** - Show clear messages about why data is missing
+3. **Break backward compatibility** - Always handle old data structures
+4. **Render undefined values** - Check existence before displaying
+5. **Rely only on saved calculations** - Derive from source data when possible
+6. **Skip migration testing** - Test with actual old data, not just new
+
+### How Backward Compatibility Works
+
+**Data Flow**:
+```
+1. Load saved analysis from database
+   ↓
+2. Check if calculatedAssessment exists
+   ↓ NO
+3. Check if scores exist and have data
+   ↓ YES
+4. Call calculateDeceptionLikelihood(scores)
+   ↓
+5. Use dynamically calculated assessment
+   ↓
+6. Render dashboard with frames/gauges
+```
+
+**Key Pattern**:
+```typescript
+// Backward-compatible derived data pattern
+const derivedValue = savedData.derivedValue || 
+  (savedData.sourceData 
+    ? computeDerivedValue(savedData.sourceData)
+    : null)
+```
+
+### Key Takeaways
+
+1. **Derived data should be recomputable** - Don't lose functionality when cache is missing
+2. **Deception scoring function is pure** - Can be called anytime with scores input
+3. **Old analyses can be "upgraded"** - Compute missing fields from existing data
+4. **User experience preserved** - Old analyses display correctly without resaving
+5. **No database migration needed** - View-time calculation solves compatibility
+6. **BLUF requires AI analysis** - Can't be derived, must prompt user to run AI
+7. **Empty scores still render** - Dashboard shows zeros instead of crashing
+
+### Prevention Strategy
+
+**Backward Compatibility Checklist**:
+- [ ] Test with data created before new fields added
+- [ ] Handle null/undefined/empty values for all optional fields
+- [ ] Provide fallback calculations for derived data
+- [ ] Show clear messages when data is missing
+- [ ] Test with partially complete data (e.g., scores but no assessment)
+- [ ] Verify exports work with dynamically calculated fields
+- [ ] Document what fields are required vs optional
+
+**View Component Best Practices**:
+```typescript
+// Pattern for optional derived data
+const MyViewComponent = ({ data }) => {
+  // Calculate on-the-fly if missing
+  const derivedData = data.derivedData || 
+    (data.sourceData ? compute(data.sourceData) : null)
+
+  return (
+    <>
+      {derivedData && <DisplayComponent data={derivedData} />}
+      {!derivedData && <MissingDataMessage />}
+    </>
+  )
+}
+```
+
+### Deception Framework Specifics
+
+**SATS Components** (Always Saved):
+- Scenario text ✅
+- MOM (Motive, Opportunity, Means) text ✅
+- POP (Patterns of Practice) text ✅
+- MOSES (My Own Sources) text ✅
+- EVE (Evaluation of Evidence) text ✅
+
+**Scoring Components** (May Be Missing):
+- Scores object (0-5 ratings for each method) ⚠️
+- Calculated assessment (overall likelihood, risk level) ⚠️
+
+**AI Components** (May Be Missing):
+- AI analysis (GPT-generated insights) ⚠️
+- bottomLine (BLUF summary) ⚠️
+
+**Fix Impact**:
+- If scores exist → Dashboard renders with calculated assessment ✅
+- If scores missing → Clear message shown ✅
+- If AI exists → BLUF and insights displayed ✅
+- If AI missing → Prompt to run AI analysis ✅
+
+### Impact
+- **Fixed**: Frames/gauges now display for old analyses with scores
+- **Fixed**: BLUF shows gracefully when missing or present
+- **Affected**: All deception analyses created before calculatedAssessment field
+- **No data loss**: Existing analyses work without resaving
+- **Severity**: High - Framework dashboard was unusable for many analyses
+- **Resolution Time**: ~45 minutes (diagnosis + fix + testing + documentation)
+- **Deployment**: Commit 26c2d499, https://4d4f8f3e.researchtoolspy.pages.dev
+
+---
