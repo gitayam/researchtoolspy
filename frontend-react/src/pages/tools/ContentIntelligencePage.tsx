@@ -639,6 +639,30 @@ export default function ContentIntelligencePage() {
     }
   }
 
+  // Helper function to decode HTML entities
+  const decodeHtmlEntities = (text: string): string => {
+    const textarea = document.createElement('textarea')
+    textarea.innerHTML = text
+    return textarea.value
+  }
+
+  // Helper function to strip markdown formatting
+  const stripMarkdown = (text: string): string => {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '$1')  // Bold **text**
+      .replace(/\*(.+?)\*/g, '$1')      // Italic *text*
+      .replace(/__(.+?)__/g, '$1')      // Bold __text__
+      .replace(/_(.+?)_/g, '$1')        // Italic _text_
+      .replace(/~~(.+?)~~/g, '$1')      // Strikethrough ~~text~~
+      .replace(/`(.+?)`/g, '$1')        // Inline code `text`
+      .replace(/^#+\s+/gm, '')          // Headers # text
+      .replace(/^\s*[-*+]\s+/gm, '')    // Unordered lists
+      .replace(/^\s*\d+\.\s+/gm, '')    // Ordered lists
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1') // Links [text](url)
+      .replace(/\n{3,}/g, '\n\n')       // Multiple newlines
+      .trim()
+  }
+
   // Copy formatted summary for Signal messenger
   const copySummaryForSignal = async () => {
     if (!analysis) return
@@ -646,9 +670,13 @@ export default function ContentIntelligencePage() {
     setSaveLoading(true)
 
     try {
-      // Create Signal-optimized summary (use existing share link if available)
-      const title = analysis.title || 'Content Analysis'
-      const summary = analysis.summary || 'No summary available'
+      // Decode HTML entities and strip markdown from title
+      const rawTitle = analysis.title || 'Content Analysis'
+      const title = stripMarkdown(decodeHtmlEntities(rawTitle))
+
+      // Strip markdown from summary
+      const rawSummary = analysis.summary || 'No summary available'
+      const summary = stripMarkdown(decodeHtmlEntities(rawSummary))
 
       // Get first 280 characters of summary (like Twitter limit) for sharing
       const shortSummary = summary.length > 280
@@ -658,10 +686,12 @@ export default function ContentIntelligencePage() {
       // Format bypass and archive URLs
       const archiveUrls = analysis.archive_urls || {}
 
-      // Build Signal-formatted message with share link at top (only if already exists)
-      const signalMessage = `📊 *${title}*
-${shareUrl ? `\n📖 Full Analysis: ${shareUrl}\n` : ''}
+      // Build formatted message: Title -> Summary -> Public Link -> Archive Links
+      const signalMessage = `📊 ${title}
+
 ${shortSummary}${
+  shareUrl ? `\n\n🔗 View Full Analysis:\n${shareUrl}` : ''
+}${
   archiveUrls['wayback'] ? `\n\n🚀 Quick Access:\n• Wayback Machine: ${archiveUrls['wayback']}` : ''
 }`
 
