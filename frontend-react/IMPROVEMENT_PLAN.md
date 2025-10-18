@@ -3,9 +3,10 @@
 *Last Updated: 2025-10-18 13:50*
 
 ## Deployment Status ✅
-- **Latest Deployment**: `8aa76847` - https://8aa76847.researchtoolspy.pages.dev
-- **Status**: Production - SPA routing fixed + Copy Summary + Twitter images + 72% logging
+- **Latest Deployment**: `7b56c75d` - https://7b56c75d.researchtoolspy.pages.dev
+- **Status**: Production - Simplified Content Research UI + SPA routing + All fixes
 - **Recent Changes**:
+  * ✅ UI IMPROVEMENT: Simplified Content Research input to match homepage (clean, focused)
   * ✅ CRITICAL FIX: Added _redirects file for SPA client-side routing (fixes MIME type errors)
   * ✅ FIXED: Copy Summary now copies directly to clipboard (modal is fallback only)
   * ✅ ENHANCED: Twitter extraction now includes pic.twitter.com image links
@@ -18,7 +19,8 @@
   * ✅ GitLab API integration FIXED - all platforms working!
 
 ## Deployments Timeline
-- `8aa76847` (now) - **CRITICAL SPA ROUTING FIX** - added _redirects file (commit 5e20c20b)
+- `7b56c75d` (now) - **UI SIMPLIFICATION** - clean Content Research input (commit 88eb73d1)
+- `8aa76847` - **CRITICAL SPA ROUTING FIX** - added _redirects file (commit 5e20c20b)
 - `4373b8fc` - **LATEST BUILD** - includes all recent fixes (commits 110d0452, e9df2266)
 - `e60f7a0a` - **FIXED Copy Summary UX** - copies directly, no modal popup (commit 110d0452)
 - `eac726f8` - **ENHANCED Twitter extraction** - includes pic.twitter.com image links
