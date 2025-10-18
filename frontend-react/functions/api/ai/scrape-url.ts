@@ -297,7 +297,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch (fetchError) {
       clearTimeout(timeoutId)
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        return new Response(JSON.stringify({ error: 'URL fetch timeout - page took too long to load' }), {
+        return new Response(JSON.stringify({
+          error: 'The website took too long to respond',
+          errorType: 'timeout',
+          suggestions: [
+            'Try again - the site might be temporarily slow',
+            'Check if the URL is accessible in your browser',
+            'The website might have anti-bot protection'
+          ],
+          technicalDetails: 'Request timeout after 15 seconds'
+        }), {
           status: 504,
           headers: { 'Content-Type': 'application/json' }
         })
@@ -308,7 +317,44 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: `Failed to fetch URL: ${response.status} ${response.statusText}` }), {
+      let userMessage = 'Failed to access the website'
+      let suggestions: string[] = []
+
+      if (response.status === 403 || response.status === 401) {
+        userMessage = 'The website is blocking automated access'
+        suggestions = [
+          'This website has anti-bot protection',
+          'Try accessing the URL directly in your browser',
+          'The content may require authentication',
+          'Consider manually copying the content instead'
+        ]
+      } else if (response.status === 404) {
+        userMessage = 'The page was not found'
+        suggestions = [
+          'Check if the URL is correct',
+          'The page might have been moved or deleted',
+          'Try searching for the content on the website'
+        ]
+      } else if (response.status >= 500) {
+        userMessage = 'The website server is having issues'
+        suggestions = [
+          'Try again later - the server might be temporarily down',
+          'Check if the website is accessible in your browser',
+          'The website might be experiencing technical difficulties'
+        ]
+      } else {
+        suggestions = [
+          'Try again later',
+          'Check if the URL is correct and accessible'
+        ]
+      }
+
+      return new Response(JSON.stringify({
+        error: userMessage,
+        errorType: 'http_error',
+        suggestions,
+        technicalDetails: `HTTP ${response.status} ${response.statusText}`
+      }), {
         status: response.status,
         headers: { 'Content-Type': 'application/json' }
       })
@@ -664,9 +710,70 @@ Return ONLY JSON:
 
   } catch (error) {
     console.error('Scraping error:', error)
+
+    // Create user-friendly error message
+    let userMessage = 'Failed to scrape the URL'
+    let suggestions: string[] = []
+    let errorType = 'unknown'
+
+    if (error instanceof Error) {
+      // Network/timeout errors
+      if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+        errorType = 'timeout'
+        userMessage = 'The website took too long to respond'
+        suggestions = [
+          'Try again - the site might be temporarily slow',
+          'Check if the URL is accessible',
+          'The website might be blocking automated requests'
+        ]
+      }
+      // Fetch/network errors
+      else if (error.message?.includes('fetch') || error.message?.includes('network')) {
+        errorType = 'network'
+        userMessage = 'Unable to connect to the website'
+        suggestions = [
+          'Check your internet connection',
+          'Verify the URL is correct and accessible',
+          'The website might be down'
+        ]
+      }
+      // Invalid URL
+      else if (error.message?.includes('Invalid URL')) {
+        errorType = 'invalid_url'
+        userMessage = 'The URL format is invalid'
+        suggestions = [
+          'Make sure the URL starts with http:// or https://',
+          'Check for typos in the URL',
+          'Ensure the URL is complete'
+        ]
+      }
+      // AI/parsing errors
+      else if (error.message?.includes('OpenAI') || error.message?.includes('AI') || error.message?.includes('parse')) {
+        errorType = 'parsing'
+        userMessage = 'Failed to analyze the content'
+        suggestions = [
+          'The page content might be too complex',
+          'Try a different page from the same site',
+          'Some pages cannot be automatically analyzed'
+        ]
+      }
+      // Generic error
+      else {
+        errorType = 'parsing'
+        userMessage = 'Failed to extract content from the website'
+        suggestions = [
+          'The page structure might be unusual',
+          'Try a different page or source',
+          'Some content requires JavaScript which we cannot execute'
+        ]
+      }
+    }
+
     return new Response(JSON.stringify({
-      error: 'Failed to scrape URL',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: userMessage,
+      errorType,
+      suggestions,
+      technicalDetails: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
