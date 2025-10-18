@@ -542,11 +542,22 @@ async function extractTwitter(url: string, mode: string, options: any): Promise<
         // Extract username from author_url
         const username = oembedData.author_url?.split('/').pop() || 'unknown'
 
+        // Extract pic.twitter.com links from HTML
+        const picLinks: string[] = []
+        const picMatches = oembedData.html?.match(/pic\.twitter\.com\/([a-zA-Z0-9]+)/g) || []
+
+        for (const picLink of picMatches) {
+          picLinks.push(`https://${picLink}`)
+        }
+
+        // Also check for direct pbs.twimg.com links in HTML (rare in oEmbed)
+        const pbsMatches = oembedData.html?.match(/https:\/\/pbs\.twimg\.com\/media\/[^"'\s]+/g) || []
+
         return {
           success: true,
           platform: 'twitter',
           post_type: 'tweet',
-          extraction_method: 'oEmbed API',
+          extraction_method: 'oEmbed API + Media Extraction',
           metadata: {
             post_url: url,
             tweet_id: tweetId,
@@ -561,12 +572,18 @@ async function extractTwitter(url: string, mode: string, options: any): Promise<
             word_count: tweetText.split(/\s+/).filter(w => w.length > 0).length
           },
           media: {
-            // Twitter oEmbed doesn't provide direct media URLs
-            // but the HTML contains embedded content
+            image_links: picLinks.length > 0 ? picLinks : undefined,
+            direct_images: pbsMatches.length > 0 ? pbsMatches : undefined,
+            image_count: picLinks.length + pbsMatches.length,
+            extraction_note: picLinks.length > 0
+              ? 'pic.twitter.com links detected - open in browser to view images'
+              : 'No images detected in tweet'
           },
           limitations: [
-            'oEmbed API provides tweet text but limited media access',
-            'For full media downloads, use yt-dlp or download manually',
+            'oEmbed API provides tweet text but limited media metadata',
+            'pic.twitter.com links require opening in browser or authenticated API access',
+            'For high-quality downloads, open pic.twitter.com link in browser and save image',
+            'For video downloads, use yt-dlp or download manually',
             'Thread context not included - only this tweet'
           ]
         }
