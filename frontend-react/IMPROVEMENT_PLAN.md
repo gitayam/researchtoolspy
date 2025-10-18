@@ -3,7 +3,7 @@
 *Last Updated: 2025-10-18 13:50*
 
 ## Deployment Status ✅
-- **Latest Deployment**: `e60f7a0a` - https://e60f7a0a.researchtoolspy.pages.dev
+- **Latest Deployment**: `4373b8fc` - https://4373b8fc.researchtoolspy.pages.dev
 - **Status**: Production - Copy Summary direct clipboard + Twitter images + 72% logging cleanup
 - **Recent Changes**:
   * ✅ FIXED: Copy Summary now copies directly to clipboard (modal is fallback only)
@@ -17,7 +17,8 @@
   * ✅ GitLab API integration FIXED - all platforms working!
 
 ## Deployments Timeline
-- `e60f7a0a` (now) - **FIXED Copy Summary UX** - copies directly, no modal popup (commit 110d0452)
+- `4373b8fc` (now) - **LATEST BUILD** - includes all recent fixes (commits 110d0452, e9df2266)
+- `e60f7a0a` - **FIXED Copy Summary UX** - copies directly, no modal popup (commit 110d0452)
 - `eac726f8` - **ENHANCED Twitter extraction** - includes pic.twitter.com image links
 - `c7ecd03c` - **FIXED Copy Analysis** - auto-creates share link seamlessly
 - `d98d6cee` - **FIXED citation generation error** - replaced require() with ES6 import
