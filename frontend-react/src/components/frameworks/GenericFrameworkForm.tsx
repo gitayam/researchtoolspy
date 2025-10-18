@@ -2,6 +2,9 @@ import { useState, memo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check, Download, FileJson, Users, MapPin, Calendar } from 'lucide-react'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('GenericFrameworkForm')
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -1626,7 +1629,7 @@ export function GenericFrameworkForm({
         })
       }
 
-      console.log(`Saving ${frameworkType} analysis:`, data)
+      logger.info(`Saving ${frameworkType} analysis:`, data)
 
       await onSave(data)
 
@@ -1635,7 +1638,7 @@ export function GenericFrameworkForm({
       localStorage.removeItem(draftKey)
 
       setLastSaved(new Date())
-      console.log(`Successfully saved ${frameworkType} analysis`)
+      logger.info(`Successfully saved ${frameworkType} analysis`)
 
       // Navigate back after short delay to show success
       setTimeout(() => {
