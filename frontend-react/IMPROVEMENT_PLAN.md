@@ -3,9 +3,10 @@
 *Last Updated: 2025-10-18 13:50*
 
 ## Deployment Status ✅
-- **Latest Deployment**: `d98d6cee` - https://d98d6cee.researchtoolspy.pages.dev
-- **Status**: Production - Citation generation fixed + 72% logging cleanup
+- **Latest Deployment**: `c7ecd03c` - https://c7ecd03c.researchtoolspy.pages.dev
+- **Status**: Production - Copy Analysis auto-share + Citation fix + 72% logging cleanup
 - **Recent Changes**:
+  * ✅ FIXED: Copy Analysis now auto-creates share link (no need to click Share first)
   * ✅ FIXED: Citation generation error (replaced require() with ES6 import)
   * ✅ FIXED: Deployment now uses `dist` folder (was serving wrong index.html)
   * ✅ Frontend logging cleanup: 52/72 statements cleaned (72%)
@@ -14,7 +15,8 @@
   * ✅ GitLab API integration FIXED - all platforms working!
 
 ## Deployments Timeline
-- `d98d6cee` (now) - **FIXED citation generation error** - replaced require() with ES6 import
+- `c7ecd03c` (now) - **FIXED Copy Analysis** - auto-creates share link seamlessly
+- `d98d6cee` - **FIXED citation generation error** - replaced require() with ES6 import
 - `2c53099f` - **FIXED deployment issue** - deploying dist folder only
 - `42663b4e` - Frontend logging cleanup batch 5 (GenericFrameworkForm, report-generator) - **BROKEN: served wrong index.html**
 - `bae96e44` - Frontend logging cleanup batch 4 (GenericFrameworkView, SwotForm)
