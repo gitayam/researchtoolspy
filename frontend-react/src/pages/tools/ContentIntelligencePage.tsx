@@ -22,6 +22,7 @@ import type { ContentAnalysis, ProcessingStatus, SavedLink, QuestionAnswer } fro
 import type { AnalysisTab } from '@/components/content-intelligence/AnalysisSidebar'
 import { extractCitationData, createCitationParams } from '@/utils/content-to-citation'
 import { addCitation, generateCitationId } from '@/utils/citation-library'
+import { generateCitation } from '@/utils/citation-formatters'
 import { ClaimAnalysisDisplay } from '@/components/content-intelligence/ClaimAnalysisDisplay'
 import { AnalysisLayout } from '@/components/content-intelligence/AnalysisLayout'
 import { createLogger } from '@/lib/logger'
@@ -1465,7 +1466,6 @@ ${shortSummary}${
   const handleCreateCitation = (analysisData: ContentAnalysis) => {
     try {
       const citationData = extractCitationData(analysisData, url)
-      const { generateCitation } = require('@/utils/citation-formatters')
 
       // Generate APA citation by default
       const { citation, inTextCitation } = generateCitation(citationData.fields, citationData.sourceType, 'apa')
