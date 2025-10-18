@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button'
 import { Presentation, Loader2 } from 'lucide-react'
-import pptxgen from 'pptxgenjs'
 import type { COGAnalysis, CenterOfGravity, CriticalVulnerability, NetworkEdge } from '@/types/cog-analysis'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -28,6 +27,9 @@ export function COGPowerPointExport({
   const handleExport = async () => {
     setExporting(true)
     try {
+      // Dynamic import to reduce initial bundle size
+      const pptxgenModule = await import('pptxgenjs')
+      const pptxgen = pptxgenModule.default
       const pptx = new pptxgen()
 
       // Set presentation properties
