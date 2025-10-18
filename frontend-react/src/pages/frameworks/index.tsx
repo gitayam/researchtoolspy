@@ -5,6 +5,9 @@ import { Plus, Search, Grid3x3, MoreVertical, ExternalLink, CheckCircle, XCircle
 import { useTranslation } from 'react-i18next'
 import { safeJSONParse } from '@/utils/safe-json'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Frameworks')
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -50,7 +53,7 @@ function getAuthHeaders(): Record<string, string> {
   if (!userHash) {
     userHash = crypto.randomUUID().substring(0, 16)
     localStorage.setItem('omnicore_user_hash', userHash)
-    console.log('Generated new guest user hash:', userHash)
+    logger.info('Generated new guest user hash:', userHash)
   }
 
   // Send hash as Bearer token (backend expects it in Authorization header)
@@ -384,7 +387,7 @@ export const SwotPage = () => {
             </Button>
           )}
           <Button onClick={() => {
-            console.log('SWOT New Analysis button clicked, navigating to:', '/dashboard/analysis-frameworks/swot-dashboard/create')
+            logger.debug('SWOT New Analysis button clicked, navigating to:', '/dashboard/analysis-frameworks/swot-dashboard/create')
             navigate('/dashboard/analysis-frameworks/swot-dashboard/create')
           }}>
             <Plus className="h-4 w-4 mr-2" />
@@ -1124,7 +1127,7 @@ export const CogPage = () => {
         return
       }
     } catch (error) {
-      console.log('API not available, loading from localStorage')
+      logger.debug('API not available, loading from localStorage')
     }
 
     // Fallback to localStorage
@@ -1146,7 +1149,7 @@ export const CogPage = () => {
         return
       }
     } catch (error) {
-      console.log('API not available, loading from localStorage')
+      logger.debug('API not available, loading from localStorage')
     }
 
     // Fallback to localStorage
@@ -1191,7 +1194,7 @@ export const CogPage = () => {
       }
     } catch (error) {
       // Fallback to localStorage if API is not available
-      console.log('API not available, using localStorage fallback')
+      logger.debug('API not available, using localStorage fallback')
       const storageKey = 'cog_analyses'
       const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
 
@@ -1227,7 +1230,7 @@ export const CogPage = () => {
         return
       }
     } catch (error) {
-      console.log('API not available, using localStorage')
+      logger.debug('API not available, using localStorage')
     }
 
     // Fallback to localStorage
