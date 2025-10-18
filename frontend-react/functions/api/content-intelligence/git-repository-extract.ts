@@ -8,10 +8,12 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { createLogger } from '../../utils/logger'
 
 interface Env {
   CACHE: KVNamespace
   GITHUB_TOKEN?: string  // Optional: for higher rate limits
+  ENVIRONMENT?: string
 }
 
 interface GitRepoExtractRequest {
@@ -89,25 +91,28 @@ async function getCached<T>(
     return await fetcher()
   }
 
+  const logger = createLogger('Cache')
+
   try {
     const cached = await cache.get(key)
     if (cached) {
-      console.log(`[Cache HIT] ${key}`)
+      logger.info(`Cache HIT: ${key}`)
       return JSON.parse(cached) as T
     }
   } catch (cacheError) {
-    console.warn('[Cache] Read error:', cacheError)
+    logger.warn('Cache read error:', cacheError)
   }
 
-  console.log(`[Cache MISS] ${key}`)
+  logger.info(`Cache MISS: ${key}`)
   const result = await fetcher()
 
   try {
     await cache.put(key, JSON.stringify(result), {
       expirationTtl: ttl
     })
+    logger.debug(`Cached: ${key} (TTL: ${ttl}s)`)
   } catch (cacheError) {
-    console.warn('[Cache] Write error:', cacheError)
+    logger.warn('Cache write error:', cacheError)
   }
 
   return result
@@ -115,12 +120,14 @@ async function getCached<T>(
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
+  const logger = createLogger('GitRepoExtract', env)
 
   try {
     const body: GitRepoExtractRequest = await request.json() as GitRepoExtractRequest
     const { url, platform: providedPlatform } = body
 
     if (!url) {
+      logger.warn('Request missing URL parameter')
       return new Response(JSON.stringify({
         success: false,
         error: 'URL is required'
@@ -131,13 +138,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const platform = providedPlatform || detectGitPlatform(url)
 
     if (!platform) {
+      logger.warn(`Could not detect platform from URL: ${url}`)
       return new Response(JSON.stringify({
         success: false,
         error: 'Could not detect Git platform from URL. Supported platforms: GitHub, GitLab, Bitbucket'
       }), { status: 400, headers: { 'Content-Type': 'application/json' } })
     }
 
-    console.log(`[Git Extract] Platform: ${platform}, URL: ${url}`)
+    logger.info(`Extracting ${platform} repository: ${url}`)
 
     // Create cache key
     const cacheKey = `git:${platform}:${encodeURIComponent(url)}`
@@ -171,7 +179,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
   } catch (error) {
-    console.error('[Git Extract] Error:', error)
+    logger.error('Git extraction failed:', error)
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -207,11 +215,14 @@ function detectGitPlatform(url: string): string | null {
 // ========================================
 
 async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
+  const logger = createLogger('GitHub', env)
+
   try {
     // Extract owner and repo from URL
     // Format: https://github.com/owner/repo
     const match = url.match(/github\.com\/([^\/]+)\/([^\/\?#]+)/)
     if (!match) {
+      logger.warn(`Invalid GitHub URL format: ${url}`)
       return {
         success: false,
         platform: 'github',
@@ -222,7 +233,7 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
     const owner = match[1]
     const repo = match[2].replace(/\.git$/, '') // Remove .git suffix if present
 
-    console.log(`[GitHub] Fetching ${owner}/${repo}`)
+    logger.info(`Fetching repository: ${owner}/${repo}`)
 
     // Set up headers with auth token if available
     const headers: Record<string, string> = {
@@ -277,7 +288,7 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
         }
       }
     } catch (readmeError) {
-      console.warn('[GitHub] README fetch failed:', readmeError)
+      logger.debug('README fetch failed:', readmeError)
     }
 
     // Fetch languages
@@ -291,7 +302,7 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
         languages = await langsResponse.json() as Record<string, number>
       }
     } catch (langError) {
-      console.warn('[GitHub] Languages fetch failed:', langError)
+      logger.debug('Languages fetch failed:', langError)
     }
 
     // Fetch latest commits (up to 5)
@@ -323,7 +334,7 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
         }
       }
     } catch (commitsError) {
-      console.warn('[GitHub] Commits fetch failed:', commitsError)
+      logger.debug('Commits fetch failed:', commitsError)
     }
 
     // Fetch latest release
@@ -344,7 +355,7 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
         }
       }
     } catch (releaseError) {
-      console.warn('[GitHub] Release fetch failed:', releaseError)
+      logger.debug('Release fetch failed:', releaseError)
     }
 
     // Fetch contributors count
@@ -365,7 +376,7 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
         }
       }
     } catch (contributorsError) {
-      console.warn('[GitHub] Contributors fetch failed:', contributorsError)
+      logger.debug('Contributors fetch failed:', contributorsError)
     }
 
     return {
@@ -401,7 +412,7 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
     }
 
   } catch (error) {
-    console.error('[GitHub] Extraction failed:', error)
+    logger.error('GitHub extraction failed:', error)
     return {
       success: false,
       platform: 'github',
@@ -415,11 +426,14 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
 // ========================================
 
 async function extractGitLab(url: string): Promise<RepositoryInfo> {
+  const logger = createLogger('GitLab')
+
   try {
     // Extract project path from URL
     // Format: https://gitlab.com/group/subgroup/project
     const match = url.match(/gitlab\.com\/(.+?)(?:\.git)?(?:\/|$)/)
     if (!match) {
+      logger.warn(`Invalid GitLab URL format: ${url}`)
       return {
         success: false,
         platform: 'gitlab',
@@ -430,7 +444,7 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
     const projectPath = match[1].replace(/\/$/, '')
     const encodedPath = encodeURIComponent(projectPath)
 
-    console.log(`[GitLab] Fetching project: ${projectPath}`)
+    logger.info(`Fetching project: ${projectPath}`)
 
     // Fetch project information using GitLab public API
     const projectResponse = await fetch(`https://gitlab.com/api/v4/projects/${encodedPath}`, {
@@ -465,7 +479,7 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
         }
       }
     } catch (readmeError) {
-      console.warn('[GitLab] README fetch failed:', readmeError)
+      logger.debug('README fetch failed:', readmeError)
     }
 
     // Fetch latest commits
@@ -495,7 +509,7 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
         }
       }
     } catch (commitsError) {
-      console.warn('[GitLab] Commits fetch failed:', commitsError)
+      logger.debug('Commits fetch failed:', commitsError)
     }
 
     // Fetch latest release/tag
@@ -516,7 +530,7 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
         }
       }
     } catch (releaseError) {
-      console.warn('[GitLab] Release fetch failed:', releaseError)
+      logger.debug('Release fetch failed:', releaseError)
     }
 
     return {
@@ -546,7 +560,7 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
     }
 
   } catch (error) {
-    console.error('[GitLab] Extraction failed:', error)
+    logger.error('GitLab extraction failed:', error)
     return {
       success: false,
       platform: 'gitlab',
@@ -560,11 +574,14 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
 // ========================================
 
 async function extractBitbucket(url: string): Promise<RepositoryInfo> {
+  const logger = createLogger('Bitbucket')
+
   try {
     // Extract workspace and repo from URL
     // Format: https://bitbucket.org/workspace/repo
     const match = url.match(/bitbucket\.org\/([^\/]+)\/([^\/\?#]+)/)
     if (!match) {
+      logger.warn(`Invalid Bitbucket URL format: ${url}`)
       return {
         success: false,
         platform: 'bitbucket',
@@ -575,7 +592,7 @@ async function extractBitbucket(url: string): Promise<RepositoryInfo> {
     const workspace = match[1]
     const repoSlug = match[2]
 
-    console.log(`[Bitbucket] Fetching ${workspace}/${repoSlug}`)
+    logger.info(`Fetching repository: ${workspace}/${repoSlug}`)
 
     // Fetch repository information using Bitbucket API v2.0
     const repoResponse = await fetch(`https://api.bitbucket.org/2.0/repositories/${workspace}/${repoSlug}`)
@@ -606,7 +623,7 @@ async function extractBitbucket(url: string): Promise<RepositoryInfo> {
         }
       }
     } catch (readmeError) {
-      console.warn('[Bitbucket] README fetch failed:', readmeError)
+      logger.debug('README fetch failed:', readmeError)
     }
 
     // Fetch latest commits
@@ -636,7 +653,7 @@ async function extractBitbucket(url: string): Promise<RepositoryInfo> {
         }
       }
     } catch (commitsError) {
-      console.warn('[Bitbucket] Commits fetch failed:', commitsError)
+      logger.debug('Commits fetch failed:', commitsError)
     }
 
     return {
@@ -661,7 +678,7 @@ async function extractBitbucket(url: string): Promise<RepositoryInfo> {
     }
 
   } catch (error) {
-    console.error('[Bitbucket] Extraction failed:', error)
+    logger.error('Bitbucket extraction failed:', error)
     return {
       success: false,
       platform: 'bitbucket',
