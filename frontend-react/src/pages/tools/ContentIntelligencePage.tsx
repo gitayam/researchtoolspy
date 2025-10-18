@@ -696,59 +696,42 @@ export default function ContentIntelligencePage() {
       // Format bypass and archive URLs
       const archiveUrls = analysis.archive_urls || {}
 
-      // Auto-create share link if it doesn't exist yet
+      // Build the base message WITHOUT async operations to preserve user gesture
+      // We'll add the share link after if needed
+      let baseMessage = `📊 ${title}
+
+${shortSummary}`
+
+      // Add archive URLs if available
+      if (archiveUrls['wayback']) {
+        baseMessage += `\n\n📦 Archive:\n• Wayback Machine: ${archiveUrls['wayback']}`
+      }
+
+      // Check if we have a share link already
       let publicShareUrl = shareUrl || (analysis.share_token
         ? `${window.location.origin}/public/content/${analysis.share_token}`
         : null)
 
-      // If no share link exists, create one automatically
-      if (!publicShareUrl && analysis.id) {
-        logger.info('Auto-creating share link for copy analysis')
-        try {
-          const response = await fetch('/api/content-intelligence/share', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ analysisId: analysis.id })
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            publicShareUrl = data.shareUrl
-            setShareUrl(data.shareUrl) // Update state for future use
-            logger.info('Share link created:', publicShareUrl)
-          } else {
-            logger.warn('Failed to auto-create share link')
-          }
-        } catch (error) {
-          logger.error('Error auto-creating share link:', error)
-          // Continue without share link - not critical
-        }
+      // Add existing share link to message
+      if (publicShareUrl) {
+        baseMessage = baseMessage.replace(shortSummary, `${shortSummary}\n\n🔗 View Full Analysis:\n${publicShareUrl}`)
       }
 
-      // Build formatted message: Title -> Summary -> Public Link -> Archive Links
-      const signalMessage = `📊 ${title}
-
-${shortSummary}${
-  publicShareUrl ? `\n\n🔗 View Full Analysis:\n${publicShareUrl}` : ''
-}${
-  archiveUrls['wayback'] ? `\n\n📦 Archive:\n• Wayback Machine: ${archiveUrls['wayback']}` : ''
-}`
-
-      // Try modern clipboard API first (works immediately in user gesture)
+      // Try to copy immediately (while still in user gesture context)
       let copySuccess = false
       let copyMethod = ''
 
       try {
-        await navigator.clipboard.writeText(signalMessage)
+        await navigator.clipboard.writeText(baseMessage)
         copySuccess = true
         copyMethod = 'Modern Clipboard API'
       } catch (clipboardError) {
-        console.warn('Modern clipboard failed, trying fallback:', clipboardError)
+        logger.warn('Modern clipboard failed, trying fallback:', clipboardError)
 
         // Fallback: execCommand (also requires user gesture but sometimes works)
         try {
           const textarea = document.createElement('textarea')
-          textarea.value = signalMessage
+          textarea.value = baseMessage
           textarea.style.position = 'fixed'
           textarea.style.left = '-999999px'
           textarea.style.top = '-999999px'
@@ -764,21 +747,21 @@ ${shortSummary}${
             copyMethod = 'execCommand fallback'
           }
         } catch (fallbackError) {
-          console.warn('Fallback clipboard also failed:', fallbackError)
+          logger.warn('Fallback clipboard also failed:', fallbackError)
         }
       }
 
       if (!copySuccess) {
         // Manual copy modal as last resort
         const modal = document.createElement('div')
-        modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);z-index:9999;max-width:90%;max-height:80%;overflow:auto;'
+        modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;dark:bg-gray-800;padding:20px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);z-index:9999;max-width:90%;max-height:80%;overflow:auto;'
 
         const titleEl = document.createElement('h3')
         titleEl.textContent = 'Copy this text manually:'
         titleEl.style.cssText = 'margin:0 0 10px 0;font-size:16px;font-weight:600;'
 
         const textarea = document.createElement('textarea')
-        textarea.value = signalMessage
+        textarea.value = baseMessage
         textarea.style.cssText = 'width:100%;min-height:200px;padding:10px;border:1px solid #ccc;border-radius:4px;font-family:monospace;font-size:12px;'
         textarea.readOnly = true
 
@@ -817,10 +800,28 @@ ${shortSummary}${
       logger.debug(`Copy successful using: ${copyMethod}`)
       toast({
         title: 'Summary Copied! 🎉',
-        description: shareUrl
-          ? 'Signal-formatted summary with full analysis link copied!'
-          : 'Summary copied! Click "Share Analysis" first to include a shareable link.'
+        description: publicShareUrl
+          ? 'Summary with full analysis link copied to clipboard!'
+          : 'Summary copied! Creating share link in background...'
       })
+
+      // Create share link in background if it doesn't exist (for next copy)
+      if (!publicShareUrl && analysis.id && copySuccess) {
+        logger.info('Creating share link in background for next copy')
+        fetch('/api/content-intelligence/share', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ analysisId: analysis.id })
+        })
+          .then(response => response.ok ? response.json() : null)
+          .then(data => {
+            if (data?.shareUrl) {
+              setShareUrl(data.shareUrl)
+              logger.info('Share link created for future use:', data.shareUrl)
+            }
+          })
+          .catch(error => logger.warn('Background share link creation failed:', error))
+      }
 
     } catch (error) {
       console.error('Copy summary error:', error)
