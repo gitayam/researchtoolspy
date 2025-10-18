@@ -41,14 +41,18 @@ const log = (message: string, ...args: any[]) => {
 **Action Items**:
 - [x] Create logging utility with environment check ✅ COMPLETED
 - [x] Replace console.log in git-repository-extract.ts ✅ COMPLETED
-- [ ] Replace console.log in remaining 19 frontend files (IN PROGRESS)
+- [x] Create browser-safe logging utility ✅ COMPLETED
+- [x] Replace console.log in high-priority frontend files ✅ IN PROGRESS (40%)
+- [ ] Complete remaining frontend files cleanup
 - [ ] Add Sentry or similar for production error tracking
 
 **Progress**:
-- ✅ Created `functions/utils/logger.ts` with environment-aware logging
+- ✅ Created `functions/utils/logger.ts` with environment-aware logging (Workers)
+- ✅ Created `src/lib/logger.ts` with browser-safe logging (Frontend)
 - ✅ Replaced all console.log in git-repository-extract.ts (commit `a805416b`)
-- ✅ Deployed to production - https://918f7672.researchtoolspy.pages.dev
-- 🔄 Next: Frontend console.log cleanup
+- ✅ Cleaned 4 high-priority frontend files: auth, exports, content intelligence, API
+- 📊 **Frontend Progress: 29/72 console.log statements cleaned (40%)**
+- 🔄 Next: Remaining ~43 console.log statements in frameworks & utilities
 
 ---
 
