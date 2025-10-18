@@ -696,10 +696,34 @@ export default function ContentIntelligencePage() {
       // Format bypass and archive URLs
       const archiveUrls = analysis.archive_urls || {}
 
-      // Build share URL from either state or analysis.share_token
-      const publicShareUrl = shareUrl || (analysis.share_token
+      // Auto-create share link if it doesn't exist yet
+      let publicShareUrl = shareUrl || (analysis.share_token
         ? `${window.location.origin}/public/content/${analysis.share_token}`
         : null)
+
+      // If no share link exists, create one automatically
+      if (!publicShareUrl && analysis.id) {
+        logger.info('Auto-creating share link for copy analysis')
+        try {
+          const response = await fetch('/api/content-intelligence/share', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ analysisId: analysis.id })
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            publicShareUrl = data.shareUrl
+            setShareUrl(data.shareUrl) // Update state for future use
+            logger.info('Share link created:', publicShareUrl)
+          } else {
+            logger.warn('Failed to auto-create share link')
+          }
+        } catch (error) {
+          logger.error('Error auto-creating share link:', error)
+          // Continue without share link - not critical
+        }
+      }
 
       // Build formatted message: Title -> Summary -> Public Link -> Archive Links
       const signalMessage = `📊 ${title}
