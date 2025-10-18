@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, X, Sparkles, Info, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('SwotForm')
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -656,7 +659,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
       }
       try {
         localStorage.setItem(draftKey, JSON.stringify(draftData))
-        console.log('Auto-saved SWOT draft')
+        logger.debug('Auto-saved SWOT draft')
       } catch (error) {
         console.error('Failed to auto-save SWOT draft:', error)
       }
@@ -798,7 +801,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
     setContentPickerOpen(false)
 
     try {
-      console.log('[SWOT Auto-Populate] Requesting auto-population for', contentIds.length, 'content sources')
+      logger.info('Requesting auto-population for', contentIds.length, 'content sources')
 
       const response = await fetch(`/api/frameworks/swot-auto-populate?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
@@ -821,7 +824,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
         throw new Error(data.error || 'Auto-population failed')
       }
 
-      console.log('[SWOT Auto-Populate] Received', data.metadata.totalItems, 'items')
+      logger.info('Received', data.metadata.totalItems, 'items for auto-population')
 
       // Add auto-populated items to existing items
       const newStrengths = data.strengths.map((item: any) => ({
@@ -851,7 +854,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
       setThreats(prev => [...prev, ...newThreats])
 
       setAutoPopulateSuccess(true)
-      console.log('[SWOT Auto-Populate] Successfully populated form')
+      logger.info('Successfully populated form with auto-generated items')
 
       // Hide success message after 5 seconds
       setTimeout(() => setAutoPopulateSuccess(false), 5000)
@@ -888,7 +891,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
         threats
       }
 
-      console.log('Saving SWOT analysis:', data)
+      logger.info('Saving SWOT analysis:', data)
 
       await onSave(data)
 
@@ -897,7 +900,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
       localStorage.removeItem(draftKey)
 
       setLastSaved(new Date())
-      console.log('Successfully saved SWOT analysis')
+      logger.info('Successfully saved SWOT analysis')
 
       // Navigate back after short delay to show success
       setTimeout(() => {
