@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { FileDown, FileText, FileSpreadsheet, Presentation, Loader2, Eye, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { createLogger } from '@/lib/logger'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { ExportFormat } from '@/lib/report-generator'
 import { ReportPreviewDialog } from './ReportPreviewDialog'
+
+const logger = createLogger('ExportButton')
 
 export interface ExportButtonProps {
   frameworkType: string
@@ -49,13 +52,13 @@ export function ExportButton({
 
     try {
       // Dynamically import ReportGenerator
-      console.log('Loading report generator...')
+      logger.debug('Loading report generator...')
       const { ReportGenerator } = await import('@/lib/report-generator')
 
       // Get AI enhancements if requested
       let aiEnhancements
       if (includeAI) {
-        console.log('Generating AI enhancements...')
+        logger.info('Generating AI enhancements...')
         aiEnhancements = await ReportGenerator.enhanceReport(frameworkType, data, 'standard')
       }
 
@@ -72,9 +75,9 @@ export function ExportButton({
 
       setPreviewContent(markdown)
       setShowPreview(true)
-      console.log('✓ Report preview generated')
+      logger.info('✓ Report preview generated')
     } catch (error) {
-      console.error('Failed to generate preview:', error)
+      logger.error('Failed to generate preview:', error)
       alert(`Failed to generate report preview: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setGenerating(false)
@@ -86,7 +89,7 @@ export function ExportButton({
     setCurrentFormat('pdf')
 
     try {
-      console.log('Loading enhanced SWOT export...')
+      logger.debug('Loading enhanced SWOT export...')
       const { generateEnhancedSWOTPDF } = await import('@/lib/reports')
 
       // Transform data to match SWOTData interface
@@ -109,9 +112,9 @@ export function ExportButton({
         includeExecutiveSummary: true
       })
 
-      console.log('✓ Enhanced SWOT report exported successfully')
+      logger.info('✓ Enhanced SWOT report exported successfully')
     } catch (error) {
-      console.error('Enhanced export failed:', error)
+      logger.error('Enhanced export failed:', error)
       alert(`Failed to export enhanced report: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setExporting(false)
@@ -125,13 +128,13 @@ export function ExportButton({
 
     try {
       // Dynamically import ReportGenerator (includes heavy export libraries)
-      console.log(`Loading export libraries for ${format}...`)
+      logger.debug(`Loading export libraries for ${format}...`)
       const { ReportGenerator } = await import('@/lib/report-generator')
 
       // Get AI enhancements if requested
       let aiEnhancements
       if (includeAI) {
-        console.log('Generating AI enhancements...')
+        logger.info('Generating AI enhancements...')
         aiEnhancements = await ReportGenerator.enhanceReport(frameworkType, data, 'standard')
       }
 
@@ -146,9 +149,9 @@ export function ExportButton({
         aiEnhancements
       })
 
-      console.log(`✓ Successfully exported to ${format.toUpperCase()}`)
+      logger.info(`✓ Successfully exported to ${format.toUpperCase()}`)
     } catch (error) {
-      console.error('Export failed:', error)
+      logger.error('Export failed:', error)
       alert(`Failed to export report: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setExporting(false)
