@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink, MoreVertical, BookOpen, Trash, Network } from 'lucide-react'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('GenericFrameworkView')
 import type { FrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
@@ -180,7 +183,7 @@ export function GenericFrameworkView({
 
       // TODO: Map COG items to entities and generate DEPENDS_ON relationships
       // This requires entity linking infrastructure
-      console.log('COG elements for relationship generation:', cogElements)
+      logger.debug('COG elements for relationship generation:', cogElements)
     } else if (frameworkTypeForRelationships === 'causeway') {
       // Causeway framework: Extract actor-action-target relationships
       const causewayRows: any[] = [
@@ -190,7 +193,7 @@ export function GenericFrameworkView({
 
       // TODO: Map Causeway rows to actor/event entities and generate TARGETED relationships
       // This requires entity linking infrastructure
-      console.log('Causeway rows for relationship generation:', causewayRows)
+      logger.debug('Causeway rows for relationship generation:', causewayRows)
     }
 
     setGeneratedRelationships(relationships)
@@ -215,10 +218,10 @@ export function GenericFrameworkView({
 
       if (response.ok) {
         setLinkedEvidence([...linkedEvidence, ...selected])
-        console.log('Evidence linked successfully')
+        logger.info('Evidence linked successfully')
       } else {
         const error = await response.json()
-        console.error('Failed to link evidence:', error)
+        logger.error('Failed to link evidence:', error)
         alert('Failed to link evidence. Please try again.')
       }
     } catch (error) {
@@ -243,10 +246,10 @@ export function GenericFrameworkView({
         setLinkedEvidence(
           linkedEvidence.filter(e => !(e.entity_type === entity_type && e.entity_id === entity_id))
         )
-        console.log('Evidence unlinked successfully')
+        logger.info('Evidence unlinked successfully')
       } else {
         const error = await response.json()
-        console.error('Failed to unlink evidence:', error)
+        logger.error('Failed to unlink evidence:', error)
         alert('Failed to unlink evidence. Please try again.')
       }
     } catch (error) {
@@ -549,7 +552,7 @@ export function GenericFrameworkView({
               relationships={generatedRelationships}
               source={frameworkTypeForRelationships === 'cog' ? 'COG' : 'CAUSEWAY'}
               onComplete={(created, failed) => {
-                console.log(`Created ${created} relationships, ${failed} failed`)
+                logger.info(`Created ${created} relationships, ${failed} failed`)
                 // TODO: Refresh network graph or show success message
               }}
               label="Generate Relationships"
@@ -582,7 +585,7 @@ export function GenericFrameworkView({
                       }
                     }
                   } catch (error) {
-                    console.log('Error fetching evidence actors:', error)
+                    logger.error('Error fetching evidence actors:', error)
                   }
                 }
               }
