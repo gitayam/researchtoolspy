@@ -15,7 +15,7 @@ import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
   Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe, SmileIcon, FrownIcon, MehIcon, Grid3x3, Share2,
-  Search, Sparkles, XCircle, MoreVertical, Mail
+  Search, Sparkles, XCircle, MoreVertical, Mail, GitBranch, Code, Tag
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -71,6 +71,10 @@ export default function ContentIntelligencePage() {
   // Social Media Extraction State
   const [socialMediaData, setSocialMediaData] = useState<any>(null)
   const [socialExtractLoading, setSocialExtractLoading] = useState(false)
+
+  // Git Repository Extraction State
+  const [gitRepoData, setGitRepoData] = useState<any>(null)
+  const [gitExtractLoading, setGitExtractLoading] = useState(false)
 
   // Duplicate Detection State
   const [existingActors, setExistingActors] = useState<Record<string, { id: string, name: string }>>({})
@@ -2097,6 +2101,63 @@ ${shortSummary}${
     }
   }
 
+  // Git Repository Extraction
+  const handleGitRepoExtract = async () => {
+    if (!url) {
+      toast({ title: 'Error', description: 'Please enter a URL', variant: 'destructive' })
+      return
+    }
+
+    setGitExtractLoading(true)
+    setGitRepoData(null)
+
+    try {
+      toast({
+        title: 'Extracting repository information...',
+        description: 'Fetching metadata, README, commits, and releases'
+      })
+
+      const response = await fetch('/api/content-intelligence/git-repository-extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Git repository extraction failed')
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Repository extraction failed')
+      }
+
+      setGitRepoData(data)
+
+      toast({
+        title: 'Repository Extraction Complete!',
+        description: `Successfully extracted ${data.platform.toUpperCase()} repository information`
+      })
+
+      // Scroll to results
+      setTimeout(() => {
+        document.getElementById('git-repo-results')?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+
+    } catch (error) {
+      console.error('Git repository extraction error:', error)
+      toast({
+        title: 'Extraction Failed',
+        description: error instanceof Error ? error.message : 'Failed to extract repository information',
+        variant: 'destructive'
+      })
+    } finally {
+      setGitExtractLoading(false)
+    }
+  }
+
   // Handle media download
   const handleMediaDownload = async (url: string, filename?: string) => {
     try {
@@ -2397,6 +2458,49 @@ ${shortSummary}${
         </Card>
       )}
 
+      {/* Git Repository Detection Card */}
+      {url && /github\.com|gitlab\.com|bitbucket\.org/i.test(url) && (
+        <Card className="p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 dark:from-blue-950/30 dark:via-indigo-950/30 dark:to-cyan-950/30 border-2 border-blue-300">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-blue-600 rounded-full shrink-0">
+              <GitBranch className="h-6 w-6 text-white" />
+            </div>
+
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-blue-900 dark:text-blue-100 mb-1">
+                {url.match(/github\.com/i) ? 'GitHub' : url.match(/gitlab\.com/i) ? 'GitLab' : 'Bitbucket'} Repository Detected
+              </h3>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                Extract repository metadata, README, commit history, releases, and language statistics.
+              </p>
+
+              {/* Action Button */}
+              <Button
+                onClick={handleGitRepoExtract}
+                disabled={gitExtractLoading}
+                size="sm"
+                variant="default"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {gitExtractLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <GitBranch className="h-4 w-4 mr-2" />
+                )}
+                Extract Repository Info
+              </Button>
+
+              {/* Features Info */}
+              <div className="p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg mt-4">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <strong>Extracting:</strong> Stars, forks, languages, README, latest commits, releases, contributors
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Social Media Extraction Results */}
       {socialMediaData && (
         <Card id="social-media-results" className="p-6">
@@ -2665,6 +2769,234 @@ ${shortSummary}${
                     </Button>
                   </div>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{analysis.extracted_text}</p>
+                </div>
+              </details>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Git Repository Extraction Results */}
+      {gitRepoData && gitRepoData.repository && (
+        <Card id="git-repo-results" className="p-6">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <GitBranch className="h-5 w-5 text-blue-600" />
+            {gitRepoData.platform.toUpperCase()} Repository Information
+          </h3>
+
+          {/* Repository Metadata */}
+          <div className="mb-6">
+            <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
+              <Code className="h-4 w-4" />
+              {gitRepoData.repository.fullName}
+            </h4>
+
+            {gitRepoData.repository.description && (
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 italic">
+                {gitRepoData.repository.description}
+              </p>
+            )}
+
+            {/* Repository Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+              {gitRepoData.repository.stars !== undefined && (
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-yellow-500" />
+                  <div>
+                    <p className="text-muted-foreground text-xs">Stars</p>
+                    <p className="font-semibold">{gitRepoData.repository.stars.toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+              {gitRepoData.repository.forks !== undefined && (
+                <div className="flex items-center gap-2">
+                  <GitBranch className="h-4 w-4 text-blue-500" />
+                  <div>
+                    <p className="text-muted-foreground text-xs">Forks</p>
+                    <p className="font-semibold">{gitRepoData.repository.forks.toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+              {gitRepoData.repository.watchers !== undefined && (
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-green-500" />
+                  <div>
+                    <p className="text-muted-foreground text-xs">Watchers</p>
+                    <p className="font-semibold">{gitRepoData.repository.watchers.toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+              {gitRepoData.repository.openIssues !== undefined && (
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-orange-500" />
+                  <div>
+                    <p className="text-muted-foreground text-xs">Open Issues</p>
+                    <p className="font-semibold">{gitRepoData.repository.openIssues.toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Additional Info */}
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
+              {gitRepoData.repository.language && (
+                <div>
+                  <p className="text-muted-foreground text-xs">Primary Language</p>
+                  <p className="font-semibold">{gitRepoData.repository.language}</p>
+                </div>
+              )}
+              {gitRepoData.repository.license && (
+                <div>
+                  <p className="text-muted-foreground text-xs">License</p>
+                  <p className="font-semibold">{gitRepoData.repository.license}</p>
+                </div>
+              )}
+              {gitRepoData.contributors !== undefined && (
+                <div>
+                  <p className="text-muted-foreground text-xs">Contributors</p>
+                  <p className="font-semibold">{gitRepoData.contributors.toLocaleString()}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Languages */}
+          {gitRepoData.repository.languages && Object.keys(gitRepoData.repository.languages).length > 0 && (
+            <div className="mb-6">
+              <h4 className="font-semibold mb-2 text-sm">Languages Used</h4>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(gitRepoData.repository.languages)
+                  .sort(([, a], [, b]) => (b as number) - (a as number))
+                  .slice(0, 10)
+                  .map(([lang, bytes]) => (
+                    <Badge key={lang} variant="secondary" className="text-xs">
+                      {lang}
+                    </Badge>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Latest Commit */}
+          {gitRepoData.latestCommit && (
+            <div className="mb-6">
+              <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
+                <GitBranch className="h-4 w-4" />
+                Latest Commit
+              </h4>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{gitRepoData.latestCommit.message}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      by {gitRepoData.latestCommit.author} • {new Date(gitRepoData.latestCommit.date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="font-mono text-xs ml-2">
+                    {gitRepoData.latestCommit.sha}
+                  </Badge>
+                </div>
+                <a
+                  href={gitRepoData.latestCommit.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  View commit <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Latest Release */}
+          {gitRepoData.latestRelease && (
+            <div className="mb-6">
+              <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                Latest Release
+              </h4>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{gitRepoData.latestRelease.name}</p>
+                    <Badge variant="secondary" className="text-xs mt-1">
+                      {gitRepoData.latestRelease.tag}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Released {new Date(gitRepoData.latestRelease.publishedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                {gitRepoData.latestRelease.description && (
+                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-2 mb-2">
+                    {gitRepoData.latestRelease.description.substring(0, 200)}
+                    {gitRepoData.latestRelease.description.length > 200 ? '...' : ''}
+                  </p>
+                )}
+                <a
+                  href={gitRepoData.latestRelease.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  View release <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Recent Commits */}
+          {gitRepoData.recentCommits && gitRepoData.recentCommits.length > 0 && (
+            <div className="mb-6">
+              <h4 className="font-semibold mb-2 text-sm">Recent Commits</h4>
+              <div className="space-y-2">
+                {gitRepoData.recentCommits.map((commit: any, idx: number) => (
+                  <div key={idx} className="p-2 bg-gray-50 dark:bg-gray-800 rounded border text-xs">
+                    <div className="flex items-start justify-between">
+                      <p className="font-medium flex-1">{commit.message}</p>
+                      <Badge variant="outline" className="font-mono text-xs ml-2">
+                        {commit.sha}
+                      </Badge>
+                    </div>
+                    <p className="text-muted-foreground text-xs mt-1">
+                      {commit.author} • {new Date(commit.date).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* README Preview */}
+          {gitRepoData.readme && (
+            <div className="mt-4">
+              <details className="group">
+                <summary className="cursor-pointer font-semibold p-3 bg-blue-50 dark:bg-blue-950 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900 flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    README Preview
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {gitRepoData.readme.truncated ? `${gitRepoData.readme.content.length} chars (truncated)` : 'Full'}
+                  </Badge>
+                </summary>
+                <div className="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg max-h-96 overflow-y-auto border">
+                  <div className="flex justify-end mb-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(gitRepoData.readme.content)
+                        toast({ title: 'Copied!', description: 'README content copied to clipboard' })
+                      }}
+                    >
+                      <Copy className="h-3 w-3 mr-1" />
+                      Copy
+                    </Button>
+                  </div>
+                  <pre className="text-xs leading-relaxed whitespace-pre-wrap font-mono">
+                    {gitRepoData.readme.content}
+                  </pre>
                 </div>
               </details>
             </div>
