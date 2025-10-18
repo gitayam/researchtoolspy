@@ -1,5 +1,90 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2025-10-18 - Cloudflare Pages SPA Routing Fix
+
+### Summary
+Fixed critical JavaScript MIME type errors affecting all client-side routes. Added `_redirects` file to properly handle Single Page Application routing on Cloudflare Pages. Without this, routes like `/tools`, `/frameworks`, etc. returned 404 HTML which the browser tried to execute as JavaScript.
+
+---
+
+## JavaScript MIME Type Error - SPA Routing (CRITICAL)
+
+### Problem
+After deploying, navigating to any client-side route (e.g., `/tools`, `/citations`, `/frameworks`) showed error:
+```
+Unexpected Application Error!
+'text/html' is not a valid JavaScript MIME type.
+```
+
+The error appeared on multiple pages including the citation library and other routes.
+
+### Root Cause
+**Missing SPA routing configuration**:
+
+1. **React Router** uses client-side routing (e.g., `/tools`, `/frameworks`)
+2. **Cloudflare Pages** without `_redirects` file treats these as file paths
+3. **Result**: Server returns 404 HTML page for these routes
+4. **Browser** tries to execute the 404 HTML as JavaScript module → MIME type error
+5. **Impact**: All client-side routes broken in production
+
+### The Fix
+Create `/public/_redirects` file to serve `index.html` for all non-asset routes:
+
+```plaintext
+# Cloudflare Pages Redirects for SPA
+# This ensures all routes are handled by React Router
+
+# API routes go to Functions (already handled by _routes.json)
+/api/* 200
+
+# Static assets - serve as-is
+/assets/* 200
+
+# All other routes - serve index.html for client-side routing
+/* /index.html 200
+```
+
+**Why this works:**
+- API routes handled by Cloudflare Functions
+- Static assets (CSS, JS, images) served directly
+- All other routes get `index.html` → React Router takes over → correct page loads
+
+### Verification
+```bash
+# Before fix: Returns 404 HTML
+curl https://deployment.pages.dev/tools
+
+# After fix: Returns index.html with React app
+curl https://deployment.pages.dev/tools | grep "root"
+# Should show: <div id="root"></div>
+```
+
+### Key Takeaways
+1. **ALWAYS add `_redirects` for SPAs on Cloudflare Pages**
+2. **The file goes in `/public/` directory** (Vite copies to dist)
+3. **This is REQUIRED for React Router** (or any client-side routing)
+4. **Without it, only homepage works** - all other routes fail
+5. **Error is confusing** - MIME type error, not 404 error
+
+### Prevention
+**Add to every new SPA project:**
+```bash
+# During project setup:
+echo "/* /index.html 200" > public/_redirects
+```
+
+**Test client-side routes in production:**
+- Don't just test homepage
+- Navigate to `/tools`, `/settings`, etc.
+- Refresh page while on a route (should still work)
+
+### Related Files
+- `/public/_redirects` - SPA routing configuration (created)
+- `/public/_routes.json` - API routes configuration (already existed)
+- `/public/_headers` - Security headers (already existed)
+
+---
+
 ## Session: 2025-10-18 - Cloudflare Pages Deployment Fix
 
 ### Summary
