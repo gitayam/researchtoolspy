@@ -2269,9 +2269,10 @@ ${shortSummary}`
         </p>
       </div>
 
-      {/* Input Section */}
-      <Card className="p-6 space-y-4">
-        <div className="space-y-3">
+      {/* Input Section - Simple, clean design matching homepage */}
+      <Card className="p-6">
+        <div className="space-y-4">
+          {/* URL Input Row */}
           <div className="flex gap-2">
             <Input
               placeholder="Enter URL to analyze..."
@@ -2280,28 +2281,10 @@ ${shortSummary}`
               onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
               className="flex-1"
             />
-            <Button onClick={handleQuickSave} variant="outline" disabled={processing}>
-              <Save className="h-4 w-4 mr-2" />
-              Quick Save
-            </Button>
           </div>
 
-          <div className="flex gap-2">
-            <Input
-              placeholder="Add note (optional)..."
-              value={saveNote}
-              onChange={(e) => setSaveNote(e.target.value)}
-              className="flex-1"
-            />
-            <Input
-              placeholder="Tags (comma-separated)..."
-              value={saveTags}
-              onChange={(e) => setSaveTags(e.target.value)}
-              className="flex-1"
-            />
-          </div>
-
-          <div className="flex gap-2 items-center">
+          {/* Mode Selection and Analyze Button */}
+          <div className="flex gap-2 items-center justify-between">
             <div className="flex gap-2">
               <Button
                 variant={mode === 'quick' ? 'default' : 'outline'}
@@ -2326,7 +2309,7 @@ ${shortSummary}`
               </Button>
             </div>
 
-            <Button onClick={() => handleAnalyze()} disabled={processing} className="ml-auto" data-analyze-button>
+            <Button onClick={() => handleAnalyze()} disabled={processing} data-analyze-button>
               {processing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -3094,6 +3077,28 @@ ${shortSummary}`
                     <p className="text-sm text-muted-foreground mt-1">Published: {analysis.publish_date}</p>
                   )}
                 </div>
+
+                {/* Optional Note and Tags - Only show if not saved */}
+                {!analysis.is_saved && (
+                  <div className="space-y-3 pb-2">
+                    <p className="text-sm font-medium text-muted-foreground">Add metadata before saving (optional)</p>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add note (optional)..."
+                        value={saveNote}
+                        onChange={(e) => setSaveNote(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="Tags (comma-separated)..."
+                        value={saveTags}
+                        onChange={(e) => setSaveTags(e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-2 pt-2 border-t">
                   <Button
                     variant="outline"
@@ -5028,7 +5033,7 @@ ${shortSummary}`
           ) : savedLinks.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>No saved links yet.</p>
-              <p className="text-sm mt-1">Use "Quick Save" above to save links for later analysis.</p>
+              <p className="text-sm mt-1">Analyze URLs to automatically save them, or add notes and tags before clicking "Save Permanently".</p>
             </div>
           ) : (
             <div className="space-y-3">
