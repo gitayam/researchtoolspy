@@ -3,15 +3,16 @@
 *Last Updated: 2025-10-18 13:50*
 
 ## Deployment Status ✅
-- **Latest Deployment**: `d0844f96` - https://d902c20a.researchtoolspy.pages.dev
-- **Status**: Production - Bundle optimization deployed
+- **Latest Deployment**: `d471b323` - https://c80e286b.researchtoolspy.pages.dev
+- **Status**: Production - GitLab regex fix deployed
 - **Recent Changes**:
   * ✅ Production-safe logging utility
   * ✅ Lazy loading for pptxgen (796 kB → on-demand)
-  * ✅ Git repository feature tested (GitHub/Bitbucket working)
+  * ✅ GitLab API integration FIXED - all platforms working!
 
 ## Deployments Timeline
-- `d0844f96` (now) - Bundle size optimization
+- `d471b323` (now) - GitLab regex fix
+- `d0844f96` - Bundle size optimization
 - `a805416b` - Logging utility implementation
 - `8546ecce` - Git repository feature launch
 
@@ -121,18 +122,28 @@ const log = (message: string, ...args: any[]) => {
 - ✅ atlassian/aui - Successfully extracted
 - ❌ Some repos return 404 (may be private/deleted)
 
-**GitLab**: ⚠️ ISSUES DETECTED
-- ❌ gitlab-org/gitlab-foss - 404
-- ❌ gitlab-org/gitlab - 404
-- ❌ fdroid/fdroidclient - 404
-- 🔍 **Issue**: GitLab API may require authentication or URL encoding is incorrect
-- 🔍 **Next Step**: Debug GitLab API calls, check API docs
+**GitLab**: ✅ FIXED AND WORKING
+- ✅ inkscape/inkscape (3,766 stars) - VERIFIED
+- ✅ libtiff/libtiff (93 stars, 184 forks) - VERIFIED
+- ✅ wireshark/wireshark (1,436 stars, 1,485 forks) - VERIFIED
+- 🐛 **Bug Found & Fixed**: Regex pattern `(.+?)` stopped at first `/` due to `(?:\/|$)`
+- ✅ **Solution**: Changed to `(?:\?|#|$)` to match until query string or end
+- 📝 **Note**: Previously cached 404 errors will expire after 1 hour TTL
+
+**Root Cause**:
+```regex
+Before: /gitlab\.com\/(.+?)(?:\.git)?(?:\/|$)/
+After:  /gitlab\.com\/(.+?)(?:\.git)?(?:\?|#|$)/
+```
+The `(?:\/|$)` allowed matching to stop at any forward slash, so
+`gitlab.com/gitlab-org/gitlab-foss` only captured `gitlab-org`.
 
 **Action Items**:
 - [x] Test GitHub with various repo types ✅
 - [x] Test Bitbucket ✅
 - [x] Verify error handling for edge cases ✅
-- [ ] Fix GitLab API integration 🔴 HIGH PRIORITY
+- [x] Fix GitLab API integration ✅ COMPLETED (commit `d471b323`)
+- [x] Verify fix with multiple GitLab repos ✅ COMPLETED
 - [ ] Test caching behavior (1 hour TTL)
 - [ ] Add loading states UX
 - [ ] Document known limitations in UI
@@ -352,7 +363,7 @@ const getPlatformIcon = (platform: string) => {
 2. [ ] Set up error tracking (Sentry)
 3. [ ] Add Spanish translations for git feature
 4. [ ] Run Lighthouse audit
-5. [ ] Fix GitLab API integration
+5. [x] Fix GitLab API integration ✅ COMPLETED
 
 ---
 
@@ -372,9 +383,10 @@ const getPlatformIcon = (platform: string) => {
 - [x] Production-safe logging utility created
 - [x] Console.log cleanup in git-repository-extract.ts
 - [x] Lazy loading implemented for pptxgen (796 kB savings)
-- [x] Git repository feature tested (GitHub ✅, Bitbucket ✅, GitLab ⚠️)
+- [x] Git repository feature tested (GitHub ✅, Bitbucket ✅, GitLab ✅)
 - [x] Comprehensive test suite created
 - [x] Bundle size optimization deployed
+- [x] **GitLab API regex bug fixed** - All 3 platforms now working!
 
 **Previous**
 - [x] Git repository detection and extraction (2025-10-18)
