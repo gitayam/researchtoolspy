@@ -3,9 +3,10 @@
 *Last Updated: 2025-10-18 13:50*
 
 ## Deployment Status ✅
-- **Latest Deployment**: `2c53099f` - https://2c53099f.researchtoolspy.pages.dev
-- **Status**: Production - Fixed deployment issue + 72% logging cleanup complete
+- **Latest Deployment**: `d98d6cee` - https://d98d6cee.researchtoolspy.pages.dev
+- **Status**: Production - Citation generation fixed + 72% logging cleanup
 - **Recent Changes**:
+  * ✅ FIXED: Citation generation error (replaced require() with ES6 import)
   * ✅ FIXED: Deployment now uses `dist` folder (was serving wrong index.html)
   * ✅ Frontend logging cleanup: 52/72 statements cleaned (72%)
   * ✅ Production-safe logging utility
@@ -13,7 +14,8 @@
   * ✅ GitLab API integration FIXED - all platforms working!
 
 ## Deployments Timeline
-- `2c53099f` (now) - **FIXED deployment issue** - deploying dist folder only
+- `d98d6cee` (now) - **FIXED citation generation error** - replaced require() with ES6 import
+- `2c53099f` - **FIXED deployment issue** - deploying dist folder only
 - `42663b4e` - Frontend logging cleanup batch 5 (GenericFrameworkForm, report-generator) - **BROKEN: served wrong index.html**
 - `bae96e44` - Frontend logging cleanup batch 4 (GenericFrameworkView, SwotForm)
 - `6eebb424` - Frontend logging cleanup batch 3 (frameworks page)
