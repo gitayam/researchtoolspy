@@ -140,7 +140,7 @@
     "contentExtraction": "Extracción de Contenido",
     "batchProcessing": "Procesamiento por Lotes",
     "urlProcessing": "Procesamiento de URL",
-    "citationsGenerator": "Generador de Citas",
+    "citationsGenerator": "Biblioteca de Citas",
     "webScraping": "Extracción Web",
     "socialMedia": "Redes Sociales",
     "documents": "Documentos",
@@ -183,8 +183,8 @@
       "Extracción de metadatos",
       "Análisis de enlaces"
     ],
-    "citationsGeneratorName": "Generador de Citas",
-    "citationsGeneratorDesc": "Generar y gestionar citas en múltiples formatos",
+    "citationsGeneratorName": "Biblioteca de Citas",
+    "citationsGeneratorDesc": "Generar, guardar y gestionar citas en múltiples formatos",
     "citationsGeneratorFeatures": [
       "APA 7ª Edición",
       "MLA 9ª Edición",

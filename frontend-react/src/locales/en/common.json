@@ -141,7 +141,7 @@
     "contentExtraction": "Content Extraction",
     "batchProcessing": "Batch Processing",
     "urlProcessing": "URL Processing",
-    "citationsGenerator": "Citations Generator",
+    "citationsGenerator": "Citation Library",
     "webScraping": "Web Scraping",
     "socialMedia": "Social Media",
     "documents": "Documents",
@@ -184,8 +184,8 @@
       "Metadata extraction",
       "Link analysis"
     ],
-    "citationsGeneratorName": "Citations Generator",
-    "citationsGeneratorDesc": "Generate and manage citations in multiple formats",
+    "citationsGeneratorName": "Citation Library",
+    "citationsGeneratorDesc": "Generate, save, and manage citations in multiple formats",
     "citationsGeneratorFeatures": [
       "APA 7th Edition",
       "MLA 9th Edition",
@@ -376,7 +376,7 @@
   },
   "citationsGeneratorTool": {
     "backToTools": "Back to Tools",
-    "title": "Citations Generator",
+    "title": "Citation Library",
     "subtitle": "Generate citations in APA, MLA, Chicago, and Harvard formats",
     "citationStyle": "Citation Style",
     "citationStyleDesc": "Select your preferred citation format",
@@ -547,7 +547,7 @@
     "archive": "Archive",
     "delete": "Delete",
     "confirmDelete": "Are you sure you want to delete this evidence item?",
-    "citationSuccess": "Citation generated and added to your library!\n\nGo to Citations Generator to view and manage it.",
+    "citationSuccess": "Citation generated and added to your library!\n\nGo to Citation Library to view and manage it.",
     "citationError": "Failed to generate citation. Please try again.",
     "deleteError": "Failed to delete evidence"
   },
