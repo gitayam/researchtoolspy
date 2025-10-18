@@ -688,13 +688,18 @@ export default function ContentIntelligencePage() {
       // Format bypass and archive URLs
       const archiveUrls = analysis.archive_urls || {}
 
+      // Build share URL from either state or analysis.share_token
+      const publicShareUrl = shareUrl || (analysis.share_token
+        ? `${window.location.origin}/public/content/${analysis.share_token}`
+        : null)
+
       // Build formatted message: Title -> Summary -> Public Link -> Archive Links
       const signalMessage = `📊 ${title}
 
 ${shortSummary}${
-  shareUrl ? `\n\n🔗 View Full Analysis:\n${shareUrl}` : ''
+  publicShareUrl ? `\n\n🔗 View Full Analysis:\n${publicShareUrl}` : ''
 }${
-  archiveUrls['wayback'] ? `\n\n🚀 Quick Access:\n• Wayback Machine: ${archiveUrls['wayback']}` : ''
+  archiveUrls['wayback'] ? `\n\n📦 Archive:\n• Wayback Machine: ${archiveUrls['wayback']}` : ''
 }`
 
       // Try modern clipboard API first (works immediately in user gesture)
