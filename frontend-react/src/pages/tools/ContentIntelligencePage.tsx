@@ -1352,6 +1352,9 @@ ${shortSummary}${
       setCurrentStep('Complete!')
       setAnalysis(data)
 
+      // Auto-generate citation
+      handleCreateCitation(data)
+
       // Check for duplicate entities in the background
       if (data.entities) {
         checkEntityDuplicates(data.entities)
@@ -1446,7 +1449,7 @@ ${shortSummary}${
     }
   }
 
-  // Auto-generate citation inline
+  // Auto-generate citation inline (called automatically when analysis completes)
   const handleCreateCitation = (analysisData: ContentAnalysis) => {
     try {
       const citationData = extractCitationData(analysisData, url)
@@ -1458,16 +1461,6 @@ ${shortSummary}${
       setGeneratedCitation(citation)
       setCurrentCitationData({ citationData, citation, inTextCitation })
       setCitationSaved(false) // Reset saved state
-
-      toast({
-        title: 'Citation Generated',
-        description: 'APA citation created and ready to copy'
-      })
-
-      // Scroll to citation section
-      setTimeout(() => {
-        document.getElementById('citation-section')?.scrollIntoView({ behavior: 'smooth' })
-      }, 100)
     } catch (error) {
       console.error('Citation generation error:', error)
     }
@@ -2740,31 +2733,11 @@ ${shortSummary}${
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleCreateCitation(analysis)}
-                  >
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Create Citation
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
                     onClick={() => handleCreateACH(analysis)}
                     disabled={processing}
                   >
                     <Grid3x3 className="h-4 w-4 mr-2" />
                     Create ACH
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const citationData = extractCitationData(analysis, url)
-                      const params = createCitationParams(citationData)
-                      navigate(`/dashboard/tools/citations-generator?${params.toString()}`)
-                    }}
-                  >
-                    <Globe className="h-4 w-4 mr-2" />
-                    Open in Generator
                   </Button>
                   <Button
                     variant="outline"
@@ -2959,52 +2932,70 @@ ${shortSummary}${
                 )}
               </div>
 
-              {/* Citation Section */}
-              {generatedCitation && (
-                <div id="citation-section" className="border-t pt-4">
-                  <h3 className="font-semibold mb-2">Citation (APA)</h3>
+              {/* Citation Section - Always visible */}
+              <div id="citation-section" className="border-t pt-4">
+                <h3 className="font-semibold mb-2">Citation</h3>
+                {generatedCitation ? (
+                  <>
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <p className="text-sm font-serif">{generatedCitation}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={copyCitation}
+                      >
+                        {showCitationCopied ? (
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy Citation
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={saveCitationToLibrary}
+                        disabled={citationSaved}
+                      >
+                        {citationSaved ? (
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            Saved!
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save to Library
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const citationData = extractCitationData(analysis, url)
+                          const params = createCitationParams(citationData)
+                          navigate(`/dashboard/tools/citations-generator?${params.toString()}`)
+                        }}
+                      >
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        Open in Citation Library
+                      </Button>
+                    </div>
+                  </>
+                ) : (
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <p className="text-sm font-serif">{generatedCitation}</p>
+                    <p className="text-sm text-muted-foreground">Citation will be generated automatically after analysis completes</p>
                   </div>
-                  <div className="flex gap-2 mt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={copyCitation}
-                    >
-                      {showCitationCopied ? (
-                        <>
-                          <Check className="h-4 w-4 mr-2" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={saveCitationToLibrary}
-                      disabled={citationSaved}
-                    >
-                      {citationSaved ? (
-                        <>
-                          <Check className="h-4 w-4 mr-2" />
-                          Saved!
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save to Library
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
 
               <div>
                 <h3 className="font-semibold mb-2">Quick Stats</h3>
