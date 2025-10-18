@@ -3,18 +3,46 @@
 *Last Updated: 2025-10-18 13:50*
 
 ## Deployment Status ✅
-- **Latest Deployment**: `d471b323` - https://c80e286b.researchtoolspy.pages.dev
-- **Status**: Production - GitLab regex fix deployed
+- **Latest Deployment**: `2c53099f` - https://2c53099f.researchtoolspy.pages.dev
+- **Status**: Production - Fixed deployment issue + 72% logging cleanup complete
 - **Recent Changes**:
+  * ✅ FIXED: Deployment now uses `dist` folder (was serving wrong index.html)
+  * ✅ Frontend logging cleanup: 52/72 statements cleaned (72%)
   * ✅ Production-safe logging utility
   * ✅ Lazy loading for pptxgen (796 kB → on-demand)
   * ✅ GitLab API integration FIXED - all platforms working!
 
 ## Deployments Timeline
-- `d471b323` (now) - GitLab regex fix
+- `2c53099f` (now) - **FIXED deployment issue** - deploying dist folder only
+- `42663b4e` - Frontend logging cleanup batch 5 (GenericFrameworkForm, report-generator) - **BROKEN: served wrong index.html**
+- `bae96e44` - Frontend logging cleanup batch 4 (GenericFrameworkView, SwotForm)
+- `6eebb424` - Frontend logging cleanup batch 3 (frameworks page)
+- `a030a49f` - Frontend logging cleanup batch 2 (ContentIntelligence, API)
+- `d471b323` - GitLab regex fix
 - `d0844f96` - Bundle size optimization
 - `a805416b` - Logging utility implementation
 - `8546ecce` - Git repository feature launch
+
+## Deployment Lessons Learned
+
+### Issue: Blank Page After Deployment (2025-10-18)
+**Problem**: Page showed nothing after deploying with `npx wrangler pages deploy .`
+
+**Root Cause**:
+- Deploying entire project root (`.`) instead of just `dist` folder
+- Cloudflare served root `/index.html` (development version) instead of `/dist/index.html` (production build)
+- Development index.html references `/src/main.tsx` which doesn't exist in production
+- Result: Browser couldn't load any JavaScript → blank page
+
+**Fix**:
+- Always deploy with: `npx wrangler pages deploy dist --project-name=researchtoolspy`
+- This ensures only production-built assets are served
+- Production index.html correctly references bundled assets in `/assets/` folder
+
+**Prevention**:
+- Update deployment scripts to always use `dist` folder
+- Consider adding pre-deploy verification step
+- Document correct deployment command in README
 
 ---
 
@@ -50,9 +78,24 @@ const log = (message: string, ...args: any[]) => {
 - ✅ Created `functions/utils/logger.ts` with environment-aware logging (Workers)
 - ✅ Created `src/lib/logger.ts` with browser-safe logging (Frontend)
 - ✅ Replaced all console.log in git-repository-extract.ts (commit `a805416b`)
-- ✅ Cleaned 4 high-priority frontend files: auth, exports, content intelligence, API
-- 📊 **Frontend Progress: 29/72 console.log statements cleaned (40%)**
-- 🔄 Next: Remaining ~43 console.log statements in frameworks & utilities
+- ✅ Cleaned batch 1: auth, ExportButton (commit `a030a49f`)
+- ✅ Cleaned batch 2: ContentIntelligencePage, api.ts (commit `a030a49f`)
+- ✅ Cleaned batch 3: frameworks/index.tsx (commit `6eebb424`)
+- ✅ Cleaned batch 4: GenericFrameworkView, SwotForm (commit `bae96e44`)
+- ✅ Cleaned batch 5: GenericFrameworkForm, report-generator (commit `42663b4e`)
+- 📊 **Frontend Progress: 52/72 console.log statements cleaned (72%)**
+- 🔄 Next: Remaining ~20 console.log statements in detail views & utilities
+
+**Files Cleaned**:
+1. ✅ src/stores/auth.ts (8 statements)
+2. ✅ src/components/reports/ExportButton.tsx (8 statements)
+3. ✅ src/pages/tools/ContentIntelligencePage.tsx (7 statements)
+4. ✅ src/lib/api.ts (6 statements)
+5. ✅ src/pages/frameworks/index.tsx (6 statements)
+6. ✅ src/components/frameworks/GenericFrameworkView.tsx (6 statements)
+7. ✅ src/components/frameworks/SwotForm.tsx (6 statements)
+8. ✅ src/components/frameworks/GenericFrameworkForm.tsx (2 statements)
+9. ✅ src/lib/report-generator.ts (3 statements)
 
 ---
 
