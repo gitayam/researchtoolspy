@@ -8,6 +8,9 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType } from 'docx'
 import { jsPDF } from 'jspdf'
 import pptxgen from 'pptxgenjs'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('ReportGenerator')
 import Papa from 'papaparse'
 import type { FrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem } from '@/types/frameworks'
@@ -56,7 +59,7 @@ export class ReportGenerator {
       aiEnhancements
     } = options
 
-    console.log(`Generating ${format.toUpperCase()} report for ${frameworkType}...`)
+    logger.info(`Generating ${format.toUpperCase()} report for ${frameworkType}...`)
 
     switch (format) {
       case 'word':
@@ -94,7 +97,7 @@ export class ReportGenerator {
 
       return await response.json()
     } catch (error) {
-      console.error('Failed to enhance report:', error)
+      logger.error('Failed to enhance report:', error)
       return {}
     }
   }
@@ -1838,6 +1841,6 @@ export class ReportGenerator {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-    console.log(`✓ Downloaded: ${filename}`)
+    logger.info(`✓ Downloaded: ${filename}`)
   }
 }
