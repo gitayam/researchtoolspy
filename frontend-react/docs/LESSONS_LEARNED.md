@@ -1,5 +1,131 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2025-10-18 - Cloudflare Pages Deployment Fix
+
+### Summary
+Fixed critical blank page issue in production caused by deploying entire project root instead of the `dist` folder. The deployment served the development `index.html` instead of the production build, causing all JavaScript to fail loading.
+
+---
+
+## Blank Page After Deployment
+
+### Problem
+After deploying with `npx wrangler pages deploy .`, the production site (https://05edca38.researchtoolspy.pages.dev) showed a completely blank page with no content or errors in browser console.
+
+### Root Cause
+**Incorrect deployment source directory**:
+
+1. **Command used**: `npx wrangler pages deploy .` (deploys entire project root)
+2. **What was deployed**:
+   - Root `/index.html` (development version)
+   - `/dist/` folder with production build
+   - All source files and config
+3. **What Cloudflare served**: Root `/index.html` instead of `/dist/index.html`
+4. **Development index.html references**:
+   ```html
+   <script type="module" src="/src/main.tsx"></script>
+   ```
+5. **Production doesn't have** `/src/` directory with TypeScript source files
+6. **Result**: Browser couldn't load any JavaScript → blank page
+
+### How to Diagnose
+**Symptoms:**
+- Blank page in production
+- No JavaScript errors in browser console (script tag loads but file doesn't exist)
+- Build completes successfully
+- Local development works fine
+
+**Debugging steps:**
+1. Check what HTML is being served:
+   ```bash
+   curl https://your-deployment.pages.dev/ | grep script
+   ```
+2. Look for script tag pointing to development files:
+   ```html
+   <!-- BAD (development): -->
+   <script type="module" src="/src/main.tsx"></script>
+
+   <!-- GOOD (production): -->
+   <script type="module" src="/assets/index-[hash].js"></script>
+   ```
+3. Verify deployment directory structure in Cloudflare dashboard
+4. Check if multiple `index.html` files exist at different levels
+
+### The Fix
+**Always deploy only the `dist` folder:**
+
+```bash
+# WRONG - deploys entire project including dev files
+npx wrangler pages deploy . --project-name=researchtoolspy
+
+# CORRECT - deploys only production build
+npx wrangler pages deploy dist --project-name=researchtoolspy
+```
+
+**Why this works:**
+- `dist/` contains only production-built assets
+- `dist/index.html` correctly references bundled JS files in `/assets/`
+- No conflicting source files or dev configuration
+- Cloudflare serves the correct production build
+
+### Deployment Timeline Impact
+- `42663b4e` - **BROKEN**: Deployed entire root, served dev index.html
+- `2c53099f` - **FIXED**: Deployed dist folder only, served prod build
+
+### Lessons Learned
+
+#### ✅ Do:
+1. **Always deploy production build folder** (`dist`, `build`, `.output`, etc.)
+2. **Verify script tags in deployed HTML** after deployment
+3. **Test deployment immediately** after deploying
+4. **Document correct deployment command** in README and CI/CD
+5. **Use deployment preview URLs** to test before promoting to production
+6. **Check Cloudflare dashboard** for deployment structure if issues occur
+
+#### ❌ Don't:
+1. **Deploy entire project root** - includes dev files and can cause conflicts
+2. **Assume build success = deployment success** - always verify what's served
+3. **Skip post-deployment verification** - blank pages are silent failures
+4. **Mix development and production files** in deployment
+5. **Ignore script tag paths** - they reveal which version is being served
+
+### Prevention Strategy
+**Best Practices for Cloudflare Pages Deployment:**
+
+```bash
+# 1. Always build first
+npm run build
+
+# 2. Verify build output
+ls -la dist/
+
+# 3. Check dist/index.html has production assets
+grep "script" dist/index.html
+
+# 4. Deploy only dist folder
+npx wrangler pages deploy dist --project-name=yourproject
+
+# 5. Verify deployment serves correct HTML
+curl https://your-deployment.pages.dev/ | grep script
+```
+
+**Add to package.json**:
+```json
+{
+  "scripts": {
+    "deploy": "npm run build && npx wrangler pages deploy dist --project-name=researchtoolspy"
+  }
+}
+```
+
+### Impact
+- **Severity**: Critical - complete production outage (blank page)
+- **Resolution Time**: ~15 minutes (diagnosis + fix + redeploy)
+- **Affected Deployments**: All deployments from `42663b4e` until fix at `2c53099f`
+- **Root Cause Category**: Configuration error (incorrect deployment path)
+
+---
+
 ## Session: 2025-10-09 - Double JSON Parsing Bug Fix
 
 ### Summary
