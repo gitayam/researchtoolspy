@@ -1,16 +1,18 @@
 import { useState } from 'react'
-import { Share2, Copy, Check, Globe, Lock } from 'lucide-react'
+import { Share2, Copy, Check, Globe, Lock, Link } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { useToast } from '@/components/ui/use-toast'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
 import {
   Select,
@@ -68,11 +70,13 @@ export function ShareButton({
   onUpdate
 }: ShareButtonProps) {
   const { currentWorkspaceId } = useWorkspace()
+  const { toast } = useToast()
   const [isPublic, setIsPublic] = useState(initialIsPublic)
   const [shareToken, setShareToken] = useState(initialShareToken)
   const [category, setCategory] = useState(initialCategory || '')
   const [copied, setCopied] = useState(false)
   const [sharing, setSharing] = useState(false)
+  const [quickSharing, setQuickSharing] = useState(false)
 
   const shareUrl = shareToken
     ? `${window.location.origin}/public/framework/${shareToken}`
@@ -139,6 +143,64 @@ export function ShareButton({
     }
   }
 
+  const handleQuickShare = async () => {
+    setQuickSharing(true)
+    try {
+      // If already public and has share token, just copy
+      if (isPublic && shareToken) {
+        const url = `${window.location.origin}/public/framework/${shareToken}`
+        await navigator.clipboard.writeText(url)
+        toast({
+          title: 'Link copied!',
+          description: 'Share link has been copied to clipboard'
+        })
+        setQuickSharing(false)
+        return
+      }
+
+      // Otherwise, create share link first
+      const response = await fetch(`/api/frameworks/${frameworkId}/share?workspace_id=${currentWorkspaceId}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ is_public: true, category, workspace_id: currentWorkspaceId })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create share link')
+      }
+
+      const data = await response.json()
+      setIsPublic(data.is_public)
+      setShareToken(data.share_token)
+
+      // Copy the newly created link
+      const url = `${window.location.origin}/public/framework/${data.share_token}`
+      await navigator.clipboard.writeText(url)
+
+      if (onUpdate) {
+        onUpdate({
+          isPublic: data.is_public,
+          shareToken: data.share_token,
+          category: data.category
+        })
+      }
+
+      toast({
+        title: 'Share link created and copied!',
+        description: 'Anyone with this link can view and clone your analysis'
+      })
+    } catch (error) {
+      console.error('Failed to share:', error)
+      toast({
+        title: 'Failed to create share link',
+        description: 'Please try again',
+        variant: 'destructive'
+      })
+    } finally {
+      setQuickSharing(false)
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -149,6 +211,24 @@ export function ShareButton({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         <DropdownMenuLabel>Sharing Options</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+
+        {/* Quick Share - One Click to Create and Copy */}
+        <DropdownMenuItem
+          onClick={handleQuickShare}
+          disabled={quickSharing}
+          className="gap-2 cursor-pointer"
+        >
+          <Link className="h-4 w-4" />
+          <div className="flex-1">
+            <div className="font-medium">
+              {quickSharing ? 'Creating link...' : isPublic && shareToken ? 'Copy Share Link' : 'Share Analysis'}
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              {isPublic && shareToken ? 'Copy link to clipboard' : 'Create public link and copy'}
+            </div>
+          </div>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
 
         <div className="p-3 space-y-4">
