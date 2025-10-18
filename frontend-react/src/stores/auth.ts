@@ -1,6 +1,9 @@
 // Hash-based authentication store
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Auth')
 
 interface AuthUser {
   account_hash: string
@@ -31,18 +34,18 @@ export const useAuthStore = create<AuthState>()(
         try {
           const hash = data.account_hash
 
-          console.log('[Auth] Attempting login with hash:', hash.substring(0, 8) + '...')
+          logger.info('Attempting login with hash:', hash.substring(0, 8) + '...')
 
           // Validate hash exists in valid hashes list
           const validHashesStr = localStorage.getItem('omnicore_valid_hashes')
           const validHashes: string[] = validHashesStr ? JSON.parse(validHashesStr) : []
 
-          console.log('[Auth] Valid hashes in localStorage:', validHashes.length, 'hashes')
-          console.log('[Auth] Hash being checked:', hash)
-          console.log('[Auth] First valid hash (if exists):', validHashes[0]?.substring(0, 8) + '...')
+          logger.debug('Valid hashes in localStorage:', validHashes.length, 'hashes')
+          logger.debug('Hash being checked:', hash)
+          logger.debug('First valid hash (if exists):', validHashes[0]?.substring(0, 8) + '...')
 
           if (!validHashes.includes(hash)) {
-            console.error('[Auth] Hash not found in valid hashes list')
+            logger.error('Hash not found in valid hashes list')
             throw new Error('Invalid hash. Please check your bookmark code.')
           }
 
@@ -62,9 +65,9 @@ export const useAuthStore = create<AuthState>()(
             error: null
           })
 
-          console.log('[Auth] Login successful for hash:', hash.substring(0, 8) + '...')
+          logger.info('Login successful for hash:', hash.substring(0, 8) + '...')
         } catch (error: any) {
-          console.error('[Auth] Login failed:', error)
+          logger.error('Login failed:', error)
           set({
             error: error.message || 'Login failed',
             isLoading: false,
@@ -82,7 +85,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           error: null
         })
-        console.log('[Auth] Logged out')
+        logger.info('Logged out')
       },
 
       clearError: () => set({ error: null }),
@@ -103,13 +106,13 @@ export const useAuthStore = create<AuthState>()(
               },
               isAuthenticated: true
             })
-            console.log('[Auth] Restored session from localStorage')
+            logger.info('Restored session from localStorage')
           }
         } else {
           // Invalid or no hash, ensure logged out
           if (get().isAuthenticated) {
             set({ user: null, isAuthenticated: false })
-            console.log('[Auth] Session invalid, logged out')
+            logger.info('Session invalid, logged out')
           }
         }
       }
