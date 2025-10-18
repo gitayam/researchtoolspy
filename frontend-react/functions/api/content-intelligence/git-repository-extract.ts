@@ -431,7 +431,8 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
   try {
     // Extract project path from URL
     // Format: https://gitlab.com/group/subgroup/project
-    const match = url.match(/gitlab\.com\/(.+?)(?:\.git)?(?:\/|$)/)
+    // Match everything after gitlab.com/ until query string, hash, or end of URL
+    const match = url.match(/gitlab\.com\/(.+?)(?:\.git)?(?:\?|#|$)/)
     if (!match) {
       logger.warn(`Invalid GitLab URL format: ${url}`)
       return {
