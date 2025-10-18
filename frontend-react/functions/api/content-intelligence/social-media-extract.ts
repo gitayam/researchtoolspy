@@ -1244,7 +1244,8 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
     }
 
     // Strategy 3: Try vxTwitter API as fallback for reliable image extraction
-    if (!mediaUrls.images && !mediaUrls.video) {
+    // Run for all modes to ensure images are always extracted
+    if (!mediaUrls.images && !mediaUrls.video && (mode !== 'stream')) {
       try {
         console.log('[Twitter] Attempting vxTwitter API fallback for media extraction...')
 
@@ -1308,6 +1309,32 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
       } catch (vxError) {
         console.warn('[Twitter] VxTwitter API fallback failed:', vxError)
         // Continue to metadata even if vxTwitter fails
+      }
+    }
+
+    // Strategy 4: Extract pic.twitter.com links from oEmbed HTML as last resort
+    // Run for ALL modes to ensure basic image links are always available
+    if (!mediaUrls.images && !mediaUrls.video && embedHtml && mode !== 'stream') {
+      console.log('[Twitter] Extracting pic.twitter.com links from oEmbed HTML...')
+      const picLinks: string[] = []
+      const picMatches = embedHtml.match(/pic\.twitter\.com\/([a-zA-Z0-9]+)/g) || []
+
+      for (const picLink of picMatches) {
+        const fullLink = `https://${picLink}`
+        picLinks.push(fullLink)
+        downloadOptions.push({
+          quality: 'View in Browser',
+          format: 'pic.twitter.com',
+          url: fullLink,
+          hasAudio: false,
+          hasVideo: false
+        })
+      }
+
+      if (picLinks.length > 0) {
+        mediaUrls.images = picLinks
+        mediaUrls.thumbnail = picLinks[0]
+        console.log('[Twitter] Extracted', picLinks.length, 'pic.twitter.com links')
       }
     }
 
