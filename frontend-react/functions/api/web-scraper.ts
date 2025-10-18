@@ -77,15 +77,84 @@ export async function onRequest(context: any) {
       })
     }
 
-    // Fetch the URL with enhanced browser headers
-    const response = await enhancedFetch(url.toString(), {
-      maxRetries: 3,
-      retryDelay: 500
-    })
+    // Fetch the URL with enhanced browser headers and timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+
+    let response
+    try {
+      response = await enhancedFetch(url.toString(), {
+        maxRetries: 3,
+        retryDelay: 500,
+        signal: controller.signal
+      })
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId)
+
+      // Handle timeout
+      if (fetchError.name === 'AbortError') {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'The website took too long to respond',
+          errorType: 'timeout',
+          suggestions: [
+            'Try again - the site might be temporarily slow',
+            'Check if the URL is accessible in your browser',
+            'The website might have anti-bot protection'
+          ],
+          technicalDetails: 'Request timeout after 15 seconds'
+        }), {
+          status: 504,
+          headers: corsHeaders,
+        })
+      }
+
+      // Handle other fetch errors
+      throw fetchError
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
     if (!response.ok) {
+      let userMessage = 'Failed to access the website'
+      let suggestions: string[] = []
+
+      if (response.status === 403 || response.status === 401) {
+        userMessage = 'The website is blocking automated access'
+        suggestions = [
+          'This website has anti-bot protection',
+          'Try accessing the URL directly in your browser',
+          'The content may require authentication',
+          'Consider manually copying the content instead'
+        ]
+      } else if (response.status === 404) {
+        userMessage = 'The page was not found'
+        suggestions = [
+          'Check if the URL is correct',
+          'The page might have been moved or deleted',
+          'Try searching for the content on the website'
+        ]
+      } else if (response.status >= 500) {
+        userMessage = 'The website server is having issues'
+        suggestions = [
+          'Try again later - the server might be temporarily down',
+          'Check if the website is accessible in your browser',
+          'The website might be experiencing technical difficulties'
+        ]
+      } else {
+        suggestions = [
+          'Try again later',
+          'Check if the URL is correct and accessible',
+          'The website might be experiencing issues'
+        ]
+      }
+
       return new Response(JSON.stringify({
-        error: `Failed to fetch URL: ${response.status} ${response.statusText}`
+        success: false,
+        error: userMessage,
+        errorType: 'http_error',
+        suggestions,
+        technicalDetails: `HTTP ${response.status} ${response.statusText}`
       }), {
         status: 400,
         headers: corsHeaders,
@@ -237,9 +306,70 @@ export async function onRequest(context: any) {
 
   } catch (error: any) {
     console.error('Web scraping error:', error)
+
+    // Create user-friendly error message
+    let userMessage = 'Failed to scrape the URL'
+    let suggestions: string[] = []
+    let errorType = 'unknown'
+
+    // Network/timeout errors
+    if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+      errorType = 'timeout'
+      userMessage = 'The website took too long to respond'
+      suggestions = [
+        'Try again - the site might be temporarily slow',
+        'Check if the URL is correct',
+        'The website might be blocking automated requests'
+      ]
+    }
+    // Fetch/network errors
+    else if (error.message?.includes('fetch') || error.message?.includes('network')) {
+      errorType = 'network'
+      userMessage = 'Unable to connect to the website'
+      suggestions = [
+        'Check your internet connection',
+        'Verify the URL is correct and accessible',
+        'The website might be down or blocking requests'
+      ]
+    }
+    // Blocked/forbidden
+    else if (error.message?.includes('403') || error.message?.includes('401') || error.message?.includes('blocked')) {
+      errorType = 'blocked'
+      userMessage = 'The website is blocking automated access'
+      suggestions = [
+        'Some websites block scraping tools for security',
+        'Try accessing the URL directly in your browser first',
+        'Consider manually copying the content instead',
+        'The site may require authentication or have anti-bot protection'
+      ]
+    }
+    // Invalid URL
+    else if (error.message?.includes('Invalid URL') || error.message?.includes('protocol')) {
+      errorType = 'invalid_url'
+      userMessage = 'The URL format is invalid'
+      suggestions = [
+        'Make sure the URL starts with http:// or https://',
+        'Check for typos in the URL',
+        'Ensure the URL is complete and properly formatted'
+      ]
+    }
+    // Generic parsing/extraction error
+    else {
+      errorType = 'parsing'
+      userMessage = 'Failed to extract content from the website'
+      suggestions = [
+        'The page structure might be unusual or dynamic',
+        'Try a different page or source',
+        'Some content requires JavaScript which we cannot execute'
+      ]
+    }
+
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Failed to scrape URL'
+      error: userMessage,
+      errorType,
+      suggestions,
+      technicalDetails: error.message || 'Unknown error'
     }), {
       status: 500,
       headers: corsHeaders,
