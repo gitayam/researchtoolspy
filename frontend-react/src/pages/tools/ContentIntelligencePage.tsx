@@ -24,6 +24,9 @@ import { extractCitationData, createCitationParams } from '@/utils/content-to-ci
 import { addCitation, generateCitationId } from '@/utils/citation-library'
 import { ClaimAnalysisDisplay } from '@/components/content-intelligence/ClaimAnalysisDisplay'
 import { AnalysisLayout } from '@/components/content-intelligence/AnalysisLayout'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('ContentIntelligence')
 
 export default function ContentIntelligencePage() {
   const { toast } = useToast()
@@ -786,7 +789,7 @@ ${shortSummary}${
       }
 
       // Show success message
-      console.log(`Copy successful using: ${copyMethod}`)
+      logger.debug(`Copy successful using: ${copyMethod}`)
       toast({
         title: 'Summary Copied! 🎉',
         description: shareUrl
@@ -819,7 +822,7 @@ ${shortSummary}${
     }
 
     try {
-      console.log('[Export] Starting word cloud export...')
+      logger.info('Starting word cloud export...')
 
       // Create a wrapper div with metadata if requested
       const exportContainer = document.createElement('div')
@@ -908,7 +911,7 @@ ${shortSummary}${
       // Force white background on container
       exportContainer.style.setProperty('background-color', '#ffffff', 'important')
 
-      console.log('[Export] Rendering canvas...')
+      logger.debug('Rendering canvas...')
       // Capture as canvas with minimal options
       const canvas = await html2canvas(exportContainer, {
         backgroundColor: '#ffffff',
@@ -921,7 +924,7 @@ ${shortSummary}${
       // Remove temporary element
       document.body.removeChild(exportContainer)
 
-      console.log('[Export] Canvas rendered, creating download...')
+      logger.debug('Canvas rendered, creating download...')
       // Convert to blob and download
       canvas.toBlob((blob) => {
         if (!blob) {
@@ -940,7 +943,7 @@ ${shortSummary}${
         link.click()
         URL.revokeObjectURL(url)
 
-        console.log('[Export] Download triggered successfully')
+        logger.info('Download triggered successfully')
         toast({
           title: 'Success',
           description: `Word cloud exported as ${format.toUpperCase()}`
@@ -948,7 +951,7 @@ ${shortSummary}${
       }, `image/${format}`, 0.95)
 
     } catch (error) {
-      console.error('[Export] Failed:', error)
+      logger.error('Export failed:', error)
       toast({
         title: 'Error',
         description: `Failed to export: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -1788,9 +1791,9 @@ ${shortSummary}${
       })
 
       // Show detailed results in console for debugging
-      console.log('Auto-extraction results:', result)
+      logger.debug('Auto-extraction results:', result)
     } catch (error) {
-      console.error('Auto-extract error:', error)
+      logger.error('Auto-extract error:', error)
       toast({
         title: 'Auto-Extraction Failed',
         description: error instanceof Error ? error.message : 'Unknown error',
@@ -1858,7 +1861,7 @@ ${shortSummary}${
   const startStarburstingInBackground = async (analysisId: number) => {
     if (!analysisId) return
 
-    console.log('[Starbursting] Starting background analysis for content ID:', analysisId)
+    logger.info('Starting Starbursting background analysis for content ID:', analysisId)
     setStarburstingStatus('processing')
     setStarburstingError(null)
 
