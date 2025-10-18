@@ -3,9 +3,10 @@
 *Last Updated: 2025-10-18 13:50*
 
 ## Deployment Status ✅
-- **Latest Deployment**: `eac726f8` - https://eac726f8.researchtoolspy.pages.dev
-- **Status**: Production - Twitter image extraction + Copy Analysis auto-share + 72% logging cleanup
+- **Latest Deployment**: `e60f7a0a` - https://e60f7a0a.researchtoolspy.pages.dev
+- **Status**: Production - Copy Summary direct clipboard + Twitter images + 72% logging cleanup
 - **Recent Changes**:
+  * ✅ FIXED: Copy Summary now copies directly to clipboard (modal is fallback only)
   * ✅ ENHANCED: Twitter extraction now includes pic.twitter.com image links
   * ✅ FIXED: Copy Analysis now auto-creates share link (no need to click Share first)
   * ✅ FIXED: Citation generation error (replaced require() with ES6 import)
@@ -16,7 +17,8 @@
   * ✅ GitLab API integration FIXED - all platforms working!
 
 ## Deployments Timeline
-- `eac726f8` (now) - **ENHANCED Twitter extraction** - includes pic.twitter.com image links
+- `e60f7a0a` (now) - **FIXED Copy Summary UX** - copies directly, no modal popup (commit 110d0452)
+- `eac726f8` - **ENHANCED Twitter extraction** - includes pic.twitter.com image links
 - `c7ecd03c` - **FIXED Copy Analysis** - auto-creates share link seamlessly
 - `d98d6cee` - **FIXED citation generation error** - replaced require() with ES6 import
 - `2c53099f` - **FIXED deployment issue** - deploying dist folder only
