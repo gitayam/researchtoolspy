@@ -503,6 +503,61 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
     }
   }
 
+  // Use claim as ACH Hypothesis
+  const handleUseAsACHHypothesis = (claim: string, index: number) => {
+    // Store claim in localStorage for ACH page to pick up
+    localStorage.setItem('ach_hypothesis_from_claim', JSON.stringify({
+      hypothesis: claim,
+      source: 'Claims Analysis',
+      contentAnalysisId: contentAnalysisId,
+      claimIndex: index,
+      timestamp: new Date().toISOString()
+    }))
+
+    toast({
+      title: 'Hypothesis Set',
+      description: 'Navigate to ACH Analysis to use this claim as a hypothesis',
+      variant: 'default'
+    })
+
+    // Navigate to ACH page
+    window.location.href = '/dashboard/frameworks/ach'
+  }
+
+  // Create Research Plan from claim
+  const handleCreateResearchPlan = (claim: string, index: number) => {
+    // Store claim in localStorage for research plan
+    localStorage.setItem('research_plan_from_claim', JSON.stringify({
+      question: claim,
+      source: 'Claims Analysis',
+      contentAnalysisId: contentAnalysisId,
+      claimIndex: index,
+      timestamp: new Date().toISOString()
+    }))
+
+    toast({
+      title: 'Research Plan Started',
+      description: 'Navigate to Research Question Generator to develop a plan for this claim',
+      variant: 'default'
+    })
+
+    // Navigate to research question generator
+    window.location.href = '/dashboard/tools/research-questions'
+  }
+
+  // Run deep deception analysis on specific claim
+  const handleDeepDeceptionAnalysis = async (claim: string, index: number) => {
+    toast({
+      title: 'Deep Analysis',
+      description: 'Deep deception analysis feature coming soon. This will perform enhanced multi-method analysis on this specific claim.',
+      variant: 'default'
+    })
+
+    // TODO: Implement deep deception analysis endpoint
+    // This would call a dedicated endpoint that focuses on just this one claim
+    // with more detailed analysis methods and external fact-checking
+  }
+
   return (
     <div className="space-y-6">
       {/* Loading/Error State for Adjustments */}
@@ -1240,6 +1295,45 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
                   )}
                 </TabsContent>
               </Tabs>
+
+              {/* Action Buttons for Further Analysis */}
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Further Analysis Options
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleUseAsACHHypothesis(claimData.claim, index)}
+                    className="flex items-center gap-2"
+                  >
+                    <Shield className="h-4 w-4" />
+                    Use as ACH Hypothesis
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleCreateResearchPlan(claimData.claim, index)}
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Create Research Plan
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDeepDeceptionAnalysis(claimData.claim, index)}
+                    className="flex items-center gap-2"
+                  >
+                    <AlertTriangle className="h-4 w-4" />
+                    Deep Deception Analysis
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
           )
