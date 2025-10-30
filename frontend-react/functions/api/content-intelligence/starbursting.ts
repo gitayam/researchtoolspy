@@ -23,6 +23,13 @@ interface StarburstingRequest {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
+  const corsHeaders = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+  }
+
   try {
     const body = await request.json() as StarburstingRequest
     const { analysis_ids, title, use_ai_questions = true } = body
@@ -32,11 +39,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'At least one analysis_id is required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: corsHeaders
       })
     }
 
     console.log(`[Starbursting] Creating session from ${analysis_ids.length} content analysis(es)`)
+    console.log(`[Starbursting] Analysis IDs:`, analysis_ids)
 
     // Fetch content analyses
     const placeholders = analysis_ids.map(() => '?').join(',')
@@ -49,14 +57,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(...analysis_ids).all()
 
     if (!results.results || results.results.length === 0) {
+      console.error('[Starbursting] No content analyses found for IDs:', analysis_ids)
       return new Response(JSON.stringify({
-        error: 'No content analyses found with provided IDs'
+        error: 'No content analyses found with provided IDs',
+        provided_ids: analysis_ids
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: corsHeaders
       })
     }
 
+    console.log(`[Starbursting] Found ${results.results.length} content analysis(es)`)
     const analyses = results.results
 
     // Build Starbursting data
@@ -66,11 +77,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Build context from all analyses
     // Forward auth headers (declare early for AI extraction)
     const authHeader = request.headers.get('Authorization')
+    const userHash = request.headers.get('X-User-Hash')
+
+    console.log('[Starbursting] Auth headers:', {
+      hasAuthorization: !!authHeader,
+      hasUserHash: !!userHash
+    })
 
     const contextParts: string[] = []
 
     analyses.forEach((analysis, index) => {
-      const entities = JSON.parse(analysis.entities as string || '{}')
+      let entities: any = {}
+      try {
+        entities = JSON.parse(analysis.entities as string || '{}')
+      } catch (e) {
+        console.warn(`[Starbursting] Failed to parse entities for analysis ${analysis.id}:`, e)
+      }
 
       let analysisSummary = `Source ${index + 1}: ${analysis.title || analysis.url}\n`
 
@@ -104,6 +126,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (use_ai_questions && primaryAnalysis.url) {
       const scrapeEndpoint = `${new URL(request.url).origin}/api/ai/scrape-url`
+      console.log('[Starbursting] Calling AI scrape endpoint:', scrapeEndpoint)
+
+      // Build comprehensive context for AI
+      const aiContext = {
+        url: primaryAnalysis.url,
+        framework: 'starbursting',
+        title: primaryAnalysis.title,
+        summary: primaryAnalysis.summary,
+        extracted_text: primaryAnalysis.extracted_text ? primaryAnalysis.extracted_text.substring(0, 8000) : '', // Send first 8k chars
+        entities: context, // Entity-rich context we already built
+        central_topic: centralTopic
+      }
+
+      console.log('[Starbursting] AI context includes:', {
+        hasTitle: !!aiContext.title,
+        hasText: !!aiContext.extracted_text,
+        textLength: aiContext.extracted_text?.length || 0,
+        hasEntities: !!aiContext.entities
+      })
 
       try {
         const scrapeResponse = await fetch(scrapeEndpoint, {
@@ -112,16 +153,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             'Content-Type': 'application/json',
             ...(authHeader && { 'Authorization': authHeader })
           },
-          body: JSON.stringify({
-            url: primaryAnalysis.url,
-            framework: 'starbursting'
-          })
+          body: JSON.stringify(aiContext)
         })
 
         if (scrapeResponse.ok) {
           extractedData = await scrapeResponse.json()
+          console.log('[Starbursting] AI extraction successful')
         } else {
-          console.warn('[Starbursting] AI extraction failed:', scrapeResponse.status)
+          const errorText = await scrapeResponse.text()
+          console.warn('[Starbursting] AI extraction failed:', scrapeResponse.status, errorText)
         }
       } catch (error) {
         console.error('[Starbursting] AI extraction error:', error)
@@ -129,20 +169,32 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Fallback: Extract initial questions from content if AI fails
-    const initialQuestions = extractInitialQuestions(analyses)
+    const initialQuestions = extractInitialQuestions(analyses, centralTopic)
 
     // Determine the Q&A structure to use
     let qaData
     if (extractedData.who) {
       // AI extraction succeeded - use categorized structure
       qaData = extractedData
+      console.log('[Starbursting] Using AI-extracted qaData')
     } else {
       // AI extraction failed - convert flat questions array to categorized structure
       qaData = categorizeFlatQuestions(initialQuestions)
+      console.log('[Starbursting] Using categorized flat questions')
     }
+
+    console.log('[Starbursting] qaData structure:', {
+      hasWho: !!qaData.who,
+      hasWhat: !!qaData.what,
+      keys: Object.keys(qaData),
+      whoLength: qaData.who?.length,
+      whatLength: qaData.what?.length
+    })
 
     // Create Starbursting session via framework API
     const frameworksEndpoint = `${new URL(request.url).origin}/api/frameworks`
+    console.log('[Starbursting] Calling frameworks API:', frameworksEndpoint)
+    console.log('[Starbursting] Central topic:', centralTopic)
 
     const starburstingPayload = {
       title: centralTopic,
@@ -158,68 +210,122 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       workspace_id: '1' // Default workspace
     }
 
+    console.log('[Starbursting] Payload data structure:', {
+      hasData: !!starburstingPayload.data,
+      dataKeys: Object.keys(starburstingPayload.data),
+      hasWhoInData: !!starburstingPayload.data.who
+    })
+
+    console.log('[Starbursting] Calling framework API with headers:', {
+      hasAuthorization: !!authHeader,
+      authHeaderValue: authHeader ? authHeader.substring(0, 20) + '...' : 'none',
+      hasUserHash: !!userHash,
+      userHashValue: userHash ? userHash.substring(0, 20) + '...' : 'none'
+    })
+
     const starburstingResponse = await fetch(frameworksEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(authHeader && { 'Authorization': authHeader })
+        ...(authHeader && { 'Authorization': authHeader }),
+        ...(userHash && { 'X-User-Hash': userHash })
       },
       body: JSON.stringify(starburstingPayload)
     })
 
     if (!starburstingResponse.ok) {
       const errorText = await starburstingResponse.text()
+      console.error('[Starbursting] Framework API error:', starburstingResponse.status, errorText)
+      console.error('[Starbursting] Request headers sent:', {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader ? 'Bearer ...' : 'missing',
+        'X-User-Hash': userHash ? 'present' : 'missing'
+      })
       throw new Error(`Framework API error: ${starburstingResponse.status} - ${errorText}`)
     }
 
     const starburstingData = await starburstingResponse.json()
+    console.log('[Starbursting] Framework created, ID:', starburstingData.id)
     const sessionId = starburstingData.id
 
     // Link content analyses to Starbursting session
+    console.log('[Starbursting] Linking content analyses to session...')
     for (const analysisId of analysis_ids) {
-      await env.DB.prepare(`
-        INSERT INTO starbursting_sources (session_id, content_analysis_id)
-        VALUES (?, ?)
-      `).bind(sessionId, analysisId).run()
+      try {
+        await env.DB.prepare(`
+          INSERT INTO starbursting_sources (session_id, content_analysis_id)
+          VALUES (?, ?)
+        `).bind(sessionId, analysisId).run()
+      } catch (linkError) {
+        console.error(`[Starbursting] Failed to link analysis ${analysisId}:`, linkError)
+        throw linkError
+      }
+    }
+    console.log('[Starbursting] Successfully linked all analyses')
+
+    // Instead of fetching from GET endpoint, construct the full framework data
+    // from what we already have (since we just created it)
+    const fullFrameworkData = {
+      id: sessionId,
+      title: centralTopic,
+      framework_type: 'starbursting',
+      data: starburstingPayload.data, // Use the data we just sent
+      created_at: new Date().toISOString()
     }
 
-    // Fetch the complete framework data to get the Q&A
-    const getFrameworkEndpoint = `${new URL(request.url).origin}/api/frameworks?id=${sessionId}`
-    const getFrameworkResponse = await fetch(getFrameworkEndpoint, {
-      headers: {
-        ...(authHeader && { 'Authorization': authHeader })
-      }
+    console.log('[Starbursting] Constructed framework data:', {
+      hasData: !!fullFrameworkData.data,
+      dataType: typeof fullFrameworkData.data,
+      keys: Object.keys(fullFrameworkData),
+      dataKeys: fullFrameworkData.data ? Object.keys(fullFrameworkData.data) : []
     })
 
-    let fullFrameworkData = starburstingData
-    if (getFrameworkResponse.ok) {
-      fullFrameworkData = await getFrameworkResponse.json()
-    } else {
-      console.warn('[Starbursting] Failed to fetch full framework data:', getFrameworkResponse.status)
-    }
-
-    return new Response(JSON.stringify({
+    const responsePayload = {
       session_id: sessionId,
       redirect_url: `/dashboard/analysis-frameworks/starbursting/${sessionId}/view`,
       central_topic: centralTopic,
       sources_count: analyses.length,
       ai_questions_generated: use_ai_questions,
       framework_data: fullFrameworkData
-    }), {
+    }
+
+    console.log('[Starbursting] Response payload structure:', {
+      hasFrameworkData: !!responsePayload.framework_data,
+      hasFrameworkDataData: !!responsePayload.framework_data?.data,
+      frameworkDataKeys: responsePayload.framework_data ? Object.keys(responsePayload.framework_data) : []
+    })
+
+    return new Response(JSON.stringify(responsePayload), {
       status: 201,
       headers: { 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
     console.error('[Starbursting] Error:', error)
+    console.error('[Starbursting] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+
+    // Return detailed error for debugging
     return new Response(JSON.stringify({
       error: 'Failed to create Starbursting session',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      errorName: error instanceof Error ? error.name : typeof error,
+      stack: error instanceof Error ? error.stack : undefined
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: corsHeaders
     })
   }
+}
+
+// CORS preflight
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
+  })
 }
 
 // ========================================
@@ -311,59 +417,129 @@ function categorizeFlatQuestions(questions: any[]): {
 // ========================================
 // Extract initial 5W1H questions from content
 // ========================================
-function extractInitialQuestions(analyses: any[]): any[] {
+function extractInitialQuestions(analyses: any[], centralTopic: string): any[] {
   const questions: any[] = []
 
   // Extract from first analysis (primary source)
   if (analyses.length > 0) {
     const primary = analyses[0]
     const entities = JSON.parse(primary.entities as string || '{}')
+    const fullText = (primary.extracted_text as string || '').toLowerCase()
+    const summary = (primary.summary as string || '')
 
-    // WHO questions
+    // Helper function to search text for answer
+    const searchForAnswer = (searchTerms: string[]): string => {
+      for (const term of searchTerms) {
+        const regex = new RegExp(`[^.]*${term.toLowerCase()}[^.]*\\.`, 'i')
+        const match = fullText.match(regex)
+        if (match) {
+          return match[0].trim().substring(0, 300)
+        }
+      }
+      return ''
+    }
+
+    // WHO questions - specific people
     if (entities.people && entities.people.length > 0) {
+      const primaryPerson = entities.people[0]
+      const peopleList = entities.people.slice(0, 5).map((p: any) => {
+        if (p.description) {
+          return `${p.name} (${p.description})`
+        }
+        return p.name
+      }).join(', ')
+
       questions.push({
         id: 'who_1',
         category: 'who',
-        question: `Who are the key people involved? (${entities.people.slice(0, 3).map((p: any) => p.name).join(', ')})`,
-        answer: entities.people.slice(0, 5).map((p: any) => p.name).join(', '),
+        question: `Who is ${primaryPerson.name}${primaryPerson.description ? ' (' + primaryPerson.description + ')' : ''} and what is their role?`,
+        answer: primaryPerson.description || peopleList,
         priority: 5,
-        source: 'Content analysis',
-        status: 'answered'
+        source: 'Entity extraction',
+        status: primaryPerson.description ? 'answered' : 'partial'
       })
+
+      // Ask about other people if there are multiple
+      if (entities.people.length > 1) {
+        const otherPeople = entities.people.slice(1, 3).map((p: any) => p.name).join(' and ')
+        questions.push({
+          id: 'who_2',
+          category: 'who',
+          question: `Who are ${otherPeople} and what is their involvement?`,
+          answer: searchForAnswer([otherPeople, entities.people[1].name]),
+          priority: 4,
+          source: fullText ? 'Text search' : 'Entity extraction',
+          status: searchForAnswer([otherPeople, entities.people[1].name]) ? 'answered' : 'pending'
+        })
+      }
     }
 
-    // WHAT questions
-    if (primary.summary) {
+    // WHAT questions - specific actions/events from summary
+    if (summary) {
+      // Extract first sentence or key phrase from summary
+      const firstSentence = summary.split(/[.!?]/)[0].trim()
       questions.push({
         id: 'what_1',
         category: 'what',
-        question: 'What is the main topic or event?',
-        answer: primary.summary.substring(0, 200),
+        question: `What specifically happened: "${firstSentence}"?`,
+        answer: summary.substring(0, 300),
         priority: 5,
         source: 'Content summary',
         status: 'answered'
       })
     }
 
-    // WHERE questions
-    if (entities.locations && entities.locations.length > 0) {
+    // Additional WHAT about organizations' actions
+    if (entities.organizations && entities.organizations.length > 0) {
+      const primaryOrg = entities.organizations[0].name
+      const orgAction = searchForAnswer([primaryOrg, 'announced', 'stated', 'reported', 'confirmed'])
       questions.push({
-        id: 'where_1',
-        category: 'where',
-        question: `Where did this occur or where is this relevant? (${entities.locations.slice(0, 3).map((l: any) => l.name).join(', ')})`,
-        answer: entities.locations.slice(0, 5).map((l: any) => l.name).join(', '),
+        id: 'what_2',
+        category: 'what',
+        question: `What actions did ${primaryOrg} take or announce?`,
+        answer: orgAction,
         priority: 4,
-        source: 'Content analysis',
-        status: 'answered'
+        source: orgAction ? 'Text search' : 'Requires investigation',
+        status: orgAction ? 'answered' : 'pending'
       })
     }
 
-    // WHEN questions
-    if (primary.publish_date) {
+    // WHERE questions - specific locations and their relevance
+    if (entities.locations && entities.locations.length > 0) {
+      const primaryLocation = entities.locations[0].name
+      const locationContext = searchForAnswer([primaryLocation])
+
+      questions.push({
+        id: 'where_1',
+        category: 'where',
+        question: `Where in ${primaryLocation} did these events occur and what is the significance of this location?`,
+        answer: locationContext,
+        priority: 4,
+        source: locationContext ? 'Text search' : 'Entity extraction',
+        status: locationContext ? 'answered' : 'partial'
+      })
+
+      // If multiple locations, ask about relationship
+      if (entities.locations.length > 1) {
+        const secondLocation = entities.locations[1].name
+        questions.push({
+          id: 'where_2',
+          category: 'where',
+          question: `How are ${primaryLocation} and ${secondLocation} connected in these events?`,
+          answer: searchForAnswer([primaryLocation, secondLocation, 'between', 'and']),
+          priority: 3,
+          source: 'Requires analysis',
+          status: 'pending'
+        })
+      }
+    }
+
+    // WHEN questions - specific dates and timeline
+    if (primary.publish_date && primary.publish_date !== primary.title) {
       questions.push({
         id: 'when_1',
         category: 'when',
-        question: 'When was this published or when did this occur?',
+        question: `When did these events occur? (Published: ${primary.publish_date})`,
         answer: primary.publish_date,
         priority: 4,
         source: 'Metadata',
@@ -371,36 +547,88 @@ function extractInitialQuestions(analyses: any[]): any[] {
       })
     }
 
-    // WHY questions (open for AI)
-    questions.push({
-      id: 'why_1',
-      category: 'why',
-      question: 'Why is this significant or why did this happen?',
-      priority: 5,
-      source: 'User input needed',
-      status: 'pending'
-    })
-
-    // HOW questions (open for AI)
-    questions.push({
-      id: 'how_1',
-      category: 'how',
-      question: 'How did this occur or how should this be interpreted?',
-      priority: 4,
-      source: 'User input needed',
-      status: 'pending'
-    })
-
-    // Additional WHO question about organizations
-    if (entities.organizations && entities.organizations.length > 0) {
+    // Look for specific dates in text
+    const datePattern = /\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{2,4}|\d{4}-\d{2}-\d{2}/gi
+    const dates = fullText.match(datePattern)
+    if (dates && dates.length > 0) {
       questions.push({
-        id: 'who_2',
-        category: 'who',
-        question: `What organizations are involved? (${entities.organizations.slice(0, 3).map((o: any) => o.name).join(', ')})`,
-        answer: entities.organizations.slice(0, 5).map((o: any) => o.name).join(', '),
+        id: 'when_2',
+        category: 'when',
+        question: `What happened on ${dates[0]} and what is the timeline of events?`,
+        answer: searchForAnswer([dates[0]]),
+        priority: 3,
+        source: fullText ? 'Text search' : 'Requires investigation',
+        status: searchForAnswer([dates[0]]) ? 'answered' : 'pending'
+      })
+    }
+
+    // WHY questions - specific motivations and causes
+    if (entities.people && entities.people.length > 0) {
+      const person = entities.people[0].name
+      const whyAnswer = searchForAnswer([person, 'because', 'reason', 'due to', 'in order to'])
+      questions.push({
+        id: 'why_1',
+        category: 'why',
+        question: `Why is ${person} involved and what are their stated motivations or objectives?`,
+        answer: whyAnswer,
+        priority: 5,
+        source: whyAnswer ? 'Text search' : 'Requires deeper analysis',
+        status: whyAnswer ? 'partial' : 'pending'
+      })
+    }
+
+    // WHY about the situation/conflict
+    if (entities.organizations && entities.organizations.length > 0 || entities.locations && entities.locations.length > 0) {
+      const subject = entities.organizations?.[0]?.name || entities.locations?.[0]?.name
+      questions.push({
+        id: 'why_2',
+        category: 'why',
+        question: `Why is ${subject} significant in this context and what are the underlying causes?`,
+        answer: '',
         priority: 4,
-        source: 'Content analysis',
-        status: 'answered'
+        source: 'Requires context analysis',
+        status: 'pending'
+      })
+    }
+
+    // HOW questions - specific mechanisms and processes
+    if (entities.people && entities.people.length > 0 && entities.organizations && entities.organizations.length > 0) {
+      const person = entities.people[0].name
+      const org = entities.organizations[0].name
+      const howAnswer = searchForAnswer([person, org, 'through', 'by', 'using', 'via'])
+      questions.push({
+        id: 'how_1',
+        category: 'how',
+        question: `How is ${person} connected to ${org} and what mechanisms are involved?`,
+        answer: howAnswer,
+        priority: 4,
+        source: howAnswer ? 'Text search' : 'Requires investigation',
+        status: howAnswer ? 'partial' : 'pending'
+      })
+    }
+
+    // HOW about the process or method
+    if (summary.toLowerCase().includes('how') || summary.toLowerCase().includes('process') || summary.toLowerCase().includes('method')) {
+      const howAnswer = searchForAnswer(['process', 'method', 'mechanism', 'approach', 'strategy'])
+      questions.push({
+        id: 'how_2',
+        category: 'how',
+        question: `How are these events unfolding and what are the specific methods or processes being used?`,
+        answer: howAnswer,
+        priority: 4,
+        source: howAnswer ? 'Text search' : 'Requires investigation',
+        status: howAnswer ? 'partial' : 'pending'
+      })
+    } else if (entities.organizations && entities.organizations.length > 0) {
+      const org = entities.organizations[0].name
+      questions.push({
+        id: 'how_2',
+        category: 'how',
+        question: `How does ${org} operate or influence the situation described?`,
+        answer: '',
+        priority: 4,
+        source: 'Requires context analysis',
+        status: 'pending'
       })
     }
   }
@@ -408,11 +636,11 @@ function extractInitialQuestions(analyses: any[]): any[] {
   // If multiple sources, add comparative questions
   if (analyses.length > 1) {
     questions.push({
-      id: 'what_2',
+      id: 'what_multi',
       category: 'what',
-      question: `What are the different perspectives across ${analyses.length} sources?`,
+      question: `What are the different perspectives or facts reported across the ${analyses.length} sources analyzed?`,
       priority: 3,
-      source: 'Multi-source comparison',
+      source: 'Multi-source comparison needed',
       status: 'pending'
     })
   }
