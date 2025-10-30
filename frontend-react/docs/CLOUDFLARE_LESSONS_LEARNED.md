@@ -507,6 +507,404 @@ console.error('[Error] Database query failed:', error)
 
 ---
 
-**Last Updated**: 2025-10-07
+## AI Prompting Best Practices for Cloudflare Workers
+
+### Overview
+Lessons learned from implementing AI-powered features (Starbursting, Claims Analysis, Content Intelligence) using OpenAI GPT models via Cloudflare Workers.
+
+### Critical Rule: Be Specific, Never Generic
+
+**❌ BAD - Vague References**:
+```typescript
+// Generated question:
+"Why is this significant or important?"
+"How did this happen or come about?"
+"Where did these events occur?"
+```
+
+**Problem**: Questions use "this", "it", "these events" - too generic for research. Researchers can't investigate vague questions.
+
+**✅ GOOD - Specific References**:
+```typescript
+// Generated question:
+"Why is Lee Myung-bak involved in the Ministry of Foreign Affairs investigation?"
+"How did the Korea-Costa Rica diplomatic incident escalate between June 2023 and August 2023?"
+"Where in Camp David did the trilateral summit between US, Japan, and South Korea take place?"
+```
+
+**Why This Matters**: Specific questions reference actual entities, names, dates, locations - making them actionable for research.
+
+### Prompt Engineering Patterns
+
+#### 1. Entity-Rich Context Injection
+
+**Pattern**:
+```typescript
+const aiContext = {
+  url: primaryAnalysis.url,
+  title: primaryAnalysis.title,
+  summary: primaryAnalysis.summary,
+  // ✅ Include up to 8000 chars of full text
+  extracted_text: primaryAnalysis.extracted_text.substring(0, 8000),
+  // ✅ Provide structured entities
+  entities: {
+    people: entities.people.map(p => ({ name: p.name, description: p.description })),
+    organizations: entities.organizations.map(o => o.name),
+    locations: entities.locations.map(l => l.name)
+  },
+  central_topic: centralTopic
+}
+```
+
+**Lessons**:
+1. ✅ **Send 8000+ chars of context** - More text = better specificity
+2. ✅ **Structure entities clearly** - People, orgs, locations separate
+3. ✅ **Include metadata** - Title, summary, URL for context
+4. ⚠️ **Balance token usage** - 8000 chars ≈ 2000 tokens (reasonable)
+
+#### 2. Explicit Anti-Vagueness Instructions
+
+**Pattern**:
+```typescript
+const prompt = `Generate 5W1H questions for investigation.
+
+CRITICAL RULES:
+1. Questions MUST reference actual entities, names, dates, locations
+2. DO NOT use vague terms: "this", "it", "the situation", "these events"
+3. Each question must be self-contained and specific
+4. Reference concrete nouns and actions from the text
+
+❌ BAD: "Why is this significant?"
+✅ GOOD: "Why is the Ministry of Foreign Affairs involved in the corruption investigation?"
+
+❌ BAD: "How did this happen?"
+✅ GOOD: "How did Lee Myung-bak's relationship with Samsung influence the policy decision?"
+
+Extract entities:
+- People: ${entities.people.map(p => p.name).join(', ')}
+- Organizations: ${entities.organizations.map(o => o.name).join(', ')}
+- Locations: ${entities.locations.map(l => l.name).join(', ')}
+
+Full Text Context:
+${fullText.substring(0, 8000)}
+
+Generate questions that investigators can actually research.`
+```
+
+**Lessons**:
+1. ✅ **Show examples** - ❌ BAD vs ✅ GOOD in prompt
+2. ✅ **List entities explicitly** - AI sees what's available
+3. ✅ **Explain WHY specificity matters** - "investigators can actually research"
+4. ✅ **Use strong language** - "MUST", "DO NOT", "CRITICAL"
+
+#### 3. Context-Aware Answer Extraction
+
+**Pattern**:
+```typescript
+const prompt = `Extract answers from the text for these questions.
+
+Questions to Answer:
+${questions.map(q => `- ${q.question}`).join('\n')}
+
+Full Text (search for answers):
+${fullText}
+
+INSTRUCTIONS:
+1. Search the text for answers to each question
+2. If answer found: Return relevant excerpt (max 300 chars)
+3. If NOT found: Leave answer as empty string ("")
+4. Mark status:
+   - "answered" = Complete answer found in text
+   - "partial" = Some information found but incomplete
+   - "pending" = No answer found, requires investigation
+
+Return JSON:
+{
+  "questions": [
+    {
+      "question": "Who is Lee Myung-bak and what is their role?",
+      "answer": "Lee Myung-bak served as President of South Korea from 2008 to 2013...",
+      "status": "answered",
+      "source": "Text search"
+    }
+  ]
+}`
+```
+
+**Lessons**:
+1. ✅ **Provide full text for search** - AI can grep for answers
+2. ✅ **Define status levels** - answered/partial/pending
+3. ✅ **Accept "no answer"** - Marking pending is valid
+4. ✅ **Limit answer length** - 300 chars prevents rambling
+
+#### 4. Avoiding Duplicate Questions
+
+**Pattern**:
+```typescript
+const existingQuestionsContext = `
+EXISTING QUESTIONS (DO NOT DUPLICATE):
+
+WHO:
+- Who is Lee Myung-bak and what is their role?
+- Who are the key officials in Ministry of Foreign Affairs?
+
+WHAT:
+- What actions did the Ministry announce on June 15?
+
+[... all existing questions ...]
+
+Your task: Generate NEW questions that cover GAPS not addressed above.
+Focus on aspects that haven't been asked yet.`
+
+const prompt = `${existingQuestionsContext}
+
+Generate 2-3 NEW questions for each category (Who, What, Where, When, Why, How).
+
+Rules:
+1. DO NOT duplicate or rephrase existing questions
+2. Identify what hasn't been asked yet
+3. Focus on specific entities mentioned in the text
+4. Each question must be unique and investigate a new angle`
+```
+
+**Lessons**:
+1. ✅ **Show ALL existing questions** - AI can avoid duplication
+2. ✅ **Emphasize "NEW" and "GAPS"** - Focus on what's missing
+3. ✅ **Request specific count** - "2-3 NEW questions per category"
+4. ✅ **Explain purpose** - "investigate a new angle"
+
+#### 5. Structured JSON Response Format
+
+**Pattern**:
+```typescript
+const prompt = `Return ONLY valid JSON in this exact format:
+
+{
+  "who": [
+    {
+      "id": "who_1",
+      "category": "who",
+      "question": "Who is [specific person] and what role do they play in [specific context]?",
+      "answer": "Found in text or empty string",
+      "priority": 5,
+      "source": "Entity extraction" or "Text search" or "Requires investigation",
+      "status": "answered" or "partial" or "pending"
+    }
+  ],
+  "what": [...],
+  "where": [...],
+  "when": [...],
+  "why": [...],
+  "how": [...]
+}
+
+IMPORTANT:
+- Return ONLY the JSON object
+- No markdown code blocks
+- No explanatory text
+- All strings must be properly escaped
+- Arrays must have proper commas`
+
+const data = await callOpenAIViaGateway(env, {
+  messages: [
+    {
+      role: 'system',
+      content: 'You are an expert investigative researcher. Return ONLY valid JSON with specific questions referencing concrete entities.'
+    },
+    { role: 'user', content: prompt }
+  ]
+})
+
+// Clean response
+const jsonText = data.choices[0].message.content
+  .replace(/```json\n?/g, '')
+  .replace(/```\n?/g, '')
+  .trim()
+
+const result = JSON.parse(jsonText)
+```
+
+**Lessons**:
+1. ✅ **Show exact JSON structure** - AI follows format precisely
+2. ✅ **Request "ONLY JSON"** - Prevents extra text
+3. ✅ **System message reinforces** - "Return ONLY valid JSON"
+4. ✅ **Clean markdown artifacts** - Remove ```json blocks
+5. ⚠️ **Handle parse errors** - Try/catch around JSON.parse
+
+### Model Selection
+
+**For Starbursting/Question Generation**:
+```typescript
+model: 'gpt-4o-mini',
+max_completion_tokens: 2000,
+temperature: 0.7  // Balanced creativity/consistency
+```
+
+**Lessons**:
+1. ✅ **gpt-4o-mini for most tasks** - Fast, cheap, good quality
+2. ✅ **temperature 0.7** - Creative but not random
+3. ✅ **max_completion_tokens 2000** - Enough for detailed responses
+4. ⚠️ **Use gpt-4o for complex reasoning** - When quality matters more than speed
+
+**For Claims Analysis/Deception Detection**:
+```typescript
+model: 'gpt-4o-mini',
+max_completion_tokens: 3000,
+temperature: 0.3  // Lower for analytical tasks
+```
+
+**Lessons**:
+1. ✅ **Lower temperature (0.3)** - More consistent analysis
+2. ✅ **Higher token limit (3000)** - Detailed reasoning needed
+3. ✅ **Same model works** - gpt-4o-mini handles analysis well
+
+### Caching Strategy for AI Calls
+
+**Pattern**:
+```typescript
+const data = await callOpenAIViaGateway(env, {
+  model: 'gpt-4o-mini',
+  messages: [...]
+}, {
+  // ✅ Cache responses for 6 hours
+  cacheTTL: getOptimalCacheTTL('starbursting-questions'),
+  metadata: {
+    endpoint: 'starbursting-generate',
+    operation: 'question-generation'
+  },
+  timeout: 30000  // 30 second timeout
+})
+
+// In ai-gateway.ts
+export function getOptimalCacheTTL(operation: string): number {
+  const ttls = {
+    'starbursting-questions': 21600,  // 6 hours
+    'claim-extraction': 21600,        // 6 hours
+    'claim-analysis': 21600,          // 6 hours
+    'entity-extraction': 43200        // 12 hours
+  }
+  return ttls[operation] || 3600
+}
+```
+
+**Lessons**:
+1. ✅ **Cache AI responses** - Same content → same questions
+2. ✅ **6 hours for questions** - Balance freshness vs cost
+3. ✅ **12 hours for entities** - They rarely change
+4. ✅ **Set timeouts** - 30s prevents hanging
+5. ⚠️ **Don't cache errors** - Only cache successful results
+
+### Error Handling
+
+**Pattern**:
+```typescript
+try {
+  const data = await callOpenAIViaGateway(env, {...})
+
+  if (!data.choices?.[0]?.message?.content) {
+    throw new Error('Invalid API response')
+  }
+
+  const jsonText = data.choices[0].message.content
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
+    .trim()
+
+  return JSON.parse(jsonText)
+
+} catch (error) {
+  console.error('[AI Error]', error)
+
+  // Return fallback structure
+  return {
+    who: [],
+    what: [],
+    where: [],
+    when: [],
+    why: [],
+    how: []
+  }
+}
+```
+
+**Lessons**:
+1. ✅ **Check response structure** - Don't assume success
+2. ✅ **Clean JSON before parsing** - Remove markdown
+3. ✅ **Return fallback on error** - Empty structure, not crash
+4. ✅ **Log errors with context** - Include endpoint/operation
+5. ⚠️ **Don't expose API errors to users** - Generic error messages
+
+### Cost Optimization
+
+**Current Usage (gpt-4o-mini)**:
+- Input: $0.15 per 1M tokens
+- Output: $0.60 per 1M tokens
+- Typical request: ~2500 tokens input, ~1000 tokens output
+- Cost per request: ~$0.0009 (less than 1 cent)
+
+**Optimization Strategies**:
+```typescript
+// 1. Limit context size
+extracted_text: text.substring(0, 8000)  // ≈2000 tokens
+
+// 2. Cache aggressively
+cacheTTL: 21600  // 6 hours
+
+// 3. Use gpt-4o-mini by default
+model: 'gpt-4o-mini'  // 10x cheaper than gpt-4o
+
+// 4. Limit response tokens
+max_completion_tokens: 2000  // Prevents runaway responses
+```
+
+**Lessons**:
+1. ✅ **8000 chars is sweet spot** - Enough context, reasonable cost
+2. ✅ **Cache = free repeat requests** - 6 hour cache saves 90%+ of calls
+3. ✅ **gpt-4o-mini for most tasks** - Only use gpt-4o when necessary
+4. ✅ **Set token limits** - Prevents expensive accidents
+
+### Prompt Testing Checklist
+
+Before deploying AI prompts to production:
+
+1. ✅ **Test with real data** - Use actual article text, not samples
+2. ✅ **Check for vague responses** - No "this", "it", "the situation"
+3. ✅ **Verify JSON parsing** - Response must be valid JSON
+4. ✅ **Test error cases** - What if API fails? Timeout?
+5. ✅ **Review cost** - How many tokens per request?
+6. ✅ **Test caching** - Same input = cached response?
+7. ✅ **Check specificity** - Do questions reference actual entities?
+8. ✅ **Validate answer quality** - Are text searches finding answers?
+
+### Common Pitfalls to Avoid
+
+**❌ Don't:**
+1. Use generic prompts expecting specific output
+2. Skip providing entity context to AI
+3. Allow vague references in generated content
+4. Parse JSON without cleaning markdown artifacts
+5. Cache errors or invalid responses
+6. Use gpt-4o when gpt-4o-mini suffices
+7. Send unlimited context (token costs add up)
+8. Forget to set timeouts on API calls
+9. Assume AI will follow format without examples
+10. Deploy prompts without testing on real data
+
+**✅ Do:**
+1. Provide rich entity-based context (8000+ chars)
+2. Show explicit examples of good vs bad output
+3. Use strong directive language ("MUST", "DO NOT")
+4. Clean and validate all JSON responses
+5. Cache successful responses (6+ hours)
+6. Use gpt-4o-mini as default model
+7. Limit context to 8000 chars (≈2000 tokens)
+8. Set 30s timeouts on all AI calls
+9. Include exact JSON format in prompt
+10. Test thoroughly with production-like data
+
+---
+
+**Last Updated**: 2025-10-30
 **Cloudflare Products Used**: Pages, Workers, D1, KV
+**AI Models Used**: GPT-4o-mini (primary), GPT-4o (complex reasoning)
 **Deployment URL**: https://researchtoolspy.pages.dev
