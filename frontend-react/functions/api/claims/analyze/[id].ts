@@ -234,7 +234,7 @@ Return ONLY valid JSON array:
         endpoint: 'claims-analysis',
         operation: 'extract-claims'
       },
-      timeout: 30000
+      timeout: 60000  // Increased to 60 seconds
     })
 
     if (!data.choices?.[0]?.message?.content) {
@@ -414,7 +414,7 @@ Return ONLY valid JSON:
         endpoint: 'claims-analysis',
         operation: 'deception-analysis'
       },
-      timeout: 30000
+      timeout: 60000  // Increased to 60 seconds for complex analysis
     })
 
     if (!data.choices?.[0]?.message?.content) {
