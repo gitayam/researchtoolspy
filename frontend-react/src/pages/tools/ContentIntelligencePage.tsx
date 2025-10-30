@@ -15,7 +15,7 @@ import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
   Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe, SmileIcon, FrownIcon, MehIcon, Grid3x3, Share2,
-  Search, Sparkles, XCircle, MoreVertical, Mail, GitBranch, Code, Tag
+  Search, Sparkles, XCircle, MoreVertical, Mail, GitBranch, Code, Tag, PlusCircle
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -88,6 +88,7 @@ export default function ContentIntelligencePage() {
   const [starburstingSession, setStarburstingSession] = useState<any>(null)
   const [starburstingStatus, setStarburstingStatus] = useState<'idle' | 'processing' | 'complete' | 'error'>('idle')
   const [starburstingError, setStarburstingError] = useState<string | null>(null)
+  const [generatingMoreQuestions, setGeneratingMoreQuestions] = useState(false)
 
   // Word Analysis View State
   const [wordCloudView, setWordCloudView] = useState<'words' | 'phrases' | 'entities'>('words')
@@ -1088,7 +1089,9 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        throw new Error('Claims analysis failed')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('[Claims] API error:', errorData)
+        throw new Error(errorData.details || errorData.error || 'Claims analysis failed')
       }
 
       const data = await response.json()
@@ -1101,9 +1104,10 @@ ${shortSummary}`
       })
     } catch (error) {
       console.error('Claims analysis error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to run claims analysis'
       toast({
         title: 'Error',
-        description: 'Failed to run claims analysis',
+        description: errorMessage,
         variant: 'destructive'
       })
     } finally {
@@ -1905,19 +1909,41 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create Starbursting session')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('[Starbursting] API error:', errorData)
+        throw new Error(errorData.details || errorData.error || 'Failed to create Starbursting session')
       }
 
       const data = await response.json()
+
+      console.log('[Starbursting] Full response:', data)
+      console.log('[Starbursting] Response data:', {
+        hasFrameworkData: !!data.framework_data,
+        frameworkDataKeys: data.framework_data ? Object.keys(data.framework_data) : [],
+        hasData: !!data.framework_data?.data,
+        dataType: typeof data.framework_data?.data
+      })
+
+      if (data.framework_data?.data) {
+        console.log('[Starbursting] framework_data.data contents:', data.framework_data.data)
+      }
 
       // Parse the framework data if it's a string
       if (data.framework_data?.data && typeof data.framework_data.data === 'string') {
         try {
           data.framework_data.data = JSON.parse(data.framework_data.data)
+          console.log('[Starbursting] Parsed framework data:', data.framework_data.data)
         } catch (e) {
           console.error('[Starbursting] Failed to parse framework data:', e)
         }
       }
+
+      console.log('[Starbursting] Setting session state with data:', {
+        hasFrameworkData: !!data.framework_data,
+        hasFrameworkDataData: !!data.framework_data?.data,
+        frameworkDataType: typeof data.framework_data,
+        frameworkDataDataType: typeof data.framework_data?.data
+      })
 
       setStarburstingSession(data)
       setStarburstingStatus('complete')
@@ -1925,6 +1951,61 @@ ${shortSummary}`
       console.error('[Starbursting] Background processing error:', error)
       setStarburstingError(error instanceof Error ? error.message : 'Unknown error')
       setStarburstingStatus('error')
+    }
+  }
+
+  // Generate more Starbursting questions
+  const generateMoreQuestions = async (sessionId: string) => {
+    if (!sessionId) return
+
+    logger.info('Generating more questions for Starbursting session:', sessionId)
+    setGeneratingMoreQuestions(true)
+
+    try {
+      const userHash = localStorage.getItem('omnicore_user_hash')
+      const response = await fetch(`/api/content-intelligence/starbursting/${sessionId}/generate-questions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
+        },
+        body: JSON.stringify({
+          existing_questions: starburstingSession?.framework_data?.data || {}
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.details || errorData.error || 'Failed to generate more questions')
+      }
+
+      const data = await response.json()
+
+      // Parse framework data if needed
+      if (data.framework_data?.data && typeof data.framework_data.data === 'string') {
+        try {
+          data.framework_data.data = JSON.parse(data.framework_data.data)
+        } catch (e) {
+          console.error('[Generate More Questions] Failed to parse framework data:', e)
+        }
+      }
+
+      // Update the session with new questions
+      setStarburstingSession(data)
+
+      toast({
+        title: 'Questions Generated',
+        description: 'New questions have been added to your Starbursting analysis.',
+      })
+    } catch (error) {
+      console.error('[Generate More Questions] Error:', error)
+      toast({
+        title: 'Failed to Generate Questions',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      })
+    } finally {
+      setGeneratingMoreQuestions(false)
     }
   }
 
@@ -4698,6 +4779,19 @@ ${shortSummary}`
                     </div>
                   </div>
 
+                  {/* Debug Info */}
+                  {!starburstingSession.framework_data?.data && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        Debug: framework_data.data is {starburstingSession.framework_data?.data ? 'present' : 'missing'}
+                        <br />
+                        framework_data type: {typeof starburstingSession.framework_data}
+                        <br />
+                        Has framework_data: {starburstingSession.framework_data ? 'yes' : 'no'}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Full Q&A Preview */}
                   {starburstingSession.framework_data?.data && (
                     <div className="space-y-4">
@@ -4789,15 +4883,35 @@ ${shortSummary}`
                     </div>
                   )}
 
-                  {/* Action Button */}
-                  <Button
-                    onClick={() => navigate(`/dashboard/analysis-frameworks/starbursting/${starburstingSession.session_id}/view`)}
-                    className="w-full"
-                  >
-                    <Star className="h-4 w-4 mr-2" />
-                    Open Starbursting Analysis
-                    <ExternalLink className="h-4 w-4 ml-2" />
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => generateMoreQuestions(starburstingSession.session_id)}
+                      className="flex-1"
+                      disabled={generatingMoreQuestions}
+                    >
+                      {generatingMoreQuestions ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <PlusCircle className="h-4 w-4 mr-2" />
+                          Generate More Questions
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => navigate(`/dashboard/analysis-frameworks/starbursting/${starburstingSession.session_id}/view`)}
+                      className="flex-1"
+                    >
+                      <Star className="h-4 w-4 mr-2" />
+                      Open Full Analysis
+                      <ExternalLink className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
                 </div>
               )}
 

@@ -3,7 +3,7 @@
  * Create and retrieve framework analyses with hash-based auth support
  */
 
-import { getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -12,23 +12,14 @@ interface Env {
 
 /**
  * POST - Create new framework session
- * Supports hash-based auth for guest users
+ * Supports hash-based auth for guest users, defaults to user 1
  */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const userId = await getUserFromRequest(context.request, context.env)
+    // Get user ID - defaults to 1 if not authenticated (backward compatibility)
+    const userId = await getUserIdOrDefault(context.request, context.env)
 
-    if (!userId) {
-      return new Response(JSON.stringify({
-        error: 'Authentication required. Please provide a user hash or login.'
-      }), {
-        status: 401,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      })
-    }
+    console.log('[Frameworks POST /index] Creating framework for user:', userId)
 
     const body = await context.request.json() as {
       title: string
@@ -55,8 +46,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const result = await context.env.DB.prepare(`
       INSERT INTO framework_sessions (
         user_id, workspace_id, title, description, framework_type,
-        status, data, source_url, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, datetime('now'), datetime('now'))
+        status, data, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, 'draft', ?, datetime('now'), datetime('now'))
       RETURNING id
     `).bind(
       userId,
@@ -64,8 +55,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.title,
       body.description || null,
       body.framework_type,
-      JSON.stringify(body.data),
-      body.source_url || null
+      JSON.stringify(body.data)
     ).first()
 
     if (!result?.id) {
@@ -106,7 +96,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
     // Allow unauthenticated access - will show only public frameworks if not logged in
-    const userId = await getUserFromRequest(context.request, context.env)
+    const userId = await getUserIdOrDefault(context.request, context.env)
 
     const url = new URL(context.request.url)
     const frameworkType = url.searchParams.get('type')
@@ -165,4 +155,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     })
   }
+}
+
+/**
+ * OPTIONS - CORS preflight
+ */
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-User-Hash"
+    }
+  })
 }

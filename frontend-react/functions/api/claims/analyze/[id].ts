@@ -15,6 +15,13 @@ interface Env {
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  const corsHeaders = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+  }
+
   try {
     const userId = await getUserIdOrDefault(context.request, context.env)
 
@@ -22,44 +29,79 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const pathParts = url.pathname.split('/')
     const contentAnalysisId = pathParts[pathParts.length - 1]
 
+    console.log('[Claims Analysis] POST request for content ID:', contentAnalysisId, 'by user:', userId)
+
     if (!contentAnalysisId || contentAnalysisId === 'analyze') {
       return new Response(JSON.stringify({
         error: 'content_analysis_id is required in URL path'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: corsHeaders
       })
     }
 
     // Get the content analysis
     const analysis = await context.env.DB.prepare(`
-      SELECT id, user_id, full_text, title, url
+      SELECT id, user_id, extracted_text, title, url
       FROM content_analysis
       WHERE id = ?
     `).bind(contentAnalysisId).first()
 
     if (!analysis) {
+      console.error('[Claims Analysis] Analysis not found:', contentAnalysisId)
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: corsHeaders
       })
     }
 
     // Verify ownership
     if (analysis.user_id !== userId) {
+      console.error('[Claims Analysis] Unauthorized access attempt for analysis:', contentAnalysisId, 'by user:', userId)
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json' }
+        headers: corsHeaders
       })
     }
 
-    const fullText = analysis.full_text as string || ''
+    const fullText = analysis.extracted_text as string || ''
     const title = analysis.title as string || ''
 
+    console.log('[Claims Analysis] Analysis data:', {
+      id: contentAnalysisId,
+      hasTitle: !!title,
+      hasExtractedText: !!fullText,
+      textLength: fullText.length,
+      url: analysis.url
+    })
+
     if (!fullText) {
-      return new Response(JSON.stringify({ error: 'No text content available for claims analysis' }), {
+      console.error('[Claims Analysis] No extracted_text for analysis:', contentAnalysisId)
+      return new Response(JSON.stringify({
+        error: 'No text content available for claims analysis',
+        details: 'The content analysis does not have extracted text. This typically means the URL analysis did not complete successfully.',
+        suggestion: 'Try re-analyzing the URL with "Full Analysis" mode to ensure text extraction completes.'
+      }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      })
+    }
+
+    if (fullText.length < 100) {
+      console.error('[Claims Analysis] Extracted text too short for analysis:', contentAnalysisId, 'length:', fullText.length)
+      return new Response(JSON.stringify({
+        error: 'Extracted text is too short for claims analysis',
+        details: `Only ${fullText.length} characters of text were extracted. Need at least 100 characters.`,
+        suggestion: 'The article may be behind a paywall or the content could not be extracted. Try a different source.'
+      }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
       })
     }
 
@@ -98,22 +140,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       contentAnalysisId
     ).run()
 
+    console.log('[Claims Analysis] Successfully completed for content ID:', contentAnalysisId)
+
     return new Response(JSON.stringify({
       success: true,
       claim_analysis: claimAnalysis,
       message: `Claims analysis complete - ${claims.length} claims analyzed`
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: corsHeaders
     })
 
   } catch (error) {
     console.error('[Claims Analysis] Error:', error)
+    console.error('[Claims Analysis] Error stack:', error instanceof Error ? error.stack : 'No stack')
+
     return new Response(JSON.stringify({
       error: 'Failed to run claims analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      errorName: error instanceof Error ? error.name : typeof error,
+      stack: error instanceof Error ? error.stack : undefined
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: corsHeaders
     })
   }
 }
