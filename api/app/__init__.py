@@ -1,1 +1,0 @@
-# OmniCore API Application

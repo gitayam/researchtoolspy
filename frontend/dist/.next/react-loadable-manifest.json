@@ -1,0 +1,48 @@
+{
+  "../node_modules/@tanstack/query-devtools/build/index.js -> ./DevtoolsComponent/LNWAZHJI.js": {
+    "id": null,
+    "files": []
+  },
+  "../node_modules/@tanstack/query-devtools/build/index.js -> ./DevtoolsPanelComponent/MWZ6AO7Z.js": {
+    "id": null,
+    "files": []
+  },
+  "../node_modules/jspdf/dist/jspdf.es.min.js -> canvg": {
+    "id": 34137,
+    "files": [
+      "static/chunks/bc98253f.eda89940a145bae7.js",
+      "static/chunks/2121.804ceac09becf874.js"
+    ]
+  },
+  "../node_modules/jspdf/dist/jspdf.es.min.js -> dompurify": {
+    "id": 10822,
+    "files": [
+      "static/chunks/822.d1eebe7df2d8fc0a.js"
+    ]
+  },
+  "../node_modules/jspdf/dist/jspdf.es.min.js -> html2canvas": {
+    "id": 52699,
+    "files": [
+      "static/chunks/ad2866b8.d24ec0a5e084098f.js"
+    ]
+  },
+  "lib/export-utils.ts -> docx": {
+    "id": 5976,
+    "files": [
+      "static/chunks/8187f03c-2979f9a4ce53ffc5.js"
+    ]
+  },
+  "lib/export-utils.ts -> exceljs": {
+    "id": 26575,
+    "files": [
+      "static/chunks/6edf0643-1c8d9bdf47f66931.js"
+    ]
+  },
+  "lib/export-utils.ts -> jspdf": {
+    "id": 26597,
+    "files": [
+      "static/chunks/164f4fb6-4faf4e2e52270b82.js",
+      "static/chunks/913-da2802283863eaf4.js"
+    ]
+  }
+}

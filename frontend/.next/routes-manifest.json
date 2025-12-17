@@ -1,0 +1,610 @@
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/analysis-frameworks/ach-dashboard/[id]",
+      "regex": "^/analysis\\-frameworks/ach\\-dashboard/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/ach\\-dashboard/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/behavior/[id]",
+      "regex": "^/analysis\\-frameworks/behavior/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/behavior/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/causeway/[id]",
+      "regex": "^/analysis\\-frameworks/causeway/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/causeway/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/cog/[id]",
+      "regex": "^/analysis\\-frameworks/cog/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/cog/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/deception/[id]",
+      "regex": "^/analysis\\-frameworks/deception/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/deception/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/dime/[id]",
+      "regex": "^/analysis\\-frameworks/dime/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/dime/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/dotmlpf/[id]",
+      "regex": "^/analysis\\-frameworks/dotmlpf/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/dotmlpf/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/fundamental-flow/[id]",
+      "regex": "^/analysis\\-frameworks/fundamental\\-flow/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/fundamental\\-flow/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/pest/[id]",
+      "regex": "^/analysis\\-frameworks/pest/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/pest/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/pmesii-pt/[id]",
+      "regex": "^/analysis\\-frameworks/pmesii\\-pt/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/pmesii\\-pt/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/stakeholder/[id]",
+      "regex": "^/analysis\\-frameworks/stakeholder/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/stakeholder/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/starbursting/[id]",
+      "regex": "^/analysis\\-frameworks/starbursting/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/starbursting/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/surveillance/[id]",
+      "regex": "^/analysis\\-frameworks/surveillance/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/surveillance/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/swot-dashboard/[id]",
+      "regex": "^/analysis\\-frameworks/swot\\-dashboard/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/swot\\-dashboard/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/trend/[id]",
+      "regex": "^/analysis\\-frameworks/trend/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/trend/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/vrio/[id]",
+      "regex": "^/analysis\\-frameworks/vrio/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/analysis\\-frameworks/vrio/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/v1/[...path]",
+      "regex": "^/api/v1/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPpath": "nxtPpath"
+      },
+      "namedRegex": "^/api/v1/(?<nxtPpath>.+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks",
+      "regex": "^/analysis\\-frameworks(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/ach-dashboard",
+      "regex": "^/analysis\\-frameworks/ach\\-dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/ach\\-dashboard(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/ach-dashboard/create",
+      "regex": "^/analysis\\-frameworks/ach\\-dashboard/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/ach\\-dashboard/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/ach-dashboard/export-test",
+      "regex": "^/analysis\\-frameworks/ach\\-dashboard/export\\-test(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/ach\\-dashboard/export\\-test(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/behavior",
+      "regex": "^/analysis\\-frameworks/behavior(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/behavior(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/behavior/create",
+      "regex": "^/analysis\\-frameworks/behavior/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/behavior/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/causeway",
+      "regex": "^/analysis\\-frameworks/causeway(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/causeway(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/causeway/create",
+      "regex": "^/analysis\\-frameworks/causeway/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/causeway/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/cog",
+      "regex": "^/analysis\\-frameworks/cog(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/cog(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/cog/create",
+      "regex": "^/analysis\\-frameworks/cog/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/cog/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/deception",
+      "regex": "^/analysis\\-frameworks/deception(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/deception(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/deception/create",
+      "regex": "^/analysis\\-frameworks/deception/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/deception/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/dime",
+      "regex": "^/analysis\\-frameworks/dime(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/dime(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/dime/create",
+      "regex": "^/analysis\\-frameworks/dime/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/dime/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/dotmlpf",
+      "regex": "^/analysis\\-frameworks/dotmlpf(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/dotmlpf(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/dotmlpf/create",
+      "regex": "^/analysis\\-frameworks/dotmlpf/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/dotmlpf/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/fundamental-flow",
+      "regex": "^/analysis\\-frameworks/fundamental\\-flow(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/fundamental\\-flow(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/fundamental-flow/create",
+      "regex": "^/analysis\\-frameworks/fundamental\\-flow/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/fundamental\\-flow/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/pest",
+      "regex": "^/analysis\\-frameworks/pest(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/pest(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/pest/create",
+      "regex": "^/analysis\\-frameworks/pest/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/pest/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/pmesii-pt",
+      "regex": "^/analysis\\-frameworks/pmesii\\-pt(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/pmesii\\-pt(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/pmesii-pt/create",
+      "regex": "^/analysis\\-frameworks/pmesii\\-pt/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/pmesii\\-pt/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/stakeholder",
+      "regex": "^/analysis\\-frameworks/stakeholder(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/stakeholder(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/stakeholder/create",
+      "regex": "^/analysis\\-frameworks/stakeholder/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/stakeholder/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/starbursting",
+      "regex": "^/analysis\\-frameworks/starbursting(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/starbursting(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/starbursting/create",
+      "regex": "^/analysis\\-frameworks/starbursting/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/starbursting/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/surveillance",
+      "regex": "^/analysis\\-frameworks/surveillance(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/surveillance(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/surveillance/create",
+      "regex": "^/analysis\\-frameworks/surveillance/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/surveillance/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/swot-dashboard",
+      "regex": "^/analysis\\-frameworks/swot\\-dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/swot\\-dashboard(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/swot-dashboard/create",
+      "regex": "^/analysis\\-frameworks/swot\\-dashboard/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/swot\\-dashboard/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/trend",
+      "regex": "^/analysis\\-frameworks/trend(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/trend(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/trend/create",
+      "regex": "^/analysis\\-frameworks/trend/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/trend/create(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/vrio",
+      "regex": "^/analysis\\-frameworks/vrio(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/vrio(?:/)?$"
+    },
+    {
+      "page": "/analysis-frameworks/vrio/create",
+      "regex": "^/analysis\\-frameworks/vrio/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/analysis\\-frameworks/vrio/create(?:/)?$"
+    },
+    {
+      "page": "/collaboration",
+      "regex": "^/collaboration(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/collaboration(?:/)?$"
+    },
+    {
+      "page": "/dashboard",
+      "regex": "^/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard(?:/)?$"
+    },
+    {
+      "page": "/evidence",
+      "regex": "^/evidence(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/evidence(?:/)?$"
+    },
+    {
+      "page": "/favicon.ico",
+      "regex": "^/favicon\\.ico(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/favicon\\.ico(?:/)?$"
+    },
+    {
+      "page": "/frameworks",
+      "regex": "^/frameworks(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks(?:/)?$"
+    },
+    {
+      "page": "/frameworks/ach",
+      "regex": "^/frameworks/ach(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/ach(?:/)?$"
+    },
+    {
+      "page": "/frameworks/ach/create",
+      "regex": "^/frameworks/ach/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/ach/create(?:/)?$"
+    },
+    {
+      "page": "/frameworks/behavioral-analysis",
+      "regex": "^/frameworks/behavioral\\-analysis(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/behavioral\\-analysis(?:/)?$"
+    },
+    {
+      "page": "/frameworks/behavioral-analysis/create",
+      "regex": "^/frameworks/behavioral\\-analysis/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/behavioral\\-analysis/create(?:/)?$"
+    },
+    {
+      "page": "/frameworks/causeway",
+      "regex": "^/frameworks/causeway(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/causeway(?:/)?$"
+    },
+    {
+      "page": "/frameworks/causeway/create",
+      "regex": "^/frameworks/causeway/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/causeway/create(?:/)?$"
+    },
+    {
+      "page": "/frameworks/cog",
+      "regex": "^/frameworks/cog(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/cog(?:/)?$"
+    },
+    {
+      "page": "/frameworks/cog/create",
+      "regex": "^/frameworks/cog/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/cog/create(?:/)?$"
+    },
+    {
+      "page": "/frameworks/deception-detection",
+      "regex": "^/frameworks/deception\\-detection(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/deception\\-detection(?:/)?$"
+    },
+    {
+      "page": "/frameworks/deception-detection/create",
+      "regex": "^/frameworks/deception\\-detection/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/deception\\-detection/create(?:/)?$"
+    },
+    {
+      "page": "/frameworks/dotmlpf",
+      "regex": "^/frameworks/dotmlpf(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/dotmlpf(?:/)?$"
+    },
+    {
+      "page": "/frameworks/dotmlpf/create",
+      "regex": "^/frameworks/dotmlpf/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/dotmlpf/create(?:/)?$"
+    },
+    {
+      "page": "/frameworks/pmesii-pt",
+      "regex": "^/frameworks/pmesii\\-pt(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/pmesii\\-pt(?:/)?$"
+    },
+    {
+      "page": "/frameworks/pmesii-pt/create",
+      "regex": "^/frameworks/pmesii\\-pt/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/pmesii\\-pt/create(?:/)?$"
+    },
+    {
+      "page": "/frameworks/starbursting",
+      "regex": "^/frameworks/starbursting(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/starbursting(?:/)?$"
+    },
+    {
+      "page": "/frameworks/starbursting/create",
+      "regex": "^/frameworks/starbursting/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/starbursting/create(?:/)?$"
+    },
+    {
+      "page": "/frameworks/swot",
+      "regex": "^/frameworks/swot(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/swot(?:/)?$"
+    },
+    {
+      "page": "/frameworks/swot/create",
+      "regex": "^/frameworks/swot/create(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frameworks/swot/create(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/offline",
+      "regex": "^/offline(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/offline(?:/)?$"
+    },
+    {
+      "page": "/register",
+      "regex": "^/register(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/register(?:/)?$"
+    },
+    {
+      "page": "/reports",
+      "regex": "^/reports(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reports(?:/)?$"
+    },
+    {
+      "page": "/security-assessment",
+      "regex": "^/security\\-assessment(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/security\\-assessment(?:/)?$"
+    },
+    {
+      "page": "/tools",
+      "regex": "^/tools(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tools(?:/)?$"
+    },
+    {
+      "page": "/tools/batch-processing",
+      "regex": "^/tools/batch\\-processing(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tools/batch\\-processing(?:/)?$"
+    },
+    {
+      "page": "/tools/citations",
+      "regex": "^/tools/citations(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tools/citations(?:/)?$"
+    },
+    {
+      "page": "/tools/content-extraction",
+      "regex": "^/tools/content\\-extraction(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tools/content\\-extraction(?:/)?$"
+    },
+    {
+      "page": "/tools/documents",
+      "regex": "^/tools/documents(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tools/documents(?:/)?$"
+    },
+    {
+      "page": "/tools/scraping",
+      "regex": "^/tools/scraping(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tools/scraping(?:/)?$"
+    },
+    {
+      "page": "/tools/social-media",
+      "regex": "^/tools/social\\-media(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tools/social\\-media(?:/)?$"
+    },
+    {
+      "page": "/tools/url",
+      "regex": "^/tools/url(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tools/url(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "RSC",
+    "varyHeader": "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch",
+    "prefetchHeader": "Next-Router-Prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "Next-Router-Segment-Prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

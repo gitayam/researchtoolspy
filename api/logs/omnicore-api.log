@@ -1,0 +1,875 @@
+2025-08-30 22:29:52 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00010s] ()
+2025-08-30 22:29:52 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 22:29:52 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-30 22:29:52 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-30 22:29:52 | uvicorn.error | [32mINFO[0m | startup:60 | Application startup complete.
+2025-08-30 22:30:39 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET / - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-30 22:30:49 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /health - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-30 22:31:00 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | HEAD /health - IP: 127.0.0.1 - Status: 405 - Time: 0.000s
+2025-08-30 22:31:12 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | HEAD /api/v1/docs - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-30 22:31:23 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /index.html - IP: 127.0.0.1 - Status: 404 - Time: 0.001s
+2025-08-30 22:31:27 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /enhancedIndex.html - IP: 127.0.0.1 - Status: 404 - Time: 0.001s
+2025-08-30 22:31:27 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /@vite/client - IP: 127.0.0.1 - Status: 404 - Time: 0.001s
+2025-08-30 22:31:27 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /enhanced.css - IP: 127.0.0.1 - Status: 404 - Time: 0.002s
+2025-08-30 22:31:27 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /enhancedMain.js - IP: 127.0.0.1 - Status: 404 - Time: 0.002s
+2025-08-30 22:31:27 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /services/multiProviderSpeechService.js - IP: 127.0.0.1 - Status: 404 - Time: 0.002s
+2025-08-30 22:31:27 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /services/phraseBasedPracticeEngine.js - IP: 127.0.0.1 - Status: 404 - Time: 0.002s
+2025-08-30 22:31:27 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /@fs/Users/sac/Git/Speech-Memorization-Platform/node_modules/vite/dist/client/env.mjs - IP: 127.0.0.1 - Status: 404 - Time: 0.002s
+2025-08-30 22:31:27 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /services/streamingRecognitionService.js - IP: 127.0.0.1 - Status: 404 - Time: 0.001s
+2025-08-30 23:16:14 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00011s] ()
+2025-08-30 23:16:14 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-30 23:16:14 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-30 23:16:14 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-30 23:16:14 | uvicorn.error | [32mINFO[0m | startup:60 | Application startup complete.
+2025-08-30 23:16:33 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET / - IP: 127.0.0.1 - Status: 200 - Time: 0.001s
+2025-08-30 23:16:45 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /health - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-30 23:18:26 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET / - IP: 127.0.0.1 - Status: 200 - Time: 0.002s
+2025-08-30 23:18:27 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /favicon.ico - IP: 127.0.0.1 - Status: 404 - Time: 0.001s
+2025-08-30 23:31:23 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/health - IP: 127.0.0.1 - Status: 307 - Time: 0.000s
+2025-08-30 23:33:02 | app.core.security | [33mWARNING[0m | verify_token:155 | JWT verification failed: Not enough segments
+2025-08-30 23:33:02 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/auth/me - IP: 127.0.0.1 - Status: 401 - Time: 0.001s
+2025-08-30 23:33:32 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | OPTIONS /api/v1/auth/me - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-30 23:33:32 | app.core.security | [33mWARNING[0m | verify_token:155 | JWT verification failed: Signature verification failed.
+2025-08-30 23:33:32 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/auth/me - IP: 127.0.0.1 - Status: 401 - Time: 0.006s
+2025-08-30 23:33:32 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | OPTIONS /api/v1/auth/refresh - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-30 23:33:32 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/auth/refresh - IP: 127.0.0.1 - Status: 422 - Time: 0.001s
+2025-08-30 23:35:05 | uvicorn.error | [32mINFO[0m | shutdown:264 | Shutting down
+2025-08-30 23:35:05 | uvicorn.error | [32mINFO[0m | shutdown:65 | Waiting for application shutdown.
+2025-08-30 23:35:05 | uvicorn.error | [32mINFO[0m | shutdown:76 | Application shutdown complete.
+2025-08-30 23:35:05 | uvicorn.error | [32mINFO[0m | serve:86 | Finished server process [66827]
+2025-08-31 00:28:25 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00007s] ()
+2025-08-31 00:28:25 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:28:25 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:28:25 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:30:37 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/ai/status - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 00:30:43 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/auth/generate-hash - IP: 127.0.0.1 - Status: 404 - Time: 0.000s
+2025-08-31 00:31:37 | app.core.security_middleware | [33mWARNING[0m | _validate_content_type:142 | Suspicious content type: 
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.account_hash = ?
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00013s] ('7819277349747572',)
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.username = ?
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00009s] ('user_78192773',)
+2025-08-31 00:31:37 | passlib.handlers.bcrypt | [33mWARNING[0m | _load_backend_mixin:622 | (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/sac/Library/Python/3.9/lib/python/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | INSERT INTO users (username, email, full_name, hashed_password, account_hash, is_active, is_verified, role, organization, department, bio, preferences, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00019s] ('user_78192773', 'user_78192773@researchtools.dev', 'Research Analyst 7819', '$2b$12$bOc9J4XCNj7sjOuqPonxquMqMaKtv1XrQGbPfgw1OA4KuN6Pqx3lC', '7819277349747572', 1, 1, 'ANALYST', 'Research Tools Platform', 'Analysis', None, None, '2025-08-31 04:31:37.984418', '2025-08-31 04:31:37.984422')
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = ?
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00008s] (1,)
+2025-08-31 00:31:37 | app.api.v1.endpoints.hash_auth | [32mINFO[0m | register_new_account:251 | New account registered in database: 7819... at 2025-08-31 04:31:37.984418
+2025-08-31 00:31:37 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/hash-auth/register - IP: 127.0.0.1 - Status: 200 - Time: 0.217s
+2025-08-31 00:31:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _rollback_impl:1117 | ROLLBACK
+2025-08-31 00:32:49 | app.core.security_middleware | [33mWARNING[0m | _validate_content_type:142 | Suspicious content type: 
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.account_hash = ?
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [cached since 71.87s ago] ('2369079119181666',)
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.username = ?
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [cached since 71.87s ago] ('user_23690791',)
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | INSERT INTO users (username, email, full_name, hashed_password, account_hash, is_active, is_verified, role, organization, department, bio, preferences, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [cached since 71.85s ago] ('user_23690791', 'user_23690791@researchtools.dev', 'Research Analyst 2369', '$2b$12$h.srMt124QZOXolsMdP.R.hP791LUObPogoqPehV65jUCZYT7kVFO', '2369079119181666', 1, 1, 'ANALYST', 'Research Tools Platform', 'Analysis', None, None, '2025-08-31 04:32:49.836844', '2025-08-31 04:32:49.836851')
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = ?
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [cached since 71.85s ago] (2,)
+2025-08-31 00:32:49 | app.api.v1.endpoints.hash_auth | [32mINFO[0m | register_new_account:251 | New account registered in database: 2369... at 2025-08-31 04:32:49.836844
+2025-08-31 00:32:49 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/hash-auth/register - IP: 127.0.0.1 - Status: 200 - Time: 0.189s
+2025-08-31 00:32:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _rollback_impl:1117 | ROLLBACK
+2025-08-31 00:33:10 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/ai/summarize - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 00:33:32 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00009s] ()
+2025-08-31 00:33:32 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:32 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:33:32 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:33:49 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00007s] ()
+2025-08-31 00:33:49 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:49 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:33:49 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:33:56 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00009s] ()
+2025-08-31 00:33:56 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:33:56 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:33:56 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:34:05 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00007s] ()
+2025-08-31 00:34:05 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:05 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:34:05 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:34:23 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00008s] ()
+2025-08-31 00:34:23 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:23 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:34:23 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:34:30 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00007s] ()
+2025-08-31 00:34:30 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:30 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:34:30 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:34:37 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00007s] ()
+2025-08-31 00:34:37 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:37 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:34:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:34:43 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00007s] ()
+2025-08-31 00:34:43 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:34:43 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:34:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:34:49 | app.api.v1.endpoints.auth | [32mINFO[0m | get_current_user_optional:123 | Anonymous access - no token provided
+2025-08-31 00:34:49 | app.api.v1.endpoints.ai | [32mINFO[0m | summarize_content:127 | Summarization requested by user anonymous
+2025-08-31 00:34:49 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/ai/summarize - IP: 127.0.0.1 - Status: 200 - Time: 0.001s
+2025-08-31 00:34:55 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/ai/status - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 00:35:11 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00007s] ()
+2025-08-31 00:35:11 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:35:11 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:35:11 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:35:15 | app.api.v1.endpoints.auth | [32mINFO[0m | get_current_user_optional:123 | Anonymous access - no token provided
+2025-08-31 00:35:15 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/ai/status - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-31 00:36:38 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/hash-auth/register - IP: 127.0.0.1 - Status: 405 - Time: 0.001s
+2025-08-31 00:37:53 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 00:37:55 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 00:39:06 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 00:39:12 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 00:45:23 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 00:46:37 | app.core.security_middleware | [33mWARNING[0m | _validate_content_type:142 | Suspicious content type: 
+2025-08-31 00:46:37 | app.core.security_middleware | [33mWARNING[0m | _validate_content_type:142 | Suspicious content type: 
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.account_hash = ?
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00016s] ('8106175078501822',)
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.account_hash = ?
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [cached since 0.000705s ago] ('4740601019749071',)
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.username = ?
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00010s] ('user_81061750',)
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.username = ?
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [cached since 0.0006167s ago] ('user_47406010',)
+2025-08-31 00:46:37 | passlib.handlers.bcrypt | [33mWARNING[0m | _load_backend_mixin:622 | (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/sac/Library/Python/3.9/lib/python/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | INSERT INTO users (username, email, full_name, hashed_password, account_hash, is_active, is_verified, role, organization, department, bio, preferences, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00021s] ('user_81061750', 'user_81061750@researchtools.dev', 'Research Analyst 8106', '$2b$12$TxoaEnokfrBD9Dw/ipH1luQpq7QI48NzGAeKsvfaPPDK0cArY6nv6', '8106175078501822', 1, 1, 'ANALYST', 'Research Tools Platform', 'Analysis', None, None, '2025-08-31 04:46:37.539114', '2025-08-31 04:46:37.539119')
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | INSERT INTO users (username, email, full_name, hashed_password, account_hash, is_active, is_verified, role, organization, department, bio, preferences, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [cached since 0.2181s ago] ('user_47406010', 'user_47406010@researchtools.dev', 'Research Analyst 4740', '$2b$12$1OZjcPe2Et1SHfq2hvbFz.7Budh68dozb/ERXY4uWA81DiAvgXzGe', '4740601019749071', 1, 1, 'ANALYST', 'Research Tools Platform', 'Analysis', None, None, '2025-08-31 04:46:37.757145', '2025-08-31 04:46:37.757150')
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = ?
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00010s] (3,)
+2025-08-31 00:46:37 | app.api.v1.endpoints.hash_auth | [32mINFO[0m | register_new_account:251 | New account registered in database: 8106... at 2025-08-31 04:46:37.539114
+2025-08-31 00:46:37 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/hash-auth/register - IP: 127.0.0.1 - Status: 200 - Time: 0.440s
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _rollback_impl:1117 | ROLLBACK
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = ?
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [cached since 0.001304s ago] (4,)
+2025-08-31 00:46:37 | app.api.v1.endpoints.hash_auth | [32mINFO[0m | register_new_account:251 | New account registered in database: 4740... at 2025-08-31 04:46:37.757145
+2025-08-31 00:46:37 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/hash-auth/register - IP: 127.0.0.1 - Status: 200 - Time: 0.440s
+2025-08-31 00:46:37 | sqlalchemy.engine.Engine | [32mINFO[0m | _rollback_impl:1117 | ROLLBACK
+2025-08-31 00:46:43 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | OPTIONS /api/v1/hash-auth/authenticate - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-31 00:46:43 | app.api.v1.endpoints.hash_auth | [32mINFO[0m | authenticate_with_hash:110 | Hash authentication attempt: 4740...
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.account_hash = ?
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [cached since 5.781s ago] ('4740601019749071',)
+2025-08-31 00:46:43 | app.api.v1.endpoints.hash_auth | [32mINFO[0m | authenticate_with_hash:117 | Database lookup for hash 4740...: Found
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | INSERT INTO auth_logs (user_id, account_hash, success, ip_address, user_agent, session_token, error_message, login_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00016s] (4, '4740601019749071', 1, '127.0.0.1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15', 'eyJhbGciOiJIUzI1NiIs...', None, '2025-08-31 04:46:43.118534', '2025-08-31 04:46:43.119387', '2025-08-31 04:46:43.119390')
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:46:43 | app.api.v1.endpoints.hash_auth | [32mINFO[0m | authenticate_with_hash:182 | Successful hash authentication for: 4740... from IP: 127.0.0.1
+2025-08-31 00:46:43 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/hash-auth/authenticate - IP: 127.0.0.1 - Status: 200 - Time: 0.007s
+2025-08-31 00:46:43 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | OPTIONS /api/v1/auth/me - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = ?
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00013s] (4,)
+2025-08-31 00:46:43 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/auth/me - IP: 127.0.0.1 - Status: 200 - Time: 0.002s
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _rollback_impl:1117 | ROLLBACK
+2025-08-31 00:46:43 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | OPTIONS /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = ?
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [cached since 0.01845s ago] (4,)
+2025-08-31 00:46:43 | app.api.v1.endpoints.frameworks | [32mINFO[0m | list_framework_sessions:80 | Listing framework sessions for user user_47406010
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT framework_sessions.title, framework_sessions.description, framework_sessions.framework_type, framework_sessions.status, framework_sessions.user_id, framework_sessions.data, framework_sessions.config, framework_sessions.tags, framework_sessions.version, framework_sessions.ai_suggestions, framework_sessions.ai_analysis_count, framework_sessions.id, framework_sessions.created_at, framework_sessions.updated_at 
+FROM framework_sessions 
+WHERE framework_sessions.user_id = ? ORDER BY framework_sessions.updated_at DESC
+ LIMIT ? OFFSET ?
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00017s] (4, 50, 0)
+2025-08-31 00:46:43 | app.api.v1.endpoints.frameworks | [32mINFO[0m | list_framework_sessions:123 | Found 0 framework sessions for user user_47406010
+2025-08-31 00:46:43 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 200 - Time: 0.004s
+2025-08-31 00:46:43 | sqlalchemy.engine.Engine | [32mINFO[0m | _rollback_impl:1117 | ROLLBACK
+2025-08-31 00:46:45 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | OPTIONS /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-31 00:46:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:46:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = ?
+2025-08-31 00:46:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [cached since 2.238s ago] (4,)
+2025-08-31 00:46:45 | app.api.v1.endpoints.frameworks | [32mINFO[0m | list_framework_sessions:80 | Listing framework sessions for user user_47406010
+2025-08-31 00:46:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT framework_sessions.title, framework_sessions.description, framework_sessions.framework_type, framework_sessions.status, framework_sessions.user_id, framework_sessions.data, framework_sessions.config, framework_sessions.tags, framework_sessions.version, framework_sessions.ai_suggestions, framework_sessions.ai_analysis_count, framework_sessions.id, framework_sessions.created_at, framework_sessions.updated_at 
+FROM framework_sessions 
+WHERE framework_sessions.user_id = ? AND framework_sessions.framework_type = ? ORDER BY framework_sessions.updated_at DESC
+ LIMIT ? OFFSET ?
+2025-08-31 00:46:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00015s] (4, 'ACH', 50, 0)
+2025-08-31 00:46:45 | app.api.v1.endpoints.frameworks | [32mINFO[0m | list_framework_sessions:123 | Found 0 framework sessions for user user_47406010
+2025-08-31 00:46:45 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 200 - Time: 0.004s
+2025-08-31 00:46:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _rollback_impl:1117 | ROLLBACK
+2025-08-31 00:47:38 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00008s] ()
+2025-08-31 00:47:38 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:47:38 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:47:38 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:48:08 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00007s] ()
+2025-08-31 00:48:08 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:08 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:48:08 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:48:27 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00008s] ()
+2025-08-31 00:48:27 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 00:48:27 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 00:48:27 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 00:48:35 | app.api.v1.endpoints.auth | [32mINFO[0m | get_current_user_optional:123 | Anonymous access - no token provided
+2025-08-31 00:48:35 | app.api.v1.endpoints.frameworks | [32mINFO[0m | list_framework_sessions:82 | Listing framework sessions for anonymous user - returning empty list
+2025-08-31 00:48:35 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 200 - Time: 0.001s
+2025-08-31 00:48:52 | app.api.v1.endpoints.auth | [32mINFO[0m | get_current_user_optional:123 | Anonymous access - no token provided
+2025-08-31 00:48:52 | app.api.v1.endpoints.frameworks | [32mINFO[0m | list_framework_sessions:82 | Listing framework sessions for anonymous user - returning empty list
+2025-08-31 00:48:52 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 200 - Time: 0.001s
+2025-08-31 00:50:18 | app.api.v1.endpoints.auth | [32mINFO[0m | get_current_user_optional:123 | Anonymous access - no token provided
+2025-08-31 00:50:18 | app.api.v1.endpoints.frameworks | [32mINFO[0m | list_framework_sessions:82 | Listing framework sessions for anonymous user - returning empty list
+2025-08-31 00:50:18 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 200 - Time: 0.001s
+2025-08-31 00:50:22 | app.core.security | [33mWARNING[0m | verify_token:156 | JWT verification failed: Signature verification failed.
+2025-08-31 00:50:22 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/auth/me - IP: 127.0.0.1 - Status: 401 - Time: 0.003s
+2025-08-31 00:50:22 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | OPTIONS /api/v1/auth/refresh - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-31 00:50:22 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | OPTIONS /api/v1/auth/refresh - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-31 00:50:22 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/auth/refresh - IP: 127.0.0.1 - Status: 422 - Time: 0.001s
+2025-08-31 00:50:22 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/auth/refresh - IP: 127.0.0.1 - Status: 422 - Time: 0.001s
+2025-08-31 00:50:28 | app.api.v1.endpoints.auth | [32mINFO[0m | get_current_user_optional:123 | Anonymous access - no token provided
+2025-08-31 00:50:28 | app.api.v1.endpoints.frameworks | [32mINFO[0m | list_framework_sessions:82 | Listing framework sessions for anonymous user - returning empty list
+2025-08-31 00:50:28 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 200 - Time: 0.001s
+2025-08-31 00:50:29 | app.api.v1.endpoints.auth | [32mINFO[0m | get_current_user_optional:123 | Anonymous access - no token provided
+2025-08-31 00:50:29 | app.api.v1.endpoints.frameworks | [32mINFO[0m | list_framework_sessions:82 | Listing framework sessions for anonymous user - returning empty list
+2025-08-31 00:50:29 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 200 - Time: 0.001s
+2025-08-31 01:24:54 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00009s] ()
+2025-08-31 01:24:54 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:24:54 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 01:24:54 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 01:25:13 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/health - IP: 127.0.0.1 - Status: 307 - Time: 0.001s
+2025-08-31 01:25:18 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/health - IP: 127.0.0.1 - Status: 307 - Time: 0.000s
+2025-08-31 01:25:28 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/health/ - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-31 01:31:22 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00009s] ()
+2025-08-31 01:31:22 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:22 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 01:31:22 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 01:31:35 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00007s] ()
+2025-08-31 01:31:35 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:35 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 01:31:35 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 01:31:45 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00009s] ()
+2025-08-31 01:31:45 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 01:31:45 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 01:31:45 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 01:31:57 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /docs - IP: 127.0.0.1 - Status: 404 - Time: 0.001s
+2025-08-31 01:34:53 | app.core.security_middleware | [33mWARNING[0m | _validate_content_type:142 | Suspicious content type: 
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.account_hash = ?
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00018s] ('1225512744650374',)
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.username = ?
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00010s] ('user_12255127',)
+2025-08-31 01:34:53 | passlib.handlers.bcrypt | [33mWARNING[0m | _load_backend_mixin:622 | (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/sac/Library/Python/3.9/lib/python/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | INSERT INTO users (username, email, full_name, hashed_password, account_hash, is_active, is_verified, role, organization, department, bio, preferences, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00023s] ('user_12255127', 'user_12255127@researchtools.dev', 'Research Analyst 1225', '$2b$12$os5Jm7XCJ39VqaicaupB5uPJHyuTodDi.NtR3kxooVhjWAEfxcoNm', '1225512744650374', 1, 1, 'ANALYST', 'Research Tools Platform', 'Analysis', None, None, '2025-08-31 05:34:53.828677', '2025-08-31 05:34:53.828681')
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT users.username, users.email, users.full_name, users.hashed_password, users.account_hash, users.is_active, users.is_verified, users.role, users.organization, users.department, users.bio, users.preferences, users.id, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = ?
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00009s] (1,)
+2025-08-31 01:34:53 | app.api.v1.endpoints.hash_auth | [32mINFO[0m | register_new_account:252 | New account registered in database: 1225... at 2025-08-31 05:34:53.828677
+2025-08-31 01:34:53 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/hash-auth/register - IP: 127.0.0.1 - Status: 200 - Time: 0.250s
+2025-08-31 01:34:53 | sqlalchemy.engine.Engine | [32mINFO[0m | _rollback_impl:1117 | ROLLBACK
+2025-08-31 01:35:02 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/security/questions - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 01:35:08 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/security/questions - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 01:35:31 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/health/ - IP: 127.0.0.1 - Status: 200 - Time: 0.000s
+2025-08-31 02:10:59 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 02:10:59 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/frameworks/ - IP: 127.0.0.1 - Status: 401 - Time: 0.000s
+2025-08-31 02:36:24 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00008s] ()
+2025-08-31 02:36:24 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:36:24 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 02:36:24 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 02:40:00 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00008s] ()
+2025-08-31 02:40:00 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:00 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 02:40:00 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 02:40:06 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00009s] ()
+2025-08-31 02:40:06 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:40:06 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 02:40:06 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 02:41:51 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00011s] ()
+2025-08-31 02:41:51 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:51 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 02:41:51 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 02:41:57 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00011s] ()
+2025-08-31 02:41:58 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:41:58 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 02:41:58 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 02:42:15 | app.core.logging | [32mINFO[0m | setup_logging:102 | Logging configured - Level: INFO, Environment: development
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _begin_impl:1091 | BEGIN (implicit)
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | SELECT 1
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [generated in 0.00016s] ()
+2025-08-31 02:42:15 | app.core.database | [32mINFO[0m | init_db:93 | Database connection established successfully
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("users")
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("api_keys")
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_sessions")
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_templates")
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("framework_exports")
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("processed_urls")
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("citations")
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("research_jobs")
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1901 | PRAGMA main.table_info("auth_logs")
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _exec_single_context:1906 | [raw sql] ()
+2025-08-31 02:42:15 | app.core.database | [32mINFO[0m | init_db:98 | Database tables created/verified
+2025-08-31 02:42:15 | sqlalchemy.engine.Engine | [32mINFO[0m | _commit_impl:1134 | COMMIT
+2025-08-31 02:44:30 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /api/v1/ach/templates/list - IP: 127.0.0.1 - Status: 404 - Time: 0.001s
+2025-08-31 02:44:36 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | POST /api/v1/ach/matrix - IP: 127.0.0.1 - Status: 404 - Time: 0.001s
+2025-08-31 02:44:42 | app.core.security_middleware | [32mINFO[0m | dispatch:201 | GET /docs - IP: 127.0.0.1 - Status: 404 - Time: 0.000s
