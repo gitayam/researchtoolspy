@@ -1,0 +1,1 @@
+{"version":3,"file":"ExpressionStatement.js","sourceRoot":"","sources":["../../../../src/dependence/Jinter/nodes/ExpressionStatement.ts"],"names":[],"mappings":";;;;;AACA,oEAAyC;AAEzC,MAAqB,mBAAoB,SAAQ,uBAAsC;IAC9E,GAAG;QACR,OAAO,IAAI,CAAC,OAAO,CAAC,SAAS,CAAC,IAAI,CAAC,IAAI,CAAC,UAAU,CAAC,CAAC;IACtD,CAAC;CACF;AAJD,sCAIC"}

@@ -1,0 +1,1 @@
+{"version":3,"file":"PlayerRequestError.js","sourceRoot":"","sources":["../../../src/core/errors/PlayerRequestError.ts"],"names":[],"mappings":";;;;;AAAA,kEAA0C;AAE1C,MAAqB,kBAAgC,SAAQ,sBAAY;IAGrE,YAAY,OAAe,EAAE,QAAkB,EAAE,UAAyB;QACtE,KAAK,CAAC,OAAO,CAAC,CAAC;QACf,IAAI,CAAC,QAAQ,GAAG,QAAQ,CAAC;QACzB,IAAI,CAAC,UAAU,GAAG,UAAU,IAAI,CAAC,CAAC;IACtC,CAAC;CACJ;AARD,qCAQC"}

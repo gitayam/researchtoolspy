@@ -1,0 +1,16 @@
+# Cloudflare Pages Headers Configuration
+
+# Web App Manifest
+/site.webmanifest
+  Content-Type: application/manifest+json
+
+# Service Worker (if added later)
+/sw.js
+  Content-Type: application/javascript
+
+# Security Headers
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()

@@ -1,0 +1,1210 @@
+{
+  "title": "Center of Gravity Analysis",
+  "subtitle": "Strategic Planning & Targeting",
+
+  "operationalContext": {
+    "title": "Operational Context",
+    "objective": "Analysis Objective",
+    "desiredImpact": "Desired Impact",
+    "ourIdentity": "Our Identity",
+    "environment": "Operating Environment",
+    "constraints": "Constraints/Restraints",
+    "timeframe": "Operational Timeframe",
+    "strategicLevel": "Strategic Level"
+  },
+
+  "cog": {
+    "title": "Center of Gravity",
+    "titlePlural": "Centers of Gravity",
+    "description": "COG Description",
+    "rationale": "COG Rationale",
+    "validation": "Validation Notes",
+    "actorCategory": "Actor Category",
+    "domain": "Domain"
+  },
+
+  "capabilities": {
+    "title": "Critical Capabilities",
+    "singular": "Critical Capability",
+    "description": "Capability Description",
+    "strategicContribution": "Strategic Contribution",
+    "howItWorks": "How It Works"
+  },
+
+  "requirements": {
+    "title": "Critical Requirements",
+    "singular": "Critical Requirement",
+    "description": "Requirement Description",
+    "whyNeeded": "Why Needed",
+    "linkToCapability": "Links to Capability"
+  },
+
+  "vulnerabilities": {
+    "title": "Critical Vulnerabilities",
+    "singular": "Critical Vulnerability",
+    "description": "Vulnerability Description",
+    "rationale": "Vulnerability Rationale",
+    "confidence": "Confidence Level",
+    "recommendedActions": "Recommended Actions",
+    "top10": "TOP 10 VULNERABILITIES",
+    "assessment": "VULNERABILITY ASSESSMENT",
+    "matrix": "VULNERABILITY MATRIX"
+  },
+
+  "actorCategories": {
+    "friendly": "Friendly Forces",
+    "adversary": "Adversary",
+    "hostNation": "Host Nation",
+    "thirdParty": "Third Party"
+  },
+
+  "domains": {
+    "diplomatic": "Diplomatic",
+    "information": "Information",
+    "military": "Military",
+    "economic": "Economic",
+    "financial": "Financial",
+    "intelligence": "Research",
+    "lawEnforcement": "Law Enforcement",
+    "cyber": "Cyber",
+    "space": "Space"
+  },
+
+  "scoring": {
+    "impact": "Impact on COG",
+    "attainability": "Attainability",
+    "followUp": "Follow-Up Potential",
+    "composite": "Composite Score",
+    "priority": "Priority",
+    "system": "Scoring System",
+    "linear": "Linear (1-5)",
+    "logarithmic": "Logarithmic (1,3,5,8,12)",
+    "custom": "Custom"
+  },
+
+  "export": {
+    "title": "Export Analysis",
+    "selectFormat": "Select Export Format",
+
+    "powerpoint": {
+      "button": "Export to PowerPoint",
+      "generating": "Generating PowerPoint...",
+      "filename": "COG_Analysis_{{date}}.pptx",
+
+      "slides": {
+        "title": "CENTER OF GRAVITY ANALYSIS",
+        "subtitle": "Strategic Planning & Targeting",
+        "executiveSummary": "EXECUTIVE SUMMARY",
+        "operationalContext": "OPERATIONAL CONTEXT",
+        "cogAnalysis": "CENTER OF GRAVITY ANALYSIS",
+        "cogByActor": "COG ANALYSIS BY ACTOR",
+        "vulnerabilityMatrix": "VULNERABILITY MATRIX",
+        "networkAnalysis": "NETWORK ANALYSIS",
+        "recommendations": "RECOMMENDATIONS",
+        "nextSteps": "NEXT STEPS"
+      },
+
+      "labels": {
+        "classification": "CLASSIFICATION:",
+        "unclassified": "UNCLASSIFIED",
+        "date": "DATE:",
+        "scoringSystem": "SCORING SYSTEM:",
+        "totalCOGs": "Total COGs:",
+        "totalVulnerabilities": "Total Vulnerabilities:",
+        "highPriority": "High Priority Targets:",
+        "cog": "COG:",
+        "capabilities": "Capabilities:",
+        "requirements": "Requirements:",
+        "vulnerabilities": "Vulnerabilities:",
+        "score": "Score:",
+        "actions": "Recommended Actions:"
+      }
+    },
+
+    "excel": {
+      "button": "Export to Excel",
+      "generating": "Generating Excel workbook...",
+      "filename": "COG_Targeting_Matrix_{{date}}.xlsx",
+
+      "sheets": {
+        "targetingMatrix": "Targeting Matrix",
+        "cogSummary": "COG Summary",
+        "analysisSummary": "Analysis Summary"
+      },
+
+      "headers": {
+        "priority": "Priority",
+        "vulnerability": "Vulnerability",
+        "cog": "COG",
+        "actor": "Actor",
+        "domain": "Domain",
+        "type": "Type",
+        "impact": "Impact",
+        "attainability": "Attainability",
+        "followUp": "Follow-Up",
+        "composite": "Composite Score",
+        "confidence": "Confidence",
+        "actions": "Recommended Actions",
+        "capability": "Capability",
+        "requirement": "Requirement",
+        "status": "Status",
+        "description": "Description",
+        "rationale": "Rationale"
+      },
+
+      "sections": {
+        "operationalContext": "OPERATIONAL CONTEXT",
+        "statistics": "STATISTICS",
+        "topVulnerabilities": "TOP 10 VULNERABILITIES",
+        "allCOGs": "ALL CENTERS OF GRAVITY"
+      }
+    },
+
+    "pdf": {
+      "button": "Export PDF Report",
+      "generating": "Generating PDF report...",
+      "filename": "COG_Analysis_Report_{{date}}.pdf",
+
+      "cover": {
+        "title": "CENTER OF GRAVITY",
+        "subtitle": "ANALYSIS REPORT",
+        "classification": "CLASSIFICATION:",
+        "unclassified": "UNCLASSIFIED",
+        "date": "DATE:",
+        "scoringSystem": "SCORING SYSTEM:",
+        "preparedBy": "PREPARED BY:",
+        "toolName": "COG Analysis Tool"
+      },
+
+      "sections": {
+        "executiveSummary": "EXECUTIVE SUMMARY",
+        "operationalContext": "1. OPERATIONAL CONTEXT",
+        "cogAnalysis": "2. CENTER OF GRAVITY ANALYSIS",
+        "vulnerabilityAssessment": "3. VULNERABILITY ASSESSMENT",
+        "recommendations": "4. RECOMMENDATIONS",
+        "conclusion": "5. CONCLUSION",
+        "opordIntegration": "APPENDIX A - OPORD INTEGRATION"
+      },
+
+      "summaryLabels": {
+        "totalCOGs": "Total Centers of Gravity:",
+        "totalVulnerabilities": "Total Vulnerabilities Identified:",
+        "criticalVulnerabilities": "Critical (Score ≥12):",
+        "highPriority": "High Priority (Score ≥9):",
+        "mediumPriority": "Medium Priority (Score ≥6):",
+        "topVulnerabilities": "Top 5 Vulnerabilities for Targeting:"
+      },
+
+      "contextLabels": {
+        "objective": "Objective:",
+        "impact": "Desired Impact:",
+        "identity": "Our Identity:",
+        "environment": "Environment:",
+        "constraints": "Constraints:",
+        "timeframe": "Timeframe:",
+        "level": "Strategic Level:"
+      },
+
+      "cogLabels": {
+        "actor": "Actor:",
+        "domain": "Domain:",
+        "description": "Description:",
+        "rationale": "Rationale:",
+        "validation": "Validation:",
+        "capabilities": "Critical Capabilities:",
+        "requirements": "Critical Requirements:",
+        "vulnerabilities": "Critical Vulnerabilities:"
+      },
+
+      "vulnerabilityLabels": {
+        "rank": "Rank",
+        "vulnerability": "Vulnerability",
+        "cog": "Associated COG",
+        "score": "Score",
+        "confidence": "Confidence",
+        "actions": "Recommended Actions",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+
+      "opord": {
+        "title": "OPORD Integration Guidance",
+        "targetingSection": "Targeting Guidance (Paragraph 3)",
+        "targetingText": "The following vulnerabilities are prioritized for engagement based on composite scoring:",
+        "tasksSection": "Tasks to Subordinate Units (Paragraph 3)",
+        "tasksText": "Units should plan operations to exploit identified vulnerabilities in priority order.",
+        "coordinatingSection": "Coordinating Instructions (Paragraph 3)",
+        "coordinatingText": "Continuous assessment of COG vulnerabilities required throughout operation.",
+        "annexD": "Annex D (Fires)",
+        "annexDText": "Targeting matrix included as attachment to Fires Annex."
+      }
+    },
+
+    "network": {
+      "title": "Network Visualization",
+      "controls": {
+        "zoomIn": "Zoom In",
+        "zoomOut": "Zoom Out",
+        "fitView": "Fit View",
+        "reset": "Reset",
+        "toggleLabels": "Toggle Labels",
+        "exportPNG": "Export as PNG"
+      },
+
+      "simulation": {
+        "title": "What If? Simulation Mode",
+        "enable": "Enable Simulation",
+        "disable": "Disable Simulation",
+        "instructions": "Click nodes to remove and see cascade effects",
+        "reset": "Reset Simulation"
+      },
+
+      "statistics": {
+        "title": "Network Statistics",
+        "totalNodes": "Total Nodes:",
+        "totalEdges": "Total Edges:",
+        "cogs": "COGs:",
+        "capabilities": "Capabilities:",
+        "requirements": "Requirements:",
+        "vulnerabilities": "Vulnerabilities:",
+        "removedNodes": "Removed Nodes:"
+      },
+
+      "nodeInfo": {
+        "selectedNode": "Selected Node",
+        "type": "Type:",
+        "connections": "Connections:",
+        "details": "Details"
+      },
+
+      "legend": {
+        "title": "Legend",
+        "cog": "Center of Gravity",
+        "capability": "Critical Capability",
+        "requirement": "Critical Requirement",
+        "vulnerability": "Critical Vulnerability"
+      },
+
+      "tooltips": {
+        "clickToSelect": "Click to select",
+        "clickToRemove": "Click to remove (simulation mode)",
+        "dragToPan": "Drag to pan, scroll to zoom",
+        "doubleClickReset": "Double-click to reset view"
+      }
+    }
+  },
+
+  "common": {
+    "loading": "Loading...",
+    "generating": "Generating...",
+    "success": "Success!",
+    "error": "Error",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "export": "Export",
+    "download": "Download",
+    "date": "Date",
+    "status": "Status",
+    "none": "None",
+    "notAvailable": "N/A",
+    "total": "Total"
+  },
+
+  "form": {
+    "header": {
+      "createTitle": "Create COG Analysis",
+      "editTitle": "Edit COG Analysis",
+      "subtitle": "Center of Gravity Analysis (JP 3-0 Methodology)"
+    },
+
+    "buttons": {
+      "back": "Back",
+      "saveAnalysis": "Save Analysis",
+      "saving": "Saving...",
+      "referenceGuide": "Reference Guide",
+      "addCOG": "Add COG",
+      "addCapability": "Add Capability",
+      "addRequirement": "Add Requirement",
+      "addVulnerability": "Add Vulnerability",
+      "suggestCOG": "Suggest COG",
+      "generateCapabilities": "Generate",
+      "generateRequirements": "Generate",
+      "generateVulnerabilities": "Generate",
+      "linkEvidence": "Link Evidence",
+      "quickScore": "Quick-Score",
+      "addCriterion": "Add Criterion"
+    },
+
+    "tabs": {
+      "operationalContext": "Operational Context",
+      "cogAnalysis": "COG Analysis",
+      "scoringSystem": "Scoring System"
+    },
+
+    "basicInfo": {
+      "title": "Basic Information",
+      "description": "Title and description for your COG analysis",
+      "titleLabel": "Title *",
+      "titlePlaceholder": "e.g., Operation XYZ COG Analysis",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Provide context..."
+    },
+
+    "operationalContext": {
+      "title": "Operational Context",
+      "description": "Answer guided questions to define your operational environment",
+      "objectiveLabel": "What is your analysis objective? *",
+      "objectivePlaceholder": "Example: Identify and prioritize adversary information operations vulnerabilities to enable IO counter-campaign and degrade their ability to influence regional populations",
+      "impactLabel": "What impact do we want to achieve?",
+      "impactPlaceholder": "Example: Reduce adversary IO effectiveness by 60%, forcing them to shift resources from offensive to defensive operations, creating windows for friendly information advantage",
+      "identityLabel": "Who are we? (Friendly Forces Description)",
+      "identityPlaceholder": "Example: Joint Task Force with cyber, information operations, and special operations capabilities; partnered with host nation security forces and regional allies",
+      "environmentLabel": "Where are we operating? (PMESII-PT Context)",
+      "environmentPlaceholder": "Example: Urban environment with high internet penetration (70%+), contested information space with multiple state/non-state actors, weak governance creating information voids, population increasingly mobile-first for news consumption",
+      "constraintsLabel": "What constraints limit us? (comma-separated)",
+      "constraintsPlaceholder": "Example: Must obtain interagency approval, Limited to non-attribution operations, Resource cap of 50 personnel",
+      "restraintsLabel": "What restraints restrict us? (comma-separated)",
+      "restraintsPlaceholder": "Example: No targeting of civilian infrastructure, Prohibited from cross-border operations, Cannot disrupt international commerce",
+      "timeframeLabel": "What is the operational timeframe?",
+      "timeframePlaceholder": "e.g., 90 days, Q2 2025, Pre-election period",
+      "strategicLevelLabel": "At what strategic level?"
+    },
+
+    "tooltips": {
+      "objective": {
+        "title": "A good objective is specific, measurable, and tied to commander's intent.",
+        "examples": "Examples:",
+        "example1": "Identify adversary vulnerabilities for targeting",
+        "example2": "Protect friendly COGs from adversary action",
+        "example3": "Assess host nation critical infrastructure"
+      },
+      "impact": {
+        "title": "Describe the desired end-state or effect.",
+        "consider": "Consider:",
+        "point1": "What changes in adversary behavior?",
+        "point2": "What capabilities are degraded/neutralized?",
+        "point3": "What strategic advantage is gained?"
+      },
+      "identity": {
+        "title": "Describe friendly force composition and capabilities.",
+        "include": "Include: organizational structure, key capabilities, partnered forces, unique advantages"
+      },
+      "environment": {
+        "title": "Describe the operational environment using PMESII-PT:",
+        "political": "Political: Government, power structures",
+        "military": "Military: Forces, capabilities, posture",
+        "economic": "Economic: Resources, trade, infrastructure",
+        "social": "Social: Demographics, culture, grievances",
+        "information": "Information: Media, narratives, connectivity",
+        "infrastructure": "Infrastructure: Critical systems, networks",
+        "physical": "Physical: Terrain, climate, geography",
+        "time": "Time: Tempo, windows, constraints"
+      },
+      "constraints": {
+        "title": "Constraints are things you MUST do or CONDITIONS that limit action.",
+        "examples": "Examples:",
+        "example1": "Must coordinate with State Department",
+        "example2": "Limited to defensive cyber operations only",
+        "example3": "Budget ceiling of $5M",
+        "example4": "Requires host nation approval for any kinetic action"
+      },
+      "restraints": {
+        "title": "Restraints are things you MUST NOT do or PROHIBITED actions.",
+        "examples": "Examples:",
+        "example1": "No strikes on religious sites",
+        "example2": "No engagement of state media infrastructure",
+        "example3": "Cannot operate within 50km of border",
+        "example4": "Prohibited from targeting specific platforms"
+      },
+      "timeframe": "Specify the planning horizon or operational window. This helps prioritize vulnerabilities based on when effects are needed.",
+      "strategicLevel": {
+        "title": "Strategic levels of war:",
+        "strategic": "Strategic: National/theater objectives",
+        "operational": "Operational: Campaign/major operation",
+        "tactical": "Tactical: Battle/engagement level"
+      },
+      "cogDescription": {
+        "title": "A COG is a source of power that provides moral or physical strength, freedom of action, or will to act.",
+        "examples": "Examples:",
+        "military": "Military: Integrated air defense system",
+        "information": "Information: State-controlled media apparatus",
+        "economic": "Economic: Oil export infrastructure"
+      },
+      "cogRationale": {
+        "title": "Explain what makes this a true COG:",
+        "point1": "What happens if this is neutralized?",
+        "point2": "What evidence supports this assessment?",
+        "point3": "How does this enable the actor's objectives?"
+      },
+      "capabilities": {
+        "title": "Capabilities are ACTIONS (verbs) the COG can perform.",
+        "examples": "Examples:",
+        "example1": "\"Project military power across theater\"",
+        "example2": "\"Influence regional public opinion\"",
+        "example3": "\"Coordinate multi-domain strike operations\"",
+        "example4": "\"Control information narrative\""
+      },
+      "requirements": {
+        "title": "Requirements are RESOURCES/CONDITIONS (nouns) the capability needs to function.",
+        "examples": "Examples:",
+        "example1": "\"Trained personnel\"",
+        "example2": "\"Logistics support network\"",
+        "example3": "\"Command and control infrastructure\"",
+        "example4": "\"Platform access (social media accounts)\""
+      },
+      "vulnerabilities": {
+        "title": "Vulnerabilities are deficiencies or weaknesses in a requirement that can be exploited.",
+        "examples": "Examples:",
+        "example1": "\"Platform policy enforcement\" (requirement: account access)",
+        "example2": "\"Single point of failure\" (requirement: C2 node)",
+        "example3": "\"Insufficient redundancy\" (requirement: supply route)"
+      },
+      "impactScoring": "How significantly would this affect the COG?",
+      "attainabilityScoring": "How feasible is addressing this?",
+      "followUpScoring": "What strategic advantages does this enable?"
+    },
+
+    "cog": {
+      "title": "Centers of Gravity",
+      "description": "Identify COGs across DIMEFIL domains for each actor",
+      "emptyState": "No COGs defined. Click \"Add COG\" to begin.",
+      "actorCategoryLabel": "Actor Category",
+      "domainLabel": "Domain",
+      "descriptionLabel": "What is this Center of Gravity? *",
+      "descriptionPlaceholder": "Example: Adversary's integrated air defense system provides freedom of maneuver and protects critical infrastructure across the theater",
+      "rationaleLabel": "Why is this a COG? (Rationale)",
+      "rationalePlaceholder": "Example: Without air defense, adversary loses sanctuary for ground forces, logistics hubs, and C2 nodes. Historical analysis shows air dominance correlates with 85% success rate in similar conflicts.",
+      "validationChecklist": "COG Validation Checklist",
+      "validationCheck1": "If neutralized, would this critically degrade objectives?",
+      "validationCheck2": "Is this truly a source of power (not just important)?",
+      "validationCheck3": "Is this at the right level of analysis?",
+      "validationCheck4": "Can this be protected/exploited through its vulnerabilities?",
+      "linkedEvidenceLabel": "Linked Evidence ({{count}})"
+    },
+
+    "capabilities": {
+      "title": "Critical Capabilities - What can the COG DO?",
+      "capabilityPlaceholder": "Example: Launch coordinated missile strikes OR Influence public perception through social media",
+      "howItWorksLabel": "How does this capability work?",
+      "howItWorksPlaceholder": "Example: Uses network of bot accounts, influencers, and state media to amplify narratives across platforms within 24-48 hours",
+      "strategicContributionLabel": "How does this support the actor's objectives?",
+      "strategicContributionPlaceholder": "Example: Enables shaping of regional opinion to support strategic objectives, undermine adversaries, and prepare information environment for military operations"
+    },
+
+    "requirements": {
+      "title": "Critical Requirements - What does this capability NEED?",
+      "requirementPlaceholder": "Example: Platform policy compliance OR Network of coordinated accounts",
+      "descriptionLabel": "What is this requirement and why is it needed?",
+      "descriptionPlaceholder": "Example: Requires active accounts on major platforms to distribute content. Must maintain compliance with platform terms of service to avoid account suspension or content removal."
+    },
+
+    "vulnerabilities": {
+      "title": "Critical Vulnerabilities - What is the WEAKNESS?",
+      "vulnerabilityPlaceholder": "Example: Platform policy enforcement OR Single command node",
+      "descriptionLabel": "What is this vulnerability and how can it be exploited?",
+      "descriptionPlaceholder": "Example: Platforms enforce content policies against coordinated inauthentic behavior. Mass reporting campaigns can trigger automated suspensions within 24-48 hours, disrupting the entire influence operation.",
+      "scoringLabel": "Scoring (Composite: {{score}})",
+      "impactLabel": "Impact (I)",
+      "attainabilityLabel": "Attainability (A)",
+      "followUpLabel": "Follow-up (F)",
+      "soWhatTitle": "\"So What?\" - Impact Analysis",
+      "expectedEffectLabel": "What happens if exploited?",
+      "expectedEffectPlaceholder": "Example: Adversary loses primary influence mechanism within 48 hours.",
+      "recommendedActionsLabel": "Recommended Actions",
+      "recommendedActionsPlaceholder": "Report accounts, Work with platforms, Monitor adaptation",
+      "confidenceLabel": "Confidence",
+      "confidenceLow": "Low",
+      "confidenceMedium": "Medium",
+      "confidenceHigh": "High",
+      "confidenceConfirmed": "Confirmed"
+    },
+
+    "scoring": {
+      "title": "Scoring System",
+      "description": "Select scoring method and configure criteria for vulnerability assessment",
+      "linearTitle": "Linear (1-5)",
+      "linearDescription": "Equal intervals",
+      "logarithmicTitle": "Logarithmic",
+      "logarithmicDescription": "Exponential scale",
+      "customTitle": "Custom",
+      "customDescription": "Define your own",
+      "customCriteriaRange": "1-5 criteria",
+      "defaultCriteriaTitle": "Default Scoring Criteria",
+      "impactCriterion": "Impact on COG (I): How significantly would this affect the COG?",
+      "attainabilityCriterion": "Attainability (A): How feasible is addressing this?",
+      "followUpCriterion": "Follow-up Potential (F): What strategic advantages does this enable?",
+      "compositeFormula": "Composite Score = I + A + F",
+      "customCriteriaTitle": "Custom Criteria (1-5 criteria)",
+      "criterionNameLabel": "Criterion Name *",
+      "criterionNamePlaceholder": "e.g., Impact, Risk, Urgency",
+      "criterionDefinitionLabel": "Definition *",
+      "criterionDefinitionPlaceholder": "How would you define this criterion?",
+      "customCompositeNote": "Note: Composite Score = Sum of all criteria scores (1-5 scale per criterion)"
+    },
+
+    "strategicLevels": {
+      "tactical": "Tactical",
+      "operational": "Operational",
+      "strategic": "Strategic"
+    },
+
+    "requirementTypes": {
+      "personnel": "Personnel",
+      "equipment": "Equipment",
+      "logistics": "Logistics",
+      "information": "Information",
+      "infrastructure": "Infrastructure",
+      "other": "Other"
+    },
+
+    "vulnerabilityTypes": {
+      "physical": "Physical",
+      "cyber": "Cyber",
+      "human": "Human",
+      "logistical": "Logistical",
+      "informational": "Informational",
+      "other": "Other"
+    },
+
+    "validation": {
+      "titleRequired": "Please enter a title for your COG analysis",
+      "saveFailed": "Failed to save COG analysis. Please try again."
+    },
+
+    "confirmations": {
+      "removeCOG": "Remove this COG and all dependent items?",
+      "removeCapability": "Remove this capability and all dependent items?",
+      "removeRequirement": "Remove this requirement and all dependent vulnerabilities?",
+      "removeVulnerability": "Remove this vulnerability?"
+    }
+  },
+
+  "quickScore": {
+    "dialog": {
+      "title": "Quick-Score Mode",
+      "description": "Rapidly score all vulnerabilities using presets or custom values. Sorted by composite score in real-time.",
+      "customSystemNotSupported": "Quick-Score mode is currently only available for linear and logarithmic scoring systems. Please use the advanced form for custom scoring criteria."
+    },
+    "legend": {
+      "title": "Score Presets"
+    },
+    "presets": {
+      "high": {
+        "name": "High Priority",
+        "description": "Critical vulnerability requiring immediate action"
+      },
+      "medium": {
+        "name": "Medium Priority",
+        "description": "Important vulnerability for medium-term planning"
+      },
+      "low": {
+        "name": "Low Priority",
+        "description": "Monitor but not immediate priority"
+      }
+    },
+    "labels": {
+      "score": "Score: {{score}}"
+    },
+    "select": {
+      "placeholder": "Apply preset...",
+      "custom": "Custom...",
+      "highPriority": "🔴 High Priority",
+      "mediumPriority": "🟡 Medium Priority",
+      "lowPriority": "🟢 Low Priority"
+    },
+    "sliders": {
+      "impact": "Impact (I)",
+      "attainability": "Attainability (A)",
+      "followUp": "Follow-up (F)"
+    },
+    "emptyState": "No vulnerabilities to score",
+    "buttons": {
+      "applyScores": "Apply Scores"
+    }
+  },
+
+  "vulnerabilityMatrix": {
+    "title": "Vulnerability Comparison Matrix",
+    "description": "Compare and prioritize vulnerabilities across all Centers of Gravity",
+    "exportButton": "Export CSV",
+
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Search vulnerabilities...",
+      "actor": "Actor",
+      "allActors": "All Actors",
+      "domain": "Domain",
+      "allDomains": "All Domains",
+      "cog": "COG",
+      "allCOGs": "All COGs",
+      "minScore": "Min Score",
+      "minScorePlaceholder": "Min",
+      "maxScore": "Max Score",
+      "maxScorePlaceholder": "Max",
+      "clearFilters": "Clear Filters",
+      "showing": "Showing {{shown}} of {{total}} vulnerabilities"
+    },
+
+    "table": {
+      "rank": "Rank",
+      "score": "Score",
+      "cog": "COG",
+      "capability": "Capability",
+      "requirement": "Requirement",
+      "vulnerability": "Vulnerability",
+      "impactShort": "I",
+      "attainabilityShort": "A",
+      "followUpShort": "F",
+      "type": "Type",
+      "confidence": "Confidence"
+    },
+
+    "export": {
+      "filename": "vulnerability-matrix-{{title}}-{{date}}.csv",
+      "headers": {
+        "rank": "Rank",
+        "cog": "COG",
+        "actor": "Actor",
+        "domain": "Domain",
+        "capability": "Capability",
+        "requirement": "Requirement",
+        "vulnerability": "Vulnerability",
+        "type": "Type",
+        "description": "Description",
+        "compositeScore": "Composite Score",
+        "impact": "Impact",
+        "attainability": "Attainability",
+        "followUp": "Follow-up",
+        "expectedEffect": "Expected Effect",
+        "recommendedActions": "Recommended Actions",
+        "confidence": "Confidence"
+      }
+    },
+
+    "emptyState": "No vulnerabilities match the current filters"
+  },
+
+  "aiAssistant": {
+    "analyzing": "AI is analyzing...",
+    "analysisFailed": "Analysis Failed",
+    "tryAgain": "Try Again",
+    "useThis": "Use This",
+    "regenerate": "Regenerate",
+    "acceptAll": "Accept All ({{count}})",
+
+    "modes": {
+      "suggestCog": {
+        "title": "AI COG Suggestions",
+        "description": "AI will suggest potential Centers of Gravity based on your operational context",
+        "button": "Suggest COGs"
+      },
+      "validateCog": {
+        "title": "AI COG Validation",
+        "description": "AI will validate your COG against JP 3-0 doctrine criteria",
+        "button": "Validate COG"
+      },
+      "generateCapabilities": {
+        "title": "AI Capability Suggestions",
+        "description": "AI will suggest critical capabilities for this COG",
+        "button": "Suggest Capabilities"
+      },
+      "generateRequirements": {
+        "title": "AI Requirements Suggestions",
+        "description": "AI will suggest critical requirements for this capability",
+        "button": "Suggest Requirements"
+      },
+      "generateVulnerabilities": {
+        "title": "AI Vulnerability Suggestions",
+        "description": "AI will suggest critical vulnerabilities for this requirement",
+        "button": "Suggest Vulnerabilities"
+      },
+      "generateImpact": {
+        "title": "AI Impact Analysis",
+        "description": "AI will analyze the impact of exploiting this vulnerability",
+        "button": "Analyze Impact"
+      },
+      "default": {
+        "title": "AI Assistant",
+        "description": "AI-powered analysis assistance",
+        "button": "AI Assist"
+      }
+    },
+
+    "errors": {
+      "cogRequired": "COG data required for validation",
+      "cogRequiredForCapabilities": "COG data required for capability generation",
+      "capabilityRequired": "Capability data required for requirements generation",
+      "requirementRequired": "Requirement data required for vulnerability generation",
+      "vulnerabilityAndCapabilitiesRequired": "Vulnerability and capabilities data required"
+    },
+
+    "noResults": {
+      "title": "No Results",
+      "description": "AI did not return any suggestions. Please try again."
+    },
+
+    "acceptToast": {
+      "title": "AI Suggestion Accepted",
+      "description": "The AI-generated content has been applied."
+    },
+
+    "validation": {
+      "validCog": "Valid COG ✓",
+      "needsRefinement": "Needs Refinement",
+      "criteria": "Validation Criteria:",
+      "recommendations": "Recommendations:",
+      "acceptValidation": "Accept Validation",
+      "revalidate": "Re-validate"
+    },
+
+    "details": {
+      "description": "Description",
+      "expectedEffect": "Expected Effect",
+      "recommendedActions": "Recommended Actions"
+    },
+
+    "impact": {
+      "expectedEffect": "Expected Effect",
+      "cascadingEffects": "Cascading Effects",
+      "recommendedActions": "Recommended Actions",
+      "confidence": "Confidence",
+      "timeToEffect": "Time to Effect",
+      "reversibility": "Reversibility",
+      "riskToFriendlyForces": "Risk to Friendly Forces",
+      "considerations": "Considerations",
+      "acceptAnalysis": "Accept Analysis"
+    }
+  },
+
+  "view": {
+    "header": {
+      "back": "Back",
+      "cogAnalysis": "COG Analysis",
+      "linearScoring": "Linear Scoring",
+      "logarithmicScoring": "Logarithmic Scoring",
+      "reference": "Reference",
+      "edit": "Edit",
+      "delete": "Delete",
+      "viewInNetwork": "View in Network",
+      "publishToLibrary": "Publish to Library"
+    },
+
+    "tabs": {
+      "overview": "Overview",
+      "hierarchy": "Hierarchy",
+      "vulnerabilities": "Vulnerabilities",
+      "network": "Network",
+      "comments": "Comments"
+    },
+
+    "operationalContext": {
+      "title": "Operational Context",
+      "objective": "Objective",
+      "desiredImpact": "Desired Impact",
+      "ourIdentity": "Our Identity",
+      "operatingEnvironment": "Operating Environment",
+      "timeframe": "Timeframe",
+      "strategicLevel": "Strategic Level",
+      "constraints": "Constraints",
+      "restraints": "Restraints",
+      "notSpecified": "Not specified"
+    },
+
+    "cogsByActor": {
+      "count": "{{count}} COG",
+      "count_plural": "{{count}} COGs"
+    },
+
+    "statistics": {
+      "cogs": "COGs",
+      "capabilities": "Capabilities",
+      "requirements": "Requirements",
+      "vulnerabilities": "Vulnerabilities"
+    },
+
+    "hierarchy": {
+      "title": "COG Hierarchy",
+      "clickToExpandCollapse": "Click to expand/collapse",
+      "expandIcon": "▶",
+      "collapseIcon": "▼"
+    },
+
+    "vulnerabilitiesTab": {
+      "title": "Critical Vulnerabilities",
+      "description": "Ranked by composite score (Impact + Attainability + Follow-up)",
+      "exportCSV": "Export CSV",
+      "tableHeaders": {
+        "rank": "Rank",
+        "vulnerability": "Vulnerability",
+        "type": "Type",
+        "impact": "I",
+        "attainability": "A",
+        "followUp": "F",
+        "score": "Score"
+      }
+    },
+
+    "network": {
+      "title": "Network Metrics",
+      "description": "Centrality measures for key nodes",
+      "topNodesDegree": "Top Nodes by Degree Centrality",
+      "connections": "connections",
+      "statistics": "Network Statistics",
+      "totalNodes": "Total Nodes",
+      "totalEdges": "Total Edges",
+      "exportOptions": "Export Options",
+      "exportDescription": "Download network data and reports",
+      "edgeListCSV": "Edge List CSV",
+      "fullReportMarkdown": "Full Report (Markdown)"
+    },
+
+    "export": {
+      "edgeListFilename": "cog_edge_list_{{title}}.csv",
+      "reportFilename": "cog_report_{{title}}.md",
+      "vulnerabilitiesFilename": "cog_vulnerabilities_{{title}}.csv",
+      "csvHeaders": {
+        "source": "Source",
+        "sourceType": "Source Type",
+        "target": "Target",
+        "targetType": "Target Type",
+        "weight": "Weight",
+        "relationship": "Relationship",
+        "rank": "Rank",
+        "vulnerability": "Vulnerability",
+        "type": "Type",
+        "impact": "Impact",
+        "attainability": "Attainability",
+        "followUp": "Follow-up",
+        "compositeScore": "Composite Score",
+        "description": "Description"
+      }
+    },
+
+    "markdown": {
+      "title": "COG Analysis: {{title}}",
+      "operationalContextTitle": "Operational Context",
+      "objective": "Objective",
+      "desiredImpact": "Desired Impact",
+      "ourIdentity": "Our Identity",
+      "operatingEnvironment": "Operating Environment",
+      "constraints": "Constraints",
+      "restraints": "Restraints",
+      "timeframe": "Timeframe",
+      "strategicLevel": "Strategic Level",
+      "centersOfGravity": "Centers of Gravity",
+      "rationale": "Rationale",
+      "criticalCapabilities": "Critical Capabilities",
+      "strategicContribution": "Strategic Contribution",
+      "requirements": "Requirements",
+      "criticalVulnerabilitiesPrioritized": "Critical Vulnerabilities (Prioritized)",
+      "type": "Type",
+      "descriptionLabel": "Description",
+      "impactOnCOG": "Impact on COG",
+      "attainability": "Attainability",
+      "followUpPotential": "Follow-up Potential",
+      "exploitationMethod": "Exploitation Method",
+      "networkAnalysis": "Network Analysis",
+      "topNodesByDegreeCentrality": "Top Nodes by Degree Centrality",
+      "generatedFrom": "Generated from COG Analysis Tool",
+      "referenceLink": "Reference: [Irregularpedia COG Analysis Guide](https://irregularpedia.org/index.php/Center_of_Gravity_Analysis_Guide)",
+      "notAvailable": "N/A"
+    },
+
+    "alerts": {
+      "confirmDelete": "Are you sure you want to delete \"{{title}}\"?"
+    },
+
+    "metrics": {
+      "capabilitiesCount": "{{count}} Capabilities",
+      "requirementsCount": "{{count}} Requirements",
+      "vulnerabilitiesCount": "{{count}} Vulnerabilities"
+    }
+  },
+
+  "templates": {
+    "dialog": {
+      "title": "Start New COG Analysis",
+      "description": "Choose how to create your analysis: guided wizard or advanced mode. You can also start from a template or blank.",
+      "blankAnalysis": "Blank Analysis",
+      "blankDescription": "Start from scratch with an empty COG analysis framework",
+      "startWithWizard": "Start with Wizard",
+      "advancedMode": "Advanced Mode",
+      "orStartFromTemplate": "Or start from a template:",
+      "wizard": "Wizard",
+      "advanced": "Advanced"
+    },
+    "list": {
+      "adversaryC2": {
+        "name": "Adversary Command & Control",
+        "description": "Template for analyzing adversary command and control structures and identifying vulnerabilities in military decision-making processes"
+      },
+      "adversaryInfoOps": {
+        "name": "Adversary Information Operations",
+        "description": "Template for analyzing adversary information warfare capabilities and identifying weaknesses in propaganda and influence networks"
+      },
+      "friendlyLogistics": {
+        "name": "Friendly Logistics COG",
+        "description": "Template for analyzing friendly forces logistics to identify and protect critical vulnerabilities in supply chains"
+      },
+      "cyberDomain": {
+        "name": "Cyber Domain COG",
+        "description": "Template for analyzing adversary cyber capabilities and critical infrastructure dependencies"
+      },
+      "hostNationInfrastructure": {
+        "name": "Host Nation Critical Infrastructure",
+        "description": "Template for analyzing host nation critical infrastructure to identify protection priorities during operations"
+      }
+    },
+    "categories": {
+      "adversary": "Adversary",
+      "friendly": "Friendly",
+      "information": "Information",
+      "cyber": "Cyber",
+      "host_nation": "Host Nation"
+    },
+    "stats": {
+      "cog": "COG",
+      "cogs": "COGs",
+      "capability": "Capability",
+      "capabilities": "Capabilities",
+      "vulnerability": "Vulnerability",
+      "vulnerabilities": "Vulnerabilities"
+    }
+  },
+
+  "wizard": {
+    "title": "COG Analysis Wizard",
+    "subtitle": "Step-by-step guided analysis",
+    "progressComplete": "Complete",
+
+    "steps": {
+      "context": {
+        "name": "Context",
+        "description": "Set operational context"
+      },
+      "cog": {
+        "name": "COG",
+        "description": "Identify Centers of Gravity"
+      },
+      "capabilities": {
+        "name": "Capabilities",
+        "description": "Map critical capabilities"
+      },
+      "requirements": {
+        "name": "Requirements",
+        "description": "Identify critical requirements"
+      },
+      "vulnerabilities": {
+        "name": "Vulnerabilities",
+        "description": "Assess vulnerabilities"
+      },
+      "review": {
+        "name": "Review",
+        "description": "Review and save"
+      }
+    },
+
+    "navigation": {
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "advancedMode": "Advanced Mode",
+      "switchToAdvanced": "Switch to advanced mode? Your current progress will be transferred to the advanced form.",
+      "stepOf": "Step {{current}} of {{total}}: {{name}}"
+    },
+
+    "step1": {
+      "alert": "Set the operational context for your analysis. This frames the entire COG assessment.",
+      "titleLabel": "Analysis Title",
+      "titleRequired": "Analysis Title *",
+      "titlePlaceholder": "e.g., Adversary Command & Control Analysis",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Brief description of this analysis",
+      "objectiveLabel": "What is your analysis objective?",
+      "objectiveRequired": "🎯 What is your analysis objective? *",
+      "objectivePlaceholder": "Identify and prioritize adversary command and control vulnerabilities...",
+      "impactLabel": "What impact do we want to achieve?",
+      "impactRequired": "💥 What impact do we want to achieve? *",
+      "impactPlaceholder": "Disrupt adversary ability to coordinate forces...",
+      "identityLabel": "Who are we? (Friendly forces)",
+      "identityRequired": "👥 Who are we? (Friendly forces) *",
+      "identityPlaceholder": "Joint Task Force with multi-domain capabilities",
+      "environmentLabel": "Where are we operating? (PMESII-PT)",
+      "environmentPlaceholder": "Theater-level operations against peer adversary...",
+      "timeframeLabel": "Operational Timeframe",
+      "timeframePlaceholder": "30-45 days from assessment to decision point",
+      "strategicLevelLabel": "Strategic Level",
+      "strategicLevels": {
+        "tactical": "Tactical",
+        "operational": "Operational",
+        "strategic": "Strategic"
+      }
+    },
+
+    "step2": {
+      "alert": "Identify the primary Center of Gravity. A COG is a source of power that provides moral or physical strength, freedom of action, or will to act.",
+      "actorLabel": "Actor Category",
+      "domainLabel": "DIMEFIL Domain",
+      "descriptionLabel": "What is this Center of Gravity?",
+      "descriptionRequired": "📝 What is this Center of Gravity? *",
+      "descriptionPlaceholder": "Integrated Command and Control System enabling synchronized multi-domain operations",
+      "rationaleLabel": "Why is this a COG? (Rationale)",
+      "rationaleRequired": "🤔 Why is this a COG? (Rationale) *",
+      "rationalePlaceholder": "Without this C2 system, adversary cannot coordinate air, ground, and naval forces effectively...",
+      "suggestCOG": "✨ Suggest COG",
+      "validateCOG": "🔍 Validate COG",
+      "validationTitle": "✅ COG Validation Checklist",
+      "validationChecks": {
+        "criticallyDegrades": "If neutralized, would this critically degrade the actor's ability to achieve objectives?",
+        "sourceOfPower": "Is this truly a source of power (not just important)?",
+        "rightLevel": "Is this at the right level of analysis?",
+        "canBeExploited": "Can this be protected/exploited through its critical requirements and vulnerabilities?"
+      },
+      "validationWarning": "Complete the validation checklist to ensure this is a valid COG. You can proceed but validation is recommended."
+    },
+
+    "step3": {
+      "alert": "Map critical capabilities - what can the COG DO? Use action verbs (coordinate, project, influence, etc.)",
+      "capabilityNumber": "Critical Capability {{number}} (Action/Verb)",
+      "capabilityLabel": "⚡ Critical Capability {{number}} (Action/Verb)",
+      "capabilityPlaceholder": "e.g., Coordinate multi-domain strike operations",
+      "descriptionLabel": "How does this work?",
+      "descriptionPlaceholder": "Describe how this capability functions...",
+      "removeButton": "Remove",
+      "addButton": "+ Add Another Capability",
+      "generateButton": "✨ Generate Capabilities",
+      "validationError": "Please complete at least one capability with both the capability name and description before proceeding."
+    },
+
+    "step4": {
+      "alert": "Identify critical requirements - what does the COG NEED? Focus on resources, conditions, or infrastructure.",
+      "requirementNumber": "Critical Requirement {{number}} (Noun/Resource)",
+      "requirementLabel": "📋 Critical Requirement {{number}} (Noun/Resource)",
+      "requirementPlaceholder": "e.g., Redundant communication network",
+      "typeLabel": "Requirement Type",
+      "types": {
+        "personnel": "Personnel",
+        "equipment": "Equipment",
+        "logistics": "Logistics",
+        "information": "Information",
+        "infrastructure": "Infrastructure",
+        "other": "Other"
+      },
+      "capabilityLinkLabel": "Supports Which Capability?",
+      "capabilityLinkRequired": "🔗 Supports Which Capability? *",
+      "capabilityLinkPlaceholder": "Select capability...",
+      "capabilityLinkWarning": "⚠️ Must select a capability",
+      "capabilityItem": "Capability {{number}}",
+      "removeButton": "Remove",
+      "addButton": "+ Add Another Requirement",
+      "generateButton": "✨ Generate Requirements"
+    },
+
+    "step5": {
+      "alert": "Assess critical vulnerabilities - what are the WEAKNESSES? Identify specific exploitable aspects of requirements.",
+      "vulnerabilityNumber": "Critical Vulnerability {{number}}",
+      "vulnerabilityLabel": "⚠️ Critical Vulnerability {{number}}",
+      "vulnerabilityPlaceholder": "e.g., Single point of failure in communication hub",
+      "descriptionLabel": "Description & Exploitation Method",
+      "descriptionPlaceholder": "Describe the vulnerability and how it could be exploited...",
+      "typeLabel": "Vulnerability Type",
+      "types": {
+        "physical": "Physical",
+        "cyber": "Cyber",
+        "human": "Human",
+        "logistical": "Logistical",
+        "informational": "Informational",
+        "other": "Other"
+      },
+      "expectedEffectLabel": "What happens if exploited? (Expected Effect)",
+      "expectedEffectRequired": "💡 What happens if exploited? (Expected Effect)",
+      "expectedEffectPlaceholder": "Adversary loses primary C2 capability within 48 hours...",
+      "recommendedActionsLabel": "Recommended Actions (comma-separated)",
+      "recommendedActionsPlaceholder": "Conduct detailed target analysis, Develop strike options, Coordinate with cyber command",
+      "requirementLinkLabel": "Exploits Which Requirements?",
+      "requirementLinkRequired": "🔗 Exploits Which Requirements? * (Select at least one)",
+      "requirementLinkWarning": "⚠️ Must select at least one requirement",
+      "noRequirementsWarning": "No requirements defined yet. Go back to Step 4 to add requirements.",
+      "unknownCapability": "Unknown Cap",
+      "removeButton": "Remove",
+      "addButton": "+ Add Another Vulnerability",
+      "generateButton": "✨ Generate Vulnerabilities"
+    },
+
+    "step6": {
+      "alert": "Review your COG analysis before saving. You can edit details later in advanced mode.",
+      "summaryTitle": "Analysis Summary",
+      "titleLabel": "Title:",
+      "strategicLevelLabel": "Strategic Level:",
+      "cogLabel": "COG:",
+      "domainLabel": "Domain:",
+      "notSpecified": "Not specified",
+      "capabilitiesCount": "Capabilities",
+      "requirementsCount": "Requirements",
+      "vulnerabilitiesCount": "Vulnerabilities",
+      "advancedModeNote": "After saving, you can refine scoring, add additional COGs, and link evidence in advanced mode."
+    },
+
+    "buttons": {
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "save": "Save Analysis",
+      "saving": "Saving...",
+      "advancedMode": "Advanced Mode"
+    },
+
+    "validation": {
+      "requiredFields": "Please fill in all required fields before proceeding.",
+      "atLeastOneCapability": "Please add at least one capability.",
+      "atLeastOneRequirement": "Please add at least one requirement.",
+      "atLeastOneVulnerability": "Please add at least one vulnerability.",
+      "cogValidationIncomplete": "Complete the validation checklist to ensure this is a valid COG."
+    },
+
+    "templates": {
+      "dialog": {
+        "title": "Start New COG Analysis",
+        "description": "Choose how to create your analysis: guided wizard or advanced mode. You can also start from a template or blank.",
+        "blankAnalysis": "Blank Analysis",
+        "blankDescription": "Start from scratch with an empty COG analysis framework",
+        "startWithWizard": "Start with Wizard",
+        "advancedMode": "Advanced Mode",
+        "orStartFromTemplate": "Or start from a template:",
+        "wizard": "Wizard",
+        "advanced": "Advanced"
+      },
+      "list": {
+        "adversaryC2": {
+          "name": "Adversary Command & Control",
+          "description": "Template for analyzing adversary command and control structures and identifying vulnerabilities in military decision-making processes"
+        },
+        "adversaryInfoOps": {
+          "name": "Adversary Information Operations",
+          "description": "Template for analyzing adversary information warfare capabilities and identifying weaknesses in propaganda and influence networks"
+        },
+        "friendlyLogistics": {
+          "name": "Friendly Logistics COG",
+          "description": "Template for analyzing friendly forces logistics to identify and protect critical vulnerabilities in supply chains"
+        },
+        "cyberDomain": {
+          "name": "Cyber Domain COG",
+          "description": "Template for analyzing adversary cyber capabilities and critical infrastructure dependencies"
+        },
+        "hostNationInfrastructure": {
+          "name": "Host Nation Critical Infrastructure",
+          "description": "Template for analyzing host nation critical infrastructure to identify protection priorities during operations"
+        }
+      },
+      "categories": {
+        "adversary": "Adversary",
+        "friendly": "Friendly",
+        "information": "Information",
+        "cyber": "Cyber",
+        "host_nation": "Host Nation"
+      }
+    }
+  }
+}

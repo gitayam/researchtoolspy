@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+/* Enable dark mode with class strategy (Tailwind v4) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 221.2 83.2% 53.3%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  /* Improved contrast - slate palette for better readability */
+  --background: 222.2 47.4% 11.2%;     /* slate-900: #0f172a */
+  --foreground: 210 40% 98%;           /* slate-100: #f1f5f9 */
+  --card: 217.2 32.6% 17.5%;           /* slate-800: #1e293b */
+  --card-foreground: 210 40% 98%;      /* slate-100: #f1f5f9 */
+  --popover: 217.2 32.6% 17.5%;        /* slate-800: #1e293b */
+  --popover-foreground: 210 40% 98%;   /* slate-100: #f1f5f9 */
+  --primary: 217.2 91.2% 59.8%;        /* blue-500: #3b82f6 */
+  --primary-foreground: 210 40% 98%;   /* slate-100: #f1f5f9 */
+  --secondary: 215.3 25% 26.7%;        /* slate-700: #334155 */
+  --secondary-foreground: 210 40% 98%; /* slate-100: #f1f5f9 */
+  --muted: 215.3 25% 26.7%;            /* slate-700: #334155 */
+  --muted-foreground: 215.4 16.3% 56.9%; /* slate-400: #94a3b8 - improved contrast */
+  --accent: 215.3 25% 26.7%;           /* slate-700: #334155 */
+  --accent-foreground: 210 40% 98%;    /* slate-100: #f1f5f9 */
+  --destructive: 0 62.8% 50.6%;        /* red-500: #ef4444 */
+  --destructive-foreground: 210 40% 98%; /* slate-100: #f1f5f9 */
+  --border: 215.3 25% 26.7%;           /* slate-700: #334155 - visible borders */
+  --input: 215.3 25% 26.7%;            /* slate-700: #334155 */
+  --ring: 217.2 91.2% 59.8%;           /* blue-500: #3b82f6 */
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-feature-settings: "rlig" 1, "calt" 1;
+  /* Mobile enhancements */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+/* Mobile UX Enhancements */
+html {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Improve touch target visibility */
+* {
+  -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Enhanced focus visibility for accessibility */
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Button active states for mobile feedback */
+button:active, .active\:scale-95:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease-in-out;
+}
+
+/* Mobile-optimized scrollbar */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: rgba(75, 85, 99, 0.5);
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+}
+
+/* Safe area insets for mobile devices (iOS notch, etc.) */
+@supports (padding: env(safe-area-inset-top)) {
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Ensure text is readable in dark mode (per Lessons Learned) */
+.dark {
+  color-scheme: dark;
+}
+
+/* Better mobile touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  button, a, [role="button"] {
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
+  }
+}
+
+/* Indeterminate progress bar animation for page loading */
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  width: 50%;
+}
