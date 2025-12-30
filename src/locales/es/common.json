@@ -462,6 +462,7 @@
     "browseFrameworks": "Explorar Marcos",
     "accessSavedWork": "Acceder a Tu Trabajo",
     "createAccount": "Crear Cuenta",
+    "login": "Iniciar Sesión",
     "everythingYouNeed": "Todo lo que Necesitas para Análisis de Investigación",
     "providesTools": "Desde planificación estratégica hasta evaluación de amenazas, ResearchTools proporciona las herramientas y marcos en los que confían los analistas profesionales.",
     "analysisFrameworks": "13 Marcos de Análisis",
@@ -481,7 +482,15 @@
     "readyToTransform": "¿Listo para Transformar tu Flujo de Trabajo de Análisis?",
     "browseAllFrameworks": "Explora los 13 marcos gratis • No se requiere inicio de sesión • Cuenta opcional para guardar tu trabajo",
     "browseNow": "Explorar Marcos Ahora",
-    "accessSaved": "Acceder a Trabajo Guardado"
+    "accessSaved": "Acceder a Trabajo Guardado",
+    "researchAnalysisPlatform": "Plataforma de Análisis de Investigación",
+    "urlPlaceholder": "Pega una URL para analizar o escribe el nombre del marco (SWOT, COG, ACH...)",
+    "analyze": "Analizar",
+    "pleaseEnterUrl": "Por favor ingresa una URL",
+    "invalidUrl": "URL inválida. Por favor ingresa una URL válida que comience con http:// o https://",
+    "frameworkDetected": "Marco detectado: {{framework}} - Presiona Enter o haz clic en Analizar para abrir",
+    "frameworkLinks": "Enlaces a más de 10 marcos de análisis: SWOT, PMESII-PT, COG, ACH, y más",
+    "footerTagline": "Plataforma de Análisis de Investigación • Gratis para la Comunidad IrregularChat"
   },
   "dashboard": {
     "welcome": "Bienvenido a Herramientas de Análisis de Investigación",
@@ -875,5 +884,152 @@
         "Situaciones donde la mejora de procesos no es el enfoque"
       ]
     }
+  },
+  "pages": {
+    "notFound": {
+      "title": "Página No Encontrada",
+      "description": "La página que buscas no existe o ha sido movida.",
+      "goBack": "Volver",
+      "goHome": "Ir al Inicio"
+    },
+    "settings": {
+      "title": "Configuración",
+      "subtitle": "Administra tus preferencias de visualización, espacios de trabajo, configuración de IA y datos",
+      "loading": "Cargando configuración...",
+      "loadError": "Error al cargar la configuración",
+      "noAccountHash": "Sin Código de Cuenta",
+      "noAccountHashDesc": "Por favor genera o ingresa tu código de cuenta para acceder a la configuración.",
+      "tabs": {
+        "display": "Pantalla",
+        "workspaces": "Espacios de Trabajo",
+        "ai": "IA",
+        "data": "Datos"
+      },
+      "display": {
+        "title": "Configuración de Pantalla",
+        "description": "Personaliza tus preferencias de interfaz",
+        "theme": "Tema",
+        "themeDesc": "Elige tu esquema de colores preferido",
+        "light": "Claro",
+        "dark": "Oscuro",
+        "system": "Sistema",
+        "language": "Idioma",
+        "languageDesc": "Elige tu idioma preferido",
+        "english": "Inglés",
+        "spanish": "Español"
+      }
+    },
+    "activity": {
+      "title": "Actividad del Espacio de Trabajo",
+      "subtitle": "Seguimiento de colaboración del equipo y actualizaciones de marcos"
+    },
+    "reports": {
+      "title": "Informes",
+      "subtitle": "Generar y administrar informes de análisis",
+      "filter": "Filtrar",
+      "generateReport": "Generar Informe",
+      "noReports": "Sin informes aún",
+      "noReportsDesc": "Crea tu primer informe desde un marco de análisis",
+      "completed": "Completado",
+      "draft": "Borrador",
+      "generatedOn": "Generado el"
+    },
+    "investigations": {
+      "title": "Investigaciones",
+      "subtitle": "Organiza tu investigación con flujos de trabajo centrados en investigación",
+      "newInvestigation": "Nueva Investigación",
+      "searchPlaceholder": "Buscar investigaciones...",
+      "tabs": {
+        "active": "Activas",
+        "completed": "Completadas",
+        "archived": "Archivadas"
+      },
+      "errorLoading": "Error al Cargar Investigaciones",
+      "tryAgain": "Intentar de Nuevo",
+      "noInvestigations": "No se encontraron investigaciones",
+      "adjustSearch": "Intenta ajustar tu búsqueda",
+      "createFirst": "Crea tu primera investigación para comenzar",
+      "createInvestigation": "Crear Investigación",
+      "researchQuestion": "Pregunta de Investigación",
+      "stats": {
+        "evidence": "Evidencia",
+        "actors": "Actores",
+        "sources": "Fuentes",
+        "analyses": "Análisis"
+      }
+    },
+    "register": {
+      "copied": "¡Copiado!",
+      "copiedDesc": "Código copiado al portapapeles. ¡Guárdalo en tu gestor de contraseñas ahora!",
+      "copyFailed": "Error al copiar",
+      "copyFailedDesc": "Por favor selecciona y copia manualmente el código de arriba."
+    }
+  },
+  "emptyStates": {
+    "noData": "No hay datos disponibles",
+    "noResults": "No se encontraron resultados",
+    "loading": "Cargando...",
+    "error": "Algo salió mal"
+  },
+  "validation": {
+    "required": "Este campo es obligatorio",
+    "invalidEmail": "Por favor ingresa un correo electrónico válido",
+    "minLength": "Debe tener al menos {{min}} caracteres",
+    "maxLength": "No debe exceder {{max}} caracteres"
+  },
+  "evidenceSubmissions": {
+    "title": "Envíos de Evidencia",
+    "description": "Administrar formularios de envío y revisar evidencia enviada por colaboradores",
+    "formsTab": "Formularios",
+    "reviewTab": "Revisar",
+    "searchForms": "Buscar formularios...",
+    "createForm": "Crear Formulario",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "submissions": "Envíos",
+    "fields": "Campos",
+    "hashId": "ID Hash",
+    "created": "Creado",
+    "copied": "¡Copiado!",
+    "copyUrl": "Copiar URL",
+    "disable": "Desactivar",
+    "enable": "Activar",
+    "viewSubmissions": "Ver Envíos",
+    "status": "Estado",
+    "pending": "Pendiente",
+    "completed": "Completado",
+    "rejected": "Rechazado",
+    "noForms": "Sin Formularios de Envío",
+    "noFormsDescription": "Aún no has creado ningún formulario de envío. Crea tu primer formulario para comenzar a recopilar evidencia de colaboradores.",
+    "createFirstForm": "Crear Tu Primer Formulario",
+    "submissionDetails": "Detalles del Envío",
+    "submitted": "Enviado",
+    "sourceUrl": "URL de Origen",
+    "archivedUrl": "URL Archivada",
+    "contentType": "Tipo de Contenido",
+    "description": "Descripción",
+    "keywords": "Palabras Clave",
+    "submitterComments": "Comentarios del Remitente",
+    "submitter": "Remitente",
+    "name": "Nombre",
+    "contact": "Contacto",
+    "processToEvidence": "Procesar a Evidencia",
+    "reject": "Rechazar",
+    "selectSubmission": "Selecciona un envío para ver detalles",
+    "verificationStatus": "Estado de Verificación",
+    "verified": "Verificado",
+    "probable": "Probable",
+    "unverified": "No Verificado",
+    "disproven": "Refutado",
+    "credibilityScore": "Puntuación de Credibilidad",
+    "reviewerNotes": "Notas del Revisor",
+    "optional": "opcional",
+    "notesPlaceholder": "Agrega tus notas de revisión aquí...",
+    "cancel": "Cancelar",
+    "processing": "Procesando...",
+    "untitled": "Formulario Sin Título",
+    "noSubmissions": "Sin Envíos",
+    "noSubmissionsDescription": "No hay envíos que coincidan con el filtro de estado actual.",
+    "noSubmissionsYet": "Aún no hay envíos para este formulario. Comparte la URL del formulario con colaboradores para comenzar a recopilar evidencia."
   }
 }

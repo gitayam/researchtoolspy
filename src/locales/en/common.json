@@ -463,6 +463,7 @@
     "browseFrameworks": "Browse Frameworks",
     "accessSavedWork": "Access Saved Work",
     "createAccount": "Create Account",
+    "login": "Login",
     "everythingYouNeed": "Everything You Need for Research Analysis",
     "providesTools": "From strategic planning to threat assessment, ResearchTools provides the tools and frameworks professional analysts trust.",
     "analysisFrameworks": "13 Analysis Frameworks",
@@ -482,7 +483,15 @@
     "readyToTransform": "Ready to Transform Your Analysis Workflow?",
     "browseAllFrameworks": "Browse all 13 frameworks for free • No login required • Optional account to save your work",
     "browseNow": "Browse Frameworks Now",
-    "accessSaved": "Access Saved Work"
+    "accessSaved": "Access Saved Work",
+    "researchAnalysisPlatform": "Research Analysis Platform",
+    "urlPlaceholder": "Paste URL to analyze or type framework name (SWOT, COG, ACH...)",
+    "analyze": "Analyze",
+    "pleaseEnterUrl": "Please enter a URL",
+    "invalidUrl": "Invalid URL. Please enter a valid URL starting with http:// or https://",
+    "frameworkDetected": "Framework detected: {{framework}} - Press Enter or click Analyze to open",
+    "frameworkLinks": "Links to 10+ analysis frameworks: SWOT, PMESII-PT, COG, ACH, and more",
+    "footerTagline": "Research Analysis Platform • Free for IrregularChat Community"
   },
   "dashboard": {
     "welcome": "Welcome to Research Analysis Tools",
@@ -876,6 +885,98 @@
         "Situations where process improvement is not the focus"
       ]
     }
+  },
+  "pages": {
+    "notFound": {
+      "title": "Page Not Found",
+      "description": "The page you're looking for doesn't exist or has been moved.",
+      "goBack": "Go Back",
+      "goHome": "Go Home"
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Manage your display preferences, workspaces, AI settings, and data",
+      "loading": "Loading settings...",
+      "loadError": "Failed to load settings",
+      "noAccountHash": "No Account Hash",
+      "noAccountHashDesc": "Please generate or enter your account hash to access settings.",
+      "tabs": {
+        "display": "Display",
+        "workspaces": "Workspaces",
+        "ai": "AI",
+        "data": "Data"
+      },
+      "display": {
+        "title": "Display Settings",
+        "description": "Customize your interface preferences",
+        "theme": "Theme",
+        "themeDesc": "Choose your preferred color scheme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System",
+        "language": "Language",
+        "languageDesc": "Choose your preferred language",
+        "english": "English",
+        "spanish": "Spanish"
+      }
+    },
+    "activity": {
+      "title": "Workspace Activity",
+      "subtitle": "Track team collaboration and framework updates"
+    },
+    "reports": {
+      "title": "Reports",
+      "subtitle": "Generate and manage analysis reports",
+      "filter": "Filter",
+      "generateReport": "Generate Report",
+      "noReports": "No reports yet",
+      "noReportsDesc": "Create your first report from an analysis framework",
+      "completed": "Completed",
+      "draft": "Draft",
+      "generatedOn": "Generated on"
+    },
+    "investigations": {
+      "title": "Investigations",
+      "subtitle": "Organize your research with investigation-centric workflows",
+      "newInvestigation": "New Investigation",
+      "searchPlaceholder": "Search investigations...",
+      "tabs": {
+        "active": "Active",
+        "completed": "Completed",
+        "archived": "Archived"
+      },
+      "errorLoading": "Error Loading Investigations",
+      "tryAgain": "Try Again",
+      "noInvestigations": "No investigations found",
+      "adjustSearch": "Try adjusting your search",
+      "createFirst": "Create your first investigation to get started",
+      "createInvestigation": "Create Investigation",
+      "researchQuestion": "Research Question",
+      "stats": {
+        "evidence": "Evidence",
+        "actors": "Actors",
+        "sources": "Sources",
+        "analyses": "Analyses"
+      }
+    },
+    "register": {
+      "copied": "Copied!",
+      "copiedDesc": "Hash copied to clipboard. Save it in your password manager now!",
+      "copyFailed": "Copy failed",
+      "copyFailedDesc": "Please manually select and copy the hash above."
+    }
+  },
+  "emptyStates": {
+    "noData": "No data available",
+    "noResults": "No results found",
+    "loading": "Loading...",
+    "error": "Something went wrong"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidEmail": "Please enter a valid email",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must be no more than {{max}} characters"
   },
   "evidenceSubmissions": {
     "title": "Evidence Submissions",

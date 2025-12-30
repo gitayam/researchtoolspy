@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
-export function LandingPage() {
+export default function LandingPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -110,7 +110,7 @@ export function LandingPage() {
 
   const handleAnalyze = async () => {
     if (!url.trim()) {
-      setUrlError('Please enter a URL')
+      setUrlError(t('landing.pleaseEnterUrl'))
       return
     }
 
@@ -125,7 +125,7 @@ export function LandingPage() {
 
     // Validate URL format
     if (!isValidUrl(url.trim())) {
-      setUrlError('Invalid URL. Please enter a valid URL starting with http:// or https://')
+      setUrlError(t('landing.invalidUrl'))
       return
     }
 
@@ -215,7 +215,7 @@ export function LandingPage() {
                 <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2.5 sm:px-6 sm:py-2.5 rounded-lg shadow-md transition-colors flex items-center gap-2 text-sm sm:text-base">
                   <Unlock className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span className="hidden md:inline">{t('landing.accessSavedWork')}</span>
-                  <span className="md:hidden">Login</span>
+                  <span className="md:hidden">{t('landing.login')}</span>
                 </button>
               </Link>
               <Link to="/register" className="hidden md:block">
@@ -238,7 +238,7 @@ export function LandingPage() {
               <span className="text-blue-600 dark:text-blue-500">ResearchTools</span>
             </h1>
             <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400">
-              Research Analysis Platform
+              {t('landing.researchAnalysisPlatform')}
             </p>
           </div>
 
@@ -252,7 +252,7 @@ export function LandingPage() {
                 <Input
                   ref={inputRef}
                   type="text"
-                  placeholder="Paste URL to analyze or type framework name (SWOT, COG, ACH...)"
+                  placeholder={t('landing.urlPlaceholder')}
                   value={url}
                   onChange={handleUrlChange}
                   onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
@@ -267,7 +267,7 @@ export function LandingPage() {
                   {analyzing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    'Analyze'
+                    t('landing.analyze')
                   )}
                 </Button>
               </div>
@@ -288,7 +288,7 @@ export function LandingPage() {
               <div className="mt-3 flex items-start gap-2 text-blue-600 dark:text-blue-400 text-sm px-2 animate-in fade-in duration-200">
                 <Brain className="h-5 w-5 flex-shrink-0 mt-0.5" />
                 <span className="font-medium">
-                  Framework detected: <strong>{detectedFramework}</strong> - Press Enter or click Analyze to open
+                  {t('landing.frameworkDetected', { framework: detectedFramework })}
                 </span>
               </div>
             )}
@@ -298,7 +298,7 @@ export function LandingPage() {
           <div className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <Target className="h-4 w-4 text-blue-600" />
             <span>
-              Links to 10+ analysis frameworks: SWOT, PMESII-PT, COG, ACH, and more
+              {t('landing.frameworkLinks')}
             </span>
           </div>
 
@@ -306,17 +306,17 @@ export function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
             <Link to="/dashboard" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium flex items-center gap-1">
               <Brain className="h-4 w-4" />
-              Browse Frameworks
+              {t('landing.browseFrameworks')}
             </Link>
             <span className="text-gray-300 dark:text-gray-600">•</span>
             <Link to="/login" className="text-green-600 hover:text-green-700 dark:text-green-400 font-medium flex items-center gap-1">
               <Unlock className="h-4 w-4" />
-              Access Saved Work
+              {t('landing.accessSavedWork')}
             </Link>
             <span className="text-gray-300 dark:text-gray-600">•</span>
             <Link to="/register" className="text-gray-600 hover:text-gray-700 dark:text-gray-400 font-medium flex items-center gap-1">
               <KeyRound className="h-4 w-4" />
-              Create Account
+              {t('landing.createAccount')}
             </Link>
           </div>
         </div>
@@ -431,7 +431,7 @@ export function LandingPage() {
             <span className="font-bold text-gray-900 dark:text-white">ResearchTools</span>
           </div>
           <p className="text-gray-600 dark:text-gray-400">
-            Research Analysis Platform • Free for IrregularChat Community
+            {t('landing.footerTagline')}
           </p>
         </div>
       </footer>
