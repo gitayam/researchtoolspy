@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, Download, RefreshCw, BarChart3, Route, Info } from 'lucide-react'
 import type { Relationship, EntityType } from '@/types/entities'
+import { useTranslation } from 'react-i18next'
 
 interface NetworkNode {
   id: string
@@ -35,6 +36,7 @@ const CONFIDENCE_ORDER: Record<string, number> = {
 }
 
 export function NetworkGraphPage() {
+  const { t } = useTranslation(['networkGraph'])
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
@@ -378,7 +380,7 @@ export function NetworkGraphPage() {
       <div className="h-screen flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-gray-400" />
-          <p className="text-gray-500">Loading network graph...</p>
+          <p className="text-gray-500">{t('networkGraph:loading')}</p>
         </div>
       </div>
     )
@@ -392,13 +394,13 @@ export function NetworkGraphPage() {
           <div className="flex items-center gap-4">
             <Button variant="outline" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              {t('common:back')}
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Network Graph</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{t('networkGraph:title')}</h1>
               <p className="text-sm text-gray-500">
-                Interactive entity relationship visualization
-                {highlightedNodes.size > 0 && ` • ${highlightedNodes.size} entities highlighted`}
+                {t('networkGraph:description')}
+                {highlightedNodes.size > 0 && ` • ${t('networkGraph:highlighted', { count: highlightedNodes.size })}`}
               </p>
             </div>
           </div>
@@ -408,15 +410,15 @@ export function NetworkGraphPage() {
               onClick={() => setShowMetrics(!showMetrics)}
             >
               <BarChart3 className="h-4 w-4 mr-2" />
-              {showMetrics ? "Hide" : "Show"} Metrics
+              {showMetrics ? t('networkGraph:controls.hideMetrics') : t('networkGraph:controls.showMetrics')}
             </Button>
             <Button variant="outline" onClick={() => setPathFinderOpen(true)}>
               <Route className="h-4 w-4 mr-2" />
-              Find Path
+              {t('networkGraph:controls.findPath')}
             </Button>
             <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
               <Download className="h-4 w-4 mr-2" />
-              Export
+              {t('networkGraph:controls.export')}
             </Button>
           </div>
         </div>
@@ -428,15 +430,13 @@ export function NetworkGraphPage() {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Viewing entities from{' '}
+              {t('networkGraph:source.viewing')} {' '}
               <strong>
-                {sourceInfo.type === 'cog' && 'COG Analysis'}
-                {sourceInfo.type === 'causeway' && 'Causeway Analysis'}
-                {sourceInfo.type === 'framework' && 'Framework'}
+                {t(`networkGraph:source.${sourceInfo.type}`)}
               </strong>
               {sourceInfo.title && `: ${sourceInfo.title}`}
               {' • '}
-              {highlightedNodes.size} {highlightedNodes.size === 1 ? 'entity' : 'entities'} highlighted
+              {highlightedNodes.size} {highlightedNodes.size === 1 ? t('networkGraph:source.entity') : t('networkGraph:source.entities')} {t('networkGraph:highlighted', { count: highlightedNodes.size>1 ? 's' : '' })}
             </AlertDescription>
           </Alert>
         </div>
@@ -484,31 +484,31 @@ export function NetworkGraphPage() {
           <div className="w-80 bg-white border-l overflow-y-auto">
             <Card className="h-full rounded-none border-0">
               <CardHeader>
-                <CardTitle>Selected Node</CardTitle>
+                <CardTitle>{t('networkGraph:selectedNode.title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <div className="text-sm text-gray-500 mb-1">Name</div>
+                  <div className="text-sm text-gray-500 mb-1">{t('networkGraph:selectedNode.name')}</div>
                   <div className="font-semibold">{selectedNode.name}</div>
                 </div>
 
                 <div>
-                  <div className="text-sm text-gray-500 mb-1">Type</div>
+                  <div className="text-sm text-gray-500 mb-1">{t('networkGraph:selectedNode.type')}</div>
                   <Badge>{selectedNode.entityType}</Badge>
                 </div>
 
                 <div>
-                  <div className="text-sm text-gray-500 mb-1">ID</div>
+                  <div className="text-sm text-gray-500 mb-1">{t('networkGraph:selectedNode.id')}</div>
                   <div className="text-xs font-mono text-gray-600">{selectedNode.id}</div>
                 </div>
 
                 <div>
-                  <div className="text-sm text-gray-500 mb-1">Connections</div>
+                  <div className="text-sm text-gray-500 mb-1">{t('networkGraph:selectedNode.connections')}</div>
                   <div className="font-semibold">{selectedNode.val || 0}</div>
                 </div>
 
                 <Button onClick={handleNavigateToEntity} className="w-full">
-                  View Details
+                  {t('networkGraph:selectedNode.viewDetails')}
                 </Button>
 
                 <Button
@@ -516,7 +516,7 @@ export function NetworkGraphPage() {
                   onClick={() => setSelectedNode(null)}
                   className="w-full"
                 >
-                  Close
+                  {t('networkGraph:selectedNode.close')}
                 </Button>
               </CardContent>
             </Card>

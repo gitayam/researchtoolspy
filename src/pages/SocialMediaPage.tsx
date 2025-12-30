@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useTranslation } from 'react-i18next'
 
 interface SocialMediaProfile {
   id: string
@@ -103,6 +104,7 @@ const platformColors: Record<string, string> = {
 }
 
 export function SocialMediaPage() {
+  const { t } = useTranslation(['socialMedia'])
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState<Stats | null>(null)
@@ -270,7 +272,7 @@ export function SocialMediaPage() {
   }
 
   const handleDeleteProfile = async (profileId: string) => {
-    if (!confirm('Are you sure you want to delete this profile?')) return
+    if (!confirm(t('socialMedia:profiles.deleteConfirm'))) return
 
     try {
       const token = localStorage.getItem('auth_token')
@@ -323,7 +325,7 @@ export function SocialMediaPage() {
   }
 
   const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'Never'
+    if (!dateStr) return t('common:never')
     return new Date(dateStr).toLocaleDateString()
   }
 
@@ -333,10 +335,10 @@ export function SocialMediaPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Social Media Research
+            {t('socialMedia:title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Scrape, analyze, and monitor social media content
+            {t('socialMedia:description')}
           </p>
         </div>
         <div className="flex gap-2">
@@ -344,19 +346,19 @@ export function SocialMediaPage() {
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Download className="h-4 w-4 mr-2" />
-                New Scrape Job
+                {t('socialMedia:newJob')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create Scraping Job</DialogTitle>
+                <DialogTitle>{t('socialMedia:createJobDialog.title')}</DialogTitle>
                 <DialogDescription>
-                  Configure a new social media scraping task
+                  {t('socialMedia:createJobDialog.description')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label>Platform</Label>
+                  <Label>{t('socialMedia:createJobDialog.platform')}</Label>
                   <Select
                     value={newJob.platform}
                     onValueChange={(value) => setNewJob({ ...newJob, platform: value })}
@@ -365,17 +367,17 @@ export function SocialMediaPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="INSTAGRAM">Instagram</SelectItem>
-                      <SelectItem value="YOUTUBE">YouTube</SelectItem>
-                      <SelectItem value="TWITTER">Twitter/X</SelectItem>
-                      <SelectItem value="TIKTOK">TikTok</SelectItem>
-                      <SelectItem value="FACEBOOK">Facebook</SelectItem>
-                      <SelectItem value="LINKEDIN">LinkedIn</SelectItem>
+                      <SelectItem value="INSTAGRAM">{t('socialMedia:platforms.INSTAGRAM')}</SelectItem>
+                      <SelectItem value="YOUTUBE">{t('socialMedia:platforms.YOUTUBE')}</SelectItem>
+                      <SelectItem value="TWITTER">{t('socialMedia:platforms.TWITTER')}</SelectItem>
+                      <SelectItem value="TIKTOK">{t('socialMedia:platforms.TIKTOK')}</SelectItem>
+                      <SelectItem value="FACEBOOK">{t('socialMedia:platforms.FACEBOOK')}</SelectItem>
+                      <SelectItem value="LINKEDIN">{t('socialMedia:platforms.LINKEDIN')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Job Type</Label>
+                  <Label>{t('socialMedia:createJobDialog.jobType')}</Label>
                   <Select
                     value={newJob.job_type}
                     onValueChange={(value) => setNewJob({ ...newJob, job_type: value })}
@@ -384,16 +386,16 @@ export function SocialMediaPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="PROFILE_SCRAPE">Profile Scrape</SelectItem>
-                      <SelectItem value="POST_SCRAPE">Post Scrape</SelectItem>
-                      <SelectItem value="MEDIA_DOWNLOAD">Media Download</SelectItem>
-                      <SelectItem value="SEARCH">Search</SelectItem>
-                      <SelectItem value="MONITOR">Monitor</SelectItem>
+                      <SelectItem value="PROFILE_SCRAPE">{t('socialMedia:jobTypes.PROFILE_SCRAPE')}</SelectItem>
+                      <SelectItem value="POST_SCRAPE">{t('socialMedia:jobTypes.POST_SCRAPE')}</SelectItem>
+                      <SelectItem value="MEDIA_DOWNLOAD">{t('socialMedia:jobTypes.MEDIA_DOWNLOAD')}</SelectItem>
+                      <SelectItem value="SEARCH">{t('socialMedia:jobTypes.SEARCH')}</SelectItem>
+                      <SelectItem value="MONITOR">{t('socialMedia:jobTypes.MONITOR')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Target Username</Label>
+                  <Label>{t('socialMedia:createJobDialog.targetUsername')}</Label>
                   <Input
                     placeholder="username"
                     value={newJob.target_username}
@@ -401,7 +403,7 @@ export function SocialMediaPage() {
                   />
                 </div>
                 <div>
-                  <Label>Target URL (optional)</Label>
+                  <Label>{t('socialMedia:createJobDialog.targetUrl')}</Label>
                   <Input
                     placeholder="https://..."
                     value={newJob.target_url}
@@ -411,10 +413,10 @@ export function SocialMediaPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setJobDialogOpen(false)}>
-                  Cancel
+                  {t('socialMedia:createJobDialog.cancel')}
                 </Button>
                 <Button onClick={handleCreateJob} disabled={!newJob.target_username && !newJob.target_url}>
-                  Create Job
+                  {t('socialMedia:createJobDialog.create')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -424,19 +426,19 @@ export function SocialMediaPage() {
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Profile
+                {t('socialMedia:addProfile')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Social Media Profile</DialogTitle>
+                <DialogTitle>{t('socialMedia:addProfileDialog.title')}</DialogTitle>
                 <DialogDescription>
-                  Add a profile to track and analyze
+                  {t('socialMedia:addProfileDialog.description')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label>Platform</Label>
+                  <Label>{t('socialMedia:addProfileDialog.platform')}</Label>
                   <Select
                     value={newProfile.platform}
                     onValueChange={(value) => setNewProfile({ ...newProfile, platform: value })}
@@ -445,17 +447,17 @@ export function SocialMediaPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="INSTAGRAM">Instagram</SelectItem>
-                      <SelectItem value="YOUTUBE">YouTube</SelectItem>
-                      <SelectItem value="TWITTER">Twitter/X</SelectItem>
-                      <SelectItem value="TIKTOK">TikTok</SelectItem>
-                      <SelectItem value="FACEBOOK">Facebook</SelectItem>
-                      <SelectItem value="LINKEDIN">LinkedIn</SelectItem>
+                      <SelectItem value="INSTAGRAM">{t('socialMedia:platforms.INSTAGRAM')}</SelectItem>
+                      <SelectItem value="YOUTUBE">{t('socialMedia:platforms.YOUTUBE')}</SelectItem>
+                      <SelectItem value="TWITTER">{t('socialMedia:platforms.TWITTER')}</SelectItem>
+                      <SelectItem value="TIKTOK">{t('socialMedia:platforms.TIKTOK')}</SelectItem>
+                      <SelectItem value="FACEBOOK">{t('socialMedia:platforms.FACEBOOK')}</SelectItem>
+                      <SelectItem value="LINKEDIN">{t('socialMedia:platforms.LINKEDIN')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Username *</Label>
+                  <Label>{t('socialMedia:addProfileDialog.username')}</Label>
                   <Input
                     placeholder="username"
                     value={newProfile.username}
@@ -463,7 +465,7 @@ export function SocialMediaPage() {
                   />
                 </div>
                 <div>
-                  <Label>Display Name</Label>
+                  <Label>{t('socialMedia:addProfileDialog.displayName')}</Label>
                   <Input
                     placeholder="Display Name"
                     value={newProfile.display_name}
@@ -471,7 +473,7 @@ export function SocialMediaPage() {
                   />
                 </div>
                 <div>
-                  <Label>Bio/Description</Label>
+                  <Label>{t('socialMedia:addProfileDialog.bio')}</Label>
                   <Textarea
                     placeholder="Profile bio or description"
                     value={newProfile.bio}
@@ -481,10 +483,10 @@ export function SocialMediaPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-                  Cancel
+                  {t('socialMedia:addProfileDialog.cancel')}
                 </Button>
                 <Button onClick={handleAddProfile} disabled={!newProfile.username}>
-                  Add Profile
+                  {t('socialMedia:addProfileDialog.add')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -498,7 +500,7 @@ export function SocialMediaPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Profiles
+                {t('socialMedia:stats.totalProfiles')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -508,7 +510,7 @@ export function SocialMediaPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Posts
+                {t('socialMedia:stats.totalPosts')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -518,7 +520,7 @@ export function SocialMediaPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Active Jobs
+                {t('socialMedia:stats.activeJobs')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -530,7 +532,7 @@ export function SocialMediaPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Completed Jobs
+                {t('socialMedia:stats.completedJobs')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -545,10 +547,10 @@ export function SocialMediaPage() {
       {/* Main Content */}
       <Tabs defaultValue="profiles" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="profiles">Profiles</TabsTrigger>
-          <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="jobs">Scraping Jobs</TabsTrigger>
-          <TabsTrigger value="tools">Integration Tools</TabsTrigger>
+          <TabsTrigger value="profiles">{t('socialMedia:tabs.profiles')}</TabsTrigger>
+          <TabsTrigger value="posts">{t('socialMedia:tabs.posts')}</TabsTrigger>
+          <TabsTrigger value="jobs">{t('socialMedia:tabs.jobs')}</TabsTrigger>
+          <TabsTrigger value="tools">{t('socialMedia:tabs.tools')}</TabsTrigger>
         </TabsList>
 
         {/* Profiles Tab */}
@@ -562,18 +564,18 @@ export function SocialMediaPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Platforms</SelectItem>
-                <SelectItem value="INSTAGRAM">Instagram</SelectItem>
-                <SelectItem value="YOUTUBE">YouTube</SelectItem>
-                <SelectItem value="TWITTER">Twitter/X</SelectItem>
-                <SelectItem value="TIKTOK">TikTok</SelectItem>
-                <SelectItem value="FACEBOOK">Facebook</SelectItem>
-                <SelectItem value="LINKEDIN">LinkedIn</SelectItem>
+                <SelectItem value="all">{t('socialMedia:platforms.all')}</SelectItem>
+                <SelectItem value="INSTAGRAM">{t('socialMedia:platforms.INSTAGRAM')}</SelectItem>
+                <SelectItem value="YOUTUBE">{t('socialMedia:platforms.YOUTUBE')}</SelectItem>
+                <SelectItem value="TWITTER">{t('socialMedia:platforms.TWITTER')}</SelectItem>
+                <SelectItem value="TIKTOK">{t('socialMedia:platforms.TIKTOK')}</SelectItem>
+                <SelectItem value="FACEBOOK">{t('socialMedia:platforms.FACEBOOK')}</SelectItem>
+                <SelectItem value="LINKEDIN">{t('socialMedia:platforms.LINKEDIN')}</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" onClick={loadProfiles}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+              {t('socialMedia:profiles.refresh')}
             </Button>
           </div>
 
@@ -596,7 +598,7 @@ export function SocialMediaPage() {
                       {profile.verified && (
                         <Badge variant="secondary" className="text-xs">
                           <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Verified
+                          {t('socialMedia:profiles.verified')}
                         </Badge>
                       )}
                     </div>
@@ -606,19 +608,19 @@ export function SocialMediaPage() {
                   <CardContent>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Followers</span>
+                        <span className="text-gray-600 dark:text-gray-400">{t('socialMedia:profiles.followers')}</span>
                         <span className="font-semibold">{formatNumber(profile.followers_count)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Posts</span>
+                        <span className="text-gray-600 dark:text-gray-400">{t('socialMedia:profiles.posts')}</span>
                         <span className="font-semibold">{formatNumber(profile.posts_count)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Scraped</span>
+                        <span className="text-gray-600 dark:text-gray-400">{t('socialMedia:profiles.scraped')}</span>
                         <span className="font-semibold">{profile.scraped_posts_count || 0}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Last Scraped</span>
+                        <span className="text-gray-600 dark:text-gray-400">{t('socialMedia:profiles.lastScraped')}</span>
                         <span className="font-semibold">{formatDate(profile.last_scraped_at)}</span>
                       </div>
                       <div className="flex gap-2 pt-2">
@@ -632,7 +634,7 @@ export function SocialMediaPage() {
                           className="flex-1"
                         >
                           <ExternalLink className="h-3 w-3 mr-1" />
-                          View
+                          {t('socialMedia:profiles.view')}
                         </Button>
                         <Button
                           size="sm"
@@ -657,14 +659,14 @@ export function SocialMediaPage() {
               <CardContent className="p-12 text-center">
                 <Instagram className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  No profiles yet
+                  {t('socialMedia:profiles.empty.title')}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  Add social media profiles to start tracking and analyzing content
+                  {t('socialMedia:profiles.empty.description')}
                 </p>
                 <Button onClick={() => setAddDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Profile
+                  {t('socialMedia:profiles.empty.addFirst')}
                 </Button>
               </CardContent>
             </Card>
@@ -685,14 +687,14 @@ export function SocialMediaPage() {
                   }}
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to All Profiles
+                  {t('socialMedia:posts.backToProfiles')}
                 </Button>
                 <div className="flex-1">
                   <h3 className="font-semibold">
                     {selectedProfile.display_name || selectedProfile.username}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {posts.length} posts scraped
+                    {t('socialMedia:posts.scrapedPosts', { count: posts.length })}
                   </p>
                 </div>
               </div>
@@ -753,7 +755,7 @@ export function SocialMediaPage() {
                       </div>
                       {post.posted_at && (
                         <p className="text-xs text-gray-500 dark:text-gray-500">
-                          Posted: {formatDate(post.posted_at)}
+                          {t('socialMedia:posts.posted')} {formatDate(post.posted_at)}
                         </p>
                       )}
                     </CardContent>
@@ -766,14 +768,14 @@ export function SocialMediaPage() {
                   <CardContent className="p-12 text-center">
                     <FileDown className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                      No posts scraped yet
+                      {t('socialMedia:posts.empty.title')}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
-                      Create a scraping job to collect posts from this profile
+                      {t('socialMedia:posts.empty.description')}
                     </p>
                     <Button onClick={() => setJobDialogOpen(true)}>
                       <Download className="h-4 w-4 mr-2" />
-                      Start Scraping
+                      {t('socialMedia:posts.empty.startScraping')}
                     </Button>
                   </CardContent>
                 </Card>
@@ -784,10 +786,10 @@ export function SocialMediaPage() {
               <CardContent className="p-12 text-center">
                 <Eye className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  Select a profile
+                  {t('socialMedia:posts.selectProfile.title')}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Choose a profile from the Profiles tab to view its posts
+                  {t('socialMedia:posts.selectProfile.description')}
                 </p>
               </CardContent>
             </Card>
@@ -799,7 +801,7 @@ export function SocialMediaPage() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={loadJobs}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+              {t('socialMedia:jobs.refresh')}
             </Button>
           </div>
 
@@ -816,7 +818,7 @@ export function SocialMediaPage() {
                         <div>
                           <div className="flex items-center gap-2">
                             <CardTitle className="text-base">
-                              {job.job_type.replace(/_/g, ' ')}
+                              {t(`socialMedia:jobTypes.${job.job_type}` as any, job.job_type.replace(/_/g, ' '))}
                             </CardTitle>
                             {getJobStatusBadge(job.status)}
                           </div>
@@ -836,7 +838,7 @@ export function SocialMediaPage() {
                       {job.status === 'RUNNING' && (
                         <div className="space-y-1">
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Progress</span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('socialMedia:jobs.progress')}</span>
                             <span className="font-semibold">{job.progress}%</span>
                           </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -849,15 +851,15 @@ export function SocialMediaPage() {
                       )}
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
-                          <div className="text-gray-600 dark:text-gray-400">Found</div>
+                          <div className="text-gray-600 dark:text-gray-400">{t('socialMedia:jobs.found')}</div>
                           <div className="font-semibold">{job.items_found}</div>
                         </div>
                         <div>
-                          <div className="text-gray-600 dark:text-gray-400">Processed</div>
+                          <div className="text-gray-600 dark:text-gray-400">{t('socialMedia:jobs.processed')}</div>
                           <div className="font-semibold">{job.items_processed}</div>
                         </div>
                         <div>
-                          <div className="text-gray-600 dark:text-gray-400">Created</div>
+                          <div className="text-gray-600 dark:text-gray-400">{t('socialMedia:jobs.created')}</div>
                           <div className="font-semibold">{formatDate(job.created_at)}</div>
                         </div>
                       </div>
@@ -878,14 +880,14 @@ export function SocialMediaPage() {
               <CardContent className="p-12 text-center">
                 <Download className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  No scraping jobs yet
+                  {t('socialMedia:jobs.empty.title')}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  Create a job to start scraping social media content
+                  {t('socialMedia:jobs.empty.description')}
                 </p>
                 <Button onClick={() => setJobDialogOpen(true)}>
                   <Download className="h-4 w-4 mr-2" />
-                  Create Scraping Job
+                  {t('socialMedia:jobs.empty.createJob')}
                 </Button>
               </CardContent>
             </Card>
@@ -896,9 +898,9 @@ export function SocialMediaPage() {
         <TabsContent value="tools" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Integration Tools & Setup</CardTitle>
+              <CardTitle>{t('socialMedia:tools.title')}</CardTitle>
               <CardDescription>
-                External tools required for social media scraping
+                {t('socialMedia:tools.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -906,10 +908,10 @@ export function SocialMediaPage() {
                 <div className="border-l-4 border-blue-600 pl-4">
                   <h4 className="font-semibold flex items-center gap-2">
                     <Instagram className="h-5 w-5" />
-                    Instagram - Instaloader
+                    {t('socialMedia:tools.instagram.title')}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Download photos, videos, captions, and metadata from Instagram
+                    {t('socialMedia:tools.instagram.description')}
                   </p>
                   <div className="mt-3 bg-gray-900 dark:bg-gray-800 rounded-lg p-4 text-sm">
                     <code className="text-green-400">
@@ -926,10 +928,10 @@ export function SocialMediaPage() {
                 <div className="border-l-4 border-red-600 pl-4">
                   <h4 className="font-semibold flex items-center gap-2">
                     <Youtube className="h-5 w-5" />
-                    YouTube - yt-dlp
+                    {t('socialMedia:tools.youtube.title')}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Download videos, metadata, and subtitles from YouTube and 1000+ sites
+                    {t('socialMedia:tools.youtube.description')}
                   </p>
                   <div className="mt-3 bg-gray-900 dark:bg-gray-800 rounded-lg p-4 text-sm">
                     <code className="text-green-400">
@@ -948,10 +950,10 @@ export function SocialMediaPage() {
                 <div className="border-l-4 border-blue-400 pl-4">
                   <h4 className="font-semibold flex items-center gap-2">
                     <Twitter className="h-5 w-5" />
-                    Twitter/X - snscrape or twint
+                    {t('socialMedia:tools.twitter.title')}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Scrape tweets, profiles, and trends without API limits
+                    {t('socialMedia:tools.twitter.description')}
                   </p>
                   <div className="mt-3 bg-gray-900 dark:bg-gray-800 rounded-lg p-4 text-sm">
                     <code className="text-green-400">
@@ -968,10 +970,10 @@ export function SocialMediaPage() {
                 <div className="border-l-4 border-black pl-4">
                   <h4 className="font-semibold flex items-center gap-2">
                     <Smartphone className="h-5 w-5" />
-                    TikTok - TikTok-Api or tiktok-scraper
+                    {t('socialMedia:tools.tiktok.title')}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Download TikTok videos and user profiles
+                    {t('socialMedia:tools.tiktok.description')}
                   </p>
                   <div className="mt-3 bg-gray-900 dark:bg-gray-800 rounded-lg p-4 text-sm">
                     <code className="text-green-400">
@@ -990,14 +992,12 @@ export function SocialMediaPage() {
                     <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
                     <div className="space-y-2">
                       <h4 className="font-semibold text-yellow-900 dark:text-yellow-100">
-                        Important Notes
+                        {t('socialMedia:tools.notes.title')}
                       </h4>
                       <ul className="text-sm text-yellow-800 dark:text-yellow-200 space-y-1 list-disc list-inside">
-                        <li>These tools run locally or on your own servers</li>
-                        <li>Respect platform terms of service and rate limits</li>
-                        <li>Some platforms may require authentication</li>
-                        <li>Use responsibly and ethically</li>
-                        <li>Data can be uploaded to this platform via the API</li>
+                        {t('socialMedia:tools.notes.items', { returnObjects: true }).map((item: string, i: number) => (
+                          <li key={i}>{item}</li>
+                        ))}
                       </ul>
                     </div>
                   </div>
@@ -1008,14 +1008,12 @@ export function SocialMediaPage() {
                     <Terminal className="h-5 w-5 text-blue-600 dark:text-blue-500 flex-shrink-0 mt-0.5" />
                     <div className="space-y-2">
                       <h4 className="font-semibold text-blue-900 dark:text-blue-100">
-                        Integration Workflow
+                        {t('socialMedia:tools.workflow.title')}
                       </h4>
                       <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
-                        <li>Install the appropriate scraping tool locally</li>
-                        <li>Run the tool to collect social media data</li>
-                        <li>Process and format the data (JSON recommended)</li>
-                        <li>Upload to this platform via the API endpoints</li>
-                        <li>Analyze and visualize the collected data</li>
+                        {t('socialMedia:tools.workflow.items', { returnObjects: true }).map((item: string, i: number) => (
+                          <li key={i}>{item}</li>
+                        ))}
                       </ol>
                     </div>
                   </div>

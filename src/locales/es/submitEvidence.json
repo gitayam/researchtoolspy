@@ -1,0 +1,57 @@
+{
+  "loading": "Cargando formulario...",
+  "error": {
+    "title": "Error",
+    "loadFailed": "Error al cargar el formulario",
+    "invalidId": "ID de formulario no válido",
+    "urlRequired": "La URL de la fuente es obligatoria",
+    "typeRequired": "El tipo de contenido es obligatorio",
+    "submitFailed": "Error al enviar"
+  },
+  "success": {
+    "title": "Envío Recibido",
+    "description": "Gracias por tu envío. Será revisado en breve.",
+    "submitAnother": "Enviar Otro"
+  },
+  "header": {
+    "secure": "Envío Seguro",
+    "passwordProtected": "Protegido con Contraseña"
+  },
+  "form": {
+    "sourceUrl": "URL de la Fuente",
+    "sourceUrlPlaceholder": "https://ejemplo.com/articulo",
+    "sourceUrlHint": "URL del contenido que estás enviando",
+    "archivedUrl": "URL Archivada (Opcional)",
+    "archivedUrlPlaceholder": "https://web.archive.org/...",
+    "archivedUrlHint": "Si ya has archivado este contenido, proporciona la URL del archivo",
+    "contentType": "Tipo de Contenido",
+    "contentTypePlaceholder": "Selecciona el tipo de contenido",
+    "contentDescription": "Descripción del Contenido",
+    "contentDescriptionPlaceholder": "¿Cómo se relaciona este contenido con la investigación? ¿Qué lo hace relevante?",
+    "loginRequired": "Se requiere iniciar sesión para ver este contenido",
+    "keywords": "Palabras Clave",
+    "keywordsPlaceholder": "palabraclave1, palabraclave2, palabraclave3",
+    "keywordsHint": "Separa las palabras clave con comas",
+    "submitterComments": "Comentarios Adicionales",
+    "submitterCommentsPlaceholder": "Cualquier contexto o nota adicional...",
+    "submitterName": "Tu Nombre (Opcional)",
+    "submitterNamePlaceholder": "Anónimo",
+    "submitterContact": "Información de Contacto (Opcional)",
+    "submitterContactPlaceholder": "correo@ejemplo.com",
+    "password": "Contraseña del Formulario",
+    "passwordPlaceholder": "Ingresa la contraseña del formulario",
+    "submit": "Enviar Evidencia",
+    "submitting": "Enviando...",
+    "footer": "Tu envío será revisado antes de ser añadido a la colección de investigación"
+  },
+  "contentTypes": {
+    "article": "Artículo / Publicación de Blog",
+    "video": "Video",
+    "social_post": "Publicación en Red Social",
+    "document": "Documento / PDF",
+    "image": "Imagen / Captura de Pantalla",
+    "podcast": "Podcast / Audio",
+    "dataset": "Conjunto de Datos / Hoja de Cálculo",
+    "other": "Otro"
+  }
+}

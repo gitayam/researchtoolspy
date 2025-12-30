@@ -1,0 +1,31 @@
+{
+  "title": "Biblioteca de Contenido",
+  "description": "Ver contenido analizado y obtener sugerencias de marcos de trabajo",
+  "filters": {
+    "searchPlaceholder": "Buscar contenido...",
+    "allDomains": "Todos los Dominios",
+    "refresh": "Actualizar"
+  },
+  "loading": "Cargando...",
+  "empty": {
+    "title": "Aún no hay contenido",
+    "description": "Comienza a analizar URLs desde la página de inicio o la herramienta de Investigación de Contenido",
+    "button": "Analizar Contenido"
+  },
+  "card": {
+    "untitled": "Sin título",
+    "cached": "En caché",
+    "words": "palabras",
+    "frameworks": "Marcos de Trabajo Sugeridos"
+  },
+  "frameworkReasons": {
+    "pmesii": "Análisis ambiental de factores políticos, militares, económicos",
+    "cog": "Identificar capacidades críticas y vulnerabilidades",
+    "network": "Visualizar relaciones entre entidades",
+    "deception": "Analizar credibilidad e identificar posible engaño",
+    "swot": "Análisis estratégico de propósito general"
+  },
+  "alerts": {
+    "loadFailed": "Error al cargar la biblioteca de contenido"
+  }
+}

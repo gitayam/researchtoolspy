@@ -14,6 +14,7 @@ import {
   Calendar,
   Hash
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface SubmissionForm {
   id: string
@@ -28,6 +29,7 @@ interface SubmissionForm {
 }
 
 export default function SubmissionFormsPage() {
+  const { t } = useTranslation(['submissionForms'])
   const navigate = useNavigate()
 
   const [forms, setForms] = useState<SubmissionForm[]>([])
@@ -49,13 +51,13 @@ export default function SubmissionFormsPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load forms')
+        throw new Error(data.error || t('submissionForms:alerts.loadFailed'))
       }
 
       setForms(data.forms || [])
     } catch (err) {
       console.error('Failed to load forms:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load forms')
+      setError(err instanceof Error ? err.message : t('submissionForms:alerts.loadFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -78,7 +80,7 @@ export default function SubmissionFormsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading forms...</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('submissionForms:loading')}</p>
         </div>
       </div>
     )
@@ -92,21 +94,21 @@ export default function SubmissionFormsPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Submission Forms
+                {t('submissionForms:title')}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Create and manage anonymous evidence submission forms
+                {t('submissionForms:description')}
               </p>
             </div>
             <Button onClick={() => navigate('/dashboard/research/forms/new')}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Form
+              {t('submissionForms:createForm')}
             </Button>
           </div>
 
           {/* Search */}
           <Input
-            placeholder="Search forms by name or hash ID..."
+            placeholder={t('submissionForms:searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-md"
@@ -129,17 +131,17 @@ export default function SubmissionFormsPage() {
             <CardContent className="p-12 text-center">
               <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                {searchTerm ? 'No forms found' : 'No submission forms yet'}
+                {searchTerm ? t('submissionForms:empty.noResults') : t('submissionForms:empty.title')}
               </h3>
               <p className="text-gray-500 dark:text-gray-400 mb-6">
                 {searchTerm
-                  ? 'Try adjusting your search'
-                  : 'Create your first form to start collecting evidence anonymously'}
+                  ? t('submissionForms:empty.noResultsDesc')
+                  : t('submissionForms:empty.description')}
               </p>
               {!searchTerm && (
                 <Button onClick={() => navigate('/dashboard/research/forms/new')}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Create First Form
+                  {t('submissionForms:empty.button')}
                 </Button>
               )}
             </CardContent>
@@ -152,7 +154,7 @@ export default function SubmissionFormsPage() {
                   <div className="flex items-start justify-between mb-2">
                     <CardTitle className="text-lg">{form.form_name}</CardTitle>
                     <Badge variant={form.is_active ? 'default' : 'secondary'}>
-                      {form.is_active ? 'Active' : 'Inactive'}
+                      {form.is_active ? t('submissionForms:card.active') : t('submissionForms:card.inactive')}
                     </Badge>
                   </div>
                   {form.form_description && (
@@ -165,13 +167,13 @@ export default function SubmissionFormsPage() {
                   {/* Stats */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Submissions</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('submissionForms:card.submissions')}</p>
                       <p className="text-2xl font-bold text-gray-900 dark:text-white">
                         {form.submission_count}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Fields</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('submissionForms:card.fields')}</p>
                       <p className="text-2xl font-bold text-gray-900 dark:text-white">
                         {form.enabledFields.length}
                       </p>
@@ -182,7 +184,7 @@ export default function SubmissionFormsPage() {
                   <div className="space-y-1">
                     <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                       <Hash className="h-3 w-3 mr-1" />
-                      Hash ID
+                      {t('submissionForms:card.hashId')}
                     </div>
                     <div className="flex items-center space-x-2">
                       <code className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono">
@@ -205,7 +207,7 @@ export default function SubmissionFormsPage() {
                   {/* Created Date */}
                   <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                     <Calendar className="h-3 w-3 mr-1" />
-                    Created {new Date(form.created_at).toLocaleDateString()}
+                    {t('submissionForms:card.created')} {new Date(form.created_at).toLocaleDateString()}
                   </div>
 
                   {/* Actions */}
@@ -224,12 +226,12 @@ export default function SubmissionFormsPage() {
                       {copied === `url-${form.id}` ? (
                         <>
                           <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Copied
+                          {t('submissionForms:card.copied')}
                         </>
                       ) : (
                         <>
                           <Copy className="h-3 w-3 mr-1" />
-                          Copy URL
+                          {t('submissionForms:card.copyUrl')}
                         </>
                       )}
                     </Button>
@@ -252,8 +254,7 @@ export default function SubmissionFormsPage() {
                       className="w-full"
                       onClick={() => navigate(`/dashboard/research/submissions?formId=${form.id}`)}
                     >
-                      View {form.submission_count} Submission
-                      {form.submission_count !== 1 ? 's' : ''}
+                      {t('submissionForms:card.viewSubmissions', { count: form.submission_count })}
                     </Button>
                   )}
                 </CardContent>
@@ -267,13 +268,12 @@ export default function SubmissionFormsPage() {
           <Card className="mt-8 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
             <CardContent className="p-6">
               <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                How Submission Forms Work
+                {t('submissionForms:howItWorks.title')}
               </h3>
               <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
-                <li>Each form has a unique hash URL that can be shared anonymously</li>
-                <li>Submitters don't need to log in or create an account</li>
-                <li>Submissions are reviewed before being added to evidence</li>
-                <li>URLs are automatically archived for preservation</li>
+                {t('submissionForms:howItWorks.items', { returnObjects: true }).map((item: string, i: number) => (
+                  <li key={i}>{item}</li>
+                ))}
               </ul>
             </CardContent>
           </Card>

@@ -1,0 +1,90 @@
+{
+  "backToForms": "Volver a Formularios",
+  "success": {
+    "title": "Formulario Creado Exitosamente",
+    "description": "Tu formulario de envío está listo. Comparte la URL a continuación para recolectar evidencia.",
+    "urlLabel": "URL de Envío Pública",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "urlHint": "Comparte esta URL para permitir el envío anónimo de evidencia",
+    "hashIdLabel": "ID Hash del Formulario",
+    "openButton": "Abrir Formulario de Envío",
+    "viewAllButton": "Ver Todos los Formularios",
+    "nextSteps": "Próximos pasos:",
+    "nextStepsList": [
+      "Comparte la URL de envío con tus fuentes o equipo",
+      "Monitorea los envíos entrantes en el panel de revisión",
+      "Procesa los envíos en tu colección de evidencia"
+    ]
+  },
+  "create": {
+    "title": "Crear Formulario de Envío",
+    "description": "Crea un formulario anónimo para recolectar evidencia de fuentes",
+    "back": "Volver",
+    "basicInfo": {
+      "title": "Información Básica",
+      "description": "Nombra y describe tu formulario de envío",
+      "nameLabel": "Nombre del Formulario *",
+      "namePlaceholder": "Envío de Evidencia - Proyecto Alfa",
+      "nameHint": "Nombre interno para tu referencia",
+      "descriptionLabel": "Descripción del Formulario",
+      "descriptionPlaceholder": "Envía evidencia relacionada con nuestra investigación. Todos los envíos son confidenciales y serán revisados por nuestro equipo.",
+      "descriptionHint": "Esta descripción se mostrará a quienes envíen"
+    },
+    "fields": {
+      "title": "Campos del Formulario",
+      "description": "Selecciona qué campos incluir en el formulario"
+    },
+    "configuration": {
+      "title": "Configuración",
+      "description": "Configura el comportamiento y los requisitos del formulario",
+      "requireUrl": "Requerir URL de Fuente",
+      "requireUrlDesc": "Hacer que el campo de URL sea obligatorio",
+      "requireContentType": "Requerir Tipo de Contenido",
+      "requireContentTypeDesc": "Hacer que la selección del tipo de contenido sea obligatoria",
+      "autoArchive": "Autoarchivar URLs",
+      "autoArchiveDesc": "Archivar automáticamente las URLs enviadas a través de Wayback Machine",
+      "collectSubmitterInfo": "Recolectar Información del Remitente",
+      "collectSubmitterInfoDesc": "Almacenar dirección IP y agente de usuario"
+    },
+    "security": {
+      "title": "Seguridad",
+      "description": "Protección opcional con contraseña para el formulario",
+      "requirePassword": "Requerir Contraseña",
+      "requirePasswordDesc": "Los remitentes deben ingresar una contraseña para acceder al formulario",
+      "passwordLabel": "Contraseña de Envío",
+      "passwordPlaceholder": "Ingresa la contraseña para acceder al formulario",
+      "passwordHint": "Comparte esta contraseña con los remitentes autorizados"
+    },
+    "buttons": {
+      "cancel": "Cancelar",
+      "create": "Crear Formulario",
+      "creating": "Creando Formulario..."
+    }
+  },
+  "fields": {
+    "source_url": "URL de la Fuente",
+    "source_url_desc": "URL del contenido",
+    "archived_url": "URL Archivada",
+    "archived_url_desc": "URL de respaldo pre-archivada (opcional)",
+    "content_type": "Tipo de Contenido",
+    "content_type_desc": "Artículo, video, publicación social, etc.",
+    "content_description": "Descripción del Contenido",
+    "content_description_desc": "Cómo se relaciona esto con la investigación",
+    "login_required": "Se Requiere Inicio de Sesión",
+    "login_required_desc": "Si el contenido necesita inicio de sesión",
+    "keywords": "Palabras Clave",
+    "keywords_desc": "Etiquetas para búsqueda",
+    "submitter_comments": "Comentarios Adicionales",
+    "submitter_comments_desc": "Notas de texto libre",
+    "submitter_name": "Nombre del Remitente",
+    "submitter_name_desc": "Identificación opcional",
+    "submitter_contact": "Información de Contacto",
+    "submitter_contact_desc": "Correo electrónico u otro contacto"
+  },
+  "alerts": {
+    "nameRequired": "El nombre del formulario es obligatorio",
+    "atLeastOneField": "Se debe habilitar al menos un campo",
+    "createFailed": "Error al crear el formulario"
+  }
+}

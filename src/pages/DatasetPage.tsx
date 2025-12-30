@@ -10,11 +10,13 @@ import type { Dataset, DatasetFilter, DatasetStatistics } from '@/types/dataset'
 import { DatasetType, DatasetStatus, CredibilityLevel } from '@/types/dataset'
 import { cn } from '@/lib/utils'
 import { DatasetForm } from '@/components/datasets/DatasetForm'
+import { useTranslation } from 'react-i18next'
 
 // Mock data - will be replaced with API calls
 const mockDataset: Dataset[] = []
 
 export function DatasetPage() {
+  const { t } = useTranslation(['dataset'])
   const [dataset, setDataset] = useState<Dataset[]>(mockDataset)
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null)
   const [filter, setFilter] = useState<DatasetFilter>({})
@@ -60,14 +62,14 @@ export function DatasetPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
-        if (!response.ok) throw new Error('Failed to update dataset')
+        if (!response.ok) throw new Error(t('dataset:alerts.updateFailed'))
       } else {
         const response = await fetch('/api/dataset', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
-        if (!response.ok) throw new Error('Failed to create dataset')
+        if (!response.ok) throw new Error(t('dataset:alerts.createFailed'))
       }
 
       await loadDataset()
@@ -80,7 +82,7 @@ export function DatasetPage() {
   }
 
   const handleDeleteDataset = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this dataset?')) return
+    if (!confirm(t('dataset:alerts.deleteConfirm'))) return
 
     try {
       const response = await fetch(`/api/dataset?id=${id}`, {
@@ -88,10 +90,12 @@ export function DatasetPage() {
       })
       if (response.ok) {
         await loadDataset()
+      } else {
+        throw new Error(t('dataset:alerts.deleteFailed'))
       }
     } catch (error) {
       console.error('Failed to delete dataset:', error)
-      alert('Failed to delete dataset')
+      alert(t('dataset:alerts.deleteFailed'))
     }
   }
 
@@ -165,9 +169,9 @@ export function DatasetPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dataset Collector</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('dataset:title')}</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Manage and organize dataset for your research analysis
+            {t('dataset:description')}
           </p>
         </div>
         <div className="flex gap-2">
@@ -175,15 +179,15 @@ export function DatasetPage() {
             variant="outline"
             onClick={() => {
               console.log('Import button clicked')
-              alert('Import feature coming soon!')
+              alert(t('dataset:alerts.importComingSoon'))
             }}
           >
             <Upload className="h-4 w-4 mr-2" />
-            Import
+            {t('dataset:import')}
           </Button>
           <Button onClick={openCreateForm}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Dataset
+            {t('dataset:add')}
           </Button>
         </div>
       </div>
@@ -194,7 +198,7 @@ export function DatasetPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Dataset</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('dataset:stats.total')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{statistics.total}</p>
               </div>
               <FileText className="h-8 w-8 text-blue-500" />
@@ -205,7 +209,7 @@ export function DatasetPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Verified</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('dataset:stats.verified')}</p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.verified}</p>
               </div>
               <CheckCircle2 className="h-8 w-8 text-green-500" />
@@ -216,7 +220,7 @@ export function DatasetPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Pending</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('dataset:stats.pending')}</p>
                 <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.pending}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
@@ -227,7 +231,7 @@ export function DatasetPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Rejected</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('dataset:stats.rejected')}</p>
                 <p className="text-2xl font-bold text-red-600 dark:text-red-400">{statistics.rejected}</p>
               </div>
               <XCircle className="h-8 w-8 text-red-500" />
@@ -241,7 +245,7 @@ export function DatasetPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Search dataset..."
+            placeholder={t('dataset:filters.searchPlaceholder')}
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -249,23 +253,23 @@ export function DatasetPage() {
         </div>
         <Select value={filter.type || 'all'} onValueChange={(value) => setFilter({ ...filter, type: value === 'all' ? undefined : value as DatasetType })}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by type" />
+            <SelectValue placeholder={t('dataset:filters.byType')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="all">{t('dataset:filters.allTypes')}</SelectItem>
             {Object.values(DatasetType).map(type => (
-              <SelectItem key={type} value={type}>{type.replace('_', ' ')}</SelectItem>
+              <SelectItem key={type} value={type}>{t(`dataset:types.${type}`)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={filter.status || 'all'} onValueChange={(value) => setFilter({ ...filter, status: value === 'all' ? undefined : value as DatasetStatus })}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
+            <SelectValue placeholder={t('dataset:filters.byStatus')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="all">{t('dataset:filters.allStatuses')}</SelectItem>
             {Object.values(DatasetStatus).map(status => (
-              <SelectItem key={status} value={status}>{status.replace('_', ' ')}</SelectItem>
+              <SelectItem key={status} value={status}>{t(`dataset:status.${status}`)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -277,17 +281,17 @@ export function DatasetPage() {
           <Card className="p-12 text-center">
             <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">
-              No Dataset Found
+              {t('dataset:empty.title')}
             </h3>
             <p className="text-gray-500 dark:text-gray-500 mb-4">
               {dataset.length === 0
-                ? "Start building your dataset collection by adding your first piece of dataset."
-                : "Try adjusting your search criteria or filters."
+                ? t('dataset:empty.descriptionStart')
+                : t('dataset:empty.descriptionFilter')
               }
             </p>
             <Button onClick={openCreateForm}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Your First Dataset
+              {t('dataset:empty.addFirst')}
             </Button>
           </Card>
         ) : (
@@ -318,9 +322,9 @@ export function DatasetPage() {
                           <p className="text-gray-600 dark:text-gray-400 mb-3">{item.description}</p>
                         )}
                         <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-500 mb-3">
-                          <span>Source: {item.source.name}</span>
+                          <span>{t('dataset:card.source')} {item.source.name}</span>
                           <span>•</span>
-                          <span>Updated {new Date(item.updated_at).toLocaleDateString()}</span>
+                          <span>{t('dataset:card.updated')} {new Date(item.updated_at).toLocaleDateString()}</span>
                         </div>
                         <div className="flex gap-2">
                           {item.tags.map(tag => (
@@ -341,15 +345,15 @@ export function DatasetPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => openEditForm(item)}>
                           <Edit className="h-4 w-4 mr-2" />
-                          Edit
+                          {t('dataset:menu.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Copy className="h-4 w-4 mr-2" />
-                          Duplicate
+                          {t('dataset:menu.duplicate')}
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Archive className="h-4 w-4 mr-2" />
-                          Archive
+                          {t('dataset:menu.archive')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -357,7 +361,7 @@ export function DatasetPage() {
                           onClick={() => handleDeleteDataset(item.id)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
+                          {t('dataset:menu.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

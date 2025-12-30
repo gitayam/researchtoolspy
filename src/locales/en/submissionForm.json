@@ -1,0 +1,90 @@
+{
+  "backToForms": "Back to Forms",
+  "success": {
+    "title": "Form Created Successfully",
+    "description": "Your submission form is ready. Share the URL below to collect evidence.",
+    "urlLabel": "Public Submission URL",
+    "copy": "Copy",
+    "copied": "Copied",
+    "urlHint": "Share this URL to allow anonymous evidence submission",
+    "hashIdLabel": "Form Hash ID",
+    "openButton": "Open Submission Form",
+    "viewAllButton": "View All Forms",
+    "nextSteps": "Next steps:",
+    "nextStepsList": [
+      "Share the submission URL with your sources or team",
+      "Monitor incoming submissions in the review panel",
+      "Process submissions into your evidence collection"
+    ]
+  },
+  "create": {
+    "title": "Create Submission Form",
+    "description": "Create an anonymous form to collect evidence from sources",
+    "back": "Back",
+    "basicInfo": {
+      "title": "Basic Information",
+      "description": "Name and describe your submission form",
+      "nameLabel": "Form Name *",
+      "namePlaceholder": "Evidence Submission - Project Alpha",
+      "nameHint": "Internal name for your reference",
+      "descriptionLabel": "Form Description",
+      "descriptionPlaceholder": "Submit evidence related to our investigation. All submissions are confidential and will be reviewed by our team.",
+      "descriptionHint": "This description will be shown to submitters"
+    },
+    "fields": {
+      "title": "Form Fields",
+      "description": "Select which fields to include in the form"
+    },
+    "configuration": {
+      "title": "Configuration",
+      "description": "Configure form behavior and requirements",
+      "requireUrl": "Require Source URL",
+      "requireUrlDesc": "Make the URL field mandatory",
+      "requireContentType": "Require Content Type",
+      "requireContentTypeDesc": "Make content type selection mandatory",
+      "autoArchive": "Auto-Archive URLs",
+      "autoArchiveDesc": "Automatically archive submitted URLs via Wayback Machine",
+      "collectSubmitterInfo": "Collect Submitter Info",
+      "collectSubmitterInfoDesc": "Store IP address and user agent"
+    },
+    "security": {
+      "title": "Security",
+      "description": "Optional password protection for the form",
+      "requirePassword": "Require Password",
+      "requirePasswordDesc": "Submitters must enter a password to access the form",
+      "passwordLabel": "Submission Password",
+      "passwordPlaceholder": "Enter password for form access",
+      "passwordHint": "Share this password with authorized submitters"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "create": "Create Form",
+      "creating": "Creating Form..."
+    }
+  },
+  "fields": {
+    "source_url": "Source URL",
+    "source_url_desc": "URL of the content",
+    "archived_url": "Archived URL",
+    "archived_url_desc": "Pre-archived backup URL (optional)",
+    "content_type": "Content Type",
+    "content_type_desc": "Article, video, social post, etc.",
+    "content_description": "Content Description",
+    "content_description_desc": "How this relates to research",
+    "login_required": "Login Required Toggle",
+    "login_required_desc": "Whether content needs login",
+    "keywords": "Keywords",
+    "keywords_desc": "Tags for searching",
+    "submitter_comments": "Additional Comments",
+    "submitter_comments_desc": "Free text notes",
+    "submitter_name": "Submitter Name",
+    "submitter_name_desc": "Optional identification",
+    "submitter_contact": "Contact Info",
+    "submitter_contact_desc": "Email or other contact"
+  },
+  "alerts": {
+    "nameRequired": "Form name is required",
+    "atLeastOneField": "At least one field must be enabled",
+    "createFailed": "Failed to create form"
+  }
+}

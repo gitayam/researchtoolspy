@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { ACHAnalysis } from '@/types/ach'
 import { ACHMatrix } from '@/components/ach/ACHMatrix'
+import { useTranslation } from 'react-i18next'
 
 export function PublicACHPage() {
+  const { t } = useTranslation(['publicAch'])
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const [analysis, setAnalysis] = useState<ACHAnalysis | null>(null)
@@ -26,13 +28,13 @@ export function PublicACHPage() {
       setLoading(true)
       const response = await fetch(`/api/ach/public/${token}`)
       if (!response.ok) {
-        throw new Error('Analysis not found or not public')
+        throw new Error(t('publicAch:page.notFound.description'))
       }
       const data = await response.json()
       setAnalysis(data)
     } catch (error) {
       console.error('Failed to load analysis:', error)
-      setError(error instanceof Error ? error.message : 'Failed to load analysis')
+      setError(error instanceof Error ? error.message : t('publicAch:page.notFound.description'))
     } finally {
       setLoading(false)
     }
@@ -48,7 +50,7 @@ export function PublicACHPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to clone analysis')
+        throw new Error(t('publicAch:page.cloneFailed'))
       }
 
       const data = await response.json()
@@ -56,7 +58,7 @@ export function PublicACHPage() {
       navigate(`/dashboard/analysis-frameworks/ach-dashboard/${data.id}`)
     } catch (error) {
       console.error('Failed to clone analysis:', error)
-      alert('Failed to clone analysis. Please make sure you are logged in.')
+      alert(t('publicAch:page.cloneFailed'))
     } finally {
       setCloning(false)
     }
@@ -82,7 +84,7 @@ export function PublicACHPage() {
     return (
       <div className="container mx-auto py-12">
         <div className="text-center">
-          <p className="text-gray-600 dark:text-gray-400">Loading analysis...</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('publicAch:page.loading')}</p>
         </div>
       </div>
     )
@@ -94,14 +96,14 @@ export function PublicACHPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Analysis Not Found
+              {t('publicAch:page.notFound.title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              {error || 'This analysis is not public or does not exist.'}
+              {error || t('publicAch:page.notFound.description')}
             </p>
             <Button onClick={() => navigate('/public/ach')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Browse Public Analyses
+              {t('publicAch:page.browsePublic')}
             </Button>
           </CardContent>
         </Card>
@@ -117,11 +119,11 @@ export function PublicACHPage() {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="outline" className="text-xs">
-                Public ACH Analysis
+                {t('publicAch:page.publicBadge')}
               </Badge>
               {analysis.domain && (
                 <Badge variant="secondary" className="text-xs">
-                  {analysis.domain}
+                  {t(`publicAch:domains.${analysis.domain}`)}
                 </Badge>
               )}
               {analysis.tags?.map(tag => (
@@ -134,7 +136,7 @@ export function PublicACHPage() {
               {analysis.title}
             </h1>
             <p className="text-lg text-gray-700 dark:text-gray-300 mb-3">
-              <strong>Key Question:</strong> {analysis.question}
+              <strong>{t('publicAch:page.keyQuestion')}</strong> {analysis.question}
             </p>
             {analysis.description && (
               <p className="text-gray-600 dark:text-gray-400 mb-3">
@@ -144,20 +146,20 @@ export function PublicACHPage() {
             <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-400">
               <div className="flex items-center gap-1">
                 <Eye className="h-4 w-4" />
-                <span>{analysis.view_count || 0} views</span>
+                <span>{analysis.view_count || 0} {t('publicAch:page.views')}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Copy className="h-4 w-4" />
-                <span>{analysis.clone_count || 0} clones</span>
+                <span>{analysis.clone_count || 0} {t('publicAch:page.clones')}</span>
               </div>
               {analysis.analyst && (
                 <div>
-                  <strong>Analyst:</strong> {analysis.analyst}
+                  <strong>{t('publicAch:page.analyst')}</strong> {analysis.analyst}
                 </div>
               )}
               {analysis.organization && (
                 <div>
-                  <strong>Organization:</strong> {analysis.organization}
+                  <strong>{t('publicAch:page.organization')}</strong> {analysis.organization}
                 </div>
               )}
             </div>
@@ -166,11 +168,11 @@ export function PublicACHPage() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
-              Export
+              {t('publicAch:page.export')}
             </Button>
             <Button onClick={handleClone} disabled={cloning}>
               <Copy className="h-4 w-4 mr-2" />
-              {cloning ? 'Cloning...' : 'Clone & Analyze'}
+              {cloning ? t('publicAch:page.cloning') : t('publicAch:page.clone')}
             </Button>
           </div>
         </div>
@@ -180,9 +182,7 @@ export function PublicACHPage() {
       <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
         <CardContent className="p-4">
           <p className="text-sm text-gray-700 dark:text-gray-300">
-            <strong>📋 Public Analysis:</strong> This ACH analysis has been shared publicly.
-            You can view the hypotheses and evidence below. Click "Clone & Analyze" to copy this
-            analysis to your workspace where you can score the evidence independently.
+            <strong>{t('publicAch:page.banner.title')}</strong> {t('publicAch:page.banner.description')}
           </p>
         </CardContent>
       </Card>
@@ -191,7 +191,7 @@ export function PublicACHPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardContent className="p-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Hypotheses</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('publicAch:page.summary.hypotheses')}</div>
             <div className="text-2xl font-bold text-gray-900 dark:text-white">
               {analysis.hypotheses?.length || 0}
             </div>
@@ -199,7 +199,7 @@ export function PublicACHPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Evidence Items</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('publicAch:page.summary.evidence')}</div>
             <div className="text-2xl font-bold text-gray-900 dark:text-white">
               {analysis.evidence?.length || 0}
             </div>
@@ -207,7 +207,7 @@ export function PublicACHPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Scoring Scale</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('publicAch:page.summary.scale')}</div>
             <div className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
               {analysis.scale_type}
             </div>
@@ -227,15 +227,14 @@ export function PublicACHPage() {
       <Card className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
         <CardContent className="p-6 text-center">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Ready to Analyze This Research Problem?
+            {t('publicAch:page.cta.title')}
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            Clone this analysis to your workspace to independently score the evidence and
-            generate your own conclusions using the ACH methodology.
+            {t('publicAch:page.cta.description')}
           </p>
           <Button onClick={handleClone} disabled={cloning} size="lg">
             <Copy className="h-4 w-4 mr-2" />
-            {cloning ? 'Cloning...' : 'Clone to My Workspace'}
+            {cloning ? t('publicAch:page.cloning') : t('publicAch:page.cta.button')}
           </Button>
         </CardContent>
       </Card>

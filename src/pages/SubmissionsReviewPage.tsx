@@ -19,6 +19,7 @@ import {
   Archive,
   Tag
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Submission {
   id: string
@@ -47,6 +48,7 @@ interface ProcessDialog {
 }
 
 export default function SubmissionsReviewPage() {
+  const { t } = useTranslation(['submissionsReview'])
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const formId = searchParams.get('formId')
@@ -76,13 +78,13 @@ export default function SubmissionsReviewPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load submissions')
+        throw new Error(data.error || t('submissionsReview:alerts.loadFailed'))
       }
 
       setSubmissions(data.submissions || [])
     } catch (err) {
       console.error('Failed to load submissions:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load submissions')
+      setError(err instanceof Error ? err.message : t('submissionsReview:alerts.loadFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -116,7 +118,7 @@ export default function SubmissionsReviewPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to process submission')
+        throw new Error(data.error || t('submissionsReview:alerts.processFailed'))
       }
 
       // Reload submissions
@@ -125,7 +127,7 @@ export default function SubmissionsReviewPage() {
       setSelectedSubmission(null)
     } catch (err) {
       console.error('Failed to process:', err)
-      alert(err instanceof Error ? err.message : 'Failed to process submission')
+      alert(err instanceof Error ? err.message : t('submissionsReview:alerts.processFailed'))
     } finally {
       setIsProcessing(false)
     }
@@ -136,7 +138,7 @@ export default function SubmissionsReviewPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading submissions...</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('submissionsReview:loading')}</p>
         </div>
       </div>
     )
@@ -148,25 +150,25 @@ export default function SubmissionsReviewPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Review Submissions
+            {t('submissionsReview:title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Review and process evidence submissions
+            {t('submissionsReview:description')}
           </p>
         </div>
 
         {/* Filters */}
         <div className="flex items-center space-x-4 mb-6">
           <div className="flex-1 max-w-xs">
-            <Label htmlFor="statusFilter">Status</Label>
+            <Label htmlFor="statusFilter">{t('submissionsReview:status.label')}</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger id="statusFilter">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="pending">{t('submissionsReview:status.pending')}</SelectItem>
+                <SelectItem value="completed">{t('submissionsReview:status.completed')}</SelectItem>
+                <SelectItem value="rejected">{t('submissionsReview:status.rejected')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -191,12 +193,12 @@ export default function SubmissionsReviewPage() {
                 <CardContent className="p-8 text-center">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                    No {statusFilter} submissions
+                    {t('submissionsReview:empty.title', { status: statusFilter })}
                   </h3>
                   <p className="text-gray-500 dark:text-gray-400">
                     {statusFilter === 'pending'
-                      ? 'New submissions will appear here'
-                      : `No ${statusFilter} submissions yet`}
+                      ? t('submissionsReview:empty.pending_desc')
+                      : t('submissionsReview:empty.other_desc', { status: statusFilter })}
                   </p>
                 </CardContent>
               </Card>
@@ -214,7 +216,7 @@ export default function SubmissionsReviewPage() {
                       <CardTitle className="text-base">
                         {submission.metadata?.title ||
                           submission.content_description?.substring(0, 60) ||
-                          'Untitled Submission'}
+                          t('submissionsReview:card.untitled')}
                       </CardTitle>
                       <Badge variant="outline">{submission.form_name}</Badge>
                     </div>
@@ -225,7 +227,7 @@ export default function SubmissionsReviewPage() {
                         </Badge>
                         {submission.keywords.length > 0 && (
                           <span className="text-xs text-gray-500">
-                            {submission.keywords.length} keywords
+                            {submission.keywords.length} {t('submissionsReview:card.keywords')}
                           </span>
                         )}
                       </CardDescription>
@@ -269,16 +271,16 @@ export default function SubmissionsReviewPage() {
             {selectedSubmission ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>Submission Details</CardTitle>
+                  <CardTitle>{t('submissionsReview:details.title')}</CardTitle>
                   <CardDescription>
-                    Submitted {new Date(selectedSubmission.submitted_at).toLocaleString()}
+                    {t('submissionsReview:details.submittedAt')} {new Date(selectedSubmission.submitted_at).toLocaleString()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Source URL */}
                   {selectedSubmission.source_url && (
                     <div>
-                      <Label className="text-sm font-medium">Source URL</Label>
+                      <Label className="text-sm font-medium">{t('submissionsReview:details.sourceUrl')}</Label>
                       <div className="flex items-center space-x-2 mt-1">
                         <Input
                           value={selectedSubmission.source_url}
@@ -301,7 +303,7 @@ export default function SubmissionsReviewPage() {
                     <div>
                       <Label className="text-sm font-medium flex items-center">
                         <Archive className="h-3 w-3 mr-1" />
-                        Archived URL
+                        {t('submissionsReview:details.archivedUrl')}
                       </Label>
                       <div className="flex items-center space-x-2 mt-1">
                         <Input
@@ -323,7 +325,7 @@ export default function SubmissionsReviewPage() {
                   {/* Content Type */}
                   {selectedSubmission.content_type && (
                     <div>
-                      <Label className="text-sm font-medium">Content Type</Label>
+                      <Label className="text-sm font-medium">{t('submissionsReview:details.contentType')}</Label>
                       <Badge variant="outline" className="mt-1">
                         {selectedSubmission.content_type}
                       </Badge>
@@ -333,7 +335,7 @@ export default function SubmissionsReviewPage() {
                   {/* Description */}
                   {selectedSubmission.content_description && (
                     <div>
-                      <Label className="text-sm font-medium">Description</Label>
+                      <Label className="text-sm font-medium">{t('submissionsReview:details.description')}</Label>
                       <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                         {selectedSubmission.content_description}
                       </p>
@@ -345,7 +347,7 @@ export default function SubmissionsReviewPage() {
                     <div>
                       <Label className="text-sm font-medium flex items-center">
                         <Tag className="h-3 w-3 mr-1" />
-                        Keywords
+                        {t('submissionsReview:details.keywords')}
                       </Label>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {selectedSubmission.keywords.map((keyword, idx) => (
@@ -360,7 +362,7 @@ export default function SubmissionsReviewPage() {
                   {/* Comments */}
                   {selectedSubmission.submitter_comments && (
                     <div>
-                      <Label className="text-sm font-medium">Submitter Comments</Label>
+                      <Label className="text-sm font-medium">{t('submissionsReview:details.submitterComments')}</Label>
                       <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                         {selectedSubmission.submitter_comments}
                       </p>
@@ -370,13 +372,13 @@ export default function SubmissionsReviewPage() {
                   {/* Submitter Info */}
                   {(selectedSubmission.submitter_name || selectedSubmission.submitter_contact) && (
                     <div>
-                      <Label className="text-sm font-medium">Submitter</Label>
+                      <Label className="text-sm font-medium">{t('submissionsReview:details.submitterInfo')}</Label>
                       <div className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                         {selectedSubmission.submitter_name && (
-                          <div>Name: {selectedSubmission.submitter_name}</div>
+                          <div>{t('submissionsReview:details.name')} {selectedSubmission.submitter_name}</div>
                         )}
                         {selectedSubmission.submitter_contact && (
-                          <div>Contact: {selectedSubmission.submitter_contact}</div>
+                          <div>{t('submissionsReview:details.contact')} {selectedSubmission.submitter_contact}</div>
                         )}
                       </div>
                     </div>
@@ -390,11 +392,11 @@ export default function SubmissionsReviewPage() {
                         className="flex-1"
                       >
                         <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Process to Evidence
+                        {t('submissionsReview:details.processButton')}
                       </Button>
                       <Button variant="destructive" className="flex-1">
                         <XCircle className="h-4 w-4 mr-2" />
-                        Reject
+                        {t('submissionsReview:details.rejectButton')}
                       </Button>
                     </div>
                   )}
@@ -405,7 +407,7 @@ export default function SubmissionsReviewPage() {
                 <CardContent className="p-12 text-center">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500 dark:text-gray-400">
-                    Select a submission to view details
+                    {t('common:selectSubmission')}
                   </p>
                 </CardContent>
               </Card>
@@ -418,14 +420,14 @@ export default function SubmissionsReviewPage() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <Card className="w-full max-w-lg">
               <CardHeader>
-                <CardTitle>Process to Evidence</CardTitle>
+                <CardTitle>{t('submissionsReview:processDialog.title')}</CardTitle>
                 <CardDescription>
-                  Convert this submission into a research evidence entry
+                  {t('submissionsReview:processDialog.description')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="verificationStatus">Verification Status</Label>
+                  <Label htmlFor="verificationStatus">{t('submissionsReview:processDialog.verificationStatus')}</Label>
                   <Select
                     value={processDialog.verificationStatus}
                     onValueChange={(value) =>
@@ -436,17 +438,17 @@ export default function SubmissionsReviewPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="verified">Verified</SelectItem>
-                      <SelectItem value="probable">Probable</SelectItem>
-                      <SelectItem value="unverified">Unverified</SelectItem>
-                      <SelectItem value="disproven">Disproven</SelectItem>
+                      <SelectItem value="verified">{t('submissionsReview:verificationStatus.verified')}</SelectItem>
+                      <SelectItem value="probable">{t('submissionsReview:verificationStatus.probable')}</SelectItem>
+                      <SelectItem value="unverified">{t('submissionsReview:verificationStatus.unverified')}</SelectItem>
+                      <SelectItem value="disproven">{t('submissionsReview:verificationStatus.disproven')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="credibilityScore">
-                    Credibility Score: {(processDialog.credibilityScore * 100).toFixed(0)}%
+                    {t('submissionsReview:processDialog.credibilityScore', { score: (processDialog.credibilityScore * 100).toFixed(0) })}
                   </Label>
                   <input
                     id="credibilityScore"
@@ -466,10 +468,10 @@ export default function SubmissionsReviewPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Reviewer Notes (Optional)</Label>
+                  <Label htmlFor="notes">{t('submissionsReview:processDialog.notes')}</Label>
                   <Textarea
                     id="notes"
-                    placeholder="Add any notes about this evidence..."
+                    placeholder={t('submissionsReview:processDialog.notesPlaceholder')}
                     value={processDialog.notes}
                     onChange={(e) => setProcessDialog({ ...processDialog, notes: e.target.value })}
                     rows={3}
@@ -483,10 +485,10 @@ export default function SubmissionsReviewPage() {
                     className="flex-1"
                     disabled={isProcessing}
                   >
-                    Cancel
+                    {t('submissionsReview:processDialog.cancel')}
                   </Button>
                   <Button onClick={handleProcess} className="flex-1" disabled={isProcessing}>
-                    {isProcessing ? 'Processing...' : 'Process to Evidence'}
+                    {isProcessing ? t('submissionsReview:processDialog.processing') : t('submissionsReview:processDialog.process')}
                   </Button>
                 </div>
               </CardContent>

@@ -30,6 +30,7 @@ import {
   Link as LinkIcon,
   Loader2
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface InvestigationPacket {
   id: string
@@ -47,6 +48,7 @@ interface InvestigationPacket {
 }
 
 export function InvestigationPacketsPage() {
+  const { t } = useTranslation(['investigationPackets'])
   const navigate = useNavigate()
   const [packets, setPackets] = useState<InvestigationPacket[]>([])
   const [loading, setLoading] = useState(true)
@@ -72,7 +74,7 @@ export function InvestigationPacketsPage() {
         credentials: 'include'
       })
 
-      if (!response.ok) throw new Error('Failed to load packets')
+      if (!response.ok) throw new Error(t('investigationPackets:alerts.loadFailed'))
 
       const data = await response.json()
       if (data.success) {
@@ -87,7 +89,7 @@ export function InvestigationPacketsPage() {
 
   const createPacket = async () => {
     if (!title.trim()) {
-      alert('Title is required')
+      alert(t('investigationPackets:alerts.titleRequired'))
       return
     }
 
@@ -109,7 +111,7 @@ export function InvestigationPacketsPage() {
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to create packet')
+        throw new Error(data.error || t('investigationPackets:alerts.createFailed'))
       }
 
       const data = await response.json()
@@ -119,7 +121,7 @@ export function InvestigationPacketsPage() {
       }
     } catch (error) {
       console.error('Error creating packet:', error)
-      alert(error instanceof Error ? error.message : 'Failed to create packet')
+      alert(error instanceof Error ? error.message : t('investigationPackets:alerts.createFailed'))
     } finally {
       setCreating(false)
     }
@@ -158,9 +160,9 @@ export function InvestigationPacketsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Investigation Packets</h1>
+          <h1 className="text-3xl font-bold">{t('investigationPackets:title')}</h1>
           <p className="text-muted-foreground mt-2">
-            Organize multi-source investigations with claims, evidence, and entities
+            {t('investigationPackets:description')}
           </p>
         </div>
 
@@ -168,78 +170,78 @@ export function InvestigationPacketsPage() {
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
-              New Investigation
+              {t('investigationPackets:newInvestigation')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Create Investigation Packet</DialogTitle>
+              <DialogTitle>{t('investigationPackets:createDialog.title')}</DialogTitle>
               <DialogDescription>
-                Start a new investigation to organize claims across multiple sources
+                {t('investigationPackets:createDialog.description')}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Title *</label>
+                <label className="text-sm font-medium">{t('investigationPackets:createDialog.form.titleLabel')}</label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Red Hat CVE-2024-1234 Investigation"
+                  placeholder={t('investigationPackets:createDialog.form.titlePlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Description</label>
+                <label className="text-sm font-medium">{t('investigationPackets:createDialog.form.descriptionLabel')}</label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Brief overview of the investigation..."
+                  placeholder={t('investigationPackets:createDialog.form.descriptionPlaceholder')}
                   rows={3}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Investigation Type</label>
+                  <label className="text-sm font-medium">{t('investigationPackets:createDialog.form.typeLabel')}</label>
                   <Input
                     value={investigationType}
                     onChange={(e) => setInvestigationType(e.target.value)}
-                    placeholder="e.g., Breach Analysis"
+                    placeholder={t('investigationPackets:createDialog.form.typePlaceholder')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Priority</label>
+                  <label className="text-sm font-medium">{t('investigationPackets:createDialog.form.priorityLabel')}</label>
                   <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="critical">Critical</SelectItem>
+                      <SelectItem value="low">{t('investigationPackets:priorities.low')}</SelectItem>
+                      <SelectItem value="medium">{t('investigationPackets:priorities.medium')}</SelectItem>
+                      <SelectItem value="high">{t('investigationPackets:priorities.high')}</SelectItem>
+                      <SelectItem value="critical">{t('investigationPackets:priorities.critical')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
+                <label className="text-sm font-medium">{t('investigationPackets:createDialog.form.categoryLabel')}</label>
                 <Input
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  placeholder="e.g., Cybersecurity, Political, Financial"
+                  placeholder={t('investigationPackets:createDialog.form.categoryPlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Tags (comma-separated)</label>
+                <label className="text-sm font-medium">{t('investigationPackets:createDialog.form.tagsLabel')}</label>
                 <Input
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
-                  placeholder="e.g., CVE-2024-1234, Red Hat, OpenSSL"
+                  placeholder={t('investigationPackets:createDialog.form.tagsPlaceholder')}
                 />
               </div>
 
@@ -247,12 +249,12 @@ export function InvestigationPacketsPage() {
                 {creating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
+                    {t('investigationPackets:createDialog.form.creatingButton')}
                   </>
                 ) : (
                   <>
                     <Plus className="h-4 w-4 mr-2" />
-                    Create Investigation
+                    {t('investigationPackets:createDialog.form.createButton')}
                   </>
                 )}
               </Button>
@@ -275,14 +277,14 @@ export function InvestigationPacketsPage() {
             <div className="text-center space-y-4">
               <Folder className="h-12 w-12 mx-auto text-muted-foreground" />
               <div>
-                <h3 className="font-semibold text-lg">No investigations yet</h3>
+                <h3 className="font-semibold text-lg">{t('investigationPackets:empty.title')}</h3>
                 <p className="text-muted-foreground mt-1">
-                  Create your first investigation packet to organize multi-source cases
+                  {t('investigationPackets:empty.description')}
                 </p>
               </div>
               <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" />
-                Create Investigation
+                {t('investigationPackets:empty.button')}
               </Button>
             </div>
           </CardContent>
@@ -327,14 +329,14 @@ export function InvestigationPacketsPage() {
                 <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <FileText className="h-4 w-4" />
-                    {packet.content_count} {packet.content_count === 1 ? 'source' : 'sources'}
+                    {packet.content_count} {packet.content_count === 1 ? t('investigationPackets:card.source') : t('investigationPackets:card.sources')}
                   </span>
                   <span className="flex items-center gap-1">
                     <LinkIcon className="h-4 w-4" />
-                    {packet.claim_count} {packet.claim_count === 1 ? 'claim' : 'claims'}
+                    {packet.claim_count} {packet.claim_count === 1 ? t('investigationPackets:card.claim') : t('investigationPackets:card.claims')}
                   </span>
                   <span className="ml-auto">
-                    Updated {new Date(packet.updated_at).toLocaleDateString()}
+                    {t('investigationPackets:card.updated')} {new Date(packet.updated_at).toLocaleDateString()}
                   </span>
                 </div>
 

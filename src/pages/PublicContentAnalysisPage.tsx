@@ -6,12 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis } from '@/types/content-intelligence'
+import { useTranslation } from 'react-i18next'
 
 interface PublicContentAnalysis extends Omit<ContentAnalysis, 'user_id' | 'saved_link_id' | 'content_hash'> {
   view_count: number
 }
 
 export function PublicContentAnalysisPage() {
+  const { t } = useTranslation(['publicContentAnalysis'])
   const { token } = useParams<{ token: string }>()
   const [analysis, setAnalysis] = useState<PublicContentAnalysis | null>(null)
   const [loading, setLoading] = useState(true)
@@ -29,13 +31,13 @@ export function PublicContentAnalysisPage() {
       setLoading(true)
       const response = await fetch(`/api/content-intelligence/public/${token}`)
       if (!response.ok) {
-        throw new Error('Analysis not found or not public')
+        throw new Error(t('publicContentAnalysis:notFound.description'))
       }
       const data = await response.json()
       setAnalysis(data)
     } catch (error) {
       console.error('Failed to load analysis:', error)
-      setError(error instanceof Error ? error.message : 'Failed to load analysis')
+      setError(error instanceof Error ? error.message : t('publicContentAnalysis:notFound.description'))
     } finally {
       setLoading(false)
     }
@@ -43,7 +45,7 @@ export function PublicContentAnalysisPage() {
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(window.location.href)
-    toast({ title: 'Link copied to clipboard!' })
+    toast({ title: t('publicContentAnalysis:copied') })
   }
 
   const handleExport = () => {
@@ -66,7 +68,7 @@ export function PublicContentAnalysisPage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
-            <p className="text-muted-foreground">Loading analysis...</p>
+            <p className="text-muted-foreground">{t('publicContentAnalysis:loading')}</p>
           </CardContent>
         </Card>
       </div>
@@ -78,10 +80,10 @@ export function PublicContentAnalysisPage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
-            <p className="text-destructive mb-4">{error || 'Analysis not found'}</p>
+            <p className="text-destructive mb-4">{error || t('publicContentAnalysis:notFound.title')}</p>
             <Button onClick={() => window.location.href = '/'} variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Go Home
+              {t('publicContentAnalysis:goHome')}
             </Button>
           </CardContent>
         </Card>
@@ -100,7 +102,7 @@ export function PublicContentAnalysisPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary">
                     <Eye className="mr-1 h-3 w-3" />
-                    {analysis.view_count} views
+                    {analysis.view_count} {t('publicContentAnalysis:views')}
                   </Badge>
                   {analysis.is_social_media && (
                     <Badge variant="outline">{analysis.social_platform}</Badge>
@@ -111,28 +113,28 @@ export function PublicContentAnalysisPage() {
                   {analysis.domain} • {new Date(analysis.created_at).toLocaleDateString()}
                 </p>
                 {analysis.author && (
-                  <p className="text-sm text-muted-foreground">By {analysis.author}</p>
+                  <p className="text-sm text-muted-foreground">{t('publicContentAnalysis:author')} {analysis.author}</p>
                 )}
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleCopyUrl} variant="outline" size="sm">
                   <Copy className="mr-2 h-4 w-4" />
-                  Copy Link
+                  {t('publicContentAnalysis:copyLink')}
                 </Button>
                 <Button onClick={handleExport} variant="outline" size="sm">
                   <Download className="mr-2 h-4 w-4" />
-                  Export
+                  {t('publicContentAnalysis:export')}
                 </Button>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h3 className="font-semibold mb-2">Summary</h3>
+              <h3 className="font-semibold mb-2">{t('publicContentAnalysis:summary')}</h3>
               <p className="text-sm">{analysis.summary}</p>
             </div>
             <div className="text-sm text-muted-foreground">
-              Word Count: {analysis.word_count.toLocaleString()}
+              {t('publicContentAnalysis:wordCount')} {analysis.word_count.toLocaleString()}
             </div>
             {analysis.url && (
               <div>
@@ -142,7 +144,7 @@ export function PublicContentAnalysisPage() {
                   rel="noopener noreferrer"
                   className="text-sm text-blue-600 hover:underline"
                 >
-                  View Original →
+                  {t('publicContentAnalysis:viewOriginal')}
                 </a>
               </div>
             )}
@@ -154,7 +156,7 @@ export function PublicContentAnalysisPage() {
           {analysis.top_phrases && analysis.top_phrases.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Top Phrases</CardTitle>
+                <CardTitle>{t('publicContentAnalysis:topPhrases')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -173,7 +175,7 @@ export function PublicContentAnalysisPage() {
           {analysis.keyphrases && analysis.keyphrases.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Key Phrases</CardTitle>
+                <CardTitle>{t('publicContentAnalysis:keyPhrases')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
@@ -191,13 +193,13 @@ export function PublicContentAnalysisPage() {
           {analysis.entities && (
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>Key Entities</CardTitle>
+                <CardTitle>{t('publicContentAnalysis:keyEntities')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {analysis.entities.people && analysis.entities.people.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-semibold mb-2">👤 People ({analysis.entities.people.length})</h4>
+                      <h4 className="text-sm font-semibold mb-2">👤 {t('publicContentAnalysis:entities.people')} ({analysis.entities.people.length})</h4>
                       <div className="space-y-1">
                         {analysis.entities.people.slice(0, 8).map((person, i) => (
                           <div key={i} className="text-sm flex items-center justify-between">
@@ -210,7 +212,7 @@ export function PublicContentAnalysisPage() {
                   )}
                   {analysis.entities.organizations && analysis.entities.organizations.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-semibold mb-2">🏢 Organizations ({analysis.entities.organizations.length})</h4>
+                      <h4 className="text-sm font-semibold mb-2">🏢 {t('publicContentAnalysis:entities.organizations')} ({analysis.entities.organizations.length})</h4>
                       <div className="space-y-1">
                         {analysis.entities.organizations.slice(0, 8).map((org, i) => (
                           <div key={i} className="text-sm flex items-center justify-between">
@@ -223,7 +225,7 @@ export function PublicContentAnalysisPage() {
                   )}
                   {analysis.entities.locations && analysis.entities.locations.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-semibold mb-2">📍 Locations ({analysis.entities.locations.length})</h4>
+                      <h4 className="text-sm font-semibold mb-2">📍 {t('publicContentAnalysis:entities.locations')} ({analysis.entities.locations.length})</h4>
                       <div className="space-y-1">
                         {analysis.entities.locations.slice(0, 8).map((loc, i) => (
                           <div key={i} className="text-sm flex items-center justify-between">
@@ -236,7 +238,7 @@ export function PublicContentAnalysisPage() {
                   )}
                   {analysis.entities.dates && analysis.entities.dates.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-semibold mb-2">📅 Dates ({analysis.entities.dates.length})</h4>
+                      <h4 className="text-sm font-semibold mb-2">📅 {t('publicContentAnalysis:entities.dates')} ({analysis.entities.dates.length})</h4>
                       <div className="space-y-1">
                         {analysis.entities.dates.slice(0, 8).map((date, i) => (
                           <div key={i} className="text-sm flex items-center justify-between">
@@ -249,7 +251,7 @@ export function PublicContentAnalysisPage() {
                   )}
                   {analysis.entities.money && analysis.entities.money.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-semibold mb-2">💰 Money ({analysis.entities.money.length})</h4>
+                      <h4 className="text-sm font-semibold mb-2">💰 {t('publicContentAnalysis:entities.money')} ({analysis.entities.money.length})</h4>
                       <div className="space-y-1">
                         {analysis.entities.money.slice(0, 8).map((money, i) => (
                           <div key={i} className="text-sm flex items-center justify-between">
@@ -264,7 +266,7 @@ export function PublicContentAnalysisPage() {
                     <div>
                       <h4 className="text-sm font-semibold mb-2 flex items-center gap-1">
                         <Mail className="h-4 w-4" />
-                        Emails ({analysis.entities.emails.length})
+                        {t('publicContentAnalysis:entities.emails')} ({analysis.entities.emails.length})
                       </h4>
                       <div className="space-y-1">
                         {analysis.entities.emails.slice(0, 5).map((email, i) => (
@@ -290,22 +292,22 @@ export function PublicContentAnalysisPage() {
           {analysis.sentiment_analysis && (
             <Card>
               <CardHeader>
-                <CardTitle>Sentiment Analysis</CardTitle>
+                <CardTitle>{t('publicContentAnalysis:sentiment.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Overall Sentiment:</span>
+                    <span className="text-sm">{t('publicContentAnalysis:sentiment.overall')}</span>
                     <Badge>{analysis.sentiment_analysis.overall}</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Score:</span>
+                    <span className="text-sm">{t('publicContentAnalysis:sentiment.score')}</span>
                     <span className="text-sm font-semibold">
                       {analysis.sentiment_analysis.score.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Confidence:</span>
+                    <span className="text-sm">{t('publicContentAnalysis:sentiment.confidence')}</span>
                     <span className="text-sm font-semibold">
                       {(analysis.sentiment_analysis.confidence * 100).toFixed(0)}%
                     </span>
@@ -319,7 +321,7 @@ export function PublicContentAnalysisPage() {
           {analysis.topics && analysis.topics.length > 0 && (
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>Topics</CardTitle>
+                <CardTitle>{t('publicContentAnalysis:topics.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -349,7 +351,7 @@ export function PublicContentAnalysisPage() {
           {analysis.claim_analysis?.claims && analysis.claim_analysis.claims.length > 0 && (
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>Claims Analysis</CardTitle>
+                <CardTitle>{t('publicContentAnalysis:claims.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -380,10 +382,10 @@ export function PublicContentAnalysisPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Link2 className="h-5 w-5" />
-                  Link Analysis ({analysis.links_analysis.length} unique links)
+                  {t('publicContentAnalysis:links.title', { count: analysis.links_analysis.length })}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  All links found in the article body (excluding navigation, headers, and footers)
+                  {t('publicContentAnalysis:links.description')}
                 </p>
               </CardHeader>
               <CardContent>
@@ -391,23 +393,23 @@ export function PublicContentAnalysisPage() {
                   {/* Statistics */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="text-sm text-gray-600">Total Links</p>
+                      <p className="text-sm text-gray-600">{t('publicContentAnalysis:links.total')}</p>
                       <p className="text-2xl font-bold">{analysis.links_analysis.length}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">External</p>
+                      <p className="text-sm text-gray-600">{t('publicContentAnalysis:links.external')}</p>
                       <p className="text-2xl font-bold text-blue-600">
                         {analysis.links_analysis.filter(l => l.is_external).length}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Internal</p>
+                      <p className="text-sm text-gray-600">{t('publicContentAnalysis:links.internal')}</p>
                       <p className="text-2xl font-bold text-green-600">
                         {analysis.links_analysis.filter(l => !l.is_external).length}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Unique Domains</p>
+                      <p className="text-sm text-gray-600">{t('publicContentAnalysis:links.uniqueDomains')}</p>
                       <p className="text-2xl font-bold">
                         {new Set(analysis.links_analysis.map(l => l.domain)).size}
                       </p>
@@ -435,15 +437,15 @@ export function PublicContentAnalysisPage() {
                             <div className="flex flex-wrap items-center gap-2 mt-2">
                               <Badge variant="outline" className="text-xs">{link.domain}</Badge>
                               <Badge variant={link.is_external ? "default" : "secondary"} className="text-xs">
-                                {link.is_external ? "External" : "Internal"}
+                                {link.is_external ? t('publicContentAnalysis:links.external') : t('publicContentAnalysis:links.internal')}
                               </Badge>
                               <span className="text-xs text-gray-600">
-                                Referenced {link.count}× in article
+                                {t('publicContentAnalysis:links.referenced', { count: link.count })}
                               </span>
                             </div>
                             {link.anchor_text && link.anchor_text.length > 0 && (
                               <div className="mt-2">
-                                <span className="text-xs font-semibold text-gray-500">Anchor text: </span>
+                                <span className="text-xs font-semibold text-gray-500">{t('publicContentAnalysis:links.anchorText')} </span>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {link.anchor_text.map((text, i) => (
                                     <Badge key={i} variant="outline" className="text-xs">
@@ -469,17 +471,17 @@ export function PublicContentAnalysisPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Archive className="h-5 w-5" />
-                  Archive & Bypass Links
+                  {t('publicContentAnalysis:archive.title')}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Alternative ways to access this content
+                  {t('publicContentAnalysis:archive.description')}
                 </p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {analysis.archive_urls && (
                     <div className="space-y-2">
-                      <h4 className="font-semibold text-sm">Archive Services</h4>
+                      <h4 className="font-semibold text-sm">{t('publicContentAnalysis:archive.archiveServices')}</h4>
                       {analysis.archive_urls.wayback && (
                         <a
                           href={analysis.archive_urls.wayback}
@@ -488,7 +490,7 @@ export function PublicContentAnalysisPage() {
                           className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
                         >
                           <Globe className="h-4 w-4" />
-                          Wayback Machine
+                          {t('publicContentAnalysis:archive.wayback')}
                         </a>
                       )}
                       {analysis.archive_urls.archive_is && (
@@ -499,14 +501,14 @@ export function PublicContentAnalysisPage() {
                           className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
                         >
                           <Globe className="h-4 w-4" />
-                          Archive.is
+                          {t('publicContentAnalysis:archive.archiveIs')}
                         </a>
                       )}
                     </div>
                   )}
                   {analysis.bypass_urls && (
                     <div className="space-y-2">
-                      <h4 className="font-semibold text-sm">Paywall Bypass</h4>
+                      <h4 className="font-semibold text-sm">{t('publicContentAnalysis:archive.paywallBypass')}</h4>
                       {analysis.bypass_urls['12ft'] && (
                         <a
                           href={analysis.bypass_urls['12ft']}
@@ -515,7 +517,7 @@ export function PublicContentAnalysisPage() {
                           className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
                         >
                           <ExternalLink className="h-4 w-4" />
-                          12ft Ladder
+                          {t('publicContentAnalysis:archive.twelveFoot')}
                         </a>
                       )}
                     </div>
@@ -530,12 +532,11 @@ export function PublicContentAnalysisPage() {
         <Card>
           <CardContent className="p-4 text-center text-sm text-muted-foreground">
             <p>
-              Shared via Research Tools • Analysis performed{' '}
-              {new Date(analysis.created_at).toLocaleDateString()}
+              {t('publicContentAnalysis:footer.sharedVia', { date: new Date(analysis.created_at).toLocaleDateString() })}
             </p>
             <p className="mt-2">
               <a href="/" className="text-blue-600 hover:underline">
-                Create your own analysis →
+                {t('publicContentAnalysis:footer.createYourOwn')}
               </a>
             </p>
           </CardContent>

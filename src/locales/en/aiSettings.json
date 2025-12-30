@@ -1,0 +1,81 @@
+{
+  "title": "AI Settings",
+  "description": "Configure GPT-5 models and AI-powered analysis features",
+  "loading": "Loading AI configuration...",
+  "loadFailed": "Failed to load AI configuration",
+  "saveSuccess": "Configuration saved successfully",
+  "saveFailed": "Failed to save configuration",
+  "resetConfirm": "Reset all AI settings to defaults? This cannot be undone.",
+  "resetSuccess": "Configuration reset to defaults",
+  "resetFailed": "Failed to reset configuration",
+  "status": {
+    "title": "AI Status",
+    "features": "AI Features",
+    "featuresDesc": "Enable AI-powered assistance",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "apiKey": "OpenAI API Key",
+    "apiKeyDesc": "Required for AI features",
+    "configured": "Configured",
+    "notSet": "Not Set",
+    "note": "Note: API key must be set as environment variable OPENAI_API_KEY in Cloudflare dashboard."
+  },
+  "modelConfig": {
+    "title": "Model Configuration",
+    "description": "Select default model and configure use case mappings",
+    "defaultModel": "Default Model",
+    "defaultModelDesc": "Used when no specific use case model is selected",
+    "useCaseAssignments": "Use Case Model Assignments",
+    "models": {
+      "gpt5": "GPT-5",
+      "gpt5mini": "GPT-5 Mini",
+      "gpt5nano": "GPT-5 Nano",
+      "deepAnalysis": "Deep Analysis",
+      "balanced": "Balanced (Recommended)",
+      "fastCheap": "Fast & Cheap"
+    }
+  },
+  "features": {
+    "title": "Features",
+    "description": "Enable or disable specific AI capabilities",
+    "summarization": "Summarization",
+    "summarizationDesc": "Generate executive summaries and BLUF statements",
+    "questionGeneration": "Question Generation",
+    "questionGenerationDesc": "Create analytical questions to improve analysis",
+    "fieldSuggestions": "Field Suggestions",
+    "fieldSuggestionsDesc": "AI-powered content suggestions for form fields",
+    "guidance": "Guidance",
+    "guidanceDesc": "Contextual guidance and prompts",
+    "autoFormat": "Auto Format",
+    "autoFormatDesc": "Automatically format and enhance content"
+  },
+  "rateLimits": {
+    "title": "Rate Limits",
+    "description": "Control API usage to manage costs",
+    "requestsPerMinute": "Requests Per Minute",
+    "requestsPerMinuteDesc": "Maximum API requests per minute",
+    "tokensPerDay": "Tokens Per Day",
+    "tokensPerDayDesc": "Daily token limit across all requests",
+    "estimatedCost": "Estimated Daily Cost:",
+    "costNote": "(max, at {{model}} output rates)"
+  },
+  "usage": {
+    "title": "Usage Today",
+    "tokensUsed": "Tokens Used",
+    "estimatedCost": "Estimated Cost",
+    "resets": "Resets:"
+  },
+  "pricing": {
+    "title": "Model Pricing",
+    "description": "Cost per 1M tokens",
+    "default": "Default",
+    "input": "Input:",
+    "output": "Output:"
+  },
+  "actions": {
+    "save": "Save Configuration",
+    "saving": "Saving...",
+    "reset": "Reset to Defaults",
+    "refresh": "Refresh"
+  }
+}

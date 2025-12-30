@@ -1,0 +1,57 @@
+{
+  "loading": "Loading form...",
+  "error": {
+    "title": "Error",
+    "loadFailed": "Failed to load form",
+    "invalidId": "Invalid form ID",
+    "urlRequired": "Source URL is required",
+    "typeRequired": "Content type is required",
+    "submitFailed": "Failed to submit"
+  },
+  "success": {
+    "title": "Submission Received",
+    "description": "Thank you for your submission. It will be reviewed shortly.",
+    "submitAnother": "Submit Another"
+  },
+  "header": {
+    "secure": "Secure Submission",
+    "passwordProtected": "Password Protected"
+  },
+  "form": {
+    "sourceUrl": "Source URL",
+    "sourceUrlPlaceholder": "https://example.com/article",
+    "sourceUrlHint": "URL of the content you're submitting",
+    "archivedUrl": "Archived URL (Optional)",
+    "archivedUrlPlaceholder": "https://web.archive.org/...",
+    "archivedUrlHint": "If you've already archived this content, provide the archive URL",
+    "contentType": "Content Type",
+    "contentTypePlaceholder": "Select content type",
+    "contentDescription": "Content Description",
+    "contentDescriptionPlaceholder": "How does this content relate to the research? What makes it relevant?",
+    "loginRequired": "Login required to view this content",
+    "keywords": "Keywords",
+    "keywordsPlaceholder": "keyword1, keyword2, keyword3",
+    "keywordsHint": "Separate keywords with commas",
+    "submitterComments": "Additional Comments",
+    "submitterCommentsPlaceholder": "Any additional context or notes...",
+    "submitterName": "Your Name (Optional)",
+    "submitterNamePlaceholder": "Anonymous",
+    "submitterContact": "Contact Info (Optional)",
+    "submitterContactPlaceholder": "email@example.com",
+    "password": "Submission Password",
+    "passwordPlaceholder": "Enter form password",
+    "submit": "Submit Evidence",
+    "submitting": "Submitting...",
+    "footer": "Your submission will be reviewed before being added to the research collection"
+  },
+  "contentTypes": {
+    "article": "Article / Blog Post",
+    "video": "Video",
+    "social_post": "Social Media Post",
+    "document": "Document / PDF",
+    "image": "Image / Screenshot",
+    "podcast": "Podcast / Audio",
+    "dataset": "Dataset / Spreadsheet",
+    "other": "Other"
+  }
+}

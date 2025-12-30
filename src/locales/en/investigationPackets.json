@@ -1,0 +1,48 @@
+{
+  "title": "Investigation Packets",
+  "description": "Organize multi-source investigations with claims, evidence, and entities",
+  "newInvestigation": "New Investigation",
+  "createDialog": {
+    "title": "Create Investigation Packet",
+    "description": "Start a new investigation to organize claims across multiple sources",
+    "form": {
+      "titleLabel": "Title *",
+      "titlePlaceholder": "e.g., Red Hat CVE-2024-1234 Investigation",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Brief overview of the investigation...",
+      "typeLabel": "Investigation Type",
+      "typePlaceholder": "e.g., Breach Analysis",
+      "priorityLabel": "Priority",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "e.g., Cybersecurity, Political, Financial",
+      "tagsLabel": "Tags (comma-separated)",
+      "tagsPlaceholder": "e.g., CVE-2024-1234, Red Hat, OpenSSL",
+      "createButton": "Create Investigation",
+      "creatingButton": "Creating..."
+    }
+  },
+  "priorities": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical"
+  },
+  "loading": "Loading...",
+  "empty": {
+    "title": "No investigations yet",
+    "description": "Create your first investigation packet to organize multi-source cases",
+    "button": "Create Investigation"
+  },
+  "card": {
+    "source": "source",
+    "sources": "sources",
+    "claim": "claim",
+    "claims": "claims",
+    "updated": "Updated"
+  },
+  "alerts": {
+    "titleRequired": "Title is required",
+    "loadFailed": "Failed to load packets",
+    "createFailed": "Failed to create packet"
+  }
+}

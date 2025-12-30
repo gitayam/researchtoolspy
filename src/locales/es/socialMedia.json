@@ -1,0 +1,135 @@
+{
+  "title": "Investigación de Redes Sociales",
+  "description": "Raspa, analiza y monitorea contenido de redes sociales",
+  "newJob": "Nuevo Trabajo de Raspado",
+  "addProfile": "Añadir Perfil",
+  "createJobDialog": {
+    "title": "Crear Trabajo de Raspado",
+    "description": "Configura una nueva tarea de raspado de redes sociales",
+    "platform": "Plataforma",
+    "jobType": "Tipo de Trabajo",
+    "targetUsername": "Nombre de Usuario Objetivo",
+    "targetUrl": "URL Objetivo (opcional)",
+    "cancel": "Cancelar",
+    "create": "Crear Trabajo"
+  },
+  "jobTypes": {
+    "PROFILE_SCRAPE": "Raspado de Perfil",
+    "POST_SCRAPE": "Raspado de Publicaciones",
+    "MEDIA_DOWNLOAD": "Descarga de Medios",
+    "SEARCH": "Búsqueda",
+    "MONITOR": "Monitoreo"
+  },
+  "addProfileDialog": {
+    "title": "Añadir Perfil de Red Social",
+    "description": "Añade un perfil para rastrear y analizar",
+    "platform": "Plataforma",
+    "username": "Nombre de Usuario *",
+    "displayName": "Nombre para Mostrar",
+    "bio": "Biografía/Descripción",
+    "cancel": "Cancelar",
+    "add": "Añadir Perfil"
+  },
+  "platforms": {
+    "INSTAGRAM": "Instagram",
+    "YOUTUBE": "YouTube",
+    "TWITTER": "Twitter/X",
+    "TIKTOK": "TikTok",
+    "FACEBOOK": "Facebook",
+    "LINKEDIN": "LinkedIn",
+    "all": "Todas las Plataformas"
+  },
+  "stats": {
+    "totalProfiles": "Perfiles Totales",
+    "totalPosts": "Publicaciones Totales",
+    "activeJobs": "Trabajos Activos",
+    "completedJobs": "Trabajos Completados"
+  },
+  "tabs": {
+    "profiles": "Perfiles",
+    "posts": "Publicaciones",
+    "jobs": "Trabajos de Raspado",
+    "tools": "Herramientas de Integración"
+  },
+  "profiles": {
+    "refresh": "Actualizar",
+    "verified": "Verificado",
+    "followers": "Seguidores",
+    "posts": "Publicaciones",
+    "scraped": "Raspado",
+    "lastScraped": "Último Raspado",
+    "view": "Ver",
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar este perfil?",
+    "empty": {
+      "title": "Aún no hay perfiles",
+      "description": "Añade perfiles de redes sociales para empezar a rastrear y analizar contenido",
+      "addFirst": "Añade tu Primer Perfil"
+    }
+  },
+  "posts": {
+    "backToProfiles": "Volver a Todos los Perfiles",
+    "scrapedPosts": "{{count}} publicaciones raspadas",
+    "posted": "Publicado:",
+    "empty": {
+      "title": "Aún no hay publicaciones raspadas",
+      "description": "Crea un trabajo de raspado para recolectar publicaciones de este perfil",
+      "startScraping": "Empezar a Raspar"
+    },
+    "selectProfile": {
+      "title": "Selecciona un perfil",
+      "description": "Elige un perfil de la pestaña Perfiles para ver sus publicaciones"
+    }
+  },
+  "jobs": {
+    "refresh": "Actualizar",
+    "progress": "Progreso",
+    "found": "Encontrado",
+    "processed": "Procesado",
+    "created": "Creado",
+    "empty": {
+      "title": "Aún no hay trabajos de raspado",
+      "description": "Crea un trabajo para empezar a raspar contenido de redes sociales",
+      "createJob": "Crear Trabajo de Raspado"
+    }
+  },
+  "tools": {
+    "title": "Herramientas de Integración y Configuración",
+    "description": "Herramientas externas requeridas para el raspado de redes sociales",
+    "instagram": {
+      "title": "Instagram - Instaloader",
+      "description": "Descarga fotos, videos, leyendas y metadatos de Instagram"
+    },
+    "youtube": {
+      "title": "YouTube - yt-dlp",
+      "description": "Descarga videos, metadatos y subtítulos de YouTube y más de 1000 sitios"
+    },
+    "twitter": {
+      "title": "Twitter/X - snscrape o twint",
+      "description": "Raspa tuits, perfiles y tendencias sin límites de API"
+    },
+    "tiktok": {
+      "title": "TikTok - TikTok-Api o tiktok-scraper",
+      "description": "Descarga videos y perfiles de usuario de TikTok"
+    },
+    "notes": {
+      "title": "Notas Importantes",
+      "items": [
+        "Estas herramientas se ejecutan localmente o en tus propios servidores",
+        "Respeta los términos de servicio y los límites de tasa de las plataformas",
+        "Algunas plataformas pueden requerir autenticación",
+        "Usa de manera responsable y ética",
+        "Los datos se pueden subir a esta plataforma a través de los puntos finales de la API"
+      ]
+    },
+    "workflow": {
+      "title": "Flujo de Trabajo de Integración",
+      "items": [
+        "Instala la herramienta de raspado apropiada localmente",
+        "Ejecuta la herramienta para recolectar datos de redes sociales",
+        "Procesa y formatea los datos (se recomienda JSON)",
+        "Sube a esta plataforma a través de los puntos finales de la API",
+        "Analiza y visualiza los datos recolectados"
+      ]
+    }
+  }
+}

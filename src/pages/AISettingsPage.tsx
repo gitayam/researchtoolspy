@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sparkles, DollarSign, Zap, AlertCircle, CheckCircle, Settings, BarChart3 } from 'lucide-react'
 import type { AIConfiguration, AIModel } from '@/lib/ai/config'
 import { MODEL_PRICING } from '@/lib/ai/config'
+import { useTranslation } from 'react-i18next'
 
 // API response type extends AIConfiguration with additional runtime fields
 interface AIConfigResponse extends AIConfiguration {
@@ -22,6 +23,7 @@ interface AIConfigResponse extends AIConfiguration {
 }
 
 export function AISettingsPage() {
+  const { t } = useTranslation(['aiSettings', 'common'])
   const [config, setConfig] = useState<AIConfigResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -37,12 +39,12 @@ export function AISettingsPage() {
     try {
       setLoading(true)
       const response = await fetch('/api/ai/config')
-      if (!response.ok) throw new Error('Failed to load configuration')
+      if (!response.ok) throw new Error(t('aiSettings:loadFailed'))
 
       const data = await response.json()
       setConfig(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load configuration')
+      setError(err instanceof Error ? err.message : t('aiSettings:loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -63,21 +65,21 @@ export function AISettingsPage() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Failed to save configuration')
+        const errorData = await response.json()
+        throw new Error(errorData.message || t('aiSettings:saveFailed'))
       }
 
-      setSuccessMessage('Configuration saved successfully')
+      setSuccessMessage(t('aiSettings:saveSuccess'))
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save configuration')
+      setError(err instanceof Error ? err.message : t('aiSettings:saveFailed'))
     } finally {
       setSaving(false)
     }
   }
 
   const resetConfig = async () => {
-    if (!confirm('Reset all AI settings to defaults? This cannot be undone.')) return
+    if (!confirm(t('aiSettings:resetConfirm'))) return
 
     try {
       setSaving(true)
@@ -87,14 +89,14 @@ export function AISettingsPage() {
         method: 'POST'
       })
 
-      if (!response.ok) throw new Error('Failed to reset configuration')
+      if (!response.ok) throw new Error(t('aiSettings:resetFailed'))
 
       const data = await response.json()
       setConfig(data.config)
-      setSuccessMessage('Configuration reset to defaults')
+      setSuccessMessage(t('aiSettings:resetSuccess'))
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reset configuration')
+      setError(err instanceof Error ? err.message : t('aiSettings:resetFailed'))
     } finally {
       setSaving(false)
     }
@@ -104,7 +106,7 @@ export function AISettingsPage() {
     return (
       <div className="container mx-auto py-8 px-4 max-w-7xl">
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-600 dark:text-gray-400">Loading AI configuration...</div>
+          <div className="text-gray-600 dark:text-gray-400">{t('aiSettings:loading')}</div>
         </div>
       </div>
     )
@@ -117,7 +119,7 @@ export function AISettingsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
               <AlertCircle className="h-5 w-5" />
-              <span>{error || 'Failed to load AI configuration'}</span>
+              <span>{error || t('aiSettings:loadFailed')}</span>
             </div>
           </CardContent>
         </Card>
@@ -131,10 +133,10 @@ export function AISettingsPage() {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <Sparkles className="h-8 w-8 text-purple-600" />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">AI Settings</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('aiSettings:title')}</h1>
         </div>
         <p className="text-gray-600 dark:text-gray-400">
-          Configure GPT-5 models and AI-powered analysis features
+          {t('aiSettings:description')}
         </p>
       </div>
 
@@ -169,34 +171,34 @@ export function AISettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                AI Status
+                {t('aiSettings:status.title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>AI Features</Label>
-                  <p className="text-sm text-muted-foreground">Enable AI-powered assistance</p>
+                  <Label>{t('aiSettings:status.features')}</Label>
+                  <p className="text-sm text-muted-foreground">{t('aiSettings:status.featuresDesc')}</p>
                 </div>
                 <Badge variant={config.enabled ? 'default' : 'secondary'}>
-                  {config.enabled ? 'Enabled' : 'Disabled'}
+                  {config.enabled ? t('aiSettings:status.enabled') : t('aiSettings:status.disabled')}
                 </Badge>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>OpenAI API Key</Label>
-                  <p className="text-sm text-muted-foreground">Required for AI features</p>
+                  <Label>{t('aiSettings:status.apiKey')}</Label>
+                  <p className="text-sm text-muted-foreground">{t('aiSettings:status.apiKeyDesc')}</p>
                 </div>
                 <Badge variant={config.hasApiKey ? 'default' : 'destructive'}>
-                  {config.hasApiKey ? 'Configured' : 'Not Set'}
+                  {config.hasApiKey ? t('aiSettings:status.configured') : t('aiSettings:status.notSet')}
                 </Badge>
               </div>
 
               {!config.hasApiKey && (
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
                   <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    <strong>Note:</strong> API key must be set as environment variable OPENAI_API_KEY in Cloudflare dashboard.
+                    <strong>{t('common:note')}:</strong> {t('aiSettings:status.note')}
                   </p>
                 </div>
               )}
@@ -208,16 +210,16 @@ export function AISettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5" />
-                Model Configuration
+                {t('aiSettings:modelConfig.title')}
               </CardTitle>
               <CardDescription>
-                Select default model and configure use case mappings
+                {t('aiSettings:modelConfig.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Default Model */}
               <div className="space-y-2">
-                <Label htmlFor="defaultModel">Default Model</Label>
+                <Label htmlFor="defaultModel">{t('aiSettings:modelConfig.defaultModel')}</Label>
                 <Select
                   value={config.defaultModel || 'gpt-5-mini'}
                   onValueChange={(value: AIModel) =>
@@ -230,32 +232,32 @@ export function AISettingsPage() {
                   <SelectContent>
                     <SelectItem value="gpt-5">
                       <div className="flex items-center justify-between gap-4">
-                        <span>GPT-5</span>
-                        <span className="text-xs text-muted-foreground">Deep Analysis</span>
+                        <span>{t('aiSettings:modelConfig.models.gpt5')}</span>
+                        <span className="text-xs text-muted-foreground">{t('aiSettings:modelConfig.models.deepAnalysis')}</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="gpt-5-mini">
                       <div className="flex items-center justify-between gap-4">
-                        <span>GPT-5 Mini</span>
-                        <span className="text-xs text-muted-foreground">Balanced (Recommended)</span>
+                        <span>{t('aiSettings:modelConfig.models.gpt5mini')}</span>
+                        <span className="text-xs text-muted-foreground">{t('aiSettings:modelConfig.models.balanced')}</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="gpt-5-nano">
                       <div className="flex items-center justify-between gap-4">
-                        <span>GPT-5 Nano</span>
-                        <span className="text-xs text-muted-foreground">Fast & Cheap</span>
+                        <span>{t('aiSettings:modelConfig.models.gpt5nano')}</span>
+                        <span className="text-xs text-muted-foreground">{t('aiSettings:modelConfig.models.fastCheap')}</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
-                  Used when no specific use case model is selected
+                  {t('aiSettings:modelConfig.defaultModelDesc')}
                 </p>
               </div>
 
               {/* Use Case Mappings */}
               <div className="space-y-3">
-                <Label>Use Case Model Assignments</Label>
+                <Label>{t('aiSettings:modelConfig.useCaseAssignments')}</Label>
 
                 {Object.entries(config.useCases).map(([useCase, model]) => (
                   <div key={useCase} className="flex items-center justify-between py-2 border-b last:border-0">
@@ -273,9 +275,9 @@ export function AISettingsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="gpt-5">GPT-5</SelectItem>
-                        <SelectItem value="gpt-5-mini">Mini</SelectItem>
-                        <SelectItem value="gpt-5-nano">Nano</SelectItem>
+                        <SelectItem value="gpt-5">{t('aiSettings:modelConfig.models.gpt5')}</SelectItem>
+                        <SelectItem value="gpt-5-mini">{t('aiSettings:modelConfig.models.gpt5mini')}</SelectItem>
+                        <SelectItem value="gpt-5-nano">{t('aiSettings:modelConfig.models.gpt5nano')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -287,18 +289,18 @@ export function AISettingsPage() {
           {/* Features */}
           <Card>
             <CardHeader>
-              <CardTitle>Features</CardTitle>
-              <CardDescription>Enable or disable specific AI capabilities</CardDescription>
+              <CardTitle>{t('aiSettings:features.title')}</CardTitle>
+              <CardDescription>{t('aiSettings:features.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.entries(config.features).map(([feature, enabled]) => (
                 <div key={feature} className="flex items-center justify-between">
                   <div>
                     <Label htmlFor={feature} className="capitalize">
-                      {feature.replace(/([A-Z])/g, ' $1').replace('enable', '').trim()}
+                      {t(`aiSettings:features.${feature.replace('enable', '').toLowerCase()}` as any, feature.replace(/([A-Z])/g, ' $1').replace('enable', '').trim())}
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      {getFeatureDescription(feature)}
+                      {t(`aiSettings:features.${feature.replace('enable', '').toLowerCase()}Desc` as any)}
                     </p>
                   </div>
                   <Switch
@@ -319,29 +321,29 @@ export function AISettingsPage() {
           {/* Rate Limits */}
           <Card>
             <CardHeader>
-              <CardTitle>Rate Limits</CardTitle>
-              <CardDescription>Control API usage to manage costs</CardDescription>
+              <CardTitle>{t('aiSettings:rateLimits.title')}</CardTitle>
+              <CardDescription>{t('aiSettings:rateLimits.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Requests Per Minute</Label>
+                <Label>{t('aiSettings:rateLimits.requestsPerMinute')}</Label>
                 <p className="text-2xl font-bold">{config.rateLimits.requestsPerMinute}</p>
-                <p className="text-sm text-muted-foreground">Maximum API requests per minute</p>
+                <p className="text-sm text-muted-foreground">{t('aiSettings:rateLimits.requestsPerMinuteDesc')}</p>
               </div>
 
               <div>
-                <Label>Tokens Per Day</Label>
+                <Label>{t('aiSettings:rateLimits.tokensPerDay')}</Label>
                 <p className="text-2xl font-bold">{config.rateLimits.tokensPerDay.toLocaleString()}</p>
-                <p className="text-sm text-muted-foreground">Daily token limit across all requests</p>
+                <p className="text-sm text-muted-foreground">{t('aiSettings:rateLimits.tokensPerDayDesc')}</p>
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>Estimated Daily Cost:</strong> $
+                  <strong>{t('aiSettings:rateLimits.estimatedCost')}</strong> $
                   {config.defaultModel && MODEL_PRICING[config.defaultModel]
                     ? ((config.rateLimits.tokensPerDay / 1_000_000) * MODEL_PRICING[config.defaultModel].output).toFixed(2)
                     : '0.00'}
-                  {config.defaultModel && ` (max, at ${config.defaultModel} output rates)`}
+                  {config.defaultModel && t('aiSettings:rateLimits.costNote', { model: config.defaultModel })}
                 </p>
               </div>
             </CardContent>
@@ -355,12 +357,12 @@ export function AISettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                Usage Today
+                {t('aiSettings:usage.title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Tokens Used</Label>
+                <Label>{t('aiSettings:usage.tokensUsed')}</Label>
                 <p className="text-2xl font-bold">{config.costs?.totalTokensUsed?.toLocaleString() || 0}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -380,13 +382,13 @@ export function AISettingsPage() {
               <div>
                 <Label className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
-                  Estimated Cost
+                  {t('aiSettings:usage.estimatedCost')}
                 </Label>
                 <p className="text-2xl font-bold">
                   ${(config.costs?.estimatedCost || 0).toFixed(4)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Resets: {config.costs?.lastReset ? new Date(config.costs.lastReset).toLocaleDateString() : 'N/A'}
+                  {t('aiSettings:usage.resets')} {config.costs?.lastReset ? new Date(config.costs.lastReset).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
             </CardContent>
@@ -395,8 +397,8 @@ export function AISettingsPage() {
           {/* Model Pricing */}
           <Card>
             <CardHeader>
-              <CardTitle>Model Pricing</CardTitle>
-              <CardDescription>Cost per 1M tokens</CardDescription>
+              <CardTitle>{t('aiSettings:pricing.title')}</CardTitle>
+              <CardDescription>{t('aiSettings:pricing.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {Object.entries(MODEL_PRICING).map(([model, pricing]) => (
@@ -404,16 +406,16 @@ export function AISettingsPage() {
                   <div className="flex items-center justify-between">
                     <Label className="text-sm">{model}</Label>
                     {config.defaultModel && config.defaultModel === model && (
-                      <Badge variant="secondary" className="text-xs">Default</Badge>
+                      <Badge variant="secondary" className="text-xs">{t('aiSettings:pricing.default')}</Badge>
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5">
                     <div className="flex justify-between">
-                      <span>Input:</span>
+                      <span>{t('aiSettings:pricing.input')}</span>
                       <span>${pricing.input}/1M</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Output:</span>
+                      <span>{t('aiSettings:pricing.output')}</span>
                       <span>${pricing.output}/1M</span>
                     </div>
                   </div>
@@ -429,7 +431,7 @@ export function AISettingsPage() {
               disabled={saving || !config.hasApiKey}
               className="w-full"
             >
-              {saving ? 'Saving...' : 'Save Configuration'}
+              {saving ? t('aiSettings:actions.saving') : t('aiSettings:actions.save')}
             </Button>
 
             <Button
@@ -438,7 +440,7 @@ export function AISettingsPage() {
               disabled={saving}
               className="w-full"
             >
-              Reset to Defaults
+              {t('aiSettings:actions.reset')}
             </Button>
 
             <Button
@@ -447,22 +449,11 @@ export function AISettingsPage() {
               disabled={loading}
               className="w-full"
             >
-              Refresh
+              {t('aiSettings:actions.refresh')}
             </Button>
           </div>
         </div>
       </div>
     </div>
   )
-}
-
-function getFeatureDescription(feature: string): string {
-  const descriptions: Record<string, string> = {
-    enableSummarization: 'Generate executive summaries and BLUF statements',
-    enableQuestionGeneration: 'Create analytical questions to improve analysis',
-    enableFieldSuggestions: 'AI-powered content suggestions for form fields',
-    enableGuidance: 'Contextual guidance and prompts',
-    enableAutoFormat: 'Automatically format and enhance content'
-  }
-  return descriptions[feature] || ''
 }

@@ -1,0 +1,37 @@
+{
+  "loading": "Cargando gráfico de red...",
+  "title": "Gráfico de Red",
+  "description": "Visualización interactiva de relaciones entre entidades",
+  "highlighted": "{{count}} entidades resaltadas",
+  "source": {
+    "cog": "Análisis COG",
+    "causeway": "Análisis Causeway",
+    "framework": "Marco de Trabajo",
+    "entity": "entidad",
+    "entities": "entidades"
+  },
+  "controls": {
+    "showMetrics": "Mostrar Métricas",
+    "hideMetrics": "Ocultar Métricas",
+    "findPath": "Encontrar Ruta",
+    "export": "Exportar"
+  },
+  "selectedNode": {
+    "title": "Nodo Seleccionado",
+    "name": "Nombre",
+    "type": "Tipo",
+    "id": "ID",
+    "connections": "Conexiones",
+    "viewDetails": "Ver Detalles",
+    "close": "Cerrar"
+  },
+  "metrics": {
+    "title": "Métricas de Red"
+  },
+  "pathFinder": {
+    "title": "Encontrar Ruta"
+  },
+  "exportDialog": {
+    "title": "Exportar Red"
+  }
+}

@@ -28,6 +28,32 @@ import enResearchQuestion from '@/locales/en/researchQuestion.json'
 import esResearchQuestion from '@/locales/es/researchQuestion.json'
 import enScraper from '@/locales/en/scraper.json'
 import esScraper from '@/locales/es/scraper.json'
+import enAiSettings from '@/locales/en/aiSettings.json'
+import esAiSettings from '@/locales/es/aiSettings.json'
+import enContentLibrary from '@/locales/en/contentLibrary.json'
+import esContentLibrary from '@/locales/es/contentLibrary.json'
+import enSubmissionForm from '@/locales/en/submissionForm.json'
+import esSubmissionForm from '@/locales/es/submissionForm.json'
+import enDataset from '@/locales/en/dataset.json'
+import esDataset from '@/locales/es/dataset.json'
+import enInvestigationPackets from '@/locales/en/investigationPackets.json'
+import esInvestigationPackets from '@/locales/es/investigationPackets.json'
+import enNetworkGraph from '@/locales/en/networkGraph.json'
+import esNetworkGraph from '@/locales/es/networkGraph.json'
+import enPublicAch from '@/locales/en/publicAch.json'
+import esPublicAch from '@/locales/es/publicAch.json'
+import enPublicContentAnalysis from '@/locales/en/publicContentAnalysis.json'
+import esPublicContentAnalysis from '@/locales/es/publicContentAnalysis.json'
+import enPublicFramework from '@/locales/en/publicFramework.json'
+import esPublicFramework from '@/locales/es/publicFramework.json'
+import enSocialMedia from '@/locales/en/socialMedia.json'
+import esSocialMedia from '@/locales/es/socialMedia.json'
+import enSubmissionForms from '@/locales/en/submissionForms.json'
+import esSubmissionForms from '@/locales/es/submissionForms.json'
+import enSubmissionsReview from '@/locales/en/submissionsReview.json'
+import esSubmissionsReview from '@/locales/es/submissionsReview.json'
+import enSubmitEvidence from '@/locales/en/submitEvidence.json'
+import esSubmitEvidence from '@/locales/es/submitEvidence.json'
 
 // Initialize i18next with react-i18next and language detection
 i18n
@@ -48,7 +74,20 @@ i18n
         investigation: enInvestigation,
         workspace: enWorkspace,
         researchQuestion: enResearchQuestion,
-        scraper: enScraper
+        scraper: enScraper,
+        aiSettings: enAiSettings,
+        contentLibrary: enContentLibrary,
+        submissionForm: enSubmissionForm,
+        dataset: enDataset,
+        investigationPackets: enInvestigationPackets,
+        networkGraph: enNetworkGraph,
+        publicAch: enPublicAch,
+        publicContentAnalysis: enPublicContentAnalysis,
+        publicFramework: enPublicFramework,
+        socialMedia: enSocialMedia,
+        submissionForms: enSubmissionForms,
+        submissionsReview: enSubmissionsReview,
+        submitEvidence: enSubmitEvidence
       },
       es: {
         common: esCommon,
@@ -63,12 +102,25 @@ i18n
         investigation: esInvestigation,
         workspace: esWorkspace,
         researchQuestion: esResearchQuestion,
-        scraper: esScraper
+        scraper: esScraper,
+        aiSettings: esAiSettings,
+        contentLibrary: esContentLibrary,
+        submissionForm: esSubmissionForm,
+        dataset: esDataset,
+        investigationPackets: esInvestigationPackets,
+        networkGraph: esNetworkGraph,
+        publicAch: esPublicAch,
+        publicContentAnalysis: esPublicContentAnalysis,
+        publicFramework: esPublicFramework,
+        socialMedia: esSocialMedia,
+        submissionForms: esSubmissionForms,
+        submissionsReview: esSubmissionsReview,
+        submitEvidence: esSubmitEvidence
       }
     },
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'cog', 'comments', 'activity', 'library', 'notifications', 'entities', 'deception', 'ach', 'investigation', 'workspace', 'researchQuestion', 'scraper'],
+    ns: ['common', 'cog', 'comments', 'activity', 'library', 'notifications', 'entities', 'deception', 'ach', 'investigation', 'workspace', 'researchQuestion', 'scraper', 'aiSettings', 'contentLibrary', 'submissionForm', 'dataset', 'investigationPackets', 'networkGraph', 'publicAch', 'publicContentAnalysis', 'publicFramework', 'socialMedia', 'submissionForms', 'submissionsReview', 'submitEvidence'],
 
     interpolation: {
       escapeValue: false // React already escapes values

@@ -1,0 +1,70 @@
+{
+  "title": "Public ACH Analyses",
+  "description": "Explore shared intelligence analyses using the Analysis of Competing Hypotheses methodology",
+  "searchPlaceholder": "Search analyses, questions, or tags...",
+  "allDomains": "All Domains",
+  "sortBy": "Sort by",
+  "sortOptions": {
+    "recent": "Most Recent",
+    "popular": "Most Popular"
+  },
+  "loading": "Loading...",
+  "found": "{{count}} analysis found",
+  "found_plural": "{{count}} analyses found",
+  "loadingPublic": "Loading public analyses...",
+  "empty": {
+    "title": "No Analyses Found",
+    "description": "No public ACH analyses have been shared yet",
+    "descriptionFiltered": "Try adjusting your search or filters"
+  },
+  "card": {
+    "question": "Question:",
+    "hypotheses": "Hypotheses",
+    "evidence": "Evidence"
+  },
+  "domains": {
+    "intelligence": "Research Analysis",
+    "security": "Security",
+    "business": "Business",
+    "research": "Scientific Research",
+    "medical": "Medical",
+    "legal": "Legal",
+    "other": "Other"
+  },
+  "about": {
+    "title": "About ACH (Analysis of Competing Hypotheses)",
+    "description": "ACH is a structured analytical technique that helps analysts identify and evaluate alternative explanations (hypotheses) by systematically comparing them against available evidence. It's particularly useful for complex intelligence problems where multiple explanations are possible and evidence is incomplete or ambiguous."
+  },
+  "page": {
+    "loading": "Loading analysis...",
+    "notFound": {
+      "title": "Analysis Not Found",
+      "description": "This analysis is not public or does not exist."
+    },
+    "browsePublic": "Browse Public Analyses",
+    "publicBadge": "Public ACH Analysis",
+    "keyQuestion": "Key Question:",
+    "views": "views",
+    "clones": "clones",
+    "analyst": "Analyst:",
+    "organization": "Organization:",
+    "export": "Export",
+    "clone": "Clone & Analyze",
+    "cloning": "Cloning...",
+    "cloneFailed": "Failed to clone analysis. Please make sure you are logged in.",
+    "banner": {
+      "title": "Public Analysis:",
+      "description": "This ACH analysis has been shared publicly. You can view the hypotheses and evidence below. Click \"Clone & Analyze\" to copy this analysis to your workspace where you can score the evidence independently."
+    },
+    "summary": {
+      "hypotheses": "Hypotheses",
+      "evidence": "Evidence Items",
+      "scale": "Scoring Scale"
+    },
+    "cta": {
+      "title": "Ready to Analyze This Research Problem?",
+      "description": "Clone this analysis to your workspace to independently score the evidence and generate your own conclusions using the ACH methodology.",
+      "button": "Clone to My Workspace"
+    }
+  }
+}

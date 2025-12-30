@@ -7,18 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { ACHAnalysis, ACHDomain } from '@/types/ach'
-
-const DOMAIN_LABELS: Record<ACHDomain, string> = {
-  intelligence: 'Research Analysis',
-  security: 'Security',
-  business: 'Business',
-  research: 'Scientific Research',
-  medical: 'Medical',
-  legal: 'Legal',
-  other: 'Other'
-}
+import { useTranslation } from 'react-i18next'
 
 export function PublicACHLibraryPage() {
+  const { t } = useTranslation(['publicAch'])
   const navigate = useNavigate()
   const [analyses, setAnalyses] = useState<ACHAnalysis[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,10 +57,10 @@ export function PublicACHLibraryPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Public ACH Analyses
+          {t('publicAch:title')}
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Explore shared intelligence analyses using the Analysis of Competing Hypotheses methodology
+          {t('publicAch:description')}
         </p>
       </div>
 
@@ -79,7 +71,7 @@ export function PublicACHLibraryPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search analyses, questions, or tags..."
+                placeholder={t('publicAch:searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
@@ -90,23 +82,23 @@ export function PublicACHLibraryPage() {
           <Select value={domainFilter} onValueChange={(value) => setDomainFilter(value as ACHDomain | 'all')}>
             <SelectTrigger className="w-[180px]">
               <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="All Domains" />
+              <SelectValue placeholder={t('publicAch:allDomains')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Domains</SelectItem>
-              {Object.entries(DOMAIN_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>{label}</SelectItem>
+              <SelectItem value="all">{t('publicAch:allDomains')}</SelectItem>
+              {Object.keys(t('publicAch:domains', { returnObjects: true })).map((value) => (
+                <SelectItem key={value} value={value}>{t(`publicAch:domains.${value}`)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'recent' | 'popular')}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
+              <SelectValue placeholder={t('publicAch:sortBy')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="recent">Most Recent</SelectItem>
-              <SelectItem value="popular">Most Popular</SelectItem>
+              <SelectItem value="recent">{t('publicAch:sortOptions.recent')}</SelectItem>
+              <SelectItem value="popular">{t('publicAch:sortOptions.popular')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -115,23 +107,23 @@ export function PublicACHLibraryPage() {
       {/* Results Count */}
       <div className="mb-4">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          {loading ? 'Loading...' : `${filteredAnalyses.length} ${filteredAnalyses.length === 1 ? 'analysis' : 'analyses'} found`}
+          {loading ? t('publicAch:loading') : t('publicAch:found', { count: filteredAnalyses.length })}
         </p>
       </div>
 
       {/* Analysis Grid */}
       {loading ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">Loading public analyses...</p>
+          <p className="text-gray-500">{t('publicAch:loadingPublic')}</p>
         </div>
       ) : filteredAnalyses.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              No Analyses Found
+              {t('publicAch:empty.title')}
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              {search ? 'Try adjusting your search or filters' : 'No public ACH analyses have been shared yet'}
+              {search ? t('publicAch:empty.descriptionFiltered') : t('publicAch:empty.description')}
             </p>
           </CardContent>
         </Card>
@@ -148,7 +140,7 @@ export function PublicACHLibraryPage() {
                   <div className="flex flex-wrap gap-2">
                     {analysis.domain && (
                       <Badge variant="secondary" className="text-xs">
-                        {DOMAIN_LABELS[analysis.domain]}
+                        {t(`publicAch:domains.${analysis.domain}`)}
                       </Badge>
                     )}
                     {analysis.tags?.slice(0, 2).map(tag => (
@@ -165,7 +157,7 @@ export function PublicACHLibraryPage() {
                 </div>
                 <CardTitle className="text-lg line-clamp-2">{analysis.title}</CardTitle>
                 <CardDescription className="line-clamp-2">
-                  <strong>Question:</strong> {analysis.question}
+                  <strong>{t('publicAch:card.question')}</strong> {analysis.question}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -192,10 +184,10 @@ export function PublicACHLibraryPage() {
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
                     <div>
-                      <strong>{analysis.hypotheses?.length || 0}</strong> Hypotheses
+                      <strong>{analysis.hypotheses?.length || 0}</strong> {t('publicAch:card.hypotheses')}
                     </div>
                     <div>
-                      <strong>{analysis.evidence?.length || 0}</strong> Evidence
+                      <strong>{analysis.evidence?.length || 0}</strong> {t('publicAch:card.evidence')}
                     </div>
                   </div>
                 </div>
@@ -209,12 +201,10 @@ export function PublicACHLibraryPage() {
       <Card className="mt-8 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
         <CardContent className="p-6">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-            About ACH (Analysis of Competing Hypotheses)
+            {t('publicAch:about.title')}
           </h3>
           <p className="text-sm text-gray-700 dark:text-gray-300">
-            ACH is a structured analytical technique that helps analysts identify and evaluate alternative explanations
-            (hypotheses) by systematically comparing them against available evidence. It's particularly useful for complex
-            intelligence problems where multiple explanations are possible and evidence is incomplete or ambiguous.
+            {t('publicAch:about.description')}
           </p>
         </CardContent>
       </Card>

@@ -9,6 +9,7 @@ import {
   Target, Brain, TrendingUp, Shield, Network, Loader2, Search, Filter
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { useTranslation } from 'react-i18next'
 
 interface ContentItem {
   id: number
@@ -27,6 +28,7 @@ interface ContentItem {
 }
 
 export function ContentLibraryPage() {
+  const { t } = useTranslation(['contentLibrary'])
   const navigate = useNavigate()
   const { toast } = useToast()
 
@@ -59,11 +61,11 @@ export function ContentLibraryPage() {
         const data = await response.json()
         setContent(data.content || [])
       } else {
-        toast({ title: 'Error', description: 'Failed to load content library', variant: 'destructive' })
+        toast({ title: t('common:error'), description: t('contentLibrary:alerts.loadFailed'), variant: 'destructive' })
       }
     } catch (error) {
       console.error('Failed to load content:', error)
-      toast({ title: 'Error', description: 'Failed to load content library', variant: 'destructive' })
+      toast({ title: t('common:error'), description: t('contentLibrary:alerts.loadFailed'), variant: 'destructive' })
     } finally {
       setLoading(false)
     }
@@ -82,7 +84,7 @@ export function ContentLibraryPage() {
         name: 'PMESII-PT',
         icon: TrendingUp,
         path: '/dashboard/analysis-frameworks/pmesii-pt',
-        reason: 'Environmental analysis of political, military, economic factors'
+        reason: t('contentLibrary:frameworkReasons.pmesii')
       })
     }
 
@@ -92,7 +94,7 @@ export function ContentLibraryPage() {
         name: 'Center of Gravity',
         icon: Target,
         path: '/dashboard/analysis-frameworks/cog',
-        reason: 'Identify critical capabilities and vulnerabilities'
+        reason: t('contentLibrary:frameworkReasons.cog')
       })
     }
 
@@ -103,7 +105,7 @@ export function ContentLibraryPage() {
         name: 'Network Analysis',
         icon: Network,
         path: '/dashboard/network',
-        reason: 'Visualize relationships between entities'
+        reason: t('contentLibrary:frameworkReasons.network')
       })
     }
 
@@ -113,7 +115,7 @@ export function ContentLibraryPage() {
         name: 'Deception Detection',
         icon: Shield,
         path: '/dashboard/analysis-frameworks/deception',
-        reason: 'Analyze credibility and identify potential deception'
+        reason: t('contentLibrary:frameworkReasons.deception')
       })
     }
 
@@ -123,7 +125,7 @@ export function ContentLibraryPage() {
         name: 'SWOT',
         icon: Brain,
         path: '/dashboard/analysis-frameworks/swot-dashboard',
-        reason: 'General purpose strategic analysis'
+        reason: t('contentLibrary:frameworkReasons.swot')
       })
     }
 
@@ -149,10 +151,10 @@ export function ContentLibraryPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <FileText className="h-8 w-8" />
-          Content Library
+          {t('contentLibrary:title')}
         </h1>
         <p className="text-muted-foreground">
-          View analyzed content and get framework suggestions
+          {t('contentLibrary:description')}
         </p>
       </div>
 
@@ -162,7 +164,7 @@ export function ContentLibraryPage() {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search content..."
+              placeholder={t('contentLibrary:filters.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -173,14 +175,14 @@ export function ContentLibraryPage() {
             onChange={(e) => setDomainFilter(e.target.value)}
             className="px-3 py-2 border rounded-md bg-background"
           >
-            <option value="">All Domains</option>
+            <option value="">{t('contentLibrary:filters.allDomains')}</option>
             {uniqueDomains.map(domain => (
               <option key={domain} value={domain}>{domain}</option>
             ))}
           </select>
           <Button variant="outline" size="sm" onClick={loadContent}>
             <Filter className="h-4 w-4 mr-2" />
-            Refresh
+            {t('contentLibrary:filters.refresh')}
           </Button>
         </div>
       </Card>
@@ -193,13 +195,13 @@ export function ContentLibraryPage() {
       ) : filteredContent.length === 0 ? (
         <Card className="p-12 text-center">
           <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Content Yet</h3>
+          <h3 className="text-lg font-semibold mb-2">{t('contentLibrary:empty.title')}</h3>
           <p className="text-muted-foreground mb-4">
-            Start analyzing URLs from the landing page or Content Research tool
+            {t('contentLibrary:empty.description')}
           </p>
           <Button onClick={() => navigate('/dashboard/tools/content-intelligence')}>
             <Search className="h-4 w-4 mr-2" />
-            Analyze Content
+            {t('contentLibrary:empty.button')}
           </Button>
         </Card>
       ) : (
@@ -215,12 +217,12 @@ export function ContentLibraryPage() {
                   <div>
                     <div className="flex items-start justify-between gap-4 mb-2">
                       <h3 className="text-xl font-semibold line-clamp-2">
-                        {item.title || 'Untitled'}
+                        {item.title || t('contentLibrary:card.untitled')}
                       </h3>
                       {item.from_cache && (
                         <Badge variant="secondary" className="shrink-0">
                           <Hash className="h-3 w-3 mr-1" />
-                          Cached
+                          {t('contentLibrary:card.cached')}
                         </Badge>
                       )}
                     </div>
@@ -239,7 +241,7 @@ export function ContentLibraryPage() {
                         {new Date(item.created_at).toLocaleDateString()}
                       </span>
                       {item.word_count && (
-                        <span>{item.word_count.toLocaleString()} words</span>
+                        <span>{item.word_count.toLocaleString()} {t('contentLibrary:card.words')}</span>
                       )}
                     </div>
                   </div>
@@ -279,7 +281,7 @@ export function ContentLibraryPage() {
                   <div className="border-t pt-4">
                     <div className="text-sm font-medium mb-3 flex items-center gap-2">
                       <Target className="h-4 w-4 text-blue-600" />
-                      Suggested Frameworks
+                      {t('contentLibrary:card.frameworks')}
                     </div>
                     <div className="grid sm:grid-cols-3 gap-3">
                       {frameworks.map((fw, i) => (

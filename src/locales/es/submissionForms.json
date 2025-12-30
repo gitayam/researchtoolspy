@@ -1,0 +1,38 @@
+{
+  "loading": "Cargando formularios...",
+  "title": "Formularios de Envío",
+  "description": "Crea y gestiona formularios anónimos para la recolección de evidencia",
+  "createForm": "Crear Formulario",
+  "searchPlaceholder": "Buscar formularios por nombre o ID hash...",
+  "empty": {
+    "title": "Aún no hay formularios de envío",
+    "description": "Crea tu primer formulario para empezar a recolectar evidencia de forma anónima",
+    "button": "Crear Primer Formulario",
+    "noResults": "No se encontraron formularios",
+    "noResultsDesc": "Intenta ajustar tu búsqueda"
+  },
+  "card": {
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "submissions": "Envíos",
+    "fields": "Campos",
+    "hashId": "ID Hash",
+    "created": "Creado",
+    "copyUrl": "Copiar URL",
+    "copied": "Copiado",
+    "viewSubmissions": "Ver {{count}} Envío",
+    "viewSubmissions_plural": "Ver {{count}} Envíos"
+  },
+  "howItWorks": {
+    "title": "Cómo Funcionan los Formularios de Envío",
+    "items": [
+      "Cada formulario tiene una URL hash única que puede ser compartida anónimamente",
+      "Los remitentes no necesitan iniciar sesión o crear una cuenta",
+      "Los envíos son revisados antes de ser añadidos a la evidencia",
+      "Las URLs son archivadas automáticamente para su preservación"
+    ]
+  },
+  "alerts": {
+    "loadFailed": "Error al cargar los formularios"
+  }
+}

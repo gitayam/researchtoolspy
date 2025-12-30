@@ -1,0 +1,63 @@
+{
+  "loading": "Loading analysis...",
+  "notFound": {
+    "title": "Analysis Not Found",
+    "description": "This analysis is not public or does not exist."
+  },
+  "goHome": "Go Home",
+  "publicBadge": "Public Content Analysis",
+  "views": "views",
+  "author": "By",
+  "copyLink": "Copy Link",
+  "export": "Export",
+  "copied": "Link copied to clipboard!",
+  "summary": "Summary",
+  "wordCount": "Word Count:",
+  "viewOriginal": "View Original →",
+  "topPhrases": "Top Phrases",
+  "keyPhrases": "Key Phrases",
+  "keyEntities": "Key Entities",
+  "entities": {
+    "people": "People",
+    "organizations": "Organizations",
+    "locations": "Locations",
+    "dates": "Dates",
+    "money": "Money",
+    "emails": "Emails"
+  },
+  "sentiment": {
+    "title": "Sentiment Analysis",
+    "overall": "Overall Sentiment:",
+    "score": "Score:",
+    "confidence": "Confidence:"
+  },
+  "topics": {
+    "title": "Topics"
+  },
+  "claims": {
+    "title": "Claims Analysis"
+  },
+  "links": {
+    "title": "Link Analysis ({{count}} unique links)",
+    "description": "All links found in the article body (excluding navigation, headers, and footers)",
+    "total": "Total Links",
+    "external": "External",
+    "internal": "Internal",
+    "uniqueDomains": "Unique Domains",
+    "referenced": "Referenced {{count}}× in article",
+    "anchorText": "Anchor text:"
+  },
+  "archive": {
+    "title": "Archive & Bypass Links",
+    "description": "Alternative ways to access this content",
+    "archiveServices": "Archive Services",
+    "wayback": "Wayback Machine",
+    "archiveIs": "Archive.is",
+    "paywallBypass": "Paywall Bypass",
+    "twelveFoot": "12ft Ladder"
+  },
+  "footer": {
+    "sharedVia": "Shared via Research Tools • Analysis performed {{date}}",
+    "createYourOwn": "Create your own analysis →"
+  }
+}

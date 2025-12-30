@@ -1,0 +1,48 @@
+{
+  "title": "Paquetes de Investigación",
+  "description": "Organiza investigaciones de múltiples fuentes con reclamos, evidencia y entidades",
+  "newInvestigation": "Nueva Investigación",
+  "createDialog": {
+    "title": "Crear Paquete de Investigación",
+    "description": "Inicia una nueva investigación para organizar reclamos de múltiples fuentes",
+    "form": {
+      "titleLabel": "Título *",
+      "titlePlaceholder": "ej., Investigación de CVE-2024-1234 de Red Hat",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Breve resumen de la investigación...",
+      "typeLabel": "Tipo de Investigación",
+      "typePlaceholder": "ej., Análisis de Brecha",
+      "priorityLabel": "Prioridad",
+      "categoryLabel": "Categoría",
+      "categoryPlaceholder": "ej., Ciberseguridad, Política, Financiera",
+      "tagsLabel": "Etiquetas (separadas por comas)",
+      "tagsPlaceholder": "ej., CVE-2024-1234, Red Hat, OpenSSL",
+      "createButton": "Crear Investigación",
+      "creatingButton": "Creando..."
+    }
+  },
+  "priorities": {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "critical": "Crítica"
+  },
+  "loading": "Cargando...",
+  "empty": {
+    "title": "Aún no hay investigaciones",
+    "description": "Crea tu primer paquete de investigación para organizar casos de múltiples fuentes",
+    "button": "Crear Investigación"
+  },
+  "card": {
+    "source": "fuente",
+    "sources": "fuentes",
+    "claim": "reclamo",
+    "claims": "reclamos",
+    "updated": "Actualizado"
+  },
+  "alerts": {
+    "titleRequired": "El título es obligatorio",
+    "loadFailed": "Error al cargar los paquetes",
+    "createFailed": "Error al crear el paquete"
+  }
+}

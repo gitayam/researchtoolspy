@@ -1,0 +1,33 @@
+{
+  "loading": "Cargando marco de trabajo público...",
+  "notFound": "Marco de trabajo no encontrado",
+  "goHome": "Ir al Inicio",
+  "publicBadge": "Público",
+  "views": "vistas",
+  "clones": "clones",
+  "clone": "Clonar a Mi Espacio de Trabajo",
+  "cloning": "Clonando...",
+  "cloneFailed": "Error al clonar el marco de trabajo",
+  "cloneGuestHint": "¡Marco de trabajo clonado! Ahora estás trabajando en modo invitado (7 días). Inicia sesión para guardar permanentemente.",
+  "export": "Exportar",
+  "exportComingSoon": "¡La funcionalidad de exportación llegará pronto!",
+  "overview": "Resumen",
+  "overviewDesc": "Detalles y contexto del marco de trabajo",
+  "source": "Fuente",
+  "locations": "Ubicaciones",
+  "settings": "Configuraciones",
+  "frequency": "Frecuencia",
+  "empty": {
+    "title": "Este marco de trabajo aún no tiene contenido detallado.",
+    "description": "¡Clónalo para agregar tu propio análisis!"
+  },
+  "footer": {
+    "title": "¿Quieres usar este marco de trabajo?",
+    "description": "Haz clic en \"Clonar a Mi Espacio de Trabajo\" para crear tu propia copia.",
+    "descriptionGuest": " Inicia sesión para guardar permanentemente, o trabaja en modo invitado por 7 días."
+  },
+  "frameworks": {
+    "behavior": "Análisis de Comportamiento",
+    "comb-analysis": "Análisis COM-B"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "title": "Análisis ACH Públicos",
+  "description": "Explora análisis de inteligencia compartidos utilizando la metodología de Análisis de Hipótesis Competidoras",
+  "searchPlaceholder": "Buscar análisis, preguntas o etiquetas...",
+  "allDomains": "Todos los Dominios",
+  "sortBy": "Ordenar por",
+  "sortOptions": {
+    "recent": "Más Reciente",
+    "popular": "Más Popular"
+  },
+  "loading": "Cargando...",
+  "found": "{{count}} análisis encontrado",
+  "found_plural": "{{count}} análisis encontrados",
+  "loadingPublic": "Cargando análisis públicos...",
+  "empty": {
+    "title": "No se encontraron Análisis",
+    "description": "Aún no se han compartido análisis ACH públicos",
+    "descriptionFiltered": "Intenta ajustar tu búsqueda o filtros"
+  },
+  "card": {
+    "question": "Pregunta:",
+    "hypotheses": "Hipótesis",
+    "evidence": "Evidencia"
+  },
+  "domains": {
+    "intelligence": "Análisis de Investigación",
+    "security": "Seguridad",
+    "business": "Negocios",
+    "research": "Investigación Científica",
+    "medical": "Medicina",
+    "legal": "Legal",
+    "other": "Otro"
+  },
+  "about": {
+    "title": "Acerca de ACH (Análisis de Hipótesis Competidoras)",
+    "description": "ACH es una técnica analítica estructurada que ayuda a los analistas a identificar y evaluar explicaciones alternativas (hipótesis) comparándolas sistemáticamente con la evidencia disponible. Es particularmente útil para problemas de inteligencia complejos donde son posibles múltiples explicaciones y la evidencia es incompleta o ambigua."
+  },
+  "page": {
+    "loading": "Cargando análisis...",
+    "notFound": {
+      "title": "Análisis No Encontrado",
+      "description": "Este análisis no es público o no existe."
+    },
+    "browsePublic": "Explorar Análisis Públicos",
+    "publicBadge": "Análisis ACH Público",
+    "keyQuestion": "Pregunta Clave:",
+    "views": "vistas",
+    "clones": "clones",
+    "analyst": "Analista:",
+    "organization": "Organización:",
+    "export": "Exportar",
+    "clone": "Clonar y Analizar",
+    "cloning": "Clonando...",
+    "cloneFailed": "Error al clonar el análisis. Asegúrate de haber iniciado sesión.",
+    "banner": {
+      "title": "Análisis Público:",
+      "description": "Este análisis ACH se ha compartido públicamente. Puedes ver las hipótesis y la evidencia a continuación. Haz clic en \"Clonar y Analizar\" para copiar este análisis a tu espacio de trabajo donde puedes calificar la evidencia de forma independiente."
+    },
+    "summary": {
+      "hypotheses": "Hipótesis",
+      "evidence": "Elementos de Evidencia",
+      "scale": "Escala de Puntuación"
+    },
+    "cta": {
+      "title": "¿Listo para Analizar este Problema de Investigación?",
+      "description": "Clona este análisis en tu espacio de trabajo para calificar la evidencia de forma independiente y generar tus propias conclusiones utilizando la metodología ACH.",
+      "button": "Clonar a Mi Espacio de Trabajo"
+    }
+  }
+}

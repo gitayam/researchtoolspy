@@ -1,0 +1,31 @@
+{
+  "title": "Content Library",
+  "description": "View analyzed content and get framework suggestions",
+  "filters": {
+    "searchPlaceholder": "Search content...",
+    "allDomains": "All Domains",
+    "refresh": "Refresh"
+  },
+  "loading": "Loading...",
+  "empty": {
+    "title": "No Content Yet",
+    "description": "Start analyzing URLs from the landing page or Content Research tool",
+    "button": "Analyze Content"
+  },
+  "card": {
+    "untitled": "Untitled",
+    "cached": "Cached",
+    "words": "words",
+    "frameworks": "Suggested Frameworks"
+  },
+  "frameworkReasons": {
+    "pmesii": "Environmental analysis of political, military, economic factors",
+    "cog": "Identify critical capabilities and vulnerabilities",
+    "network": "Visualize relationships between entities",
+    "deception": "Analyze credibility and identify potential deception",
+    "swot": "General purpose strategic analysis"
+  },
+  "alerts": {
+    "loadFailed": "Failed to load content library"
+  }
+}

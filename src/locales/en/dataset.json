@@ -1,0 +1,62 @@
+{
+  "title": "Dataset Collector",
+  "description": "Manage and organize dataset for your research analysis",
+  "import": "Import",
+  "add": "Add Dataset",
+  "stats": {
+    "total": "Total Dataset",
+    "verified": "Verified",
+    "pending": "Pending",
+    "rejected": "Rejected"
+  },
+  "filters": {
+    "searchPlaceholder": "Search dataset...",
+    "byType": "Filter by type",
+    "byStatus": "Filter by status",
+    "allTypes": "All Types",
+    "allStatuses": "All Statuses"
+  },
+  "empty": {
+    "title": "No Dataset Found",
+    "descriptionStart": "Start building your dataset collection by adding your first piece of dataset.",
+    "descriptionFilter": "Try adjusting your search criteria or filters.",
+    "addFirst": "Add Your First Dataset"
+  },
+  "card": {
+    "source": "Source:",
+    "updated": "Updated"
+  },
+  "menu": {
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "archive": "Archive",
+    "delete": "Delete"
+  },
+  "alerts": {
+    "deleteConfirm": "Are you sure you want to delete this dataset?",
+    "deleteFailed": "Failed to delete dataset",
+    "loadFailed": "Failed to load dataset",
+    "saveFailed": "Failed to save dataset",
+    "createFailed": "Failed to create dataset",
+    "updateFailed": "Failed to update dataset",
+    "importComingSoon": "Import feature coming soon!"
+  },
+  "types": {
+    "DOCUMENT": "Document",
+    "WEB_PAGE": "Web Page",
+    "IMAGE": "Image",
+    "VIDEO": "Video",
+    "AUDIO": "Audio",
+    "SOCIAL_MEDIA": "Social Media",
+    "EMAIL": "Email",
+    "DATABASE": "Database",
+    "API": "API",
+    "GOVERNMENT": "Government"
+  },
+  "status": {
+    "VERIFIED": "Verified",
+    "PENDING": "Pending",
+    "REJECTED": "Rejected",
+    "NEEDS_REVIEW": "Needs Review"
+  }
+}

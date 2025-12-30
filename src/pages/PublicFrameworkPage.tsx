@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
+import { useTranslation } from 'react-i18next'
 
 export function PublicFrameworkPage() {
+  const { t } = useTranslation(['publicFramework'])
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const [framework, setFramework] = useState<any>(null)
@@ -20,13 +22,13 @@ export function PublicFrameworkPage() {
 
     fetch(`/api/frameworks/public/${token}`)
       .then(res => {
-        if (!res.ok) throw new Error('Framework not found')
+        if (!res.ok) throw new Error(t('publicFramework:notFound'))
         return res.json()
       })
       .then(setFramework)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
-  }, [token])
+  }, [token, t])
 
   const handleClone = async () => {
     if (!token) return
@@ -47,11 +49,11 @@ export function PublicFrameworkPage() {
         const draftKey = `draft_${framework.framework_type}_new`
         localStorage.setItem(draftKey, JSON.stringify(data.framework))
         navigate(`/frameworks/${framework.framework_type}/create`)
-        alert('Framework cloned! You\'re now working in guest mode (7 days). Sign in to save permanently.')
+        alert(t('publicFramework:cloneGuestHint'))
       }
     } catch (error) {
       console.error('Failed to clone:', error)
-      alert('Failed to clone framework')
+      alert(t('publicFramework:cloneFailed'))
     } finally {
       setCloning(false)
     }
@@ -59,14 +61,14 @@ export function PublicFrameworkPage() {
 
   const handleExport = () => {
     // TODO: Implement export functionality
-    alert('Export functionality coming soon!')
+    alert(t('publicFramework:exportComingSoon'))
   }
 
   if (loading) {
     return (
       <div className="container mx-auto py-8">
         <div className="flex items-center justify-center h-64">
-          <p className="text-gray-500">Loading public framework...</p>
+          <p className="text-gray-500">{t('publicFramework:loading')}</p>
         </div>
       </div>
     )
@@ -77,20 +79,20 @@ export function PublicFrameworkPage() {
       <div className="container mx-auto py-8">
         <Alert variant="destructive">
           <AlertDescription>
-            {error || 'Framework not found'}
+            {error || t('publicFramework:notFound')}
           </AlertDescription>
         </Alert>
         <Button onClick={() => navigate('/')} className="mt-4" variant="outline">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Go Home
+          {t('publicFramework:goHome')}
         </Button>
       </div>
     )
   }
 
-  const frameworkTypeLabel = framework.framework_type === 'behavior' ? 'Behavior Analysis' :
-    framework.framework_type === 'comb-analysis' ? 'COM-B Analysis' :
-    framework.framework_type.toUpperCase()
+  const frameworkTypeLabel = t(`publicFramework:frameworks.${framework.framework_type.toLowerCase()}`, {
+    defaultValue: framework.framework_type.toUpperCase()
+  })
 
   return (
     <div className="container mx-auto py-8 max-w-6xl">
@@ -99,7 +101,7 @@ export function PublicFrameworkPage() {
         <div className="flex items-center gap-2 mb-2">
           <Badge variant="secondary" className="gap-1">
             <Eye className="h-3 w-3" />
-            Public
+            {t('publicFramework:publicBadge')}
           </Badge>
           <Badge variant="outline">{frameworkTypeLabel}</Badge>
           {framework.category && (
@@ -116,11 +118,11 @@ export function PublicFrameworkPage() {
         <div className="flex items-center gap-4 mt-3 text-sm text-gray-600 dark:text-gray-400">
           <div className="flex items-center gap-1">
             <Eye className="h-4 w-4" />
-            {framework.view_count} views
+            {framework.view_count} {t('publicFramework:views')}
           </div>
           <div className="flex items-center gap-1">
             <Users className="h-4 w-4" />
-            {framework.clone_count} clones
+            {framework.clone_count} {t('publicFramework:clones')}
           </div>
         </div>
       </div>
@@ -129,11 +131,11 @@ export function PublicFrameworkPage() {
       <div className="flex gap-2 mb-6">
         <Button onClick={handleClone} disabled={cloning} className="gap-2">
           <Copy className="h-4 w-4" />
-          {cloning ? 'Cloning...' : 'Clone to My Workspace'}
+          {cloning ? t('publicFramework:cloning') : t('publicFramework:clone')}
         </Button>
         <Button variant="outline" onClick={handleExport} className="gap-2">
           <Download className="h-4 w-4" />
-          Export
+          {t('publicFramework:export')}
         </Button>
       </div>
 
@@ -144,13 +146,13 @@ export function PublicFrameworkPage() {
         {/* Basic Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Overview</CardTitle>
-            <CardDescription>Framework details and context</CardDescription>
+            <CardTitle>{t('publicFramework:overview')}</CardTitle>
+            <CardDescription>{t('publicFramework:overviewDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             {framework.data?.source_url && (
               <div className="mb-4">
-                <p className="text-sm font-medium mb-1">Source</p>
+                <p className="text-sm font-medium mb-1">{t('publicFramework:source')}</p>
                 <a
                   href={framework.data.source_url}
                   target="_blank"
@@ -167,7 +169,7 @@ export function PublicFrameworkPage() {
               <div className="space-y-3">
                 {framework.data.location_context.specific_locations?.length > 0 && (
                   <div>
-                    <p className="text-sm font-medium mb-1">Locations</p>
+                    <p className="text-sm font-medium mb-1">{t('publicFramework:locations')}</p>
                     <div className="flex flex-wrap gap-2">
                       {framework.data.location_context.specific_locations.map((loc: string, i: number) => (
                         <Badge key={i} variant="secondary">{loc}</Badge>
@@ -178,7 +180,7 @@ export function PublicFrameworkPage() {
 
                 {framework.data.behavior_settings?.settings?.length > 0 && (
                   <div>
-                    <p className="text-sm font-medium mb-1">Settings</p>
+                    <p className="text-sm font-medium mb-1">{t('publicFramework:settings')}</p>
                     <div className="flex flex-wrap gap-2">
                       {framework.data.behavior_settings.settings.map((setting: string, i: number) => (
                         <Badge key={i} variant="outline">{setting}</Badge>
@@ -189,7 +191,7 @@ export function PublicFrameworkPage() {
 
                 {framework.data.temporal_context?.frequency_pattern && (
                   <div>
-                    <p className="text-sm font-medium mb-1">Frequency</p>
+                    <p className="text-sm font-medium mb-1">{t('publicFramework:frequency')}</p>
                     <Badge variant="outline" className="capitalize">
                       {framework.data.temporal_context.frequency_pattern.replace('_', ' ')}
                     </Badge>
@@ -229,8 +231,8 @@ export function PublicFrameworkPage() {
         ).length === 0 && (
           <Card>
             <CardContent className="py-12 text-center text-gray-500">
-              <p>This framework doesn't have detailed content yet.</p>
-              <p className="text-sm mt-2">Clone it to add your own analysis!</p>
+              <p>{t('publicFramework:empty.title')}</p>
+              <p className="text-sm mt-2">{t('publicFramework:empty.description')}</p>
             </CardContent>
           </Card>
         )}
@@ -239,8 +241,8 @@ export function PublicFrameworkPage() {
       {/* Footer Info */}
       <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
         <p className="text-sm text-gray-700 dark:text-gray-300">
-          <strong>Want to use this framework?</strong> Click "Clone to My Workspace" to create your own copy.
-          {!framework.is_authenticated && ' Sign in to save permanently, or work in guest mode for 7 days.'}
+          <strong>{t('publicFramework:footer.title')}</strong> {t('publicFramework:footer.description')}
+          {!framework.is_authenticated && t('publicFramework:footer.descriptionGuest')}
         </p>
       </div>
     </div>

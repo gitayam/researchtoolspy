@@ -30,7 +30,19 @@ src/
     │   ├── investigation.json   # Investigation detail translations
     │   ├── workspace.json       # Research workspace translations
     │   ├── researchQuestion.json # Research question generator translations
-    │   └── scraper.json         # Web scraper translations
+    │   ├── scraper.json         # Web scraper translations
+    │   ├── aiSettings.json      # AI Settings translations
+    │   ├── contentLibrary.json  # Content Library translations
+    │   ├── submissionForm.json  # Submission Form translations
+    │   ├── dataset.json         # Dataset translations
+    │   ├── investigationPackets.json # Investigation Packets translations
+    │   ├── networkGraph.json    # Network Graph translations
+    │   ├── publicAch.json       # Public ACH translations
+    │   ├── publicContentAnalysis.json # Public Content Analysis translations
+    │   ├── publicFramework.json # Public Framework translations
+    │   ├── socialMedia.json     # Social Media translations
+    │   ├── submissionForms.json # Submission Forms translations
+    │   └── submitEvidence.json  # Submit Evidence translations
     └── es/                      # Spanish translations
         ├── common.json
         ├── cog.json
@@ -44,7 +56,9 @@ src/
         ├── investigation.json
         ├── workspace.json
         ├── researchQuestion.json
-        └── scraper.json
+        ├── scraper.json
+        ├── aiSettings.json
+        └── publicAch.json
 ```
 
 ---
@@ -55,12 +69,12 @@ src/
 
 | Category | Translated | Needs Work | Total | Coverage |
 |----------|------------|------------|-------|----------|
-| Pages | 32 | 17 | 49 | 65% |
+| Pages | 46 | 3 | 49 | 93% |
 | Components | 30+ | Unknown | ~50+ | ~60% |
 
 ---
 
-## Pages WITH Translations (32)
+## Pages WITH Translations (46)
 
 These pages have `useTranslation` implemented:
 
@@ -68,6 +82,7 @@ These pages have `useTranslation` implemented:
 |------|-----------|--------|
 | ACH Analysis | `src/pages/ACHAnalysisPage.tsx` | ✅ Complete |
 | ACH | `src/pages/ACHPage.tsx` | ✅ Complete |
+| AI Settings | `src/pages/AISettingsPage.tsx` | ✅ Complete |
 | Activity | `src/pages/ActivityPage.tsx` | ✅ Complete |
 | Actors | `src/pages/ActorsPage.tsx` | ✅ Complete |
 | Batch Processing | `src/pages/BatchProcessingPage.tsx` | ✅ Complete |
@@ -76,53 +91,47 @@ These pages have `useTranslation` implemented:
 | Collaboration | `src/pages/CollaborationPage.tsx` | ✅ Complete |
 | Content Extraction | `src/pages/ContentExtractionPage.tsx` | ✅ Complete |
 | Content Intelligence | `src/pages/tools/ContentIntelligencePage.tsx` | ✅ Complete |
+| Content Library | `src/pages/ContentLibraryPage.tsx` | ✅ Complete |
+| Create Submission Form | `src/pages/CreateSubmissionFormPage.tsx` | ✅ Complete |
 | Dashboard | `src/pages/DashboardPage.tsx` | ✅ Complete |
+| Dataset | `src/pages/DatasetPage.tsx` | ✅ Complete |
 | Deception Risk | `src/pages/DeceptionRiskDashboard.tsx` | ✅ Complete |
 | Events | `src/pages/EventsPage.tsx` | ✅ Complete |
 | Evidence | `src/pages/EvidencePage.tsx` | ✅ Complete |
 | Evidence Submissions | `src/pages/EvidenceSubmissionsPage.tsx` | ✅ Complete |
 | Frameworks Index | `src/pages/frameworks/index.tsx` | ✅ Complete |
 | Investigation Detail | `src/pages/InvestigationDetailPage.tsx` | ✅ Complete |
+| Investigation Packets | `src/pages/InvestigationPacketsPage.tsx` | ✅ Complete |
 | Investigations | `src/pages/InvestigationsPage.tsx` | ✅ Complete |
 | Landing | `src/pages/LandingPage.tsx` | ✅ Complete |
 | Login | `src/pages/LoginPage.tsx` | ✅ Complete |
+| Network Graph | `src/pages/NetworkGraphPage.tsx` | ✅ Complete |
 | New Investigation | `src/pages/NewInvestigationPage.tsx` | ✅ Complete |
 | Not Found (404) | `src/pages/NotFoundPage.tsx` | ✅ Complete |
+| Public ACH | `src/pages/PublicACHPage.tsx` | ✅ Complete |
+| Public ACH Library | `src/pages/PublicACHLibraryPage.tsx` | ✅ Complete |
+| Public Content Analysis | `src/pages/PublicContentAnalysisPage.tsx` | ✅ Complete |
+| Public Framework | `src/pages/PublicFrameworkPage.tsx` | ✅ Complete |
 | Public Library | `src/pages/PublicLibraryPage.tsx` | ✅ Complete |
 | Register | `src/pages/RegisterPage.tsx` | ✅ Complete |
 | Reports | `src/pages/ReportsPage.tsx` | ✅ Complete |
 | Research Workspace | `src/pages/ResearchWorkspacePage.tsx` | ✅ Complete |
 | Research Question Generator | `src/pages/ResearchQuestionGeneratorPage.tsx` | ✅ Complete |
 | Settings | `src/pages/SettingsPage.tsx` | ✅ Complete |
+| Social Media | `src/pages/SocialMediaPage.tsx` | ✅ Complete |
 | Sources | `src/pages/SourcesPage.tsx` | ✅ Complete |
+| Submission Forms | `src/pages/SubmissionFormsPage.tsx` | ✅ Complete |
+| Submissions Review | `src/pages/SubmissionsReviewPage.tsx` | ✅ Complete |
+| Submit Evidence | `src/pages/SubmitEvidencePage.tsx` | ✅ Complete |
 | Tools | `src/pages/ToolsPage.tsx` | ✅ Complete |
 | URL Processing | `src/pages/URLProcessingPage.tsx` | ✅ Complete |
 | Web Scraper | `src/pages/WebScraperPage.tsx` | ✅ Complete |
 
 ---
 
-## Pages NEEDING Translations (17)
+## Pages NEEDING Translations (3)
 
 These pages do NOT have `useTranslation` and need i18n implementation:
-
-### Medium Priority (Important but less frequent)
-
-| Page | File Path | Description |
-|------|-----------|-------------|
-| AI Settings | `src/pages/AISettingsPage.tsx` | AI configuration settings |
-| Content Library | `src/pages/ContentLibraryPage.tsx` | Content management |
-| Create Submission Form | `src/pages/CreateSubmissionFormPage.tsx` | Form builder |
-| Dataset | `src/pages/DatasetPage.tsx` | Dataset management |
-| Investigation Packets | `src/pages/InvestigationPacketsPage.tsx` | Investigation bundles |
-| Network Graph | `src/pages/NetworkGraphPage.tsx` | Network visualization |
-| Public ACH Library | `src/pages/PublicACHLibraryPage.tsx` | Public ACH repository |
-| Public ACH | `src/pages/PublicACHPage.tsx` | Public ACH viewer |
-| Public Content Analysis | `src/pages/PublicContentAnalysisPage.tsx` | Public content viewer |
-| Public Framework | `src/pages/PublicFrameworkPage.tsx` | Public framework viewer |
-| Social Media | `src/pages/SocialMediaPage.tsx` | Social media analysis |
-| Submission Forms | `src/pages/SubmissionFormsPage.tsx` | Form management |
-| Submissions Review | `src/pages/SubmissionsReviewPage.tsx` | Review submissions |
-| Submit Evidence | `src/pages/SubmitEvidencePage.tsx` | Evidence submission |
 
 ### Low Priority (Admin/Edge cases)
 
@@ -187,18 +196,44 @@ These components have `useTranslation` implemented:
 | `workspace` | Research workspace | workspace.json |
 | `researchQuestion` | Research question generator | researchQuestion.json |
 | `scraper` | Web scraper and extractor | scraper.json |
+| `aiSettings` | AI Settings page | aiSettings.json |
+| `contentLibrary` | Content Library page | contentLibrary.json |
+| `submissionForm` | Submission Form page | submissionForm.json |
+| `dataset` | Dataset management page | dataset.json |
+| `investigationPackets` | Investigation Packets page | investigationPackets.json |
+| `networkGraph` | Network Graph page | networkGraph.json |
+| `publicAch` | Public ACH page | publicAch.json |
+| `publicContentAnalysis` | Public Content Analysis page | publicContentAnalysis.json |
+| `publicFramework` | Public Framework page | publicFramework.json |
+| `socialMedia` | Social Media page | socialMedia.json |
+| `submissionForms` | Submission Forms page | submissionForms.json |
+| `submissionsReview` | Submissions Review page | submissionsReview.json |
+| `submitEvidence` | Submit Evidence page | submitEvidence.json |
 
 ---
 
 ## Recent Updates
 
 ### December 29, 2025 (Latest)
+- Added translations for `SubmitEvidencePage`
+- Added translations for `SubmissionsReviewPage`
+- Added translations for `SubmissionFormsPage`
+- Added translations for `SocialMediaPage`
+- Added translations for `PublicFrameworkPage`
+- Added translations for `PublicContentAnalysisPage`
+- Added translations for `PublicACHPage` and `PublicACHLibraryPage`
+- Added translations for `NetworkGraphPage`
+- Added translations for `InvestigationPacketsPage`
+- Added translations for `DatasetPage`
+- Added translations for `CreateSubmissionFormPage`
+- Added translations for `ContentLibraryPage`
+- Added translations for `AISettingsPage`
 - Added translations for `ACHPage` and `ACHAnalysisPage`
 - Added translations for `InvestigationDetailPage`
 - Added translations for `ResearchWorkspacePage`
 - Added translations for `ResearchQuestionGeneratorPage`
 - Added translations for `WebScraperPage`
-- Created 5 new namespaces: `ach`, `investigation`, `workspace`, `researchQuestion`, `scraper`
+- Created 18 new namespaces
 - Registered new namespaces in `i18n.ts`
 - Updated English and Spanish translation files for all new namespaces
-- **Coverage**: Increased to 65% of pages (32/49)
+- **Coverage**: Increased to 93% of pages (46/49)

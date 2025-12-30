@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Copy, CheckCircle2, AlertCircle, Link as LinkIcon, Lock, Settings } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface FormData {
   formName: string
@@ -23,18 +24,19 @@ interface FormData {
 }
 
 const AVAILABLE_FIELDS = [
-  { id: 'source_url', label: 'Source URL', description: 'URL of the content', default: true },
-  { id: 'archived_url', label: 'Archived URL', description: 'Pre-archived backup URL (optional)', default: false },
-  { id: 'content_type', label: 'Content Type', description: 'Article, video, social post, etc.', default: true },
-  { id: 'content_description', label: 'Content Description', description: 'How this relates to research', default: true },
-  { id: 'login_required', label: 'Login Required Toggle', description: 'Whether content needs login', default: false },
-  { id: 'keywords', label: 'Keywords', description: 'Tags for searching', default: true },
-  { id: 'submitter_comments', label: 'Additional Comments', description: 'Free text notes', default: true },
-  { id: 'submitter_name', label: 'Submitter Name', description: 'Optional identification', default: false },
-  { id: 'submitter_contact', label: 'Contact Info', description: 'Email or other contact', default: false }
+  { id: 'source_url', default: true },
+  { id: 'archived_url', default: false },
+  { id: 'content_type', default: true },
+  { id: 'content_description', default: true },
+  { id: 'login_required', default: false },
+  { id: 'keywords', default: true },
+  { id: 'submitter_comments', default: true },
+  { id: 'submitter_name', default: false },
+  { id: 'submitter_contact', default: false }
 ]
 
 export default function CreateSubmissionFormPage() {
+  const { t } = useTranslation(['submissionForm', 'common'])
   const navigate = useNavigate()
 
   const [formData, setFormData] = useState<FormData>({
@@ -75,11 +77,11 @@ export default function CreateSubmissionFormPage() {
 
     try {
       if (!formData.formName) {
-        throw new Error('Form name is required')
+        throw new Error(t('submissionForm:alerts.nameRequired'))
       }
 
       if (formData.enabledFields.length === 0) {
-        throw new Error('At least one field must be enabled')
+        throw new Error(t('submissionForm:alerts.atLeastOneField'))
       }
 
       const response = await fetch('/api/research/forms/create', {
@@ -104,7 +106,7 @@ export default function CreateSubmissionFormPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create form')
+        throw new Error(data.error || t('submissionForm:alerts.createFailed'))
       }
 
       setCreatedForm({
@@ -115,7 +117,7 @@ export default function CreateSubmissionFormPage() {
 
     } catch (err) {
       console.error('Failed to create form:', err)
-      setError(err instanceof Error ? err.message : 'Failed to create form')
+      setError(err instanceof Error ? err.message : t('submissionForm:alerts.createFailed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -138,23 +140,23 @@ export default function CreateSubmissionFormPage() {
             className="mb-6"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Forms
+            {t('submissionForm:backToForms')}
           </Button>
 
           <Card className="border-green-200 dark:border-green-800">
             <CardHeader>
               <CardTitle className="flex items-center text-green-600 dark:text-green-400">
                 <CheckCircle2 className="h-6 w-6 mr-2" />
-                Form Created Successfully
+                {t('submissionForm:success.title')}
               </CardTitle>
               <CardDescription>
-                Your submission form is ready. Share the URL below to collect evidence.
+                {t('submissionForm:success.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Submission URL */}
               <div className="space-y-2">
-                <Label>Public Submission URL</Label>
+                <Label>{t('submissionForm:success.urlLabel')}</Label>
                 <div className="flex items-center space-x-2">
                   <Input
                     value={createdForm.submissionUrl}
@@ -170,13 +172,13 @@ export default function CreateSubmissionFormPage() {
                   </Button>
                 </div>
                 <p className="text-sm text-gray-500">
-                  Share this URL to allow anonymous evidence submission
+                  {t('submissionForm:success.urlHint')}
                 </p>
               </div>
 
               {/* Hash ID */}
               <div className="space-y-2">
-                <Label>Form Hash ID</Label>
+                <Label>{t('submissionForm:success.hashIdLabel')}</Label>
                 <div className="flex items-center space-x-2">
                   <Badge variant="outline" className="font-mono text-lg px-4 py-2">
                     {createdForm.hashId}
@@ -198,25 +200,25 @@ export default function CreateSubmissionFormPage() {
                   className="flex-1"
                 >
                   <LinkIcon className="h-4 w-4 mr-2" />
-                  Open Submission Form
+                  {t('submissionForm:success.openButton')}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => navigate('/dashboard/research/forms')}
                   className="flex-1"
                 >
-                  View All Forms
+                  {t('submissionForm:success.viewAllButton')}
                 </Button>
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  <strong>Next steps:</strong>
+                  <strong>{t('submissionForm:success.nextSteps')}</strong>
                 </p>
                 <ul className="text-sm text-blue-600 dark:text-blue-400 mt-2 space-y-1 list-disc list-inside">
-                  <li>Share the submission URL with your sources or team</li>
-                  <li>Monitor incoming submissions in the review panel</li>
-                  <li>Process submissions into your evidence collection</li>
+                  {t('submissionForm:success.nextStepsList', { returnObjects: true }).map((step: string, index: number) => (
+                    <li key={index}>{step}</li>
+                  ))}
                 </ul>
               </div>
             </CardContent>
@@ -238,13 +240,13 @@ export default function CreateSubmissionFormPage() {
             className="mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t('submissionForm:create.back')}
           </Button>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Create Submission Form
+            {t('submissionForm:create.title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Create an anonymous form to collect evidence from sources
+            {t('submissionForm:create.description')}
           </p>
         </div>
 
@@ -252,35 +254,35 @@ export default function CreateSubmissionFormPage() {
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Name and describe your submission form</CardDescription>
+              <CardTitle>{t('submissionForm:create.basicInfo.title')}</CardTitle>
+              <CardDescription>{t('submissionForm:create.basicInfo.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="formName">
-                  Form Name <span className="text-red-500">*</span>
+                  {t('submissionForm:create.basicInfo.nameLabel')}
                 </Label>
                 <Input
                   id="formName"
-                  placeholder="Evidence Submission - Project Alpha"
+                  placeholder={t('submissionForm:create.basicInfo.namePlaceholder')}
                   value={formData.formName}
                   onChange={(e) => setFormData({ ...formData, formName: e.target.value })}
                   required
                 />
-                <p className="text-sm text-gray-500">Internal name for your reference</p>
+                <p className="text-sm text-gray-500">{t('submissionForm:create.basicInfo.nameHint')}</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="formDescription">Form Description</Label>
+                <Label htmlFor="formDescription">{t('submissionForm:create.basicInfo.descriptionLabel')}</Label>
                 <Textarea
                   id="formDescription"
-                  placeholder="Submit evidence related to our investigation. All submissions are confidential and will be reviewed by our team."
+                  placeholder={t('submissionForm:create.basicInfo.descriptionPlaceholder')}
                   value={formData.formDescription}
                   onChange={(e) => setFormData({ ...formData, formDescription: e.target.value })}
                   rows={3}
                 />
                 <p className="text-sm text-gray-500">
-                  This description will be shown to submitters
+                  {t('submissionForm:create.basicInfo.descriptionHint')}
                 </p>
               </div>
             </CardContent>
@@ -289,8 +291,8 @@ export default function CreateSubmissionFormPage() {
           {/* Form Fields */}
           <Card>
             <CardHeader>
-              <CardTitle>Form Fields</CardTitle>
-              <CardDescription>Select which fields to include in the form</CardDescription>
+              <CardTitle>{t('submissionForm:create.fields.title')}</CardTitle>
+              <CardDescription>{t('submissionForm:create.fields.description')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -307,10 +309,10 @@ export default function CreateSubmissionFormPage() {
                     />
                     <div className="flex-1">
                       <Label htmlFor={field.id} className="cursor-pointer font-medium">
-                        {field.label}
+                        {t(`submissionForm:fields.${field.id}`)}
                       </Label>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {field.description}
+                        {t(`submissionForm:fields.${field.id}_desc`)}
                       </p>
                     </div>
                   </div>
@@ -324,16 +326,16 @@ export default function CreateSubmissionFormPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Settings className="h-5 w-5 mr-2" />
-                Configuration
+                {t('submissionForm:create.configuration.title')}
               </CardTitle>
-              <CardDescription>Configure form behavior and requirements</CardDescription>
+              <CardDescription>{t('submissionForm:create.configuration.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Require URL */}
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="font-medium">Require Source URL</Label>
-                  <p className="text-sm text-gray-500">Make the URL field mandatory</p>
+                  <Label className="font-medium">{t('submissionForm:create.configuration.requireUrl')}</Label>
+                  <p className="text-sm text-gray-500">{t('submissionForm:create.configuration.requireUrlDesc')}</p>
                 </div>
                 <Checkbox
                   checked={formData.requireUrl}
@@ -346,8 +348,8 @@ export default function CreateSubmissionFormPage() {
               {/* Require Content Type */}
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="font-medium">Require Content Type</Label>
-                  <p className="text-sm text-gray-500">Make content type selection mandatory</p>
+                  <Label className="font-medium">{t('submissionForm:create.configuration.requireContentType')}</Label>
+                  <p className="text-sm text-gray-500">{t('submissionForm:create.configuration.requireContentTypeDesc')}</p>
                 </div>
                 <Checkbox
                   checked={formData.requireContentType}
@@ -360,9 +362,9 @@ export default function CreateSubmissionFormPage() {
               {/* Auto Archive */}
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="font-medium">Auto-Archive URLs</Label>
+                  <Label className="font-medium">{t('submissionForm:create.configuration.autoArchive')}</Label>
                   <p className="text-sm text-gray-500">
-                    Automatically archive submitted URLs via Wayback Machine
+                    {t('submissionForm:create.configuration.autoArchiveDesc')}
                   </p>
                 </div>
                 <Checkbox
@@ -376,8 +378,8 @@ export default function CreateSubmissionFormPage() {
               {/* Collect Submitter Info */}
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="font-medium">Collect Submitter Info</Label>
-                  <p className="text-sm text-gray-500">Store IP address and user agent</p>
+                  <Label className="font-medium">{t('submissionForm:create.configuration.collectSubmitterInfo')}</Label>
+                  <p className="text-sm text-gray-500">{t('submissionForm:create.configuration.collectSubmitterInfoDesc')}</p>
                 </div>
                 <Checkbox
                   checked={formData.collectSubmitterInfo}
@@ -394,16 +396,16 @@ export default function CreateSubmissionFormPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Lock className="h-5 w-5 mr-2" />
-                Security
+                {t('submissionForm:create.security.title')}
               </CardTitle>
-              <CardDescription>Optional password protection for the form</CardDescription>
+              <CardDescription>{t('submissionForm:create.security.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="font-medium">Require Password</Label>
+                  <Label className="font-medium">{t('submissionForm:create.security.requirePassword')}</Label>
                   <p className="text-sm text-gray-500">
-                    Submitters must enter a password to access the form
+                    {t('submissionForm:create.security.requirePasswordDesc')}
                   </p>
                 </div>
                 <Checkbox
@@ -419,18 +421,18 @@ export default function CreateSubmissionFormPage() {
 
               {formData.requireSubmissionPassword && (
                 <div className="space-y-2">
-                  <Label htmlFor="password">Submission Password</Label>
+                  <Label htmlFor="password">{t('submissionForm:create.security.passwordLabel')}</Label>
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Enter password for form access"
+                    placeholder={t('submissionForm:create.security.passwordPlaceholder')}
                     value={formData.submissionPassword}
                     onChange={(e) =>
                       setFormData({ ...formData, submissionPassword: e.target.value })
                     }
                   />
                   <p className="text-sm text-gray-500">
-                    Share this password with authorized submitters
+                    {t('submissionForm:create.security.passwordHint')}
                   </p>
                 </div>
               )}
@@ -454,10 +456,10 @@ export default function CreateSubmissionFormPage() {
               variant="outline"
               onClick={() => navigate('/dashboard/research/forms')}
             >
-              Cancel
+              {t('submissionForm:create.buttons.cancel')}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating Form...' : 'Create Form'}
+              {isSubmitting ? t('submissionForm:create.buttons.creating') : t('submissionForm:create.buttons.create')}
             </Button>
           </div>
         </form>

@@ -1,0 +1,38 @@
+{
+  "loading": "Loading forms...",
+  "title": "Submission Forms",
+  "description": "Create and manage anonymous evidence submission forms",
+  "createForm": "Create Form",
+  "searchPlaceholder": "Search forms by name or hash ID...",
+  "empty": {
+    "title": "No submission forms yet",
+    "description": "Create your first form to start collecting evidence anonymously",
+    "button": "Create First Form",
+    "noResults": "No forms found",
+    "noResultsDesc": "Try adjusting your search"
+  },
+  "card": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "submissions": "Submissions",
+    "fields": "Fields",
+    "hashId": "Hash ID",
+    "created": "Created",
+    "copyUrl": "Copy URL",
+    "copied": "Copied",
+    "viewSubmissions": "View {{count}} Submission",
+    "viewSubmissions_plural": "View {{count}} Submissions"
+  },
+  "howItWorks": {
+    "title": "How Submission Forms Work",
+    "items": [
+      "Each form has a unique hash URL that can be shared anonymously",
+      "Submitters don't need to log in or create an account",
+      "Submissions are reviewed before being added to evidence",
+      "URLs are automatically archived for preservation"
+    ]
+  },
+  "alerts": {
+    "loadFailed": "Failed to load forms"
+  }
+}

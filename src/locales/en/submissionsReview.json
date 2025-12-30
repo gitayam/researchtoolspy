@@ -1,0 +1,58 @@
+{
+  "loading": "Loading submissions...",
+  "title": "Review Submissions",
+  "description": "Review and process evidence submissions",
+  "status": {
+    "label": "Status",
+    "pending": "Pending",
+    "completed": "Completed",
+    "rejected": "Rejected"
+  },
+  "empty": {
+    "title": "No {{status}} submissions",
+    "pending_desc": "New submissions will appear here",
+    "other_desc": "No {{status}} submissions yet"
+  },
+  "card": {
+    "untitled": "Untitled Submission",
+    "keywords": "keywords",
+    "submitted": "Submitted",
+    "by": "by"
+  },
+  "details": {
+    "title": "Submission Details",
+    "submittedAt": "Submitted",
+    "sourceUrl": "Source URL",
+    "archivedUrl": "Archived URL",
+    "contentType": "Content Type",
+    "description": "Description",
+    "keywords": "Keywords",
+    "submitterComments": "Submitter Comments",
+    "submitterInfo": "Submitter",
+    "name": "Name:",
+    "contact": "Contact:",
+    "processButton": "Process to Evidence",
+    "rejectButton": "Reject"
+  },
+  "processDialog": {
+    "title": "Process to Evidence",
+    "description": "Convert this submission into a research evidence entry",
+    "verificationStatus": "Verification Status",
+    "credibilityScore": "Credibility Score: {{score}}%",
+    "notes": "Reviewer Notes (Optional)",
+    "notesPlaceholder": "Add any notes about this evidence...",
+    "cancel": "Cancel",
+    "process": "Process to Evidence",
+    "processing": "Processing..."
+  },
+  "verificationStatus": {
+    "verified": "Verified",
+    "probable": "Probable",
+    "unverified": "Unverified",
+    "disproven": "Disproven"
+  },
+  "alerts": {
+    "loadFailed": "Failed to load submissions",
+    "processFailed": "Failed to process submission"
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "title": "Recolector de Conjuntos de Datos",
+  "description": "Gestiona y organiza conjuntos de datos para tu análisis de investigación",
+  "import": "Importar",
+  "add": "Añadir Conjunto de Datos",
+  "stats": {
+    "total": "Total de Conjuntos de Datos",
+    "verified": "Verificados",
+    "pending": "Pendientes",
+    "rejected": "Rechazados"
+  },
+  "filters": {
+    "searchPlaceholder": "Buscar conjunto de datos...",
+    "byType": "Filtrar por tipo",
+    "byStatus": "Filtrar por estado",
+    "allTypes": "Todos los Tipos",
+    "allStatuses": "Todos los Estados"
+  },
+  "empty": {
+    "title": "No se encontraron Conjuntos de Datos",
+    "descriptionStart": "Comienza a construir tu colección de conjuntos de datos añadiendo tu primer elemento.",
+    "descriptionFilter": "Intenta ajustar tus criterios de búsqueda o filtros.",
+    "addFirst": "Añade tu Primer Conjunto de Datos"
+  },
+  "card": {
+    "source": "Fuente:",
+    "updated": "Actualizado"
+  },
+  "menu": {
+    "edit": "Editar",
+    "duplicate": "Duplicar",
+    "archive": "Archivar",
+    "delete": "Eliminar"
+  },
+  "alerts": {
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar este conjunto de datos?",
+    "deleteFailed": "Error al eliminar el conjunto de datos",
+    "loadFailed": "Error al cargar los conjuntos de datos",
+    "saveFailed": "Error al guardar el conjunto de datos",
+    "createFailed": "Error al crear el conjunto de datos",
+    "updateFailed": "Error al actualizar el conjunto de datos",
+    "importComingSoon": "¡La función de importación llegará pronto!"
+  },
+  "types": {
+    "DOCUMENT": "Documento",
+    "WEB_PAGE": "Página Web",
+    "IMAGE": "Imagen",
+    "VIDEO": "Video",
+    "AUDIO": "Audio",
+    "SOCIAL_MEDIA": "Redes Sociales",
+    "EMAIL": "Correo Electrónico",
+    "DATABASE": "Base de Datos",
+    "API": "API",
+    "GOVERNMENT": "Gobierno"
+  },
+  "status": {
+    "VERIFIED": "Verificado",
+    "PENDING": "Pendiente",
+    "REJECTED": "Rechazado",
+    "NEEDS_REVIEW": "Necesita Revisión"
+  }
+}

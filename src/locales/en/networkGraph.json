@@ -1,0 +1,37 @@
+{
+  "loading": "Loading network graph...",
+  "title": "Network Graph",
+  "description": "Interactive entity relationship visualization",
+  "highlighted": "{{count}} entities highlighted",
+  "source": {
+    "cog": "COG Analysis",
+    "causeway": "Causeway Analysis",
+    "framework": "Framework",
+    "entity": "entity",
+    "entities": "entities"
+  },
+  "controls": {
+    "showMetrics": "Show Metrics",
+    "hideMetrics": "Hide Metrics",
+    "findPath": "Find Path",
+    "export": "Export"
+  },
+  "selectedNode": {
+    "title": "Selected Node",
+    "name": "Name",
+    "type": "Type",
+    "id": "ID",
+    "connections": "Connections",
+    "viewDetails": "View Details",
+    "close": "Close"
+  },
+  "metrics": {
+    "title": "Network Metrics"
+  },
+  "pathFinder": {
+    "title": "Find Path"
+  },
+  "exportDialog": {
+    "title": "Export Network"
+  }
+}

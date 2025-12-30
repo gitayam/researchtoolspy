@@ -1,0 +1,56 @@
+{
+  "loading": "Cargando envíos...",
+  "title": "Revisar Envíos",
+  "description": "Revisa y procesa los envíos de evidencia",
+  "status": {
+    "label": "Estado",
+    "pending": "Pendiente",
+    "completed": "Completado",
+    "rejected": "Rechazado"
+  },
+  "empty": {
+    "title": "No hay envíos {{status}}",
+    "pending_desc": "Los nuevos envíos aparecerán aquí",
+    "other_desc": "Aún no hay envíos {{status}}"
+  },
+  "card": {
+    "untitled": "Envío sin título",
+    "keywords": "palabras clave",
+    "submitted": "Enviado",
+    "by": "por"
+  },
+  "details": {
+    "title": "Detalles del Envío",
+    "submittedAt": "Enviado",
+    "sourceUrl": "URL de la Fuente",
+    "archivedUrl": "URL Archivada",
+    "contentType": "Tipo de Contenido",
+    "description": "Descripción",
+    "keywords": "Palabras Clave",
+    "submitterComments": "Comentarios del Remitente",
+    "submitterInfo": "Remitente",
+    "name": "Nombre:",
+    "contact": "Contacto:"
+  },
+  "processDialog": {
+    "title": "Procesar a Evidencia",
+    "description": "Convierte este envío en una entrada de evidencia de investigación",
+    "verificationStatus": "Estado de Verificación",
+    "credibilityScore": "Puntuación de Credibilidad: {{score}}%",
+    "notes": "Notas del Revisor (Opcional)",
+    "notesPlaceholder": "Añade cualquier nota sobre esta evidencia...",
+    "cancel": "Cancelar",
+    "process": "Procesar a Evidencia",
+    "processing": "Procesando..."
+  },
+  "verificationStatus": {
+    "verified": "Verificado",
+    "probable": "Probable",
+    "unverified": "Sin verificar",
+    "disproven": "Refutado"
+  },
+  "alerts": {
+    "loadFailed": "Error al cargar los envíos",
+    "processFailed": "Error al procesar el envío"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "title": "Configuración de IA",
+  "description": "Configura los modelos GPT-5 y las funciones de análisis impulsadas por IA",
+  "loading": "Cargando configuración de IA...",
+  "loadFailed": "Error al cargar la configuración de IA",
+  "saveSuccess": "Configuración guardada exitosamente",
+  "saveFailed": "Error al guardar la configuración",
+  "resetConfirm": "¿Restablecer todas las configuraciones de IA a los valores predeterminados? Esto no se puede deshacer.",
+  "resetSuccess": "Configuración restablecida a los valores predeterminados",
+  "resetFailed": "Error al restablecer la configuración",
+  "status": {
+    "title": "Estado de IA",
+    "features": "Funciones de IA",
+    "featuresDesc": "Habilitar asistencia impulsada por IA",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "apiKey": "Clave de API de OpenAI",
+    "apiKeyDesc": "Requerido para las funciones de IA",
+    "configured": "Configurado",
+    "notSet": "No establecido",
+    "note": "Nota: La clave de API debe establecerse como variable de entorno OPENAI_API_KEY en el panel de Cloudflare."
+  },
+  "modelConfig": {
+    "title": "Configuración del Modelo",
+    "description": "Selecciona el modelo predeterminado y configura las asignaciones de casos de uso",
+    "defaultModel": "Modelo Predeterminado",
+    "defaultModelDesc": "Se utiliza cuando no se selecciona ningún modelo de caso de uso específico",
+    "useCaseAssignments": "Asignaciones de Modelo de Caso de Uso",
+    "models": {
+      "gpt5": "GPT-5",
+      "gpt5mini": "GPT-5 Mini",
+      "gpt5nano": "GPT-5 Nano",
+      "deepAnalysis": "Análisis Profundo",
+      "balanced": "Equilibrado (Recomendado)",
+      "fastCheap": "Rápido y Económico"
+    }
+  },
+  "features": {
+    "title": "Características",
+    "description": "Habilita o deshabilita capacidades específicas de IA",
+    "summarization": "Resumen",
+    "summarizationDesc": "Generar resúmenes ejecutivos y declaraciones BLUF",
+    "questionGeneration": "Generación de Preguntas",
+    "questionGenerationDesc": "Crear preguntas analíticas para mejorar el análisis",
+    "fieldSuggestions": "Sugerencias de Campos",
+    "fieldSuggestionsDesc": "Sugerencias de contenido impulsadas por IA para campos de formulario",
+    "guidance": "Orientación",
+    "guidanceDesc": "Orientación contextual y avisos",
+    "autoFormat": "Formato Automático",
+    "autoFormatDesc": "Formatear y mejorar contenido automáticamente"
+  },
+  "rateLimits": {
+    "title": "Límites de Tasa",
+    "description": "Controla el uso de la API para gestionar los costos",
+    "requestsPerMinute": "Solicitudes por Minuto",
+    "requestsPerMinuteDesc": "Máximo de solicitudes a la API por minuto",
+    "tokensPerDay": "Tokens por Día",
+    "tokensPerDayDesc": "Límite diario de tokens en todas las solicitudes",
+    "estimatedCost": "Costo Diario Estimado:",
+    "costNote": "(máx., a tasas de salida de {{model}})"
+  },
+  "usage": {
+    "title": "Uso Hoy",
+    "tokensUsed": "Tokens Usados",
+    "estimatedCost": "Costo Estimado",
+    "resets": "Reinicios:"
+  },
+  "pricing": {
+    "title": "Precios del Modelo",
+    "description": "Costo por 1M de tokens",
+    "default": "Predeterminado",
+    "input": "Entrada:",
+    "output": "Salida:"
+  },
+  "actions": {
+    "save": "Guardar Configuración",
+    "saving": "Guardando...",
+    "reset": "Restablecer a Predeterminados",
+    "refresh": "Actualizar"
+  }
+}

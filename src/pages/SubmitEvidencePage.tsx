@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, FileText, Lock, AlertCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface FormConfig {
   hashId: string
@@ -32,18 +33,8 @@ interface FormData {
   password: string
 }
 
-const CONTENT_TYPES = [
-  { value: 'article', label: 'Article / Blog Post' },
-  { value: 'video', label: 'Video' },
-  { value: 'social_post', label: 'Social Media Post' },
-  { value: 'document', label: 'Document / PDF' },
-  { value: 'image', label: 'Image / Screenshot' },
-  { value: 'podcast', label: 'Podcast / Audio' },
-  { value: 'dataset', label: 'Dataset / Spreadsheet' },
-  { value: 'other', label: 'Other' }
-]
-
 export default function SubmitEvidencePage() {
+  const { t } = useTranslation(['submitEvidence'])
   const { hashId } = useParams<{ hashId: string }>()
 
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null)
@@ -80,13 +71,13 @@ export default function SubmitEvidencePage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load form')
+        throw new Error(data.error || t('submitEvidence:error.loadFailed'))
       }
 
       setFormConfig(data.form)
     } catch (err) {
       console.error('Failed to load form:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load form')
+      setError(err instanceof Error ? err.message : t('submitEvidence:error.loadFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -99,16 +90,16 @@ export default function SubmitEvidencePage() {
 
     try {
       if (!hashId) {
-        throw new Error('Invalid form ID')
+        throw new Error(t('submitEvidence:error.invalidId'))
       }
 
       // Validate required fields
       if (formConfig?.requireUrl && !formData.sourceUrl) {
-        throw new Error('Source URL is required')
+        throw new Error(t('submitEvidence:error.urlRequired'))
       }
 
       if (formConfig?.requireContentType && !formData.contentType) {
-        throw new Error('Content type is required')
+        throw new Error(t('submitEvidence:error.typeRequired'))
       }
 
       // Parse keywords
@@ -137,7 +128,7 @@ export default function SubmitEvidencePage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit')
+        throw new Error(data.error || t('submitEvidence:error.submitFailed'))
       }
 
       setIsSubmitted(true)
@@ -158,7 +149,7 @@ export default function SubmitEvidencePage() {
 
     } catch (err) {
       console.error('Failed to submit:', err)
-      setError(err instanceof Error ? err.message : 'Failed to submit')
+      setError(err instanceof Error ? err.message : t('submitEvidence:error.submitFailed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -173,7 +164,7 @@ export default function SubmitEvidencePage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading form...</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('submitEvidence:loading')}</p>
         </div>
       </div>
     )
@@ -186,7 +177,7 @@ export default function SubmitEvidencePage() {
           <CardHeader>
             <CardTitle className="flex items-center text-red-500">
               <AlertCircle className="h-5 w-5 mr-2" />
-              Error
+              {t('submitEvidence:error.title')}
             </CardTitle>
             <CardDescription>{error}</CardDescription>
           </CardHeader>
@@ -202,21 +193,23 @@ export default function SubmitEvidencePage() {
           <CardHeader>
             <CardTitle className="flex items-center text-green-500">
               <CheckCircle2 className="h-5 w-5 mr-2" />
-              Submission Received
+              {t('submitEvidence:success.title')}
             </CardTitle>
             <CardDescription>
-              Thank you for your submission. It will be reviewed shortly.
+              {t('submitEvidence:success.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => setIsSubmitted(false)} className="w-full">
-              Submit Another
+              {t('submitEvidence:success.submitAnother')}
             </Button>
           </CardContent>
         </Card>
       </div>
     )
   }
+
+  const CONTENT_TYPES = Object.entries(t('submitEvidence:contentTypes', { returnObjects: true })).map(([value, label]) => ({ value, label }))
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
@@ -235,11 +228,11 @@ export default function SubmitEvidencePage() {
             </p>
           )}
           <div className="flex items-center justify-center mt-4 space-x-2">
-            <Badge variant="outline">Secure Submission</Badge>
+            <Badge variant="outline">{t('submitEvidence:header.secure')}</Badge>
             {formConfig?.requirePassword && (
               <Badge variant="outline" className="flex items-center">
                 <Lock className="h-3 w-3 mr-1" />
-                Password Protected
+                {t('submitEvidence:header.passwordProtected')}
               </Badge>
             )}
           </div>
@@ -253,33 +246,33 @@ export default function SubmitEvidencePage() {
               {isFieldEnabled('source_url') && (
                 <div className="space-y-2">
                   <Label htmlFor="sourceUrl">
-                    Source URL {formConfig?.requireUrl && <span className="text-red-500">*</span>}
+                    {t('submitEvidence:form.sourceUrl')} {formConfig?.requireUrl && <span className="text-red-500">*</span>}
                   </Label>
                   <Input
                     id="sourceUrl"
                     type="url"
-                    placeholder="https://example.com/article"
+                    placeholder={t('submitEvidence:form.sourceUrlPlaceholder')}
                     value={formData.sourceUrl}
                     onChange={(e) => setFormData({ ...formData, sourceUrl: e.target.value })}
                     required={formConfig?.requireUrl}
                   />
-                  <p className="text-sm text-gray-500">URL of the content you're submitting</p>
+                  <p className="text-sm text-gray-500">{t('submitEvidence:form.sourceUrlHint')}</p>
                 </div>
               )}
 
               {/* Archived URL */}
               {isFieldEnabled('archived_url') && (
                 <div className="space-y-2">
-                  <Label htmlFor="archivedUrl">Archived URL (Optional)</Label>
+                  <Label htmlFor="archivedUrl">{t('submitEvidence:form.archivedUrl')}</Label>
                   <Input
                     id="archivedUrl"
                     type="url"
-                    placeholder="https://web.archive.org/..."
+                    placeholder={t('submitEvidence:form.archivedUrlPlaceholder')}
                     value={formData.archivedUrl}
                     onChange={(e) => setFormData({ ...formData, archivedUrl: e.target.value })}
                   />
                   <p className="text-sm text-gray-500">
-                    If you've already archived this content, provide the archive URL
+                    {t('submitEvidence:form.archivedUrlHint')}
                   </p>
                 </div>
               )}
@@ -288,7 +281,7 @@ export default function SubmitEvidencePage() {
               {isFieldEnabled('content_type') && (
                 <div className="space-y-2">
                   <Label htmlFor="contentType">
-                    Content Type {formConfig?.requireContentType && <span className="text-red-500">*</span>}
+                    {t('submitEvidence:form.contentType')} {formConfig?.requireContentType && <span className="text-red-500">*</span>}
                   </Label>
                   <Select
                     value={formData.contentType}
@@ -296,7 +289,7 @@ export default function SubmitEvidencePage() {
                     required={formConfig?.requireContentType}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select content type" />
+                      <SelectValue placeholder={t('submitEvidence:form.contentTypePlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {CONTENT_TYPES.map((type) => (
@@ -312,10 +305,10 @@ export default function SubmitEvidencePage() {
               {/* Content Description */}
               {isFieldEnabled('content_description') && (
                 <div className="space-y-2">
-                  <Label htmlFor="contentDescription">Content Description</Label>
+                  <Label htmlFor="contentDescription">{t('submitEvidence:form.contentDescription')}</Label>
                   <Textarea
                     id="contentDescription"
-                    placeholder="How does this content relate to the research? What makes it relevant?"
+                    placeholder={t('submitEvidence:form.contentDescriptionPlaceholder')}
                     value={formData.contentDescription}
                     onChange={(e) => setFormData({ ...formData, contentDescription: e.target.value })}
                     rows={4}
@@ -334,7 +327,7 @@ export default function SubmitEvidencePage() {
                     className="rounded border-gray-300"
                   />
                   <Label htmlFor="loginRequired" className="cursor-pointer">
-                    Login required to view this content
+                    {t('submitEvidence:form.loginRequired')}
                   </Label>
                 </div>
               )}
@@ -342,24 +335,24 @@ export default function SubmitEvidencePage() {
               {/* Keywords */}
               {isFieldEnabled('keywords') && (
                 <div className="space-y-2">
-                  <Label htmlFor="keywords">Keywords</Label>
+                  <Label htmlFor="keywords">{t('submitEvidence:form.keywords')}</Label>
                   <Input
                     id="keywords"
-                    placeholder="keyword1, keyword2, keyword3"
+                    placeholder={t('submitEvidence:form.keywordsPlaceholder')}
                     value={formData.keywords}
                     onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
                   />
-                  <p className="text-sm text-gray-500">Separate keywords with commas</p>
+                  <p className="text-sm text-gray-500">{t('submitEvidence:form.keywordsHint')}</p>
                 </div>
               )}
 
               {/* Submitter Comments */}
               {isFieldEnabled('submitter_comments') && (
                 <div className="space-y-2">
-                  <Label htmlFor="submitterComments">Additional Comments</Label>
+                  <Label htmlFor="submitterComments">{t('submitEvidence:form.submitterComments')}</Label>
                   <Textarea
                     id="submitterComments"
-                    placeholder="Any additional context or notes..."
+                    placeholder={t('submitEvidence:form.submitterCommentsPlaceholder')}
                     value={formData.submitterComments}
                     onChange={(e) => setFormData({ ...formData, submitterComments: e.target.value })}
                     rows={3}
@@ -370,10 +363,10 @@ export default function SubmitEvidencePage() {
               {/* Submitter Name */}
               {isFieldEnabled('submitter_name') && (
                 <div className="space-y-2">
-                  <Label htmlFor="submitterName">Your Name (Optional)</Label>
+                  <Label htmlFor="submitterName">{t('submitEvidence:form.submitterName')}</Label>
                   <Input
                     id="submitterName"
-                    placeholder="Anonymous"
+                    placeholder={t('submitEvidence:form.submitterNamePlaceholder')}
                     value={formData.submitterName}
                     onChange={(e) => setFormData({ ...formData, submitterName: e.target.value })}
                   />
@@ -383,11 +376,11 @@ export default function SubmitEvidencePage() {
               {/* Submitter Contact */}
               {isFieldEnabled('submitter_contact') && (
                 <div className="space-y-2">
-                  <Label htmlFor="submitterContact">Contact Info (Optional)</Label>
+                  <Label htmlFor="submitterContact">{t('submitEvidence:form.submitterContact')}</Label>
                   <Input
                     id="submitterContact"
                     type="email"
-                    placeholder="email@example.com"
+                    placeholder={t('submitEvidence:form.submitterContactPlaceholder')}
                     value={formData.submitterContact}
                     onChange={(e) => setFormData({ ...formData, submitterContact: e.target.value })}
                   />
@@ -398,12 +391,12 @@ export default function SubmitEvidencePage() {
               {formConfig?.requirePassword && (
                 <div className="space-y-2">
                   <Label htmlFor="password">
-                    Submission Password <span className="text-red-500">*</span>
+                    {t('submitEvidence:form.password')} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Enter form password"
+                    placeholder={t('submitEvidence:form.passwordPlaceholder')}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
@@ -423,11 +416,11 @@ export default function SubmitEvidencePage() {
 
               {/* Submit Button */}
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Submitting...' : 'Submit Evidence'}
+                {isSubmitting ? t('submitEvidence:form.submitting') : t('submitEvidence:form.submit')}
               </Button>
 
               <p className="text-xs text-gray-500 text-center">
-                Your submission will be reviewed before being added to the research collection
+                {t('submitEvidence:form.footer')}
               </p>
             </form>
           </CardContent>

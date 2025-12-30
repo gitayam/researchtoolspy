@@ -1,0 +1,63 @@
+{
+  "loading": "Cargando análisis...",
+  "notFound": {
+    "title": "Análisis No Encontrado",
+    "description": "Este análisis no es público o no existe."
+  },
+  "goHome": "Ir al Inicio",
+  "publicBadge": "Análisis de Contenido Público",
+  "views": "vistas",
+  "author": "Por",
+  "copyLink": "Copiar Enlace",
+  "export": "Exportar",
+  "copied": "¡Enlace copiado al portapapeles!",
+  "summary": "Resumen",
+  "wordCount": "Conteo de Palabras:",
+  "viewOriginal": "Ver Original →",
+  "topPhrases": "Frases Principales",
+  "keyPhrases": "Frases Clave",
+  "keyEntities": "Entidades Clave",
+  "entities": {
+    "people": "Personas",
+    "organizations": "Organizaciones",
+    "locations": "Ubicaciones",
+    "dates": "Fechas",
+    "money": "Dinero",
+    "emails": "Correos Electrónicos"
+  },
+  "sentiment": {
+    "title": "Análisis de Sentimiento",
+    "overall": "Sentimiento General:",
+    "score": "Puntuación:",
+    "confidence": "Confianza:"
+  },
+  "topics": {
+    "title": "Temas"
+  },
+  "claims": {
+    "title": "Análisis de Reclamos"
+  },
+  "links": {
+    "title": "Análisis de Enlaces ({{count}} enlaces únicos)",
+    "description": "Todos los enlaces encontrados en el cuerpo del artículo (excluyendo navegación, encabezados y pies de página)",
+    "total": "Enlaces Totales",
+    "external": "Externos",
+    "internal": "Internos",
+    "uniqueDomains": "Dominios Únicos",
+    "referenced": "Referenciado {{count}}× en el artículo",
+    "anchorText": "Texto de anclaje:"
+  },
+  "archive": {
+    "title": "Enlaces de Archivo y Bypass",
+    "description": "Formas alternativas de acceder a este contenido",
+    "archiveServices": "Servicios de Archivo",
+    "wayback": "Wayback Machine",
+    "archiveIs": "Archive.is",
+    "paywallBypass": "Bypass de Muro de Pago",
+    "twelveFoot": "12ft Ladder"
+  },
+  "footer": {
+    "sharedVia": "Compartido a través de Research Tools • Análisis realizado el {{date}}",
+    "createYourOwn": "Crea tu propio análisis →"
+  }
+}

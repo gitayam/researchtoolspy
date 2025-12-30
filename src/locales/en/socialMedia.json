@@ -1,0 +1,135 @@
+{
+  "title": "Social Media Research",
+  "description": "Scrape, analyze, and monitor social media content",
+  "newJob": "New Scrape Job",
+  "addProfile": "Add Profile",
+  "createJobDialog": {
+    "title": "Create Scraping Job",
+    "description": "Configure a new social media scraping task",
+    "platform": "Platform",
+    "jobType": "Job Type",
+    "targetUsername": "Target Username",
+    "targetUrl": "Target URL (optional)",
+    "cancel": "Cancel",
+    "create": "Create Job"
+  },
+  "jobTypes": {
+    "PROFILE_SCRAPE": "Profile Scrape",
+    "POST_SCRAPE": "Post Scrape",
+    "MEDIA_DOWNLOAD": "Media Download",
+    "SEARCH": "Search",
+    "MONITOR": "Monitor"
+  },
+  "addProfileDialog": {
+    "title": "Add Social Media Profile",
+    "description": "Add a profile to track and analyze",
+    "platform": "Platform",
+    "username": "Username *",
+    "displayName": "Display Name",
+    "bio": "Bio/Description",
+    "cancel": "Cancel",
+    "add": "Add Profile"
+  },
+  "platforms": {
+    "INSTAGRAM": "Instagram",
+    "YOUTUBE": "YouTube",
+    "TWITTER": "Twitter/X",
+    "TIKTOK": "TikTok",
+    "FACEBOOK": "Facebook",
+    "LINKEDIN": "LinkedIn",
+    "all": "All Platforms"
+  },
+  "stats": {
+    "totalProfiles": "Total Profiles",
+    "totalPosts": "Total Posts",
+    "activeJobs": "Active Jobs",
+    "completedJobs": "Completed Jobs"
+  },
+  "tabs": {
+    "profiles": "Profiles",
+    "posts": "Posts",
+    "jobs": "Scraping Jobs",
+    "tools": "Integration Tools"
+  },
+  "profiles": {
+    "refresh": "Refresh",
+    "verified": "Verified",
+    "followers": "Followers",
+    "posts": "Posts",
+    "scraped": "Scraped",
+    "lastScraped": "Last Scraped",
+    "view": "View",
+    "deleteConfirm": "Are you sure you want to delete this profile?",
+    "empty": {
+      "title": "No profiles yet",
+      "description": "Add social media profiles to start tracking and analyzing content",
+      "addFirst": "Add Your First Profile"
+    }
+  },
+  "posts": {
+    "backToProfiles": "Back to All Profiles",
+    "scrapedPosts": "{{count}} posts scraped",
+    "posted": "Posted:",
+    "empty": {
+      "title": "No posts scraped yet",
+      "description": "Create a scraping job to collect posts from this profile",
+      "startScraping": "Start Scraping"
+    },
+    "selectProfile": {
+      "title": "Select a profile",
+      "description": "Choose a profile from the Profiles tab to view its posts"
+    }
+  },
+  "jobs": {
+    "refresh": "Refresh",
+    "progress": "Progress",
+    "found": "Found",
+    "processed": "Processed",
+    "created": "Created",
+    "empty": {
+      "title": "No scraping jobs yet",
+      "description": "Create a job to start scraping social media content",
+      "createJob": "Create Scraping Job"
+    }
+  },
+  "tools": {
+    "title": "Integration Tools & Setup",
+    "description": "External tools required for social media scraping",
+    "instagram": {
+      "title": "Instagram - Instaloader",
+      "description": "Download photos, videos, captions, and metadata from Instagram"
+    },
+    "youtube": {
+      "title": "YouTube - yt-dlp",
+      "description": "Download videos, metadata, and subtitles from YouTube and 1000+ sites"
+    },
+    "twitter": {
+      "title": "Twitter/X - snscrape or twint",
+      "description": "Scrape tweets, profiles, and trends without API limits"
+    },
+    "tiktok": {
+      "title": "TikTok - TikTok-Api or tiktok-scraper",
+      "description": "Download TikTok videos and user profiles"
+    },
+    "notes": {
+      "title": "Important Notes",
+      "items": [
+        "These tools run locally or on your own servers",
+        "Respect platform terms of service and rate limits",
+        "Some platforms may require authentication",
+        "Use responsibly and ethically",
+        "Data can be uploaded to this platform via the API"
+      ]
+    },
+    "workflow": {
+      "title": "Integration Workflow",
+      "items": [
+        "Install the appropriate scraping tool locally",
+        "Run the tool to collect social media data",
+        "Process and format the data (JSON recommended)",
+        "Upload to this platform via the API endpoints",
+        "Analyze and visualize the collected data"
+      ]
+    }
+  }
+}

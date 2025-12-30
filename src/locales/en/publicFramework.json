@@ -1,0 +1,33 @@
+{
+  "loading": "Loading public framework...",
+  "notFound": "Framework not found",
+  "goHome": "Go Home",
+  "publicBadge": "Public",
+  "views": "views",
+  "clones": "clones",
+  "clone": "Clone to My Workspace",
+  "cloning": "Cloning...",
+  "cloneFailed": "Failed to clone framework",
+  "cloneGuestHint": "Framework cloned! You're now working in guest mode (7 days). Sign in to save permanently.",
+  "export": "Export",
+  "exportComingSoon": "Export functionality coming soon!",
+  "overview": "Overview",
+  "overviewDesc": "Framework details and context",
+  "source": "Source",
+  "locations": "Locations",
+  "settings": "Settings",
+  "frequency": "Frequency",
+  "empty": {
+    "title": "This framework doesn't have detailed content yet.",
+    "description": "Clone it to add your own analysis!"
+  },
+  "footer": {
+    "title": "Want to use this framework?",
+    "description": "Click \"Clone to My Workspace\" to create your own copy.",
+    "descriptionGuest": " Sign in to save permanently, or work in guest mode for 7 days."
+  },
+  "frameworks": {
+    "behavior": "Behavior Analysis",
+    "comb-analysis": "COM-B Analysis"
+  }
+}
