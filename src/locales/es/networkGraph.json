@@ -2,7 +2,8 @@
   "loading": "Cargando gráfico de red...",
   "title": "Gráfico de Red",
   "description": "Visualización interactiva de relaciones entre entidades",
-  "highlighted": "{{count}} entidades resaltadas",
+  "highlighted": "{{count}} entidad resaltada",
+  "highlighted_plural": "{{count}} entidades resaltadas",
   "source": {
     "cog": "Análisis COG",
     "causeway": "Análisis Causeway",

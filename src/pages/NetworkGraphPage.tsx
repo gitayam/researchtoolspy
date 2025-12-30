@@ -436,7 +436,7 @@ export function NetworkGraphPage() {
               </strong>
               {sourceInfo.title && `: ${sourceInfo.title}`}
               {' • '}
-              {highlightedNodes.size} {highlightedNodes.size === 1 ? t('networkGraph:source.entity') : t('networkGraph:source.entities')} {t('networkGraph:highlighted', { count: highlightedNodes.size>1 ? 's' : '' })}
+              {t('networkGraph:highlighted', { count: highlightedNodes.size })}
             </AlertDescription>
           </Alert>
         </div>

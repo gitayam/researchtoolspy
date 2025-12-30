@@ -2,7 +2,8 @@
   "loading": "Loading network graph...",
   "title": "Network Graph",
   "description": "Interactive entity relationship visualization",
-  "highlighted": "{{count}} entities highlighted",
+  "highlighted": "{{count}} entity highlighted",
+  "highlighted_plural": "{{count}} entities highlighted",
   "source": {
     "cog": "COG Analysis",
     "causeway": "Causeway Analysis",

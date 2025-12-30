@@ -216,7 +216,7 @@ export default function CreateSubmissionFormPage() {
                   <strong>{t('submissionForm:success.nextSteps')}</strong>
                 </p>
                 <ul className="text-sm text-blue-600 dark:text-blue-400 mt-2 space-y-1 list-disc list-inside">
-                  {t('submissionForm:success.nextStepsList', { returnObjects: true }).map((step: string, index: number) => (
+                  {(t('submissionForm:success.nextStepsList', { returnObjects: true }) as string[]).map((step: string, index: number) => (
                     <li key={index}>{step}</li>
                   ))}
                 </ul>
