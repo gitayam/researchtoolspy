@@ -1,0 +1,25 @@
+{
+  "backToDashboard": "Back to Dashboard",
+  "underDevelopment": "Page Under Development",
+  "status": {
+    "title": "Implementation Status",
+    "route": "Route configured and accessible",
+    "layout": "Page layout ready",
+    "feature": "Feature implementation in progress",
+    "api": "API integration pending",
+    "dashboard": "Dashboard layout and navigation",
+    "auth": "Authentication system",
+    "ui": "Framework-specific UI components",
+    "persistence": "Data persistence and auto-save",
+    "export": "Export functionality"
+  },
+  "checkBack": "This page is currently being developed. Check back soon for updates!",
+  "save": "Save",
+  "export": "Export",
+  "analysisFramework": "{{title}} Analysis Framework",
+  "frameworkType": "Framework Type: {{type}}",
+  "migration": {
+    "title": "Framework Migration In Progress",
+    "description": "This analysis framework is being migrated from Next.js to React + Vite. Full functionality will be available soon."
+  }
+}

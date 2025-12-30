@@ -56,6 +56,8 @@ import enSubmitEvidence from '@/locales/en/submitEvidence.json'
 import esSubmitEvidence from '@/locales/es/submitEvidence.json'
 import enInvite from '@/locales/en/invite.json'
 import esInvite from '@/locales/es/invite.json'
+import enPlaceholder from '@/locales/en/placeholder.json'
+import esPlaceholder from '@/locales/es/placeholder.json'
 
 // Initialize i18next with react-i18next and language detection
 i18n
@@ -90,7 +92,8 @@ i18n
         submissionForms: enSubmissionForms,
         submissionsReview: enSubmissionsReview,
         submitEvidence: enSubmitEvidence,
-        invite: enInvite
+        invite: enInvite,
+        placeholder: enPlaceholder
       },
       es: {
         common: esCommon,
@@ -119,12 +122,13 @@ i18n
         submissionForms: esSubmissionForms,
         submissionsReview: esSubmissionsReview,
         submitEvidence: esSubmitEvidence,
-        invite: esInvite
+        invite: esInvite,
+        placeholder: esPlaceholder
       }
     },
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'cog', 'comments', 'activity', 'library', 'notifications', 'entities', 'deception', 'ach', 'investigation', 'workspace', 'researchQuestion', 'scraper', 'aiSettings', 'contentLibrary', 'submissionForm', 'dataset', 'investigationPackets', 'networkGraph', 'publicAch', 'publicContentAnalysis', 'publicFramework', 'socialMedia', 'submissionForms', 'submissionsReview', 'submitEvidence', 'invite'],
+    ns: ['common', 'cog', 'comments', 'activity', 'library', 'notifications', 'entities', 'deception', 'ach', 'investigation', 'workspace', 'researchQuestion', 'scraper', 'aiSettings', 'contentLibrary', 'submissionForm', 'dataset', 'investigationPackets', 'networkGraph', 'publicAch', 'publicContentAnalysis', 'publicFramework', 'socialMedia', 'submissionForms', 'submissionsReview', 'submitEvidence', 'invite', 'placeholder'],
 
     interpolation: {
       escapeValue: false // React already escapes values

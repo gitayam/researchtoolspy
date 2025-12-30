@@ -43,7 +43,8 @@ src/
     │   ├── socialMedia.json     # Social Media translations
     │   ├── submissionForms.json # Submission Forms translations
     │   ├── submissionsReview.json # Submissions Review translations
-    │   └── invite.json          # Invite translations
+    │   ├── invite.json          # Invite translations
+    │   └── placeholder.json     # Placeholder translations
     └── es/                      # Spanish translations
         ├── common.json
         ├── cog.json
@@ -70,12 +71,12 @@ src/
 
 | Category | Translated | Needs Work | Total | Coverage |
 |----------|------------|------------|-------|----------|
-| Pages | 47 | 2 | 49 | 95% |
+| Pages | 49 | 0 | 49 | 100% |
 | Components | 30+ | Unknown | ~50+ | ~60% |
 
 ---
 
-## Pages WITH Translations (47)
+## Pages WITH Translations (49)
 
 These pages have `useTranslation` implemented:
 
@@ -100,6 +101,7 @@ These pages have `useTranslation` implemented:
 | Events | `src/pages/EventsPage.tsx` | ✅ Complete |
 | Evidence | `src/pages/EvidencePage.tsx` | ✅ Complete |
 | Evidence Submissions | `src/pages/EvidenceSubmissionsPage.tsx` | ✅ Complete |
+| Framework Placeholder | `src/pages/frameworks/FrameworkPlaceholder.tsx` | ✅ Complete |
 | Frameworks Index | `src/pages/frameworks/index.tsx` | ✅ Complete |
 | Investigation Detail | `src/pages/InvestigationDetailPage.tsx` | ✅ Complete |
 | Investigation Packets | `src/pages/InvestigationPacketsPage.tsx` | ✅ Complete |
@@ -110,6 +112,7 @@ These pages have `useTranslation` implemented:
 | Network Graph | `src/pages/NetworkGraphPage.tsx` | ✅ Complete |
 | New Investigation | `src/pages/NewInvestigationPage.tsx` | ✅ Complete |
 | Not Found (404) | `src/pages/NotFoundPage.tsx` | ✅ Complete |
+| Placeholder | `src/pages/PlaceholderPage.tsx` | ✅ Complete |
 | Public ACH | `src/pages/PublicACHPage.tsx` | ✅ Complete |
 | Public ACH Library | `src/pages/PublicACHLibraryPage.tsx` | ✅ Complete |
 | Public Content Analysis | `src/pages/PublicContentAnalysisPage.tsx` | ✅ Complete |
@@ -131,16 +134,9 @@ These pages have `useTranslation` implemented:
 
 ---
 
-## Pages NEEDING Translations (2)
+## Pages NEEDING Translations (0)
 
-These pages do NOT have `useTranslation` and need i18n implementation:
-
-### Low Priority (Admin/Edge cases)
-
-| Page | File Path | Description |
-|------|-----------|-------------|
-| Placeholder | `src/pages/PlaceholderPage.tsx` | Placeholder page |
-| Framework Placeholder | `src/pages/frameworks/FrameworkPlaceholder.tsx` | Framework placeholder |
+All pages are now translated!
 
 ---
 
@@ -211,12 +207,15 @@ These components have `useTranslation` implemented:
 | `submissionsReview` | Submissions Review page | submissionsReview.json |
 | `submitEvidence` | Submit Evidence page | submitEvidence.json |
 | `invite` | Invite Accept page | invite.json |
+| `placeholder` | Placeholder pages | placeholder.json |
 
 ---
 
 ## Recent Updates
 
 ### December 29, 2025 (Latest)
+- **Completed all page translations!**
+- Added translations for `PlaceholderPage` and `FrameworkPlaceholder`
 - Added translations for `InviteAcceptPage`
 - Added translations for `SubmitEvidencePage`
 - Added translations for `SubmissionsReviewPage`
@@ -236,7 +235,7 @@ These components have `useTranslation` implemented:
 - Added translations for `ResearchWorkspacePage`
 - Added translations for `ResearchQuestionGeneratorPage`
 - Added translations for `WebScraperPage`
-- Created 18 new namespaces
+- Created 20 new namespaces
 - Registered new namespaces in `i18n.ts`
 - Updated English and Spanish translation files for all new namespaces
-- **Coverage**: Increased to 95% of pages (47/49)
+- **Coverage**: Increased to 100% of pages (49/49)

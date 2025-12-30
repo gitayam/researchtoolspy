@@ -1,0 +1,25 @@
+{
+  "backToDashboard": "Volver al Tablero",
+  "underDevelopment": "Página en Desarrollo",
+  "status": {
+    "title": "Estado de Implementación",
+    "route": "Ruta configurada y accesible",
+    "layout": "Diseño de página listo",
+    "feature": "Implementación de funcionalidad en progreso",
+    "api": "Integración de API pendiente",
+    "dashboard": "Diseño y navegación del tablero",
+    "auth": "Sistema de autenticación",
+    "ui": "Componentes de UI específicos del marco",
+    "persistence": "Persistencia de datos y auto-guardado",
+    "export": "Funcionalidad de exportación"
+  },
+  "checkBack": "Esta página está actualmente en desarrollo. ¡Vuelve pronto para ver las actualizaciones!",
+  "save": "Guardar",
+  "export": "Exportar",
+  "analysisFramework": "Marco de Análisis {{title}}",
+  "frameworkType": "Tipo de Marco: {{type}}",
+  "migration": {
+    "title": "Migración de Marco en Progreso",
+    "description": "Este marco de análisis está siendo migrado de Next.js a React + Vite. La funcionalidad completa estará disponible pronto."
+  }
+}
