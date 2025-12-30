@@ -22,6 +22,18 @@ interface Alert {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
+    // Check if DB binding is available
+    if (!context.env.DB) {
+      console.error('[Deception Aggregate] DB binding not available')
+      return new Response(JSON.stringify({
+        error: 'Database not configured',
+        details: 'DB binding is not available. Please configure D1 database in Cloudflare Pages settings.'
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
     const userId = await getUserIdOrDefault(context.request, context.env)
     const url = new URL(context.request.url)
     const workspaceId = url.searchParams.get('workspace_id') || '1'

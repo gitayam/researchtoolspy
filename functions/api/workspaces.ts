@@ -54,6 +54,18 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
+    // Check if DB binding is available
+    if (!env.DB) {
+      console.error('[Workspaces] DB binding not available')
+      return new Response(
+        JSON.stringify({
+          error: 'Database not configured',
+          details: 'DB binding is not available. Please configure D1 database in Cloudflare Pages settings.'
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Get authenticated user (supports both token and hash auth)
     const user = await getUserFromRequest(request, env)
     if (!user.userId && !user.userHash) {

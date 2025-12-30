@@ -81,6 +81,18 @@ export async function onRequest(context: any) {
   }
 
   try {
+    // Check if DB binding is available
+    if (!env.DB) {
+      console.error('[Frameworks] DB binding not available')
+      return new Response(JSON.stringify({
+        error: 'Database not configured',
+        details: 'DB binding is not available. Please configure D1 database in Cloudflare Pages settings.'
+      }), {
+        status: 500,
+        headers: corsHeaders,
+      })
+    }
+
     const url = new URL(request.url)
     const frameworkId = url.searchParams.get('id')
 
