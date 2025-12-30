@@ -1,0 +1,45 @@
+{
+  "loading": "Loading invite...",
+  "invalid": {
+    "title": "Invalid Invite",
+    "description": "This invite link is not valid",
+    "return": "Return to Home"
+  },
+  "expired": {
+    "title": "Invite Expired",
+    "reason": "This invite is no longer valid",
+    "expired": "This invite has expired",
+    "maxUses": "This invite has reached maximum uses",
+    "contact": "Please contact the workspace owner for a new invite link."
+  },
+  "success": {
+    "message": "Successfully joined {{workspaceName}} as {{nickname}}"
+  },
+  "form": {
+    "title": "You've Been Invited!",
+    "description": "Join an investigation team",
+    "workspace": "Workspace",
+    "invitedBy": "Invited by",
+    "role": "Your role",
+    "expires": "Expires in",
+    "expiresSoon": "Expires soon",
+    "neverExpires": "Never expires",
+    "usesRemaining": "{{count}} use remaining",
+    "usesRemaining_plural": "{{count}} uses remaining",
+    "nickname": "Choose Your Display Name",
+    "nicknamePlaceholder": "e.g., Jane Doe, Analyst_47, Dr. Smith",
+    "nicknameHint": "This is how team members will see you in this workspace",
+    "nicknameRequired": "Nickname is required",
+    "cancel": "Cancel",
+    "join": "Join Investigation Team",
+    "joining": "Joining..."
+  },
+  "security": {
+    "title": "Secure Collaboration",
+    "description": "Your account credentials remain private. This workspace-specific nickname is only visible to team members in this investigation."
+  },
+  "alerts": {
+    "fetchFailed": "Failed to fetch invite",
+    "acceptFailed": "Failed to accept invite"
+  }
+}

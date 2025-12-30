@@ -1,0 +1,45 @@
+{
+  "loading": "Cargando invitación...",
+  "invalid": {
+    "title": "Invitación Inválida",
+    "description": "Este enlace de invitación no es válido",
+    "return": "Volver al Inicio"
+  },
+  "expired": {
+    "title": "Invitación Expirada",
+    "reason": "Esta invitación ya no es válida",
+    "expired": "Esta invitación ha expirado",
+    "maxUses": "Esta invitación ha alcanzado el número máximo de usos",
+    "contact": "Por favor, contacta al propietario del espacio de trabajo para un nuevo enlace de invitación."
+  },
+  "success": {
+    "message": "Te uniste exitosamente a {{workspaceName}} como {{nickname}}"
+  },
+  "form": {
+    "title": "¡Has sido invitado!",
+    "description": "Únete a un equipo de investigación",
+    "workspace": "Espacio de Trabajo",
+    "invitedBy": "Invitado por",
+    "role": "Tu rol",
+    "expires": "Expira en",
+    "expiresSoon": "Expira pronto",
+    "neverExpires": "Nunca expira",
+    "usesRemaining": "{{count}} uso restante",
+    "usesRemaining_plural": "{{count}} usos restantes",
+    "nickname": "Elige tu Nombre para Mostrar",
+    "nicknamePlaceholder": "ej., Jane Doe, Analista_47, Dr. Smith",
+    "nicknameHint": "Así es como los miembros del equipo te verán en este espacio de trabajo",
+    "nicknameRequired": "Se requiere un apodo",
+    "cancel": "Cancelar",
+    "join": "Unirse al Equipo de Investigación",
+    "joining": "Uniéndose..."
+  },
+  "security": {
+    "title": "Colaboración Segura",
+    "description": "Tus credenciales de cuenta permanecen privadas. Este apodo específico del espacio de trabajo solo es visible para los miembros del equipo en esta investigación."
+  },
+  "alerts": {
+    "fetchFailed": "Error al obtener la invitación",
+    "acceptFailed": "Error al aceptar la invitación"
+  }
+}

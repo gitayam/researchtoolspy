@@ -8,8 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/stores/auth'
 import type { WorkspaceInviteInfo, AcceptInviteRequest, AcceptInviteResponse } from '@/types/workspace-invites'
+import { useTranslation } from 'react-i18next'
 
 export function InviteAcceptPage() {
+  const { t } = useTranslation(['invite'])
   const { inviteToken } = useParams<{ inviteToken: string }>()
   const navigate = useNavigate()
   const { isAuthenticated, user } = useAuthStore()
@@ -29,7 +31,7 @@ export function InviteAcceptPage() {
 
     // Fetch invite info
     fetchInviteInfo()
-  }, [inviteToken, isAuthenticated])
+  }, [inviteToken, isAuthenticated, navigate])
 
   const fetchInviteInfo = async () => {
     try {
@@ -38,13 +40,13 @@ export function InviteAcceptPage() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to fetch invite')
+        throw new Error(error.error || t('invite:alerts.fetchFailed'))
       }
 
       const data = await response.json()
       setInviteInfo(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load invite')
+      setError(err instanceof Error ? err.message : t('invite:alerts.fetchFailed'))
     } finally {
       setLoading(false)
     }
@@ -54,7 +56,7 @@ export function InviteAcceptPage() {
     e.preventDefault()
 
     if (!nickname.trim()) {
-      setError('Nickname is required')
+      setError(t('invite:form.nicknameRequired'))
       return
     }
 
@@ -77,7 +79,7 @@ export function InviteAcceptPage() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to accept invite')
+        throw new Error(error.error || t('invite:alerts.acceptFailed'))
       }
 
       const result: AcceptInviteResponse = await response.json()
@@ -85,11 +87,11 @@ export function InviteAcceptPage() {
       // Success! Redirect to workspace
       navigate(`/workspaces/${result.workspace_id}`, {
         state: {
-          message: `Successfully joined ${inviteInfo?.workspace.name} as ${result.nickname}`
+          message: t('invite:success.message', { workspaceName: inviteInfo?.workspace.name, nickname: result.nickname })
         }
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to accept invite')
+      setError(err instanceof Error ? err.message : t('invite:alerts.acceptFailed'))
     } finally {
       setAccepting(false)
     }
@@ -109,7 +111,7 @@ export function InviteAcceptPage() {
   }
 
   const formatExpiry = (expiresAt: string | null) => {
-    if (!expiresAt) return 'Never expires'
+    if (!expiresAt) return t('invite:form.neverExpires')
 
     const expiry = new Date(expiresAt)
     const now = new Date()
@@ -118,13 +120,13 @@ export function InviteAcceptPage() {
     const diffDays = Math.floor(diffHours / 24)
 
     if (diffDays > 1) {
-      return `Expires in ${diffDays} days`
+      return `${t('invite:form.expires')} ${diffDays} days`
     } else if (diffHours > 1) {
-      return `Expires in ${diffHours} hours`
+      return `${t('invite:form.expires')} ${diffHours} hours`
     } else if (diffMs > 0) {
-      return 'Expires soon'
+      return t('invite:form.expiresSoon')
     } else {
-      return 'Expired'
+      return t('invite:expired.expired')
     }
   }
 
@@ -133,7 +135,7 @@ export function InviteAcceptPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading invite...</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('invite:loading')}</p>
         </div>
       </div>
     )
@@ -147,15 +149,15 @@ export function InviteAcceptPage() {
             <div className="flex items-center gap-3">
               <XCircle className="h-8 w-8 text-red-600" />
               <div>
-                <CardTitle>Invalid Invite</CardTitle>
-                <CardDescription>This invite link is not valid</CardDescription>
+                <CardTitle>{t('invite:invalid.title')}</CardTitle>
+                <CardDescription>{t('invite:invalid.description')}</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{error}</p>
             <Button onClick={() => navigate('/')} className="w-full">
-              Return to Home
+              {t('invite:invalid.return')}
             </Button>
           </CardContent>
         </Card>
@@ -170,11 +172,11 @@ export function InviteAcceptPage() {
   const { workspace, invite } = inviteInfo
 
   if (!invite.is_valid) {
-    let invalidReason = 'This invite is no longer valid'
+    let invalidReason = t('invite:expired.reason')
     if (invite.is_expired) {
-      invalidReason = 'This invite has expired'
+      invalidReason = t('invite:expired.expired')
     } else if (invite.is_max_uses_reached) {
-      invalidReason = 'This invite has reached maximum uses'
+      invalidReason = t('invite:expired.maxUses')
     }
 
     return (
@@ -184,17 +186,17 @@ export function InviteAcceptPage() {
             <div className="flex items-center gap-3">
               <XCircle className="h-8 w-8 text-red-600" />
               <div>
-                <CardTitle>Invite Expired</CardTitle>
+                <CardTitle>{t('invite:expired.title')}</CardTitle>
                 <CardDescription>{invalidReason}</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Please contact the workspace owner for a new invite link.
+              {t('invite:expired.contact')}
             </p>
             <Button onClick={() => navigate('/')} className="w-full">
-              Return to Home
+              {t('invite:invalid.return')}
             </Button>
           </CardContent>
         </Card>
@@ -211,8 +213,8 @@ export function InviteAcceptPage() {
               <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <CardTitle>You've Been Invited!</CardTitle>
-              <CardDescription>Join an investigation team</CardDescription>
+              <CardTitle>{t('invite:form.title')}</CardTitle>
+              <CardDescription>{t('invite:form.description')}</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -221,7 +223,7 @@ export function InviteAcceptPage() {
           {/* Workspace Info */}
           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-3">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Workspace</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('invite:form.workspace')}</p>
               <p className="text-lg font-semibold text-gray-900 dark:text-white">
                 {workspace.name}
               </p>
@@ -229,12 +231,12 @@ export function InviteAcceptPage() {
 
             <div className="flex items-center gap-4 text-sm">
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Invited by</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('invite:form.invitedBy')}</p>
                 <p className="font-medium text-gray-900 dark:text-white">{workspace.owner_nickname}</p>
               </div>
 
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Your role</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('invite:form.role')}</p>
                 <Badge className={getRoleBadgeColor(invite.default_role)}>
                   {invite.default_role}
                 </Badge>
@@ -254,7 +256,7 @@ export function InviteAcceptPage() {
 
             {invite.uses_remaining !== null && (
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                {invite.uses_remaining} {invite.uses_remaining === 1 ? 'use' : 'uses'} remaining
+                {t('invite:form.usesRemaining', { count: invite.uses_remaining })}
               </div>
             )}
           </div>
@@ -262,11 +264,11 @@ export function InviteAcceptPage() {
           {/* Nickname Form */}
           <form onSubmit={handleAccept} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="nickname">Choose Your Display Name</Label>
+              <Label htmlFor="nickname">{t('invite:form.nickname')}</Label>
               <Input
                 id="nickname"
                 type="text"
-                placeholder="e.g., Jane Doe, Analyst_47, Dr. Smith"
+                placeholder={t('invite:form.nicknamePlaceholder')}
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
                 maxLength={50}
@@ -274,7 +276,7 @@ export function InviteAcceptPage() {
                 className="text-base"
               />
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                This is how team members will see you in this workspace
+                {t('invite:form.nicknameHint')}
               </p>
             </div>
 
@@ -292,7 +294,7 @@ export function InviteAcceptPage() {
                 className="flex-1"
                 disabled={accepting}
               >
-                Cancel
+                {t('invite:form.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -302,12 +304,12 @@ export function InviteAcceptPage() {
                 {accepting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Joining...
+                    {t('invite:form.joining')}
                   </>
                 ) : (
                   <>
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Join Investigation Team
+                    {t('invite:form.join')}
                   </>
                 )}
               </Button>
@@ -319,10 +321,9 @@ export function InviteAcceptPage() {
             <div className="flex gap-2">
               <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-blue-800 dark:text-blue-400">
-                <p className="font-medium mb-1">Secure Collaboration</p>
+                <p className="font-medium mb-1">{t('invite:security.title')}</p>
                 <p className="text-xs">
-                  Your account credentials remain private. This workspace-specific nickname
-                  is only visible to team members in this investigation.
+                  {t('invite:security.description')}
                 </p>
               </div>
             </div>

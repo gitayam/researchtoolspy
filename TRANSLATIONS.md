@@ -42,7 +42,8 @@ src/
     │   ├── publicFramework.json # Public Framework translations
     │   ├── socialMedia.json     # Social Media translations
     │   ├── submissionForms.json # Submission Forms translations
-    │   └── submitEvidence.json  # Submit Evidence translations
+    │   ├── submissionsReview.json # Submissions Review translations
+    │   └── invite.json          # Invite translations
     └── es/                      # Spanish translations
         ├── common.json
         ├── cog.json
@@ -69,12 +70,12 @@ src/
 
 | Category | Translated | Needs Work | Total | Coverage |
 |----------|------------|------------|-------|----------|
-| Pages | 46 | 3 | 49 | 93% |
+| Pages | 47 | 2 | 49 | 95% |
 | Components | 30+ | Unknown | ~50+ | ~60% |
 
 ---
 
-## Pages WITH Translations (46)
+## Pages WITH Translations (47)
 
 These pages have `useTranslation` implemented:
 
@@ -103,6 +104,7 @@ These pages have `useTranslation` implemented:
 | Investigation Detail | `src/pages/InvestigationDetailPage.tsx` | ✅ Complete |
 | Investigation Packets | `src/pages/InvestigationPacketsPage.tsx` | ✅ Complete |
 | Investigations | `src/pages/InvestigationsPage.tsx` | ✅ Complete |
+| Invite Accept | `src/pages/InviteAcceptPage.tsx` | ✅ Complete |
 | Landing | `src/pages/LandingPage.tsx` | ✅ Complete |
 | Login | `src/pages/LoginPage.tsx` | ✅ Complete |
 | Network Graph | `src/pages/NetworkGraphPage.tsx` | ✅ Complete |
@@ -129,7 +131,7 @@ These pages have `useTranslation` implemented:
 
 ---
 
-## Pages NEEDING Translations (3)
+## Pages NEEDING Translations (2)
 
 These pages do NOT have `useTranslation` and need i18n implementation:
 
@@ -137,7 +139,6 @@ These pages do NOT have `useTranslation` and need i18n implementation:
 
 | Page | File Path | Description |
 |------|-----------|-------------|
-| Invite Accept | `src/pages/InviteAcceptPage.tsx` | Invitation acceptance |
 | Placeholder | `src/pages/PlaceholderPage.tsx` | Placeholder page |
 | Framework Placeholder | `src/pages/frameworks/FrameworkPlaceholder.tsx` | Framework placeholder |
 
@@ -209,12 +210,14 @@ These components have `useTranslation` implemented:
 | `submissionForms` | Submission Forms page | submissionForms.json |
 | `submissionsReview` | Submissions Review page | submissionsReview.json |
 | `submitEvidence` | Submit Evidence page | submitEvidence.json |
+| `invite` | Invite Accept page | invite.json |
 
 ---
 
 ## Recent Updates
 
 ### December 29, 2025 (Latest)
+- Added translations for `InviteAcceptPage`
 - Added translations for `SubmitEvidencePage`
 - Added translations for `SubmissionsReviewPage`
 - Added translations for `SubmissionFormsPage`
@@ -236,4 +239,4 @@ These components have `useTranslation` implemented:
 - Created 18 new namespaces
 - Registered new namespaces in `i18n.ts`
 - Updated English and Spanish translation files for all new namespaces
-- **Coverage**: Increased to 93% of pages (46/49)
+- **Coverage**: Increased to 95% of pages (47/49)
