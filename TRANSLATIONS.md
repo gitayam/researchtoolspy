@@ -215,7 +215,8 @@ These components have `useTranslation` implemented:
 
 ### December 29, 2025 (Latest)
 - **Completed all page translations!**
-- Added translations for `PlaceholderPage` and `FrameworkPlaceholder`
+- Added translations for `FrameworkPlaceholder`
+- Added translations for `PlaceholderPage`
 - Added translations for `InviteAcceptPage`
 - Added translations for `SubmitEvidencePage`
 - Added translations for `SubmissionsReviewPage`
