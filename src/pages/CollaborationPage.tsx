@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Users, UserPlus, Mail, Share2, Copy, Trash2, Clock, Shield, Plus, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,6 +22,7 @@ interface Workspace {
 }
 
 export function CollaborationPage() {
+  const { t } = useTranslation()
   const { toast } = useToast()
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
@@ -54,8 +56,8 @@ export function CollaborationPage() {
       localStorage.setItem('omnicore_authenticated', 'true')
 
       toast({
-        title: 'Account Created',
-        description: 'Your bookmark account has been created. Save this URL to access your workspace!',
+        title: t('pages.collaboration.accountCreated'),
+        description: t('pages.collaboration.accountCreatedDesc'),
       })
     }
 
@@ -164,16 +166,16 @@ export function CollaborationPage() {
       const invite = await response.json()
 
       toast({
-        title: 'Invite created',
-        description: 'Invite link has been created successfully',
+        title: t('pages.collaboration.inviteCreated'),
+        description: t('pages.collaboration.inviteCreatedDesc'),
       })
 
       // Copy to clipboard
       await navigator.clipboard.writeText(invite.invite_url)
 
       toast({
-        title: 'Link copied',
-        description: 'Invite link has been copied to clipboard',
+        title: t('pages.collaboration.linkCopied'),
+        description: t('pages.collaboration.linkCopiedDesc'),
       })
 
       setIsCreateDialogOpen(false)
@@ -187,8 +189,8 @@ export function CollaborationPage() {
       fetchInvites()
     } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to create invite',
+        title: t('pages.collaboration.error'),
+        description: error instanceof Error ? error.message : t('pages.collaboration.failedToCreateInvite'),
         variant: 'destructive'
       })
     }
@@ -198,13 +200,13 @@ export function CollaborationPage() {
     try {
       await navigator.clipboard.writeText(inviteUrl)
       toast({
-        title: 'Link copied',
-        description: 'Invite link has been copied to clipboard',
+        title: t('pages.collaboration.linkCopied'),
+        description: t('pages.collaboration.linkCopiedDesc'),
       })
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to copy link',
+        title: t('pages.collaboration.error'),
+        description: t('pages.collaboration.failedToCopyLink'),
         variant: 'destructive'
       })
     }
@@ -226,15 +228,15 @@ export function CollaborationPage() {
       }
 
       toast({
-        title: 'Invite revoked',
-        description: 'The invite link has been revoked',
+        title: t('pages.collaboration.inviteRevoked'),
+        description: t('pages.collaboration.inviteRevokedDesc'),
       })
 
       fetchInvites()
     } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to revoke invite',
+        title: t('pages.collaboration.error'),
+        description: error instanceof Error ? error.message : t('pages.collaboration.failedToRevokeInvite'),
         variant: 'destructive'
       })
     }
@@ -272,8 +274,8 @@ export function CollaborationPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Investigation Teams</h1>
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('pages.collaboration.title')}</h1>
+            <p className="text-gray-600 dark:text-gray-400">{t('pages.collaboration.loading')}</p>
           </div>
         </div>
       </div>
@@ -285,18 +287,18 @@ export function CollaborationPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Investigation Teams</h1>
-            <p className="text-gray-600 dark:text-gray-400">Create a workspace to collaborate</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('pages.collaboration.title')}</h1>
+            <p className="text-gray-600 dark:text-gray-400">{t('pages.collaboration.createWorkspace')}</p>
           </div>
         </div>
         <Card>
           <CardContent className="text-center py-12">
             <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              No Workspaces Yet
+              {t('pages.collaboration.noWorkspaces')}
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Create a workspace to start collaborating with your team
+              {t('pages.collaboration.noWorkspacesDesc')}
             </p>
             <CreateWorkspaceDialog onWorkspaceCreated={fetchWorkspaces} />
           </CardContent>
@@ -309,16 +311,16 @@ export function CollaborationPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Investigation Teams</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage team members and secure invite links</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('pages.collaboration.title')}</h1>
+          <p className="text-gray-600 dark:text-gray-400">{t('pages.collaboration.subtitle')}</p>
         </div>
       </div>
 
       {/* Workspace Selector */}
       <Card>
         <CardHeader>
-          <CardTitle>Select Workspace</CardTitle>
-          <CardDescription>Choose a workspace to manage team collaboration</CardDescription>
+          <CardTitle>{t('pages.collaboration.selectWorkspace')}</CardTitle>
+          <CardDescription>{t('pages.collaboration.selectWorkspaceDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Select
@@ -326,7 +328,7 @@ export function CollaborationPage() {
             onValueChange={(id) => setSelectedWorkspace(workspaces.find(w => w.id === id) || null)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a workspace" />
+              <SelectValue placeholder={t('pages.collaboration.selectPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {workspaces.map((workspace) => (
@@ -351,26 +353,26 @@ export function CollaborationPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Invite Links</CardTitle>
-                  <CardDescription>Secure links to invite team members</CardDescription>
+                  <CardTitle>{t('pages.collaboration.inviteLinks')}</CardTitle>
+                  <CardDescription>{t('pages.collaboration.inviteLinksDesc')}</CardDescription>
                 </div>
                 <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="h-4 w-4 mr-2" />
-                      New Invite
+                      {t('pages.collaboration.newInvite')}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Create Invite Link</DialogTitle>
+                      <DialogTitle>{t('pages.collaboration.createInviteLink')}</DialogTitle>
                       <DialogDescription>
-                        Generate a secure invite link for team members to join this workspace
+                        {t('pages.collaboration.createInviteLinkDesc')}
                       </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleCreateInvite} className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Role</Label>
+                        <Label>{t('pages.collaboration.role')}</Label>
                         <Select
                           value={createForm.default_role}
                           onValueChange={(value: any) => setCreateForm({ ...createForm, default_role: value })}
@@ -379,24 +381,24 @@ export function CollaborationPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="VIEWER">Viewer (Read-only)</SelectItem>
-                            <SelectItem value="EDITOR">Editor (Can edit)</SelectItem>
-                            <SelectItem value="ADMIN">Admin (Full access)</SelectItem>
+                            <SelectItem value="VIEWER">{t('pages.collaboration.viewer')}</SelectItem>
+                            <SelectItem value="EDITOR">{t('pages.collaboration.editor')}</SelectItem>
+                            <SelectItem value="ADMIN">{t('pages.collaboration.admin')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Label (Optional)</Label>
+                        <Label>{t('pages.collaboration.labelOptional')}</Label>
                         <Input
-                          placeholder="e.g., External analysts, Review team"
+                          placeholder={t('pages.collaboration.labelPlaceholder')}
                           value={createForm.label || ''}
                           onChange={(e) => setCreateForm({ ...createForm, label: e.target.value || null })}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Expires In (Optional)</Label>
+                        <Label>{t('pages.collaboration.expiresIn')}</Label>
                         <Select
                           value={createForm.expires_in_hours?.toString() || 'never'}
                           onValueChange={(value) =>
@@ -410,16 +412,16 @@ export function CollaborationPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="never">Never expires</SelectItem>
-                            <SelectItem value="24">24 hours</SelectItem>
-                            <SelectItem value="168">7 days</SelectItem>
-                            <SelectItem value="720">30 days</SelectItem>
+                            <SelectItem value="never">{t('pages.collaboration.neverExpires')}</SelectItem>
+                            <SelectItem value="24">{t('pages.collaboration.hours24')}</SelectItem>
+                            <SelectItem value="168">{t('pages.collaboration.days7')}</SelectItem>
+                            <SelectItem value="720">{t('pages.collaboration.days30')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Max Uses (Optional)</Label>
+                        <Label>{t('pages.collaboration.maxUses')}</Label>
                         <Select
                           value={createForm.max_uses?.toString() || 'unlimited'}
                           onValueChange={(value) =>
@@ -433,16 +435,16 @@ export function CollaborationPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="unlimited">Unlimited</SelectItem>
-                            <SelectItem value="1">1 use</SelectItem>
-                            <SelectItem value="5">5 uses</SelectItem>
-                            <SelectItem value="10">10 uses</SelectItem>
+                            <SelectItem value="unlimited">{t('pages.collaboration.unlimited')}</SelectItem>
+                            <SelectItem value="1">{t('pages.collaboration.use1')}</SelectItem>
+                            <SelectItem value="5">{t('pages.collaboration.uses5')}</SelectItem>
+                            <SelectItem value="10">{t('pages.collaboration.uses10')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <Button type="submit" className="w-full">
-                        Create & Copy Link
+                        {t('pages.collaboration.createCopyLink')}
                       </Button>
                     </form>
                   </DialogContent>
@@ -453,7 +455,7 @@ export function CollaborationPage() {
               {invites.length === 0 ? (
                 <div className="text-center py-8">
                   <Share2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-gray-400">No invite links created yet</p>
+                  <p className="text-gray-600 dark:text-gray-400">{t('pages.collaboration.noInvites')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -528,14 +530,14 @@ export function CollaborationPage() {
           {/* Team Members */}
           <Card>
             <CardHeader>
-              <CardTitle>Team Members ({members.length})</CardTitle>
-              <CardDescription>People collaborating in this workspace</CardDescription>
+              <CardTitle>{t('pages.collaboration.teamMembers')} ({members.length})</CardTitle>
+              <CardDescription>{t('pages.collaboration.teamMembersDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               {members.length === 0 ? (
                 <div className="text-center py-8">
                   <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-gray-400">No team members yet</p>
+                  <p className="text-gray-600 dark:text-gray-400">{t('pages.collaboration.noMembers')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -577,12 +579,10 @@ export function CollaborationPage() {
                 <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                    Secure Collaboration
+                    {t('pages.collaboration.secureCollaboration')}
                   </h3>
                   <p className="text-sm text-blue-800 dark:text-blue-300">
-                    Invite links are independent from account credentials. Team members use their own
-                    account hash to login and choose workspace-specific nicknames. You can revoke
-                    invite links at any time without affecting existing members.
+                    {t('pages.collaboration.securityInfo')}
                   </p>
                 </div>
               </div>
