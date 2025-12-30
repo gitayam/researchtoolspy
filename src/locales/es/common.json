@@ -885,6 +885,36 @@
       ]
     }
   },
+  "components": {
+    "workspaceSelector": {
+      "myWorkspace": "Mi Espacio de Trabajo",
+      "yourWorkspaces": "Tus Espacios de Trabajo"
+    },
+    "feedback": {
+      "feedback": "Comentarios",
+      "sendFeedback": "Enviar Comentarios",
+      "dialogDescription": "Ayúdanos a mejorar compartiendo tus pensamientos, reportando problemas o sugiriendo nuevas funciones. Todos los campos son opcionales.",
+      "toolName": "Nombre de la Herramienta o Servicio",
+      "toolNamePlaceholder": "ej., Análisis COG, Inteligencia de Contenido",
+      "directLink": "Enlace Directo (si aplica)",
+      "directLinkPlaceholder": "ej., /tools/cog-analysis",
+      "describeIssue": "Describe el problema o sugerencia",
+      "descriptionPlaceholder": "¿Qué pasó? ¿Qué te gustaría ver? (También puedes pegar capturas de pantalla aquí)",
+      "screenshotTip": "Consejo: Pega una captura de pantalla directamente en este campo (Ctrl/Cmd + V)",
+      "screenshotOptional": "Captura de pantalla (opcional)",
+      "uploadImage": "Subir Imagen",
+      "remove": "Eliminar",
+      "screenshotPreview": "Vista previa de captura",
+      "submitting": "Enviando...",
+      "submitFeedback": "Enviar Comentarios",
+      "nothingToSubmit": "Nada que enviar",
+      "nothingToSubmitDesc": "Por favor proporciona al menos algún comentario o una captura de pantalla.",
+      "submitted": "¡Comentarios enviados!",
+      "submittedDesc": "¡Gracias por ayudarnos a mejorar!",
+      "submissionFailed": "Error al enviar",
+      "tryAgainLater": "Por favor intenta de nuevo más tarde."
+    }
+  },
   "pages": {
     "notFound": {
       "title": "Página No Encontrada",
@@ -998,6 +1028,45 @@
       "copyFailed": "Error al copiar",
       "copyFailedDesc": "Por favor selecciona y copia manualmente el código de arriba."
     },
+    "newInvestigation": {
+      "title": "Crear Nueva Investigación",
+      "backToInvestigations": "Volver a Investigaciones",
+      "back": "Volver",
+      "chooseType": "Elige tu tipo de investigación",
+      "provideDetails": "Proporciona los detalles de la investigación",
+      "guestMode": "Modo Invitado:",
+      "guestModeDesc": "Estás creando una investigación sin iniciar sesión. Aún puedes colaborar y compartirla con otros.",
+      "types": {
+        "structured_research": {
+          "name": "Investigación Estructurada",
+          "description": "Investigación con pregunta y metodología definidas",
+          "features": ["Pregunta y plan de investigación", "Prueba de hipótesis", "Recolección sistemática de evidencia", "Análisis de marcos"]
+        },
+        "general_topic": {
+          "name": "Tema General",
+          "description": "Exploración abierta de un tema",
+          "features": ["Exploración flexible", "Múltiples perspectivas", "Recolección de evidencia", "Se puede mejorar a estructurada"]
+        },
+        "rapid_analysis": {
+          "name": "Análisis Rápido",
+          "description": "Aplicación rápida de marcos para insights inmediatos",
+          "features": ["Respuesta rápida", "Enfoque en un solo marco", "Análisis dirigido", "Resultados inmediatos"]
+        }
+      },
+      "investigationDetails": "Detalles de la Investigación",
+      "provideDescription": "Proporciona un título y descripción para tu",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ingresa un título descriptivo para tu investigación",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "¿Qué estás investigando? ¿Cuál es tu pregunta de investigación o área de enfoque?",
+      "tagsLabel": "Etiquetas",
+      "tagsPlaceholder": "Agregar etiqueta",
+      "addTag": "Agregar",
+      "creating": "Creando...",
+      "createInvestigation": "Crear Investigación",
+      "failedToCreate": "Error al crear investigación",
+      "networkError": "Error de red: No se pudo crear la investigación. Por favor verifica tu conexión e intenta de nuevo."
+    },
     "collaboration": {
       "title": "Equipos de Investigación",
       "subtitle": "Administra miembros del equipo y enlaces de invitación seguros",
@@ -1053,6 +1122,133 @@
       "failedToCreateInvite": "Error al crear invitación",
       "failedToCopyLink": "Error al copiar enlace",
       "failedToRevokeInvite": "Error al revocar invitación"
+    },
+    "deceptionRisk": {
+      "title": "Panel de Riesgo de Engaño",
+      "subtitle": "Vista unificada de todos los sistemas de detección de engaño: MOM, POP, EVE, MOSES, Afirmaciones",
+      "loading": "Cargando datos de riesgo de engaño...",
+      "errorTitle": "Error al Cargar el Panel",
+      "errorMessage": "Error al cargar datos de riesgo de engaño",
+      "retry": "Reintentar",
+      "selectWorkspace": "Seleccionar espacio de trabajo...",
+      "defaultWorkspace": "Espacio de Trabajo Predeterminado",
+      "team": "Equipo",
+      "public": "Público",
+      "actors": "actores",
+      "sources": "fuentes",
+      "evidence": "evidencia",
+      "refresh": "Actualizar",
+      "updated": "Actualizado",
+      "overallRiskScore": "Puntuación de Riesgo General",
+      "aggregatedFrom": "Agregado de {{actors}} actores, {{sources}} fuentes, {{analyses}} análisis",
+      "riskThreshold": "Umbral de riesgo",
+      "riskLevels": {
+        "critical": "CRÍTICO",
+        "high": "ALTO",
+        "medium": "MEDIO",
+        "low": "BAJO"
+      },
+      "criticalAlerts": "Alertas Críticas",
+      "immediateAttention": "Se requiere atención inmediata",
+      "risk": "Riesgo",
+      "cards": {
+        "actorsMom": {
+          "title": "Actores (MOM)",
+          "subtitle": "Motivo-Oportunidad-Medios"
+        },
+        "actorsPop": {
+          "title": "Actores (POP)",
+          "subtitle": "Patrones de Desempeño"
+        },
+        "sourcesMoses": {
+          "title": "Fuentes (MOSES)",
+          "subtitle": "Vulnerabilidad de Fuentes"
+        },
+        "evidenceEve": {
+          "title": "Evidencia (EVE)",
+          "subtitle": "Validación de Evidencia"
+        },
+        "claims": {
+          "title": "Análisis de Afirmaciones",
+          "subtitle": "Detección de Engaño en Contenido"
+        }
+      },
+      "labels": {
+        "highRisk": "Riesgo Alto",
+        "mediumRisk": "Riesgo Medio",
+        "lowRisk": "Riesgo Bajo",
+        "compromised": "Comprometido",
+        "unreliable": "No Confiable",
+        "solid": "Sólido",
+        "suspicious": "Sospechoso",
+        "needsReview": "Necesita Revisión",
+        "verified": "Verificado"
+      },
+      "totalItems": "Total de Elementos",
+      "avgScore": "Puntuación Promedio",
+      "viewAll": "Ver Todo",
+      "recommendedActions": "Acciones Recomendadas",
+      "priorityTasks": "Tareas prioritarias basadas en el perfil de riesgo actual",
+      "review": "Revisar"
+    },
+    "contentIntelligence": {
+      "title": "Investigación de Contenido y Análisis de Enlaces",
+      "subtitle": "Analiza URLs, extrae información, preserva evidencia y haz preguntas",
+      "urlPlaceholder": "Ingresa la URL a analizar...",
+      "modes": {
+        "quick": "Rápido",
+        "normal": "Normal",
+        "full": "Completo"
+      },
+      "analyzing": "Analizando...",
+      "analyzeContent": "Analizar Contenido",
+      "processingTime": "Esto puede tardar 10-30 segundos dependiendo del tamaño del contenido",
+      "recentlySavedLinks": "Enlaces Guardados Recientemente",
+      "viewAll": "Ver Todo",
+      "fullLibraryComingSoon": "Vista completa de biblioteca próximamente",
+      "loadingSavedLinks": "Cargando enlaces guardados...",
+      "noSavedLinks": "Sin enlaces guardados aún.",
+      "noSavedLinksHint": "Analiza URLs para guardarlos automáticamente, o agrega notas y etiquetas antes de hacer clic en \"Guardar Permanentemente\".",
+      "loadAnalysis": "Cargar Análisis",
+      "analyzeNow": "Analizar Ahora",
+      "sections": {
+        "overview": {
+          "label": "Resumen",
+          "description": "Resumen, metadatos e información clave"
+        },
+        "entities": {
+          "label": "Entidades",
+          "description": "Personas, organizaciones, ubicaciones y más"
+        },
+        "sentiment": {
+          "label": "Sentimiento",
+          "description": "Tono emocional y análisis de sentimiento"
+        },
+        "links": {
+          "label": "Enlaces",
+          "description": "Análisis de enlaces externos e internos"
+        },
+        "wordAnalysis": {
+          "label": "Análisis de Palabras",
+          "description": "Frecuencia de palabras y análisis de frases"
+        },
+        "claims": {
+          "label": "Análisis de Afirmaciones",
+          "description": "Marco de detección de engaño de 6 métodos"
+        },
+        "dime": {
+          "label": "Marco DIME",
+          "description": "Diplomático, Información, Militar, Económico"
+        },
+        "starbursting": {
+          "label": "Starbursting",
+          "description": "Generación de preguntas críticas 5W1H"
+        },
+        "qa": {
+          "label": "Preguntas y Respuestas",
+          "description": "Haz preguntas sobre el contenido"
+        }
+      }
     }
   },
   "emptyStates": {

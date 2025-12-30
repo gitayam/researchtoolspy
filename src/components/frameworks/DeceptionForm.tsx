@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,6 +41,7 @@ export function DeceptionForm({
   frameworkId
 }: DeceptionFormProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation('deception')
 
   // Form fields
   const [title, setTitle] = useState(initialData?.title || '')
@@ -94,7 +96,7 @@ export function DeceptionForm({
 
   const handleRunAI = async () => {
     if (!scenario) {
-      setError('Please provide a scenario description before running AI analysis')
+      setError(t('errors.scenarioRequired'))
       return
     }
 
@@ -117,7 +119,7 @@ export function DeceptionForm({
       setActiveTab('assessment')
     } catch (err) {
       console.error('AI analysis error:', err)
-      setError('AI analysis failed. Please check your API key configuration.')
+      setError(t('errors.aiAnalysisFailed'))
     } finally {
       setRunningAI(false)
     }
@@ -157,7 +159,7 @@ export function DeceptionForm({
 
   const handleSave = async () => {
     if (!title || !scenario) {
-      setError('Title and scenario are required')
+      setError(t('errors.titleRequired'))
       return
     }
 
@@ -186,7 +188,7 @@ export function DeceptionForm({
       navigate(backPath)
     } catch (err) {
       console.error('Save error:', err)
-      setError('Failed to save analysis. Please try again.')
+      setError(t('errors.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -206,16 +208,16 @@ export function DeceptionForm({
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Analyses
+          {t('form.backToAnalyses')}
         </Button>
 
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {mode === 'create' ? 'New Deception Analysis' : 'Edit Deception Analysis'}
+              {mode === 'create' ? t('form.newAnalysis') : t('form.editAnalysis')}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              CIA SATS MOM-POP-MOSES-EVE Framework
+              {t('subtitle')}
             </p>
           </div>
           <div className="flex gap-2">
@@ -231,7 +233,7 @@ export function DeceptionForm({
                 disabled={runningAI || !scenario}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                {runningAI ? 'Analyzing...' : 'AI Analysis'}
+                {runningAI ? t('form.analyzing') : t('form.aiAnalysis')}
               </Button>
             )}
             {mode === 'edit' && calculatedAssessment && (
@@ -256,7 +258,7 @@ export function DeceptionForm({
             )}
             <Button onClick={handleSave} disabled={saving}>
               <Save className="h-4 w-4 mr-2" />
-              {saving ? 'Saving...' : 'Save Analysis'}
+              {saving ? t('form.saving') : t('form.saveAnalysis')}
             </Button>
           </div>
         </div>
@@ -276,26 +278,26 @@ export function DeceptionForm({
           {/* Basic Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Identify the analysis and scenario</CardDescription>
+              <CardTitle>{t('basicInfo.title')}</CardTitle>
+              <CardDescription>{t('basicInfo.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="title">Analysis Title *</Label>
+                <Label htmlFor="title">{t('basicInfo.analysisTitle')} *</Label>
                 <Input
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Russian Maskirovka Assessment - Operation XYZ"
+                  placeholder={t('basicInfo.analysisTitlePlaceholder')}
                 />
               </div>
               <div>
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t('basicInfo.descriptionLabel')}</Label>
                 <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Brief overview of this analysis"
+                  placeholder={t('basicInfo.descriptionPlaceholder')}
                   rows={2}
                 />
               </div>
@@ -305,28 +307,28 @@ export function DeceptionForm({
           {/* Tabbed Analysis Sections */}
           <Card>
             <CardHeader>
-              <CardTitle>SATS Analysis Framework</CardTitle>
+              <CardTitle>{t('sats.title')}</CardTitle>
               <CardDescription>
-                Complete each section to build comprehensive deception assessment
+                {t('sats.description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid grid-cols-6 w-full">
-                  <TabsTrigger value="scenario">Scenario</TabsTrigger>
-                  <TabsTrigger value="mom">MOM</TabsTrigger>
-                  <TabsTrigger value="pop">POP</TabsTrigger>
-                  <TabsTrigger value="moses">MOSES</TabsTrigger>
-                  <TabsTrigger value="eve">EVE</TabsTrigger>
-                  <TabsTrigger value="assessment">Assessment</TabsTrigger>
+                  <TabsTrigger value="scenario">{t('sats.tabs.scenario')}</TabsTrigger>
+                  <TabsTrigger value="mom">{t('sats.tabs.mom')}</TabsTrigger>
+                  <TabsTrigger value="pop">{t('sats.tabs.pop')}</TabsTrigger>
+                  <TabsTrigger value="moses">{t('sats.tabs.moses')}</TabsTrigger>
+                  <TabsTrigger value="eve">{t('sats.tabs.eve')}</TabsTrigger>
+                  <TabsTrigger value="assessment">{t('sats.tabs.assessment')}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="scenario" className="space-y-4 mt-4">
                   <div>
                     <Label htmlFor="scenario">
-                      Scenario Description *
+                      {t('scenario.title')} *
                       <span className="text-xs text-muted-foreground ml-2">
-                        Describe the information or situation being analyzed
+                        {t('scenario.description')}
                       </span>
                     </Label>
                     <div className="flex gap-2 mt-2">
@@ -334,18 +336,18 @@ export function DeceptionForm({
                         id="scenario"
                         value={scenario}
                         onChange={(e) => setScenario(e.target.value)}
-                        placeholder="Provide detailed description of the scenario, including source of information, context, and what claims or information are being assessed..."
+                        placeholder={t('scenario.placeholder')}
                         rows={10}
                       />
                       <AIFieldAssistant
-                        fieldName="Scenario Description"
+                        fieldName={t('scenario.title')}
                         currentValue={scenario}
                         onAccept={(value) => setScenario(value)}
                         context={{
                           framework: 'Deception Detection (MOM-POP-MOSES-EVE)',
                           relatedFields: { title, description, mom, pop, moses, eve, assessment }
                         }}
-                        placeholder="Describe the scenario..."
+                        placeholder={t('scenario.placeholder')}
                       />
                     </div>
                   </div>
@@ -354,9 +356,9 @@ export function DeceptionForm({
                 <TabsContent value="mom" className="space-y-4 mt-4">
                   <div>
                     <Label htmlFor="mom">
-                      MOM (Motive, Opportunity, Means)
+                      {t('categories.mom.fieldLabel')}
                       <span className="text-xs text-muted-foreground ml-2">
-                        Assess whether adversary has motive, opportunity, and means to deceive
+                        {t('categories.mom.fieldDescription')}
                       </span>
                     </Label>
                     <div className="flex gap-2 mt-2">
@@ -364,18 +366,18 @@ export function DeceptionForm({
                         id="mom"
                         value={mom}
                         onChange={(e) => setMom(e.target.value)}
-                        placeholder="Motive: Why would they want to deceive? What do they gain?&#10;Opportunity: Do they control information channels?&#10;Means: Do they have capabilities to execute deception?"
+                        placeholder={t('categories.mom.placeholder')}
                         rows={10}
                       />
                       <AIFieldAssistant
-                        fieldName="MOM Analysis"
+                        fieldName={t('categories.mom.fieldLabel')}
                         currentValue={mom}
                         onAccept={(value) => setMom(value)}
                         context={{
                           framework: 'Deception Detection (MOM)',
                           relatedFields: { scenario, pop, moses, eve }
                         }}
-                        placeholder="Analyze motive, opportunity, and means..."
+                        placeholder={t('categories.mom.placeholder')}
                       />
                     </div>
                   </div>
@@ -384,9 +386,9 @@ export function DeceptionForm({
                 <TabsContent value="pop" className="space-y-4 mt-4">
                   <div>
                     <Label htmlFor="pop">
-                      POP (Patterns of Practice)
+                      {t('categories.pop.fieldLabel')}
                       <span className="text-xs text-muted-foreground ml-2">
-                        Examine historical deception patterns
+                        {t('categories.pop.fieldDescription')}
                       </span>
                     </Label>
                     <div className="flex gap-2 mt-2">
@@ -394,18 +396,18 @@ export function DeceptionForm({
                         id="pop"
                         value={pop}
                         onChange={(e) => setPop(e.target.value)}
-                        placeholder="Historical patterns: Has this actor used deception before?&#10;Sophistication: How advanced are their deception techniques?&#10;Success rate: Have their past deceptions worked?"
+                        placeholder={t('categories.pop.placeholder')}
                         rows={10}
                       />
                       <AIFieldAssistant
-                        fieldName="POP Analysis"
+                        fieldName={t('categories.pop.fieldLabel')}
                         currentValue={pop}
                         onAccept={(value) => setPop(value)}
                         context={{
                           framework: 'Deception Detection (POP)',
                           relatedFields: { scenario, mom, moses, eve }
                         }}
-                        placeholder="Analyze patterns of practice..."
+                        placeholder={t('categories.pop.placeholder')}
                       />
                     </div>
                   </div>
@@ -414,9 +416,9 @@ export function DeceptionForm({
                 <TabsContent value="moses" className="space-y-4 mt-4">
                   <div>
                     <Label htmlFor="moses">
-                      MOSES (My Own Sources Evaluation)
+                      {t('categories.moses.fieldLabel')}
                       <span className="text-xs text-muted-foreground ml-2">
-                        Evaluate vulnerability of your sources to manipulation
+                        {t('categories.moses.fieldDescription')}
                       </span>
                     </Label>
                     <div className="flex gap-2 mt-2">
@@ -424,18 +426,18 @@ export function DeceptionForm({
                         id="moses"
                         value={moses}
                         onChange={(e) => setMoses(e.target.value)}
-                        placeholder="Source vulnerability: Could our sources be compromised?&#10;Access: Do adversaries have access to our collection methods?&#10;Manipulation evidence: Any signs of source manipulation?"
+                        placeholder={t('categories.moses.placeholder')}
                         rows={10}
                       />
                       <AIFieldAssistant
-                        fieldName="MOSES Analysis"
+                        fieldName={t('categories.moses.fieldLabel')}
                         currentValue={moses}
                         onAccept={(value) => setMoses(value)}
                         context={{
                           framework: 'Deception Detection (MOSES)',
                           relatedFields: { scenario, mom, pop, eve }
                         }}
-                        placeholder="Analyze source vulnerability..."
+                        placeholder={t('categories.moses.placeholder')}
                       />
                     </div>
                   </div>
@@ -444,9 +446,9 @@ export function DeceptionForm({
                 <TabsContent value="eve" className="space-y-4 mt-4">
                   <div>
                     <Label htmlFor="eve">
-                      EVE (Evaluation of Evidence)
+                      {t('categories.eve.fieldLabel')}
                       <span className="text-xs text-muted-foreground ml-2">
-                        Assess internal consistency and corroboration
+                        {t('categories.eve.fieldDescription')}
                       </span>
                     </Label>
                     <div className="flex gap-2 mt-2">
@@ -454,18 +456,18 @@ export function DeceptionForm({
                         id="eve"
                         value={eve}
                         onChange={(e) => setEve(e.target.value)}
-                        placeholder="Internal consistency: Does the information hang together logically?&#10;External corroboration: Do independent sources confirm it?&#10;Anomalies: Are there any suspicious patterns or oddities?"
+                        placeholder={t('categories.eve.placeholder')}
                         rows={10}
                       />
                       <AIFieldAssistant
-                        fieldName="EVE Analysis"
+                        fieldName={t('categories.eve.fieldLabel')}
                         currentValue={eve}
                         onAccept={(value) => setEve(value)}
                         context={{
                           framework: 'Deception Detection (EVE)',
                           relatedFields: { scenario, mom, pop, moses }
                         }}
-                        placeholder="Analyze evidence evaluation..."
+                        placeholder={t('categories.eve.placeholder')}
                       />
                     </div>
                   </div>
@@ -474,9 +476,9 @@ export function DeceptionForm({
                 <TabsContent value="assessment" className="space-y-4 mt-4">
                   <div>
                     <Label htmlFor="assessment">
-                      Overall Assessment
+                      {t('assessment.title')}
                       <span className="text-xs text-muted-foreground ml-2">
-                        Synthesize findings and determine deception likelihood
+                        {t('assessment.description')}
                       </span>
                     </Label>
                     <div className="flex gap-2 mt-2">
@@ -484,18 +486,18 @@ export function DeceptionForm({
                         id="assessment"
                         value={assessment}
                         onChange={(e) => setAssessment(e.target.value)}
-                        placeholder="Bottom Line Up Front (BLUF):&#10;&#10;Key Findings:&#10;&#10;Recommendations:&#10;&#10;Confidence Level:"
+                        placeholder={t('assessment.placeholder')}
                         rows={10}
                       />
                       <AIFieldAssistant
-                        fieldName="Overall Assessment"
+                        fieldName={t('assessment.title')}
                         currentValue={assessment}
                         onAccept={(value) => setAssessment(value)}
                         context={{
                           framework: 'Deception Detection (SATS)',
                           relatedFields: { scenario, mom, pop, moses, eve, scores }
                         }}
-                        placeholder="Synthesize findings..."
+                        placeholder={t('assessment.placeholder')}
                       />
                     </div>
                   </div>
@@ -505,20 +507,20 @@ export function DeceptionForm({
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
                           <Sparkles className="h-4 w-4" />
-                          AI Analysis Results
+                          {t('aiResults.title')}
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4 text-sm">
                         <div>
-                          <strong>Bottom Line:</strong>
+                          <strong>{t('aiResults.bottomLine')}:</strong>
                           <p className="mt-1">{aiAnalysis.bottomLine}</p>
                         </div>
                         <div>
-                          <strong>Executive Summary:</strong>
+                          <strong>{t('aiResults.executiveSummary')}:</strong>
                           <p className="mt-1">{aiAnalysis.executiveSummary}</p>
                         </div>
                         <div>
-                          <strong>Key Indicators:</strong>
+                          <strong>{t('aiResults.keyIndicators')}:</strong>
                           <ul className="list-disc list-inside mt-1 space-y-1">
                             {aiAnalysis.keyIndicators.map((ind, idx) => (
                               <li key={idx}>{ind}</li>
@@ -526,7 +528,7 @@ export function DeceptionForm({
                           </ul>
                         </div>
                         <div>
-                          <strong>Recommendations:</strong>
+                          <strong>{t('aiResults.recommendations')}:</strong>
                           <ul className="list-disc list-inside mt-1 space-y-1">
                             {aiAnalysis.recommendations.slice(0, 3).map((rec, idx) => (
                               <li key={idx}>{rec}</li>
@@ -544,9 +546,9 @@ export function DeceptionForm({
           {/* Scoring Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Deception Likelihood Scoring</CardTitle>
+              <CardTitle>{t('scoring.title')}</CardTitle>
               <CardDescription>
-                Score each criterion (0-5) based on your analysis
+                {t('scoring.description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -578,7 +580,7 @@ export function DeceptionForm({
                 <CardContent className="text-center py-12">
                   <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-sm text-muted-foreground">
-                    Fill in the scoring section to see real-time deception likelihood analysis
+                    {t('scoring.fillScoring')}
                   </p>
                 </CardContent>
               </Card>

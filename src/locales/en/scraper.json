@@ -1,0 +1,56 @@
+{
+  "title": "Web Scraper & Research Extractor",
+  "description": "Extract structured data from web pages for research analysis",
+  "input": {
+    "title": "URL Extraction",
+    "urlLabel": "URL to Scrape *",
+    "urlPlaceholder": "https://example.com/article",
+    "modeLabel": "Extraction Mode",
+    "modeDesc": {
+      "metadata": "Extracts title, description, author, keywords",
+      "summary": "Includes metadata plus content summary",
+      "full": "Full text extraction and analysis"
+    },
+    "button": {
+      "extracting": "Extracting...",
+      "default": "Extract & Analyze"
+    }
+  },
+  "modes": {
+    "metadata": "Metadata Only (Fast)",
+    "summary": "Summary + Metadata",
+    "full": "Full Content Analysis"
+  },
+  "results": {
+    "title": "Extracted Data",
+    "labels": {
+      "title": "Title",
+      "domain": "Domain",
+      "author": "Author",
+      "published": "Published",
+      "reliability": "Reliability Score",
+      "extractedAt": "Extracted At",
+      "description": "Description",
+      "keywords": "Keywords",
+      "content": "Content Preview",
+      "wordCount": "Word count:"
+    },
+    "actions": {
+      "export": "Export JSON",
+      "createDataset": "Create Dataset"
+    }
+  },
+  "reliability": {
+    "high": "High Reliability",
+    "medium": "Medium Reliability",
+    "low": "Low Reliability",
+    "unknown": "Unknown"
+  },
+  "alerts": {
+    "emptyUrl": "Please enter a URL",
+    "failed": "Failed to scrape URL",
+    "createSuccess": "Dataset created successfully! ID: {{id}}",
+    "createFailed": "Failed to create dataset",
+    "createError": "Error creating dataset: {{error}}"
+  }
+}

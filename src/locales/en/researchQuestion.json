@@ -1,0 +1,190 @@
+{
+  "title": "Research Question Generator",
+  "subtitle": "Generate high-quality research questions following SMART and FINER criteria",
+  "backToDashboard": "Back to Dashboard",
+  "steps": {
+    "0": "Quick Start",
+    "1": "Research Context",
+    "2": "Topic & Purpose",
+    "3": "The 5 W's",
+    "4": "Resources & Constraints",
+    "5": "Review & Generate"
+  },
+  "stepDesc": {
+    "0": "Choose how to begin",
+    "1": "Type of research & team",
+    "2": "Define your research area",
+    "3": "Who, What, Where, When, Why",
+    "4": "Timeline and limitations",
+    "5": "Generate research questions"
+  },
+  "quickStart": {
+    "title": "How would you like to start?",
+    "subtitle": "Choose your preferred way to create a research question",
+    "wizard": {
+      "title": "Start Wizard",
+      "desc": "Step-by-step guided process to craft your research question",
+      "button": "Begin Guided Process",
+      "bestFor": "Best for: Comprehensive planning"
+    },
+    "import": {
+      "title": "Import Question",
+      "desc": "Already have a research question? Paste it here to start",
+      "placeholder": "Paste your research question here...",
+      "button": "Import & Continue",
+      "bestFor": "Best for: Quick start with existing questions",
+      "loading": "Generating Plan..."
+    },
+    "ai": {
+      "title": "AI Recommend",
+      "desc": "Get AI-generated research question suggestions",
+      "placeholder": "Describe your topic or area of interest...",
+      "button": "Get Recommendations",
+      "bestFor": "Best for: Exploring new research ideas",
+      "loading": "Generating..."
+    }
+  },
+  "context": {
+    "title": "Select Research Type",
+    "emphasizes": "Emphasizes:",
+    "teamStructure": "Team Structure",
+    "solo": "Solo Researcher",
+    "smallTeam": "Small Team (2-5 people)",
+    "largeTeam": "Large Team (6+ people)",
+    "teamRoles": "Team Roles (one per line)",
+    "teamRolesPlaceholder": "Lead Researcher\nData Analyst...",
+    "teamRolesDesc": "Define roles for your team members to help structure the research plan"
+  },
+  "contexts": {
+    "academic": {
+      "label": "Academic/Graduate Research",
+      "description": "Thesis, dissertation, or academic publication"
+    },
+    "osint": {
+      "label": "Open Source Intelligence (OSINT)",
+      "description": "Open source research and intelligence analysis"
+    },
+    "investigation": {
+      "label": "Private Investigation",
+      "description": "Professional investigative research"
+    },
+    "business": {
+      "label": "Business Research",
+      "description": "Market research, competitive intelligence, due diligence"
+    },
+    "journalism": {
+      "label": "Investigative Journalism",
+      "description": "News investigation and fact-finding"
+    },
+    "personal": {
+      "label": "Personal/Hobby Research",
+      "description": "Curiosity-driven or personal interest research"
+    }
+  },
+  "topic": {
+    "title": "Topic & Purpose",
+    "desc": "Define your research area and objectives",
+    "topicLabel": "What is your general area of interest or research topic? *",
+    "topicPlaceholder": "Example: Social media impact on mental health in young adults",
+    "topicHint": "Be as specific or broad as you like - we'll help refine it",
+    "purposeLabel": "What is the purpose of this research? (Select all that apply)",
+    "projectTypeLabel": "What type of project is this? *",
+    "projectTypePlaceholder": "Select a project type..."
+  },
+  "fiveWs": {
+    "title": "The 5 W's",
+    "desc": "Define Who, What, Where, When, and Why",
+    "who": {
+      "label": "Who",
+      "focusLabel": "Who or what is the focus of your research? *",
+      "focusPlaceholder": "Example: Young adults aged 18-25",
+      "subgroupsLabel": "Specific subgroups to compare? (Optional)",
+      "subgroupsPlaceholder": "Example: Male vs female, urban vs rural"
+    },
+    "what": {
+      "label": "What",
+      "variablesLabel": "What variables, behaviors, or phenomena will you study? *",
+      "variablesPlaceholder": "Example: Social media usage time, anxiety levels, depression symptoms",
+      "outcomeLabel": "Expected relationship or outcome? (Optional)",
+      "outcomePlaceholder": "Example: Increased social media use leads to higher anxiety"
+    },
+    "where": {
+      "label": "Where",
+      "locationLabel": "Where will this research take place? *",
+      "locationPlaceholder": "Example: United States, Online platforms, Rural Southeast Asia",
+      "settingsLabel": "Specific settings or contexts? (Optional)",
+      "settingsPlaceholder": "Example: University campuses, Healthcare facilities"
+    },
+    "when": {
+      "label": "When",
+      "timeLabel": "What time period will your research cover? *",
+      "timePlaceholder": "Example: 2020-2024, Next 6 months, Past decade",
+      "studyTypeLabel": "Study type"
+    },
+    "why": {
+      "label": "Why",
+      "importanceLabel": "Why is this research important? *",
+      "importancePlaceholder": "Example: Mental health issues are rising among young adults...",
+      "beneficiariesLabel": "Who will benefit from this research? (Optional)",
+      "beneficiariesPlaceholder": "Example: Policymakers, Healthcare providers, Educators"
+    }
+  },
+  "resources": {
+    "title": "Resources & Constraints",
+    "desc": "Define your timeline, resources, and limitations",
+    "durationLabel": "How long do you have to complete this research?",
+    "durationPlaceholder": "Select duration...",
+    "customDurationPlaceholder": "Enter custom duration (e.g., 3 days, 5 hours)",
+    "resourcesLabel": "What resources do you have access to? (Check all that apply)",
+    "experienceLabel": "What is your research experience level?",
+    "constraintsLabel": "Are there areas or topics you want to avoid? (Optional)",
+    "constraintsPlaceholder": "Example: Sensitive personal data, High-cost experiments...",
+    "ethicalLabel": "Are there any ethical considerations? (Optional)",
+    "ethicalPlaceholder": "Example: Vulnerable populations, privacy concerns..."
+  },
+  "generate": {
+    "reviewTitle": "Review Your Inputs",
+    "summary": "Research Summary",
+    "sentence": "A {{projectType}} investigating {{topic}}, focusing on {{population}} in {{location}} during {{timePeriod}}, by examining {{variables}} to understand {{importance}}.",
+    "labels": {
+      "topic": "Topic:",
+      "projectType": "Project Type:",
+      "who": "Who:",
+      "what": "What:",
+      "where": "Where:",
+      "when": "When:",
+      "why": "Why:",
+      "duration": "Duration:"
+    },
+    "button": "Generate Research Questions",
+    "loading": "Generating Questions...",
+    "aiHint": "AI will generate 3 research questions with SMART & FINER assessments",
+    "resultsTitle": "Generated Research Questions",
+    "planTitle": "Ready to create your research plan?",
+    "planDesc": "Generate a comprehensive, actionable research plan tailored to your selected question",
+    "planButton": "Generate Research Plan",
+    "planLoading": "Generating Research Plan..."
+  },
+  "questionCard": {
+    "scope": {
+      "broad": "Broad",
+      "moderate": "Moderate",
+      "narrow": "Narrow"
+    },
+    "score": "Score",
+    "nullHypothesis": "Null Hypothesis (H₀):",
+    "alternativeHypothesis": "Alternative Hypothesis (H₁):",
+    "keyVariables": "Key Variables:",
+    "smartCriteria": "SMART Criteria:",
+    "select": "Select This Question",
+    "selected": "Selected"
+  },
+  "alerts": {
+    "importEmpty": "Please enter a research question",
+    "recommendEmpty": "Please enter a topic or area of interest",
+    "generateFailed": "Failed to generate questions. Please try again.",
+    "planFailed": "Failed to generate research plan. Please try again.",
+    "recommendFailed": "Failed to generate recommendations. Please try again.",
+    "error": "An error occurred. Please try again."
+  }
+}

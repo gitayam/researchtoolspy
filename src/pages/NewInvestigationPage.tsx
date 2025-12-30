@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, FileText, Folder, Zap, Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -55,6 +56,7 @@ const INVESTIGATION_TYPES: InvestigationType[] = [
 ]
 
 export default function NewInvestigationPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [step, setStep] = useState<'type' | 'details'>('type')
   const [selectedType, setSelectedType] = useState<InvestigationType | null>(null)
@@ -123,16 +125,16 @@ export default function NewInvestigationPage() {
       <div className="mb-6">
         <Button variant="outline" onClick={() => step === 'type' ? navigate('/dashboard/investigations') : setStep('type')} size="sm" className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {step === 'type' ? 'Back to Investigations' : 'Back'}
+          {step === 'type' ? t('pages.newInvestigation.backToInvestigations') : t('pages.newInvestigation.back')}
         </Button>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Create New Investigation</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{t('pages.newInvestigation.title')}</h1>
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
-          {step === 'type' ? 'Choose your investigation type' : 'Provide investigation details'}
+          {step === 'type' ? t('pages.newInvestigation.chooseType') : t('pages.newInvestigation.provideDetails')}
         </p>
         {!localStorage.getItem('omnicore_user_hash') && (
           <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              💡 <strong>Guest Mode:</strong> You're creating an investigation without logging in. You can still collaborate and share it with others.
+              💡 <strong>{t('pages.newInvestigation.guestMode')}</strong> {t('pages.newInvestigation.guestModeDesc')}
             </p>
           </div>
         )}
@@ -183,21 +185,21 @@ export default function NewInvestigationPage() {
                 <selectedType.icon className="h-5 w-5 text-purple-600" />
                 <Badge variant="secondary">{selectedType.name}</Badge>
               </div>
-              <CardTitle>Investigation Details</CardTitle>
+              <CardTitle>{t('pages.newInvestigation.investigationDetails')}</CardTitle>
               <CardDescription>
-                Provide a title and description for your {selectedType.name.toLowerCase()}
+                {t('pages.newInvestigation.provideDescription')} {selectedType.name.toLowerCase()}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Title *
+                  {t('pages.newInvestigation.titleLabel')} *
                 </label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter a descriptive title for your investigation"
+                  placeholder={t('pages.newInvestigation.titlePlaceholder')}
                   className="w-full"
                 />
               </div>
@@ -205,12 +207,12 @@ export default function NewInvestigationPage() {
               {/* Description */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Description (Optional)
+                  {t('pages.newInvestigation.descriptionLabel')}
                 </label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe the purpose and scope of this investigation"
+                  placeholder={t('pages.newInvestigation.descriptionPlaceholder')}
                   className="w-full min-h-[100px]"
                 />
               </div>
@@ -218,14 +220,14 @@ export default function NewInvestigationPage() {
               {/* Tags */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Tags (Optional)
+                  {t('pages.newInvestigation.tagsLabel')}
                 </label>
                 <div className="flex gap-2 mb-2">
                   <Input
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                    placeholder="Add tags..."
+                    placeholder={t('pages.newInvestigation.tagsPlaceholder')}
                     className="flex-1"
                   />
                   <Button onClick={handleAddTag} variant="outline" size="sm">
@@ -253,7 +255,7 @@ export default function NewInvestigationPage() {
           {/* Action Buttons */}
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setStep('type')}>
-              Back
+              {t('pages.newInvestigation.back')}
             </Button>
             <Button
               onClick={handleCreate}
@@ -263,12 +265,12 @@ export default function NewInvestigationPage() {
               {isCreating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
+                  {t('pages.newInvestigation.creating')}
                 </>
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Investigation
+                  {t('pages.newInvestigation.createInvestigation')}
                 </>
               )}
             </Button>

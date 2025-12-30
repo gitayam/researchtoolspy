@@ -5,6 +5,7 @@
  */
 
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +26,7 @@ export function DeceptionDashboard({
   showHistorical = false,
   historicalData = []
 }: DeceptionDashboardProps) {
+  const { t } = useTranslation('deception')
 
   // Calculate assessment if not provided
   const assessment = useMemo(() => {
@@ -38,10 +40,10 @@ export function DeceptionDashboard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
-            Overall Deception Likelihood
+            {t('dashboard.overallLikelihood')}
           </CardTitle>
           <CardDescription>
-            Based on MOM-POP-MOSES-EVE analysis framework
+            {t('dashboard.basedOnFramework')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -56,58 +58,66 @@ export function DeceptionDashboard({
       {/* Category Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <CategoryCard
-          title="MOM Risk Indicators"
-          subtitle="Motive, Opportunity, Means"
+          title={t('dashboard.momRiskIndicators')}
+          subtitle={t('dashboard.momSubtitle')}
           icon={<AlertTriangle className="h-4 w-4" />}
           score={assessment.categoryScores.mom}
           maxScore={15}
           items={[
-            { label: 'Motive', value: scores.motive || 0, max: 5 },
-            { label: 'Opportunity', value: scores.opportunity || 0, max: 5 },
-            { label: 'Means', value: scores.means || 0, max: 5 }
+            { label: t('criteria.motive.label'), value: scores.motive || 0, max: 5 },
+            { label: t('criteria.opportunity.label'), value: scores.opportunity || 0, max: 5 },
+            { label: t('criteria.means.label'), value: scores.means || 0, max: 5 }
           ]}
           color="red"
+          categoryScoreLabel={t('dashboard.categoryScore')}
+          invertedLabel={t('dashboard.inverted')}
         />
 
         <CategoryCard
-          title="POP Analysis"
-          subtitle="Patterns of Practice"
+          title={t('dashboard.popAnalysis')}
+          subtitle={t('dashboard.popSubtitle')}
           icon={<TrendingUp className="h-4 w-4" />}
           score={assessment.categoryScores.pop}
           maxScore={15}
           items={[
-            { label: 'Historical Pattern', value: scores.historicalPattern || 0, max: 5 },
-            { label: 'Sophistication', value: scores.sophisticationLevel || 0, max: 5 },
-            { label: 'Success Rate', value: scores.successRate || 0, max: 5 }
+            { label: t('criteria.historicalPattern.label'), value: scores.historicalPattern || 0, max: 5 },
+            { label: t('criteria.sophisticationLevel.label'), value: scores.sophisticationLevel || 0, max: 5 },
+            { label: t('criteria.successRate.label'), value: scores.successRate || 0, max: 5 }
           ]}
           color="orange"
+          categoryScoreLabel={t('dashboard.categoryScore')}
+          invertedLabel={t('dashboard.inverted')}
         />
 
         <CategoryCard
-          title="MOSES Assessment"
-          subtitle="My Own Sources Evaluation"
+          title={t('dashboard.mosesAssessment')}
+          subtitle={t('dashboard.mosesSubtitle')}
           icon={<Eye className="h-4 w-4" />}
           score={assessment.categoryScores.moses}
           maxScore={10}
           items={[
-            { label: 'Source Vulnerability', value: scores.sourceVulnerability || 0, max: 5 },
-            { label: 'Manipulation Evidence', value: scores.manipulationEvidence || 0, max: 5 }
+            { label: t('criteria.sourceVulnerability.label'), value: scores.sourceVulnerability || 0, max: 5 },
+            { label: t('criteria.manipulationEvidence.label'), value: scores.manipulationEvidence || 0, max: 5 }
           ]}
           color="yellow"
+          categoryScoreLabel={t('dashboard.categoryScore')}
+          invertedLabel={t('dashboard.inverted')}
         />
 
         <CategoryCard
-          title="EVE Evaluation"
-          subtitle="Evidence Quality Assessment"
+          title={t('dashboard.eveEvaluation')}
+          subtitle={t('dashboard.eveSubtitle')}
           icon={<Shield className="h-4 w-4" />}
           score={assessment.categoryScores.eve}
           maxScore={15}
           items={[
-            { label: 'Internal Consistency', value: 5 - (scores.internalConsistency || 3), max: 5, inverted: true },
-            { label: 'External Corroboration', value: 5 - (scores.externalCorroboration || 3), max: 5, inverted: true },
-            { label: 'Anomaly Detection', value: scores.anomalyDetection || 0, max: 5 }
+            { label: t('criteria.internalConsistency.label'), value: 5 - (scores.internalConsistency || 3), max: 5, inverted: true },
+            { label: t('criteria.externalCorroboration.label'), value: 5 - (scores.externalCorroboration || 3), max: 5, inverted: true },
+            { label: t('criteria.anomalyDetection.label'), value: scores.anomalyDetection || 0, max: 5 }
           ]}
           color="blue"
+          categoryScoreLabel={t('dashboard.categoryScore')}
+          invertedLabel={t('dashboard.inverted')}
         />
       </div>
 
@@ -116,11 +126,34 @@ export function DeceptionDashboard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Risk Factor Matrix
+            {t('dashboard.riskFactorMatrix')}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <RiskMatrix scores={scores} assessment={assessment} />
+          <RiskMatrix
+            scores={scores}
+            assessment={assessment}
+            labels={{
+              motive: t('criteria.motive.label'),
+              opportunity: t('criteria.opportunity.label'),
+              means: t('criteria.means.label'),
+              historicalPattern: t('criteria.historicalPattern.label'),
+              sophistication: t('criteria.sophisticationLevel.label'),
+              successRate: t('criteria.successRate.label'),
+              sourceVulnerability: t('criteria.sourceVulnerability.label'),
+              manipulationEvidence: t('criteria.manipulationEvidence.label'),
+              anomalyDetection: t('criteria.anomalyDetection.label'),
+              internalConsistency: t('criteria.internalConsistency.label'),
+              externalCorroboration: t('criteria.externalCorroboration.label'),
+              overallLikelihood: t('dashboard.overallLikelihoodLabel')
+            }}
+            legend={{
+              low: t('dashboard.matrixLegend.low'),
+              medium: t('dashboard.matrixLegend.medium'),
+              high: t('dashboard.matrixLegend.high'),
+              critical: t('dashboard.matrixLegend.critical')
+            }}
+          />
         </CardContent>
       </Card>
 
@@ -130,14 +163,18 @@ export function DeceptionDashboard({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Historical Trend Analysis
+              {t('dashboard.historicalTrend')}
             </CardTitle>
             <CardDescription>
-              Deception likelihood over time
+              {t('dashboard.likelihoodOverTime')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <HistoricalChart data={historicalData} />
+            <HistoricalChart
+              data={historicalData}
+              assessmentsLabel={t('dashboard.assessments')}
+              trendLabel={t('dashboard.trend')}
+            />
           </CardContent>
         </Card>
       )}
@@ -279,7 +316,9 @@ function CategoryCard({
   score,
   maxScore,
   items,
-  color
+  color,
+  categoryScoreLabel,
+  invertedLabel
 }: {
   title: string
   subtitle: string
@@ -288,6 +327,8 @@ function CategoryCard({
   maxScore: number
   items: Array<{ label: string; value: number; max: number; inverted?: boolean }>
   color: 'red' | 'orange' | 'yellow' | 'blue'
+  categoryScoreLabel: string
+  invertedLabel: string
 }) {
   const percentage = (score / maxScore) * 100
 
@@ -318,7 +359,7 @@ function CategoryCard({
         {/* Overall category score */}
         <div>
           <div className="flex justify-between text-sm mb-2">
-            <span className="font-medium">Category Score</span>
+            <span className="font-medium">{categoryScoreLabel}</span>
             <span className="font-bold">{score.toFixed(1)}/{maxScore}</span>
           </div>
           <Progress value={percentage} className="h-2" />
@@ -331,7 +372,7 @@ function CategoryCard({
               <div className="flex justify-between text-xs mb-1">
                 <span className="text-muted-foreground">
                   {item.label}
-                  {item.inverted && <span className="ml-1 text-orange-500">(inverted)</span>}
+                  {item.inverted && <span className="ml-1 text-orange-500">{invertedLabel}</span>}
                 </span>
                 <span className="font-medium">{item.value}/{item.max}</span>
               </div>
@@ -352,27 +393,50 @@ function CategoryCard({
 /**
  * Risk matrix heatmap
  */
-function RiskMatrix({ scores, assessment }: { scores: Partial<DeceptionScores>; assessment: DeceptionAssessment }) {
+function RiskMatrix({ scores, assessment, labels, legend }: {
+  scores: Partial<DeceptionScores>
+  assessment: DeceptionAssessment
+  labels: {
+    motive: string
+    opportunity: string
+    means: string
+    historicalPattern: string
+    sophistication: string
+    successRate: string
+    sourceVulnerability: string
+    manipulationEvidence: string
+    anomalyDetection: string
+    internalConsistency: string
+    externalCorroboration: string
+    overallLikelihood: string
+  }
+  legend: {
+    low: string
+    medium: string
+    high: string
+    critical: string
+  }
+}) {
   const matrix = [
     [
-      { label: 'Motive', value: scores.motive || 0, category: 'MOM' },
-      { label: 'Opportunity', value: scores.opportunity || 0, category: 'MOM' },
-      { label: 'Means', value: scores.means || 0, category: 'MOM' }
+      { label: labels.motive, value: scores.motive || 0, category: 'MOM' },
+      { label: labels.opportunity, value: scores.opportunity || 0, category: 'MOM' },
+      { label: labels.means, value: scores.means || 0, category: 'MOM' }
     ],
     [
-      { label: 'Historical Pattern', value: scores.historicalPattern || 0, category: 'POP' },
-      { label: 'Sophistication', value: scores.sophisticationLevel || 0, category: 'POP' },
-      { label: 'Success Rate', value: scores.successRate || 0, category: 'POP' }
+      { label: labels.historicalPattern, value: scores.historicalPattern || 0, category: 'POP' },
+      { label: labels.sophistication, value: scores.sophisticationLevel || 0, category: 'POP' },
+      { label: labels.successRate, value: scores.successRate || 0, category: 'POP' }
     ],
     [
-      { label: 'Source Vulnerability', value: scores.sourceVulnerability || 0, category: 'MOSES' },
-      { label: 'Manipulation Evidence', value: scores.manipulationEvidence || 0, category: 'MOSES' },
-      { label: 'Anomaly Detection', value: scores.anomalyDetection || 0, category: 'EVE' }
+      { label: labels.sourceVulnerability, value: scores.sourceVulnerability || 0, category: 'MOSES' },
+      { label: labels.manipulationEvidence, value: scores.manipulationEvidence || 0, category: 'MOSES' },
+      { label: labels.anomalyDetection, value: scores.anomalyDetection || 0, category: 'EVE' }
     ],
     [
-      { label: 'Internal Consistency', value: 5 - (scores.internalConsistency || 3), category: 'EVE', inverted: true },
-      { label: 'External Corroboration', value: 5 - (scores.externalCorroboration || 3), category: 'EVE', inverted: true },
-      { label: 'Overall Likelihood', value: Math.round(assessment.overallLikelihood / 20), category: 'ALL' }
+      { label: labels.internalConsistency, value: 5 - (scores.internalConsistency || 3), category: 'EVE', inverted: true },
+      { label: labels.externalCorroboration, value: 5 - (scores.externalCorroboration || 3), category: 'EVE', inverted: true },
+      { label: labels.overallLikelihood, value: Math.round(assessment.overallLikelihood / 20), category: 'ALL' }
     ]
   ]
 
@@ -412,19 +476,19 @@ function RiskMatrix({ scores, assessment }: { scores: Partial<DeceptionScores>; 
       <div className="flex gap-2 mt-4 text-xs text-muted-foreground justify-center">
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-green-600 rounded"></div>
-          <span>Low</span>
+          <span>{legend.low}</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-          <span>Medium</span>
+          <span>{legend.medium}</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-orange-500 rounded"></div>
-          <span>High</span>
+          <span>{legend.high}</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-red-500 rounded"></div>
-          <span>Critical</span>
+          <span>{legend.critical}</span>
         </div>
       </div>
     </div>
@@ -434,7 +498,11 @@ function RiskMatrix({ scores, assessment }: { scores: Partial<DeceptionScores>; 
 /**
  * Historical trend line chart
  */
-function HistoricalChart({ data }: { data: Array<{ timestamp: string; likelihood: number }> }) {
+function HistoricalChart({ data, assessmentsLabel, trendLabel }: {
+  data: Array<{ timestamp: string; likelihood: number }>
+  assessmentsLabel: string
+  trendLabel: string
+}) {
   const maxValue = 100
   const width = 600
   const height = 200
@@ -467,13 +535,13 @@ function HistoricalChart({ data }: { data: Array<{ timestamp: string; likelihood
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="text-sm text-muted-foreground">
-          {data.length} assessments
+          {data.length} {assessmentsLabel}
         </div>
         <div className={`flex items-center gap-2 ${trendColor}`}>
           <TrendIcon className="h-4 w-4" />
           <span className="text-sm font-medium">
             {trend > 0 && '+'}
-            {trend.toFixed(1)}% trend
+            {trend.toFixed(1)}% {trendLabel}
           </span>
         </div>
       </div>

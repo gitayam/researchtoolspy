@@ -1,0 +1,51 @@
+{
+  "loading": "Cargando espacio de trabajo...",
+  "notFound": "Espacio de trabajo no encontrado",
+  "error": "Error",
+  "back": "Volver",
+  "backToGenerator": "Volver al Generador de Investigación",
+  "initializeWorkflow": "Inicializar Flujo de Trabajo",
+  "initializeSpecificWorkflow": "Inicializar Flujo de Trabajo {{context}}",
+  "tabs": {
+    "overview": "Resumen",
+    "tasks": "Tareas",
+    "evidence": "Evidencia",
+    "analysis": "Análisis"
+  },
+  "stats": {
+    "totalTasks": "Total de Tareas",
+    "evidenceItems": "Elementos de Evidencia",
+    "researchType": "Tipo de Investigación",
+    "completed": "completadas",
+    "verified": "verificados"
+  },
+  "getStarted": {
+    "title": "Comenzar",
+    "description": "Inicializa tu flujo de trabajo de investigación para comenzar con la recolección de evidencia y análisis"
+  },
+  "tasks": {
+    "noTasksInStage": "No hay tareas en esta etapa"
+  },
+  "evidence": {
+    "collection": "Recolección de Evidencia",
+    "add": "Agregar Evidencia",
+    "score": "Puntuación:",
+    "empty": {
+      "title": "No hay evidencia aún",
+      "description": "Comienza a recolectar evidencia para tu investigación",
+      "addFirst": "Agregar Primera Evidencia"
+    }
+  },
+  "analysis": {
+    "tools": "Herramientas de Análisis",
+    "comingSoon": "Herramientas de análisis próximamente"
+  },
+  "context": {
+    "academic": "Investigación Académica",
+    "osint": "Investigación OSINT",
+    "investigation": "Investigación Privada",
+    "business": "Investigación de Negocios",
+    "journalism": "Periodismo de Investigación",
+    "personal": "Investigación Personal"
+  }
+}

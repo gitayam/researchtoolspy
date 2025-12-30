@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -99,6 +100,7 @@ interface Workspace {
 }
 
 export default function DeceptionRiskDashboard() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<DeceptionAggregateData | null>(null)
@@ -177,7 +179,7 @@ export default function DeceptionRiskDashboard() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Loading deception risk data...</p>
+          <p className="text-muted-foreground">{t('pages.deceptionRisk.loading')}</p>
         </div>
       </div>
     )
@@ -190,16 +192,16 @@ export default function DeceptionRiskDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-5 w-5" />
-              Error Loading Dashboard
+              {t('pages.deceptionRisk.errorTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              {error || 'Failed to load deception risk data'}
+              {error || t('pages.deceptionRisk.errorMessage')}
             </p>
             <Button onClick={loadData}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
+              {t('pages.deceptionRisk.retry')}
             </Button>
           </CardContent>
         </Card>
@@ -236,10 +238,10 @@ export default function DeceptionRiskDashboard() {
         <div className="flex-1">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
             <Shield className="h-8 w-8" />
-            Deception Risk Dashboard
+            {t('pages.deceptionRisk.title')}
           </h1>
           <p className="text-muted-foreground mt-2">
-            Unified view of all deception detection systems: MOM, POP, EVE, MOSES, Claims
+            {t('pages.deceptionRisk.subtitle')}
           </p>
 
           {/* Workspace Selector */}
@@ -247,21 +249,21 @@ export default function DeceptionRiskDashboard() {
             <FolderKanban className="h-5 w-5 text-muted-foreground" />
             <Select value={selectedWorkspaceId} onValueChange={setSelectedWorkspaceId}>
               <SelectTrigger className="w-[300px]">
-                <SelectValue placeholder="Select workspace..." />
+                <SelectValue placeholder={t('pages.deceptionRisk.selectWorkspace')} />
               </SelectTrigger>
               <SelectContent>
                 {workspaces.length === 0 ? (
-                  <SelectItem value="1">Default Workspace</SelectItem>
+                  <SelectItem value="1">{t('pages.deceptionRisk.defaultWorkspace')}</SelectItem>
                 ) : (
                   workspaces.map(workspace => (
                     <SelectItem key={workspace.id} value={workspace.id}>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{workspace.name}</span>
                         {workspace.type === 'TEAM' && (
-                          <Badge variant="outline" className="text-xs">Team</Badge>
+                          <Badge variant="outline" className="text-xs">{t('pages.deceptionRisk.team')}</Badge>
                         )}
                         {workspace.type === 'PUBLIC' && (
-                          <Badge variant="outline" className="text-xs">Public</Badge>
+                          <Badge variant="outline" className="text-xs">{t('pages.deceptionRisk.public')}</Badge>
                         )}
                       </div>
                     </SelectItem>
@@ -271,7 +273,7 @@ export default function DeceptionRiskDashboard() {
             </Select>
             {selectedWorkspace && (
               <div className="text-sm text-muted-foreground">
-                {selectedWorkspace.entity_count.actors} actors · {selectedWorkspace.entity_count.sources} sources · {selectedWorkspace.entity_count.evidence} evidence
+                {selectedWorkspace.entity_count.actors} {t('pages.deceptionRisk.actors')} · {selectedWorkspace.entity_count.sources} {t('pages.deceptionRisk.sources')} · {selectedWorkspace.entity_count.evidence} {t('pages.deceptionRisk.evidence')}
               </div>
             )}
           </div>
@@ -279,11 +281,11 @@ export default function DeceptionRiskDashboard() {
         <div className="text-right">
           <Button onClick={loadData} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            {t('pages.deceptionRisk.refresh')}
           </Button>
           {lastUpdated && (
             <p className="text-xs text-muted-foreground mt-2">
-              Updated {lastUpdated.toLocaleTimeString()}
+              {t('pages.deceptionRisk.updated')} {lastUpdated.toLocaleTimeString()}
             </p>
           )}
         </div>
@@ -295,14 +297,14 @@ export default function DeceptionRiskDashboard() {
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              Overall Risk Score
+              {t('pages.deceptionRisk.overallRiskScore')}
             </span>
             <Badge variant="outline" className={`text-lg px-4 py-2 ${getRiskColor(data.risk_level)}`}>
-              {data.risk_level}
+              {t(`pages.deceptionRisk.riskLevels.${data.risk_level.toLowerCase()}`)}
             </Badge>
           </CardTitle>
           <CardDescription>
-            Aggregated from {data.metadata.data_sources.actors} actors, {data.metadata.data_sources.sources} sources, {data.metadata.data_sources.content_analyses} analyses
+            {t('pages.deceptionRisk.aggregatedFrom', { actors: data.metadata.data_sources.actors, sources: data.metadata.data_sources.sources, analyses: data.metadata.data_sources.content_analyses })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -314,7 +316,7 @@ export default function DeceptionRiskDashboard() {
             <div className="flex-1">
               <Progress value={data.overall_risk_score} className="h-4" />
               <p className="text-sm text-muted-foreground mt-2">
-                Risk threshold: {data.overall_risk_score >= 75 ? 'CRITICAL' : data.overall_risk_score >= 60 ? 'HIGH' : data.overall_risk_score >= 40 ? 'MEDIUM' : 'LOW'}
+                {t('pages.deceptionRisk.riskThreshold')}: {t(`pages.deceptionRisk.riskLevels.${data.overall_risk_score >= 75 ? 'critical' : data.overall_risk_score >= 60 ? 'high' : data.overall_risk_score >= 40 ? 'medium' : 'low'}`)}
               </p>
             </div>
           </div>
@@ -327,10 +329,10 @@ export default function DeceptionRiskDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
               <AlertTriangle className="h-5 w-5" />
-              Critical Alerts ({data.critical_alerts.length + data.high_alerts.length})
+              {t('pages.deceptionRisk.criticalAlerts')} ({data.critical_alerts.length + data.high_alerts.length})
             </CardTitle>
             <CardDescription>
-              Immediate attention required
+              {t('pages.deceptionRisk.immediateAttention')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -351,7 +353,7 @@ export default function DeceptionRiskDashboard() {
                         {alert.type.replace('_', ' ')}
                       </Badge>
                       <Badge variant="outline" className="text-xs">
-                        Risk: {alert.risk_score.toFixed(1)}
+                        {t('pages.deceptionRisk.risk')}: {alert.risk_score.toFixed(1)}
                       </Badge>
                     </div>
                   </div>
@@ -375,8 +377,8 @@ export default function DeceptionRiskDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Actors MOM */}
         <RiskBreakdownCard
-          title="Actors (MOM)"
-          subtitle="Motive-Opportunity-Means"
+          title={t('pages.deceptionRisk.cards.actorsMom.title')}
+          subtitle={t('pages.deceptionRisk.cards.actorsMom.subtitle')}
           icon={<Target className="h-5 w-5" />}
           stats={{
             high: data.risk_breakdown.actors_mom.high,
@@ -385,13 +387,17 @@ export default function DeceptionRiskDashboard() {
             total: data.risk_breakdown.actors_mom.total,
             avgScore: data.risk_breakdown.actors_mom.avg_score
           }}
+          labels={{ high: t('pages.deceptionRisk.labels.highRisk'), medium: t('pages.deceptionRisk.labels.mediumRisk'), low: t('pages.deceptionRisk.labels.lowRisk') }}
+          totalLabel={t('pages.deceptionRisk.totalItems')}
+          avgLabel={t('pages.deceptionRisk.avgScore')}
+          viewAllLabel={t('pages.deceptionRisk.viewAll')}
           onViewAll={() => navigate('/dashboard/entities/actors')}
         />
 
         {/* Actors POP */}
         <RiskBreakdownCard
-          title="Actors (POP)"
-          subtitle="Patterns of Performance"
+          title={t('pages.deceptionRisk.cards.actorsPop.title')}
+          subtitle={t('pages.deceptionRisk.cards.actorsPop.subtitle')}
           icon={<TrendingUp className="h-5 w-5" />}
           stats={{
             high: data.risk_breakdown.actors_pop.high,
@@ -400,13 +406,17 @@ export default function DeceptionRiskDashboard() {
             total: data.risk_breakdown.actors_pop.total,
             avgScore: data.risk_breakdown.actors_pop.avg_score
           }}
+          labels={{ high: t('pages.deceptionRisk.labels.highRisk'), medium: t('pages.deceptionRisk.labels.mediumRisk'), low: t('pages.deceptionRisk.labels.lowRisk') }}
+          totalLabel={t('pages.deceptionRisk.totalItems')}
+          avgLabel={t('pages.deceptionRisk.avgScore')}
+          viewAllLabel={t('pages.deceptionRisk.viewAll')}
           onViewAll={() => navigate('/dashboard/entities/actors')}
         />
 
         {/* Sources MOSES */}
         <RiskBreakdownCard
-          title="Sources (MOSES)"
-          subtitle="Source Vulnerability"
+          title={t('pages.deceptionRisk.cards.sourcesMoses.title')}
+          subtitle={t('pages.deceptionRisk.cards.sourcesMoses.subtitle')}
           icon={<Eye className="h-5 w-5" />}
           stats={{
             high: data.risk_breakdown.sources_moses.compromised,
@@ -415,14 +425,17 @@ export default function DeceptionRiskDashboard() {
             total: data.risk_breakdown.sources_moses.total,
             avgScore: data.risk_breakdown.sources_moses.avg_score
           }}
-          labels={{ high: 'Compromised', medium: 'Unreliable', low: 'Solid' }}
+          labels={{ high: t('pages.deceptionRisk.labels.compromised'), medium: t('pages.deceptionRisk.labels.unreliable'), low: t('pages.deceptionRisk.labels.solid') }}
+          totalLabel={t('pages.deceptionRisk.totalItems')}
+          avgLabel={t('pages.deceptionRisk.avgScore')}
+          viewAllLabel={t('pages.deceptionRisk.viewAll')}
           onViewAll={() => navigate('/dashboard/entities/sources')}
         />
 
         {/* Evidence EVE */}
         <RiskBreakdownCard
-          title="Evidence (EVE)"
-          subtitle="Evidence Validation"
+          title={t('pages.deceptionRisk.cards.evidenceEve.title')}
+          subtitle={t('pages.deceptionRisk.cards.evidenceEve.subtitle')}
           icon={<BarChart3 className="h-5 w-5" />}
           stats={{
             high: data.risk_breakdown.evidence_eve.suspicious,
@@ -431,14 +444,17 @@ export default function DeceptionRiskDashboard() {
             total: data.risk_breakdown.evidence_eve.total,
             avgScore: data.risk_breakdown.evidence_eve.avg_score
           }}
-          labels={{ high: 'Suspicious', medium: 'Needs Review', low: 'Verified' }}
+          labels={{ high: t('pages.deceptionRisk.labels.suspicious'), medium: t('pages.deceptionRisk.labels.needsReview'), low: t('pages.deceptionRisk.labels.verified') }}
+          totalLabel={t('pages.deceptionRisk.totalItems')}
+          avgLabel={t('pages.deceptionRisk.avgScore')}
+          viewAllLabel={t('pages.deceptionRisk.viewAll')}
           onViewAll={() => navigate('/dashboard/evidence')}
         />
 
         {/* Claims */}
         <RiskBreakdownCard
-          title="Claims Analysis"
-          subtitle="Content Deception Detection"
+          title={t('pages.deceptionRisk.cards.claims.title')}
+          subtitle={t('pages.deceptionRisk.cards.claims.subtitle')}
           icon={<Shield className="h-5 w-5" />}
           stats={{
             high: data.risk_breakdown.claims.high,
@@ -447,6 +463,10 @@ export default function DeceptionRiskDashboard() {
             total: data.risk_breakdown.claims.total,
             avgScore: data.risk_breakdown.claims.avg_score
           }}
+          labels={{ high: t('pages.deceptionRisk.labels.highRisk'), medium: t('pages.deceptionRisk.labels.mediumRisk'), low: t('pages.deceptionRisk.labels.lowRisk') }}
+          totalLabel={t('pages.deceptionRisk.totalItems')}
+          avgLabel={t('pages.deceptionRisk.avgScore')}
+          viewAllLabel={t('pages.deceptionRisk.viewAll')}
           onViewAll={() => navigate('/dashboard/tools/content-intelligence')}
         />
       </div>
@@ -457,10 +477,10 @@ export default function DeceptionRiskDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5" />
-              Recommended Actions
+              {t('pages.deceptionRisk.recommendedActions')}
             </CardTitle>
             <CardDescription>
-              Priority tasks based on current risk profile
+              {t('pages.deceptionRisk.priorityTasks')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -480,7 +500,7 @@ export default function DeceptionRiskDashboard() {
                     onClick={() => navigate(action.url!)}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    Review
+                    {t('pages.deceptionRisk.review')}
                   </Button>
                 )}
               </div>
@@ -503,18 +523,18 @@ interface RiskBreakdownCardProps {
     total: number
     avgScore: number
   }
-  labels?: {
-    high?: string
-    medium?: string
-    low?: string
+  labels: {
+    high: string
+    medium: string
+    low: string
   }
+  totalLabel: string
+  avgLabel: string
+  viewAllLabel: string
   onViewAll: () => void
 }
 
-function RiskBreakdownCard({ title, subtitle, icon, stats, labels, onViewAll }: RiskBreakdownCardProps) {
-  const defaultLabels = { high: 'High Risk', medium: 'Medium Risk', low: 'Low Risk' }
-  const actualLabels = { ...defaultLabels, ...labels }
-
+function RiskBreakdownCard({ title, subtitle, icon, stats, labels, totalLabel, avgLabel, viewAllLabel, onViewAll }: RiskBreakdownCardProps) {
   return (
     <Card>
       <CardHeader>
@@ -527,28 +547,28 @@ function RiskBreakdownCard({ title, subtitle, icon, stats, labels, onViewAll }: 
       <CardContent className="space-y-4">
         <div className="text-3xl font-bold text-center">
           {stats.total}
-          <div className="text-xs font-normal text-muted-foreground">Total Items</div>
+          <div className="text-xs font-normal text-muted-foreground">{totalLabel}</div>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              {actualLabels.high}
+              {labels.high}
             </span>
             <span className="font-bold">{stats.high}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              {actualLabels.medium}
+              {labels.medium}
             </span>
             <span className="font-bold">{stats.medium}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              {actualLabels.low}
+              {labels.low}
             </span>
             <span className="font-bold">{stats.low}</span>
           </div>
@@ -556,12 +576,12 @@ function RiskBreakdownCard({ title, subtitle, icon, stats, labels, onViewAll }: 
 
         <div className="pt-2 border-t">
           <div className="text-sm text-muted-foreground">
-            Avg Score: <span className="font-bold">{stats.avgScore.toFixed(1)}</span>
+            {avgLabel}: <span className="font-bold">{stats.avgScore.toFixed(1)}</span>
           </div>
         </div>
 
         <Button onClick={onViewAll} variant="outline" size="sm" className="w-full">
-          View All
+          {viewAllLabel}
         </Button>
       </CardContent>
     </Card>

@@ -5,6 +5,7 @@
  */
 
 import { useState, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MessageSquare, Image as ImageIcon, X, Loader2 } from 'lucide-react'
 import {
   Dialog,
@@ -21,6 +22,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 
 export function FeedbackDialog() {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const { toast } = useToast()
@@ -73,8 +75,8 @@ export function FeedbackDialog() {
     // At least one field must be filled
     if (!toolName && !toolUrl && !description && !screenshot) {
       toast({
-        title: 'Nothing to submit',
-        description: 'Please provide at least some feedback or a screenshot.',
+        title: t('components.feedback.nothingToSubmit'),
+        description: t('components.feedback.nothingToSubmitDesc'),
         variant: 'destructive'
       })
       return
@@ -105,8 +107,8 @@ export function FeedbackDialog() {
       }
 
       toast({
-        title: 'Feedback submitted!',
-        description: data.message || 'Thank you for helping us improve!'
+        title: t('components.feedback.submitted'),
+        description: data.message || t('components.feedback.submittedDesc')
       })
 
       // Reset form
@@ -118,8 +120,8 @@ export function FeedbackDialog() {
     } catch (error) {
       console.error('Feedback submission error:', error)
       toast({
-        title: 'Submission failed',
-        description: error instanceof Error ? error.message : 'Please try again later.',
+        title: t('components.feedback.submissionFailed'),
+        description: error instanceof Error ? error.message : t('components.feedback.tryAgainLater'),
         variant: 'destructive'
       })
     } finally {
@@ -143,40 +145,39 @@ export function FeedbackDialog() {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <MessageSquare className="h-4 w-4 mr-2" />
-          Feedback
+          {t('components.feedback.feedback')}
         </Button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>Send Feedback</DialogTitle>
+          <DialogTitle>{t('components.feedback.sendFeedback')}</DialogTitle>
           <DialogDescription>
-            Help us improve by sharing your thoughts, reporting issues, or suggesting new features.
-            All fields are optional.
+            {t('components.feedback.dialogDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Tool Name */}
           <div className="space-y-2">
-            <Label htmlFor="toolName">Tool or Service Name</Label>
+            <Label htmlFor="toolName">{t('components.feedback.toolName')}</Label>
             <Input
               id="toolName"
               value={toolName}
               onChange={(e) => setToolName(e.target.value)}
-              placeholder="e.g., COG Analysis, Content Intelligence"
+              placeholder={t('components.feedback.toolNamePlaceholder')}
               disabled={submitting}
             />
           </div>
 
           {/* Tool URL */}
           <div className="space-y-2">
-            <Label htmlFor="toolUrl">Direct Link (if applicable)</Label>
+            <Label htmlFor="toolUrl">{t('components.feedback.directLink')}</Label>
             <Input
               id="toolUrl"
               value={toolUrl}
               onChange={(e) => setToolUrl(e.target.value)}
-              placeholder="e.g., /tools/cog-analysis"
+              placeholder={t('components.feedback.directLinkPlaceholder')}
               disabled={submitting}
             />
           </div>
@@ -184,7 +185,7 @@ export function FeedbackDialog() {
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">
-              Describe the issue or suggestion
+              {t('components.feedback.describeIssue')}
             </Label>
             <Textarea
               ref={textareaRef}
@@ -192,19 +193,19 @@ export function FeedbackDialog() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               onPaste={handlePaste}
-              placeholder="What happened? What would you like to see? (You can also paste screenshots here)"
+              placeholder={t('components.feedback.descriptionPlaceholder')}
               rows={4}
               disabled={submitting}
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Tip: Paste a screenshot directly into this field (Ctrl/Cmd + V)
+              {t('components.feedback.screenshotTip')}
             </p>
           </div>
 
           {/* Screenshot Upload */}
           <div className="space-y-2">
-            <Label>Screenshot (optional)</Label>
+            <Label>{t('components.feedback.screenshotOptional')}</Label>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -214,7 +215,7 @@ export function FeedbackDialog() {
                 disabled={submitting}
               >
                 <ImageIcon className="h-4 w-4 mr-2" />
-                Upload Image
+                {t('components.feedback.uploadImage')}
               </Button>
 
               {screenshot && (
@@ -226,7 +227,7 @@ export function FeedbackDialog() {
                   disabled={submitting}
                 >
                   <X className="h-4 w-4 mr-1" />
-                  Remove
+                  {t('components.feedback.remove')}
                 </Button>
               )}
             </div>
@@ -243,7 +244,7 @@ export function FeedbackDialog() {
               <div className="mt-2 border rounded-lg p-2">
                 <img
                   src={screenshot}
-                  alt="Screenshot preview"
+                  alt={t('components.feedback.screenshotPreview')}
                   className="max-h-[200px] w-auto mx-auto"
                 />
               </div>
@@ -258,16 +259,16 @@ export function FeedbackDialog() {
               onClick={() => setOpen(false)}
               disabled={submitting}
             >
-              Cancel
+              {t('buttons.cancel')}
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Submitting...
+                  {t('components.feedback.submitting')}
                 </>
               ) : (
-                'Submit Feedback'
+                t('components.feedback.submitFeedback')
               )}
             </Button>
           </div>

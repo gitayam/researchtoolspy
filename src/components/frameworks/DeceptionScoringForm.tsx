@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
@@ -21,6 +22,30 @@ import type { DeceptionScenario } from '@/lib/ai-deception-analysis'
 import { analyzeDeceptionWithAI, checkAIAvailability } from '@/lib/ai-deception-analysis'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
+// Helper to get translated criteria
+function useTranslatedCriteria() {
+  const { t } = useTranslation('deception')
+
+  return {
+    getCriterionLabel: (criterion: string) => t(`criteria.${criterion}.label`),
+    getCriterionDescription: (criterion: string) => t(`criteria.${criterion}.description`),
+    getLevelLabel: (criterion: string, value: number) => t(`criteria.${criterion}.levels.${value}.label`),
+    getLevelDescription: (criterion: string, value: number) => t(`criteria.${criterion}.levels.${value}.description`),
+    getLevels: (criterion: string) => {
+      // Return levels in the same format as SCORING_CRITERIA
+      const levels = []
+      for (let i = 0; i <= 5; i++) {
+        levels.push({
+          value: i,
+          label: t(`criteria.${criterion}.levels.${i}.label`),
+          description: t(`criteria.${criterion}.levels.${i}.description`)
+        })
+      }
+      return levels
+    }
+  }
+}
+
 interface DeceptionScoringFormProps {
   scenario: DeceptionScenario
   initialScores?: Partial<DeceptionScores>
@@ -34,6 +59,9 @@ export function DeceptionScoringForm({
   onScoresChange,
   onAIAnalysisComplete
 }: DeceptionScoringFormProps) {
+  const { t } = useTranslation('deception')
+  const translatedCriteria = useTranslatedCriteria()
+
   const [scores, setScores] = useState<DeceptionScores>({
     motive: initialScores?.motive ?? 0,
     opportunity: initialScores?.opportunity ?? 0,
@@ -90,13 +118,13 @@ export function DeceptionScoringForm({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl">Deception Likelihood Assessment</CardTitle>
-              <CardDescription>Real-time scoring based on MOM-POP-MOSES-EVE framework</CardDescription>
+              <CardTitle className="text-2xl">{t('assessment.deceptionLikelihood')}</CardTitle>
+              <CardDescription>{t('assessment.realTimeScoring')}</CardDescription>
             </div>
             {aiAvailable && (
               <Button onClick={handleAIAssist} disabled={aiAnalyzing} variant="outline">
                 <Sparkles className="h-4 w-4 mr-2" />
-                {aiAnalyzing ? 'Analyzing...' : 'AI Assist'}
+                {aiAnalyzing ? t('form.analyzing') : t('form.aiAssist')}
               </Button>
             )}
           </div>
@@ -113,16 +141,16 @@ export function DeceptionScoringForm({
               }}>
                 {assessment.overallLikelihood}%
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Overall Likelihood</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t('assessment.overallLikelihood')}</div>
               <div className={`text-lg font-semibold mt-2 ${getRiskColor(assessment.riskLevel)}`}>
-                {assessment.riskLevel} RISK
+                {t(`riskLevels.${assessment.riskLevel.toLowerCase()}`)} {t('assessment.riskLevel')}
               </div>
             </div>
 
             {/* Category Breakdown */}
             <div className="col-span-2 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">MOM (Capability)</span>
+                <span className="text-sm font-medium">{t('categories.mom.shortTitle')}</span>
                 <span className="text-sm font-bold">{assessment.categoryScores.mom.toFixed(1)}/5.0</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -133,7 +161,7 @@ export function DeceptionScoringForm({
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">POP (Historical)</span>
+                <span className="text-sm font-medium">{t('categories.pop.shortTitle')}</span>
                 <span className="text-sm font-bold">{assessment.categoryScores.pop.toFixed(1)}/5.0</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -144,7 +172,7 @@ export function DeceptionScoringForm({
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">MOSES (Sources)</span>
+                <span className="text-sm font-medium">{t('categories.moses.shortTitle')}</span>
                 <span className="text-sm font-bold">{assessment.categoryScores.moses.toFixed(1)}/5.0</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -155,7 +183,7 @@ export function DeceptionScoringForm({
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">EVE (Evidence)</span>
+                <span className="text-sm font-medium">{t('categories.eve.shortTitle')}</span>
                 <span className="text-sm font-bold">{assessment.categoryScores.eve.toFixed(1)}/5.0</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -166,9 +194,9 @@ export function DeceptionScoringForm({
               </div>
 
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                <span className="text-sm font-medium">Confidence Level</span>
+                <span className="text-sm font-medium">{t('assessment.confidenceLevel')}</span>
                 <span className={`text-sm font-bold ${getConfidenceColor(assessment.confidenceLevel)}`}>
-                  {assessment.confidenceLevel.replace('_', ' ')}
+                  {t(`confidenceLevels.${assessment.confidenceLevel.toLowerCase().replace('_', '')}`)}
                 </span>
               </div>
             </div>
@@ -181,33 +209,33 @@ export function DeceptionScoringForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-red-500" />
-            MOM: Motive, Opportunity, Means
+            {t('categories.mom.title')}
           </CardTitle>
-          <CardDescription>Assess adversary's capability to deceive</CardDescription>
+          <CardDescription>{t('categories.mom.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <ScoringSlider
             criterion="motive"
-            label={SCORING_CRITERIA.motive.label}
-            description={SCORING_CRITERIA.motive.description}
+            label={translatedCriteria.getCriterionLabel('motive')}
+            description={translatedCriteria.getCriterionDescription('motive')}
             value={scores.motive}
-            levels={SCORING_CRITERIA.motive.levels}
+            levels={translatedCriteria.getLevels('motive')}
             onChange={(value) => handleScoreChange('motive', value)}
           />
           <ScoringSlider
             criterion="opportunity"
-            label={SCORING_CRITERIA.opportunity.label}
-            description={SCORING_CRITERIA.opportunity.description}
+            label={translatedCriteria.getCriterionLabel('opportunity')}
+            description={translatedCriteria.getCriterionDescription('opportunity')}
             value={scores.opportunity}
-            levels={SCORING_CRITERIA.opportunity.levels}
+            levels={translatedCriteria.getLevels('opportunity')}
             onChange={(value) => handleScoreChange('opportunity', value)}
           />
           <ScoringSlider
             criterion="means"
-            label={SCORING_CRITERIA.means.label}
-            description={SCORING_CRITERIA.means.description}
+            label={translatedCriteria.getCriterionLabel('means')}
+            description={translatedCriteria.getCriterionDescription('means')}
             value={scores.means}
-            levels={SCORING_CRITERIA.means.levels}
+            levels={translatedCriteria.getLevels('means')}
             onChange={(value) => handleScoreChange('means', value)}
           />
         </CardContent>
@@ -218,33 +246,33 @@ export function DeceptionScoringForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-orange-500" />
-            POP: Patterns of Practice
+            {t('categories.pop.title')}
           </CardTitle>
-          <CardDescription>Examine historical deception patterns</CardDescription>
+          <CardDescription>{t('categories.pop.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <ScoringSlider
             criterion="historicalPattern"
-            label={SCORING_CRITERIA.historicalPattern.label}
-            description={SCORING_CRITERIA.historicalPattern.description}
+            label={translatedCriteria.getCriterionLabel('historicalPattern')}
+            description={translatedCriteria.getCriterionDescription('historicalPattern')}
             value={scores.historicalPattern}
-            levels={SCORING_CRITERIA.historicalPattern.levels}
+            levels={translatedCriteria.getLevels('historicalPattern')}
             onChange={(value) => handleScoreChange('historicalPattern', value)}
           />
           <ScoringSlider
             criterion="sophisticationLevel"
-            label={SCORING_CRITERIA.sophisticationLevel.label}
-            description={SCORING_CRITERIA.sophisticationLevel.description}
+            label={translatedCriteria.getCriterionLabel('sophisticationLevel')}
+            description={translatedCriteria.getCriterionDescription('sophisticationLevel')}
             value={scores.sophisticationLevel}
-            levels={SCORING_CRITERIA.sophisticationLevel.levels}
+            levels={translatedCriteria.getLevels('sophisticationLevel')}
             onChange={(value) => handleScoreChange('sophisticationLevel', value)}
           />
           <ScoringSlider
             criterion="successRate"
-            label={SCORING_CRITERIA.successRate.label}
-            description={SCORING_CRITERIA.successRate.description}
+            label={translatedCriteria.getCriterionLabel('successRate')}
+            description={translatedCriteria.getCriterionDescription('successRate')}
             value={scores.successRate}
-            levels={SCORING_CRITERIA.successRate.levels}
+            levels={translatedCriteria.getLevels('successRate')}
             onChange={(value) => handleScoreChange('successRate', value)}
           />
         </CardContent>
@@ -255,25 +283,25 @@ export function DeceptionScoringForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-yellow-500" />
-            MOSES: My Own Sources
+            {t('categories.moses.title')}
           </CardTitle>
-          <CardDescription>Evaluate source vulnerability to manipulation</CardDescription>
+          <CardDescription>{t('categories.moses.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <ScoringSlider
             criterion="sourceVulnerability"
-            label={SCORING_CRITERIA.sourceVulnerability.label}
-            description={SCORING_CRITERIA.sourceVulnerability.description}
+            label={translatedCriteria.getCriterionLabel('sourceVulnerability')}
+            description={translatedCriteria.getCriterionDescription('sourceVulnerability')}
             value={scores.sourceVulnerability}
-            levels={SCORING_CRITERIA.sourceVulnerability.levels}
+            levels={translatedCriteria.getLevels('sourceVulnerability')}
             onChange={(value) => handleScoreChange('sourceVulnerability', value)}
           />
           <ScoringSlider
             criterion="manipulationEvidence"
-            label={SCORING_CRITERIA.manipulationEvidence.label}
-            description={SCORING_CRITERIA.manipulationEvidence.description}
+            label={translatedCriteria.getCriterionLabel('manipulationEvidence')}
+            description={translatedCriteria.getCriterionDescription('manipulationEvidence')}
             value={scores.manipulationEvidence}
-            levels={SCORING_CRITERIA.manipulationEvidence.levels}
+            levels={translatedCriteria.getLevels('manipulationEvidence')}
             onChange={(value) => handleScoreChange('manipulationEvidence', value)}
           />
         </CardContent>
@@ -284,35 +312,35 @@ export function DeceptionScoringForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-blue-500" />
-            EVE: Evaluation of Evidence
+            {t('categories.eve.title')}
           </CardTitle>
-          <CardDescription>Assess evidence consistency and corroboration</CardDescription>
+          <CardDescription>{t('categories.eve.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <ScoringSlider
             criterion="internalConsistency"
-            label={SCORING_CRITERIA.internalConsistency.label}
-            description={SCORING_CRITERIA.internalConsistency.description}
+            label={translatedCriteria.getCriterionLabel('internalConsistency')}
+            description={translatedCriteria.getCriterionDescription('internalConsistency')}
             value={scores.internalConsistency}
-            levels={SCORING_CRITERIA.internalConsistency.levels}
+            levels={translatedCriteria.getLevels('internalConsistency')}
             onChange={(value) => handleScoreChange('internalConsistency', value)}
             inverted
           />
           <ScoringSlider
             criterion="externalCorroboration"
-            label={SCORING_CRITERIA.externalCorroboration.label}
-            description={SCORING_CRITERIA.externalCorroboration.description}
+            label={translatedCriteria.getCriterionLabel('externalCorroboration')}
+            description={translatedCriteria.getCriterionDescription('externalCorroboration')}
             value={scores.externalCorroboration}
-            levels={SCORING_CRITERIA.externalCorroboration.levels}
+            levels={translatedCriteria.getLevels('externalCorroboration')}
             onChange={(value) => handleScoreChange('externalCorroboration', value)}
             inverted
           />
           <ScoringSlider
             criterion="anomalyDetection"
-            label={SCORING_CRITERIA.anomalyDetection.label}
-            description={SCORING_CRITERIA.anomalyDetection.description}
+            label={translatedCriteria.getCriterionLabel('anomalyDetection')}
+            description={translatedCriteria.getCriterionDescription('anomalyDetection')}
             value={scores.anomalyDetection}
-            levels={SCORING_CRITERIA.anomalyDetection.levels}
+            levels={translatedCriteria.getLevels('anomalyDetection')}
             onChange={(value) => handleScoreChange('anomalyDetection', value)}
           />
         </CardContent>
@@ -321,15 +349,15 @@ export function DeceptionScoringForm({
       {/* Key Indicators */}
       <Card>
         <CardHeader>
-          <CardTitle>Key Indicators</CardTitle>
-          <CardDescription>Signs pointing to or against deception</CardDescription>
+          <CardTitle>{t('indicators.title')}</CardTitle>
+          <CardDescription>{t('indicators.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {indicators.deceptionIndicators.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4" />
-                Deception Indicators
+                {t('indicators.deceptionIndicators')}
               </h4>
               <ul className="space-y-1">
                 {indicators.deceptionIndicators.map((indicator, idx) => (
@@ -346,7 +374,7 @@ export function DeceptionScoringForm({
             <div>
               <h4 className="text-sm font-semibold text-green-600 dark:text-green-400 mb-2 flex items-center gap-2">
                 <CheckCircle className="h-4 w-4" />
-                Counter-Indicators
+                {t('indicators.counterIndicators')}
               </h4>
               <ul className="space-y-1">
                 {indicators.counterIndicators.map((indicator, idx) => (
@@ -362,7 +390,7 @@ export function DeceptionScoringForm({
           {indicators.deceptionIndicators.length === 0 && indicators.counterIndicators.length === 0 && (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <Minus className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-sm">Adjust scores to generate indicators</p>
+              <p className="text-sm">{t('indicators.noIndicators')}</p>
             </div>
           )}
         </CardContent>

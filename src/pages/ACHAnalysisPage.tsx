@@ -18,8 +18,10 @@ import { ACHVisualAnalytics } from '@/components/ach/ACHVisualAnalytics'
 import { ACHPDFExport } from '@/components/ach/ACHPDFExport'
 import { ACHPowerPointExport } from '@/components/ach/ACHPowerPointExport'
 import { ACHExcelExport } from '@/components/ach/ACHExcelExport'
+import { useTranslation } from 'react-i18next'
 
 export function ACHAnalysisPage() {
+  const { t } = useTranslation(['ach', 'common'])
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [analysis, setAnalysis] = useState<ACHAnalysis | null>(null)
@@ -41,7 +43,7 @@ export function ACHAnalysisPage() {
       }
     } catch (error) {
       console.error('Failed to load analysis:', error)
-      alert('Failed to load analysis')
+      alert(t('ach:alerts.loadFailed'))
       navigate('/dashboard/analysis-frameworks/ach-dashboard')
     } finally {
       setLoading(false)
@@ -76,19 +78,19 @@ export function ACHAnalysisPage() {
       await loadAnalysis()
     } catch (error) {
       console.error('Failed to update score:', error)
-      alert('Failed to update score')
+      alert(t('ach:alerts.scoreUpdateFailed'))
     }
   }
 
   const handleAddEvidence = () => {
     // For now, just navigate to evidence page
     // In future, could open a modal to select from existing evidence
-    alert('Navigate to Evidence Library to add evidence items, then link them to this analysis.')
+    alert(t('ach:alerts.evidenceHint'))
     navigate('/dashboard/evidence')
   }
 
   const handleRemoveEvidence = async (linkId: string) => {
-    if (!confirm('Remove this evidence from the analysis?')) return
+    if (!confirm(t('ach:alerts.removeEvidenceConfirm'))) return
 
     try {
       await fetch(`/api/ach/evidence?id=${linkId}`, {
@@ -97,7 +99,7 @@ export function ACHAnalysisPage() {
       await loadAnalysis()
     } catch (error) {
       console.error('Failed to remove evidence:', error)
-      alert('Failed to remove evidence')
+      alert(t('ach:alerts.removeEvidenceFailed'))
     }
   }
 
@@ -191,7 +193,7 @@ export function ACHAnalysisPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-600 dark:text-gray-400">Loading analysis...</p>
+        <p className="text-gray-600 dark:text-gray-400">{t('ach:loadingAnalysis')}</p>
       </div>
     )
   }
@@ -199,10 +201,10 @@ export function ACHAnalysisPage() {
   if (!analysis) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Analysis not found</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('ach:detail.notFound')}</h2>
         <Button onClick={() => navigate('/dashboard/analysis-frameworks/ach-dashboard')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to ACH Analyses
+          {t('ach:detail.backToDashboard')}
         </Button>
       </div>
     )
@@ -215,18 +217,18 @@ export function ACHAnalysisPage() {
         <div className="flex items-start gap-4 flex-1">
           <Button variant="outline" onClick={() => navigate('/dashboard/analysis-frameworks/ach-dashboard')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t('ach:detail.back')}
           </Button>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {analysis.title}
               </h1>
-              <Badge variant="outline">{analysis.status.replace('_', ' ')}</Badge>
+              <Badge variant="outline">{t(`ach:status.${analysis.status.toLowerCase()}`)}</Badge>
               <Badge variant="secondary">{analysis.scale_type}</Badge>
             </div>
             <p className="text-gray-600 dark:text-gray-400 mb-3">
-              <strong>Key Question:</strong> {analysis.question}
+              <strong>{t('ach:detail.keyQuestion')}</strong> {analysis.question}
             </p>
             {analysis.description && (
               <p className="text-gray-600 dark:text-gray-400 text-sm">
@@ -272,13 +274,13 @@ export function ACHAnalysisPage() {
             }}
           >
             <Network className="h-4 w-4 mr-2" />
-            View in Network
+            {t('ach:detail.viewNetwork')}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                {t('ach:detail.export')}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -309,7 +311,7 @@ export function ACHAnalysisPage() {
           />
           <Button onClick={handleEditAnalysis}>
             <Edit className="h-4 w-4 mr-2" />
-            Edit Analysis
+            {t('ach:detail.editAnalysis')}
           </Button>
         </div>
       </div>
@@ -321,7 +323,7 @@ export function ACHAnalysisPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               <div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Analyst</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{t('ach:detail.analyst')}</p>
                 <p className="font-medium">{analysis.analyst}</p>
               </div>
             </CardContent>
@@ -332,7 +334,7 @@ export function ACHAnalysisPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <Building className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               <div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Organization</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{t('ach:detail.organization')}</p>
                 <p className="font-medium">{analysis.organization}</p>
               </div>
             </CardContent>
@@ -342,7 +344,7 @@ export function ACHAnalysisPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <Calendar className="h-5 w-5 text-gray-600 dark:text-gray-400" />
             <div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Created</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t('ach:detail.created')}</p>
               <p className="font-medium">
                 {new Date(analysis.created_at).toLocaleDateString()}
               </p>

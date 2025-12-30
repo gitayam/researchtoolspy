@@ -27,6 +27,7 @@ import {
   MapPin,
   Link as LinkIcon
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Investigation {
   id: string
@@ -49,6 +50,7 @@ interface Investigation {
 }
 
 export function InvestigationDetailPage() {
+  const { t } = useTranslation(['investigation', 'common'])
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
@@ -75,12 +77,12 @@ export function InvestigationDetailPage() {
 
       if (!response.ok) {
         if (response.status === 404) {
-          setError('Investigation not found')
+          setError(t('investigation:notFound'))
         } else if (response.status === 403) {
-          setError('Access denied: You do not have permission to view this investigation')
+          setError(t('investigation:accessDenied'))
         } else {
           const data = await response.json().catch(() => ({}))
-          setError(data.error || 'Failed to load investigation')
+          setError(data.error || t('investigation:loadFailed'))
         }
         return
       }
@@ -89,11 +91,11 @@ export function InvestigationDetailPage() {
       if (data.success && data.investigation) {
         setInvestigation(data.investigation)
       } else {
-        setError('Invalid response from server')
+        setError(t('investigation:invalidResponse'))
       }
     } catch (error) {
       console.error('Error loading investigation:', error)
-      setError('Network error: Unable to load investigation')
+      setError(t('investigation:networkError'))
     } finally {
       setLoading(false)
     }
@@ -109,9 +111,9 @@ export function InvestigationDetailPage() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'structured_research': return 'Structured Research'
-      case 'rapid_analysis': return 'Rapid Analysis'
-      default: return 'General Topic'
+      case 'structured_research': return t('investigation:types.structured_research')
+      case 'rapid_analysis': return t('investigation:types.rapid_analysis')
+      default: return t('investigation:types.general_topic')
     }
   }
 
@@ -139,11 +141,11 @@ export function InvestigationDetailPage() {
       <div className="container mx-auto p-6">
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error || 'Investigation not found'}</AlertDescription>
+          <AlertDescription>{error || t('investigation:notFound')}</AlertDescription>
         </Alert>
         <Button onClick={() => navigate('/dashboard/investigations')} variant="outline">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Investigations
+          {t('investigation:backToList')}
         </Button>
       </div>
     )
@@ -155,7 +157,7 @@ export function InvestigationDetailPage() {
       <div className="space-y-4">
         <Button onClick={() => navigate('/dashboard/investigations')} variant="outline" size="sm">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          {t('investigation:back')}
         </Button>
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
           <div className="flex-1">
@@ -172,7 +174,7 @@ export function InvestigationDetailPage() {
               {getTypeLabel(investigation.type)}
             </Badge>
             <Badge className={getStatusColor(investigation.status)}>
-              {investigation.status}
+              {t(`investigation:status.${investigation.status}`)}
             </Badge>
           </div>
         </div>
@@ -182,16 +184,16 @@ export function InvestigationDetailPage() {
       <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
         <span className="flex items-center gap-1">
           <Calendar className="h-4 w-4" />
-          Created {new Date(investigation.created_at).toLocaleDateString()}
+          {t('investigation:metadata.created')} {new Date(investigation.created_at).toLocaleDateString()}
         </span>
         <span className="flex items-center gap-1">
           <Activity className="h-4 w-4" />
-          Updated {new Date(investigation.updated_at).toLocaleDateString()}
+          {t('investigation:metadata.updated')} {new Date(investigation.updated_at).toLocaleDateString()}
         </span>
         {investigation.created_by_username && (
           <span className="flex items-center gap-1">
             <Users className="h-4 w-4" />
-            by {investigation.created_by_username}
+            {t('investigation:metadata.by')} {investigation.created_by_username}
           </span>
         )}
       </div>
@@ -202,12 +204,12 @@ export function InvestigationDetailPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Target className="h-5 w-5 text-purple-600" />
-              <CardTitle className="text-lg">Research Question</CardTitle>
+              <CardTitle className="text-lg">{t('investigation:researchQuestion.title')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              Topic: {investigation.research_question_topic}
+              {t('investigation:researchQuestion.topic')} {investigation.research_question_topic}
             </p>
             {investigation.research_question_text && (
               <p className="text-gray-900 dark:text-white">
@@ -236,7 +238,7 @@ export function InvestigationDetailPage() {
             <div className="text-center">
               <Database className="h-8 w-8 mx-auto mb-2 text-purple-600" />
               <div className="text-3xl font-bold">{investigation.evidence_count}</div>
-              <div className="text-sm text-gray-500">Evidence</div>
+              <div className="text-sm text-gray-500">{t('investigation:stats.evidence')}</div>
             </div>
           </CardContent>
         </Card>
@@ -245,7 +247,7 @@ export function InvestigationDetailPage() {
             <div className="text-center">
               <Users className="h-8 w-8 mx-auto mb-2 text-blue-600" />
               <div className="text-3xl font-bold">{investigation.actor_count}</div>
-              <div className="text-sm text-gray-500">Actors</div>
+              <div className="text-sm text-gray-500">{t('investigation:stats.actors')}</div>
             </div>
           </CardContent>
         </Card>
@@ -254,7 +256,7 @@ export function InvestigationDetailPage() {
             <div className="text-center">
               <LinkIcon className="h-8 w-8 mx-auto mb-2 text-green-600" />
               <div className="text-3xl font-bold">{investigation.source_count}</div>
-              <div className="text-sm text-gray-500">Sources</div>
+              <div className="text-sm text-gray-500">{t('investigation:stats.sources')}</div>
             </div>
           </CardContent>
         </Card>
@@ -263,7 +265,7 @@ export function InvestigationDetailPage() {
             <div className="text-center">
               <MapPin className="h-8 w-8 mx-auto mb-2 text-orange-600" />
               <div className="text-3xl font-bold">{investigation.event_count || 0}</div>
-              <div className="text-sm text-gray-500">Events</div>
+              <div className="text-sm text-gray-500">{t('investigation:stats.events')}</div>
             </div>
           </CardContent>
         </Card>
@@ -272,7 +274,7 @@ export function InvestigationDetailPage() {
             <div className="text-center">
               <Brain className="h-8 w-8 mx-auto mb-2 text-red-600" />
               <div className="text-3xl font-bold">{investigation.framework_count}</div>
-              <div className="text-sm text-gray-500">Analyses</div>
+              <div className="text-sm text-gray-500">{t('investigation:stats.analyses')}</div>
             </div>
           </CardContent>
         </Card>
@@ -281,24 +283,24 @@ export function InvestigationDetailPage() {
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="overview">{t('investigation:tabs.overview')}</TabsTrigger>
           <TabsTrigger value="evidence">
-            Evidence ({investigation.evidence_count})
+            {t('investigation:tabs.evidence')} ({investigation.evidence_count})
           </TabsTrigger>
           <TabsTrigger value="entities">
-            Entities ({investigation.actor_count + investigation.source_count + (investigation.event_count || 0)})
+            {t('investigation:tabs.entities')} ({investigation.actor_count + investigation.source_count + (investigation.event_count || 0)})
           </TabsTrigger>
           <TabsTrigger value="frameworks">
-            Frameworks ({investigation.framework_count})
+            {t('investigation:tabs.frameworks')} ({investigation.framework_count})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Investigation Overview</CardTitle>
+              <CardTitle>{t('investigation:overview.title')}</CardTitle>
               <CardDescription>
-                Manage your research components and apply analytical frameworks
+                {t('investigation:overview.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -307,9 +309,9 @@ export function InvestigationDetailPage() {
                   <div className="text-left w-full">
                     <div className="flex items-center gap-2 mb-1">
                       <Database className="h-4 w-4" />
-                      <span className="font-semibold">Add Evidence</span>
+                      <span className="font-semibold">{t('investigation:overview.addEvidence')}</span>
                     </div>
-                    <p className="text-xs text-gray-500">Link evidence items to this investigation</p>
+                    <p className="text-xs text-gray-500">{t('investigation:overview.addEvidenceDesc')}</p>
                   </div>
                 </Button>
 
@@ -317,9 +319,9 @@ export function InvestigationDetailPage() {
                   <div className="text-left w-full">
                     <div className="flex items-center gap-2 mb-1">
                       <Users className="h-4 w-4" />
-                      <span className="font-semibold">Add Actors</span>
+                      <span className="font-semibold">{t('investigation:overview.addActors')}</span>
                     </div>
-                    <p className="text-xs text-gray-500">Track people and organizations</p>
+                    <p className="text-xs text-gray-500">{t('investigation:overview.addActorsDesc')}</p>
                   </div>
                 </Button>
 
@@ -327,9 +329,9 @@ export function InvestigationDetailPage() {
                   <div className="text-left w-full">
                     <div className="flex items-center gap-2 mb-1">
                       <LinkIcon className="h-4 w-4" />
-                      <span className="font-semibold">Add Sources</span>
+                      <span className="font-semibold">{t('investigation:overview.addSources')}</span>
                     </div>
-                    <p className="text-xs text-gray-500">Document information sources</p>
+                    <p className="text-xs text-gray-500">{t('investigation:overview.addSourcesDesc')}</p>
                   </div>
                 </Button>
 
@@ -337,9 +339,9 @@ export function InvestigationDetailPage() {
                   <div className="text-left w-full">
                     <div className="flex items-center gap-2 mb-1">
                       <Brain className="h-4 w-4" />
-                      <span className="font-semibold">Apply Framework</span>
+                      <span className="font-semibold">{t('investigation:overview.applyFramework')}</span>
                     </div>
-                    <p className="text-xs text-gray-500">Run analytical frameworks</p>
+                    <p className="text-xs text-gray-500">{t('investigation:overview.applyFrameworkDesc')}</p>
                   </div>
                 </Button>
               </div>
@@ -352,9 +354,9 @@ export function InvestigationDetailPage() {
             <CardContent className="py-12">
               <div className="text-center text-gray-500">
                 <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="mb-4">Evidence linking will be available soon</p>
+                <p className="mb-4">{t('investigation:placeholders.evidenceLinking')}</p>
                 <Button variant="outline" onClick={() => navigate('/dashboard/evidence')}>
-                  Go to Evidence Page
+                  {t('investigation:placeholders.goToEvidence')}
                 </Button>
               </div>
             </CardContent>
@@ -366,9 +368,9 @@ export function InvestigationDetailPage() {
             <CardContent className="py-12">
               <div className="text-center text-gray-500">
                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="mb-4">Entity management will be available soon</p>
+                <p className="mb-4">{t('investigation:placeholders.entityManagement')}</p>
                 <Button variant="outline" onClick={() => navigate('/dashboard/entities/actors')}>
-                  Go to Actors Page
+                  {t('investigation:placeholders.goToActors')}
                 </Button>
               </div>
             </CardContent>
@@ -380,9 +382,9 @@ export function InvestigationDetailPage() {
             <CardContent className="py-12">
               <div className="text-center text-gray-500">
                 <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="mb-4">Framework results will be displayed here</p>
+                <p className="mb-4">{t('investigation:placeholders.frameworkResults')}</p>
                 <Button variant="outline" onClick={() => navigate('/dashboard/analysis-frameworks')}>
-                  Browse Frameworks
+                  {t('investigation:placeholders.browseFrameworks')}
                 </Button>
               </div>
             </CardContent>

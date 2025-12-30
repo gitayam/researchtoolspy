@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import html2canvas from 'html2canvas'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,6 +31,7 @@ import { createLogger } from '@/lib/logger'
 const logger = createLogger('ContentIntelligence')
 
 export default function ContentIntelligencePage() {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const navigate = useNavigate()
 
@@ -121,50 +123,50 @@ export default function ContentIntelligencePage() {
     // Automatic Sections
     {
       id: 'overview' as AnalysisTab,
-      label: 'Overview',
+      label: t('pages.contentIntelligence.sections.overview.label'),
       icon: FileText,
-      description: 'Summary, metadata, and key information',
+      description: t('pages.contentIntelligence.sections.overview.description'),
       isAutomatic: true,
       status: 'complete' as const,
     },
     {
       id: 'entities' as AnalysisTab,
-      label: 'Entities',
+      label: t('pages.contentIntelligence.sections.entities.label'),
       icon: Users,
-      description: 'People, organizations, locations, and more',
+      description: t('pages.contentIntelligence.sections.entities.description'),
       isAutomatic: true,
       status: 'complete' as const,
     },
     {
       id: 'sentiment' as AnalysisTab,
-      label: 'Sentiment',
+      label: t('pages.contentIntelligence.sections.sentiment.label'),
       icon: SmileIcon,
-      description: 'Emotional tone and sentiment analysis',
+      description: t('pages.contentIntelligence.sections.sentiment.description'),
       isAutomatic: true,
       status: analysis?.sentiment_analysis ? ('complete' as const) : ('idle' as const),
     },
     {
       id: 'links' as AnalysisTab,
-      label: 'Links',
+      label: t('pages.contentIntelligence.sections.links.label'),
       icon: Link2,
-      description: 'External and internal link analysis',
+      description: t('pages.contentIntelligence.sections.links.description'),
       isAutomatic: true,
       status: 'complete' as const,
     },
     {
       id: 'word-analysis' as AnalysisTab,
-      label: 'Word Analysis',
+      label: t('pages.contentIntelligence.sections.wordAnalysis.label'),
       icon: BarChart3,
-      description: 'Word frequency and phrase analysis',
+      description: t('pages.contentIntelligence.sections.wordAnalysis.description'),
       isAutomatic: true,
       status: 'complete' as const,
     },
     // Framework Sections
     {
       id: 'claims' as AnalysisTab,
-      label: 'Claims Analysis',
+      label: t('pages.contentIntelligence.sections.claims.label'),
       icon: Shield,
-      description: '6-method deception detection framework',
+      description: t('pages.contentIntelligence.sections.claims.description'),
       isAutomatic: false,
       status: claimsLoading
         ? ('processing' as const)
@@ -174,9 +176,9 @@ export default function ContentIntelligencePage() {
     },
     {
       id: 'dime' as AnalysisTab,
-      label: 'DIME Framework',
+      label: t('pages.contentIntelligence.sections.dime.label'),
       icon: Grid3x3,
-      description: 'Diplomatic, Information, Military, Economic',
+      description: t('pages.contentIntelligence.sections.dime.description'),
       isAutomatic: false,
       status: dimeLoading
         ? ('processing' as const)
@@ -186,17 +188,17 @@ export default function ContentIntelligencePage() {
     },
     {
       id: 'starbursting' as AnalysisTab,
-      label: 'Starbursting',
+      label: t('pages.contentIntelligence.sections.starbursting.label'),
       icon: Star,
-      description: '5W1H critical question generation',
+      description: t('pages.contentIntelligence.sections.starbursting.description'),
       isAutomatic: false,
       status: starburstingStatus,
     },
     {
       id: 'qa' as AnalysisTab,
-      label: 'Q&A',
+      label: t('pages.contentIntelligence.sections.qa.label'),
       icon: MessageSquare,
-      description: 'Ask questions about the content',
+      description: t('pages.contentIntelligence.sections.qa.description'),
       isAutomatic: false,
       status: 'ready' as const,
     },
@@ -2343,10 +2345,10 @@ ${shortSummary}`
       <div className="space-y-2">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <FileText className="h-8 w-8" />
-          Content Research & Link Analysis
+          {t('pages.contentIntelligence.title')}
         </h1>
         <p className="text-muted-foreground">
-          Analyze URLs, extract insights, preserve evidence, and ask questions
+          {t('pages.contentIntelligence.subtitle')}
         </p>
       </div>
 
@@ -2356,7 +2358,7 @@ ${shortSummary}`
           {/* URL Input Row */}
           <div className="flex gap-2">
             <Input
-              placeholder="Enter URL to analyze..."
+              placeholder={t('pages.contentIntelligence.urlPlaceholder')}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
@@ -2372,21 +2374,21 @@ ${shortSummary}`
                 onClick={() => setMode('quick')}
                 size="sm"
               >
-                Quick
+                {t('pages.contentIntelligence.modes.quick')}
               </Button>
               <Button
                 variant={mode === 'normal' ? 'default' : 'outline'}
                 onClick={() => setMode('normal')}
                 size="sm"
               >
-                Normal
+                {t('pages.contentIntelligence.modes.normal')}
               </Button>
               <Button
                 variant={mode === 'full' ? 'default' : 'outline'}
                 onClick={() => setMode('full')}
                 size="sm"
               >
-                Full
+                {t('pages.contentIntelligence.modes.full')}
               </Button>
             </div>
 
@@ -2394,12 +2396,12 @@ ${shortSummary}`
               {processing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing...
+                  {t('pages.contentIntelligence.analyzing')}
                 </>
               ) : (
                 <>
                   <FileText className="h-4 w-4 mr-2" />
-                  Analyze Content
+                  {t('pages.contentIntelligence.analyzeContent')}
                 </>
               )}
             </Button>
@@ -2418,7 +2420,7 @@ ${shortSummary}`
                   {currentStep}
                 </h3>
                 <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                  This may take 10-30 seconds depending on content size
+                  {t('pages.contentIntelligence.processingTime')}
                 </p>
               </div>
               <div className="text-right">
@@ -5132,22 +5134,22 @@ ${shortSummary}`
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <FolderOpen className="h-5 w-5" />
-              Recently Saved Links
+              {t('pages.contentIntelligence.recentlySavedLinks')}
             </h2>
-            <Button variant="outline" size="sm" disabled title="Full library view coming soon">
-              View All
+            <Button variant="outline" size="sm" disabled title={t('pages.contentIntelligence.fullLibraryComingSoon')}>
+              {t('pages.contentIntelligence.viewAll')}
             </Button>
           </div>
 
           {loadingSavedLinks ? (
             <div className="text-center py-8 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-              Loading saved links...
+              {t('pages.contentIntelligence.loadingSavedLinks')}
             </div>
           ) : savedLinks.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>No saved links yet.</p>
-              <p className="text-sm mt-1">Analyze URLs to automatically save them, or add notes and tags before clicking "Save Permanently".</p>
+              <p>{t('pages.contentIntelligence.noSavedLinks')}</p>
+              <p className="text-sm mt-1">{t('pages.contentIntelligence.noSavedLinksHint')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -5238,7 +5240,7 @@ ${shortSummary}`
                           }
                         }}
                       >
-                        {link.is_processed ? 'Load Analysis' : 'Analyze Now'}
+                        {link.is_processed ? t('pages.contentIntelligence.loadAnalysis') : t('pages.contentIntelligence.analyzeNow')}
                       </Button>
                       {link.is_processed && link.analysis_id && (
                         <>

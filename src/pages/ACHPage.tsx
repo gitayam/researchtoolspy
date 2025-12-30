@@ -12,8 +12,10 @@ import { useNavigate } from 'react-router-dom'
 import { ACHAnalysisForm, type ACHFormData } from '@/components/ach/ACHAnalysisForm'
 import { ACHWizard } from '@/components/ach/ACHWizard'
 import { frameworkDescriptions } from '@/config/framework-descriptions'
+import { useTranslation } from 'react-i18next'
 
 export function ACHPage() {
+  const { t } = useTranslation(['ach', 'common'])
   const navigate = useNavigate()
   const [analyses, setAnalyses] = useState<ACHAnalysis[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -44,7 +46,7 @@ export function ACHPage() {
   }, [])
 
   const handleDeleteAnalysis = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this analysis? This will also delete all hypotheses, evidence links, and scores.')) return
+    if (!confirm(t('ach:alerts.deleteConfirm'))) return
 
     try {
       const response = await fetch(`/api/ach?id=${id}`, {
@@ -55,7 +57,7 @@ export function ACHPage() {
       }
     } catch (error) {
       console.error('Failed to delete analysis:', error)
-      alert('Failed to delete analysis')
+      alert(t('ach:alerts.deleteFailed'))
     }
   }
 
@@ -76,7 +78,7 @@ export function ACHPage() {
       }
     } catch (error) {
       console.error('Failed to load analysis:', error)
-      alert('Failed to load analysis')
+      alert(t('ach:alerts.loadFailed'))
     }
   }
 
@@ -289,32 +291,32 @@ export function ACHPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ACH Analysis</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('ach:title')}</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Analysis of Competing Hypotheses - Structured intelligence methodology
+            {t('ach:subtitle')}
           </p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              New Analysis
+              {t('ach:newAnalysis')}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setWizardOpen(true)}>
               <Sparkles className="h-4 w-4 mr-2" />
               <div>
-                <div className="font-medium">Wizard (Recommended)</div>
-                <div className="text-xs text-muted-foreground">Step-by-step with AI assistance</div>
+                <div className="font-medium">{t('ach:wizard.title')}</div>
+                <div className="text-xs text-muted-foreground">{t('ach:wizard.description')}</div>
               </div>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleCreateAnalysis}>
               <Zap className="h-4 w-4 mr-2" />
               <div>
-                <div className="font-medium">Quick Create</div>
-                <div className="text-xs text-muted-foreground">Manual form entry</div>
+                <div className="font-medium">{t('ach:quickCreate.title')}</div>
+                <div className="text-xs text-muted-foreground">{t('ach:quickCreate.description')}</div>
               </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -325,7 +327,7 @@ export function ACHPage() {
       <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
         <CardContent className="p-6">
           <div className="space-y-4">
-            <p className="text-gray-700 dark:text-gray-300">{frameworkInfo.context}</p>
+            <p className="text-gray-700 dark:text-gray-300">{t('ach:framework.context')}</p>
 
             {frameworkInfo.wikipediaUrl && (
               <a
@@ -334,7 +336,7 @@ export function ACHPage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
               >
-                Learn more on Wikipedia
+                {t('ach:framework.learnMore')}
                 <ExternalLink className="h-4 w-4" />
               </a>
             )}
@@ -343,7 +345,7 @@ export function ACHPage() {
               <div>
                 <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
                   <CheckCircle className="h-4 w-4" />
-                  Good Use Cases
+                  {t('ach:framework.goodUseCases')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
                   {frameworkInfo.goodUseCases.map((useCase, idx) => (
@@ -354,7 +356,7 @@ export function ACHPage() {
               <div>
                 <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
                   <XCircle className="h-4 w-4" />
-                  Not Ideal For
+                  {t('ach:framework.notIdealFor')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
                   {frameworkInfo.notIdealFor.map((useCase, idx) => (
@@ -373,7 +375,7 @@ export function ACHPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Analyses</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('ach:stats.total')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{statistics.total}</p>
               </div>
               <Grid3x3 className="h-8 w-8 text-blue-500" />
@@ -384,7 +386,7 @@ export function ACHPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Draft</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('ach:stats.draft')}</p>
                 <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">{statistics.draft}</p>
               </div>
               <FileText className="h-8 w-8 text-gray-500" />
@@ -395,7 +397,7 @@ export function ACHPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">In Progress</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('ach:stats.inProgress')}</p>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{statistics.in_progress}</p>
               </div>
               <Clock className="h-8 w-8 text-blue-500" />
@@ -406,7 +408,7 @@ export function ACHPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('ach:stats.completed')}</p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.completed}</p>
               </div>
               <CheckCircle2 className="h-8 w-8 text-green-500" />
@@ -420,7 +422,7 @@ export function ACHPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Search analyses..."
+            placeholder={t('ach:search')}
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -428,13 +430,13 @@ export function ACHPage() {
         </div>
         <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as AnalysisStatus | 'all')}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
+            <SelectValue placeholder={t('ach:filterStatus')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="all">{t('ach:status.all')}</SelectItem>
+            <SelectItem value="draft">{t('ach:status.draft')}</SelectItem>
+            <SelectItem value="in_progress">{t('ach:status.in_progress')}</SelectItem>
+            <SelectItem value="completed">{t('ach:status.completed')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -443,23 +445,23 @@ export function ACHPage() {
       <div className="space-y-4">
         {loading ? (
           <Card className="p-12 text-center">
-            <p className="text-gray-600 dark:text-gray-400">Loading analyses...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('ach:loading')}</p>
           </Card>
         ) : filteredAnalyses.length === 0 ? (
           <Card className="p-12 text-center">
             <Grid3x3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">
-              No Analyses Found
+              {t('ach:empty.title')}
             </h3>
             <p className="text-gray-500 dark:text-gray-500 mb-4">
               {analyses.length === 0
-                ? "Start your intelligence analysis by creating your first ACH matrix."
-                : "Try adjusting your search criteria or filters."
+                ? t('ach:empty.descriptionStart')
+                : t('ach:empty.descriptionFilter')
               }
             </p>
             <Button onClick={handleCreateAnalysis}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Your First Analysis
+              {t('ach:empty.createFirst')}
             </Button>
           </Card>
         ) : (
@@ -486,7 +488,7 @@ export function ACHPage() {
                           </h3>
                           <Badge variant="outline" className="text-xs">
                             <StatusIcon className={cn("h-3 w-3 mr-1", statusColor)} />
-                            {analysis.status.replace('_', ' ')}
+                            {t(`ach:status.${analysis.status.toLowerCase()}`)}
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
                             {analysis.scale_type}
@@ -507,18 +509,18 @@ export function ACHPage() {
                           {analysis.hypotheses && (
                             <div className="flex items-center gap-1">
                               <AlertCircle className="h-4 w-4" />
-                              <span>{analysis.hypotheses.length} hypotheses</span>
+                              <span>{analysis.hypotheses.length} {t('ach:card.hypotheses')}</span>
                             </div>
                           )}
                           {analysis.evidence && (
                             <div className="flex items-center gap-1">
                               <FileText className="h-4 w-4" />
-                              <span>{analysis.evidence.length} evidence</span>
+                              <span>{analysis.evidence.length} {t('ach:card.evidence')}</span>
                             </div>
                           )}
                           {analysis.analyst && (
                             <div>
-                              Analyst: {analysis.analyst}
+                              {t('ach:card.analyst')} {analysis.analyst}
                             </div>
                           )}
                         </div>
@@ -536,14 +538,14 @@ export function ACHPage() {
                           handleOpenAnalysis(analysis.id)
                         }}>
                           <Grid3x3 className="h-4 w-4 mr-2" />
-                          Open Matrix
+                          {t('ach:menu.openMatrix')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => {
                           e.stopPropagation()
                           handleEditAnalysis(analysis.id)
                         }}>
                           <Edit className="h-4 w-4 mr-2" />
-                          Edit Details
+                          {t('ach:menu.editDetails')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -554,7 +556,7 @@ export function ACHPage() {
                           }}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
+                          {t('ach:menu.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

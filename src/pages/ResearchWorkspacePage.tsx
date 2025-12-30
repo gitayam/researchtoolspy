@@ -14,6 +14,7 @@ import {
   Database,
   ClipboardList
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface WorkflowStage {
   id: string
@@ -65,16 +66,8 @@ const CONTEXT_ICONS: Record<string, string> = {
   personal: '🌱'
 }
 
-const CONTEXT_LABELS: Record<string, string> = {
-  academic: 'Academic Research',
-  osint: 'OSINT Investigation',
-  investigation: 'Private Investigation',
-  business: 'Business Research',
-  journalism: 'Investigative Journalism',
-  personal: 'Personal Research'
-}
-
 export default function ResearchWorkspacePage() {
+  const { t } = useTranslation(['workspace', 'common'])
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
@@ -119,7 +112,7 @@ export default function ResearchWorkspacePage() {
 
     } catch (err) {
       console.error('Failed to load workspace:', err)
-      setError('Failed to load research workspace')
+      setError(t('workspace:notFound'))
     } finally {
       setIsLoading(false)
     }
@@ -154,7 +147,7 @@ export default function ResearchWorkspacePage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading workspace...</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('workspace:loading')}</p>
         </div>
       </div>
     )
@@ -165,13 +158,13 @@ export default function ResearchWorkspacePage() {
       <div className="flex items-center justify-center min-h-screen">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-red-500">Error</CardTitle>
-            <CardDescription>{error || 'Workspace not found'}</CardDescription>
+            <CardTitle className="text-red-500">{t('workspace:error')}</CardTitle>
+            <CardDescription>{error || t('workspace:notFound')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => navigate('/dashboard/tools/research-question-generator')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Research Generator
+              {t('workspace:backToGenerator')}
             </Button>
           </CardContent>
         </Card>
@@ -188,7 +181,7 @@ export default function ResearchWorkspacePage() {
   }, {} as Record<string, ResearchTask[]>)
 
   const contextIcon = CONTEXT_ICONS[workspace.researchContext] || '📋'
-  const contextLabel = CONTEXT_LABELS[workspace.researchContext] || workspace.researchContext
+  const contextLabel = t(`workspace:context.${workspace.researchContext}`) || workspace.researchContext
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -203,7 +196,7 @@ export default function ResearchWorkspacePage() {
                 onClick={() => navigate('/dashboard/tools/research-question-generator')}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                {t('workspace:back')}
               </Button>
               <div>
                 <div className="flex items-center space-x-2 mb-1">
@@ -219,7 +212,7 @@ export default function ResearchWorkspacePage() {
             {workspace.tasks.length === 0 && (
               <Button onClick={initializeWorkflow}>
                 <Plus className="h-4 w-4 mr-2" />
-                Initialize Workflow
+                {t('workspace:initializeWorkflow')}
               </Button>
             )}
           </div>
@@ -232,19 +225,19 @@ export default function ResearchWorkspacePage() {
           <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="overview">
               <Activity className="h-4 w-4 mr-2" />
-              Overview
+              {t('workspace:tabs.overview')}
             </TabsTrigger>
             <TabsTrigger value="tasks">
               <CheckSquare className="h-4 w-4 mr-2" />
-              Tasks ({workspace.tasks.length})
+              {t('workspace:tabs.tasks')} ({workspace.tasks.length})
             </TabsTrigger>
             <TabsTrigger value="evidence">
               <Database className="h-4 w-4 mr-2" />
-              Evidence ({workspace.evidence.length})
+              {t('workspace:tabs.evidence')} ({workspace.evidence.length})
             </TabsTrigger>
             <TabsTrigger value="analysis">
               <BarChart3 className="h-4 w-4 mr-2" />
-              Analysis
+              {t('workspace:tabs.analysis')}
             </TabsTrigger>
           </TabsList>
 
@@ -253,31 +246,31 @@ export default function ResearchWorkspacePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+                  <CardTitle className="text-sm font-medium">{t('workspace:stats.totalTasks')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{workspace.tasks.length}</div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {workspace.tasks.filter(t => t.status === 'completed').length} completed
+                    {workspace.tasks.filter(t => t.status === 'completed').length} {t('workspace:stats.completed')}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Evidence Items</CardTitle>
+                  <CardTitle className="text-sm font-medium">{t('workspace:stats.evidenceItems')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{workspace.evidence.length}</div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {workspace.evidence.filter(e => e.verification_status === 'verified').length} verified
+                    {workspace.evidence.filter(e => e.verification_status === 'verified').length} {t('workspace:stats.verified')}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Research Type</CardTitle>
+                  <CardTitle className="text-sm font-medium">{t('workspace:stats.researchType')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold flex items-center">
@@ -291,15 +284,15 @@ export default function ResearchWorkspacePage() {
             {workspace.tasks.length === 0 && (
               <Card className="mt-6">
                 <CardHeader>
-                  <CardTitle>Get Started</CardTitle>
+                  <CardTitle>{t('workspace:getStarted.title')}</CardTitle>
                   <CardDescription>
-                    Initialize your research workflow to get started with evidence collection and analysis
+                    {t('workspace:getStarted.description')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Button onClick={initializeWorkflow}>
                     <ClipboardList className="h-4 w-4 mr-2" />
-                    Initialize {contextLabel} Workflow
+                    {t('workspace:initializeSpecificWorkflow', { context: contextLabel })}
                   </Button>
                 </CardContent>
               </Card>
@@ -339,7 +332,7 @@ export default function ResearchWorkspacePage() {
                   ))}
                   {(!tasksByStage[stage.id] || tasksByStage[stage.id].length === 0) && (
                     <p className="text-sm text-gray-500 dark:text-gray-400 italic p-4">
-                      No tasks in this stage
+                      {t('workspace:tasks.noTasksInStage')}
                     </p>
                   )}
                 </div>
@@ -351,10 +344,10 @@ export default function ResearchWorkspacePage() {
           <TabsContent value="evidence" className="mt-6">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Evidence Collection</h3>
+                <h3 className="text-lg font-semibold">{t('workspace:evidence.collection')}</h3>
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Evidence
+                  {t('workspace:evidence.add')}
                 </Button>
               </div>
 
@@ -383,7 +376,7 @@ export default function ResearchWorkspacePage() {
                             </Badge>
                             {item.credibility_score && (
                               <span className="text-xs text-gray-500">
-                                Score: {(item.credibility_score * 100).toFixed(0)}%
+                                {t('workspace:evidence.score')} {(item.credibility_score * 100).toFixed(0)}%
                               </span>
                             )}
                           </div>
@@ -398,13 +391,13 @@ export default function ResearchWorkspacePage() {
                 <Card>
                   <CardContent className="p-8 text-center">
                     <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No evidence yet</h3>
+                    <h3 className="text-lg font-medium mb-2">{t('workspace:evidence.empty.title')}</h3>
                     <p className="text-gray-500 dark:text-gray-400 mb-4">
-                      Start collecting evidence for your research
+                      {t('workspace:evidence.empty.description')}
                     </p>
                     <Button>
                       <Plus className="h-4 w-4 mr-2" />
-                      Add First Evidence
+                      {t('workspace:evidence.empty.addFirst')}
                     </Button>
                   </CardContent>
                 </Card>
@@ -417,9 +410,9 @@ export default function ResearchWorkspacePage() {
             <Card>
               <CardContent className="p-8 text-center">
                 <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Analysis Tools</h3>
+                <h3 className="text-lg font-medium mb-2">{t('workspace:analysis.tools')}</h3>
                 <p className="text-gray-500 dark:text-gray-400">
-                  Analysis tools coming soon
+                  {t('workspace:analysis.comingSoon')}
                 </p>
               </CardContent>
             </Card>

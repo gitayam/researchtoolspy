@@ -1,0 +1,62 @@
+{
+  "loading": "Loading...",
+  "notFound": "Investigation not found",
+  "accessDenied": "Access denied: You do not have permission to view this investigation",
+  "loadFailed": "Failed to load investigation",
+  "invalidResponse": "Invalid response from server",
+  "networkError": "Network error: Unable to load investigation",
+  "backToList": "Back to Investigations",
+  "back": "Back",
+  "types": {
+    "structured_research": "Structured Research",
+    "rapid_analysis": "Rapid Analysis",
+    "general_topic": "General Topic"
+  },
+  "status": {
+    "active": "Active",
+    "completed": "Completed",
+    "archived": "Archived"
+  },
+  "metadata": {
+    "created": "Created",
+    "updated": "Updated",
+    "by": "by"
+  },
+  "researchQuestion": {
+    "title": "Research Question",
+    "topic": "Topic:"
+  },
+  "stats": {
+    "evidence": "Evidence",
+    "actors": "Actors",
+    "sources": "Sources",
+    "events": "Events",
+    "analyses": "Analyses"
+  },
+  "tabs": {
+    "overview": "Overview",
+    "evidence": "Evidence",
+    "entities": "Entities",
+    "frameworks": "Frameworks"
+  },
+  "overview": {
+    "title": "Investigation Overview",
+    "description": "Manage your research components and apply analytical frameworks",
+    "addEvidence": "Add Evidence",
+    "addEvidenceDesc": "Link evidence items to this investigation",
+    "addActors": "Add Actors",
+    "addActorsDesc": "Track people and organizations",
+    "addSources": "Add Sources",
+    "addSourcesDesc": "Document information sources",
+    "applyFramework": "Apply Framework",
+    "applyFrameworkDesc": "Run analytical frameworks"
+  },
+  "placeholders": {
+    "evidenceLinking": "Evidence linking will be available soon",
+    "goToEvidence": "Go to Evidence Page",
+    "entityManagement": "Entity management will be available soon",
+    "goToActors": "Go to Actors Page",
+    "frameworkResults": "Framework results will be displayed here",
+    "browseFrameworks": "Browse Frameworks"
+  }
+}

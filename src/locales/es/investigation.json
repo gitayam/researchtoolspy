@@ -1,0 +1,62 @@
+{
+  "loading": "Cargando...",
+  "notFound": "Investigación no encontrada",
+  "accessDenied": "Acceso denegado: No tienes permiso para ver esta investigación",
+  "loadFailed": "Error al cargar la investigación",
+  "invalidResponse": "Respuesta inválida del servidor",
+  "networkError": "Error de red: No se pudo cargar la investigación",
+  "backToList": "Volver a Investigaciones",
+  "back": "Volver",
+  "types": {
+    "structured_research": "Investigación Estructurada",
+    "rapid_analysis": "Análisis Rápido",
+    "general_topic": "Tema General"
+  },
+  "status": {
+    "active": "Activa",
+    "completed": "Completada",
+    "archived": "Archivada"
+  },
+  "metadata": {
+    "created": "Creado",
+    "updated": "Actualizado",
+    "by": "por"
+  },
+  "researchQuestion": {
+    "title": "Pregunta de Investigación",
+    "topic": "Tema:"
+  },
+  "stats": {
+    "evidence": "Evidencia",
+    "actors": "Actores",
+    "sources": "Fuentes",
+    "events": "Eventos",
+    "analyses": "Análisis"
+  },
+  "tabs": {
+    "overview": "Resumen",
+    "evidence": "Evidencia",
+    "entities": "Entidades",
+    "frameworks": "Marcos"
+  },
+  "overview": {
+    "title": "Resumen de la Investigación",
+    "description": "Gestiona tus componentes de investigación y aplica marcos analíticos",
+    "addEvidence": "Agregar Evidencia",
+    "addEvidenceDesc": "Vincular elementos de evidencia a esta investigación",
+    "addActors": "Agregar Actores",
+    "addActorsDesc": "Rastrear personas y organizaciones",
+    "addSources": "Agregar Fuentes",
+    "addSourcesDesc": "Documentar fuentes de información",
+    "applyFramework": "Aplicar Marco",
+    "applyFrameworkDesc": "Ejecutar marcos analíticos"
+  },
+  "placeholders": {
+    "evidenceLinking": "La vinculación de evidencia estará disponible pronto",
+    "goToEvidence": "Ir a la Página de Evidencia",
+    "entityManagement": "La gestión de entidades estará disponible pronto",
+    "goToActors": "Ir a la Página de Actores",
+    "frameworkResults": "Los resultados del marco se mostrarán aquí",
+    "browseFrameworks": "Explorar Marcos"
+  }
+}

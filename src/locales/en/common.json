@@ -886,6 +886,36 @@
       ]
     }
   },
+  "components": {
+    "workspaceSelector": {
+      "myWorkspace": "My Workspace",
+      "yourWorkspaces": "Your Workspaces"
+    },
+    "feedback": {
+      "feedback": "Feedback",
+      "sendFeedback": "Send Feedback",
+      "dialogDescription": "Help us improve by sharing your thoughts, reporting issues, or suggesting new features. All fields are optional.",
+      "toolName": "Tool or Service Name",
+      "toolNamePlaceholder": "e.g., COG Analysis, Content Intelligence",
+      "directLink": "Direct Link (if applicable)",
+      "directLinkPlaceholder": "e.g., /tools/cog-analysis",
+      "describeIssue": "Describe the issue or suggestion",
+      "descriptionPlaceholder": "What happened? What would you like to see? (You can also paste screenshots here)",
+      "screenshotTip": "Tip: Paste a screenshot directly into this field (Ctrl/Cmd + V)",
+      "screenshotOptional": "Screenshot (optional)",
+      "uploadImage": "Upload Image",
+      "remove": "Remove",
+      "screenshotPreview": "Screenshot preview",
+      "submitting": "Submitting...",
+      "submitFeedback": "Submit Feedback",
+      "nothingToSubmit": "Nothing to submit",
+      "nothingToSubmitDesc": "Please provide at least some feedback or a screenshot.",
+      "submitted": "Feedback submitted!",
+      "submittedDesc": "Thank you for helping us improve!",
+      "submissionFailed": "Submission failed",
+      "tryAgainLater": "Please try again later."
+    }
+  },
   "pages": {
     "notFound": {
       "title": "Page Not Found",
@@ -999,6 +1029,45 @@
       "copyFailed": "Copy failed",
       "copyFailedDesc": "Please manually select and copy the hash above."
     },
+    "newInvestigation": {
+      "title": "Create New Investigation",
+      "backToInvestigations": "Back to Investigations",
+      "back": "Back",
+      "chooseType": "Choose your investigation type",
+      "provideDetails": "Provide investigation details",
+      "guestMode": "Guest Mode:",
+      "guestModeDesc": "You're creating an investigation without logging in. You can still collaborate and share it with others.",
+      "types": {
+        "structured_research": {
+          "name": "Structured Research",
+          "description": "Research with a defined question and methodology",
+          "features": ["Research question & plan", "Hypothesis testing", "Systematic evidence collection", "Framework analyses"]
+        },
+        "general_topic": {
+          "name": "General Topic",
+          "description": "Open-ended exploration of a topic",
+          "features": ["Flexible exploration", "Multiple perspectives", "Evidence gathering", "Can upgrade to structured later"]
+        },
+        "rapid_analysis": {
+          "name": "Rapid Analysis",
+          "description": "Quick framework application for immediate insights",
+          "features": ["Fast turnaround", "Single framework focus", "Targeted analysis", "Immediate results"]
+        }
+      },
+      "investigationDetails": "Investigation Details",
+      "provideDescription": "Provide a title and description for your",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter a descriptive title for your investigation",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "What are you investigating? What's your research question or area of focus?",
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "Add a tag",
+      "addTag": "Add",
+      "creating": "Creating...",
+      "createInvestigation": "Create Investigation",
+      "failedToCreate": "Failed to create investigation",
+      "networkError": "Network error: Unable to create investigation. Please check your connection and try again."
+    },
     "collaboration": {
       "title": "Investigation Teams",
       "subtitle": "Manage team members and secure invite links",
@@ -1054,6 +1123,133 @@
       "failedToCreateInvite": "Failed to create invite",
       "failedToCopyLink": "Failed to copy link",
       "failedToRevokeInvite": "Failed to revoke invite"
+    },
+    "deceptionRisk": {
+      "title": "Deception Risk Dashboard",
+      "subtitle": "Unified view of all deception detection systems: MOM, POP, EVE, MOSES, Claims",
+      "loading": "Loading deception risk data...",
+      "errorTitle": "Error Loading Dashboard",
+      "errorMessage": "Failed to load deception risk data",
+      "retry": "Retry",
+      "selectWorkspace": "Select workspace...",
+      "defaultWorkspace": "Default Workspace",
+      "team": "Team",
+      "public": "Public",
+      "actors": "actors",
+      "sources": "sources",
+      "evidence": "evidence",
+      "refresh": "Refresh",
+      "updated": "Updated",
+      "overallRiskScore": "Overall Risk Score",
+      "aggregatedFrom": "Aggregated from {{actors}} actors, {{sources}} sources, {{analyses}} analyses",
+      "riskThreshold": "Risk threshold",
+      "riskLevels": {
+        "critical": "CRITICAL",
+        "high": "HIGH",
+        "medium": "MEDIUM",
+        "low": "LOW"
+      },
+      "criticalAlerts": "Critical Alerts",
+      "immediateAttention": "Immediate attention required",
+      "risk": "Risk",
+      "cards": {
+        "actorsMom": {
+          "title": "Actors (MOM)",
+          "subtitle": "Motive-Opportunity-Means"
+        },
+        "actorsPop": {
+          "title": "Actors (POP)",
+          "subtitle": "Patterns of Performance"
+        },
+        "sourcesMoses": {
+          "title": "Sources (MOSES)",
+          "subtitle": "Source Vulnerability"
+        },
+        "evidenceEve": {
+          "title": "Evidence (EVE)",
+          "subtitle": "Evidence Validation"
+        },
+        "claims": {
+          "title": "Claims Analysis",
+          "subtitle": "Content Deception Detection"
+        }
+      },
+      "labels": {
+        "highRisk": "High Risk",
+        "mediumRisk": "Medium Risk",
+        "lowRisk": "Low Risk",
+        "compromised": "Compromised",
+        "unreliable": "Unreliable",
+        "solid": "Solid",
+        "suspicious": "Suspicious",
+        "needsReview": "Needs Review",
+        "verified": "Verified"
+      },
+      "totalItems": "Total Items",
+      "avgScore": "Avg Score",
+      "viewAll": "View All",
+      "recommendedActions": "Recommended Actions",
+      "priorityTasks": "Priority tasks based on current risk profile",
+      "review": "Review"
+    },
+    "contentIntelligence": {
+      "title": "Content Research & Link Analysis",
+      "subtitle": "Analyze URLs, extract insights, preserve evidence, and ask questions",
+      "urlPlaceholder": "Enter URL to analyze...",
+      "modes": {
+        "quick": "Quick",
+        "normal": "Normal",
+        "full": "Full"
+      },
+      "analyzing": "Analyzing...",
+      "analyzeContent": "Analyze Content",
+      "processingTime": "This may take 10-30 seconds depending on content size",
+      "recentlySavedLinks": "Recently Saved Links",
+      "viewAll": "View All",
+      "fullLibraryComingSoon": "Full library view coming soon",
+      "loadingSavedLinks": "Loading saved links...",
+      "noSavedLinks": "No saved links yet.",
+      "noSavedLinksHint": "Analyze URLs to automatically save them, or add notes and tags before clicking \"Save Permanently\".",
+      "loadAnalysis": "Load Analysis",
+      "analyzeNow": "Analyze Now",
+      "sections": {
+        "overview": {
+          "label": "Overview",
+          "description": "Summary, metadata, and key information"
+        },
+        "entities": {
+          "label": "Entities",
+          "description": "People, organizations, locations, and more"
+        },
+        "sentiment": {
+          "label": "Sentiment",
+          "description": "Emotional tone and sentiment analysis"
+        },
+        "links": {
+          "label": "Links",
+          "description": "External and internal link analysis"
+        },
+        "wordAnalysis": {
+          "label": "Word Analysis",
+          "description": "Word frequency and phrase analysis"
+        },
+        "claims": {
+          "label": "Claims Analysis",
+          "description": "6-method deception detection framework"
+        },
+        "dime": {
+          "label": "DIME Framework",
+          "description": "Diplomatic, Information, Military, Economic"
+        },
+        "starbursting": {
+          "label": "Starbursting",
+          "description": "5W1H critical question generation"
+        },
+        "qa": {
+          "label": "Q&A",
+          "description": "Ask questions about the content"
+        }
+      }
     }
   },
   "emptyStates": {

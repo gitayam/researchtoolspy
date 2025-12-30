@@ -1,0 +1,351 @@
+{
+  "title": "Deception Detection",
+  "subtitle": "CIA SATS MOM-POP-MOSES-EVE Framework",
+  "description": "Structured analysis for detecting potential deception in intelligence and information",
+
+  "form": {
+    "newAnalysis": "New Deception Analysis",
+    "editAnalysis": "Edit Deception Analysis",
+    "backToAnalyses": "Back to Analyses",
+    "saveAnalysis": "Save Analysis",
+    "saving": "Saving...",
+    "aiAnalysis": "AI Analysis",
+    "analyzing": "Analyzing...",
+    "aiAssist": "AI Assist"
+  },
+
+  "basicInfo": {
+    "title": "Basic Information",
+    "description": "Identify the analysis and scenario",
+    "analysisTitle": "Analysis Title",
+    "analysisTitlePlaceholder": "e.g., Russian Maskirovka Assessment - Operation XYZ",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Brief overview of this analysis"
+  },
+
+  "sats": {
+    "title": "SATS Analysis Framework",
+    "description": "Complete each section to build comprehensive deception assessment",
+    "tabs": {
+      "scenario": "Scenario",
+      "mom": "MOM",
+      "pop": "POP",
+      "moses": "MOSES",
+      "eve": "EVE",
+      "assessment": "Assessment"
+    }
+  },
+
+  "scenario": {
+    "title": "Scenario Description",
+    "description": "Describe the information or situation being analyzed",
+    "placeholder": "Provide detailed description of the scenario, including source of information, context, and what claims or information are being assessed..."
+  },
+
+  "categories": {
+    "mom": {
+      "title": "MOM: Motive, Opportunity, Means",
+      "shortTitle": "MOM (Capability)",
+      "description": "Assess adversary's capability to deceive",
+      "fieldLabel": "MOM (Motive, Opportunity, Means)",
+      "fieldDescription": "Assess whether adversary has motive, opportunity, and means to deceive",
+      "placeholder": "Motive: Why would they want to deceive? What do they gain?\nOpportunity: Do they control information channels?\nMeans: Do they have capabilities to execute deception?"
+    },
+    "pop": {
+      "title": "POP: Patterns of Practice",
+      "shortTitle": "POP (Historical)",
+      "description": "Examine historical deception patterns",
+      "fieldLabel": "POP (Patterns of Practice)",
+      "fieldDescription": "Examine historical deception patterns",
+      "placeholder": "Historical patterns: Has this actor used deception before?\nSophistication: How advanced are their deception techniques?\nSuccess rate: Have their past deceptions worked?"
+    },
+    "moses": {
+      "title": "MOSES: My Own Sources",
+      "shortTitle": "MOSES (Sources)",
+      "description": "Evaluate source vulnerability to manipulation",
+      "fieldLabel": "MOSES (My Own Sources Evaluation)",
+      "fieldDescription": "Evaluate vulnerability of your sources to manipulation",
+      "placeholder": "Source vulnerability: Could our sources be compromised?\nAccess: Do adversaries have access to our collection methods?\nManipulation evidence: Any signs of source manipulation?"
+    },
+    "eve": {
+      "title": "EVE: Evaluation of Evidence",
+      "shortTitle": "EVE (Evidence)",
+      "description": "Assess evidence consistency and corroboration",
+      "fieldLabel": "EVE (Evaluation of Evidence)",
+      "fieldDescription": "Assess internal consistency and corroboration",
+      "placeholder": "Internal consistency: Does the information hang together logically?\nExternal corroboration: Do independent sources confirm it?\nAnomalies: Are there any suspicious patterns or oddities?"
+    }
+  },
+
+  "assessment": {
+    "title": "Overall Assessment",
+    "description": "Synthesize findings and determine deception likelihood",
+    "placeholder": "Bottom Line Up Front (BLUF):\n\nKey Findings:\n\nRecommendations:\n\nConfidence Level:",
+    "overallLikelihood": "Overall Likelihood",
+    "confidenceLevel": "Confidence Level",
+    "riskLevel": "Risk",
+    "deceptionLikelihood": "Deception Likelihood Assessment",
+    "realTimeScoring": "Real-time scoring based on MOM-POP-MOSES-EVE framework"
+  },
+
+  "scoring": {
+    "title": "Deception Likelihood Scoring",
+    "description": "Score each criterion (0-5) based on your analysis",
+    "adjustScores": "Adjust scores to generate indicators",
+    "fillScoring": "Fill in the scoring section to see real-time deception likelihood analysis"
+  },
+
+  "indicators": {
+    "title": "Key Indicators",
+    "description": "Signs pointing to or against deception",
+    "deceptionIndicators": "Deception Indicators",
+    "counterIndicators": "Counter-Indicators",
+    "noIndicators": "Adjust scores to generate indicators"
+  },
+
+  "aiResults": {
+    "title": "AI Analysis Results",
+    "bottomLine": "Bottom Line",
+    "executiveSummary": "Executive Summary",
+    "keyIndicators": "Key Indicators",
+    "recommendations": "Recommendations"
+  },
+
+  "riskLevels": {
+    "critical": "CRITICAL",
+    "high": "HIGH",
+    "medium": "MEDIUM",
+    "low": "LOW",
+    "minimal": "MINIMAL"
+  },
+
+  "confidenceLevels": {
+    "veryHigh": "VERY HIGH",
+    "high": "HIGH",
+    "moderate": "MODERATE",
+    "low": "LOW",
+    "veryLow": "VERY LOW"
+  },
+
+  "criteria": {
+    "motive": {
+      "label": "Motive to Deceive",
+      "description": "Does the adversary have strong reasons to deceive?",
+      "levels": {
+        "0": { "label": "None", "description": "No apparent motive" },
+        "1": { "label": "Weak", "description": "Minor benefits from deception" },
+        "2": { "label": "Moderate", "description": "Some strategic advantage" },
+        "3": { "label": "Strong", "description": "Significant political/military gain" },
+        "4": { "label": "Very Strong", "description": "Critical to regime survival/objectives" },
+        "5": { "label": "Critical", "description": "Existential threat if truth known" }
+      }
+    },
+    "opportunity": {
+      "label": "Opportunity to Deceive",
+      "description": "Can they manipulate information channels?",
+      "levels": {
+        "0": { "label": "None", "description": "No access to our information sources" },
+        "1": { "label": "Minimal", "description": "Limited ability to influence" },
+        "2": { "label": "Moderate", "description": "Some control over information flow" },
+        "3": { "label": "Strong", "description": "Controls key information channels" },
+        "4": { "label": "Extensive", "description": "Broad control with few checks" },
+        "5": { "label": "Total", "description": "Complete information monopoly" }
+      }
+    },
+    "means": {
+      "label": "Means to Deceive",
+      "description": "Do they have deception capabilities?",
+      "levels": {
+        "0": { "label": "None", "description": "No demonstrated capability" },
+        "1": { "label": "Basic", "description": "Simple denial/misrepresentation" },
+        "2": { "label": "Moderate", "description": "Coordinated messaging capability" },
+        "3": { "label": "Advanced", "description": "Sophisticated propaganda apparatus" },
+        "4": { "label": "Highly Developed", "description": "State-level deception infrastructure" },
+        "5": { "label": "Elite", "description": "World-class maskirovka/denial-deception" }
+      }
+    },
+    "historicalPattern": {
+      "label": "Historical Deception Pattern",
+      "description": "How often has this actor deceived before?",
+      "levels": {
+        "0": { "label": "Never", "description": "No history of deception" },
+        "1": { "label": "Rarely", "description": "1-2 incidents over many years" },
+        "2": { "label": "Occasionally", "description": "Several documented cases" },
+        "3": { "label": "Frequently", "description": "Regular pattern established" },
+        "4": { "label": "Routinely", "description": "Standard operating procedure" },
+        "5": { "label": "Systematically", "description": "Core doctrine/strategy" }
+      }
+    },
+    "sophisticationLevel": {
+      "label": "Deception Sophistication",
+      "description": "How complex were past deceptions?",
+      "levels": {
+        "0": { "label": "N/A", "description": "No past deceptions" },
+        "1": { "label": "Crude", "description": "Simple lies, easily detected" },
+        "2": { "label": "Basic", "description": "Some planning, moderate success" },
+        "3": { "label": "Skillful", "description": "Well-planned, multi-layered" },
+        "4": { "label": "Advanced", "description": "Highly sophisticated operations" },
+        "5": { "label": "Masterful", "description": "State-of-the-art tradecraft" }
+      }
+    },
+    "successRate": {
+      "label": "Past Deception Success",
+      "description": "How often did past deceptions succeed?",
+      "levels": {
+        "0": { "label": "N/A", "description": "No past attempts" },
+        "1": { "label": "Rarely Successful", "description": "<20% success rate" },
+        "2": { "label": "Sometimes Successful", "description": "20-40% success" },
+        "3": { "label": "Often Successful", "description": "40-60% success" },
+        "4": { "label": "Usually Successful", "description": "60-80% success" },
+        "5": { "label": "Consistently Successful", "description": ">80% success" }
+      }
+    },
+    "sourceVulnerability": {
+      "label": "Source Vulnerability",
+      "description": "How vulnerable are our sources to manipulation?",
+      "levels": {
+        "0": { "label": "None", "description": "Completely independent sources" },
+        "1": { "label": "Low", "description": "Multiple independent channels" },
+        "2": { "label": "Moderate", "description": "Some shared dependencies" },
+        "3": { "label": "Significant", "description": "Limited independent validation" },
+        "4": { "label": "High", "description": "Heavy reliance on few sources" },
+        "5": { "label": "Extreme", "description": "Single source or controlled channels" }
+      }
+    },
+    "manipulationEvidence": {
+      "label": "Manipulation Evidence",
+      "description": "Are there signs of source manipulation?",
+      "levels": {
+        "0": { "label": "None", "description": "No indicators of manipulation" },
+        "1": { "label": "Minimal", "description": "Very weak indicators" },
+        "2": { "label": "Some", "description": "Suspicious but inconclusive" },
+        "3": { "label": "Moderate", "description": "Multiple suspicious indicators" },
+        "4": { "label": "Strong", "description": "Clear signs of manipulation" },
+        "5": { "label": "Definitive", "description": "Proven source compromise" }
+      }
+    },
+    "internalConsistency": {
+      "label": "Internal Consistency",
+      "description": "Is the evidence self-consistent?",
+      "levels": {
+        "5": { "label": "Highly Consistent", "description": "All elements align perfectly" },
+        "4": { "label": "Mostly Consistent", "description": "Minor discrepancies only" },
+        "3": { "label": "Moderately Consistent", "description": "Some contradictions present" },
+        "2": { "label": "Largely Inconsistent", "description": "Major contradictions" },
+        "1": { "label": "Highly Inconsistent", "description": "Severe contradictions" },
+        "0": { "label": "Contradictory", "description": "Evidence contradicts itself" }
+      }
+    },
+    "externalCorroboration": {
+      "label": "External Corroboration",
+      "description": "Do independent sources confirm?",
+      "levels": {
+        "5": { "label": "Fully Corroborated", "description": "Multiple independent sources agree" },
+        "4": { "label": "Largely Corroborated", "description": "Most key points confirmed" },
+        "3": { "label": "Partially Corroborated", "description": "Some confirmation exists" },
+        "2": { "label": "Minimally Corroborated", "description": "Little independent confirmation" },
+        "1": { "label": "Uncorroborated", "description": "No independent sources" },
+        "0": { "label": "Contradicted", "description": "Independent sources disagree" }
+      }
+    },
+    "anomalyDetection": {
+      "label": "Anomaly Detection",
+      "description": "Are there unusual patterns or red flags?",
+      "levels": {
+        "0": { "label": "None", "description": "No anomalies detected" },
+        "1": { "label": "Minor", "description": "Slight irregularities" },
+        "2": { "label": "Moderate", "description": "Notable inconsistencies" },
+        "3": { "label": "Significant", "description": "Multiple red flags" },
+        "4": { "label": "Major", "description": "Serious anomalies present" },
+        "5": { "label": "Critical", "description": "Glaring impossibilities/contradictions" }
+      }
+    }
+  },
+
+  "categoryDescriptions": {
+    "mom": {
+      "high": "Adversary has strong capability and incentive to deceive",
+      "moderateHigh": "Adversary has moderate deception capability",
+      "moderate": "Some deception capability exists",
+      "low": "Limited deception capability",
+      "minimal": "Minimal or no deception capability"
+    },
+    "pop": {
+      "high": "Strong historical pattern of sophisticated deception",
+      "moderateHigh": "Established pattern of successful deception",
+      "moderate": "Some history of deception attempts",
+      "low": "Limited deception history",
+      "minimal": "No significant deception history"
+    },
+    "moses": {
+      "high": "Sources highly vulnerable to manipulation",
+      "moderateHigh": "Significant source vulnerability exists",
+      "moderate": "Moderate source vulnerability",
+      "low": "Some source vulnerability",
+      "minimal": "Sources appear secure"
+    },
+    "eve": {
+      "high": "Evidence shows major inconsistencies and anomalies",
+      "moderateHigh": "Evidence has significant quality issues",
+      "moderate": "Some evidence quality concerns",
+      "low": "Minor evidence issues",
+      "minimal": "Evidence appears sound and well-corroborated"
+    }
+  },
+
+  "counterIndicatorMessages": {
+    "weakMotive": "Weak or no motive to deceive",
+    "noHistory": "No significant deception history",
+    "secureSources": "Independent, secure sources",
+    "consistentEvidence": "Evidence highly consistent",
+    "strongCorroboration": "Strong independent corroboration",
+    "noAnomalies": "No significant anomalies detected"
+  },
+
+  "errors": {
+    "scenarioRequired": "Please provide a scenario description before running AI analysis",
+    "titleRequired": "Title and scenario are required",
+    "saveFailed": "Failed to save analysis. Please try again.",
+    "aiAnalysisFailed": "AI analysis failed. Please check your API key configuration."
+  },
+
+  "claimImporter": {
+    "title": "Import Claims",
+    "description": "Import claims from the claims database for deception analysis"
+  },
+
+  "export": {
+    "title": "Export Report",
+    "pdf": "Export PDF",
+    "docx": "Export DOCX"
+  },
+
+  "dashboard": {
+    "overallLikelihood": "Overall Deception Likelihood",
+    "basedOnFramework": "Based on MOM-POP-MOSES-EVE analysis framework",
+    "riskFactorMatrix": "Risk Factor Matrix",
+    "historicalTrend": "Historical Trend Analysis",
+    "likelihoodOverTime": "Deception likelihood over time",
+    "assessments": "assessments",
+    "trend": "trend",
+    "categoryScore": "Category Score",
+    "inverted": "(inverted)",
+    "riskLabel": "RISK",
+    "confidenceLabel": "CONFIDENCE",
+    "momRiskIndicators": "MOM Risk Indicators",
+    "momSubtitle": "Motive, Opportunity, Means",
+    "popAnalysis": "POP Analysis",
+    "popSubtitle": "Patterns of Practice",
+    "mosesAssessment": "MOSES Assessment",
+    "mosesSubtitle": "My Own Sources Evaluation",
+    "eveEvaluation": "EVE Evaluation",
+    "eveSubtitle": "Evidence Quality Assessment",
+    "overallLikelihoodLabel": "Overall Likelihood",
+    "matrixLegend": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    }
+  }
+}

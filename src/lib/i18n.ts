@@ -16,6 +16,18 @@ import enNotifications from '@/locales/en/notifications.json'
 import esNotifications from '@/locales/es/notifications.json'
 import enEntities from '@/locales/en/entities.json'
 import esEntities from '@/locales/es/entities.json'
+import enDeception from '@/locales/en/deception.json'
+import esDeception from '@/locales/es/deception.json'
+import enACH from '@/locales/en/ach.json'
+import esACH from '@/locales/es/ach.json'
+import enInvestigation from '@/locales/en/investigation.json'
+import esInvestigation from '@/locales/es/investigation.json'
+import enWorkspace from '@/locales/en/workspace.json'
+import esWorkspace from '@/locales/es/workspace.json'
+import enResearchQuestion from '@/locales/en/researchQuestion.json'
+import esResearchQuestion from '@/locales/es/researchQuestion.json'
+import enScraper from '@/locales/en/scraper.json'
+import esScraper from '@/locales/es/scraper.json'
 
 // Initialize i18next with react-i18next and language detection
 i18n
@@ -30,7 +42,13 @@ i18n
         activity: enActivity,
         library: enLibrary,
         notifications: enNotifications,
-        entities: enEntities
+        entities: enEntities,
+        deception: enDeception,
+        ach: enACH,
+        investigation: enInvestigation,
+        workspace: enWorkspace,
+        researchQuestion: enResearchQuestion,
+        scraper: enScraper
       },
       es: {
         common: esCommon,
@@ -39,12 +57,18 @@ i18n
         activity: esActivity,
         library: esLibrary,
         notifications: esNotifications,
-        entities: esEntities
+        entities: esEntities,
+        deception: esDeception,
+        ach: esACH,
+        investigation: esInvestigation,
+        workspace: esWorkspace,
+        researchQuestion: esResearchQuestion,
+        scraper: esScraper
       }
     },
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'cog', 'comments', 'activity', 'library', 'notifications', 'entities'],
+    ns: ['common', 'cog', 'comments', 'activity', 'library', 'notifications', 'entities', 'deception', 'ach', 'investigation', 'workspace', 'researchQuestion', 'scraper'],
 
     interpolation: {
       escapeValue: false // React already escapes values

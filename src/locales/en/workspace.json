@@ -1,0 +1,51 @@
+{
+  "loading": "Loading workspace...",
+  "notFound": "Workspace not found",
+  "error": "Error",
+  "back": "Back",
+  "backToGenerator": "Back to Research Generator",
+  "initializeWorkflow": "Initialize Workflow",
+  "initializeSpecificWorkflow": "Initialize {{context}} Workflow",
+  "tabs": {
+    "overview": "Overview",
+    "tasks": "Tasks",
+    "evidence": "Evidence",
+    "analysis": "Analysis"
+  },
+  "stats": {
+    "totalTasks": "Total Tasks",
+    "evidenceItems": "Evidence Items",
+    "researchType": "Research Type",
+    "completed": "completed",
+    "verified": "verified"
+  },
+  "getStarted": {
+    "title": "Get Started",
+    "description": "Initialize your research workflow to get started with evidence collection and analysis"
+  },
+  "tasks": {
+    "noTasksInStage": "No tasks in this stage"
+  },
+  "evidence": {
+    "collection": "Evidence Collection",
+    "add": "Add Evidence",
+    "score": "Score:",
+    "empty": {
+      "title": "No evidence yet",
+      "description": "Start collecting evidence for your research",
+      "addFirst": "Add First Evidence"
+    }
+  },
+  "analysis": {
+    "tools": "Analysis Tools",
+    "comingSoon": "Analysis tools coming soon"
+  },
+  "context": {
+    "academic": "Academic Research",
+    "osint": "OSINT Investigation",
+    "investigation": "Private Investigation",
+    "business": "Business Research",
+    "journalism": "Investigative Journalism",
+    "personal": "Personal Research"
+  }
+}

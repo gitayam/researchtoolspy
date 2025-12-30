@@ -1,0 +1,190 @@
+{
+  "title": "Generador de Preguntas de Investigación",
+  "subtitle": "Genera preguntas de investigación de alta calidad siguiendo los criterios SMART y FINER",
+  "backToDashboard": "Volver al Tablero",
+  "steps": {
+    "0": "Inicio Rápido",
+    "1": "Contexto de Investigación",
+    "2": "Tema y Propósito",
+    "3": "Las 5 W",
+    "4": "Recursos y Restricciones",
+    "5": "Revisar y Generar"
+  },
+  "stepDesc": {
+    "0": "Elige cómo comenzar",
+    "1": "Tipo de investigación y equipo",
+    "2": "Define tu área de investigación",
+    "3": "Quién, Qué, Dónde, Cuándo, Por qué",
+    "4": "Cronograma y limitaciones",
+    "5": "Generar preguntas de investigación"
+  },
+  "quickStart": {
+    "title": "¿Cómo te gustaría comenzar?",
+    "subtitle": "Elige tu forma preferida de crear una pregunta de investigación",
+    "wizard": {
+      "title": "Iniciar Asistente",
+      "desc": "Proceso guiado paso a paso para elaborar tu pregunta de investigación",
+      "button": "Comenzar Proceso Guiado",
+      "bestFor": "Mejor para: Planificación integral"
+    },
+    "import": {
+      "title": "Importar Pregunta",
+      "desc": "¿Ya tienes una pregunta de investigación? Pégala aquí para comenzar",
+      "placeholder": "Pega tu pregunta de investigación aquí...",
+      "button": "Importar y Continuar",
+      "bestFor": "Mejor para: Inicio rápido con preguntas existentes",
+      "loading": "Generando Plan..."
+    },
+    "ai": {
+      "title": "Recomendación IA",
+      "desc": "Obtén sugerencias de preguntas de investigación generadas por IA",
+      "placeholder": "Describe tu tema o área de interés...",
+      "button": "Obtener Recomendaciones",
+      "bestFor": "Mejor para: Explorar nuevas ideas de investigación",
+      "loading": "Generando..."
+    }
+  },
+  "context": {
+    "title": "Seleccionar Tipo de Investigación",
+    "emphasizes": "Enfatiza:",
+    "teamStructure": "Estructura del Equipo",
+    "solo": "Investigador Solitario",
+    "smallTeam": "Equipo Pequeño (2-5 personas)",
+    "largeTeam": "Equipo Grande (6+ personas)",
+    "teamRoles": "Roles del Equipo (uno por línea)",
+    "teamRolesPlaceholder": "Investigador Principal\nAnalista de Datos...",
+    "teamRolesDesc": "Define roles para los miembros de tu equipo para ayudar a estructurar el plan de investigación"
+  },
+  "contexts": {
+    "academic": {
+      "label": "Investigación Académica/Posgrado",
+      "description": "Tesis, disertación o publicación académica"
+    },
+    "osint": {
+      "label": "Inteligencia de Fuente Abierta (OSINT)",
+      "description": "Investigación de fuentes abiertas y análisis de inteligencia"
+    },
+    "investigation": {
+      "label": "Investigación Privada",
+      "description": "Investigación investigativa profesional"
+    },
+    "business": {
+      "label": "Investigación de Negocios",
+      "description": "Investigación de mercado, inteligencia competitiva, debida diligencia"
+    },
+    "journalism": {
+      "label": "Periodismo de Investigación",
+      "description": "Investigación de noticias y búsqueda de hechos"
+    },
+    "personal": {
+      "label": "Investigación Personal/Hobby",
+      "description": "Investigación impulsada por curiosidad o interés personal"
+    }
+  },
+  "topic": {
+    "title": "Tema y Propósito",
+    "desc": "Define tu área de investigación y objetivos",
+    "topicLabel": "¿Cuál es tu área general de interés o tema de investigación? *",
+    "topicPlaceholder": "Ejemplo: Impacto de las redes sociales en la salud mental de jóvenes adultos",
+    "topicHint": "Sé tan específico o amplio como quieras - te ayudaremos a refinarlo",
+    "purposeLabel": "¿Cuál es el propósito de esta investigación? (Selecciona todos los que apliquen)",
+    "projectTypeLabel": "¿Qué tipo de proyecto es este? *",
+    "projectTypePlaceholder": "Selecciona un tipo de proyecto..."
+  },
+  "fiveWs": {
+    "title": "Las 5 W",
+    "desc": "Define Quién, Qué, Dónde, Cuándo y Por qué",
+    "who": {
+      "label": "Quién",
+      "focusLabel": "¿Quién o qué es el foco de tu investigación? *",
+      "focusPlaceholder": "Ejemplo: Jóvenes adultos de 18-25 años",
+      "subgroupsLabel": "¿Subgrupos específicos para comparar? (Opcional)",
+      "subgroupsPlaceholder": "Ejemplo: Hombres vs mujeres, urbano vs rural"
+    },
+    "what": {
+      "label": "Qué",
+      "variablesLabel": "¿Qué variables, comportamientos o fenómenos estudiarás? *",
+      "variablesPlaceholder": "Ejemplo: Tiempo de uso de redes sociales, niveles de ansiedad, síntomas de depresión",
+      "outcomeLabel": "¿Relación o resultado esperado? (Opcional)",
+      "outcomePlaceholder": "Ejemplo: El aumento del uso de redes sociales conduce a mayor ansiedad"
+    },
+    "where": {
+      "label": "Dónde",
+      "locationLabel": "¿Dónde se llevará a cabo esta investigación? *",
+      "locationPlaceholder": "Ejemplo: Estados Unidos, Plataformas en línea, Sureste asiático rural",
+      "settingsLabel": "¿Entornos o contextos específicos? (Opcional)",
+      "settingsPlaceholder": "Ejemplo: Campus universitarios, Instalaciones de salud"
+    },
+    "when": {
+      "label": "Cuándo",
+      "timeLabel": "¿Qué período de tiempo cubrirá tu investigación? *",
+      "timePlaceholder": "Ejemplo: 2020-2024, Próximos 6 meses, Década pasada",
+      "studyTypeLabel": "Tipo de estudio"
+    },
+    "why": {
+      "label": "Por qué",
+      "importanceLabel": "¿Por qué es importante esta investigación? *",
+      "importancePlaceholder": "Ejemplo: Los problemas de salud mental están aumentando entre los jóvenes adultos...",
+      "beneficiariesLabel": "¿Quién se beneficiará de esta investigación? (Opcional)",
+      "beneficiariesPlaceholder": "Ejemplo: Formuladores de políticas, Proveedores de salud, Educadores"
+    }
+  },
+  "resources": {
+    "title": "Recursos y Restricciones",
+    "desc": "Define tu cronograma, recursos y limitaciones",
+    "durationLabel": "¿Cuánto tiempo tienes para completar esta investigación?",
+    "durationPlaceholder": "Selecciona duración...",
+    "customDurationPlaceholder": "Ingresa duración personalizada (ej., 3 días, 5 horas)",
+    "resourcesLabel": "¿A qué recursos tienes acceso? (Marca todos los que apliquen)",
+    "experienceLabel": "¿Cuál es tu nivel de experiencia en investigación?",
+    "constraintsLabel": "¿Hay áreas o temas que quieres evitar? (Opcional)",
+    "constraintsPlaceholder": "Ejemplo: Datos personales sensibles, Experimentos de alto costo...",
+    "ethicalLabel": "¿Hay consideraciones éticas? (Opcional)",
+    "ethicalPlaceholder": "Ejemplo: Poblaciones vulnerables, preocupaciones de privacidad..."
+  },
+  "generate": {
+    "reviewTitle": "Revisar tus Entradas",
+    "summary": "Resumen de Investigación",
+    "sentence": "Un {{projectType}} investigando {{topic}}, enfocándose en {{population}} en {{location}} durante {{timePeriod}}, examinando {{variables}} para entender {{importance}}.",
+    "labels": {
+      "topic": "Tema:",
+      "projectType": "Tipo de Proyecto:",
+      "who": "Quién:",
+      "what": "Qué:",
+      "where": "Dónde:",
+      "when": "Cuándo:",
+      "why": "Por qué:",
+      "duration": "Duración:"
+    },
+    "button": "Generar Preguntas de Investigación",
+    "loading": "Generando Preguntas...",
+    "aiHint": "La IA generará 3 preguntas de investigación con evaluaciones SMART y FINER",
+    "resultsTitle": "Preguntas de Investigación Generadas",
+    "planTitle": "¿Listo para crear tu plan de investigación?",
+    "planDesc": "Genera un plan de investigación integral y accionable adaptado a tu pregunta seleccionada",
+    "planButton": "Generar Plan de Investigación",
+    "planLoading": "Generando Plan de Investigación..."
+  },
+  "questionCard": {
+    "scope": {
+      "broad": "Amplio",
+      "moderate": "Moderado",
+      "narrow": "Estrecho"
+    },
+    "score": "Puntuación",
+    "nullHypothesis": "Hipótesis Nula (H₀):",
+    "alternativeHypothesis": "Hipótesis Alternativa (H₁):",
+    "keyVariables": "Variables Clave:",
+    "smartCriteria": "Criterios SMART:",
+    "select": "Seleccionar Esta Pregunta",
+    "selected": "Seleccionada"
+  },
+  "alerts": {
+    "importEmpty": "Por favor ingresa una pregunta de investigación",
+    "recommendEmpty": "Por favor ingresa un tema o área de interés",
+    "generateFailed": "Error al generar preguntas. Por favor intenta de nuevo.",
+    "planFailed": "Error al generar el plan de investigación. Por favor intenta de nuevo.",
+    "recommendFailed": "Error al generar recomendaciones. Por favor intenta de nuevo.",
+    "error": "Ocurrió un error. Por favor intenta de nuevo."
+  }
+}

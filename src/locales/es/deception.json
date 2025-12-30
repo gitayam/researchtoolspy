@@ -1,0 +1,351 @@
+{
+  "title": "Detección de Engaño",
+  "subtitle": "Marco CIA SATS MOM-POP-MOSES-EVE",
+  "description": "Análisis estructurado para detectar posibles engaños en inteligencia e información",
+
+  "form": {
+    "newAnalysis": "Nuevo Análisis de Engaño",
+    "editAnalysis": "Editar Análisis de Engaño",
+    "backToAnalyses": "Volver a Análisis",
+    "saveAnalysis": "Guardar Análisis",
+    "saving": "Guardando...",
+    "aiAnalysis": "Análisis IA",
+    "analyzing": "Analizando...",
+    "aiAssist": "Asistencia IA"
+  },
+
+  "basicInfo": {
+    "title": "Información Básica",
+    "description": "Identificar el análisis y escenario",
+    "analysisTitle": "Título del Análisis",
+    "analysisTitlePlaceholder": "ej., Evaluación de Maskirovka Rusa - Operación XYZ",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "Breve resumen de este análisis"
+  },
+
+  "sats": {
+    "title": "Marco de Análisis SATS",
+    "description": "Complete cada sección para construir una evaluación integral de engaño",
+    "tabs": {
+      "scenario": "Escenario",
+      "mom": "MOM",
+      "pop": "POP",
+      "moses": "MOSES",
+      "eve": "EVE",
+      "assessment": "Evaluación"
+    }
+  },
+
+  "scenario": {
+    "title": "Descripción del Escenario",
+    "description": "Describa la información o situación que se está analizando",
+    "placeholder": "Proporcione una descripción detallada del escenario, incluyendo fuente de información, contexto y qué afirmaciones o información se están evaluando..."
+  },
+
+  "categories": {
+    "mom": {
+      "title": "MOM: Motivo, Oportunidad, Medios",
+      "shortTitle": "MOM (Capacidad)",
+      "description": "Evaluar la capacidad del adversario para engañar",
+      "fieldLabel": "MOM (Motivo, Oportunidad, Medios)",
+      "fieldDescription": "Evalúe si el adversario tiene motivo, oportunidad y medios para engañar",
+      "placeholder": "Motivo: ¿Por qué querrían engañar? ¿Qué ganan?\nOportunidad: ¿Controlan los canales de información?\nMedios: ¿Tienen capacidades para ejecutar el engaño?"
+    },
+    "pop": {
+      "title": "POP: Patrones de Práctica",
+      "shortTitle": "POP (Histórico)",
+      "description": "Examinar patrones históricos de engaño",
+      "fieldLabel": "POP (Patrones de Práctica)",
+      "fieldDescription": "Examinar patrones históricos de engaño",
+      "placeholder": "Patrones históricos: ¿Este actor ha usado engaño antes?\nSofisticación: ¿Qué tan avanzadas son sus técnicas de engaño?\nTasa de éxito: ¿Han funcionado sus engaños anteriores?"
+    },
+    "moses": {
+      "title": "MOSES: Mis Propias Fuentes",
+      "shortTitle": "MOSES (Fuentes)",
+      "description": "Evaluar vulnerabilidad de fuentes a manipulación",
+      "fieldLabel": "MOSES (Evaluación de Mis Propias Fuentes)",
+      "fieldDescription": "Evalúe la vulnerabilidad de sus fuentes a manipulación",
+      "placeholder": "Vulnerabilidad de fuentes: ¿Podrían nuestras fuentes estar comprometidas?\nAcceso: ¿Los adversarios tienen acceso a nuestros métodos de recolección?\nEvidencia de manipulación: ¿Hay señales de manipulación de fuentes?"
+    },
+    "eve": {
+      "title": "EVE: Evaluación de Evidencia",
+      "shortTitle": "EVE (Evidencia)",
+      "description": "Evaluar consistencia y corroboración de evidencia",
+      "fieldLabel": "EVE (Evaluación de Evidencia)",
+      "fieldDescription": "Evalúe consistencia interna y corroboración",
+      "placeholder": "Consistencia interna: ¿La información tiene coherencia lógica?\nCorroboración externa: ¿Fuentes independientes la confirman?\nAnomalías: ¿Hay patrones sospechosos o irregularidades?"
+    }
+  },
+
+  "assessment": {
+    "title": "Evaluación General",
+    "description": "Sintetizar hallazgos y determinar probabilidad de engaño",
+    "placeholder": "Conclusión Principal (BLUF):\n\nHallazgos Clave:\n\nRecomendaciones:\n\nNivel de Confianza:",
+    "overallLikelihood": "Probabilidad General",
+    "confidenceLevel": "Nivel de Confianza",
+    "riskLevel": "Riesgo",
+    "deceptionLikelihood": "Evaluación de Probabilidad de Engaño",
+    "realTimeScoring": "Puntuación en tiempo real basada en el marco MOM-POP-MOSES-EVE"
+  },
+
+  "scoring": {
+    "title": "Puntuación de Probabilidad de Engaño",
+    "description": "Puntúe cada criterio (0-5) basándose en su análisis",
+    "adjustScores": "Ajuste las puntuaciones para generar indicadores",
+    "fillScoring": "Complete la sección de puntuación para ver el análisis de probabilidad de engaño en tiempo real"
+  },
+
+  "indicators": {
+    "title": "Indicadores Clave",
+    "description": "Señales que apuntan a favor o en contra del engaño",
+    "deceptionIndicators": "Indicadores de Engaño",
+    "counterIndicators": "Contra-Indicadores",
+    "noIndicators": "Ajuste las puntuaciones para generar indicadores"
+  },
+
+  "aiResults": {
+    "title": "Resultados del Análisis IA",
+    "bottomLine": "Conclusión Principal",
+    "executiveSummary": "Resumen Ejecutivo",
+    "keyIndicators": "Indicadores Clave",
+    "recommendations": "Recomendaciones"
+  },
+
+  "riskLevels": {
+    "critical": "CRÍTICO",
+    "high": "ALTO",
+    "medium": "MEDIO",
+    "low": "BAJO",
+    "minimal": "MÍNIMO"
+  },
+
+  "confidenceLevels": {
+    "veryHigh": "MUY ALTO",
+    "high": "ALTO",
+    "moderate": "MODERADO",
+    "low": "BAJO",
+    "veryLow": "MUY BAJO"
+  },
+
+  "criteria": {
+    "motive": {
+      "label": "Motivo para Engañar",
+      "description": "¿El adversario tiene fuertes razones para engañar?",
+      "levels": {
+        "0": { "label": "Ninguno", "description": "Sin motivo aparente" },
+        "1": { "label": "Débil", "description": "Beneficios menores del engaño" },
+        "2": { "label": "Moderado", "description": "Alguna ventaja estratégica" },
+        "3": { "label": "Fuerte", "description": "Ganancia política/militar significativa" },
+        "4": { "label": "Muy Fuerte", "description": "Crítico para supervivencia/objetivos del régimen" },
+        "5": { "label": "Crítico", "description": "Amenaza existencial si se conoce la verdad" }
+      }
+    },
+    "opportunity": {
+      "label": "Oportunidad para Engañar",
+      "description": "¿Pueden manipular canales de información?",
+      "levels": {
+        "0": { "label": "Ninguna", "description": "Sin acceso a nuestras fuentes de información" },
+        "1": { "label": "Mínima", "description": "Capacidad limitada de influencia" },
+        "2": { "label": "Moderada", "description": "Algún control sobre flujo de información" },
+        "3": { "label": "Fuerte", "description": "Controla canales clave de información" },
+        "4": { "label": "Extensa", "description": "Amplio control con pocas verificaciones" },
+        "5": { "label": "Total", "description": "Monopolio completo de información" }
+      }
+    },
+    "means": {
+      "label": "Medios para Engañar",
+      "description": "¿Tienen capacidades de engaño?",
+      "levels": {
+        "0": { "label": "Ninguno", "description": "Sin capacidad demostrada" },
+        "1": { "label": "Básico", "description": "Negación/tergiversación simple" },
+        "2": { "label": "Moderado", "description": "Capacidad de mensajería coordinada" },
+        "3": { "label": "Avanzado", "description": "Aparato de propaganda sofisticado" },
+        "4": { "label": "Muy Desarrollado", "description": "Infraestructura de engaño a nivel estatal" },
+        "5": { "label": "Élite", "description": "Maskirovka/negación-engaño de clase mundial" }
+      }
+    },
+    "historicalPattern": {
+      "label": "Patrón Histórico de Engaño",
+      "description": "¿Con qué frecuencia ha engañado este actor antes?",
+      "levels": {
+        "0": { "label": "Nunca", "description": "Sin historial de engaño" },
+        "1": { "label": "Raramente", "description": "1-2 incidentes en muchos años" },
+        "2": { "label": "Ocasionalmente", "description": "Varios casos documentados" },
+        "3": { "label": "Frecuentemente", "description": "Patrón regular establecido" },
+        "4": { "label": "Rutinariamente", "description": "Procedimiento operativo estándar" },
+        "5": { "label": "Sistemáticamente", "description": "Doctrina/estrategia central" }
+      }
+    },
+    "sophisticationLevel": {
+      "label": "Sofisticación del Engaño",
+      "description": "¿Qué tan complejos fueron los engaños pasados?",
+      "levels": {
+        "0": { "label": "N/A", "description": "Sin engaños pasados" },
+        "1": { "label": "Tosco", "description": "Mentiras simples, fácilmente detectadas" },
+        "2": { "label": "Básico", "description": "Algo de planificación, éxito moderado" },
+        "3": { "label": "Hábil", "description": "Bien planificado, multicapa" },
+        "4": { "label": "Avanzado", "description": "Operaciones altamente sofisticadas" },
+        "5": { "label": "Magistral", "description": "Técnicas de vanguardia" }
+      }
+    },
+    "successRate": {
+      "label": "Éxito de Engaños Pasados",
+      "description": "¿Con qué frecuencia tuvieron éxito los engaños pasados?",
+      "levels": {
+        "0": { "label": "N/A", "description": "Sin intentos pasados" },
+        "1": { "label": "Raramente Exitoso", "description": "<20% tasa de éxito" },
+        "2": { "label": "A Veces Exitoso", "description": "20-40% de éxito" },
+        "3": { "label": "Frecuentemente Exitoso", "description": "40-60% de éxito" },
+        "4": { "label": "Usualmente Exitoso", "description": "60-80% de éxito" },
+        "5": { "label": "Consistentemente Exitoso", "description": ">80% de éxito" }
+      }
+    },
+    "sourceVulnerability": {
+      "label": "Vulnerabilidad de Fuentes",
+      "description": "¿Qué tan vulnerables son nuestras fuentes a manipulación?",
+      "levels": {
+        "0": { "label": "Ninguna", "description": "Fuentes completamente independientes" },
+        "1": { "label": "Baja", "description": "Múltiples canales independientes" },
+        "2": { "label": "Moderada", "description": "Algunas dependencias compartidas" },
+        "3": { "label": "Significativa", "description": "Validación independiente limitada" },
+        "4": { "label": "Alta", "description": "Gran dependencia de pocas fuentes" },
+        "5": { "label": "Extrema", "description": "Fuente única o canales controlados" }
+      }
+    },
+    "manipulationEvidence": {
+      "label": "Evidencia de Manipulación",
+      "description": "¿Hay señales de manipulación de fuentes?",
+      "levels": {
+        "0": { "label": "Ninguna", "description": "Sin indicadores de manipulación" },
+        "1": { "label": "Mínima", "description": "Indicadores muy débiles" },
+        "2": { "label": "Alguna", "description": "Sospechoso pero inconcluso" },
+        "3": { "label": "Moderada", "description": "Múltiples indicadores sospechosos" },
+        "4": { "label": "Fuerte", "description": "Señales claras de manipulación" },
+        "5": { "label": "Definitiva", "description": "Compromiso de fuente comprobado" }
+      }
+    },
+    "internalConsistency": {
+      "label": "Consistencia Interna",
+      "description": "¿La evidencia es internamente consistente?",
+      "levels": {
+        "5": { "label": "Altamente Consistente", "description": "Todos los elementos se alinean perfectamente" },
+        "4": { "label": "Mayormente Consistente", "description": "Solo discrepancias menores" },
+        "3": { "label": "Moderadamente Consistente", "description": "Algunas contradicciones presentes" },
+        "2": { "label": "Mayormente Inconsistente", "description": "Contradicciones importantes" },
+        "1": { "label": "Altamente Inconsistente", "description": "Contradicciones severas" },
+        "0": { "label": "Contradictoria", "description": "La evidencia se contradice a sí misma" }
+      }
+    },
+    "externalCorroboration": {
+      "label": "Corroboración Externa",
+      "description": "¿Fuentes independientes confirman?",
+      "levels": {
+        "5": { "label": "Totalmente Corroborada", "description": "Múltiples fuentes independientes coinciden" },
+        "4": { "label": "Mayormente Corroborada", "description": "La mayoría de puntos clave confirmados" },
+        "3": { "label": "Parcialmente Corroborada", "description": "Existe alguna confirmación" },
+        "2": { "label": "Mínimamente Corroborada", "description": "Poca confirmación independiente" },
+        "1": { "label": "Sin Corroboración", "description": "Sin fuentes independientes" },
+        "0": { "label": "Contradicha", "description": "Fuentes independientes discrepan" }
+      }
+    },
+    "anomalyDetection": {
+      "label": "Detección de Anomalías",
+      "description": "¿Hay patrones inusuales o señales de alerta?",
+      "levels": {
+        "0": { "label": "Ninguna", "description": "Sin anomalías detectadas" },
+        "1": { "label": "Menores", "description": "Ligeras irregularidades" },
+        "2": { "label": "Moderadas", "description": "Inconsistencias notables" },
+        "3": { "label": "Significativas", "description": "Múltiples señales de alerta" },
+        "4": { "label": "Mayores", "description": "Anomalías serias presentes" },
+        "5": { "label": "Críticas", "description": "Imposibilidades/contradicciones evidentes" }
+      }
+    }
+  },
+
+  "categoryDescriptions": {
+    "mom": {
+      "high": "El adversario tiene fuerte capacidad e incentivo para engañar",
+      "moderateHigh": "El adversario tiene capacidad moderada de engaño",
+      "moderate": "Existe alguna capacidad de engaño",
+      "low": "Capacidad de engaño limitada",
+      "minimal": "Capacidad de engaño mínima o nula"
+    },
+    "pop": {
+      "high": "Fuerte patrón histórico de engaño sofisticado",
+      "moderateHigh": "Patrón establecido de engaño exitoso",
+      "moderate": "Algún historial de intentos de engaño",
+      "low": "Historial de engaño limitado",
+      "minimal": "Sin historial significativo de engaño"
+    },
+    "moses": {
+      "high": "Fuentes altamente vulnerables a manipulación",
+      "moderateHigh": "Existe vulnerabilidad significativa de fuentes",
+      "moderate": "Vulnerabilidad moderada de fuentes",
+      "low": "Alguna vulnerabilidad de fuentes",
+      "minimal": "Las fuentes parecen seguras"
+    },
+    "eve": {
+      "high": "La evidencia muestra inconsistencias y anomalías importantes",
+      "moderateHigh": "La evidencia tiene problemas de calidad significativos",
+      "moderate": "Algunas preocupaciones sobre calidad de evidencia",
+      "low": "Problemas menores de evidencia",
+      "minimal": "La evidencia parece sólida y bien corroborada"
+    }
+  },
+
+  "counterIndicatorMessages": {
+    "weakMotive": "Motivo débil o sin motivo para engañar",
+    "noHistory": "Sin historial significativo de engaño",
+    "secureSources": "Fuentes independientes y seguras",
+    "consistentEvidence": "Evidencia altamente consistente",
+    "strongCorroboration": "Fuerte corroboración independiente",
+    "noAnomalies": "Sin anomalías significativas detectadas"
+  },
+
+  "errors": {
+    "scenarioRequired": "Por favor proporcione una descripción del escenario antes de ejecutar el análisis IA",
+    "titleRequired": "El título y el escenario son requeridos",
+    "saveFailed": "Error al guardar el análisis. Por favor intente de nuevo.",
+    "aiAnalysisFailed": "Análisis IA falló. Por favor verifique la configuración de su clave API."
+  },
+
+  "claimImporter": {
+    "title": "Importar Afirmaciones",
+    "description": "Importar afirmaciones de la base de datos de afirmaciones para análisis de engaño"
+  },
+
+  "export": {
+    "title": "Exportar Informe",
+    "pdf": "Exportar PDF",
+    "docx": "Exportar DOCX"
+  },
+
+  "dashboard": {
+    "overallLikelihood": "Probabilidad General de Engaño",
+    "basedOnFramework": "Basado en el marco de análisis MOM-POP-MOSES-EVE",
+    "riskFactorMatrix": "Matriz de Factores de Riesgo",
+    "historicalTrend": "Análisis de Tendencia Histórica",
+    "likelihoodOverTime": "Probabilidad de engaño a lo largo del tiempo",
+    "assessments": "evaluaciones",
+    "trend": "tendencia",
+    "categoryScore": "Puntuación de Categoría",
+    "inverted": "(invertido)",
+    "riskLabel": "RIESGO",
+    "confidenceLabel": "CONFIANZA",
+    "momRiskIndicators": "Indicadores de Riesgo MOM",
+    "momSubtitle": "Motivo, Oportunidad, Medios",
+    "popAnalysis": "Análisis POP",
+    "popSubtitle": "Patrones de Práctica",
+    "mosesAssessment": "Evaluación MOSES",
+    "mosesSubtitle": "Evaluación de Mis Propias Fuentes",
+    "eveEvaluation": "Evaluación EVE",
+    "eveSubtitle": "Evaluación de Calidad de Evidencia",
+    "overallLikelihoodLabel": "Probabilidad General",
+    "matrixLegend": {
+      "low": "Bajo",
+      "medium": "Medio",
+      "high": "Alto",
+      "critical": "Crítico"
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "title": "Web Scraper y Extractor de Investigación",
+  "description": "Extrae datos estructurados de páginas web para análisis de investigación",
+  "input": {
+    "title": "Extracción de URL",
+    "urlLabel": "URL para Raspar *",
+    "urlPlaceholder": "https://ejemplo.com/articulo",
+    "modeLabel": "Modo de Extracción",
+    "modeDesc": {
+      "metadata": "Extrae título, descripción, autor, palabras clave",
+      "summary": "Incluye metadatos más resumen de contenido",
+      "full": "Extracción y análisis de texto completo"
+    },
+    "button": {
+      "extracting": "Extrayendo...",
+      "default": "Extraer y Analizar"
+    }
+  },
+  "modes": {
+    "metadata": "Solo Metadatos (Rápido)",
+    "summary": "Resumen + Metadatos",
+    "full": "Análisis de Contenido Completo"
+  },
+  "results": {
+    "title": "Datos Extraídos",
+    "labels": {
+      "title": "Título",
+      "domain": "Dominio",
+      "author": "Autor",
+      "published": "Publicado",
+      "reliability": "Puntuación de Confiabilidad",
+      "extractedAt": "Extraído El",
+      "description": "Descripción",
+      "keywords": "Palabras Clave",
+      "content": "Vista Previa del Contenido",
+      "wordCount": "Conteo de palabras:"
+    },
+    "actions": {
+      "export": "Exportar JSON",
+      "createDataset": "Crear Conjunto de Datos"
+    }
+  },
+  "reliability": {
+    "high": "Alta Confiabilidad",
+    "medium": "Confiabilidad Media",
+    "low": "Baja Confiabilidad",
+    "unknown": "Desconocido"
+  },
+  "alerts": {
+    "emptyUrl": "Por favor ingresa una URL",
+    "failed": "Error al raspar URL",
+    "createSuccess": "¡Conjunto de datos creado exitosamente! ID: {{id}}",
+    "createFailed": "Error al crear conjunto de datos",
+    "createError": "Error creando conjunto de datos: {{error}}"
+  }
+}

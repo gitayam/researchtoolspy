@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { useNavigate } from 'react-router-dom'
 import ResearchPlanDisplay from '@/components/research/ResearchPlanDisplay'
+import { useTranslation } from 'react-i18next'
 
 interface FormData {
   // Step 1: Research Context & Team
@@ -106,58 +107,38 @@ interface ResearchPlan {
 const RESEARCH_CONTEXTS = [
   {
     value: 'academic' as const,
-    label: 'Academic/Graduate Research',
-    description: 'Thesis, dissertation, or academic publication',
     icon: '🎓',
     emphasizes: ['IRB approval', 'Literature review', 'Peer review', 'Methodology rigor']
   },
   {
     value: 'osint' as const,
-    label: 'Open Source Intelligence (OSINT)',
-    description: 'Open source research and intelligence analysis',
     icon: '🔍',
     emphasizes: ['Source verification', 'OPSEC', 'Digital footprint', 'Attribution']
   },
   {
     value: 'investigation' as const,
-    label: 'Private Investigation',
-    description: 'Professional investigative research',
     icon: '🕵️',
     emphasizes: ['Legal boundaries', 'Evidence chain', 'Client confidentiality', 'Surveillance ethics']
   },
   {
     value: 'business' as const,
-    label: 'Business Research',
-    description: 'Market research, competitive intelligence, due diligence',
     icon: '💼',
     emphasizes: ['ROI', 'Stakeholder analysis', 'Market trends', 'Risk assessment']
   },
   {
     value: 'journalism' as const,
-    label: 'Investigative Journalism',
-    description: 'News investigation and fact-finding',
     icon: '📰',
     emphasizes: ['Source protection', 'Fact verification', 'Public interest', 'Editorial standards']
   },
   {
     value: 'personal' as const,
-    label: 'Personal/Hobby Research',
-    description: 'Curiosity-driven or personal interest research',
     icon: '🌱',
     emphasizes: ['Flexible timeline', 'Community resources', 'Learning goals', 'Passion projects']
   }
 ]
 
-const STEPS = [
-  { id: 0, title: 'Quick Start', description: 'Choose how to begin' },
-  { id: 1, title: 'Research Context', description: 'Type of research & team' },
-  { id: 2, title: 'Topic & Purpose', description: 'Define your research area' },
-  { id: 3, title: 'The 5 W\'s', description: 'Who, What, Where, When, Why' },
-  { id: 4, title: 'Resources & Constraints', description: 'Timeline and limitations' },
-  { id: 5, title: 'Review & Generate', description: 'Generate research questions' }
-]
-
 export default function ResearchQuestionGeneratorPage() {
+  const { t } = useTranslation(['researchQuestion', 'common'])
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -169,6 +150,15 @@ export default function ResearchQuestionGeneratorPage() {
   const [importedQuestion, setImportedQuestion] = useState('')
   const [aiRecommendTopic, setAiRecommendTopic] = useState('')
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
+
+  const STEPS = [
+    { id: 0, title: t('researchQuestion:steps.0'), description: t('researchQuestion:stepDesc.0') },
+    { id: 1, title: t('researchQuestion:steps.1'), description: t('researchQuestion:stepDesc.1') },
+    { id: 2, title: t('researchQuestion:steps.2'), description: t('researchQuestion:stepDesc.2') },
+    { id: 3, title: t('researchQuestion:steps.3'), description: t('researchQuestion:stepDesc.3') },
+    { id: 4, title: t('researchQuestion:steps.4'), description: t('researchQuestion:stepDesc.4') },
+    { id: 5, title: t('researchQuestion:steps.5'), description: t('researchQuestion:stepDesc.5') }
+  ]
 
   const [formData, setFormData] = useState<FormData>({
     researchContext: '',
@@ -224,11 +214,11 @@ export default function ResearchQuestionGeneratorPage() {
         setGeneratedQuestions(data.questions || [])
         setResearchQuestionId(data.researchQuestionId || null)
       } else {
-        alert('Failed to generate questions. Please try again.')
+        alert(t('researchQuestion:alerts.generateFailed'))
       }
     } catch (error) {
       console.error('Error generating questions:', error)
-      alert('An error occurred. Please try again.')
+      alert(t('researchQuestion:alerts.error'))
     } finally {
       setIsGenerating(false)
     }
@@ -272,11 +262,11 @@ export default function ResearchQuestionGeneratorPage() {
         const data = await response.json()
         setResearchPlan(data.plan)
       } else {
-        alert('Failed to generate research plan. Please try again.')
+        alert(t('researchQuestion:alerts.planFailed'))
       }
     } catch (error) {
       console.error('Error generating plan:', error)
-      alert('An error occurred. Please try again.')
+      alert(t('researchQuestion:alerts.error'))
     } finally {
       setIsGeneratingPlan(false)
     }
@@ -284,7 +274,7 @@ export default function ResearchQuestionGeneratorPage() {
 
   const handleImportQuestion = async () => {
     if (!importedQuestion.trim()) {
-      alert('Please enter a research question')
+      alert(t('researchQuestion:alerts.importEmpty'))
       return
     }
 
@@ -337,11 +327,11 @@ export default function ResearchQuestionGeneratorPage() {
         setSelectedQuestionIndex(0)
         setCurrentStep(4)
       } else {
-        alert('Failed to generate research plan. Please try again.')
+        alert(t('researchQuestion:alerts.planFailed'))
       }
     } catch (error) {
       console.error('Error generating plan:', error)
-      alert('An error occurred. Please try again.')
+      alert(t('researchQuestion:alerts.error'))
     } finally {
       setIsGeneratingPlan(false)
     }
@@ -349,7 +339,7 @@ export default function ResearchQuestionGeneratorPage() {
 
   const handleAIRecommend = async () => {
     if (!aiRecommendTopic.trim()) {
-      alert('Please enter a topic or area of interest')
+      alert(t('researchQuestion:alerts.recommendEmpty'))
       return
     }
 
@@ -373,11 +363,11 @@ export default function ResearchQuestionGeneratorPage() {
         setGeneratedQuestions(data.questions || [])
         setCurrentStep(4)
       } else {
-        alert('Failed to generate recommendations. Please try again.')
+        alert(t('researchQuestion:alerts.recommendFailed'))
       }
     } catch (error) {
       console.error('Error generating recommendations:', error)
-      alert('An error occurred. Please try again.')
+      alert(t('researchQuestion:alerts.error'))
     } finally {
       setIsLoadingRecommendations(false)
     }
@@ -391,14 +381,14 @@ export default function ResearchQuestionGeneratorPage() {
       <div className="mb-6 sm:mb-8">
         <Button variant="outline" onClick={() => navigate('/dashboard')} size="sm" className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
+          {t('researchQuestion:backToDashboard')}
         </Button>
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
           <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
-          Research Question Generator
+          {t('researchQuestion:title')}
         </h1>
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
-          Generate high-quality research questions following SMART and FINER criteria
+          {t('researchQuestion:subtitle')}
         </p>
       </div>
 
@@ -410,11 +400,7 @@ export default function ResearchQuestionGeneratorPage() {
               {STEPS.map((step, index) => (
                 <div key={step.id} className="flex-1 flex items-center">
                   <div className="flex flex-col items-center flex-1">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                      currentStep > index + 1 ? 'bg-green-600 text-white' :
-                      currentStep === index + 1 ? 'bg-purple-600 text-white' :
-                      'bg-gray-200 text-gray-500 dark:bg-gray-700'
-                    }`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${ currentStep > index + 1 ? 'bg-green-600 text-white' : currentStep === index + 1 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-500 dark:bg-gray-700'}`}>
                       {currentStep > index + 1 ? <Check className="h-5 w-5" /> : step.id}
                     </div>
                     <div className="text-center mt-2 hidden sm:block">
@@ -423,9 +409,7 @@ export default function ResearchQuestionGeneratorPage() {
                     </div>
                   </div>
                   {index < STEPS.length - 1 && (
-                    <div className={`h-1 flex-1 mx-2 ${
-                      currentStep > index + 1 ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'
-                    }`} />
+                    <div className={`h-1 flex-1 mx-2 ${ currentStep > index + 1 ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'}`} />
                   )}
                 </div>
               ))}
@@ -484,7 +468,7 @@ export default function ResearchQuestionGeneratorPage() {
             disabled={currentStep === 1}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t('common:back')}
           </Button>
           <Button
             onClick={handleNext}
@@ -494,7 +478,7 @@ export default function ResearchQuestionGeneratorPage() {
               (currentStep === 3 && (!formData.who.population || !formData.what.variables || !formData.where.location || !formData.when.timePeriod || !formData.why.importance))
             }
           >
-            Next
+            {t('common:next')}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
@@ -525,12 +509,14 @@ function Step0QuickStart({
   onImportQuestion: () => void
   onAIRecommend: () => void
 }) {
+  const { t } = useTranslation(['researchQuestion'])
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold mb-2">How would you like to start?</h2>
+        <h2 className="text-2xl font-bold mb-2">{t('researchQuestion:quickStart.title')}</h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Choose your preferred way to create a research question
+          {t('researchQuestion:quickStart.subtitle')}
         </p>
       </div>
 
@@ -543,18 +529,18 @@ function Step0QuickStart({
                 <BookOpen className="h-8 w-8 text-purple-600" />
               </div>
             </div>
-            <CardTitle className="text-center">Start Wizard</CardTitle>
+            <CardTitle className="text-center">{t('researchQuestion:quickStart.wizard.title')}</CardTitle>
             <CardDescription className="text-center">
-              Step-by-step guided process to craft your research question
+              {t('researchQuestion:quickStart.wizard.desc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={onStartWizard} className="w-full bg-purple-600 hover:bg-purple-700">
               <BookOpen className="h-4 w-4 mr-2" />
-              Begin Guided Process
+              {t('researchQuestion:quickStart.wizard.button')}
             </Button>
             <p className="text-xs text-gray-500 mt-3 text-center">
-              Best for: Comprehensive planning
+              {t('researchQuestion:quickStart.wizard.bestFor')}
             </p>
           </CardContent>
         </Card>
@@ -567,14 +553,14 @@ function Step0QuickStart({
                 <Upload className="h-8 w-8 text-blue-600" />
               </div>
             </div>
-            <CardTitle className="text-center">Import Question</CardTitle>
+            <CardTitle className="text-center">{t('researchQuestion:quickStart.import.title')}</CardTitle>
             <CardDescription className="text-center">
-              Already have a research question? Paste it here to start
+              {t('researchQuestion:quickStart.import.desc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Textarea
-              placeholder="Paste your research question here..."
+              placeholder={t('researchQuestion:quickStart.import.placeholder')}
               value={importedQuestion}
               onChange={(e) => setImportedQuestion(e.target.value)}
               rows={4}
@@ -588,17 +574,17 @@ function Step0QuickStart({
               {isGeneratingPlan ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating Plan...
+                  {t('researchQuestion:quickStart.import.loading')}
                 </>
               ) : (
                 <>
                   <Upload className="h-4 w-4 mr-2" />
-                  Import & Continue
+                  {t('researchQuestion:quickStart.import.button')}
                 </>
               )}
             </Button>
             <p className="text-xs text-gray-500 text-center">
-              Best for: Quick start with existing questions
+              {t('researchQuestion:quickStart.import.bestFor')}
             </p>
           </CardContent>
         </Card>
@@ -611,14 +597,14 @@ function Step0QuickStart({
                 <Wand2 className="h-8 w-8 text-green-600" />
               </div>
             </div>
-            <CardTitle className="text-center">AI Recommend</CardTitle>
+            <CardTitle className="text-center">{t('researchQuestion:quickStart.ai.title')}</CardTitle>
             <CardDescription className="text-center">
-              Get AI-generated research question suggestions
+              {t('researchQuestion:quickStart.ai.desc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Textarea
-              placeholder="Describe your topic or area of interest..."
+              placeholder={t('researchQuestion:quickStart.ai.placeholder')}
               value={aiRecommendTopic}
               onChange={(e) => setAiRecommendTopic(e.target.value)}
               rows={4}
@@ -632,17 +618,17 @@ function Step0QuickStart({
               {isLoadingRecommendations ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
+                  {t('researchQuestion:quickStart.ai.loading')}
                 </>
               ) : (
                 <>
                   <Wand2 className="h-4 w-4 mr-2" />
-                  Get Recommendations
+                  {t('researchQuestion:quickStart.ai.button')}
                 </>
               )}
             </Button>
             <p className="text-xs text-gray-500 text-center">
-              Best for: Exploring new research ideas
+              {t('researchQuestion:quickStart.ai.bestFor')}
             </p>
           </CardContent>
         </Card>
@@ -659,30 +645,28 @@ function Step1ResearchContext({
   formData: FormData
   updateFormData: (updates: Partial<FormData>) => void
 }) {
+  const { t } = useTranslation(['researchQuestion'])
+
   return (
     <div className="space-y-6">
       {/* Research Context Selection */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Select Research Type</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('researchQuestion:context.title')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {RESEARCH_CONTEXTS.map(context => (
             <Card
               key={context.value}
-              className={`cursor-pointer transition-all ${
-                formData.researchContext === context.value
-                  ? 'border-purple-500 border-2 shadow-lg'
-                  : 'border-gray-200 hover:border-purple-300 dark:border-gray-700 dark:hover:border-purple-500'
-              }`}
+              className={`cursor-pointer transition-all ${ formData.researchContext === context.value ? 'border-purple-500 border-2 shadow-lg' : 'border-gray-200 hover:border-purple-300 dark:border-gray-700 dark:hover:border-purple-500'}`}
               onClick={() => updateFormData({ researchContext: context.value })}
             >
               <CardHeader>
                 <div className="text-4xl mb-2">{context.icon}</div>
-                <CardTitle>{context.label}</CardTitle>
-                <CardDescription>{context.description}</CardDescription>
+                <CardTitle>{t(`researchQuestion:contexts.${context.value}.label`)}</CardTitle>
+                <CardDescription>{t(`researchQuestion:contexts.${context.value}.description`)}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  <strong>Emphasizes:</strong>
+                  <strong>{t('researchQuestion:context.emphasizes')}</strong>
                   <ul className="list-disc list-inside mt-1 space-y-1">
                     {context.emphasizes.slice(0, 3).map(item => (
                       <li key={item}>{item}</li>
@@ -701,7 +685,7 @@ function Step1ResearchContext({
           <div>
             <h3 className="text-lg font-semibold mb-2 flex items-center">
               <Users className="h-5 w-5 mr-2" />
-              Team Structure
+              {t('researchQuestion:context.teamStructure')}
             </h3>
             <RadioGroup
               value={formData.teamSize}
@@ -709,15 +693,15 @@ function Step1ResearchContext({
             >
               <div className="flex items-center space-x-2 mb-2">
                 <RadioGroupItem value="solo" id="solo" />
-                <Label htmlFor="solo">Solo Researcher</Label>
+                <Label htmlFor="solo">{t('researchQuestion:context.solo')}</Label>
               </div>
               <div className="flex items-center space-x-2 mb-2">
                 <RadioGroupItem value="small-team" id="small-team" />
-                <Label htmlFor="small-team">Small Team (2-5 people)</Label>
+                <Label htmlFor="small-team">{t('researchQuestion:context.smallTeam')}</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="large-team" id="large-team" />
-                <Label htmlFor="large-team">Large Team (6+ people)</Label>
+                <Label htmlFor="large-team">{t('researchQuestion:context.largeTeam')}</Label>
               </div>
             </RadioGroup>
           </div>
@@ -725,10 +709,10 @@ function Step1ResearchContext({
           {/* Team Roles - Only for teams */}
           {formData.teamSize !== 'solo' && (
             <div>
-              <Label htmlFor="team-roles">Team Roles (one per line)</Label>
+              <Label htmlFor="team-roles">{t('researchQuestion:context.teamRoles')}</Label>
               <Textarea
                 id="team-roles"
-                placeholder="Lead Researcher&#10;Data Analyst&#10;Field Investigator&#10;Documentation Specialist"
+                placeholder={t('researchQuestion:context.teamRolesPlaceholder')}
                 value={formData.teamRoles.join('\n')}
                 onChange={(e) => updateFormData({
                   teamRoles: e.target.value.split('\n').filter(r => r.trim())
@@ -737,7 +721,7 @@ function Step1ResearchContext({
                 className="mt-2"
               />
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Define roles for your team members to help structure the research plan
+                {t('researchQuestion:context.teamRolesDesc')}
               </p>
             </div>
           )}
@@ -752,34 +736,35 @@ function Step1TopicContext({ formData, updateFormData }: {
   formData: FormData
   updateFormData: (updates: Partial<FormData>) => void
 }) {
+  const { t } = useTranslation(['researchQuestion'])
   const purposes = ['Exploratory', 'Descriptive', 'Explanatory', 'Evaluative', 'Policy-oriented', 'Applied research', 'Academic research']
   const projectTypes = ['Academic thesis/dissertation', 'Journal article', 'Policy report', 'Grant proposal', 'Consulting project', 'Internal research', 'Other']
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Topic & Purpose</CardTitle>
-        <CardDescription>Define your research area and objectives</CardDescription>
+        <CardTitle>{t('researchQuestion:topic.title')}</CardTitle>
+        <CardDescription>{t('researchQuestion:topic.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Topic */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            What is your general area of interest or research topic? *
+            {t('researchQuestion:topic.topicLabel')}
           </label>
           <textarea
             value={formData.topic}
             onChange={(e) => updateFormData({ topic: e.target.value })}
-            placeholder="Example: Social media impact on mental health in young adults"
+            placeholder={t('researchQuestion:topic.topicPlaceholder')}
             className="w-full p-3 border rounded-lg min-h-[100px] dark:bg-gray-800 dark:border-gray-700"
           />
-          <p className="text-xs text-gray-500 mt-1">Be as specific or broad as you like - we'll help refine it</p>
+          <p className="text-xs text-gray-500 mt-1">{t('researchQuestion:topic.topicHint')}</p>
         </div>
 
         {/* Purpose */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            What is the purpose of this research? (Select all that apply)
+            {t('researchQuestion:topic.purposeLabel')}
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {purposes.map(purpose => (
@@ -804,14 +789,14 @@ function Step1TopicContext({ formData, updateFormData }: {
         {/* Project Type */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            What type of project is this? *
+            {t('researchQuestion:topic.projectTypeLabel')}
           </label>
           <select
             value={formData.projectType}
             onChange={(e) => updateFormData({ projectType: e.target.value })}
             className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
           >
-            <option value="">Select a project type...</option>
+            <option value="">{t('researchQuestion:topic.projectTypePlaceholder')}</option>
             {projectTypes.map(type => (
               <option key={type} value={type}>{type}</option>
             ))}
@@ -827,42 +812,43 @@ function Step2FiveWs({ formData, updateFormData }: {
   formData: FormData
   updateFormData: (updates: Partial<FormData>) => void
 }) {
+  const { t } = useTranslation(['researchQuestion'])
   const studyTypes: Array<'cross-sectional' | 'longitudinal' | 'historical' | 'real-time'> = ['cross-sectional', 'longitudinal', 'historical', 'real-time']
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>The 5 W's</CardTitle>
-        <CardDescription>Define Who, What, Where, When, and Why</CardDescription>
+        <CardTitle>{t('researchQuestion:fiveWs.title')}</CardTitle>
+        <CardDescription>{t('researchQuestion:fiveWs.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* WHO */}
         <div className="space-y-3">
           <h3 className="font-semibold text-lg flex items-center gap-2">
             <span className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 rounded-full w-8 h-8 flex items-center justify-center text-sm">W</span>
-            Who
+            {t('researchQuestion:fiveWs.who.label')}
           </h3>
           <div>
             <label className="block text-sm font-medium mb-2">
-              Who or what is the focus of your research? *
+              {t('researchQuestion:fiveWs.who.focusLabel')}
             </label>
             <input
               type="text"
               value={formData.who.population}
               onChange={(e) => updateFormData({ who: { ...formData.who, population: e.target.value } })}
-              placeholder="Example: Young adults aged 18-25"
+              placeholder={t('researchQuestion:fiveWs.who.focusPlaceholder')}
               className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">
-              Specific subgroups to compare? (Optional)
+              {t('researchQuestion:fiveWs.who.subgroupsLabel')}
             </label>
             <input
               type="text"
               value={formData.who.subgroups || ''}
               onChange={(e) => updateFormData({ who: { ...formData.who, subgroups: e.target.value } })}
-              placeholder="Example: Male vs female, urban vs rural"
+              placeholder={t('researchQuestion:fiveWs.who.subgroupsPlaceholder')}
               className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
             />
           </div>
@@ -872,28 +858,28 @@ function Step2FiveWs({ formData, updateFormData }: {
         <div className="space-y-3">
           <h3 className="font-semibold text-lg flex items-center gap-2">
             <span className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 rounded-full w-8 h-8 flex items-center justify-center text-sm">W</span>
-            What
+            {t('researchQuestion:fiveWs.what.label')}
           </h3>
           <div>
             <label className="block text-sm font-medium mb-2">
-              What variables, behaviors, or phenomena will you study? *
+              {t('researchQuestion:fiveWs.what.variablesLabel')}
             </label>
             <textarea
               value={formData.what.variables}
               onChange={(e) => updateFormData({ what: { ...formData.what, variables: e.target.value } })}
-              placeholder="Example: Social media usage time, anxiety levels, depression symptoms"
+              placeholder={t('researchQuestion:fiveWs.what.variablesPlaceholder')}
               className="w-full p-3 border rounded-lg min-h-[80px] dark:bg-gray-800 dark:border-gray-700"
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">
-              Expected relationship or outcome? (Optional)
+              {t('researchQuestion:fiveWs.what.outcomeLabel')}
             </label>
             <input
               type="text"
               value={formData.what.expectedOutcome || ''}
               onChange={(e) => updateFormData({ what: { ...formData.what, expectedOutcome: e.target.value } })}
-              placeholder="Example: Increased social media use leads to higher anxiety"
+              placeholder={t('researchQuestion:fiveWs.what.outcomePlaceholder')}
               className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
             />
           </div>
@@ -903,29 +889,29 @@ function Step2FiveWs({ formData, updateFormData }: {
         <div className="space-y-3">
           <h3 className="font-semibold text-lg flex items-center gap-2">
             <span className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200 rounded-full w-8 h-8 flex items-center justify-center text-sm">W</span>
-            Where
+            {t('researchQuestion:fiveWs.where.label')}
           </h3>
           <div>
             <label className="block text-sm font-medium mb-2">
-              Where will this research take place? *
+              {t('researchQuestion:fiveWs.where.locationLabel')}
             </label>
             <input
               type="text"
               value={formData.where.location}
               onChange={(e) => updateFormData({ where: { ...formData.where, location: e.target.value } })}
-              placeholder="Example: United States, Online platforms, Rural Southeast Asia"
+              placeholder={t('researchQuestion:fiveWs.where.locationPlaceholder')}
               className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">
-              Specific settings or contexts? (Optional)
+              {t('researchQuestion:fiveWs.where.settingsLabel')}
             </label>
             <input
               type="text"
               value={formData.where.specificSettings || ''}
               onChange={(e) => updateFormData({ where: { ...formData.where, specificSettings: e.target.value } })}
-              placeholder="Example: University campuses, Healthcare facilities"
+              placeholder={t('researchQuestion:fiveWs.where.settingsPlaceholder')}
               className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
             />
           </div>
@@ -935,23 +921,23 @@ function Step2FiveWs({ formData, updateFormData }: {
         <div className="space-y-3">
           <h3 className="font-semibold text-lg flex items-center gap-2">
             <span className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200 rounded-full w-8 h-8 flex items-center justify-center text-sm">W</span>
-            When
+            {t('researchQuestion:fiveWs.when.label')}
           </h3>
           <div>
             <label className="block text-sm font-medium mb-2">
-              What time period will your research cover? *
+              {t('researchQuestion:fiveWs.when.timeLabel')}
             </label>
             <input
               type="text"
               value={formData.when.timePeriod}
               onChange={(e) => updateFormData({ when: { ...formData.when, timePeriod: e.target.value } })}
-              placeholder="Example: 2020-2024, Next 6 months, Past decade"
+              placeholder={t('researchQuestion:fiveWs.when.timePlaceholder')}
               className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">
-              Study type
+              {t('researchQuestion:fiveWs.when.studyTypeLabel')}
             </label>
             <select
               value={formData.when.studyType}
@@ -969,28 +955,28 @@ function Step2FiveWs({ formData, updateFormData }: {
         <div className="space-y-3">
           <h3 className="font-semibold text-lg flex items-center gap-2">
             <span className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200 rounded-full w-8 h-8 flex items-center justify-center text-sm">W</span>
-            Why
+            {t('researchQuestion:fiveWs.why.label')}
           </h3>
           <div>
             <label className="block text-sm font-medium mb-2">
-              Why is this research important? *
+              {t('researchQuestion:fiveWs.why.importanceLabel')}
             </label>
             <textarea
               value={formData.why.importance}
               onChange={(e) => updateFormData({ why: { ...formData.why, importance: e.target.value } })}
-              placeholder="Example: Mental health issues are rising among young adults, and understanding the role of social media can inform interventions"
+              placeholder={t('researchQuestion:fiveWs.why.importancePlaceholder')}
               className="w-full p-3 border rounded-lg min-h-[100px] dark:bg-gray-800 dark:border-gray-700"
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">
-              Who will benefit from this research? (Optional)
+              {t('researchQuestion:fiveWs.why.beneficiariesLabel')}
             </label>
             <input
               type="text"
               value={formData.why.beneficiaries || ''}
               onChange={(e) => updateFormData({ why: { ...formData.why, beneficiaries: e.target.value } })}
-              placeholder="Example: Policymakers, Healthcare providers, Educators"
+              placeholder={t('researchQuestion:fiveWs.why.beneficiariesPlaceholder')}
               className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
             />
           </div>
@@ -1005,6 +991,7 @@ function Step3Resources({ formData, updateFormData }: {
   formData: FormData
   updateFormData: (updates: Partial<FormData>) => void
 }) {
+  const { t } = useTranslation(['researchQuestion'])
   const [showCustomDuration, setShowCustomDuration] = useState(false)
   const [customDuration, setCustomDuration] = useState('')
 
@@ -1039,21 +1026,21 @@ function Step3Resources({ formData, updateFormData }: {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Resources & Constraints</CardTitle>
-        <CardDescription>Define your timeline, resources, and limitations</CardDescription>
+        <CardTitle>{t('researchQuestion:resources.title')}</CardTitle>
+        <CardDescription>{t('researchQuestion:resources.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Duration */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            How long do you have to complete this research?
+            {t('researchQuestion:resources.durationLabel')}
           </label>
           <select
             value={showCustomDuration ? 'Custom' : formData.duration}
             onChange={(e) => handleDurationChange(e.target.value)}
             className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
           >
-            <option value="">Select duration...</option>
+            <option value="">{t('researchQuestion:resources.durationPlaceholder')}</option>
             {durations.map(duration => (
               <option key={duration} value={duration}>{duration}</option>
             ))}
@@ -1063,7 +1050,7 @@ function Step3Resources({ formData, updateFormData }: {
               type="text"
               value={customDuration}
               onChange={(e) => handleCustomDurationChange(e.target.value)}
-              placeholder="Enter custom duration (e.g., 3 days, 5 hours)"
+              placeholder={t('researchQuestion:resources.customDurationPlaceholder')}
               className="w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-700 mt-2"
             />
           )}
@@ -1072,7 +1059,7 @@ function Step3Resources({ formData, updateFormData }: {
         {/* Resources */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            What resources do you have access to? (Check all that apply)
+            {t('researchQuestion:resources.resourcesLabel')}
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {resourceOptions.map(resource => (
@@ -1097,7 +1084,7 @@ function Step3Resources({ formData, updateFormData }: {
         {/* Experience Level */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            What is your research experience level?
+            {t('researchQuestion:resources.experienceLabel')}
           </label>
           <select
             value={formData.experienceLevel}
@@ -1113,12 +1100,12 @@ function Step3Resources({ formData, updateFormData }: {
         {/* Constraints */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            Are there areas or topics you want to avoid? (Optional)
+            {t('researchQuestion:resources.constraintsLabel')}
           </label>
           <textarea
             value={formData.constraints || ''}
             onChange={(e) => updateFormData({ constraints: e.target.value })}
-            placeholder="Example: Sensitive personal data, High-cost experiments, Restricted populations"
+            placeholder={t('researchQuestion:resources.constraintsPlaceholder')}
             className="w-full p-3 border rounded-lg min-h-[80px] dark:bg-gray-800 dark:border-gray-700"
           />
         </div>
@@ -1126,12 +1113,12 @@ function Step3Resources({ formData, updateFormData }: {
         {/* Ethical Considerations */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            Are there any ethical considerations? (Optional)
+            {t('researchQuestion:resources.ethicalLabel')}
           </label>
           <textarea
             value={formData.ethicalConsiderations || ''}
             onChange={(e) => updateFormData({ ethicalConsiderations: e.target.value })}
-            placeholder="Example: Vulnerable populations, privacy concerns, potential harm"
+            placeholder={t('researchQuestion:resources.ethicalPlaceholder')}
             className="w-full p-3 border rounded-lg min-h-[80px] dark:bg-gray-800 dark:border-gray-700"
           />
         </div>
@@ -1152,61 +1139,65 @@ function Step4Generate({ formData, isGenerating, generatedQuestions, selectedQue
   onGeneratePlan: () => void
   researchPlan: ResearchPlan | null
 }) {
+  const { t } = useTranslation(['researchQuestion'])
+
   return (
     <div className="space-y-6">
       {/* Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>Review Your Inputs</CardTitle>
-          <CardDescription>Research Summary</CardDescription>
+          <CardTitle>{t('researchQuestion:generate.reviewTitle')}</CardTitle>
+          <CardDescription>{t('researchQuestion:generate.summary')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Generated Sentence */}
           <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
             <p className="text-sm font-medium text-purple-900 dark:text-purple-100 leading-relaxed">
-              A {formData.projectType.toLowerCase()} investigating{' '}
-              <span className="font-semibold">{formData.topic}</span>,{' '}
-              focusing on <span className="font-semibold">{formData.who.population}</span> in{' '}
-              <span className="font-semibold">{formData.where.location}</span> during{' '}
-              <span className="font-semibold">{formData.when.timePeriod}</span>, by examining{' '}
-              <span className="font-semibold">{formData.what.variables}</span>{' '}
-              to understand {formData.why.importance.toLowerCase()}.
+              {t('researchQuestion:generate.sentence', {
+                projectType: formData.projectType.toLowerCase(),
+                topic: formData.topic,
+                population: formData.who.population,
+                location: formData.where.location,
+                timePeriod: formData.when.timePeriod,
+                variables: formData.what.variables,
+                importance: formData.why.importance.toLowerCase()
+              })}
             </p>
           </div>
 
           {/* Detailed Breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div>
-              <span className="font-semibold text-gray-700 dark:text-gray-300">Topic:</span>{' '}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{t('researchQuestion:generate.labels.topic')}</span>{' '}
               <span className="text-gray-600 dark:text-gray-400">{formData.topic}</span>
             </div>
             <div>
-              <span className="font-semibold text-gray-700 dark:text-gray-300">Project Type:</span>{' '}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{t('researchQuestion:generate.labels.projectType')}</span>{' '}
               <span className="text-gray-600 dark:text-gray-400">{formData.projectType}</span>
             </div>
             <div>
-              <span className="font-semibold text-gray-700 dark:text-gray-300">Who:</span>{' '}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{t('researchQuestion:generate.labels.who')}</span>{' '}
               <span className="text-gray-600 dark:text-gray-400">{formData.who.population}</span>
             </div>
             <div>
-              <span className="font-semibold text-gray-700 dark:text-gray-300">What:</span>{' '}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{t('researchQuestion:generate.labels.what')}</span>{' '}
               <span className="text-gray-600 dark:text-gray-400">{formData.what.variables}</span>
             </div>
             <div>
-              <span className="font-semibold text-gray-700 dark:text-gray-300">Where:</span>{' '}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{t('researchQuestion:generate.labels.where')}</span>{' '}
               <span className="text-gray-600 dark:text-gray-400">{formData.where.location}</span>
             </div>
             <div>
-              <span className="font-semibold text-gray-700 dark:text-gray-300">When:</span>{' '}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{t('researchQuestion:generate.labels.when')}</span>{' '}
               <span className="text-gray-600 dark:text-gray-400">{formData.when.timePeriod}</span>
             </div>
             <div className="md:col-span-2">
-              <span className="font-semibold text-gray-700 dark:text-gray-300">Why:</span>{' '}
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{t('researchQuestion:generate.labels.why')}</span>{' '}
               <span className="text-gray-600 dark:text-gray-400">{formData.why.importance}</span>
             </div>
             {formData.duration && (
               <div>
-                <span className="font-semibold text-gray-700 dark:text-gray-300">Duration:</span>{' '}
+                <span className="font-semibold text-gray-700 dark:text-gray-300">{t('researchQuestion:generate.labels.duration')}</span>{' '}
                 <span className="text-gray-600 dark:text-gray-400">{formData.duration}</span>
               </div>
             )}
@@ -1226,17 +1217,17 @@ function Step4Generate({ formData, isGenerating, generatedQuestions, selectedQue
             {isGenerating ? (
               <>
                 <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Generating Questions...
+                {t('researchQuestion:generate.loading')}
               </>
             ) : (
               <>
                 <Sparkles className="h-5 w-5 mr-2" />
-                Generate Research Questions
+                {t('researchQuestion:generate.button')}
               </>
             )}
           </Button>
           <p className="text-sm text-gray-500 mt-2">
-            AI will generate 3 research questions with SMART & FINER assessments
+            {t('researchQuestion:generate.aiHint')}
           </p>
         </div>
       )}
@@ -1244,7 +1235,7 @@ function Step4Generate({ formData, isGenerating, generatedQuestions, selectedQue
       {/* Generated Questions */}
       {generatedQuestions.length > 0 && !researchPlan && (
         <div className="space-y-4">
-          <h3 className="text-xl font-bold">Generated Research Questions</h3>
+          <h3 className="text-xl font-bold">{t('researchQuestion:generate.resultsTitle')}</h3>
           {generatedQuestions.map((q, index) => (
             <QuestionCard
               key={index}
@@ -1260,9 +1251,9 @@ function Step4Generate({ formData, isGenerating, generatedQuestions, selectedQue
             <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
               <CardContent className="pt-6">
                 <div className="text-center space-y-3">
-                  <h4 className="text-lg font-semibold">Ready to create your research plan?</h4>
+                  <h4 className="text-lg font-semibold">{t('researchQuestion:generate.planTitle')}</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Generate a comprehensive, actionable research plan tailored to your selected question
+                    {t('researchQuestion:generate.planDesc')}
                   </p>
                   <Button
                     onClick={onGeneratePlan}
@@ -1273,12 +1264,12 @@ function Step4Generate({ formData, isGenerating, generatedQuestions, selectedQue
                     {isGeneratingPlan ? (
                       <>
                         <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Generating Research Plan...
+                        {t('researchQuestion:generate.planLoading')}
                       </>
                     ) : (
                       <>
                         <FileText className="h-5 w-5 mr-2" />
-                        Generate Research Plan
+                        {t('researchQuestion:generate.planButton')}
                       </>
                     )}
                   </Button>
@@ -1304,20 +1295,23 @@ function QuestionCard({ question, index, isSelected, onSelect }: {
   isSelected: boolean
   onSelect: () => void
 }) {
+  const { t } = useTranslation(['researchQuestion'])
+  const scopeLabel = index === 0 ? 'broad' : index === 1 ? 'moderate' : 'narrow'
+
   return (
     <Card className={`border-2 ${isSelected ? 'border-purple-600' : 'border-gray-200'}`}>
       <CardHeader>
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <CardTitle className="text-lg">
-              Question {index + 1} - {index === 0 ? 'Broad' : index === 1 ? 'Moderate' : 'Narrow'} Scope
+              Question {index + 1} - {t(`researchQuestion:questionCard.scope.${scopeLabel}`)} Scope
             </CardTitle>
             <p className="text-gray-900 dark:text-white mt-2 font-medium">{question.question}</p>
           </div>
           <div className="ml-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-purple-600">{question.overallScore}</div>
-              <div className="text-xs text-gray-500">Score</div>
+              <div className="text-xs text-gray-500">{t('researchQuestion:questionCard.score')}</div>
             </div>
           </div>
         </div>
@@ -1326,18 +1320,18 @@ function QuestionCard({ question, index, isSelected, onSelect }: {
         {/* Hypotheses */}
         <div className="space-y-2 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <div>
-            <span className="font-semibold text-blue-900 dark:text-blue-200">Null Hypothesis (H₀):</span>
+            <span className="font-semibold text-blue-900 dark:text-blue-200">{t('researchQuestion:questionCard.nullHypothesis')}</span>
             <p className="text-gray-700 dark:text-gray-300">{question.nullHypothesis}</p>
           </div>
           <div>
-            <span className="font-semibold text-blue-900 dark:text-blue-200">Alternative Hypothesis (H₁):</span>
+            <span className="font-semibold text-blue-900 dark:text-blue-200">{t('researchQuestion:questionCard.alternativeHypothesis')}</span>
             <p className="text-gray-700 dark:text-gray-300">{question.alternativeHypothesis}</p>
           </div>
         </div>
 
         {/* Key Variables */}
         <div>
-          <span className="font-semibold">Key Variables:</span>
+          <span className="font-semibold">{t('researchQuestion:questionCard.keyVariables')}</span>
           <div className="flex flex-wrap gap-2 mt-1">
             {question.keyVariables.map((v, i) => (
               <span key={i} className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm">{v}</span>
@@ -1347,7 +1341,7 @@ function QuestionCard({ question, index, isSelected, onSelect }: {
 
         {/* SMART Assessment */}
         <div>
-          <span className="font-semibold block mb-2">SMART Criteria:</span>
+          <span className="font-semibold block mb-2">{t('researchQuestion:questionCard.smartCriteria')}</span>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             {Object.entries(question.smartAssessment).map(([key, value]) => (
               <div key={key} className="flex items-center gap-2">
@@ -1367,7 +1361,7 @@ function QuestionCard({ question, index, isSelected, onSelect }: {
           className="w-full"
         >
           {isSelected ? <Check className="h-4 w-4 mr-2" /> : null}
-          {isSelected ? 'Selected' : 'Select This Question'}
+          {isSelected ? t('researchQuestion:questionCard.selected') : t('researchQuestion:questionCard.select')}
         </Button>
       </CardContent>
     </Card>

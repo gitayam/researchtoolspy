@@ -1,0 +1,74 @@
+{
+  "title": "Análisis ACH",
+  "subtitle": "Análisis de Hipótesis Competidoras - Metodología de inteligencia estructurada",
+  "newAnalysis": "Nuevo Análisis",
+  "wizard": {
+    "title": "Asistente (Recomendado)",
+    "description": "Paso a paso con asistencia de IA"
+  },
+  "quickCreate": {
+    "title": "Creación Rápida",
+    "description": "Entrada manual de formulario"
+  },
+  "stats": {
+    "total": "Total de Análisis",
+    "draft": "Borrador",
+    "inProgress": "En Progreso",
+    "completed": "Completado"
+  },
+  "search": "Buscar análisis...",
+  "filterStatus": "Filtrar por estado",
+  "status": {
+    "all": "Todos los Estados",
+    "draft": "Borrador",
+    "in_progress": "En Progreso",
+    "completed": "Completado"
+  },
+  "loading": "Cargando análisis...",
+  "loadingAnalysis": "Cargando análisis...",
+  "empty": {
+    "title": "No se encontraron análisis",
+    "descriptionStart": "Comienza tu análisis de inteligencia creando tu primera matriz ACH.",
+    "descriptionFilter": "Intenta ajustar tus criterios de búsqueda o filtros.",
+    "createFirst": "Crea Tu Primer Análisis"
+  },
+  "card": {
+    "hypotheses": "hipótesis",
+    "evidence": "evidencia",
+    "analyst": "Analista:"
+  },
+  "menu": {
+    "openMatrix": "Abrir Matriz",
+    "editDetails": "Editar Detalles",
+    "delete": "Eliminar"
+  },
+  "alerts": {
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar este análisis? Esto también eliminará todas las hipótesis, enlaces de evidencia y puntuaciones.",
+    "deleteFailed": "Error al eliminar el análisis",
+    "loadFailed": "Error al cargar el análisis",
+    "saveFailed": "Error al actualizar el análisis",
+    "createFailed": "Error al crear el análisis",
+    "scoreUpdateFailed": "Error al actualizar la puntuación",
+    "removeEvidenceConfirm": "¿Eliminar esta evidencia del análisis?",
+    "removeEvidenceFailed": "Error al eliminar la evidencia",
+    "evidenceHint": "Navega a la Biblioteca de Evidencia para agregar elementos, luego vincúlalos a este análisis."
+  },
+  "detail": {
+    "notFound": "Análisis no encontrado",
+    "backToDashboard": "Volver al Tablero ACH",
+    "back": "Volver",
+    "keyQuestion": "Pregunta Clave:",
+    "viewNetwork": "Ver en Red",
+    "export": "Exportar",
+    "editAnalysis": "Editar Análisis",
+    "analyst": "Analista",
+    "organization": "Organización",
+    "created": "Creado"
+  },
+  "framework": {
+    "context": "ACH es un procedimiento de ocho pasos basado en la psicología cognitiva utilizado por analistas de inteligencia para identificar un conjunto de hipótesis posibles, evaluar datos consistentes e inconsistentes con cada una, y seleccionar la hipótesis que mejor se ajuste a los datos.",
+    "goodUseCases": "Buenos Casos de Uso",
+    "notIdealFor": "No Ideal Para",
+    "learnMore": "Aprender más en Wikipedia"
+  }
+}

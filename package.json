@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "wrangler pages dev --port 8788 --proxy 5173 -- vite",
+    "dev": "wrangler pages dev --port 8788 -- vite",
     "dev:vite": "vite",
     "build": "tsc -b && vite build",
     "type-check": "tsc -b --noEmit",
@@ -78,6 +78,7 @@
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.3",
     "autoprefixer": "^10.4.21",
+    "baseline-browser-mapping": "^2.9.8",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
