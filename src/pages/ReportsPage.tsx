@@ -1,7 +1,8 @@
-import { FileText, Download, FileBarChart, Calendar, Filter } from 'lucide-react'
+import { FileText, Download, FileBarChart, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { useTranslation } from 'react-i18next'
 
 const reports = [
   { id: 1, title: 'SWOT Analysis Summary', type: 'SWOT', date: '2025-09-28', status: 'completed' },
@@ -10,21 +11,31 @@ const reports = [
 ]
 
 export function ReportsPage() {
+  const { t } = useTranslation()
+
+  const getStatusLabel = (status: string) => {
+    return status === 'completed' ? t('pages.reports.completed') : t('pages.reports.draft')
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports</h1>
-          <p className="text-gray-600 dark:text-gray-400">Generate and manage analysis reports</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {t('pages.reports.title')}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            {t('pages.reports.subtitle')}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
             <Filter className="h-4 w-4 mr-2" />
-            Filter
+            {t('pages.reports.filter')}
           </Button>
           <Button>
             <FileBarChart className="h-4 w-4 mr-2" />
-            Generate Report
+            {t('pages.reports.generateReport')}
           </Button>
         </div>
       </div>
@@ -39,11 +50,11 @@ export function ReportsPage() {
                     <FileText className="h-5 w-5 text-blue-600" />
                     <CardTitle>{report.title}</CardTitle>
                     <Badge variant={report.status === 'completed' ? 'default' : 'secondary'}>
-                      {report.status}
+                      {getStatusLabel(report.status)}
                     </Badge>
                   </div>
                   <CardDescription>
-                    {report.type} • Generated on {new Date(report.date).toLocaleDateString()}
+                    {report.type} • {t('pages.reports.generatedOn')} {new Date(report.date).toLocaleDateString()}
                   </CardDescription>
                 </div>
                 <Button variant="ghost" size="icon">
@@ -59,9 +70,11 @@ export function ReportsPage() {
         <Card>
           <CardContent className="text-center py-12">
             <FileBarChart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No reports yet</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              {t('pages.reports.noReports')}
+            </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Create your first report from an analysis framework
+              {t('pages.reports.noReportsDesc')}
             </p>
           </CardContent>
         </Card>

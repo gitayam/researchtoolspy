@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Filter, Folder, FileText, Zap, Archive, Loader2 } from 'lucide-react'
+import { Plus, Search, Folder, FileText, Zap, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useTranslation } from 'react-i18next'
 
 interface Investigation {
   id: string
@@ -27,6 +28,7 @@ interface Investigation {
 
 export default function InvestigationsPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [investigations, setInvestigations] = useState<Investigation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -101,14 +103,16 @@ export default function InvestigationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Investigations</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+            {t('pages.investigations.title')}
+          </h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
-            Organize your research with investigation-centric workflows
+            {t('pages.investigations.subtitle')}
           </p>
         </div>
         <Button onClick={() => navigate('/dashboard/investigations/new')} className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
-          New Investigation
+          {t('pages.investigations.newInvestigation')}
         </Button>
       </div>
 
@@ -119,7 +123,7 @@ export default function InvestigationsPage() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Search investigations..."
+                placeholder={t('pages.investigations.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -132,9 +136,9 @@ export default function InvestigationsPage() {
       {/* Tabs by Status */}
       <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
         <TabsList>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="archived">Archived</TabsTrigger>
+          <TabsTrigger value="active">{t('pages.investigations.tabs.active')}</TabsTrigger>
+          <TabsTrigger value="completed">{t('pages.investigations.tabs.completed')}</TabsTrigger>
+          <TabsTrigger value="archived">{t('pages.investigations.tabs.archived')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value={statusFilter} className="mt-6">
@@ -144,13 +148,13 @@ export default function InvestigationsPage() {
                 <div className="text-center">
                   <div className="text-red-500 mb-4">⚠️</div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Error Loading Investigations
+                    {t('pages.investigations.errorLoading')}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
                     {error}
                   </p>
                   <Button onClick={() => loadInvestigations()} variant="outline">
-                    Try Again
+                    {t('pages.investigations.tryAgain')}
                   </Button>
                 </div>
               </CardContent>
@@ -165,15 +169,15 @@ export default function InvestigationsPage() {
                 <div className="text-center">
                   <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    No investigations found
+                    {t('pages.investigations.noInvestigations')}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    {searchTerm ? 'Try adjusting your search' : 'Create your first investigation to get started'}
+                    {searchTerm ? t('pages.investigations.adjustSearch') : t('pages.investigations.createFirst')}
                   </p>
                   {!searchTerm && (
                     <Button onClick={() => navigate('/dashboard/investigations/new')} className="bg-purple-600 hover:bg-purple-700">
                       <Plus className="h-4 w-4 mr-2" />
-                      Create Investigation
+                      {t('pages.investigations.createInvestigation')}
                     </Button>
                   )}
                 </div>
@@ -209,7 +213,7 @@ export default function InvestigationsPage() {
                           <div className="mt-2">
                             <Badge variant="secondary" className="text-xs">
                               <FileText className="h-3 w-3 mr-1" />
-                              Research Question
+                              {t('pages.investigations.researchQuestion')}
                             </Badge>
                           </div>
                         )}
@@ -221,19 +225,19 @@ export default function InvestigationsPage() {
                     <div className="grid grid-cols-4 gap-2 mb-3">
                       <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
                         <div className="text-xl font-bold text-purple-600">{inv.evidence_count}</div>
-                        <div className="text-xs text-gray-500">Evidence</div>
+                        <div className="text-xs text-gray-500">{t('pages.investigations.stats.evidence')}</div>
                       </div>
                       <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
                         <div className="text-xl font-bold text-blue-600">{inv.actor_count}</div>
-                        <div className="text-xs text-gray-500">Actors</div>
+                        <div className="text-xs text-gray-500">{t('pages.investigations.stats.actors')}</div>
                       </div>
                       <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
                         <div className="text-xl font-bold text-green-600">{inv.source_count}</div>
-                        <div className="text-xs text-gray-500">Sources</div>
+                        <div className="text-xs text-gray-500">{t('pages.investigations.stats.sources')}</div>
                       </div>
                       <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
                         <div className="text-xl font-bold text-orange-600">{inv.framework_count}</div>
-                        <div className="text-xs text-gray-500">Analyses</div>
+                        <div className="text-xs text-gray-500">{t('pages.investigations.stats.analyses')}</div>
                       </div>
                     </div>
 
