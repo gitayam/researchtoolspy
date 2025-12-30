@@ -7,11 +7,11 @@ pages_build_output_dir = "dist"
 # or using a separate Worker that calls the cleanup endpoint
 # See CRON_CLEANUP_SETUP.md for instructions
 
-# D1 Database binding
+# D1 Database binding (using production database for Pages deployment)
 [[d1_databases]]
 binding = "DB"
-database_name = "researchtoolspy-dev"
-database_id = "aa7d1fbd-23b2-4fc4-8271-4b0070bb24b3"
+database_name = "researchtoolspy-prod"
+database_id = "a455c866-9d7e-471f-8c28-e3816f87e7e3"
 
 # KV Namespace binding for sessions
 [[kv_namespaces]]

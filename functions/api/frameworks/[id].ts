@@ -34,7 +34,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const result = await context.env.DB.prepare(`
       SELECT
         id, user_id, title, description, framework_type, status,
-        data, source_url, created_at, updated_at
+        data, created_at, updated_at, workspace_id
       FROM framework_sessions
       WHERE id = ?
     `).bind(sessionId).first()
@@ -147,7 +147,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       description?: string
       data?: any
       status?: string
-      source_url?: string
     }
 
     // Build update query dynamically
@@ -169,10 +168,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (body.status !== undefined) {
       updates.push('status = ?')
       params.push(body.status)
-    }
-    if (body.source_url !== undefined) {
-      updates.push('source_url = ?')
-      params.push(body.source_url)
     }
 
     if (updates.length === 0) {

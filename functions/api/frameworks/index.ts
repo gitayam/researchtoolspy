@@ -106,7 +106,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     let query = `
       SELECT
         id, title, description, framework_type, status,
-        source_url, created_at, updated_at, user_id
+        created_at, updated_at, user_id, workspace_id
       FROM framework_sessions
       WHERE 1=1
     `
