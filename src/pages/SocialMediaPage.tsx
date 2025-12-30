@@ -995,7 +995,7 @@ export function SocialMediaPage() {
                         {t('socialMedia:tools.notes.title')}
                       </h4>
                       <ul className="text-sm text-yellow-800 dark:text-yellow-200 space-y-1 list-disc list-inside">
-                        {t('socialMedia:tools.notes.items', { returnObjects: true }).map((item: string, i: number) => (
+                        {(t('socialMedia:tools.notes.items', { returnObjects: true }) as string[]).map((item: string, i: number) => (
                           <li key={i}>{item}</li>
                         ))}
                       </ul>
@@ -1011,7 +1011,7 @@ export function SocialMediaPage() {
                         {t('socialMedia:tools.workflow.title')}
                       </h4>
                       <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
-                        {t('socialMedia:tools.workflow.items', { returnObjects: true }).map((item: string, i: number) => (
+                        {(t('socialMedia:tools.workflow.items', { returnObjects: true }) as string[]).map((item: string, i: number) => (
                           <li key={i}>{item}</li>
                         ))}
                       </ol>

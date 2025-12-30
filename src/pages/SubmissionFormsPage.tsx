@@ -271,7 +271,7 @@ export default function SubmissionFormsPage() {
                 {t('submissionForms:howItWorks.title')}
               </h3>
               <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
-                {t('submissionForms:howItWorks.items', { returnObjects: true }).map((item: string, i: number) => (
+                {(t('submissionForms:howItWorks.items', { returnObjects: true }) as string[]).map((item: string, i: number) => (
                   <li key={i}>{item}</li>
                 ))}
               </ul>
