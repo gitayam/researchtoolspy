@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Settings, Monitor, Briefcase, Sparkles, Database, AlertCircle } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
@@ -17,6 +18,7 @@ import { DataManagement } from '@/components/settings/DataManagement'
 import type { WorkspaceType } from '@/types/settings'
 
 export function SettingsPage() {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState('display')
   const [updating, setUpdating] = useState(false)
   const { settings, loading, error, updateDisplaySettings, updateAISettings } = useSettings()
@@ -145,7 +147,7 @@ export function SettingsPage() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading settings...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('pages.settings.loading')}</p>
           </div>
         </div>
       </div>
@@ -161,7 +163,7 @@ export function SettingsPage() {
             <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
               <AlertCircle className="h-5 w-5" />
               <div>
-                <p className="font-medium">Failed to load settings</p>
+                <p className="font-medium">{t('pages.settings.loadError')}</p>
                 <p className="text-sm mt-1">{error}</p>
               </div>
             </div>
@@ -180,9 +182,9 @@ export function SettingsPage() {
             <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
               <AlertCircle className="h-5 w-5" />
               <div>
-                <p className="font-medium">No Account Hash</p>
+                <p className="font-medium">{t('pages.settings.noAccountHash')}</p>
                 <p className="text-sm mt-1">
-                  Please generate or enter your account hash to access settings.
+                  {t('pages.settings.noAccountHashDesc')}
                 </p>
               </div>
             </div>
@@ -198,10 +200,10 @@ export function SettingsPage() {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <Settings className="h-8 w-8 text-blue-600" />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('pages.settings.title')}</h1>
         </div>
         <p className="text-gray-600 dark:text-gray-400">
-          Manage your display preferences, workspaces, AI settings, and data
+          {t('pages.settings.subtitle')}
         </p>
       </div>
 
@@ -210,19 +212,19 @@ export function SettingsPage() {
         <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full lg:w-auto">
           <TabsTrigger value="display" className="flex items-center gap-2">
             <Monitor className="h-4 w-4" />
-            <span className="hidden sm:inline">Display</span>
+            <span className="hidden sm:inline">{t('pages.settings.tabs.display')}</span>
           </TabsTrigger>
           <TabsTrigger value="workspaces" className="flex items-center gap-2">
             <Briefcase className="h-4 w-4" />
-            <span className="hidden sm:inline">Workspaces</span>
+            <span className="hidden sm:inline">{t('pages.settings.tabs.workspaces')}</span>
           </TabsTrigger>
           <TabsTrigger value="ai" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
-            <span className="hidden sm:inline">AI</span>
+            <span className="hidden sm:inline">{t('pages.settings.tabs.ai')}</span>
           </TabsTrigger>
           <TabsTrigger value="data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
-            <span className="hidden sm:inline">Data</span>
+            <span className="hidden sm:inline">{t('pages.settings.tabs.data')}</span>
           </TabsTrigger>
         </TabsList>
 
