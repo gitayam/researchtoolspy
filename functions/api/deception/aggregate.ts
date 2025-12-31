@@ -119,10 +119,61 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     // ===== 3. EVIDENCE EVE SCORES =====
-    // Note: EVE is not yet implemented in evidence_items schema
-    // Placeholder for future implementation
-    const eveStats = { suspicious: 0, needs_review: 0, verified: 0, avg_score: 0, total: 0 }
-    const eveAlerts: Alert[] = []
+    const eveEvidence = await context.env.DB.prepare(`
+      SELECT
+        e.id,
+        e.title,
+        e.eve_assessment
+      FROM evidence e
+      WHERE e.workspace_id = ?
+        AND e.eve_assessment IS NOT NULL
+    `).bind(workspaceId).all()
+
+    let eveStats = { suspicious: 0, needs_review: 0, verified: 0, avg_score: 0, total: 0 }
+    let eveAlerts: Alert[] = []
+
+    if (eveEvidence.results) {
+      const scores: number[] = []
+      for (const evidence of eveEvidence.results as any[]) {
+        try {
+          const eve = typeof evidence.eve_assessment === 'string'
+            ? JSON.parse(evidence.eve_assessment)
+            : evidence.eve_assessment
+
+          if (eve) {
+            // EVE uses inverted scores for consistency/corroboration (high = good = low risk)
+            // anomaly_detection is normal (high = bad = high risk)
+            const consistencyRisk = 5 - (eve.internal_consistency ?? 3)
+            const corroborationRisk = 5 - (eve.external_corroboration ?? 3)
+            const anomalyRisk = eve.anomaly_detection ?? 0
+            const avgScore = (consistencyRisk + corroborationRisk + anomalyRisk) / 3
+            scores.push(avgScore)
+
+            if (avgScore >= 3.5) {
+              eveStats.suspicious++
+              eveAlerts.push({
+                type: 'EVIDENCE_EVE',
+                entity_type: 'EVIDENCE',
+                entity_id: evidence.id,
+                entity_name: evidence.title || `Evidence #${evidence.id}`,
+                risk_score: avgScore,
+                severity: avgScore >= 4.0 ? 'CRITICAL' : 'HIGH',
+                details: `Low consistency (${eve.internal_consistency}), low corroboration (${eve.external_corroboration}), anomalies (${eve.anomaly_detection})`,
+                url: `/dashboard/evidence/${evidence.id}`
+              })
+            } else if (avgScore >= 2.0) {
+              eveStats.needs_review++
+            } else {
+              eveStats.verified++
+            }
+          }
+        } catch (e) {
+          console.error('[EVE] Failed to parse eve_assessment for evidence:', evidence.id, e)
+        }
+      }
+      eveStats.total = scores.length
+      eveStats.avg_score = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
+    }
 
     // ===== 4. SOURCE MOSES SCORES =====
     const mosesSources = await context.env.DB.prepare(`
@@ -174,6 +225,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     // ===== 5. CLAIM DECEPTION SCORES =====
+    // Query claims by workspace_id if available, fallback to user_id
     const claimAnalyses = await context.env.DB.prepare(`
       SELECT
         ca.id,
@@ -181,11 +233,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         ca.url,
         ca.claim_analysis
       FROM content_analysis ca
-      WHERE ca.user_id = ?
+      WHERE (ca.workspace_id = ? OR (ca.workspace_id IS NULL AND ca.user_id = ?))
         AND ca.claim_analysis IS NOT NULL
       ORDER BY ca.created_at DESC
-      LIMIT 100
-    `).bind(userId).all()
+      LIMIT 200
+    `).bind(workspaceId, userId).all()
 
     let claimStats = { high: 0, medium: 0, low: 0, avg_score: 0, total: 0 }
     let claimAlerts: Alert[] = []
@@ -194,10 +246,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       const scores: number[] = []
       for (const analysis of claimAnalyses.results as any[]) {
         try {
-          const claimData = JSON.parse(analysis.claim_analysis)
-          if (claimData.claims) {
+          const claimData = typeof analysis.claim_analysis === 'string'
+            ? JSON.parse(analysis.claim_analysis)
+            : analysis.claim_analysis
+
+          if (claimData?.claims) {
             for (const claim of claimData.claims) {
-              const riskScore = claim.deception_analysis?.risk_score || 0
+              const riskScore = claim.deception_analysis?.risk_score ?? 0
               scores.push(riskScore)
 
               if (riskScore > 60) {
@@ -207,7 +262,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
                     type: 'CLAIM_DECEPTION',
                     entity_type: 'CLAIM',
                     entity_id: analysis.id,
-                    entity_name: claim.claim.substring(0, 80) + (claim.claim.length > 80 ? '...' : ''),
+                    entity_name: (claim.claim || '').substring(0, 80) + ((claim.claim || '').length > 80 ? '...' : ''),
                     risk_score: riskScore,
                     severity: riskScore > 85 ? 'CRITICAL' : 'HIGH',
                     details: `Risk score ${riskScore}/100 from content: ${analysis.title}`,
@@ -229,13 +284,88 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       claimStats.avg_score = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
     }
 
+    // ===== 6. SAVED DECEPTION FRAMEWORK ANALYSES =====
+    const frameworkAnalyses = await context.env.DB.prepare(`
+      SELECT
+        fs.id,
+        fs.title,
+        fs.data,
+        fs.created_at
+      FROM framework_sessions fs
+      WHERE fs.workspace_id = ?
+        AND fs.framework_type = 'deception'
+        AND fs.data IS NOT NULL
+      ORDER BY fs.updated_at DESC
+      LIMIT 50
+    `).bind(workspaceId).all()
+
+    let frameworkStats = { high: 0, medium: 0, low: 0, avg_score: 0, total: 0 }
+    let frameworkAlerts: Alert[] = []
+
+    if (frameworkAnalyses.results) {
+      const scores: number[] = []
+      for (const analysis of frameworkAnalyses.results as any[]) {
+        try {
+          const data = typeof analysis.data === 'string'
+            ? JSON.parse(analysis.data)
+            : analysis.data
+
+          if (data?.scores) {
+            // Calculate overall likelihood from saved scores using same algorithm
+            const mom = ((data.scores.motive ?? 0) + (data.scores.opportunity ?? 0) + (data.scores.means ?? 0)) / 3
+            const pop = ((data.scores.historicalPattern ?? 0) + (data.scores.sophisticationLevel ?? 0) + (data.scores.successRate ?? 0)) / 3
+            const moses = ((data.scores.sourceVulnerability ?? 0) + (data.scores.manipulationEvidence ?? 0)) / 2
+            const eve = ((5 - (data.scores.internalConsistency ?? 5)) + (5 - (data.scores.externalCorroboration ?? 5)) + (data.scores.anomalyDetection ?? 0)) / 3
+            const likelihood = Math.round((mom * 30 + pop * 25 + moses * 25 + eve * 20) / 5)
+
+            scores.push(likelihood)
+
+            if (likelihood >= 60) {
+              frameworkStats.high++
+              if (likelihood >= 75) {
+                frameworkAlerts.push({
+                  type: 'CLAIM_DECEPTION',
+                  entity_type: 'CLAIM',
+                  entity_id: analysis.id,
+                  entity_name: analysis.title || `Analysis #${analysis.id}`,
+                  risk_score: likelihood,
+                  severity: likelihood >= 80 ? 'CRITICAL' : 'HIGH',
+                  details: `SATS analysis: ${likelihood}% deception likelihood`,
+                  url: `/dashboard/analysis-frameworks/deception/${analysis.id}`
+                })
+              }
+            } else if (likelihood >= 40) {
+              frameworkStats.medium++
+            } else {
+              frameworkStats.low++
+            }
+          }
+        } catch (e) {
+          console.error('[Framework] Failed to parse data for analysis:', analysis.id, e)
+        }
+      }
+      frameworkStats.total = scores.length
+      frameworkStats.avg_score = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
+    }
+
     // ===== CALCULATE OVERALL RISK SCORE =====
+    // Include framework analyses in calculation (they're on 0-100 scale)
+    const frameworkWeight = frameworkStats.total > 0 ? 0.15 : 0
+    const adjustedWeights = {
+      mom: frameworkWeight > 0 ? 0.20 : 0.25,
+      pop: frameworkWeight > 0 ? 0.18 : 0.20,
+      eve: frameworkWeight > 0 ? 0.22 : 0.25,
+      moses: frameworkWeight > 0 ? 0.13 : 0.15,
+      claims: frameworkWeight > 0 ? 0.12 : 0.15
+    }
+
     const overallRiskScore = Math.round(
-      (momStats.avg_score * 20 * 0.25) +  // MOM: 0-5 scale → 0-100, weight 25%
-      (popStats.avg_score * 20 * 0.20) +  // POP: 0-5 scale → 0-100, weight 20%
-      (eveStats.avg_score * 20 * 0.25) +  // EVE: 0-5 scale → 0-100, weight 25%
-      (mosesStats.avg_score * 20 * 0.15) + // MOSES: 0-5 scale → 0-100, weight 15%
-      (claimStats.avg_score * 0.15)       // Claims: already 0-100, weight 15%
+      (momStats.avg_score * 20 * adjustedWeights.mom) +  // MOM: 0-5 scale → 0-100
+      (popStats.avg_score * 20 * adjustedWeights.pop) +  // POP: 0-5 scale → 0-100
+      (eveStats.avg_score * 20 * adjustedWeights.eve) +  // EVE: 0-5 scale → 0-100
+      (mosesStats.avg_score * 20 * adjustedWeights.moses) + // MOSES: 0-5 scale → 0-100
+      (claimStats.avg_score * adjustedWeights.claims) +  // Claims: already 0-100
+      (frameworkStats.avg_score * frameworkWeight)       // Framework: already 0-100
     )
 
     const riskLevel =
@@ -244,24 +374,42 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       overallRiskScore >= 40 ? 'MEDIUM' : 'LOW'
 
     // ===== COMBINE ALL ALERTS =====
-    const allAlerts = [...momAlerts, ...eveAlerts, ...mosesAlerts, ...claimAlerts]
+    const allAlerts = [...momAlerts, ...eveAlerts, ...mosesAlerts, ...claimAlerts, ...frameworkAlerts]
       .sort((a, b) => b.risk_score - a.risk_score)
-      .slice(0, 10) // Top 10 alerts
+      .slice(0, 15) // Top 15 alerts
 
     // ===== GENERATE RECOMMENDED ACTIONS =====
     const recommendedActions = []
-    if (momAlerts.length > 0) {
+    if (frameworkAlerts.length > 0) {
       recommendedActions.push({
         priority: 1,
+        action: `Review SATS analysis: '${frameworkAlerts[0].entity_name}'`,
+        entity_type: 'FRAMEWORK',
+        entity_id: frameworkAlerts[0].entity_id,
+        url: frameworkAlerts[0].url
+      })
+    }
+    if (momAlerts.length > 0) {
+      recommendedActions.push({
+        priority: recommendedActions.length + 1,
         action: `Review MOM assessment for '${momAlerts[0].entity_name}'`,
         entity_type: 'ACTOR',
         entity_id: momAlerts[0].entity_id,
         url: momAlerts[0].url
       })
     }
+    if (eveAlerts.length > 0) {
+      recommendedActions.push({
+        priority: recommendedActions.length + 1,
+        action: `Verify evidence quality: '${eveAlerts[0].entity_name}'`,
+        entity_type: 'EVIDENCE',
+        entity_id: eveAlerts[0].entity_id,
+        url: eveAlerts[0].url
+      })
+    }
     if (mosesAlerts.length > 0) {
       recommendedActions.push({
-        priority: 2,
+        priority: recommendedActions.length + 1,
         action: `Verify source credibility for '${mosesAlerts[0].entity_name}'`,
         entity_type: 'SOURCE',
         entity_id: mosesAlerts[0].entity_id,
@@ -270,7 +418,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
     if (claimAlerts.length > 0) {
       recommendedActions.push({
-        priority: 3,
+        priority: recommendedActions.length + 1,
         action: `Cross-check high-risk claim: ${claimAlerts[0].entity_name}`,
         entity_type: 'CLAIM',
         entity_id: claimAlerts[0].entity_id,
@@ -290,7 +438,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         actors_pop: popStats,
         evidence_eve: eveStats,
         sources_moses: mosesStats,
-        claims: claimStats
+        claims: claimStats,
+        framework_analyses: frameworkStats
       },
       recommended_actions: recommendedActions,
       metadata: {
@@ -299,7 +448,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         data_sources: {
           actors: momActors.results?.length || 0,
           sources: mosesSources.results?.length || 0,
-          content_analyses: claimAnalyses.results?.length || 0
+          evidence: eveEvidence.results?.length || 0,
+          content_analyses: claimAnalyses.results?.length || 0,
+          framework_analyses: frameworkAnalyses.results?.length || 0
         }
       }
     }), {
