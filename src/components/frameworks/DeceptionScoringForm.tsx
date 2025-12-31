@@ -79,7 +79,8 @@ export function DeceptionScoringForm({
   const [assessment, setAssessment] = useState<DeceptionAssessment>(calculateDeceptionLikelihood(scores))
   const [aiAnalyzing, setAiAnalyzing] = useState(false)
   const [aiAvailable, setAiAvailable] = useState(false)
-  const isSyncingFromParent = useRef(false)
+  const isInitialMount = useRef(true)
+  const prevInitialScoresRef = useRef(initialScores)
 
   // Check AI availability on mount
   useEffect(() => {
@@ -87,57 +88,66 @@ export function DeceptionScoringForm({
   }, [])
 
   // Sync scores when parent updates initialScores (e.g., after AI analysis)
+  // Only runs when initialScores reference changes (not on initial mount)
   useEffect(() => {
-    if (initialScores && Object.keys(initialScores).length > 0) {
-      // Check if scores actually changed to avoid unnecessary updates
-      const hasChanges =
-        initialScores.motive !== scores.motive ||
-        initialScores.opportunity !== scores.opportunity ||
-        initialScores.means !== scores.means ||
-        initialScores.historicalPattern !== scores.historicalPattern ||
-        initialScores.sophisticationLevel !== scores.sophisticationLevel ||
-        initialScores.successRate !== scores.successRate ||
-        initialScores.sourceVulnerability !== scores.sourceVulnerability ||
-        initialScores.manipulationEvidence !== scores.manipulationEvidence ||
-        initialScores.internalConsistency !== scores.internalConsistency ||
-        initialScores.externalCorroboration !== scores.externalCorroboration ||
-        initialScores.anomalyDetection !== scores.anomalyDetection
+    // Skip initial mount - scores are already set from initialScores in useState
+    if (isInitialMount.current) {
+      return
+    }
 
-      if (hasChanges) {
-        isSyncingFromParent.current = true
-        setScores(prev => ({
-          ...prev,
-          motive: initialScores.motive ?? prev.motive,
-          opportunity: initialScores.opportunity ?? prev.opportunity,
-          means: initialScores.means ?? prev.means,
-          historicalPattern: initialScores.historicalPattern ?? prev.historicalPattern,
-          sophisticationLevel: initialScores.sophisticationLevel ?? prev.sophisticationLevel,
-          successRate: initialScores.successRate ?? prev.successRate,
-          sourceVulnerability: initialScores.sourceVulnerability ?? prev.sourceVulnerability,
-          manipulationEvidence: initialScores.manipulationEvidence ?? prev.manipulationEvidence,
-          internalConsistency: initialScores.internalConsistency ?? prev.internalConsistency,
-          externalCorroboration: initialScores.externalCorroboration ?? prev.externalCorroboration,
-          anomalyDetection: initialScores.anomalyDetection ?? prev.anomalyDetection
-        }))
+    // Only sync if initialScores actually changed (deep comparison of key values)
+    if (initialScores && prevInitialScoresRef.current !== initialScores) {
+      const prev = prevInitialScoresRef.current
+      const hasRealChanges = !prev ||
+        initialScores.motive !== prev.motive ||
+        initialScores.opportunity !== prev.opportunity ||
+        initialScores.means !== prev.means ||
+        initialScores.historicalPattern !== prev.historicalPattern ||
+        initialScores.sophisticationLevel !== prev.sophisticationLevel ||
+        initialScores.successRate !== prev.successRate ||
+        initialScores.sourceVulnerability !== prev.sourceVulnerability ||
+        initialScores.manipulationEvidence !== prev.manipulationEvidence ||
+        initialScores.internalConsistency !== prev.internalConsistency ||
+        initialScores.externalCorroboration !== prev.externalCorroboration ||
+        initialScores.anomalyDetection !== prev.anomalyDetection
+
+      if (hasRealChanges) {
+        setScores({
+          motive: initialScores.motive ?? 0,
+          opportunity: initialScores.opportunity ?? 0,
+          means: initialScores.means ?? 0,
+          historicalPattern: initialScores.historicalPattern ?? 0,
+          sophisticationLevel: initialScores.sophisticationLevel ?? 0,
+          successRate: initialScores.successRate ?? 0,
+          sourceVulnerability: initialScores.sourceVulnerability ?? 0,
+          manipulationEvidence: initialScores.manipulationEvidence ?? 0,
+          internalConsistency: initialScores.internalConsistency ?? 0,
+          externalCorroboration: initialScores.externalCorroboration ?? 0,
+          anomalyDetection: initialScores.anomalyDetection ?? 0
+        })
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    prevInitialScoresRef.current = initialScores
   }, [initialScores])
 
-  // Recalculate assessment when scores change
+  // Mark initial mount as complete after first render
+  useEffect(() => {
+    isInitialMount.current = false
+  }, [])
+
+  // Recalculate assessment when scores change - DO NOT notify parent here
+  // Parent already knows the scores (it passed them or user just changed slider)
   useEffect(() => {
     const newAssessment = calculateDeceptionLikelihood(scores)
     setAssessment(newAssessment)
-
-    // Only notify parent if this wasn't a sync from parent (avoid circular updates)
-    if (!isSyncingFromParent.current) {
-      onScoresChange?.(scores, newAssessment)
-    }
-    isSyncingFromParent.current = false
   }, [scores])
 
   const handleScoreChange = (criterion: keyof DeceptionScores, value: number[]) => {
-    setScores(prev => ({ ...prev, [criterion]: value[0] }))
+    const newScores = { ...scores, [criterion]: value[0] }
+    setScores(newScores)
+    // Notify parent of user-initiated change
+    const newAssessment = calculateDeceptionLikelihood(newScores)
+    onScoresChange?.(newScores, newAssessment)
   }
 
   const handleAIAssist = async () => {
