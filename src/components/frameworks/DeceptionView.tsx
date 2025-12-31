@@ -76,6 +76,15 @@ export function DeceptionView({
   // Relationship generation state
   const [generatedRelationships, setGeneratedRelationships] = useState<CreateRelationshipRequest[]>([])
 
+  // Historical data for trends and predictions
+  const [historicalData, setHistoricalData] = useState<Array<{
+    id: string
+    title: string
+    timestamp: string
+    likelihood: number
+    scores: any
+  }>>([])
+
   // Calculate assessment on-the-fly if missing (for backward compatibility with old analyses)
   const calculatedAssessment = data.calculatedAssessment ||
     (data.scores && Object.keys(data.scores).length > 0
@@ -133,6 +142,31 @@ export function DeceptionView({
     }
 
     loadLinkedEvidence()
+  }, [data.id])
+
+  // Load historical data for trend analysis
+  useEffect(() => {
+    const loadHistoricalData = async () => {
+      if (!data.id) return
+
+      try {
+        // Get workspace_id from localStorage or default
+        const workspaceId = localStorage.getItem('workspace_id') || '1'
+        const response = await fetch(
+          `/api/deception/history?workspace_id=${workspaceId}&exclude_id=${data.id}&limit=20`
+        )
+        if (response.ok) {
+          const result = await response.json()
+          if (result.history && result.history.length > 0) {
+            setHistoricalData(result.history)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load historical data:', error)
+      }
+    }
+
+    loadHistoricalData()
   }, [data.id])
 
   const handleEntityCreated = (entityType: EvidenceEntityType, entityData: any) => {
@@ -709,6 +743,11 @@ export function DeceptionView({
               <CardContent>
                 <DeceptionPredictions
                   currentAnalysis={data.aiAnalysis}
+                  historicalData={historicalData.map(h => ({
+                    timestamp: h.timestamp,
+                    likelihood: h.likelihood,
+                    scores: h.scores as DeceptionScores
+                  }))}
                   scenario={{
                     scenario: data.scenario,
                     mom: data.mom,
@@ -729,6 +768,11 @@ export function DeceptionView({
               <DeceptionDashboard
                 scores={data.scores}
                 assessment={calculatedAssessment}
+                showHistorical={historicalData.length > 1}
+                historicalData={historicalData.map(h => ({
+                  timestamp: h.timestamp,
+                  likelihood: h.likelihood
+                }))}
               />
             )}
 
