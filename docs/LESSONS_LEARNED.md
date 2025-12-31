@@ -74,6 +74,44 @@ const handleScoreChange = (criterion: keyof DeceptionScores, value: number[]) =>
 
 ### Files Modified
 - `src/components/frameworks/DeceptionScoringForm.tsx` - Lines 88-102
+- `src/components/frameworks/DeceptionView.tsx` - Added useMemo for historical data
+
+### Additional Fix: Array References in Props
+
+Another source of infinite loops was creating new arrays in render:
+
+```typescript
+// BROKEN - creates new array on every render
+<DeceptionPredictions
+  historicalData={historicalData.map(h => ({
+    timestamp: h.timestamp,
+    likelihood: h.likelihood,
+    scores: h.scores
+  }))}
+/>
+
+// Child component has useEffect watching historicalData
+useEffect(() => {
+  loadPredictions()
+}, [historicalData])  // Runs every render because array is new!
+```
+
+**Fix: Use useMemo to create stable references:**
+
+```typescript
+// Memoize the transformation
+const historicalDataForPredictions = useMemo(() =>
+  historicalData.map(h => ({
+    timestamp: h.timestamp,
+    likelihood: h.likelihood,
+    scores: h.scores
+  })),
+  [historicalData]  // Only recreate when source data changes
+)
+
+// Pass stable reference
+<DeceptionPredictions historicalData={historicalDataForPredictions} />
+```
 
 ### Related Errors
 - React #185: Maximum update depth exceeded
