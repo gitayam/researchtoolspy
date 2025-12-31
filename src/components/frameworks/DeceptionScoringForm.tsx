@@ -206,7 +206,7 @@ export function DeceptionScoringForm({
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
                 <span className="text-sm font-medium">{t('assessment.confidenceLevel')}</span>
                 <span className={`text-sm font-bold ${getConfidenceColor(assessment.confidenceLevel)}`}>
-                  {t(`confidenceLevels.${assessment.confidenceLevel.toLowerCase().replace('_', '')}`)}
+                  {t(`confidenceLevels.${assessment.confidenceLevel === 'VERY_HIGH' ? 'veryHigh' : assessment.confidenceLevel === 'VERY_LOW' ? 'veryLow' : assessment.confidenceLevel.toLowerCase()}`)}
                 </span>
               </div>
             </div>

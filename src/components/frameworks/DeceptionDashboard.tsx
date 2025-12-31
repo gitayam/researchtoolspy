@@ -51,6 +51,7 @@ export function DeceptionDashboard({
             likelihood={assessment.overallLikelihood}
             riskLevel={assessment.riskLevel}
             confidenceLevel={assessment.confidenceLevel}
+            t={t}
           />
         </CardContent>
       </Card>
@@ -188,11 +189,13 @@ export function DeceptionDashboard({
 function DeceptionGauge({
   likelihood,
   riskLevel,
-  confidenceLevel
+  confidenceLevel,
+  t
 }: {
   likelihood: number
   riskLevel: string
   confidenceLevel: string
+  t: (key: string) => string
 }) {
   const percentage = likelihood
   const angle = (percentage / 100) * 180 // Semicircle (0-180 degrees)
@@ -295,10 +298,10 @@ function DeceptionGauge({
             className="text-sm"
             style={{ borderColor: riskColor, color: riskColor }}
           >
-            {riskLevel.replace('_', ' ')} RISK
+            {t(`riskLevels.${riskLevel.toLowerCase()}`)} {t('dashboard.riskLabel')}
           </Badge>
           <Badge variant="secondary" className="text-sm">
-            {confidenceLevel.replace('_', ' ')} CONFIDENCE
+            {t(`confidenceLevels.${confidenceLevel === 'VERY_HIGH' ? 'veryHigh' : confidenceLevel === 'VERY_LOW' ? 'veryLow' : confidenceLevel.toLowerCase()}`)} {t('dashboard.confidenceLabel')}
           </Badge>
         </div>
       </div>
