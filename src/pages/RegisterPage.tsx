@@ -31,7 +31,6 @@ export function RegisterPage() {
       if (!validHashes.includes(hash)) {
         validHashes.push(hash)
         localStorage.setItem('omnicore_valid_hashes', JSON.stringify(validHashes))
-        console.log('[Register] Hash added to valid hashes:', hash.substring(0, 8) + '...')
       }
     } catch (err) {
       console.error('[Register] Failed to store hash in valid hashes:', err)
