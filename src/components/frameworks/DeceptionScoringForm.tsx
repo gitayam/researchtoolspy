@@ -3,7 +3,7 @@
  * Interactive scoring interface with real-time deception likelihood calculation
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -79,75 +79,21 @@ export function DeceptionScoringForm({
   const [assessment, setAssessment] = useState<DeceptionAssessment>(calculateDeceptionLikelihood(scores))
   const [aiAnalyzing, setAiAnalyzing] = useState(false)
   const [aiAvailable, setAiAvailable] = useState(false)
-  const isInitialMount = useRef(true)
-  const prevInitialScoresRef = useRef(initialScores)
 
   // Check AI availability on mount
   useEffect(() => {
     checkAIAvailability().then(setAiAvailable)
   }, [])
 
-  // Sync scores when parent updates initialScores (e.g., after AI analysis)
-  // Only runs when initialScores reference changes (not on initial mount)
-  useEffect(() => {
-    // Skip initial mount - scores are already set from initialScores in useState
-    if (isInitialMount.current) {
-      return
-    }
-
-    // Only sync if initialScores actually changed (deep comparison of key values)
-    if (initialScores && prevInitialScoresRef.current !== initialScores) {
-      const prev = prevInitialScoresRef.current
-      const hasRealChanges = !prev ||
-        initialScores.motive !== prev.motive ||
-        initialScores.opportunity !== prev.opportunity ||
-        initialScores.means !== prev.means ||
-        initialScores.historicalPattern !== prev.historicalPattern ||
-        initialScores.sophisticationLevel !== prev.sophisticationLevel ||
-        initialScores.successRate !== prev.successRate ||
-        initialScores.sourceVulnerability !== prev.sourceVulnerability ||
-        initialScores.manipulationEvidence !== prev.manipulationEvidence ||
-        initialScores.internalConsistency !== prev.internalConsistency ||
-        initialScores.externalCorroboration !== prev.externalCorroboration ||
-        initialScores.anomalyDetection !== prev.anomalyDetection
-
-      if (hasRealChanges) {
-        setScores({
-          motive: initialScores.motive ?? 0,
-          opportunity: initialScores.opportunity ?? 0,
-          means: initialScores.means ?? 0,
-          historicalPattern: initialScores.historicalPattern ?? 0,
-          sophisticationLevel: initialScores.sophisticationLevel ?? 0,
-          successRate: initialScores.successRate ?? 0,
-          sourceVulnerability: initialScores.sourceVulnerability ?? 0,
-          manipulationEvidence: initialScores.manipulationEvidence ?? 0,
-          internalConsistency: initialScores.internalConsistency ?? 0,
-          externalCorroboration: initialScores.externalCorroboration ?? 0,
-          anomalyDetection: initialScores.anomalyDetection ?? 0
-        })
-      }
-    }
-    prevInitialScoresRef.current = initialScores
-  }, [initialScores])
-
-  // Mark initial mount as complete after first render
-  useEffect(() => {
-    isInitialMount.current = false
-  }, [])
-
-  // Recalculate assessment when scores change - DO NOT notify parent here
-  // Parent already knows the scores (it passed them or user just changed slider)
+  // Recalculate assessment when scores change
   useEffect(() => {
     const newAssessment = calculateDeceptionLikelihood(scores)
     setAssessment(newAssessment)
+    onScoresChange?.(scores, newAssessment)
   }, [scores])
 
   const handleScoreChange = (criterion: keyof DeceptionScores, value: number[]) => {
-    const newScores = { ...scores, [criterion]: value[0] }
-    setScores(newScores)
-    // Notify parent of user-initiated change
-    const newAssessment = calculateDeceptionLikelihood(newScores)
-    onScoresChange?.(newScores, newAssessment)
+    setScores(prev => ({ ...prev, [criterion]: value[0] }))
   }
 
   const handleAIAssist = async () => {
