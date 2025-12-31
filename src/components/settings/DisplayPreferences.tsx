@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import type { DisplaySettings, Theme, Language, Density, SidebarBehavior, FontSize } from '@/types/settings'
-import i18n from '@/i18n/config'
+import i18n from '@/lib/i18n'
 
 interface DisplayPreferencesProps {
   settings: DisplaySettings
