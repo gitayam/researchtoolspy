@@ -1089,6 +1089,7 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
 
 export const CogPage = () => {
   const { t } = useTranslation(['common', 'frameworks'])
+  const { t: tCog } = useTranslation('cog')
   const { currentWorkspaceId } = useWorkspace()
   const config = frameworkConfigs['cog']
   const [analyses, setAnalyses] = useState<any[]>([])
@@ -1354,8 +1355,6 @@ export const CogPage = () => {
     }
   }
 
-  // Get translations for COG framework
-  const { t: tCog } = useTranslation('cog')
   const cogTitle = t(`frameworkDescriptions.cog.title`, { defaultValue: config.title })
   const cogDescription = t(`frameworkDescriptions.cog.context`, { defaultValue: config.description })
 
