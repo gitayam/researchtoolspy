@@ -364,10 +364,10 @@ export const SwotPage = () => {
   }
 
   const frameworkKey = 'swot'
-  const frameworkContext = t(`frameworks:${frameworkKey}.context`)
-  const frameworkWikipediaUrl = t(`frameworks:${frameworkKey}.wikipediaUrl`, { defaultValue: null })
-  const frameworkGoodUseCases = t(`frameworks:${frameworkKey}.goodUseCases`, { returnObjects: true }) as string[]
-  const frameworkNotIdealFor = t(`frameworks:${frameworkKey}.notIdealFor`, { returnObjects: true }) as string[]
+  const frameworkContext = t(`frameworkDescriptions.${frameworkKey}.context`)
+  const frameworkWikipediaUrl = t(`frameworkDescriptions.${frameworkKey}.wikipediaUrl`, { defaultValue: null })
+  const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true, defaultValue: [] }) as string[]
+  const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true, defaultValue: [] }) as string[]
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -421,7 +421,7 @@ export const SwotPage = () => {
                   {t('frameworkPages.goodUseCases')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  {frameworkGoodUseCases.map((useCase, idx) => (
+                  {Array.isArray(frameworkGoodUseCases) && frameworkGoodUseCases.map((useCase, idx) => (
                     <li key={idx}>{useCase}</li>
                   ))}
                 </ul>
@@ -432,7 +432,7 @@ export const SwotPage = () => {
                   {t('frameworkPages.notIdealFor')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  {frameworkNotIdealFor.map((useCase, idx) => (
+                  {Array.isArray(frameworkNotIdealFor) && frameworkNotIdealFor.map((useCase, idx) => (
                     <li key={idx}>{useCase}</li>
                   ))}
                 </ul>
@@ -845,12 +845,12 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     }
   }
 
-  const frameworkTitle = t(`frameworks:${frameworkKey}.title`, { defaultValue: config.title })
-  const frameworkDescription = t(`frameworks:${frameworkKey}.context`, { defaultValue: config.description })
-  const frameworkContext = t(`frameworks:${frameworkKey}.context`, { defaultValue: '' })
-  const frameworkWikipediaUrl = t(`frameworks:${frameworkKey}.wikipediaUrl`, { defaultValue: null })
-  const frameworkGoodUseCases = t(`frameworks:${frameworkKey}.goodUseCases`, { returnObjects: true, defaultValue: [] }) as string[]
-  const frameworkNotIdealFor = t(`frameworks:${frameworkKey}.notIdealFor`, { returnObjects: true, defaultValue: [] }) as string[]
+  const frameworkTitle = t(`frameworkDescriptions.${frameworkKey}.title`, { defaultValue: config.title })
+  const frameworkDescription = t(`frameworkDescriptions.${frameworkKey}.context`, { defaultValue: config.description })
+  const frameworkContext = t(`frameworkDescriptions.${frameworkKey}.context`, { defaultValue: '' })
+  const frameworkWikipediaUrl = t(`frameworkDescriptions.${frameworkKey}.wikipediaUrl`, { defaultValue: null })
+  const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true, defaultValue: [] }) as string[]
+  const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true, defaultValue: [] }) as string[]
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -1356,8 +1356,8 @@ export const CogPage = () => {
 
   // Get translations for COG framework
   const { t: tCog } = useTranslation('cog')
-  const cogTitle = t(`frameworks:cog.title`, { defaultValue: config.title })
-  const cogDescription = t(`frameworks:cog.context`, { defaultValue: config.description })
+  const cogTitle = t(`frameworkDescriptions.cog.title`, { defaultValue: config.title })
+  const cogDescription = t(`frameworkDescriptions.cog.context`, { defaultValue: config.description })
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -1786,10 +1786,10 @@ export const DeceptionPage = () => {
   }
 
   const frameworkKey = 'deception'
-  const frameworkContext = t(`frameworks:${frameworkKey}.context`)
-  const frameworkWikipediaUrl = t(`frameworks:${frameworkKey}.wikipediaUrl`, { defaultValue: null })
-  const frameworkGoodUseCases = t(`frameworks:${frameworkKey}.goodUseCases`, { returnObjects: true }) as string[]
-  const frameworkNotIdealFor = t(`frameworks:${frameworkKey}.notIdealFor`, { returnObjects: true }) as string[]
+  const frameworkContext = t(`frameworkDescriptions.${frameworkKey}.context`)
+  const frameworkWikipediaUrl = t(`frameworkDescriptions.${frameworkKey}.wikipediaUrl`, { defaultValue: null })
+  const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true, defaultValue: [] }) as string[]
+  const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true, defaultValue: [] }) as string[]
 
   // Get translations for deception framework
   const { t: tDeception } = useTranslation('deception')
@@ -1832,7 +1832,7 @@ export const DeceptionPage = () => {
                   {t('frameworkPages.goodUseCases')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  {frameworkGoodUseCases.map((useCase, idx) => (
+                  {Array.isArray(frameworkGoodUseCases) && frameworkGoodUseCases.map((useCase, idx) => (
                     <li key={idx}>{useCase}</li>
                   ))}
                 </ul>
@@ -1843,7 +1843,7 @@ export const DeceptionPage = () => {
                   {t('frameworkPages.notIdealFor')}
                 </h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                  {frameworkNotIdealFor.map((useCase, idx) => (
+                  {Array.isArray(frameworkNotIdealFor) && frameworkNotIdealFor.map((useCase, idx) => (
                     <li key={idx}>{useCase}</li>
                   ))}
                 </ul>
