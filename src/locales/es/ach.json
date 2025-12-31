@@ -1,74 +1,220 @@
 {
-  "title": "Análisis ACH",
-  "subtitle": "Análisis de Hipótesis Competidoras - Metodología de inteligencia estructurada",
-  "newAnalysis": "Nuevo Análisis",
+  "title": "ACH Analysis",
+  "subtitle": "Analysis of Competing Hypotheses - Structured intelligence methodology",
+  "newAnalysis": "New Analysis",
   "wizard": {
-    "title": "Asistente (Recomendado)",
-    "description": "Paso a paso con asistencia de IA"
+    "title": "Wizard (Recommended)",
+    "description": "Step-by-step with AI assistance",
+    "steps": {
+      "defineQuestion": "Define Question",
+      "defineQuestionDesc": "Formulate your intelligence question",
+      "generateHypotheses": "Generate Hypotheses",
+      "generateHypothesesDesc": "Create competing hypotheses",
+      "selectEvidence": "Select Evidence",
+      "selectEvidenceDesc": "Link relevant evidence",
+      "scoreMatrix": "Score Matrix",
+      "scoreMatrixDesc": "Evaluate evidence against hypotheses",
+      "reviewFinalize": "Review & Finalize",
+      "reviewFinalizeDesc": "Review and save your analysis"
+    },
+    "template": {
+      "optional": "Template (Optional)",
+      "placeholder": "Select a template",
+      "geopolitical": "Geopolitical Analysis",
+      "threat": "Threat Assessment",
+      "attribution": "Attribution Analysis",
+      "intent": "Intent Assessment",
+      "custom": "Custom Analysis"
+    },
+    "define": {
+      "title": "Define Intelligence Question",
+      "description": "A clear, specific question will help generate better hypotheses",
+      "analysisTitle": "Analysis Title *",
+      "analysisTitlePlaceholder": "e.g., Russian Intentions in Ukraine",
+      "intelligenceQuestion": "Intelligence Question *",
+      "intelligenceQuestionPlaceholder": "e.g., What is Russia's primary strategic objective in Ukraine?",
+      "questionTip": "Good questions are specific, answerable, and intelligence-relevant",
+      "description": "Description (Optional)",
+      "descriptionPlaceholder": "Background context and scope of analysis",
+      "analyst": "Analyst",
+      "analystPlaceholder": "Your name",
+      "organization": "Organization",
+      "organizationPlaceholder": "Agency/Unit",
+      "scoringScale": "Scoring Scale"
+    },
+    "generate": {
+      "title": "Generate Hypotheses",
+      "description": "Create 4-6 competing hypotheses that answer your question",
+      "aiGenerate": "AI Generate",
+      "generating": "Generating...",
+      "tipsTitle": "ACH Tips:",
+      "tipsContent": "Hypotheses should be mutually exclusive where possible, cover the spectrum of possibilities, and include at least one contrarian view.",
+      "addHypothesis": "Add Hypothesis",
+      "hypothesisPlaceholder": "Hypothesis statement",
+      "rationalePlaceholder": "Rationale (optional)"
+    },
+    "evidence": {
+      "title": "Select Evidence",
+      "description": "Choose evidence from your library to evaluate against hypotheses",
+      "searchPlaceholder": "Search evidence...",
+      "loading": "Loading evidence...",
+      "noEvidence": "No evidence found",
+      "createEvidence": "Create evidence in Evidence Library →",
+      "selectedCount": "Selected {{count}} evidence item(s). You can add more evidence after creating the analysis."
+    },
+    "matrix": {
+      "title": "Matrix Scoring",
+      "description": "You'll score evidence against hypotheses in the next step",
+      "tipsTitle": "How ACH Matrix Scoring Works:",
+      "tipsPositive": "Positive scores (+) = Evidence supports hypothesis",
+      "tipsNegative": "Negative scores (−) = Evidence contradicts hypothesis",
+      "tipsNeutral": "Zero (0) = Evidence is neutral or N/A",
+      "tipsInsight": "Key insight: The hypothesis with the LEAST contradictory evidence is typically most likely",
+      "setupTitle": "Your Analysis Setup:",
+      "question": "Question:",
+      "scale": "Scale:",
+      "hypotheses": "Hypotheses:",
+      "evidence": "Evidence:"
+    },
+    "review": {
+      "title": "Review & Finalize",
+      "description": "Review your analysis before saving",
+      "details": "Analysis Details",
+      "hypotheses": "Hypotheses",
+      "evidence": "Evidence",
+      "evidenceSelected": "{{count}} evidence items selected from library",
+      "finishTip": "Click \"Finish & Score\" to create your ACH analysis. You'll be taken to the scoring matrix."
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "previous": "Previous",
+      "next": "Next",
+      "finishScore": "Finish & Score",
+      "saving": "Saving..."
+    }
   },
   "quickCreate": {
-    "title": "Creación Rápida",
-    "description": "Entrada manual de formulario"
+    "title": "Quick Create",
+    "description": "Manual form entry"
+  },
+  "form": {
+    "createTitle": "Create ACH Analysis",
+    "editTitle": "Edit ACH Analysis",
+    "analysisTitle": "Analysis Title *",
+    "keyQuestion": "Key Question *",
+    "description": "Description",
+    "analyst": "Analyst",
+    "organization": "Organization",
+    "scaleType": "Scoring Scale",
+    "status": "Status",
+    "competingHypotheses": "Competing Hypotheses",
+    "hypothesesDesc": "Add at least 2 hypotheses to analyze (minimum recommended: 3-5)",
+    "addHypothesis": "Add",
+    "enterHypothesis": "Enter a hypothesis...",
+    "noHypotheses": "No hypotheses added yet. Add at least 2 to begin analysis.",
+    "cancel": "Cancel",
+    "create": "Create Analysis",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "errors": {
+      "required": "Title and question are required",
+      "minHypotheses": "Please add at least 2 hypotheses for analysis",
+      "saveFailed": "Failed to save analysis. Please try again."
+    }
+  },
+  "matrix": {
+    "noHypotheses": "No Hypotheses Yet",
+    "addHypothesesToStart": "Add hypotheses to your analysis to begin scoring.",
+    "instructionsTitle": "How to use the ACH Matrix:",
+    "instruction1": "Click any cell to score how evidence supports or contradicts a hypothesis",
+    "instruction2": "Positive scores = evidence supports hypothesis",
+    "instruction3": "Negative scores = evidence contradicts hypothesis",
+    "instruction4": "The hypothesis with the LEAST contradictory evidence is most likely correct",
+    "matrixTitle": "Evidence vs. Hypotheses Matrix",
+    "addEvidence": "Add Evidence",
+    "evidenceColumn": "Evidence",
+    "noEvidenceLinked": "No evidence linked yet. Click \"Add Evidence\" to start scoring.",
+    "rawTotal": "Raw Total",
+    "weightedTotal": "Weighted Total",
+    "weightedTooltip": "Weighted by evidence quality (credibility, source classification, confidence)",
+    "summaryTitle": "Analysis Summary",
+    "principle": "Key Principle: The hypothesis with the LEAST contradictory evidence (highest score) is most likely correct.",
+    "weightedRanking": "Quality-Weighted Ranking:",
+    "mostLikely": "⭐ Most Likely",
+    "rawScores": "Raw Scores (unweighted):",
+    "clickToScore": "Click to score",
+    "weighted": "Weighted",
+    "dialog": {
+      "title": "Score Evidence Against Hypothesis",
+      "hypothesis": "Hypothesis:",
+      "evidence": "Evidence:",
+      "question": "How does this evidence relate to the hypothesis?",
+      "selectPlaceholder": "Select a score",
+      "notes": "Notes (optional)",
+      "notesPlaceholder": "Add reasoning for this score...",
+      "cancel": "Cancel",
+      "save": "Save Score"
+    }
   },
   "stats": {
-    "total": "Total de Análisis",
-    "draft": "Borrador",
-    "inProgress": "En Progreso",
-    "completed": "Completado"
+    "total": "Total Analyses",
+    "draft": "Draft",
+    "inProgress": "In Progress",
+    "completed": "Completed"
   },
-  "search": "Buscar análisis...",
-  "filterStatus": "Filtrar por estado",
+  "search": "Search analyses...",
+  "filterStatus": "Filter by status",
   "status": {
-    "all": "Todos los Estados",
-    "draft": "Borrador",
-    "in_progress": "En Progreso",
-    "completed": "Completado"
+    "all": "All Statuses",
+    "draft": "Draft",
+    "in_progress": "In Progress",
+    "completed": "Completed"
   },
-  "loading": "Cargando análisis...",
-  "loadingAnalysis": "Cargando análisis...",
+  "loading": "Loading analyses...",
+  "loadingAnalysis": "Loading analysis...",
   "empty": {
-    "title": "No se encontraron análisis",
-    "descriptionStart": "Comienza tu análisis de inteligencia creando tu primera matriz ACH.",
-    "descriptionFilter": "Intenta ajustar tus criterios de búsqueda o filtros.",
-    "createFirst": "Crea Tu Primer Análisis"
+    "title": "No Analyses Found",
+    "descriptionStart": "Start your intelligence analysis by creating your first ACH matrix.",
+    "descriptionFilter": "Try adjusting your search criteria or filters.",
+    "createFirst": "Create Your First Analysis"
   },
   "card": {
-    "hypotheses": "hipótesis",
-    "evidence": "evidencia",
-    "analyst": "Analista:"
+    "hypotheses": "hypotheses",
+    "evidence": "evidence",
+    "analyst": "Analyst:"
   },
   "menu": {
-    "openMatrix": "Abrir Matriz",
-    "editDetails": "Editar Detalles",
-    "delete": "Eliminar"
+    "openMatrix": "Open Matrix",
+    "editDetails": "Edit Details",
+    "delete": "Delete"
   },
   "alerts": {
-    "deleteConfirm": "¿Estás seguro de que quieres eliminar este análisis? Esto también eliminará todas las hipótesis, enlaces de evidencia y puntuaciones.",
-    "deleteFailed": "Error al eliminar el análisis",
-    "loadFailed": "Error al cargar el análisis",
-    "saveFailed": "Error al actualizar el análisis",
-    "createFailed": "Error al crear el análisis",
-    "scoreUpdateFailed": "Error al actualizar la puntuación",
-    "removeEvidenceConfirm": "¿Eliminar esta evidencia del análisis?",
-    "removeEvidenceFailed": "Error al eliminar la evidencia",
-    "evidenceHint": "Navega a la Biblioteca de Evidencia para agregar elementos, luego vincúlalos a este análisis."
+    "deleteConfirm": "Are you sure you want to delete this analysis? This will also delete all hypotheses, evidence links, and scores.",
+    "deleteFailed": "Failed to delete analysis",
+    "loadFailed": "Failed to load analysis",
+    "saveFailed": "Failed to update analysis",
+    "createFailed": "Failed to create analysis",
+    "scoreUpdateFailed": "Failed to update score",
+    "removeEvidenceConfirm": "Remove this evidence from the analysis?",
+    "removeEvidenceFailed": "Failed to remove evidence",
+    "evidenceHint": "Navigate to Evidence Library to add evidence items, then link them to this analysis."
   },
   "detail": {
-    "notFound": "Análisis no encontrado",
-    "backToDashboard": "Volver al Tablero ACH",
-    "back": "Volver",
-    "keyQuestion": "Pregunta Clave:",
-    "viewNetwork": "Ver en Red",
-    "export": "Exportar",
-    "editAnalysis": "Editar Análisis",
-    "analyst": "Analista",
-    "organization": "Organización",
-    "created": "Creado"
+    "notFound": "Analysis not found",
+    "backToDashboard": "Back to ACH Analyses",
+    "back": "Back",
+    "keyQuestion": "Key Question:",
+    "viewNetwork": "View in Network",
+    "export": "Export",
+    "editAnalysis": "Edit Analysis",
+    "analyst": "Analyst",
+    "organization": "Organization",
+    "created": "Created"
   },
   "framework": {
-    "context": "ACH es un procedimiento de ocho pasos basado en la psicología cognitiva utilizado por analistas de inteligencia para identificar un conjunto de hipótesis posibles, evaluar datos consistentes e inconsistentes con cada una, y seleccionar la hipótesis que mejor se ajuste a los datos.",
-    "goodUseCases": "Buenos Casos de Uso",
-    "notIdealFor": "No Ideal Para",
-    "learnMore": "Aprender más en Wikipedia"
+    "context": "ACH is an eight-step procedure grounded in cognitive psychology used by intelligence analysts to identify a set of possible hypotheses, evaluate data that is consistent and inconsistent with each, and select the hypothesis that best fits the data.",
+    "goodUseCases": "Good Use Cases",
+    "notIdealFor": "Not Ideal For",
+    "learnMore": "Learn more on Wikipedia"
   }
 }
