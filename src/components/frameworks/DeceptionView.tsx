@@ -110,6 +110,15 @@ export function DeceptionView({
     [historicalData]
   )
 
+  // Memoize scenario object to prevent new object reference on every render
+  const scenarioForPredictions = useMemo(() => ({
+    scenario: data.scenario,
+    mom: data.mom,
+    pop: data.pop,
+    moses: data.moses,
+    eve: data.eve
+  }), [data.scenario, data.mom, data.pop, data.moses, data.eve])
+
   // TODO: Generate relationships from linked evidence when actors/events are linked
   // For now, this is a placeholder for when entity linking with MOM is implemented
   useEffect(() => {
@@ -763,13 +772,7 @@ export function DeceptionView({
                 <DeceptionPredictions
                   currentAnalysis={data.aiAnalysis}
                   historicalData={historicalDataForPredictions}
-                  scenario={{
-                    scenario: data.scenario,
-                    mom: data.mom,
-                    pop: data.pop,
-                    moses: data.moses,
-                    eve: data.eve
-                  }}
+                  scenario={scenarioForPredictions}
                 />
               </CardContent>
             </Card>
