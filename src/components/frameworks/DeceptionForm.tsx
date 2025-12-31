@@ -575,9 +575,10 @@ export function DeceptionForm({
 
         {/* Dashboard Sidebar */}
         <div className="lg:col-span-1">
-          <div className="sticky top-8 space-y-4">
+          <div className="sticky top-8 space-y-4" style={{ minHeight: '400px' }}>
             {calculatedAssessment && (
               <DeceptionDashboard
+                key={`dashboard-${calculatedAssessment.overallLikelihood}`}
                 scores={scores}
                 assessment={calculatedAssessment}
               />

@@ -216,8 +216,8 @@ function DeceptionGauge({
   return (
     <div className="flex flex-col items-center gap-6">
       {/* Gauge SVG */}
-      <div className="relative">
-        <svg width="300" height="180" viewBox="0 0 300 180" className="overflow-visible">
+      <div className="relative w-[300px] h-[180px]">
+        <svg width="300" height="180" viewBox="0 0 300 180" className="overflow-visible" style={{ display: 'block' }}>
           {/* Background arc */}
           <path
             d="M 30 150 A 120 120 0 0 1 270 150"
