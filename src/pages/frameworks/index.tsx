@@ -82,18 +82,6 @@ export const SwotPage = () => {
   const isEditMode = location.pathname.includes('/edit')
   const isViewMode = id && !isEditMode && !isCreateMode
 
-  // Load analyses when workspace changes
-  useEffect(() => {
-    loadAnalyses()
-  }, [currentWorkspaceId])
-
-  // Load specific analysis
-  useEffect(() => {
-    if (id) {
-      loadAnalysis(id)
-    }
-  }, [id, currentWorkspaceId])
-
   const loadAnalyses = async () => {
     try {
       const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
@@ -140,6 +128,20 @@ export const SwotPage = () => {
       setLoading(false)
     }
   }
+
+  // Load analyses when workspace changes
+  useEffect(() => {
+    loadAnalyses()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWorkspaceId])
+
+  // Load specific analysis
+  useEffect(() => {
+    if (id) {
+      loadAnalysis(id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, currentWorkspaceId])
 
   const handleSave = async (data: any) => {
     const payload = {
@@ -667,18 +669,6 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   const isViewMode = id && !isEditMode && !isCreateMode
   const basePath = `/dashboard/analysis-frameworks/${frameworkKey}`
 
-  // Load analyses when workspace changes
-  useEffect(() => {
-    loadAnalyses()
-  }, [currentWorkspaceId])
-
-  // Load specific analysis when workspace changes
-  useEffect(() => {
-    if (id) {
-      loadAnalysis(id)
-    }
-  }, [id, currentWorkspaceId])
-
   const loadAnalyses = async () => {
     try {
       const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
@@ -720,6 +710,20 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
       setLoading(false)
     }
   }
+
+  // Load analyses when workspace changes
+  useEffect(() => {
+    loadAnalyses()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWorkspaceId, frameworkKey])
+
+  // Load specific analysis when workspace changes
+  useEffect(() => {
+    if (id) {
+      loadAnalysis(id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, currentWorkspaceId])
 
   const handleSave = async (data: any) => {
     const payload = {
@@ -1109,18 +1113,6 @@ export const CogPage = () => {
   const isViewMode = id && !isEditMode && !isCreateMode && !isWizardMode
   const basePath = '/dashboard/analysis-frameworks/cog'
 
-  // Load analyses when workspace changes
-  useEffect(() => {
-    loadAnalyses()
-  }, [currentWorkspaceId])
-
-  // Load specific analysis when workspace changes
-  useEffect(() => {
-    if (id) {
-      loadAnalysis(id)
-    }
-  }, [id, currentWorkspaceId])
-
   const loadAnalyses = async () => {
     try {
       const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
@@ -1167,6 +1159,20 @@ export const CogPage = () => {
     }
     setLoading(false)
   }
+
+  // Load analyses when workspace changes
+  useEffect(() => {
+    loadAnalyses()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWorkspaceId])
+
+  // Load specific analysis when workspace changes
+  useEffect(() => {
+    if (id) {
+      loadAnalysis(id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, currentWorkspaceId])
 
   const handleSave = async (data: any) => {
     const payload = {
@@ -1616,18 +1622,6 @@ export const DeceptionPage = () => {
   const isViewMode = id && !isEditMode && !isCreateMode
   const basePath = '/dashboard/analysis-frameworks/deception'
 
-  // Load analyses when workspace changes
-  useEffect(() => {
-    loadAnalyses()
-  }, [currentWorkspaceId])
-
-  // Load specific analysis when workspace changes
-  useEffect(() => {
-    if (id) {
-      loadAnalysis(id)
-    }
-  }, [id, currentWorkspaceId])
-
   const loadAnalyses = async () => {
     try {
       const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
@@ -1669,6 +1663,20 @@ export const DeceptionPage = () => {
       setLoading(false)
     }
   }
+
+  // Load analyses when workspace changes
+  useEffect(() => {
+    loadAnalyses()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWorkspaceId])
+
+  // Load specific analysis when workspace changes
+  useEffect(() => {
+    if (id) {
+      loadAnalysis(id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, currentWorkspaceId])
 
   const handleSave = async (data: any) => {
     const payload = {
