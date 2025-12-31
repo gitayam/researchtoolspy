@@ -37,7 +37,27 @@ function getLanguageInstruction(languageCode?: string): string {
   }
 
   const languageName = LANGUAGE_NAMES[languageCode] || languageCode
-  return `IMPORTANT: You MUST write ALL text output in ${languageName}. This includes the executive summary, bottom line, key indicators, counter-indicators, recommendations, and all other textual content. Keep the JSON structure keys in English, but all STRING VALUES must be in ${languageName}.`
+  return `
+
+=== CRITICAL LANGUAGE REQUIREMENT ===
+You MUST write ALL text output in ${languageName}.
+This is NON-NEGOTIABLE. Every string value in your JSON response MUST be in ${languageName}.
+
+This includes:
+- executiveSummary (in ${languageName})
+- bottomLine (in ${languageName})
+- All items in keyIndicators array (in ${languageName})
+- All items in counterIndicators array (in ${languageName})
+- All items in recommendations array (in ${languageName})
+- All items in collectionPriorities array (in ${languageName})
+- All items in riskMitigation array (in ${languageName})
+- All items in alternativeExplanations array (in ${languageName})
+- All items in confidenceFactors.strengths and weaknesses (in ${languageName})
+- All items in indicatorsToWatch array (in ${languageName})
+
+JSON keys stay in English. Only the STRING VALUES must be in ${languageName}.
+Do NOT mix languages. ALL content must be in ${languageName}.
+=== END LANGUAGE REQUIREMENT ===`
 }
 
 export interface AIDeceptionAnalysis {
@@ -164,7 +184,13 @@ ${languageInstruction}`
  * Build comprehensive prompt for AI analysis
  */
 function buildDeceptionPrompt(scenario: DeceptionScenario): string {
-  return `Conduct a deception detection analysis using the MOM-POP-MOSES-EVE framework.
+  const languageCode = scenario.outputLanguage
+  const languageName = languageCode && languageCode !== 'en' ? LANGUAGE_NAMES[languageCode] || languageCode : null
+  const languageReminder = languageName
+    ? `\n\n*** REMINDER: Write ALL text content in ${languageName}. Do not use English for any string values. ***`
+    : ''
+
+  return `Conduct a deception detection analysis using the MOM-POP-MOSES-EVE framework.${languageName ? `\n\n>>> OUTPUT LANGUAGE: ${languageName} - All text responses must be written in ${languageName}. <<<` : ''}
 
 SCENARIO:
 ${scenario.scenario}
@@ -253,7 +279,7 @@ Return response as JSON:
   "indicatorsToWatch": ["indicator 1", "indicator 2", ...]
 }
 
-Be conservative in scoring. When in doubt, assign lower scores. Focus on what the evidence allows us to eliminate or confirm.`
+Be conservative in scoring. When in doubt, assign lower scores. Focus on what the evidence allows us to eliminate or confirm.${languageReminder}`
 }
 
 /**

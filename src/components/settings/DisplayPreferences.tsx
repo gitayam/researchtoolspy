@@ -43,9 +43,13 @@ export function DisplayPreferences({ settings, onUpdate, updating = false }: Dis
     async (language: Language) => {
       await onUpdate({ language })
 
-      // Update i18n
+      // Update i18n and persist to localStorage
       await i18n.changeLanguage(language)
       document.documentElement.lang = language
+
+      // Explicitly save to localStorage for i18n to read on refresh
+      // This ensures the language persists across browser refreshes
+      localStorage.setItem('app-language', language)
     },
     [onUpdate]
   )

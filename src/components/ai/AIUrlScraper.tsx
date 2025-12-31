@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Globe, Loader2, Check, AlertCircle, ExternalLink } from 'lucide-react'
@@ -45,6 +46,7 @@ export function AIUrlScraper({
   disabled = false,
   buttonVariant = 'outline'
 }: AIUrlScraperProps) {
+  const { t } = useTranslation()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [url, setUrl] = useState('')
   const [scraping, setScraping] = useState(false)
@@ -53,7 +55,7 @@ export function AIUrlScraper({
 
   const handleScrape = async () => {
     if (!url.trim()) {
-      setError('Please enter a URL')
+      setError(t('urlScraper.pleaseEnterUrl'))
       return
     }
 
@@ -78,11 +80,11 @@ export function AIUrlScraper({
       console.error('Scraping error:', err)
 
       // Better error messages for common issues
-      let errorMessage = 'Failed to scrape URL'
+      let errorMessage = t('urlScraper.failedToScrape')
       if (err instanceof TypeError && err.message === 'Load failed') {
-        errorMessage = 'Network error: The request timed out or connection was lost. The page may be too slow to load or blocking requests. Try a different URL.'
+        errorMessage = t('urlScraper.networkErrorTimeout')
       } else if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
-        errorMessage = 'Network error: Unable to connect to the server. Please check your internet connection and try again.'
+        errorMessage = t('urlScraper.networkErrorConnection')
       } else if (err instanceof Error) {
         errorMessage = err.message
       }
@@ -150,7 +152,7 @@ export function AIUrlScraper({
         disabled={disabled}
       >
         <Globe className="h-4 w-4 mr-2" />
-        Import from URL
+        {t('urlScraper.importFromUrl')}
       </Button>
 
       <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
@@ -158,10 +160,10 @@ export function AIUrlScraper({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-blue-600" />
-              Import from URL
+              {t('urlScraper.dialogTitle')}
             </DialogTitle>
             <DialogDescription>
-              Enter a URL to scrape and extract information for your {framework} analysis
+              {t('urlScraper.dialogDescription', { framework })}
             </DialogDescription>
           </DialogHeader>
 
@@ -171,7 +173,7 @@ export function AIUrlScraper({
               <div className="flex gap-2">
                 <Input
                   type="url"
-                  placeholder="https://example.com/article"
+                  placeholder={t('urlScraper.placeholder')}
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && !scraping && handleScrape()}
@@ -184,15 +186,15 @@ export function AIUrlScraper({
                   {scraping ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Scraping...
+                      {t('urlScraper.scraping')}
                     </>
                   ) : (
-                    'Analyze'
+                    t('urlScraper.analyze')
                   )}
                 </Button>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Paste a URL to a news article, report, or web page
+                {t('urlScraper.urlHint')}
               </p>
             </div>
 
@@ -221,7 +223,7 @@ export function AIUrlScraper({
                           className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                         >
                           <ExternalLink className="h-3 w-3" />
-                          View source
+                          {t('urlScraper.viewSource')}
                         </a>
                       </div>
                     </div>
@@ -232,24 +234,24 @@ export function AIUrlScraper({
                 {/* Tabs for Summary and Extracted Data */}
                 <Tabs defaultValue="extracted" className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="extracted">Extracted Data</TabsTrigger>
-                    <TabsTrigger value="summary">Summary</TabsTrigger>
+                    <TabsTrigger value="extracted">{t('urlScraper.extractedData')}</TabsTrigger>
+                    <TabsTrigger value="summary">{t('urlScraper.summary')}</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="extracted" className="space-y-3 mt-4 max-h-96 overflow-y-auto">
                     {Object.keys(scrapedData.extractedData).length === 0 ? (
                       <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-                        No structured data extracted for this framework
+                        {t('urlScraper.noStructuredData')}
                       </p>
                     ) : (
                       <>
                         {/* Error Display */}
                         {scrapedData.extractedData._error && (
                           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg">
-                            <h4 className="font-semibold text-red-800 dark:text-red-400 mb-2">⚠️ Extraction Error</h4>
+                            <h4 className="font-semibold text-red-800 dark:text-red-400 mb-2">⚠️ {t('urlScraper.extractionError')}</h4>
                             <p className="text-sm text-red-700 dark:text-red-300 mb-2">{scrapedData.extractedData._error}</p>
                             <p className="text-xs text-red-600 dark:text-red-400">
-                              Model: {scrapedData.extractedData._model || 'unknown'} • Framework: {scrapedData.extractedData._framework || 'unknown'}
+                              {t('urlScraper.model')}: {scrapedData.extractedData._model || t('urlScraper.unknown')} • {t('urlScraper.framework')}: {scrapedData.extractedData._framework || t('urlScraper.unknown')}
                             </p>
                           </div>
                         )}
@@ -257,12 +259,12 @@ export function AIUrlScraper({
                         {/* Parse Error Display */}
                         {scrapedData.extractedData._parseError && (
                           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
-                            <h4 className="font-semibold text-yellow-800 dark:text-yellow-400 mb-2">⚠️ JSON Parsing Error</h4>
-                            <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-2">The AI response couldn't be parsed as JSON:</p>
+                            <h4 className="font-semibold text-yellow-800 dark:text-yellow-400 mb-2">⚠️ {t('urlScraper.jsonParsingError')}</h4>
+                            <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-2">{t('urlScraper.jsonParsingErrorDesc')}</p>
                             <p className="text-xs font-mono text-yellow-600 dark:text-yellow-400 mb-2">{scrapedData.extractedData._parseError}</p>
                             {scrapedData.extractedData._raw && (
                               <details className="mt-2">
-                                <summary className="text-xs font-semibold text-yellow-700 dark:text-yellow-300 cursor-pointer">Show raw response</summary>
+                                <summary className="text-xs font-semibold text-yellow-700 dark:text-yellow-300 cursor-pointer">{t('urlScraper.showRawResponse')}</summary>
                                 <pre className="mt-2 text-xs bg-yellow-100 dark:bg-yellow-900/40 p-2 rounded overflow-x-auto whitespace-pre-wrap">
                                   {scrapedData.extractedData._raw}
                                 </pre>
@@ -289,7 +291,7 @@ export function AIUrlScraper({
                                             Q: {item.question}
                                           </div>
                                           <div className="text-gray-700 dark:text-gray-300 ml-4">
-                                            A: {item.answer || <span className="italic text-gray-500">No answer extracted</span>}
+                                            A: {item.answer || <span className="italic text-gray-500">{t('urlScraper.noAnswerExtracted')}</span>}
                                           </div>
                                         </div>
                                       ) : (
@@ -310,10 +312,10 @@ export function AIUrlScraper({
                         {scrapedData.extractedData._unansweredQuestions && (
                           <div className="mt-6 pt-4 border-t border-gray-300 dark:border-gray-600">
                             <h4 className="font-semibold text-base mb-3 text-orange-700 dark:text-orange-400">
-                              🔍 Questions to Investigate Further
+                              🔍 {t('urlScraper.questionsToInvestigate')}
                             </h4>
                             <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 italic">
-                              These questions could not be answered from the article and represent information gaps
+                              {t('urlScraper.questionsToInvestigateDesc')}
                             </p>
                             <div className="space-y-3">
                               {Object.entries(scrapedData.extractedData._unansweredQuestions).map(([category, questions]) => (
@@ -356,7 +358,7 @@ export function AIUrlScraper({
                 <div className="text-center">
                   <Globe className="h-12 w-12 mx-auto mb-3 text-gray-400" />
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Enter a URL above to start extracting information
+                    {t('urlScraper.emptyStateTitle')}
                   </p>
                 </div>
               </div>
@@ -371,13 +373,13 @@ export function AIUrlScraper({
                     const validFields = Object.keys(scrapedData.extractedData).filter(key => !key.startsWith('_')).length
                     const hasErrors = scrapedData.extractedData._error || scrapedData.extractedData._parseError
                     if (hasErrors && validFields === 0) {
-                      return '⚠️ Extraction failed - see error details above'
+                      return `⚠️ ${t('urlScraper.extractionFailed')}`
                     }
                     return validFields > 0
-                      ? `Ready to populate ${validFields} ${validFields === 1 ? 'field' : 'fields'}`
-                      : 'No data extracted'
+                      ? t('urlScraper.readyToPopulate', { count: validFields })
+                      : t('urlScraper.noDataExtracted')
                   })()
-                : 'AI will extract relevant information for your framework'
+                : t('urlScraper.aiWillExtract')
               }
             </p>
 
@@ -387,7 +389,7 @@ export function AIUrlScraper({
                 onClick={() => handleOpenChange(false)}
                 disabled={scraping}
               >
-                Cancel
+                {t('urlScraper.cancel')}
               </Button>
 
               {scrapedData && (
@@ -396,7 +398,7 @@ export function AIUrlScraper({
                   disabled={!scrapedData.extractedData || Object.keys(scrapedData.extractedData).length === 0}
                 >
                   <Check className="h-4 w-4 mr-2" />
-                  Accept & Populate
+                  {t('urlScraper.acceptAndPopulate')}
                 </Button>
               )}
             </div>
