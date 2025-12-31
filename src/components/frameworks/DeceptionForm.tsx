@@ -554,9 +554,16 @@ export function DeceptionForm({
             </CardHeader>
             <CardContent>
               <DeceptionScoringForm
-                scenario={scenario}
+                scenario={{
+                  scenario,
+                  mom,
+                  pop,
+                  moses,
+                  eve,
+                  additionalContext: assessment
+                }}
                 initialScores={scores}
-                onScoresChange={setScores}
+                onScoresChange={(newScores) => setScores(newScores)}
                 onAIAnalysisComplete={(analysis) => {
                   setAiAnalysis(analysis)
                   setAssessment(analysis.bottomLine + '\n\n' + analysis.executiveSummary)
