@@ -3,7 +3,7 @@
  * Interactive scoring interface with real-time deception likelihood calculation
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -79,6 +79,7 @@ export function DeceptionScoringForm({
   const [assessment, setAssessment] = useState<DeceptionAssessment>(calculateDeceptionLikelihood(scores))
   const [aiAnalyzing, setAiAnalyzing] = useState(false)
   const [aiAvailable, setAiAvailable] = useState(false)
+  const isSyncingFromParent = useRef(false)
 
   // Check AI availability on mount
   useEffect(() => {
@@ -88,28 +89,51 @@ export function DeceptionScoringForm({
   // Sync scores when parent updates initialScores (e.g., after AI analysis)
   useEffect(() => {
     if (initialScores && Object.keys(initialScores).length > 0) {
-      setScores(prev => ({
-        ...prev,
-        motive: initialScores.motive ?? prev.motive,
-        opportunity: initialScores.opportunity ?? prev.opportunity,
-        means: initialScores.means ?? prev.means,
-        historicalPattern: initialScores.historicalPattern ?? prev.historicalPattern,
-        sophisticationLevel: initialScores.sophisticationLevel ?? prev.sophisticationLevel,
-        successRate: initialScores.successRate ?? prev.successRate,
-        sourceVulnerability: initialScores.sourceVulnerability ?? prev.sourceVulnerability,
-        manipulationEvidence: initialScores.manipulationEvidence ?? prev.manipulationEvidence,
-        internalConsistency: initialScores.internalConsistency ?? prev.internalConsistency,
-        externalCorroboration: initialScores.externalCorroboration ?? prev.externalCorroboration,
-        anomalyDetection: initialScores.anomalyDetection ?? prev.anomalyDetection
-      }))
+      // Check if scores actually changed to avoid unnecessary updates
+      const hasChanges =
+        initialScores.motive !== scores.motive ||
+        initialScores.opportunity !== scores.opportunity ||
+        initialScores.means !== scores.means ||
+        initialScores.historicalPattern !== scores.historicalPattern ||
+        initialScores.sophisticationLevel !== scores.sophisticationLevel ||
+        initialScores.successRate !== scores.successRate ||
+        initialScores.sourceVulnerability !== scores.sourceVulnerability ||
+        initialScores.manipulationEvidence !== scores.manipulationEvidence ||
+        initialScores.internalConsistency !== scores.internalConsistency ||
+        initialScores.externalCorroboration !== scores.externalCorroboration ||
+        initialScores.anomalyDetection !== scores.anomalyDetection
+
+      if (hasChanges) {
+        isSyncingFromParent.current = true
+        setScores(prev => ({
+          ...prev,
+          motive: initialScores.motive ?? prev.motive,
+          opportunity: initialScores.opportunity ?? prev.opportunity,
+          means: initialScores.means ?? prev.means,
+          historicalPattern: initialScores.historicalPattern ?? prev.historicalPattern,
+          sophisticationLevel: initialScores.sophisticationLevel ?? prev.sophisticationLevel,
+          successRate: initialScores.successRate ?? prev.successRate,
+          sourceVulnerability: initialScores.sourceVulnerability ?? prev.sourceVulnerability,
+          manipulationEvidence: initialScores.manipulationEvidence ?? prev.manipulationEvidence,
+          internalConsistency: initialScores.internalConsistency ?? prev.internalConsistency,
+          externalCorroboration: initialScores.externalCorroboration ?? prev.externalCorroboration,
+          anomalyDetection: initialScores.anomalyDetection ?? prev.anomalyDetection
+        }))
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialScores])
 
   // Recalculate assessment when scores change
   useEffect(() => {
     const newAssessment = calculateDeceptionLikelihood(scores)
     setAssessment(newAssessment)
-    onScoresChange?.(scores, newAssessment)
+
+    // Only notify parent if this wasn't a sync from parent (avoid circular updates)
+    if (!isSyncingFromParent.current) {
+      onScoresChange?.(scores, newAssessment)
+    }
+    isSyncingFromParent.current = false
   }, [scores])
 
   const handleScoreChange = (criterion: keyof DeceptionScores, value: number[]) => {
