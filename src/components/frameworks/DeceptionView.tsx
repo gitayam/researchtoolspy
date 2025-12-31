@@ -61,7 +61,8 @@ export function DeceptionView({
   const { t } = useTranslation('deception')
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<'pdf' | 'docx' | 'briefing'>('pdf')
-  const [classification, setClassification] = useState<'UNCLASSIFIED' | 'CONFIDENTIAL' | 'SECRET' | 'TOP SECRET'>('UNCLASSIFIED')
+  // Classification is always UNCLASSIFIED - this is a commercial application
+  const classification = 'UNCLASSIFIED' as const
   const [organizationName, setOrganizationName] = useState('Intelligence Analysis Unit')
   const [analystName, setAnalystName] = useState('AI-Assisted Analysis')
   const [exporting, setExporting] = useState(false)
@@ -446,20 +447,12 @@ export function DeceptionView({
                     </Select>
                   </div>
 
-                  {/* Classification Level */}
+                  {/* Classification Level - Always UNCLASSIFIED for commercial use */}
                   <div className="space-y-2">
-                    <Label htmlFor="classification">{t('view.exportDialog.classification')}</Label>
-                    <Select value={classification} onValueChange={(value: any) => setClassification(value)}>
-                      <SelectTrigger id="classification">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="UNCLASSIFIED">UNCLASSIFIED</SelectItem>
-                        <SelectItem value="CONFIDENTIAL">CONFIDENTIAL</SelectItem>
-                        <SelectItem value="SECRET">SECRET</SelectItem>
-                        <SelectItem value="TOP SECRET">TOP SECRET</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>{t('view.exportDialog.classification')}</Label>
+                    <div className="flex items-center h-10 px-3 rounded-md border bg-muted text-muted-foreground">
+                      UNCLASSIFIED
+                    </div>
                   </div>
 
                   {/* Organization Name */}

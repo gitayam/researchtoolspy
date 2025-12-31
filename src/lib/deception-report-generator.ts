@@ -29,7 +29,9 @@ export interface ReportData {
 }
 
 export interface ReportOptions {
-  classification?: 'UNCLASSIFIED' | 'CONFIDENTIAL' | 'SECRET' | 'TOP SECRET'
+  // Classification is always UNCLASSIFIED - this is a commercial application
+  // DO NOT add other classification levels (CONFIDENTIAL, SECRET, TOP SECRET)
+  classification?: 'UNCLASSIFIED'
   organizationName?: string
   analystName?: string
   distributionStatement?: string
@@ -41,7 +43,7 @@ const DEFAULT_OPTIONS: ReportOptions = {
   classification: 'UNCLASSIFIED',
   organizationName: 'Intelligence Analysis Unit',
   analystName: 'AI-Assisted Analysis',
-  distributionStatement: 'DISTRIBUTION AUTHORIZED TO U.S. GOVERNMENT AGENCIES ONLY',
+  distributionStatement: 'FOR RESEARCH AND ANALYSIS PURPOSES',
   includeVisualizations: true,
   includeAIAnalysis: true
 }
@@ -62,13 +64,13 @@ export async function generatePDFReport(data: ReportData, options: ReportOptions
     return y + (lines.length * fontSize * 0.5)
   }
 
-  // Classification Header
-  doc.setFillColor(opts.classification === 'UNCLASSIFIED' ? 100 : 200, 50, 50)
+  // Classification Header - Always UNCLASSIFIED (green header)
+  doc.setFillColor(100, 150, 100) // Green for UNCLASSIFIED
   doc.rect(0, 0, 210, 15, 'F')
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  doc.text(opts.classification || 'UNCLASSIFIED', 105, 10, { align: 'center' })
+  doc.text('UNCLASSIFIED', 105, 10, { align: 'center' })
   doc.setTextColor(0, 0, 0)
 
   yPos = 25
@@ -341,16 +343,16 @@ export async function generatePDFReport(data: ReportData, options: ReportOptions
     }
   }
 
-  // Classification Footer on all pages
+  // Classification Footer on all pages - Always UNCLASSIFIED
   const pageCount = doc.getNumberOfPages()
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
-    doc.setFillColor(opts.classification === 'UNCLASSIFIED' ? 100 : 200, 50, 50)
+    doc.setFillColor(100, 150, 100) // Green for UNCLASSIFIED
     doc.rect(0, 282, 210, 15, 'F')
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
-    doc.text(opts.classification || 'UNCLASSIFIED', 105, 290, { align: 'center' })
+    doc.text('UNCLASSIFIED', 105, 290, { align: 'center' })
     doc.setFontSize(8)
     doc.text(`Page ${i} of ${pageCount}`, 190, 290, { align: 'right' })
   }
@@ -368,14 +370,14 @@ export async function generateDOCXReport(data: ReportData, options: ReportOption
 
   const children: any[] = []
 
-  // Classification Header
+  // Classification Header - Always UNCLASSIFIED
   children.push(
     new Paragraph({
-      text: opts.classification || 'UNCLASSIFIED',
+      text: 'UNCLASSIFIED',
       heading: HeadingLevel.TITLE,
       alignment: AlignmentType.CENTER,
       shading: {
-        fill: opts.classification === 'UNCLASSIFIED' ? 'CCCCCC' : 'FF0000'
+        fill: '99CC99' // Green for UNCLASSIFIED
       }
     })
   )
@@ -601,14 +603,14 @@ export async function generateDOCXReport(data: ReportData, options: ReportOption
     }
   }
 
-  // Classification Footer
+  // Classification Footer - Always UNCLASSIFIED
   children.push(
     new Paragraph({ text: '' }),
     new Paragraph({
-      text: opts.classification || 'UNCLASSIFIED',
+      text: 'UNCLASSIFIED',
       alignment: AlignmentType.CENTER,
       shading: {
-        fill: opts.classification === 'UNCLASSIFIED' ? 'CCCCCC' : 'FF0000'
+        fill: '99CC99' // Green for UNCLASSIFIED
       }
     })
   )
@@ -632,13 +634,13 @@ export async function generateExecutiveBriefing(data: ReportData, options: Repor
   const opts = { ...DEFAULT_OPTIONS, ...options }
   const doc = new jsPDF()
 
-  // Classification Header
-  doc.setFillColor(opts.classification === 'UNCLASSIFIED' ? 100 : 200, 50, 50)
+  // Classification Header - Always UNCLASSIFIED (green header)
+  doc.setFillColor(100, 150, 100) // Green for UNCLASSIFIED
   doc.rect(0, 0, 210, 15, 'F')
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  doc.text(opts.classification || 'UNCLASSIFIED', 105, 10, { align: 'center' })
+  doc.text('UNCLASSIFIED', 105, 10, { align: 'center' })
   doc.setTextColor(0, 0, 0)
 
   let yPos = 25
@@ -718,13 +720,13 @@ export async function generateExecutiveBriefing(data: ReportData, options: Repor
     })
   }
 
-  // Classification Footer
-  doc.setFillColor(opts.classification === 'UNCLASSIFIED' ? 100 : 200, 50, 50)
+  // Classification Footer - Always UNCLASSIFIED
+  doc.setFillColor(100, 150, 100) // Green for UNCLASSIFIED
   doc.rect(0, 282, 210, 15, 'F')
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
-  doc.text(opts.classification || 'UNCLASSIFIED', 105, 290, { align: 'center' })
+  doc.text('UNCLASSIFIED', 105, 290, { align: 'center' })
 
   const filename = `Executive_Briefing_${data.title.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(filename)
