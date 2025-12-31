@@ -1,7 +1,7 @@
 {
   "title": "Detección de Engaño",
   "subtitle": "Marco CIA SATS MOM-POP-MOSES-EVE",
-  "description": "Análisis estructurado para detectar posibles engaños en inteligencia e información",
+  "description": "Técnicas Analíticas Estructuradas de la CIA para detectar engaño - basado en la metodología de Richards J. Heuer Jr.",
 
   "form": {
     "newAnalysis": "Nuevo Análisis de Engaño",

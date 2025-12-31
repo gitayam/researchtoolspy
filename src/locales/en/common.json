@@ -576,7 +576,8 @@
     "export": "Export",
     "updated": "Updated",
     "loading": "Loading...",
-    "confirmDeleteAnalysis": "Are you sure you want to delete this analysis?"
+    "confirmDeleteAnalysis": "Are you sure you want to delete this analysis?",
+    "viewReferenceGuide": "View Reference Guide"
   },
   "frameworkDescriptions": {
     "swot": {

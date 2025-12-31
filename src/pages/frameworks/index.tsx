@@ -845,6 +845,8 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     }
   }
 
+  const frameworkTitle = t(`frameworkDescriptions.${frameworkKey}.title`, { defaultValue: config.title })
+  const frameworkDescription = t(`frameworkDescriptions.${frameworkKey}.context`, { defaultValue: config.description })
   const frameworkContext = t(`frameworkDescriptions.${frameworkKey}.context`, { defaultValue: '' })
   const frameworkWikipediaUrl = t(`frameworkDescriptions.${frameworkKey}.wikipediaUrl`, { defaultValue: null })
   const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true, defaultValue: [] }) as string[]
@@ -854,8 +856,8 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{config.title}</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">{config.description}</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{frameworkTitle}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{frameworkDescription}</p>
         </div>
         <Button onClick={() => navigate(`${basePath}/create`)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -1352,12 +1354,17 @@ export const CogPage = () => {
     }
   }
 
+  // Get translations for COG framework
+  const { t: tCog } = useTranslation('cog')
+  const cogTitle = t(`frameworkDescriptions.cog.title`, { defaultValue: config.title })
+  const cogDescription = t(`frameworkDescriptions.cog.context`, { defaultValue: config.description })
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{config.title}</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">{config.description}</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{cogTitle}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">{cogDescription}</p>
         </div>
         <Button onClick={() => setTemplateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -1367,8 +1374,8 @@ export const CogPage = () => {
 
       <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
         <CardContent className="p-6">
-          <p className="text-gray-700 dark:text-gray-300 mb-3">
-            Systematic COG analysis using Joint Publication 3-0 methodology with DIMEFIL domain analysis, vulnerability scoring, and network visualization.
+          <p className="text-gray-700 dark:text-gray-300 mb-3 line-clamp-3">
+            {cogDescription}
           </p>
           <a
             href="https://irregularpedia.org/index.php/Center_of_Gravity_Analysis_Guide"
@@ -1376,7 +1383,7 @@ export const CogPage = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
           >
-            View Irregularpedia Reference Guide
+            {t('frameworkPages.viewReferenceGuide')}
             <ExternalLink className="h-4 w-4" />
           </a>
         </CardContent>
@@ -1784,12 +1791,15 @@ export const DeceptionPage = () => {
   const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true }) as string[]
   const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true }) as string[]
 
+  // Get translations for deception framework
+  const { t: tDeception } = useTranslation('deception')
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{config.title}</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">{config.description}</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{tDeception('title')} (SATS)</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">{tDeception('description')}</p>
         </div>
         <Button onClick={() => navigate(`${basePath}/create`)}>
           <Plus className="h-4 w-4 mr-2" />

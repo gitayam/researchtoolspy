@@ -575,7 +575,8 @@
     "export": "Exportar",
     "updated": "Actualizado",
     "loading": "Cargando...",
-    "confirmDeleteAnalysis": "¿Estás seguro de que deseas eliminar este análisis?"
+    "confirmDeleteAnalysis": "¿Estás seguro de que deseas eliminar este análisis?",
+    "viewReferenceGuide": "Ver Guía de Referencia"
   },
   "frameworkDescriptions": {
     "swot": {

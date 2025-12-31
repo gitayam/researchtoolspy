@@ -1,7 +1,7 @@
 {
   "title": "Deception Detection",
   "subtitle": "CIA SATS MOM-POP-MOSES-EVE Framework",
-  "description": "Structured analysis for detecting potential deception in intelligence and information",
+  "description": "CIA Structured Analytic Techniques for detecting deception - based on Richards J. Heuer Jr. methodology",
 
   "form": {
     "newAnalysis": "New Deception Analysis",
