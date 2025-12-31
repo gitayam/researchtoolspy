@@ -420,8 +420,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Generate summary with GPT-5-nano
     const apiKey = context.env.OPENAI_API_KEY
+    console.log('[Scrape] Environment check - OPENAI_API_KEY exists:', !!apiKey)
+    console.log('[Scrape] Environment check - AI_GATEWAY_ACCOUNT_ID exists:', !!context.env.AI_GATEWAY_ACCOUNT_ID)
+    console.log('[Scrape] Available env keys:', Object.keys(context.env || {}).filter(k => !k.startsWith('__')))
+
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
+      console.error('[Scrape] OPENAI_API_KEY is missing from environment!')
+      return new Response(JSON.stringify({
+        error: 'OpenAI API key not configured',
+        debug: {
+          hasEnv: !!context.env,
+          envKeys: Object.keys(context.env || {}).filter(k => !k.startsWith('__'))
+        }
+      }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       })
