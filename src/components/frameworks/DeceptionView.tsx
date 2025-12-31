@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Edit, Trash2, Download, Share2, Sparkles, FileText, File, Link2, Plus } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Download, Share2, Sparkles, FileText, File, Link2, Plus, UserCircle, Check, AlertCircle } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { DeceptionDashboard } from './DeceptionDashboard'
 import { DeceptionPredictions } from './DeceptionPredictions'
@@ -23,7 +23,7 @@ import type { AIDeceptionAnalysis } from '@/lib/ai-deception-analysis'
 import { generatePDFReport, generateDOCXReport, generateExecutiveBriefing, type ReportOptions } from '@/lib/deception-report-generator'
 import { EvidenceLinker, EvidenceBadge, EvidencePanel, EntityQuickCreate, type LinkedEvidence, type EvidenceEntityType } from '@/components/evidence'
 import { AutoGenerateButton } from '@/components/network'
-import { generateRelationshipsFromMOM } from '@/utils/framework-relationships'
+import { generateRelationshipsFromMOM, deduplicateRelationships } from '@/utils/framework-relationships'
 import { CommentThread } from '@/components/comments/CommentThread'
 import { ShareButton } from './ShareButton'
 import type { CreateRelationshipRequest } from '@/types/entities'
@@ -77,6 +77,10 @@ export function DeceptionView({
   // Relationship generation state
   const [generatedRelationships, setGeneratedRelationships] = useState<CreateRelationshipRequest[]>([])
 
+  // Save to actor state
+  const [savingToActor, setSavingToActor] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
+
   // Historical data for trends and predictions
   const [historicalData, setHistoricalData] = useState<Array<{
     id: string
@@ -120,32 +124,57 @@ export function DeceptionView({
     eve: data.eve
   }), [data.scenario, data.mom, data.pop, data.moses, data.eve])
 
-  // TODO: Generate relationships from linked evidence when actors/events are linked
-  // For now, this is a placeholder for when entity linking with MOM is implemented
+  // Generate relationships from linked evidence when actors/events are linked
   useEffect(() => {
-    // When linkedEvidence contains actors and events, generate MOM relationships
     const actors = linkedEvidence.filter(e => e.entity_type === 'actor')
     const events = linkedEvidence.filter(e => e.entity_type === 'event')
+    const workspaceId = localStorage.getItem('current_workspace_id') || '1'
 
-    if (actors.length > 0 && events.length > 0 && calculatedAssessment) {
-      // TODO: Map deception analysis to MOMAssessment structure
-      // This will be implemented when entity linking is fully integrated
+    // Generate relationships when we have both actors and events linked
+    if (actors.length > 0 && events.length > 0 && calculatedAssessment && data.scores) {
+      const newRelationships: CreateRelationshipRequest[] = []
+
+      // For each actor-event pair, create relationship based on MOM scores
+      for (const actor of actors) {
+        for (const event of events) {
+          const momAssessment = {
+            id: data.id,
+            actor_id: String(actor.entity_id),
+            event_id: String(event.entity_id),
+            scenario_description: data.scenario || data.title,
+            motive_score: (data.scores.motive || 0) / 5, // Normalize 0-5 to 0-1
+            opportunity_score: (data.scores.opportunity || 0) / 5,
+            means_score: (data.scores.means || 0) / 5,
+            overall_likelihood: calculatedAssessment.overallLikelihood / 100,
+            created_at: data.created_at
+          }
+
+          const relationships = generateRelationshipsFromMOM(momAssessment, workspaceId)
+          newRelationships.push(...relationships)
+        }
+      }
+
+      setGeneratedRelationships(deduplicateRelationships(newRelationships))
+    } else if (actors.length === 0 || events.length === 0) {
+      // Clear relationships if actors or events are unlinked
       setGeneratedRelationships([])
     }
-  }, [linkedEvidence, calculatedAssessment])
+  }, [linkedEvidence, calculatedAssessment, data.scores, data.id, data.scenario, data.title, data.created_at])
 
-  // Load linked evidence on mount
+  // Load linked evidence and entities on mount
   useEffect(() => {
     const loadLinkedEvidence = async () => {
       if (!data.id) return
 
       try {
-        const response = await fetch(`/api/framework-evidence?framework_id=${data.id}`)
-        if (response.ok) {
-          const result = await response.json()
-          // Transform API response to LinkedEvidence format
-          const evidence: LinkedEvidence[] = (result.links || []).map((link: any) => ({
-            entity_type: 'data', // Evidence items are 'data' type
+        // Load evidence items from framework-evidence API
+        const evidenceResponse = await fetch(`/api/framework-evidence?framework_id=${data.id}`)
+        let evidenceLinks: LinkedEvidence[] = []
+
+        if (evidenceResponse.ok) {
+          const result = await evidenceResponse.json()
+          evidenceLinks = (result.links || []).map((link: any) => ({
+            entity_type: 'data' as const,
             entity_id: link.evidence_id,
             entity_data: {
               id: link.evidence_id,
@@ -163,8 +192,25 @@ export function DeceptionView({
             },
             linked_at: link.created_at
           }))
-          setLinkedEvidence(evidence)
         }
+
+        // Load actors, sources, events from framework-entities API
+        const entitiesResponse = await fetch(`/api/framework-entities?framework_id=${data.id}`)
+        let entityLinks: LinkedEvidence[] = []
+
+        if (entitiesResponse.ok) {
+          const result = await entitiesResponse.json()
+          entityLinks = (result.links || []).map((link: any) => ({
+            entity_type: link.entity_type as EvidenceEntityType,
+            entity_id: link.entity_id,
+            entity_data: link.entity_data || {},
+            relevance: link.relevance_note,
+            linked_at: link.created_at
+          }))
+        }
+
+        // Combine all linked items
+        setLinkedEvidence([...evidenceLinks, ...entityLinks])
       } catch (error) {
         console.error('Failed to load linked evidence:', error)
       }
@@ -255,25 +301,56 @@ export function DeceptionView({
     if (!data.id) return
 
     try {
-      // Extract evidence IDs from selected items
-      const evidenceIds = selected.map(item => item.entity_id)
+      // Separate data items from other entity types
+      const dataItems = selected.filter(item => item.entity_type === 'data')
+      const entityItems = selected.filter(item => item.entity_type !== 'data')
 
-      const response = await fetch('/api/framework-evidence', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          framework_id: data.id,
-          evidence_ids: evidenceIds
+      const results: { success: boolean; type: string }[] = []
+
+      // Link data items via framework-evidence API
+      if (dataItems.length > 0) {
+        const evidenceIds = dataItems.map(item => item.entity_id)
+        const response = await fetch('/api/framework-evidence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            framework_id: data.id,
+            evidence_ids: evidenceIds
+          })
         })
-      })
+        results.push({ success: response.ok, type: 'data' })
+      }
 
-      if (response.ok) {
+      // Link actors, sources, events via framework-entities API
+      if (entityItems.length > 0) {
+        const entities = entityItems.map(item => ({
+          entity_type: item.entity_type,
+          entity_id: item.entity_id,
+          relevance_note: item.notes
+        }))
+
+        const response = await fetch('/api/framework-entities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            framework_id: data.id,
+            entities
+          })
+        })
+        results.push({ success: response.ok, type: 'entities' })
+      }
+
+      // Check if all requests succeeded
+      const allSucceeded = results.every(r => r.success)
+
+      if (allSucceeded) {
         setLinkedEvidence([...linkedEvidence, ...selected])
-        console.log('Evidence linked successfully')
+        console.log('Evidence and entities linked successfully')
       } else {
-        const error = await response.json()
-        console.error('Failed to link evidence:', error)
-        alert('Failed to link evidence. Please try again.')
+        console.error('Some links failed:', results)
+        // Still update UI with what we have
+        setLinkedEvidence([...linkedEvidence, ...selected])
+        alert('Some items may not have been linked properly.')
       }
     } catch (error) {
       console.error('Error linking evidence:', error)
@@ -285,14 +362,25 @@ export function DeceptionView({
     if (!data.id) return
 
     try {
-      const response = await fetch(
-        `/api/framework-evidence?framework_id=${data.id}&evidence_id=${entity_id}`,
-        { method: 'DELETE' }
-      )
+      let response: Response
+
+      if (entity_type === 'data') {
+        // Use framework-evidence API for data items
+        response = await fetch(
+          `/api/framework-evidence?framework_id=${data.id}&evidence_id=${entity_id}`,
+          { method: 'DELETE' }
+        )
+      } else {
+        // Use framework-entities API for actors, sources, events
+        response = await fetch(
+          `/api/framework-entities?framework_id=${data.id}&entity_type=${entity_type}&entity_id=${entity_id}`,
+          { method: 'DELETE' }
+        )
+      }
 
       if (response.ok) {
         setLinkedEvidence(
-          linkedEvidence.filter(e => !(e.entity_type === entity_type && e.entity_id === entity_id))
+          linkedEvidence.filter(e => !(e.entity_type === entity_type && String(e.entity_id) === String(entity_id)))
         )
         console.log('Evidence unlinked successfully')
       } else {
@@ -303,6 +391,60 @@ export function DeceptionView({
     } catch (error) {
       console.error('Error unlinking evidence:', error)
       alert('An error occurred while unlinking evidence.')
+    }
+  }
+
+  // Get linked actors for "Save to Actor" feature
+  const linkedActors = linkedEvidence.filter(e => e.entity_type === 'actor')
+
+  // Save MOM scores to an actor's deception profile
+  const handleSaveToActor = async (actorId: string | number, actorName: string) => {
+    if (!data.scores || !calculatedAssessment) return
+
+    setSavingToActor(String(actorId))
+    setSaveSuccess(null)
+
+    try {
+      const deceptionProfile = {
+        mom: {
+          motive: data.scores.motive || 0,
+          opportunity: data.scores.opportunity || 0,
+          means: data.scores.means || 0,
+          notes: `From deception analysis: ${data.title}`
+        },
+        pop: {
+          historical_pattern: data.scores.historicalPattern || 0,
+          sophistication_level: data.scores.sophisticationLevel || 0,
+          success_rate: data.scores.successRate || 0,
+          notes: data.pop || ''
+        },
+        overall_assessment: calculatedAssessment,
+        last_updated: new Date().toISOString()
+      }
+
+      const response = await fetch(`/api/actors/${actorId}/deception`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(deceptionProfile)
+      })
+
+      if (response.ok) {
+        setSaveSuccess(String(actorId))
+        // Note: Not updating local state here as the entity_data structure
+        // is complex and varies by type. The profile will be visible on reload.
+        console.log(`MOM scores saved to actor ${actorId}`)
+        // Clear success indicator after 3 seconds
+        setTimeout(() => setSaveSuccess(null), 3000)
+      } else {
+        const error = await response.json()
+        console.error('Failed to save to actor:', error)
+        alert(`Failed to save MOM scores to ${actorName}. Please try again.`)
+      }
+    } catch (error) {
+      console.error('Error saving to actor:', error)
+      alert('An error occurred while saving MOM scores.')
+    } finally {
+      setSavingToActor(null)
     }
   }
 
@@ -383,6 +525,61 @@ export function DeceptionView({
               size="default"
               disabled={generatedRelationships.length === 0}
             />
+
+            {/* Save to Actor Profile - shows linked actors */}
+            {linkedActors.length > 0 && data.scores && calculatedAssessment && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <UserCircle className="h-4 w-4 mr-2" />
+                    Save to Actor
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  {linkedActors.map(actor => {
+                    const actorData = actor.entity_data as { id: string; name: string }
+                    const isSaving = savingToActor === String(actor.entity_id)
+                    const isSuccess = saveSuccess === String(actor.entity_id)
+
+                    return (
+                      <DropdownMenuItem
+                        key={actor.entity_id}
+                        onClick={() => handleSaveToActor(actor.entity_id, actorData.name || 'Unknown')}
+                        disabled={isSaving}
+                        className="flex items-center gap-2"
+                      >
+                        {isSaving ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        ) : isSuccess ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <UserCircle className="h-4 w-4" />
+                        )}
+                        <div className="flex-1 truncate">
+                          <span>{actorData.name || 'Unknown Actor'}</span>
+                        </div>
+                        {isSuccess && (
+                          <span className="text-xs text-green-600">Saved!</span>
+                        )}
+                      </DropdownMenuItem>
+                    )
+                  })}
+                  {linkedActors.length === 0 && (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      No linked actors. Link an actor first.
+                    </div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Tooltip when no actors linked */}
+            {linkedActors.length === 0 && data.scores && (
+              <Button variant="outline" disabled title="Link an actor first to save MOM scores">
+                <UserCircle className="h-4 w-4 mr-2" />
+                Save to Actor
+              </Button>
+            )}
 
             <ShareButton
               frameworkId={data.id}
