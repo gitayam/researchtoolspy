@@ -1,5 +1,86 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2025-12-30 - React Error #185 Infinite Loop Fix
+
+### Summary
+Fixed critical React error #185 (Maximum update depth exceeded) in DeceptionScoringForm component. The infinite loop was caused by calling parent callback (`onScoresChange`) from inside a `useEffect` hook.
+
+---
+
+## React Error #185 - Infinite Loop in Parent-Child State Sync (CRITICAL)
+
+### Problem
+Navigating to the deception framework page caused React error #185:
+```
+Minified React error #185; visit https://react.dev/errors/185 for the full message
+```
+This is "Maximum update depth exceeded" - an infinite render loop.
+
+### Root Cause
+**Anti-pattern: Calling parent callbacks from useEffect**:
+
+```typescript
+// BROKEN - causes infinite loop
+useEffect(() => {
+  const newAssessment = calculateDeceptionLikelihood(scores)
+  setAssessment(newAssessment)
+  onScoresChange?.(scores, newAssessment)  // <- This triggers parent re-render!
+}, [scores])
+```
+
+**Why this causes infinite loops:**
+1. Child has local `scores` state
+2. useEffect watches `[scores]` and calls `onScoresChange`
+3. Parent's `onScoresChange` calls `setScores(newScores)` updating parent state
+4. Parent re-renders, passes new props to child
+5. If anything in that flow triggers child's `scores` to change, the effect runs again
+6. Loop!
+
+### The Fix
+**Only call parent callbacks from user action handlers, NOT from useEffect:**
+
+```typescript
+// FIXED - notify parent only on explicit user action
+useEffect(() => {
+  const newAssessment = calculateDeceptionLikelihood(scores)
+  setAssessment(newAssessment)
+  // NOTE: Do NOT call onScoresChange here - causes infinite loops!
+}, [scores])
+
+const handleScoreChange = (criterion: keyof DeceptionScores, value: number[]) => {
+  const newScores = { ...scores, [criterion]: value[0] }
+  setScores(newScores)
+  // Notify parent of score change (triggered by user action, not effect)
+  const newAssessment = calculateDeceptionLikelihood(newScores)
+  onScoresChange?.(newScores, newAssessment)
+}
+```
+
+### Key Takeaways
+
+#### Rules for Parent-Child State Sync:
+
+1. **NEVER call parent callbacks from useEffect** watching local state
+2. **Call parent callbacks from event handlers** (onClick, onChange, etc.)
+3. **Use useEffect only for side effects** (logging, DOM updates, subscriptions)
+4. **Child should own its state** - don't try to sync parent on every change
+5. **If sync is needed**, use refs to prevent cascade: `isNotifyingParent.current = true`
+
+#### When to notify parent:
+- User clicks a button → YES (user action)
+- User adjusts a slider → YES (user action)
+- Component mounts → MAYBE (only if intentional initialization)
+- State derived from other state changes → NO (use derived state instead)
+
+### Files Modified
+- `src/components/frameworks/DeceptionScoringForm.tsx` - Lines 88-102
+
+### Related Errors
+- React #185: Maximum update depth exceeded
+- React #300: Cannot update component while rendering different component
+
+---
+
 ## Session: 2025-10-18 - Cloudflare Pages SPA Routing Fix
 
 ### Summary
