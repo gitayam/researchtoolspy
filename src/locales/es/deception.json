@@ -347,5 +347,56 @@
       "high": "Alto",
       "critical": "Crítico"
     }
+  },
+
+  "view": {
+    "backToList": "Volver a análisis",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "export": "Exportar",
+    "share": "Compartir",
+    "created": "Creado",
+    "updated": "Actualizado",
+    "exportDialog": {
+      "title": "Exportar Informe de Inteligencia",
+      "reportFormat": "Formato del Informe",
+      "fullReport": "Informe Completo (PDF)",
+      "fullReportDesc": "Análisis completo con todas las secciones",
+      "executiveBriefing": "Resumen Ejecutivo (PDF)",
+      "executiveBriefingDesc": "Resumen de 1 página para comandantes",
+      "editableReport": "Informe Editable (DOCX)",
+      "editableReportDesc": "Formato Microsoft Word",
+      "classification": "Nivel de Clasificación",
+      "organizationName": "Nombre de la Organización",
+      "analystName": "Nombre del Analista",
+      "generating": "Generando...",
+      "generateReport": "Generar Informe"
+    },
+    "sections": {
+      "scenario": "Escenario",
+      "mom": "Análisis MOM",
+      "pop": "Análisis POP",
+      "moses": "Evaluación MOSES",
+      "eve": "Evaluación EVE",
+      "assessment": "Evaluación"
+    },
+    "aiAnalysis": {
+      "title": "Resultados del Análisis IA",
+      "bluf": "Conclusión Principal (BLUF)",
+      "noBluf": "BLUF no generado. Ejecute el Análisis IA para generar una evaluación integral de engaño.",
+      "executiveSummary": "Resumen Ejecutivo",
+      "keyIndicators": "Indicadores Clave",
+      "counterIndicators": "Contra-Indicadores",
+      "recommendations": "Recomendaciones",
+      "collectionPriorities": "Prioridades de Recolección",
+      "alternativeExplanations": "Explicaciones Alternativas",
+      "trendAssessment": "Evaluación de Tendencia"
+    },
+    "evidence": {
+      "linkEvidence": "Vincular Evidencia",
+      "viewLinkedEvidence": "Ver Evidencia Vinculada",
+      "createEntity": "Crear Entidad"
+    },
+    "comments": "Comentarios y Discusión"
   }
 }

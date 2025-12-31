@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -57,6 +58,7 @@ export function DeceptionView({
   onDelete,
   backPath = '/dashboard/analysis-frameworks/deception'
 }: DeceptionViewProps) {
+  const { t } = useTranslation('deception')
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<'pdf' | 'docx' | 'briefing'>('pdf')
   const [classification, setClassification] = useState<'UNCLASSIFIED' | 'CONFIDENTIAL' | 'SECRET' | 'TOP SECRET'>('UNCLASSIFIED')
@@ -251,7 +253,7 @@ export function DeceptionView({
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Analyses
+          {t('view.backToList')}
         </Button>
 
         <div className="flex justify-between items-start">
@@ -271,9 +273,9 @@ export function DeceptionView({
               <p className="text-gray-600 dark:text-gray-400">{data.description}</p>
             )}
             <div className="flex gap-2 mt-3 text-sm text-muted-foreground">
-              <span>Created {new Date(data.created_at).toLocaleDateString()}</span>
+              <span>{t('view.created')} {new Date(data.created_at).toLocaleDateString()}</span>
               <span>•</span>
-              <span>Updated {new Date(data.updated_at).toLocaleDateString()}</span>
+              <span>{t('view.updated')} {new Date(data.updated_at).toLocaleDateString()}</span>
             </div>
           </div>
 
@@ -282,7 +284,7 @@ export function DeceptionView({
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Entity
+                  {t('view.evidence.createEntity')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -303,7 +305,7 @@ export function DeceptionView({
 
             <Button variant="outline" onClick={() => setShowEvidenceLinker(true)}>
               <Link2 className="h-4 w-4 mr-2" />
-              Link Evidence
+              {t('view.evidence.linkEvidence')}
             </Button>
 
             <AutoGenerateButton
@@ -331,21 +333,21 @@ export function DeceptionView({
               <DialogTrigger asChild>
                 <Button variant="outline">
                   <Download className="h-4 w-4 mr-2" />
-                  Export
+                  {t('view.export')}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                  <DialogTitle>Export Intelligence Report</DialogTitle>
+                  <DialogTitle>{t('view.exportDialog.title')}</DialogTitle>
                   <DialogDescription>
-                    Generate a professional intelligence report with classification markings
+                    {t('view.exportDialog.fullReportDesc')}
                   </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
                   {/* Export Format */}
                   <div className="space-y-2">
-                    <Label htmlFor="format">Report Format</Label>
+                    <Label htmlFor="format">{t('view.exportDialog.reportFormat')}</Label>
                     <Select value={exportFormat} onValueChange={(value: any) => setExportFormat(value)}>
                       <SelectTrigger id="format">
                         <SelectValue />
@@ -355,8 +357,8 @@ export function DeceptionView({
                           <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4" />
                             <div>
-                              <div className="font-medium">Full Report (PDF)</div>
-                              <div className="text-xs text-muted-foreground">Complete analysis with all sections</div>
+                              <div className="font-medium">{t('view.exportDialog.fullReport')}</div>
+                              <div className="text-xs text-muted-foreground">{t('view.exportDialog.fullReportDesc')}</div>
                             </div>
                           </div>
                         </SelectItem>
@@ -364,8 +366,8 @@ export function DeceptionView({
                           <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4" />
                             <div>
-                              <div className="font-medium">Executive Briefing (PDF)</div>
-                              <div className="text-xs text-muted-foreground">1-page summary for commanders</div>
+                              <div className="font-medium">{t('view.exportDialog.executiveBriefing')}</div>
+                              <div className="text-xs text-muted-foreground">{t('view.exportDialog.executiveBriefingDesc')}</div>
                             </div>
                           </div>
                         </SelectItem>
@@ -373,8 +375,8 @@ export function DeceptionView({
                           <div className="flex items-center gap-2">
                             <File className="h-4 w-4" />
                             <div>
-                              <div className="font-medium">Editable Report (DOCX)</div>
-                              <div className="text-xs text-muted-foreground">Microsoft Word format</div>
+                              <div className="font-medium">{t('view.exportDialog.editableReport')}</div>
+                              <div className="text-xs text-muted-foreground">{t('view.exportDialog.editableReportDesc')}</div>
                             </div>
                           </div>
                         </SelectItem>
@@ -384,7 +386,7 @@ export function DeceptionView({
 
                   {/* Classification Level */}
                   <div className="space-y-2">
-                    <Label htmlFor="classification">Classification Level</Label>
+                    <Label htmlFor="classification">{t('view.exportDialog.classification')}</Label>
                     <Select value={classification} onValueChange={(value: any) => setClassification(value)}>
                       <SelectTrigger id="classification">
                         <SelectValue />
@@ -400,7 +402,7 @@ export function DeceptionView({
 
                   {/* Organization Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="org">Organization Name</Label>
+                    <Label htmlFor="org">{t('view.exportDialog.organizationName')}</Label>
                     <Input
                       id="org"
                       value={organizationName}
@@ -411,7 +413,7 @@ export function DeceptionView({
 
                   {/* Analyst Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="analyst">Analyst Name</Label>
+                    <Label htmlFor="analyst">{t('view.exportDialog.analystName')}</Label>
                     <Input
                       id="analyst"
                       value={analystName}
@@ -423,10 +425,10 @@ export function DeceptionView({
 
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
-                    Cancel
+                    {t('common:buttons.cancel', 'Cancel')}
                   </Button>
                   <Button onClick={handleExport} disabled={exporting}>
-                    {exporting ? 'Generating...' : 'Generate Report'}
+                    {exporting ? t('view.exportDialog.generating') : t('view.exportDialog.generateReport')}
                   </Button>
                 </div>
               </DialogContent>
@@ -434,11 +436,11 @@ export function DeceptionView({
 
             <Button variant="outline" onClick={onEdit}>
               <Edit className="h-4 w-4 mr-2" />
-              Edit
+              {t('view.edit')}
             </Button>
             <Button variant="outline" onClick={onDelete} className="text-red-600 hover:text-red-700">
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+              {t('view.delete')}
             </Button>
           </div>
         </div>
@@ -583,7 +585,7 @@ export function DeceptionView({
                   <>
                     <div>
                       <h4 className="font-semibold mb-2 flex items-center gap-2">
-                        Bottom Line Up Front (BLUF)
+                        {t('view.aiAnalysis.bluf')}
                       </h4>
                       <p className="text-sm">{data.aiAnalysis.bottomLine}</p>
                     </div>
@@ -594,7 +596,7 @@ export function DeceptionView({
                 {!data.aiAnalysis.bottomLine && (
                   <>
                     <div className="text-center py-4 text-sm text-muted-foreground">
-                      <p>BLUF not generated. Run AI Analysis to generate comprehensive deception assessment.</p>
+                      <p>{t('view.aiAnalysis.noBluf')}</p>
                     </div>
                     <Separator />
                   </>
@@ -602,7 +604,7 @@ export function DeceptionView({
 
                 {/* Executive Summary */}
                 <div>
-                  <h4 className="font-semibold mb-2">Executive Summary</h4>
+                  <h4 className="font-semibold mb-2">{t('view.aiAnalysis.executiveSummary')}</h4>
                   <p className="text-sm">{data.aiAnalysis.executiveSummary}</p>
                 </div>
 
@@ -610,7 +612,7 @@ export function DeceptionView({
 
                 {/* Key Indicators */}
                 <div>
-                  <h4 className="font-semibold mb-2">Key Indicators</h4>
+                  <h4 className="font-semibold mb-2">{t('view.aiAnalysis.keyIndicators')}</h4>
                   <ul className="list-disc list-inside space-y-1 text-sm">
                     {data.aiAnalysis.keyIndicators.map((indicator, idx) => (
                       <li key={idx}>{indicator}</li>
@@ -623,7 +625,7 @@ export function DeceptionView({
                   <>
                     <Separator />
                     <div>
-                      <h4 className="font-semibold mb-2">Counter-Indicators</h4>
+                      <h4 className="font-semibold mb-2">{t('view.aiAnalysis.counterIndicators')}</h4>
                       <ul className="list-disc list-inside space-y-1 text-sm">
                         {data.aiAnalysis.counterIndicators.map((indicator, idx) => (
                           <li key={idx}>{indicator}</li>
@@ -637,7 +639,7 @@ export function DeceptionView({
 
                 {/* Recommendations */}
                 <div>
-                  <h4 className="font-semibold mb-2">Recommendations</h4>
+                  <h4 className="font-semibold mb-2">{t('view.aiAnalysis.recommendations')}</h4>
                   <ul className="list-disc list-inside space-y-1 text-sm">
                     {data.aiAnalysis.recommendations.map((rec, idx) => (
                       <li key={idx}>{rec}</li>
@@ -650,7 +652,7 @@ export function DeceptionView({
                   <>
                     <Separator />
                     <div>
-                      <h4 className="font-semibold mb-2">Collection Priorities</h4>
+                      <h4 className="font-semibold mb-2">{t('view.aiAnalysis.collectionPriorities')}</h4>
                       <ul className="list-disc list-inside space-y-1 text-sm">
                         {data.aiAnalysis.collectionPriorities.map((priority, idx) => (
                           <li key={idx}>{priority}</li>
@@ -665,7 +667,7 @@ export function DeceptionView({
                   <>
                     <Separator />
                     <div>
-                      <h4 className="font-semibold mb-2">Alternative Explanations</h4>
+                      <h4 className="font-semibold mb-2">{t('view.aiAnalysis.alternativeExplanations')}</h4>
                       <ul className="list-disc list-inside space-y-1 text-sm">
                         {data.aiAnalysis.alternativeExplanations.map((exp, idx) => (
                           <li key={idx}>{exp}</li>
@@ -679,7 +681,7 @@ export function DeceptionView({
                 <Separator />
                 <div className="flex items-center gap-4">
                   <div>
-                    <h4 className="font-semibold mb-1">Trend Assessment</h4>
+                    <h4 className="font-semibold mb-1">{t('view.aiAnalysis.trendAssessment')}</h4>
                     <Badge variant={
                       data.aiAnalysis.trendAssessment === 'INCREASING' ? 'destructive' :
                       data.aiAnalysis.trendAssessment === 'DECREASING' ? 'default' : 'secondary'
@@ -698,10 +700,10 @@ export function DeceptionView({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-purple-600" />
-                  Predictions & Trend Analysis
+                  {t('view.aiAnalysis.trendAssessment')}
                 </CardTitle>
                 <CardDescription>
-                  Future risk projections and indicators to monitor
+                  {t('dashboard.likelihoodOverTime')}
                 </CardDescription>
               </CardHeader>
               <CardContent>

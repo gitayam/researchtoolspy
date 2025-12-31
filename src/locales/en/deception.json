@@ -347,5 +347,56 @@
       "high": "High",
       "critical": "Critical"
     }
+  },
+
+  "view": {
+    "backToList": "Back to analyses",
+    "edit": "Edit",
+    "delete": "Delete",
+    "export": "Export",
+    "share": "Share",
+    "created": "Created",
+    "updated": "Updated",
+    "exportDialog": {
+      "title": "Export Intelligence Report",
+      "reportFormat": "Report Format",
+      "fullReport": "Full Report (PDF)",
+      "fullReportDesc": "Complete analysis with all sections",
+      "executiveBriefing": "Executive Briefing (PDF)",
+      "executiveBriefingDesc": "1-page summary for commanders",
+      "editableReport": "Editable Report (DOCX)",
+      "editableReportDesc": "Microsoft Word format",
+      "classification": "Classification Level",
+      "organizationName": "Organization Name",
+      "analystName": "Analyst Name",
+      "generating": "Generating...",
+      "generateReport": "Generate Report"
+    },
+    "sections": {
+      "scenario": "Scenario",
+      "mom": "MOM Analysis",
+      "pop": "POP Analysis",
+      "moses": "MOSES Assessment",
+      "eve": "EVE Evaluation",
+      "assessment": "Assessment"
+    },
+    "aiAnalysis": {
+      "title": "AI Analysis Results",
+      "bluf": "Bottom Line Up Front (BLUF)",
+      "noBluf": "BLUF not generated. Run AI Analysis to generate comprehensive deception assessment.",
+      "executiveSummary": "Executive Summary",
+      "keyIndicators": "Key Indicators",
+      "counterIndicators": "Counter-Indicators",
+      "recommendations": "Recommendations",
+      "collectionPriorities": "Collection Priorities",
+      "alternativeExplanations": "Alternative Explanations",
+      "trendAssessment": "Trend Assessment"
+    },
+    "evidence": {
+      "linkEvidence": "Link Evidence",
+      "viewLinkedEvidence": "View Linked Evidence",
+      "createEntity": "Create Entity"
+    },
+    "comments": "Comments & Discussion"
   }
 }
