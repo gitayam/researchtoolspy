@@ -82,17 +82,17 @@ export const SwotPage = () => {
   const isEditMode = location.pathname.includes('/edit')
   const isViewMode = id && !isEditMode && !isCreateMode
 
-  // Load analyses
+  // Load analyses when workspace changes
   useEffect(() => {
     loadAnalyses()
-  }, [])
+  }, [currentWorkspaceId])
 
   // Load specific analysis
   useEffect(() => {
     if (id) {
       loadAnalysis(id)
     }
-  }, [id])
+  }, [id, currentWorkspaceId])
 
   const loadAnalyses = async () => {
     try {
@@ -667,15 +667,17 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   const isViewMode = id && !isEditMode && !isCreateMode
   const basePath = `/dashboard/analysis-frameworks/${frameworkKey}`
 
+  // Load analyses when workspace changes
   useEffect(() => {
     loadAnalyses()
-  }, [])
+  }, [currentWorkspaceId])
 
+  // Load specific analysis when workspace changes
   useEffect(() => {
     if (id) {
       loadAnalysis(id)
     }
-  }, [id])
+  }, [id, currentWorkspaceId])
 
   const loadAnalyses = async () => {
     try {
@@ -1107,15 +1109,17 @@ export const CogPage = () => {
   const isViewMode = id && !isEditMode && !isCreateMode && !isWizardMode
   const basePath = '/dashboard/analysis-frameworks/cog'
 
+  // Load analyses when workspace changes
   useEffect(() => {
     loadAnalyses()
-  }, [])
+  }, [currentWorkspaceId])
 
+  // Load specific analysis when workspace changes
   useEffect(() => {
     if (id) {
       loadAnalysis(id)
     }
-  }, [id])
+  }, [id, currentWorkspaceId])
 
   const loadAnalyses = async () => {
     try {
@@ -1612,15 +1616,17 @@ export const DeceptionPage = () => {
   const isViewMode = id && !isEditMode && !isCreateMode
   const basePath = '/dashboard/analysis-frameworks/deception'
 
+  // Load analyses when workspace changes
   useEffect(() => {
     loadAnalyses()
-  }, [])
+  }, [currentWorkspaceId])
 
+  // Load specific analysis when workspace changes
   useEffect(() => {
     if (id) {
       loadAnalysis(id)
     }
-  }, [id])
+  }, [id, currentWorkspaceId])
 
   const loadAnalyses = async () => {
     try {
