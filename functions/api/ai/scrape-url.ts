@@ -421,16 +421,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Generate summary with GPT-5-nano
     const apiKey = context.env.OPENAI_API_KEY
     console.log('[Scrape] Environment check - OPENAI_API_KEY exists:', !!apiKey)
-    console.log('[Scrape] Environment check - AI_GATEWAY_ACCOUNT_ID exists:', !!context.env.AI_GATEWAY_ACCOUNT_ID)
-    console.log('[Scrape] Available env keys:', Object.keys(context.env || {}).filter(k => !k.startsWith('__')))
+    console.log('[Scrape] Environment check - OPENAI_API_KEY type:', typeof apiKey)
+    console.log('[Scrape] Environment check - OPENAI_API_KEY length:', apiKey?.length || 0)
+    console.log('[Scrape] Environment check - OPENAI_API_KEY starts with:', apiKey?.substring(0, 10) || 'N/A')
 
-    if (!apiKey) {
-      console.error('[Scrape] OPENAI_API_KEY is missing from environment!')
+    if (!apiKey || apiKey.length < 10) {
+      console.error('[Scrape] OPENAI_API_KEY is missing or invalid!')
       return new Response(JSON.stringify({
         error: 'OpenAI API key not configured',
         debug: {
           hasEnv: !!context.env,
-          envKeys: Object.keys(context.env || {}).filter(k => !k.startsWith('__'))
+          keyExists: 'OPENAI_API_KEY' in context.env,
+          keyType: typeof apiKey,
+          keyLength: apiKey?.length || 0,
+          keyPrefix: apiKey?.substring(0, 8) || 'empty'
         }
       }), {
         status: 500,
