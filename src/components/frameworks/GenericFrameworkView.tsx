@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink, MoreVertical, BookOpen, Trash, Network } from 'lucide-react'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { createLogger } from '@/lib/logger'
@@ -85,7 +86,21 @@ export function GenericFrameworkView({
   backPath
 }: GenericFrameworkViewProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation('frameworks')
   const { currentWorkspaceId } = useWorkspace()
+
+  // Determine framework type
+  const frameworkType = frameworkTitle.toLowerCase().includes('cog') ? 'cog' :
+                        frameworkTitle.toLowerCase().includes('pmesii') ? 'pmesii-pt' :
+                        frameworkTitle.toLowerCase().includes('dotmlpf') ? 'dotmlpf' :
+                        frameworkTitle.toLowerCase().includes('dime') ? 'dime' :
+                        frameworkTitle.toLowerCase().includes('causeway') ? 'causeway' :
+                        frameworkTitle.toLowerCase().includes('starbursting') ? 'starbursting' :
+                        frameworkTitle.toLowerCase().includes('pest') ? 'pest' :
+                        frameworkTitle.toLowerCase().includes('stakeholder') ? 'stakeholder' :
+                        frameworkTitle.toLowerCase().includes('com-b') || frameworkTitle.toLowerCase().includes('comb') ? 'comb-analysis' :
+                        frameworkTitle.toLowerCase().includes('behavior') ? 'behavior' :
+                        'generic'
 
   // Evidence linking state
   const [linkedEvidence, setLinkedEvidence] = useState<LinkedEvidence[]>([])
@@ -104,19 +119,6 @@ export function GenericFrameworkView({
   // Determine framework type for relationship generation
   const frameworkTypeForRelationships = frameworkTitle.toLowerCase().includes('cog') ? 'cog' :
                          frameworkTitle.toLowerCase().includes('causeway') ? 'causeway' : null
-
-  // Determine framework type for export
-  const frameworkType = frameworkTitle.toLowerCase().includes('cog') ? 'cog' :
-                        frameworkTitle.toLowerCase().includes('pmesii') ? 'pmesii-pt' :
-                        frameworkTitle.toLowerCase().includes('dotmlpf') ? 'dotmlpf' :
-                        frameworkTitle.toLowerCase().includes('dime') ? 'dime' :
-                        frameworkTitle.toLowerCase().includes('causeway') ? 'causeway' :
-                        frameworkTitle.toLowerCase().includes('starbursting') ? 'starbursting' :
-                        frameworkTitle.toLowerCase().includes('pest') ? 'pest' :
-                        frameworkTitle.toLowerCase().includes('stakeholder') ? 'stakeholder' :
-                        frameworkTitle.toLowerCase().includes('com-b') || frameworkTitle.toLowerCase().includes('comb') ? 'comb-analysis' :
-                        frameworkTitle.toLowerCase().includes('behavior') ? 'behavior' :
-                        'generic'
 
   // Get item type from config
   const itemType = frameworkConfigs[frameworkType]?.itemType || 'text'
@@ -397,7 +399,7 @@ export function GenericFrameworkView({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <span className="text-2xl">{section.icon}</span>
-          {section.label}
+          {t(`${frameworkType}.sections.${section.key}.label`, section.label)}
           <Badge variant="secondary" className="ml-auto">
             {items.length}
           </Badge>
@@ -406,7 +408,7 @@ export function GenericFrameworkView({
       <CardContent>
         {items.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
-            No {section.label.toLowerCase()} identified
+            {t('noItems', { defaultValue: `No ${section.label.toLowerCase()} identified` })}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -679,7 +681,7 @@ export function GenericFrameworkView({
                   {data[section.key]?.length || 0}
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {section.label}
+                  {t(`${frameworkType}.sections.${section.key}.label`, section.label)}
                 </div>
               </div>
             ))}

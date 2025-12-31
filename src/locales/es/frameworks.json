@@ -1,0 +1,435 @@
+{
+  "swot": {
+    "title": "SWOT Analysis",
+    "context": "SWOT Analysis is a strategic planning framework that evaluates Strengths, Weaknesses, Opportunities, and Threats. Developed in the 1960s at Stanford Research Institute, SWOT helps organizations understand their internal capabilities (strengths/weaknesses) and external environment (opportunities/threats) to inform strategic decision-making. This versatile tool is used across business, nonprofit, and government sectors for strategic planning and competitive analysis.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/SWOT_analysis",
+    "goodUseCases": [
+      "Business strategy development and market positioning",
+      "Product launch planning and competitive analysis",
+      "Personal career planning and self-assessment",
+      "Organizational assessment before major initiatives",
+      "Quarterly or annual strategic reviews",
+      "Evaluating partnerships or M&A opportunities"
+    ],
+    "notIdealFor": [
+      "Highly complex multi-stakeholder problems requiring deep analysis",
+      "Quantitative financial analysis or detailed ROI calculations",
+      "Time-sensitive decisions requiring immediate action",
+      "Problems requiring specialized domain expertise beyond basic strategy",
+      "Detailed operational planning with specific timelines and resources"
+    ]
+  },
+  "pest": {
+    "title": "PEST Analysis",
+    "description": "Political, Economic, Social, Technological",
+    "context": "PEST Analysis examines the macro-environmental factors affecting organizations through four key dimensions: Political, Economic, Social, and Technological factors. Created by Harvard professor Francis Aguilar in 1967, PEST provides a framework for scanning the external environment to identify opportunities and threats. Variants include PESTLE (adding Legal and Environmental) and PESTEL. This framework is essential for understanding the broader context in which organizations operate.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/PEST_analysis",
+    "goodUseCases": [
+      "Market entry strategy for new countries or regions",
+      "Long-term strategic planning and scenario building",
+      "Assessing regulatory and policy impacts on business",
+      "Understanding macro trends affecting entire industries",
+      "Investment decisions requiring environmental scanning",
+      "Risk assessment for international operations"
+    ],
+    "notIdealFor": [
+      "Internal organizational issues or capability assessment",
+      "Short-term tactical decisions (less than 6 months)",
+      "Detailed competitor analysis or market positioning",
+      "Product-level or operational planning",
+      "Issues requiring technical or specialized domain analysis"
+    ],
+    "sections": {
+      "political": { "label": "Political", "description": "Political factors affecting the organization" },
+      "economic": { "label": "Economic", "description": "Economic factors and trends" },
+      "social": { "label": "Social", "description": "Social and cultural factors" },
+      "technological": { "label": "Technological", "description": "Technological innovations and trends" }
+    }
+  },
+  "ach": {
+    "title": "Analysis of Competing Hypotheses",
+    "context": "ACH is a structured intelligence analysis methodology developed by CIA analyst Richards J. Heuer Jr. in the 1970s. Unlike conventional analysis that seeks to confirm hypotheses, ACH focuses on disproving them by systematically evaluating evidence against multiple competing explanations. This approach helps overcome confirmation bias and provides more rigorous, defensible conclusions. ACH is now widely used in intelligence, law enforcement, and business analysis.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/Analysis_of_competing_hypotheses",
+    "goodUseCases": [
+      "Intelligence analysis with multiple possible explanations",
+      "Criminal investigations with competing theories",
+      "Medical diagnosis with differential diagnoses",
+      "Root cause analysis of complex failures or incidents",
+      "Evaluating competing strategic options",
+      "Due diligence investigations requiring rigorous analysis"
+    ],
+    "notIdealFor": [
+      "Problems with only one plausible explanation",
+      "Time-sensitive decisions requiring immediate action",
+      "Issues without sufficient evidence for evaluation",
+      "Brainstorming or creative exploration phases",
+      "Problems where intuition and experience are primary decision factors"
+    ]
+  },
+  "cog": {
+    "title": "Center of Gravity Analysis",
+    "description": "Systematic COG analysis across DIMEFIL domains with vulnerability scoring and network visualization (JP 3-0 methodology)",
+    "context": "Center of Gravity (COG) analysis identifies the source of power that provides an entity with its strength, freedom of action, and will to act. Originally a military concept from Carl von Clausewitz's \"On War\" (1832), COG analysis examines critical capabilities, critical requirements, and critical vulnerabilities to understand what sustains an adversary's power and how it might be neutralized. This framework is widely used in military planning, competitive intelligence, and strategic analysis.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/Center_of_gravity_(military)",
+    "goodUseCases": [
+      "Military campaign planning and strategy development",
+      "Competitive analysis to identify rival vulnerabilities",
+      "Understanding adversary or competitor power structures",
+      "Strategic planning for influence operations",
+      "Counterterrorism and counterinsurgency analysis",
+      "Business strategy to identify competitive advantages"
+    ],
+    "notIdealFor": [
+      "Collaborative environments requiring partnership building",
+      "Internal organizational development or team building",
+      "Problems without clear adversarial relationships",
+      "Technology assessment or innovation planning",
+      "Customer satisfaction or user experience analysis"
+    ],
+    "sections": {
+      "operational_context": { "label": "Operational Context", "description": "Define objectives, operating environment, and constraints" },
+      "centers_of_gravity": { "label": "Centers of Gravity", "description": "Identify COGs across DIMEFIL domains (Friendly, Adversary, Host Nation)" },
+      "critical_capabilities": { "label": "Critical Capabilities", "description": "Primary abilities (verbs) that enable the COG to function" },
+      "critical_requirements": { "label": "Critical Requirements", "description": "Essential conditions and resources (nouns) needed for capabilities" },
+      "critical_vulnerabilities": { "label": "Critical Vulnerabilities", "description": "Weaknesses that can be exploited with Impact/Attainability/Follow-up scoring" },
+      "network_analysis": { "label": "Network Analysis", "description": "Visualize relationships and calculate centrality measures" }
+    }
+  },
+  "pmesii-pt": {
+     "title": "PMESII-PT Analysis",
+     "description": "Political, Military, Economic, Social, Information, Infrastructure, Physical Environment, Time",
+     "context": "PMESII-PT is a comprehensive operational environment assessment framework used primarily by military and intelligence organizations. It examines Political, Military, Economic, Social, Information, Infrastructure, Physical Environment, and Time factors. Developed by the U.S. military for operational planning, PMESII-PT provides a holistic view of complex operational environments, enabling better understanding of interconnected systems and potential second-order effects of actions.",
+     "wikipediaUrl": "https://en.wikipedia.org/wiki/PMESII-PT",
+     "goodUseCases": [
+      "Military operational planning and mission analysis",
+      "Stability operations and nation-building assessments",
+      "Humanitarian assistance and disaster response planning",
+      "Complex emergencies requiring multi-domain understanding",
+      "Peacekeeping mission planning and assessment",
+      "Regional analysis for diplomatic or development initiatives"
+    ],
+    "notIdealFor": [
+      "Simple business decisions or commercial applications",
+      "Individual-level analysis or personal planning",
+      "Short-term tactical problems (hours to days)",
+      "Technology-focused product development",
+      "Problems limited to a single domain or sector"
+    ],
+     "sections": {
+        "political": { "label": "Political", "description": "Political structures and governance" },
+        "military": { "label": "Military", "description": "Military capabilities and posture" },
+        "economic": { "label": "Economic", "description": "Economic systems and resources" },
+        "social": { "label": "Social", "description": "Social structures and demographics" },
+        "information": { "label": "Information", "description": "Information systems and flow" },
+        "infrastructure": { "label": "Infrastructure", "description": "Physical and organizational infrastructure" },
+        "physical": { "label": "Physical Environment", "description": "Geography, terrain, and climate" },
+        "time": { "label": "Time", "description": "Temporal factors and timing" }
+     }
+  },
+  "dotmlpf": {
+    "title": "DOTMLPF Analysis",
+    "description": "Doctrine, Organization, Training, Material, Leadership, Personnel, Facilities",
+    "context": "DOTMLPF examines organizational capability through seven domains: Doctrine, Organization, Training, Material, Leadership, Personnel, and Facilities. Developed by the U.S. Department of Defense for capability-based planning, DOTMLPF ensures comprehensive assessment of what's needed to achieve organizational objectives. This framework is particularly valuable for identifying gaps and planning improvements across all aspects of organizational capability.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/DOTMLPF",
+    "goodUseCases": [
+      "Military capability development and gap analysis",
+      "Organizational transformation and modernization",
+      "Comprehensive readiness assessments",
+      "Requirements definition for new capabilities",
+      "Training program development and assessment",
+      "Resource allocation across multiple domains"
+    ],
+    "notIdealFor": [
+      "External market or competitor analysis",
+      "Customer-focused or user experience problems",
+      "Strategic positioning or business model innovation",
+      "Financial planning or investment analysis",
+      "Policy development or regulatory compliance"
+    ],
+    "sections": {
+       "doctrine": { "label": "Doctrine", "description": "Fundamental principles and tactics" },
+       "organization": { "label": "Organization", "description": "Organizational structure and design" },
+       "training": { "label": "Training", "description": "Training programs and readiness" },
+       "material": { "label": "Material", "description": "Equipment and technology" },
+       "leadership": { "label": "Leadership", "description": "Leadership capabilities and development" },
+       "personnel": { "label": "Personnel", "description": "Personnel management and resources" },
+       "facilities": { "label": "Facilities", "description": "Physical facilities and installations" }
+    }
+  },
+  "dime": {
+    "title": "DIME Framework",
+    "description": "Diplomatic, Information, Military, Economic",
+    "context": "DIME analyzes instruments of national power through four categories: Diplomatic, Information, Military, and Economic. Used extensively in national security and foreign policy analysis, DIME helps evaluate how nations or actors employ different forms of power to achieve objectives. This framework is essential for understanding statecraft, influence operations, and strategic competition in the international arena.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/Instruments_of_national_power",
+    "goodUseCases": [
+      "National security strategy development",
+      "Foreign policy analysis and planning",
+      "Understanding state-level competition and conflict",
+      "Sanctions planning and economic statecraft",
+      "Information operations and influence campaign analysis",
+      "Assessing adversary intentions and capabilities"
+    ],
+    "notIdealFor": [
+      "Non-state actor analysis (corporations, NGOs)",
+      "Internal organizational problems or development",
+      "Technical or product-level analysis",
+      "Individual or small-group behavior analysis",
+      "Commercial business strategy without geopolitical context"
+    ],
+    "sections": {
+      "diplomatic": { "label": "Diplomatic", "description": "Diplomatic relationships and negotiations" },
+      "information": { "label": "Information", "description": "Information operations and intelligence" },
+      "military": { "label": "Military", "description": "Military capabilities and operations" },
+      "economic": { "label": "Economic", "description": "Economic power and sanctions" }
+    }
+  },
+  "stakeholder": {
+    "title": "Stakeholder Analysis",
+    "description": "Power/Interest Matrix - Comprehensive stakeholder mapping and engagement planning",
+    "context": "Stakeholder Analysis identifies and assesses individuals, groups, or organizations that affect or are affected by a project, policy, or decision. By mapping stakeholders based on their power and interest, this framework helps prioritize engagement strategies and manage relationships effectively. Originally developed in business management, stakeholder analysis is now used across project management, policy development, and change management initiatives.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/Stakeholder_analysis",
+    "goodUseCases": [
+      "Project planning and stakeholder engagement strategy",
+      "Change management and organizational transformation",
+      "Policy development requiring multi-stakeholder buy-in",
+      "Crisis management and communication planning",
+      "Community engagement for development projects",
+      "Political analysis and coalition building"
+    ],
+    "notIdealFor": [
+      "Technical problems without social/political dimensions",
+      "Individual decision-making without stakeholder impact",
+      "Purely analytical or research-focused work",
+      "Situations with very few stakeholders",
+      "Time-sensitive decisions requiring immediate action"
+    ],
+    "sections": {
+      "high_power_high_interest": { "label": "Key Players", "description": "High Power, High Interest - Manage Closely: Engage actively, involve in decisions, build strong relationships" },
+      "high_power_low_interest": { "label": "Keep Satisfied", "description": "High Power, Low Interest - Keep Satisfied: Regular updates, ensure concerns addressed, maintain goodwill" },
+      "low_power_high_interest": { "label": "Keep Informed", "description": "Low Power, High Interest - Keep Informed: Regular communication, leverage as advocates, consult on issues" },
+      "low_power_low_interest": { "label": "Monitor", "description": "Low Power, Low Interest - Monitor: Minimal effort, periodic updates, watch for changes in status" }
+    }
+  },
+  "deception": {
+    "title": "Deception Detection (SATS)",
+    "description": "CIA Structured Analytic Techniques for detecting deception - based on Richards J. Heuer Jr. methodology",
+    "context": "The CIA's Structured Analytic Techniques for Deception Detection, based on Richards J. Heuer Jr.'s methodology, provides a systematic approach to identifying potential deception using four key assessments: MOM (Motive, Opportunity, Means), POP (Patterns of Practice), MOSES (My Own Sources), and EVE (Evaluation of Evidence). This framework helps analysts overcome cognitive biases and rigorously evaluate whether information might be deliberately misleading.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/Analysis_of_competing_hypotheses",
+    "goodUseCases": [
+      "Intelligence analysis of potentially deceptive information",
+      "Counterintelligence and security investigations",
+      "Evaluating adversary information operations",
+      "Due diligence for high-stakes business transactions",
+      "Fraud detection and forensic accounting",
+      "Assessing propaganda and disinformation campaigns"
+    ],
+    "notIdealFor": [
+      "Routine information verification without deception risk",
+      "Collaborative environments built on trust",
+      "Creative or exploratory analysis phases",
+      "Time-sensitive decisions requiring quick action",
+      "Problems without clear adversarial dynamics"
+    ],
+    "sections": {
+      "scenario": { "label": "Scenario", "description": "Describe the information or situation being analyzed for potential deception" },
+      "mom": { "label": "MOM (Motive, Opportunity, Means)", "description": "Assess whether the adversary has motive, opportunity, and means to deceive" },
+      "pop": { "label": "POP (Patterns of Practice)", "description": "Examine historical deception patterns of this actor" },
+      "moses": { "label": "MOSES (My Own Sources)", "description": "Evaluate vulnerability of your information sources to manipulation" },
+      "eve": { "label": "EVE (Evaluation of Evidence)", "description": "Assess internal consistency and corroboration of evidence" },
+      "assessment": { "label": "Overall Assessment", "description": "Synthesize findings and determine deception likelihood" }
+    }
+  },
+  "behavior": {
+    "title": "Behavior Analysis",
+    "description": "Objective documentation of behaviors in specific locations/contexts (based on U.S. Army FM TM 3-53.11)",
+    "context": "Behavior Analysis provides objective documentation and analysis of behaviors in specific locations or contexts, based on U.S. Army Field Manual TM 3-53.11. This framework focuses on WHAT behavior occurs, WHERE, WHEN, and HOW, without bias toward any specific target audience. It maps behavior timelines with interactive sequences and forks, identifies environmental factors, documents objective barriers and facilitators, analyzes consequences, and identifies potential target audiences. This analysis serves as the foundation for subsequent target-audience-specific COM-B assessments.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/Behavior_modification",
+    "goodUseCases": [
+      "Documenting behaviors in military/intelligence operations",
+      "Objective behavior mapping for public health campaigns",
+      "Environmental and contextual analysis of behaviors",
+      "Identifying target audiences for behavior change initiatives",
+      "Foundation for influence operations planning",
+      "Understanding behavior patterns in communities",
+      "Mapping behavior sequences and alternative paths"
+    ],
+    "notIdealFor": [
+      "Target-audience-specific capability assessment (use COM-B Analysis)",
+      "Intervention design (use COM-B Analysis with BCW)",
+      "Individual therapy or counseling",
+      "Financial or economic analysis",
+      "Technology systems without human behavior",
+      "Purely attitudinal assessments"
+    ],
+    "sections": {
+      "basic_info": { "label": "Basic Information", "description": "Define the behavior and context being analyzed (WHAT behavior, WHERE, WHEN)" },
+      "timeline": { "label": "Behavior Timeline", "description": "Document when, where, and how long the behavior occurs (interactive timeline with forks)" },
+      "environmental_factors": { "label": "Environmental Factors", "description": "Physical and environmental context. What infrastructure, resources, and accessibility factors exist?" },
+      "social_context": { "label": "Social and Cultural Context", "description": "Cultural norms, social influences, and community dynamics around this behavior." },
+      "consequences": { "label": "Consequences and Outcomes", "description": "What happens after someone performs this behavior? Rewards, costs, outcomes." },
+      "symbols": { "label": "Symbols and Signals", "description": "Visual, auditory, or social cues associated with this behavior." },
+      "observed_patterns": { "label": "Observed Patterns", "description": "Variations and patterns in how different people perform this behavior." },
+      "potential_audiences": { "label": "Potential Target Audiences", "description": "Who performs this behavior? Who could but doesn't? Identify audience segments for COM-B Analysis." }
+    }
+  },
+  "comb-analysis": {
+    "title": "COM-B Analysis (Behaviour Change Wheel)",
+    "description": "Target-audience-specific assessment using the COM-B model and Behaviour Change Wheel methodology",
+    "context": "COM-B Analysis applies the Behaviour Change Wheel methodology (Michie et al., 2011) to assess a SPECIFIC target audience's Capability, Opportunity, and Motivation to perform a defined behavior. This target-audience-specific framework evaluates six COM-B components (Physical/Psychological Capability, Physical/Social Opportunity, Reflective/Automatic Motivation) and automatically generates evidence-based intervention recommendations from 9 intervention functions and 7 policy categories. Each analysis links to an objective Behavior Analysis and focuses on one target audience, enabling multiple COM-B analyses for different audiences performing the same behavior.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/Behavior_modification",
+    "goodUseCases": [
+      "Target-audience-specific behavior change interventions",
+      "Public health campaign design with specific populations",
+      "Military influence operations targeting defined audiences",
+      "Social marketing for segmented demographics",
+      "Organizational change initiatives for employee groups",
+      "Health promotion programs for specific communities",
+      "Evidence-based intervention selection using BCW methodology",
+      "Policy development for behavior change at scale"
+    ],
+    "notIdealFor": [
+      "Objective behavior documentation (use Behavior Analysis)",
+      "Multi-audience analysis without segmentation",
+      "Situations without defined target audience",
+      "Individual clinical therapy or counseling",
+      "Technology or systems analysis",
+      "Financial or economic decisions",
+      "Problems not involving behavior change"
+    ],
+    "sections": {
+      "setup": { "label": "Analysis Setup", "description": "Link to behavior and define target audience" },
+      "target_audience": { "label": "Target Audience Definition", "description": "Demographics, psychographics, current relationship to behavior" },
+      "physical_capability": { "label": "Physical Capability Assessment", "description": "Does this audience have the physical skills, strength, stamina needed?" },
+      "psychological_capability": { "label": "Psychological Capability Assessment", "description": "Does this audience have the knowledge, cognitive skills, comprehension needed?" },
+      "physical_opportunity": { "label": "Physical Opportunity Assessment", "description": "Does this audience have access to environmental factors, time, resources, infrastructure?" },
+      "social_opportunity": { "label": "Social Opportunity Assessment", "description": "Do cultural norms, social cues, peer influence support this audience?" },
+      "reflective_motivation": { "label": "Reflective Motivation Assessment", "description": "Do this audience's beliefs, intentions, goals, identity align with the behavior?" },
+      "automatic_motivation": { "label": "Automatic Motivation Assessment", "description": "Do this audience's emotions, impulses, habits, desires support the behavior?" },
+      "contextual_factors": { "label": "Contextual Factors", "description": "Environmental, cultural, or situational factors affecting this audience" },
+      "assumptions": { "label": "Assumptions", "description": "What assumptions were made during this assessment?" },
+      "limitations": { "label": "Limitations", "description": "What are the limitations of this analysis?" }
+    }
+  },
+  "starbursting": {
+    "title": "Starbursting",
+    "description": "Question-based brainstorming technique",
+    "context": "Starbursting is a creative brainstorming technique that generates questions rather than answers. By systematically asking Who, What, When, Where, Why, and How questions about a topic, starbursting helps uncover gaps in understanding, identify research needs, and ensure comprehensive analysis. This technique, developed as part of creative problem-solving methodologies, is particularly valuable in early stages of planning and analysis.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/Brainstorming#Variations",
+    "goodUseCases": [
+      "Initial project planning and scoping",
+      "Research question development",
+      "Requirements gathering for new initiatives",
+      "Problem definition and exploration",
+      "Gap analysis and information needs assessment",
+      "Creative ideation and concept development"
+    ],
+    "notIdealFor": [
+      "Final decision-making or solution selection",
+      "Detailed implementation planning",
+      "Problems where questions are already well-defined",
+      "Quantitative analysis or calculations",
+      "Situations requiring immediate answers rather than questions"
+    ],
+    "sections": {
+      "who": { "label": "Who Questions", "description": "Questions about people and stakeholders" },
+      "what": { "label": "What Questions", "description": "Questions about the subject matter" },
+      "when": { "label": "When Questions", "description": "Questions about timing and schedule" },
+      "where": { "label": "Where Questions", "description": "Questions about location and place" },
+      "why": { "label": "Why Questions", "description": "Questions about reasons and motivations" },
+      "how": { "label": "How Questions", "description": "Questions about methods and processes" }
+    }
+  },
+  "causeway": {
+    "title": "Causeway Analysis",
+    "description": "6-stage structured COG methodology: Identify threats, map critical capabilities/requirements, and determine leverage points for influence operations",
+    "context": "Causeway Analysis uses the PUTAR methodology (Problem, Undesired Actor, Target Audience, Remedy, Story) to analyze threats and develop influence operations strategies. This framework systematically identifies critical capabilities, requirements, and proximate targets that can be influenced to counter adversary actions. Developed for military information operations, Causeway provides a structured approach to understanding and disrupting adversary capabilities.",
+    "goodUseCases": [
+      "Counter-terrorism and counter-insurgency operations",
+      "Influence operations and strategic communications",
+      "Threat network analysis and disruption",
+      "Understanding adversary decision-making processes",
+      "Developing targeted messaging campaigns",
+      "Strategic competition and gray zone operations"
+    ],
+    "notIdealFor": [
+      "Collaborative or partnership-based initiatives",
+      "Commercial business strategy without adversaries",
+      "Internal organizational development",
+      "Technical or scientific analysis",
+      "Problems without clear adversarial actors"
+    ],
+    "sections": {
+      "threat_id": { "label": "Threat Identification", "description": "Define the issue and location being analyzed" },
+      "problem": { "label": "Problem (P)", "description": "What is the specific problem or threat behavior?" },
+      "undesired_actor": { "label": "Undesired Actor (U)", "description": "Who is the adversary or actor of responsibility causing this problem?" },
+      "target_audience": { "label": "Target Audience (TA)", "description": "What audiences can be influenced to counter this threat?" },
+      "remedy": { "label": "Remedy (R)", "description": "What is the desired end state or solution?" },
+      "story": { "label": "Story (S)", "description": "What narrative or messaging supports the remedy?" },
+      "critical_capabilities": { "label": "Critical Capabilities", "description": "What capabilities enable the undesired actor to execute the threat?" },
+      "critical_requirements": { "label": "Critical Requirements", "description": "What essential conditions, resources, or dependencies support these capabilities?" },
+      "proximate_targets": { "label": "Proximate Targets", "description": "What tangible entities can be influenced or targeted to disrupt critical requirements?" }
+    }
+  },
+  "surveillance": {
+    "title": "Surveillance Framework (ISR Collection Planning)",
+    "description": "Intelligence, Surveillance, and Reconnaissance operations planning based on RAND Strategies-to-Tasks methodology",
+    "context": "The Surveillance Framework, based on RAND's Strategies-to-Tasks methodology, provides a systematic approach to planning and executing Intelligence, Surveillance, and Reconnaissance (ISR) operations. It links collection targets to operational tasks, objectives, and commander's guidance with relative utilities. This framework enables intelligence officers to rapidly analyze costs and benefits of ISR collection strategies, prioritize competing tasks, and allow flexible real-time changes to plans. ISR is the coordinated and integrated acquisition, processing, and provision of timely, accurate, relevant, coherent information to support commanders' conduct of activities.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/Intelligence,_surveillance,_target_acquisition,_and_reconnaissance",
+    "goodUseCases": [
+      "Military ISR operations planning and execution",
+      "Collection asset allocation and optimization",
+      "Priority Intelligence Requirements (PIR) management",
+      "Real-time ISR retasking for emerging targets",
+      "Multi-sensor coordination and fusion planning",
+      "Intelligence requirements to collection mapping"
+    ],
+    "notIdealFor": [
+      "Strategic policy analysis without operational focus",
+      "Historical intelligence assessment",
+      "Pure analytical problems without collection component",
+      "Situations without defined operational objectives",
+      "Analysis where collection assets are unavailable"
+    ],
+    "sections": {
+      "commanders_guidance": { "label": "Commander's Guidance", "description": "Top-level strategic objectives and operational priorities" },
+      "intelligence_requirements": { "label": "Intelligence Requirements", "description": "Priority Intelligence Requirements (PIRs) and Essential Elements of Information (EEIs)" },
+      "collection_strategies": { "label": "Collection Strategies", "description": "Methods, platforms, and approaches for information gathering" },
+      "surveillance_targets": { "label": "Surveillance Targets", "description": "Entities, locations, or activities requiring persistent monitoring" },
+      "reconnaissance_tasks": { "label": "Reconnaissance Tasks", "description": "Specific information-gathering missions to answer intelligence questions" },
+      "collection_assets": { "label": "Collection Assets", "description": "Available sensors, platforms, and resources for ISR operations" },
+      "processing_plan": { "label": "Information Processing", "description": "Analysis, fusion, and integration procedures" },
+      "dissemination": { "label": "Dissemination Plan", "description": "Intelligence sharing and distribution procedures" }
+    }
+  },
+  "fundamental-flow": {
+    "title": "Fundamental Flow Analysis",
+    "description": "Intelligence cycle and information flow analysis for process optimization",
+    "context": "Fundamental Flow Analysis examines the intelligence cycle and information flow through all stages: Planning & Direction, Collection, Processing, Exploitation & Production, Dissemination, and Feedback. This framework identifies bottlenecks, measures efficiency, and optimizes the flow of information from raw data to finished intelligence. By mapping complete information paths and measuring timeliness, accuracy, and relevance at each stage, organizations can improve intelligence production processes, reduce delays, and enhance the value delivered to consumers. This framework is essential for intelligence process improvement and optimization initiatives.",
+    "wikipediaUrl": "https://en.wikipedia.org/wiki/Intelligence_cycle_management",
+    "goodUseCases": [
+      "Intelligence process optimization and improvement",
+      "Bottleneck identification in intelligence production",
+      "Information flow mapping and analysis",
+      "Intelligence cycle efficiency assessment",
+      "Collection-to-dissemination timeline reduction",
+      "Quality assurance and process maturity evaluation"
+    ],
+    "notIdealFor": [
+      "Individual intelligence analysis tasks",
+      "Tactical operational planning",
+      "Content-focused analysis (use ACH, SWOT, etc.)",
+      "Short-term or ad-hoc intelligence requests",
+      "Situations where process improvement is not the focus"
+    ],
+    "sections": {
+      "planning_direction": { "label": "Planning & Direction", "description": "Requirements definition and collection priorities" },
+      "collection": { "label": "Collection", "description": "Information gathering from various sources and methods" },
+      "processing": { "label": "Processing", "description": "Converting raw data into usable formats and structures" },
+      "exploitation_production": { "label": "Exploitation & Production", "description": "Analysis and intelligence product creation" },
+      "dissemination": { "label": "Dissemination", "description": "Distribution of intelligence to consumers and stakeholders" },
+      "feedback_evaluation": { "label": "Feedback & Evaluation", "description": "Assessment of intelligence value and process effectiveness" },
+      "information_sources": { "label": "Information Sources", "description": "Catalog of available information feeds and collection capabilities" },
+      "flow_metrics": { "label": "Flow Metrics", "description": "Timeliness, accuracy, relevance, and efficiency measurements" }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { useState, memo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check, Download, FileJson, Users, MapPin, Calendar } from 'lucide-react'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { createLogger } from '@/lib/logger'
@@ -138,6 +139,7 @@ const SectionCard = memo(({
   questionEvidence?: { [questionId: string]: LinkedEvidence[] }
   onRemoveQuestionEvidence?: (questionId: string, evidence: LinkedEvidence) => void
 }) => {
+  const { t } = useTranslation('frameworks')
   const isQA = itemType === 'qa'
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editQuestion, setEditQuestion] = useState('')
@@ -186,9 +188,9 @@ const SectionCard = memo(({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <span className="text-2xl">{section.icon}</span>
-          {section.label}
+          {t(`${frameworkType}.sections.${section.key}.label`, section.label)}
         </CardTitle>
-        <CardDescription>{section.description}</CardDescription>
+        <CardDescription>{t(`${frameworkType}.sections.${section.key}.description`, section.description)}</CardDescription>
 
         {/* Guided Questions / Template Questions */}
         {section.promptQuestions && section.promptQuestions.length > 0 && (
@@ -636,6 +638,7 @@ export function GenericFrameworkForm({
   frameworkId
 }: GenericFrameworkFormProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation('frameworks')
   const { currentWorkspaceId } = useWorkspace()
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -1666,7 +1669,7 @@ export function GenericFrameworkForm({
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {mode === 'create' ? 'Create' : 'Edit'} {frameworkTitle}
+              {mode === 'create' ? 'Create' : 'Edit'} {t(`${frameworkType}.title`, frameworkTitle)}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
               {frameworkType} framework analysis
@@ -1829,7 +1832,7 @@ export function GenericFrameworkForm({
               Import Sources
             </CardTitle>
             <CardDescription>
-              Import analysis from URLs to auto-populate {frameworkTitle} dimensions with extracted insights
+              Import analysis from URLs to auto-populate {t(`${frameworkType}.title`, frameworkTitle)} dimensions with extracted insights
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

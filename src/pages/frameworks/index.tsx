@@ -63,7 +63,7 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 export const SwotPage = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['common', 'frameworks'])
   const { currentWorkspaceId } = useWorkspace()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -364,10 +364,10 @@ export const SwotPage = () => {
   }
 
   const frameworkKey = 'swot'
-  const frameworkContext = t(`frameworkDescriptions.${frameworkKey}.context`)
-  const frameworkWikipediaUrl = t(`frameworkDescriptions.${frameworkKey}.wikipediaUrl`, { defaultValue: null })
-  const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true }) as string[]
-  const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true }) as string[]
+  const frameworkContext = t(`frameworks:${frameworkKey}.context`)
+  const frameworkWikipediaUrl = t(`frameworks:${frameworkKey}.wikipediaUrl`, { defaultValue: null })
+  const frameworkGoodUseCases = t(`frameworks:${frameworkKey}.goodUseCases`, { returnObjects: true }) as string[]
+  const frameworkNotIdealFor = t(`frameworks:${frameworkKey}.notIdealFor`, { returnObjects: true }) as string[]
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -651,7 +651,7 @@ export const SwotPage = () => {
 
 // Generic Framework Page with full CRUD
 const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['common', 'frameworks'])
   const { currentWorkspaceId } = useWorkspace()
   const config = frameworkConfigs[frameworkKey]
   const [analyses, setAnalyses] = useState<any[]>([])
@@ -845,12 +845,12 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     }
   }
 
-  const frameworkTitle = t(`frameworkDescriptions.${frameworkKey}.title`, { defaultValue: config.title })
-  const frameworkDescription = t(`frameworkDescriptions.${frameworkKey}.context`, { defaultValue: config.description })
-  const frameworkContext = t(`frameworkDescriptions.${frameworkKey}.context`, { defaultValue: '' })
-  const frameworkWikipediaUrl = t(`frameworkDescriptions.${frameworkKey}.wikipediaUrl`, { defaultValue: null })
-  const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true, defaultValue: [] }) as string[]
-  const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true, defaultValue: [] }) as string[]
+  const frameworkTitle = t(`frameworks:${frameworkKey}.title`, { defaultValue: config.title })
+  const frameworkDescription = t(`frameworks:${frameworkKey}.context`, { defaultValue: config.description })
+  const frameworkContext = t(`frameworks:${frameworkKey}.context`, { defaultValue: '' })
+  const frameworkWikipediaUrl = t(`frameworks:${frameworkKey}.wikipediaUrl`, { defaultValue: null })
+  const frameworkGoodUseCases = t(`frameworks:${frameworkKey}.goodUseCases`, { returnObjects: true, defaultValue: [] }) as string[]
+  const frameworkNotIdealFor = t(`frameworks:${frameworkKey}.notIdealFor`, { returnObjects: true, defaultValue: [] }) as string[]
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -1021,7 +1021,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
 
 // Generic Framework List Component (for frameworks not yet implemented)
 const FrameworkListPage = ({ title, description, frameworkType }: { title: string; description: string; frameworkType: string }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['common', 'frameworks'])
   const [searchTerm, setSearchTerm] = useState('')
   const navigate = useNavigate()
   const { id, action } = useParams()
@@ -1088,7 +1088,7 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
 }
 
 export const CogPage = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['common', 'frameworks'])
   const { currentWorkspaceId } = useWorkspace()
   const config = frameworkConfigs['cog']
   const [analyses, setAnalyses] = useState<any[]>([])
@@ -1356,8 +1356,8 @@ export const CogPage = () => {
 
   // Get translations for COG framework
   const { t: tCog } = useTranslation('cog')
-  const cogTitle = t(`frameworkDescriptions.cog.title`, { defaultValue: config.title })
-  const cogDescription = t(`frameworkDescriptions.cog.context`, { defaultValue: config.description })
+  const cogTitle = t(`frameworks:cog.title`, { defaultValue: config.title })
+  const cogDescription = t(`frameworks:cog.context`, { defaultValue: config.description })
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -1596,7 +1596,7 @@ export const PmesiiPtPage = () => <GenericFrameworkPage frameworkKey="pmesii-pt"
 export const DotmlpfPage = () => <GenericFrameworkPage frameworkKey="dotmlpf" />
 
 export const DeceptionPage = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['common', 'frameworks'])
   const { currentWorkspaceId } = useWorkspace()
   const config = frameworkConfigs['deception']
   const [analyses, setAnalyses] = useState<any[]>([])
@@ -1786,10 +1786,10 @@ export const DeceptionPage = () => {
   }
 
   const frameworkKey = 'deception'
-  const frameworkContext = t(`frameworkDescriptions.${frameworkKey}.context`)
-  const frameworkWikipediaUrl = t(`frameworkDescriptions.${frameworkKey}.wikipediaUrl`, { defaultValue: null })
-  const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true }) as string[]
-  const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true }) as string[]
+  const frameworkContext = t(`frameworks:${frameworkKey}.context`)
+  const frameworkWikipediaUrl = t(`frameworks:${frameworkKey}.wikipediaUrl`, { defaultValue: null })
+  const frameworkGoodUseCases = t(`frameworks:${frameworkKey}.goodUseCases`, { returnObjects: true }) as string[]
+  const frameworkNotIdealFor = t(`frameworks:${frameworkKey}.notIdealFor`, { returnObjects: true }) as string[]
 
   // Get translations for deception framework
   const { t: tDeception } = useTranslation('deception')
