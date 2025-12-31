@@ -1597,6 +1597,7 @@ export const DotmlpfPage = () => <GenericFrameworkPage frameworkKey="dotmlpf" />
 
 export const DeceptionPage = () => {
   const { t } = useTranslation(['common', 'frameworks'])
+  const { t: tDeception } = useTranslation('deception')
   const { currentWorkspaceId } = useWorkspace()
   const config = frameworkConfigs['deception']
   const [analyses, setAnalyses] = useState<any[]>([])
@@ -1790,9 +1791,6 @@ export const DeceptionPage = () => {
   const frameworkWikipediaUrl = t(`frameworkDescriptions.${frameworkKey}.wikipediaUrl`, { defaultValue: null })
   const frameworkGoodUseCases = t(`frameworkDescriptions.${frameworkKey}.goodUseCases`, { returnObjects: true, defaultValue: [] }) as string[]
   const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true, defaultValue: [] }) as string[]
-
-  // Get translations for deception framework
-  const { t: tDeception } = useTranslation('deception')
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
