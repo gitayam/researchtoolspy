@@ -125,9 +125,72 @@ All pages have `useTranslation` implemented and are considered fully translated.
 
 ---
 
+## AI-Generated Content Translation
+
+The application also supports translating AI-generated analysis output to the user's selected language.
+
+### Supported Features
+
+| Feature | Status | Implementation |
+|---------|--------|----------------|
+| Deception Analysis (CIA SATS) | ✅ Full | `ai-deception-analysis.ts` |
+| URL Scraper Extraction | ✅ Full | `scrape-url.ts` |
+| Content Intelligence | ✅ Full | Various CI endpoints |
+
+### How It Works
+
+1. **Frontend** passes the current `i18n.language` to API endpoints
+2. **Backend** includes explicit language instructions in AI prompts
+3. **Cache keys** include language to prevent mixed-language responses
+4. Language instructions are placed in both system prompts and user prompts for reinforcement
+
+### Language Instruction Pattern
+
+```typescript
+function getLanguageInstruction(languageCode?: string): string {
+  if (!languageCode || languageCode === 'en') return ''
+  const languageName = LANGUAGE_NAMES[languageCode]
+  return `
+=== CRITICAL LANGUAGE REQUIREMENT ===
+You MUST write ALL text output in ${languageName}.
+This is NON-NEGOTIABLE. Every string value in your JSON response MUST be in ${languageName}.
+- "scenario" field: Write in ${languageName}
+- All array items: Write in ${languageName}
+- All questions/answers: Write in ${languageName}
+DO NOT write in English. Write EVERYTHING in ${languageName}.
+=== END LANGUAGE REQUIREMENT ===
+`
+}
+```
+
+### Supported Languages for AI Output
+
+| Code | Language |
+|------|----------|
+| en | English |
+| es | Spanish (Español) |
+| fr | French (Français) |
+| de | German (Deutsch) |
+| pt | Portuguese (Português) |
+| it | Italian (Italiano) |
+| zh | Chinese (中文) |
+| ja | Japanese (日本語) |
+| ko | Korean (한국어) |
+| ar | Arabic (العربية) |
+| ru | Russian (Русский) |
+
+---
+
 ## Recent Updates
 
-### December 29, 2025 (Latest)
+### December 31, 2025 (Latest)
+- **Added AI-generated content translation support**
+- URL Scraper now respects user's language preference for all AI output
+- Deception Analysis outputs in user's selected language
+- Cache keys include language to prevent mixed-language cached responses
+- Fixed language persistence issue on browser refresh (sync from user settings)
+
+### December 29, 2025
 - **Completed all page translations!**
 - This marks the end of the translation effort for all pages in the application.
 - All pages listed in `TRANSLATIONS.md` are now fully translated with i18n support.
