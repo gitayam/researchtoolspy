@@ -85,15 +85,20 @@ export function DeceptionScoringForm({
     checkAIAvailability().then(setAiAvailable)
   }, [])
 
-  // Recalculate assessment when scores change
+  // Recalculate assessment when scores change (only update local state, NOT parent)
   useEffect(() => {
     const newAssessment = calculateDeceptionLikelihood(scores)
     setAssessment(newAssessment)
-    onScoresChange?.(scores, newAssessment)
+    // NOTE: Do NOT call onScoresChange here - causes infinite loops!
+    // Parent is notified via handleScoreChange when user interacts
   }, [scores])
 
   const handleScoreChange = (criterion: keyof DeceptionScores, value: number[]) => {
-    setScores(prev => ({ ...prev, [criterion]: value[0] }))
+    const newScores = { ...scores, [criterion]: value[0] }
+    setScores(newScores)
+    // Notify parent of score change (triggered by user action, not effect)
+    const newAssessment = calculateDeceptionLikelihood(newScores)
+    onScoresChange?.(newScores, newAssessment)
   }
 
   const handleAIAssist = async () => {
@@ -104,6 +109,8 @@ export function DeceptionScoringForm({
         outputLanguage: i18n.language
       })
       setScores(aiAnalysis.scores)
+      // Notify parent of AI-generated scores (triggered by user action, not effect)
+      onScoresChange?.(aiAnalysis.scores, aiAnalysis.assessment)
       onAIAnalysisComplete?.(aiAnalysis)
     } catch (error) {
       console.error('AI analysis failed:', error)
