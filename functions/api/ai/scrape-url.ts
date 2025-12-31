@@ -17,6 +17,43 @@ interface Env {
 interface ScrapeRequest {
   url: string
   framework: string
+  language?: string
+}
+
+// Language name mapping for AI prompts
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  es: 'Spanish (Español)',
+  fr: 'French (Français)',
+  de: 'German (Deutsch)',
+  pt: 'Portuguese (Português)',
+  it: 'Italian (Italiano)',
+  zh: 'Chinese (中文)',
+  ja: 'Japanese (日本語)',
+  ko: 'Korean (한국어)',
+  ar: 'Arabic (العربية)',
+  ru: 'Russian (Русский)',
+}
+
+// Generate language instruction for AI prompts
+function getLanguageInstruction(languageCode?: string): string {
+  if (!languageCode || languageCode === 'en') {
+    return ''
+  }
+  const languageName = LANGUAGE_NAMES[languageCode] || languageCode
+  return `
+
+=== CRITICAL LANGUAGE REQUIREMENT ===
+You MUST write ALL text output in ${languageName}.
+This is NON-NEGOTIABLE. Every string value in your JSON response MUST be in ${languageName}.
+- "scenario" field: Write in ${languageName}
+- All array items: Write in ${languageName}
+- All questions: Write in ${languageName}
+- All answers: Write in ${languageName}
+- All descriptions: Write in ${languageName}
+DO NOT write in English. Write EVERYTHING in ${languageName}.
+=== END LANGUAGE REQUIREMENT ===
+`
 }
 
 interface ScrapeResponse {
@@ -243,9 +280,9 @@ Extract SWOT elements. Return ONLY valid JSON:
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const request = await context.request.json() as ScrapeRequest
-    const { url, framework } = request
+    const { url, framework, language } = request
 
-    console.log(`[Scrape] Starting scrape for URL: ${url}, framework: ${framework}`)
+    console.log(`[Scrape] Starting scrape for URL: ${url}, framework: ${framework}, language: ${language || 'en'}`)
 
     if (!url || !framework) {
       return new Response(JSON.stringify({ error: 'URL and framework are required' }), {
@@ -253,6 +290,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         headers: { 'Content-Type': 'application/json' }
       })
     }
+
+    // Get language instruction for AI prompts
+    const languageInstruction = getLanguageInstruction(language)
 
     // Validate URL
     let parsedUrl: URL
@@ -266,7 +306,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // KV Cache Check - save costs by caching AI responses
-    const cacheKey = `scrape:${url}:${framework}`
+    // Include language in cache key so different languages are cached separately
+    const cacheKey = `scrape:${url}:${framework}:${language || 'en'}`
     const cached = await context.env.CACHE.get(cacheKey, 'json')
     if (cached) {
       console.log(`[Scrape] Cache HIT for ${cacheKey}`)
@@ -429,16 +470,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // First, get summary
     console.log('[AI Scrape] Generating summary via AI Gateway...')
+    const summarySystemPrompt = language && language !== 'en'
+      ? `You are a concise summarization assistant. Summarize articles in 2-3 sentences. ${languageInstruction}`
+      : 'You are a concise summarization assistant. Summarize articles in 2-3 sentences.'
+
     const summaryData = await callOpenAIViaGateway(context.env, {
       model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: 'You are a concise summarization assistant. Summarize articles in 2-3 sentences.'
+          content: summarySystemPrompt
         },
         {
           role: 'user',
-          content: `Summarize this article:\n\n${content.substring(0, 10000)}`
+          content: `Summarize this article:\n\n${content.substring(0, 10000)}${languageInstruction}`
         }
       ],
       max_completion_tokens: 500
@@ -473,17 +518,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.log(`Extracting ${framework} data from URL: ${url}`)
       console.log(`[AI Scrape] Extracting framework data via AI Gateway...`)
 
+      // Build system prompt with language instruction if needed
+      const extractSystemPrompt = language && language !== 'en'
+        ? `You are an expert intelligence analyst and data extraction assistant. Extract specific, factual information from articles and structure it as valid JSON. CRITICAL: Generate questions that include the specific article title, dates, entity names, and event names. NEVER use pronouns like "this", "it", "the article" - always use specific references. Questions must be self-contained and understandable without seeing the article. Be precise and thorough. Return ONLY valid JSON, no other text or explanations.${languageInstruction}`
+        : 'You are an expert intelligence analyst and data extraction assistant. Extract specific, factual information from articles and structure it as valid JSON. CRITICAL: Generate questions that include the specific article title, dates, entity names, and event names. NEVER use pronouns like "this", "it", "the article" - always use specific references. Questions must be self-contained and understandable without seeing the article. Be precise and thorough. Return ONLY valid JSON, no other text or explanations.'
+
       try {
         const extractData = await callOpenAIViaGateway(context.env, {
           model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
-              content: 'You are an expert intelligence analyst and data extraction assistant. Extract specific, factual information from articles and structure it as valid JSON. CRITICAL: Generate questions that include the specific article title, dates, entity names, and event names. NEVER use pronouns like "this", "it", "the article" - always use specific references. Questions must be self-contained and understandable without seeing the article. Be precise and thorough. Return ONLY valid JSON, no other text or explanations.'
+              content: extractSystemPrompt
             },
             {
               role: 'user',
-              content: extractPrompt
+              content: extractPrompt + languageInstruction
             }
           ],
           max_completion_tokens: 3000
@@ -619,17 +669,23 @@ Return ONLY JSON:
 {"diplomatic": ["Specific Q1 with article title?", "Specific Q2 with article title?"], "information": ["Specific Q1?", "Specific Q2?"], "military": ["Specific Q1?", "Specific Q2?"], "economic": ["Specific Q1?", "Specific Q2?"]}`
 
       console.log(`[AI Scrape] Generating unanswered questions via AI Gateway...`)
+
+      // Build system prompt with language instruction if needed
+      const unansweredSystemPrompt = language && language !== 'en'
+        ? `You are an expert intelligence analyst. Generate relevant unanswered questions that would help researchers identify information gaps. CRITICAL: Each question must include the specific article title, dates, entity names, and event names. NEVER use pronouns like "this", "it", "the article" - always use specific references. Questions must be self-contained and understandable without seeing the article. Return ONLY valid JSON.${languageInstruction}`
+        : 'You are an expert intelligence analyst. Generate relevant unanswered questions that would help researchers identify information gaps. CRITICAL: Each question must include the specific article title, dates, entity names, and event names. NEVER use pronouns like "this", "it", "the article" - always use specific references. Questions must be self-contained and understandable without seeing the article. Return ONLY valid JSON.'
+
       try {
         const unansweredData = await callOpenAIViaGateway(context.env, {
           model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
-              content: 'You are an expert intelligence analyst. Generate relevant unanswered questions that would help researchers identify information gaps. CRITICAL: Each question must include the specific article title, dates, entity names, and event names. NEVER use pronouns like "this", "it", "the article" - always use specific references. Questions must be self-contained and understandable without seeing the article. Return ONLY valid JSON.'
+              content: unansweredSystemPrompt
             },
             {
               role: 'user',
-              content: unansweredPrompt
+              content: unansweredPrompt + languageInstruction
             }
           ],
           max_completion_tokens: 800  // Reduced from 2000 for faster response

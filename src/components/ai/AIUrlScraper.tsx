@@ -46,7 +46,7 @@ export function AIUrlScraper({
   disabled = false,
   buttonVariant = 'outline'
 }: AIUrlScraperProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [url, setUrl] = useState('')
   const [scraping, setScraping] = useState(false)
@@ -62,11 +62,14 @@ export function AIUrlScraper({
     setScraping(true)
     setError(null)
 
+    // Get current language from i18n
+    const currentLanguage = i18n.language || 'en'
+
     try {
       const response = await fetch('/api/ai/scrape-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim(), framework })
+        body: JSON.stringify({ url: url.trim(), framework, language: currentLanguage })
       })
 
       if (!response.ok) {
