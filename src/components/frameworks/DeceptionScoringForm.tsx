@@ -85,6 +85,26 @@ export function DeceptionScoringForm({
     checkAIAvailability().then(setAiAvailable)
   }, [])
 
+  // Sync scores when parent updates initialScores (e.g., after AI analysis)
+  useEffect(() => {
+    if (initialScores && Object.keys(initialScores).length > 0) {
+      setScores(prev => ({
+        ...prev,
+        motive: initialScores.motive ?? prev.motive,
+        opportunity: initialScores.opportunity ?? prev.opportunity,
+        means: initialScores.means ?? prev.means,
+        historicalPattern: initialScores.historicalPattern ?? prev.historicalPattern,
+        sophisticationLevel: initialScores.sophisticationLevel ?? prev.sophisticationLevel,
+        successRate: initialScores.successRate ?? prev.successRate,
+        sourceVulnerability: initialScores.sourceVulnerability ?? prev.sourceVulnerability,
+        manipulationEvidence: initialScores.manipulationEvidence ?? prev.manipulationEvidence,
+        internalConsistency: initialScores.internalConsistency ?? prev.internalConsistency,
+        externalCorroboration: initialScores.externalCorroboration ?? prev.externalCorroboration,
+        anomalyDetection: initialScores.anomalyDetection ?? prev.anomalyDetection
+      }))
+    }
+  }, [initialScores])
+
   // Recalculate assessment when scores change
   useEffect(() => {
     const newAssessment = calculateDeceptionLikelihood(scores)
