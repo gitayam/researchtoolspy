@@ -14,6 +14,32 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true
 })
 
+// Language names for AI output instruction
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  es: 'Spanish (Español)',
+  fr: 'French (Français)',
+  de: 'German (Deutsch)',
+  pt: 'Portuguese (Português)',
+  zh: 'Chinese (中文)',
+  ja: 'Japanese (日本語)',
+  ko: 'Korean (한국어)',
+  ar: 'Arabic (العربية)',
+  ru: 'Russian (Русский)'
+}
+
+/**
+ * Get language instruction for AI output
+ */
+function getLanguageInstruction(languageCode?: string): string {
+  if (!languageCode || languageCode === 'en') {
+    return ''  // Default to English, no special instruction needed
+  }
+
+  const languageName = LANGUAGE_NAMES[languageCode] || languageCode
+  return `IMPORTANT: You MUST write ALL text output in ${languageName}. This includes the executive summary, bottom line, key indicators, counter-indicators, recommendations, and all other textual content. Keep the JSON structure keys in English, but all STRING VALUES must be in ${languageName}.`
+}
+
 export interface AIDeceptionAnalysis {
   // Auto-generated scores
   scores: DeceptionScores
@@ -54,6 +80,7 @@ export interface DeceptionScenario {
   moses?: string    // MOSES analysis text
   eve?: string      // EVE analysis text
   additionalContext?: string
+  outputLanguage?: string  // Language code for output (e.g., 'es', 'en')
 }
 
 /**
@@ -64,6 +91,9 @@ export async function analyzeDeceptionWithAI(
 ): Promise<AIDeceptionAnalysis> {
   try {
     const prompt = buildDeceptionPrompt(scenario)
+
+    // Get language instruction if specified
+    const languageInstruction = getLanguageInstruction(scenario.outputLanguage)
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -77,7 +107,9 @@ Your analysis must be:
 - Follow intelligence community standards
 - Provide actionable recommendations
 - Consider alternative explanations
-- Focus on what can be eliminated rather than confirmed`
+- Focus on what can be eliminated rather than confirmed
+
+${languageInstruction}`
         },
         {
           role: 'user',

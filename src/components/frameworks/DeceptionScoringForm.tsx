@@ -59,7 +59,7 @@ export function DeceptionScoringForm({
   onScoresChange,
   onAIAnalysisComplete
 }: DeceptionScoringFormProps) {
-  const { t } = useTranslation('deception')
+  const { t, i18n } = useTranslation('deception')
   const translatedCriteria = useTranslatedCriteria()
 
   const [scores, setScores] = useState<DeceptionScores>({
@@ -99,7 +99,10 @@ export function DeceptionScoringForm({
   const handleAIAssist = async () => {
     setAiAnalyzing(true)
     try {
-      const aiAnalysis = await analyzeDeceptionWithAI(scenario)
+      const aiAnalysis = await analyzeDeceptionWithAI({
+        ...scenario,
+        outputLanguage: i18n.language
+      })
       setScores(aiAnalysis.scores)
       onAIAnalysisComplete?.(aiAnalysis)
     } catch (error) {

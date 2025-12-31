@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -28,6 +29,7 @@ export function DeceptionPredictions({
   historicalData = [],
   scenario
 }: DeceptionPredictionsProps) {
+  const { t } = useTranslation('deception')
   const [predictions, setPredictions] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
@@ -52,7 +54,7 @@ export function DeceptionPredictions({
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">Generating predictions...</p>
+          <p className="text-muted-foreground">{t('predictions.generating')}</p>
         </CardContent>
       </Card>
     )
@@ -78,10 +80,10 @@ export function DeceptionPredictions({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendIcon className={`h-5 w-5 ${trendColor}`} />
-            Future Risk Trend
+            {t('predictions.futureRiskTrend')}
           </CardTitle>
           <CardDescription>
-            Projected trajectory of deception likelihood
+            {t('predictions.projectedTrajectory')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -89,7 +91,7 @@ export function DeceptionPredictions({
             <div>
               <div className="text-3xl font-bold">{predictions.futureRisk}</div>
               <div className="text-sm text-muted-foreground mt-1">
-                Trend Direction
+                {t('predictions.trendDirection')}
               </div>
             </div>
             <Badge variant={
@@ -102,7 +104,7 @@ export function DeceptionPredictions({
 
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Confidence Interval</span>
+              <span className="text-muted-foreground">{t('predictions.confidenceInterval')}</span>
               <span className="font-medium">
                 {predictions.confidenceInterval.min}% - {predictions.confidenceInterval.max}%
               </span>
@@ -122,7 +124,7 @@ export function DeceptionPredictions({
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>0%</span>
-              <span>Current: {currentAnalysis.deceptionLikelihood}%</span>
+              <span>{t('predictions.current')}: {currentAnalysis.deceptionLikelihood}%</span>
               <span>100%</span>
             </div>
           </div>
@@ -134,10 +136,10 @@ export function DeceptionPredictions({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            Key Risk Drivers
+            {t('predictions.keyRiskDrivers')}
           </CardTitle>
           <CardDescription>
-            Primary factors influencing deception assessment
+            {t('predictions.primaryFactors')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -163,10 +165,10 @@ export function DeceptionPredictions({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
-            Scenario Forecasts
+            {t('predictions.scenarioForecasts')}
           </CardTitle>
           <CardDescription>
-            "What if..." analysis for different conditions
+            {t('predictions.whatIfAnalysis')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -183,12 +185,12 @@ export function DeceptionPredictions({
                     </p>
                   </div>
                   <Badge variant="outline" className="ml-2">
-                    {forecast.likelihood}% likely
+                    {forecast.likelihood}% {t('predictions.likely')}
                   </Badge>
                 </div>
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Likelihood</span>
+                    <span className="text-muted-foreground">{t('predictions.likelihood')}</span>
                     <span className="font-medium">{forecast.likelihood}%</span>
                   </div>
                   <Progress value={forecast.likelihood} className="h-2" />
@@ -205,10 +207,10 @@ export function DeceptionPredictions({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-600" />
-              Indicators to Watch
+              {t('predictions.indicatorsToWatch')}
             </CardTitle>
             <CardDescription>
-              Monitor these factors for changes in assessment
+              {t('predictions.monitorFactors')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -228,27 +230,27 @@ export function DeceptionPredictions({
       {historicalData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Historical Context</CardTitle>
+            <CardTitle>{t('predictions.historicalContext')}</CardTitle>
             <CardDescription>
-              Based on {historicalData.length} previous assessment{historicalData.length !== 1 ? 's' : ''}
+              {t('predictions.basedOnAssessments', { count: historicalData.length })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">First Assessment</span>
+                <span className="text-muted-foreground">{t('predictions.firstAssessment')}</span>
                 <span className="font-medium">
-                  {historicalData[0].likelihood}% deception likelihood
+                  {historicalData[0].likelihood}% {t('predictions.deceptionLikelihood')}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Latest Assessment</span>
+                <span className="text-muted-foreground">{t('predictions.latestAssessment')}</span>
                 <span className="font-medium">
-                  {historicalData[historicalData.length - 1].likelihood}% deception likelihood
+                  {historicalData[historicalData.length - 1].likelihood}% {t('predictions.deceptionLikelihood')}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Change Over Time</span>
+                <span className="text-muted-foreground">{t('predictions.changeOverTime')}</span>
                 <span className={`font-medium ${
                   historicalData[historicalData.length - 1].likelihood - historicalData[0].likelihood > 0
                     ? 'text-red-600'
@@ -269,10 +271,10 @@ export function DeceptionPredictions({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-blue-600" />
-              Collection Priorities
+              {t('predictions.collectionPriorities')}
             </CardTitle>
             <CardDescription>
-              Additional information that would refine this assessment
+              {t('predictions.additionalInfoNeeded')}
             </CardDescription>
           </CardHeader>
           <CardContent>

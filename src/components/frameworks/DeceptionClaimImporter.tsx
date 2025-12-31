@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -53,6 +54,7 @@ interface DeceptionClaimImporterProps {
 }
 
 export function DeceptionClaimImporter({ onImport }: DeceptionClaimImporterProps) {
+  const { t } = useTranslation('deception')
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
@@ -208,22 +210,22 @@ export function DeceptionClaimImporter({ onImport }: DeceptionClaimImporterProps
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <FileDown className="h-4 w-4 mr-2" />
-          Import from Claims
+          {t('claimImporter.buttonText')}
         </Button>
       </DialogTrigger>
 
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Import Claims for Deception Analysis</DialogTitle>
+          <DialogTitle>{t('claimImporter.dialogTitle')}</DialogTitle>
           <DialogDescription>
-            Search for content with automated deception detection, then select claims to import into SATS framework
+            {t('claimImporter.dialogDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            <strong>Auto-mapping:</strong> Claim deception indicators will be automatically mapped to EVE (Evidence Evaluation) and MOSES (Source Vulnerability) categories
+            <strong>{t('claimImporter.autoMappingTitle')}</strong> {t('claimImporter.autoMappingDescription')}
           </AlertDescription>
         </Alert>
 
@@ -233,7 +235,7 @@ export function DeceptionClaimImporter({ onImport }: DeceptionClaimImporterProps
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search analyzed content by topic, URL, or keyword..."
+                placeholder={t('claimImporter.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && searchClaims()}
@@ -241,7 +243,7 @@ export function DeceptionClaimImporter({ onImport }: DeceptionClaimImporterProps
               />
             </div>
             <Button onClick={searchClaims} disabled={searching}>
-              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : t('claimImporter.search')}
             </Button>
           </div>
 
@@ -250,7 +252,7 @@ export function DeceptionClaimImporter({ onImport }: DeceptionClaimImporterProps
             <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
               <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               <AlertDescription>
-                {selectedClaims.length} claim{selectedClaims.length !== 1 ? 's' : ''} selected
+                {t('claimImporter.claimsSelected', { count: selectedClaims.length })}
               </AlertDescription>
             </Alert>
           )}
@@ -258,7 +260,7 @@ export function DeceptionClaimImporter({ onImport }: DeceptionClaimImporterProps
           {/* Results */}
           {results.length > 0 && (
             <div className="space-y-3 mt-4">
-              <h5 className="text-sm font-medium">Results ({results.length})</h5>
+              <h5 className="text-sm font-medium">{t('claimImporter.results')} ({results.length})</h5>
               {results.map((result) => (
                 <Card key={result.id}>
                   <CardContent className="p-4">
@@ -273,12 +275,12 @@ export function DeceptionClaimImporter({ onImport }: DeceptionClaimImporterProps
                               rel="noopener noreferrer"
                               className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
                             >
-                              View Source <ExternalLink className="h-3 w-3" />
+                              {t('claimImporter.viewSource')} <ExternalLink className="h-3 w-3" />
                             </a>
                           )}
                         </div>
                         <Badge variant="outline" className="text-xs">
-                          {result.claim_count} {result.claim_count === 1 ? 'claim' : 'claims'}
+                          {result.claim_count} {result.claim_count === 1 ? t('claimImporter.claim') : t('claimImporter.claims')}
                         </Badge>
                       </div>
 
@@ -315,7 +317,7 @@ export function DeceptionClaimImporter({ onImport }: DeceptionClaimImporterProps
                                       {claim.deception_analysis?.red_flags && claim.deception_analysis.red_flags.length > 0 && (
                                         <Badge variant="outline" className="text-xs text-orange-600 dark:text-orange-400">
                                           <AlertTriangle className="h-3 w-3 mr-1" />
-                                          {claim.deception_analysis.red_flags.length} red flags
+                                          {claim.deception_analysis.red_flags.length} {t('claimImporter.redFlags')}
                                         </Badge>
                                       )}
                                     </div>
@@ -345,7 +347,7 @@ export function DeceptionClaimImporter({ onImport }: DeceptionClaimImporterProps
           {!searching && results.length === 0 && searchQuery && (
             <div className="text-center py-8 text-muted-foreground text-sm">
               <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              No analyzed content found. Try a different search term.
+              {t('claimImporter.noResults')}
             </div>
           )}
         </div>
@@ -353,11 +355,11 @@ export function DeceptionClaimImporter({ onImport }: DeceptionClaimImporterProps
         {/* Import Button */}
         <div className="flex justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
+            {t('claimImporter.cancel')}
           </Button>
           <Button onClick={handleImport} disabled={selectedClaims.length === 0}>
             <FileDown className="h-4 w-4 mr-2" />
-            Import {selectedClaims.length > 0 && `(${selectedClaims.length})`}
+            {t('claimImporter.import')} {selectedClaims.length > 0 && `(${selectedClaims.length})`}
           </Button>
         </div>
       </DialogContent>

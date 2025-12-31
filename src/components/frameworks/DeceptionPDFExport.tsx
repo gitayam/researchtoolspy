@@ -5,6 +5,7 @@ import autoTable from 'jspdf-autotable'
 import type { DeceptionScores, DeceptionAssessment } from '@/lib/deception-scoring'
 import { calculateDeceptionLikelihood } from '@/lib/deception-scoring'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface DeceptionAnalysisData {
   title: string
@@ -35,6 +36,7 @@ export function DeceptionPDFExport({
   size = 'default',
   className
 }: DeceptionPDFExportProps) {
+  const { t } = useTranslation('deception')
   const [exporting, setExporting] = useState(false)
 
   const handleExport = async () => {
@@ -423,7 +425,7 @@ export function DeceptionPDFExport({
 
     } catch (error) {
       console.error('PDF export error:', error)
-      alert('Failed to export PDF. Please try again.')
+      alert(t('export.exportFailed'))
     } finally {
       setExporting(false)
     }
@@ -440,12 +442,12 @@ export function DeceptionPDFExport({
       {exporting ? (
         <>
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          Exporting PDF...
+          {t('export.exporting')}
         </>
       ) : (
         <>
           <FileText className="h-4 w-4 mr-2" />
-          Export PDF
+          {t('export.pdf')}
         </>
       )}
     </Button>

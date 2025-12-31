@@ -41,7 +41,7 @@ export function DeceptionForm({
   frameworkId
 }: DeceptionFormProps) {
   const navigate = useNavigate()
-  const { t } = useTranslation('deception')
+  const { t, i18n } = useTranslation('deception')
 
   // Form fields
   const [title, setTitle] = useState(initialData?.title || '')
@@ -110,7 +110,8 @@ export function DeceptionForm({
         pop,
         moses,
         eve,
-        additionalContext: assessment
+        additionalContext: assessment,
+        outputLanguage: i18n.language
       })
 
       setAiAnalysis(analysis)
