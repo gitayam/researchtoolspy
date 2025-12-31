@@ -3,7 +3,7 @@
  * Display completed deception analysis with visual dashboard
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -90,6 +90,25 @@ export function DeceptionView({
     (data.scores && Object.keys(data.scores).length > 0
       ? calculateDeceptionLikelihood(data.scores)
       : null)
+
+  // Memoize historical data transformations to prevent infinite loops
+  // Creating new arrays in render causes useEffect in child components to re-run
+  const historicalDataForPredictions = useMemo(() =>
+    historicalData.map(h => ({
+      timestamp: h.timestamp,
+      likelihood: h.likelihood,
+      scores: h.scores as DeceptionScores
+    })),
+    [historicalData]
+  )
+
+  const historicalDataForDashboard = useMemo(() =>
+    historicalData.map(h => ({
+      timestamp: h.timestamp,
+      likelihood: h.likelihood
+    })),
+    [historicalData]
+  )
 
   // TODO: Generate relationships from linked evidence when actors/events are linked
   // For now, this is a placeholder for when entity linking with MOM is implemented
@@ -743,11 +762,7 @@ export function DeceptionView({
               <CardContent>
                 <DeceptionPredictions
                   currentAnalysis={data.aiAnalysis}
-                  historicalData={historicalData.map(h => ({
-                    timestamp: h.timestamp,
-                    likelihood: h.likelihood,
-                    scores: h.scores as DeceptionScores
-                  }))}
+                  historicalData={historicalDataForPredictions}
                   scenario={{
                     scenario: data.scenario,
                     mom: data.mom,
@@ -769,10 +784,7 @@ export function DeceptionView({
                 scores={data.scores}
                 assessment={calculatedAssessment}
                 showHistorical={historicalData.length > 1}
-                historicalData={historicalData.map(h => ({
-                  timestamp: h.timestamp,
-                  likelihood: h.likelihood
-                }))}
+                historicalData={historicalDataForDashboard}
               />
             )}
 
