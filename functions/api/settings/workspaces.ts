@@ -6,8 +6,11 @@
  * POST: Create new workspace
  */
 
+import { requireAuth } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 interface Workspace {
@@ -23,22 +26,11 @@ interface Workspace {
 }
 
 /**
- * Extract user hash from request
+ * Helper to get user hash from authenticated user ID
  */
-function getUserHash(request: Request): string | null {
-  const headerHash = request.headers.get('X-User-Hash')
-  if (headerHash) return headerHash
-
-  const url = new URL(request.url)
-  const queryHash = url.searchParams.get('hash')
-  return queryHash || null
-}
-
-/**
- * Validate hash format
- */
-function isValidHash(hash: string): boolean {
-  return /^\d{16}$/.test(hash)
+async function getUserHashFromId(db: D1Database, userId: number): Promise<string | null> {
+  const user = await db.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+  return user?.user_hash as string | null
 }
 
 /**
@@ -47,14 +39,11 @@ function isValidHash(hash: string): boolean {
  */
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const userHash = getUserHash(context.request)
+    const userId = await requireAuth(context.request, context.env)
+    const userHash = await getUserHashFromId(context.env.DB, userId)
 
     if (!userHash) {
-      return Response.json({ error: 'Missing user hash' }, { status: 400 })
-    }
-
-    if (!isValidHash(userHash)) {
-      return Response.json({ error: 'Invalid hash format' }, { status: 400 })
+      return Response.json({ error: 'User hash not found' }, { status: 404 })
     }
 
     // Query workspaces owned by this hash
@@ -88,7 +77,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
       await context.env.DB.prepare(
         `INSERT INTO workspaces (id, name, description, type, user_hash, is_public, owner_id, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, 1, ?)`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
         .bind(
           defaultWorkspace.id,
@@ -97,6 +86,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           defaultWorkspace.type,
           userHash,
           defaultWorkspace.is_public ? 1 : 0,
+          userId, // Correct owner_id
           defaultWorkspace.created_at
         )
         .run()
@@ -109,7 +99,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return Response.json({
       workspaces,
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Workspaces GET error:', error)
     return Response.json(
       {
@@ -127,14 +118,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
  */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const userHash = getUserHash(context.request)
+    const userId = await requireAuth(context.request, context.env)
+    const userHash = await getUserHashFromId(context.env.DB, userId)
 
     if (!userHash) {
-      return Response.json({ error: 'Missing user hash' }, { status: 400 })
-    }
-
-    if (!isValidHash(userHash)) {
-      return Response.json({ error: 'Invalid hash format' }, { status: 400 })
+      return Response.json({ error: 'User hash not found' }, { status: 404 })
     }
 
     const body = (await context.request.json()) as {
@@ -159,9 +147,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Insert workspace
     await context.env.DB.prepare(
       `INSERT INTO workspaces (id, name, description, type, user_hash, is_public, owner_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, 1, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(id, body.name, body.description || null, body.type, userHash, isPublic ? 1 : 0, createdAt)
+      .bind(id, body.name, body.description || null, body.type, userHash, isPublic ? 1 : 0, userId, createdAt)
       .run()
 
     const workspace = {
@@ -176,7 +164,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     return Response.json(workspace, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Workspace POST error:', error)
     return Response.json(
       {
