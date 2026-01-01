@@ -127,6 +127,15 @@ const query = `SELECT * FROM comments WHERE entity_type = '${entityType}'`
 5. ⚠️ **D1 is SQLite** - Some features differ from PostgreSQL/MySQL
 6. ⚠️ **Indexes cost storage** - Balance query speed vs storage
 
+### Database Connectivity & DNS
+
+**Issue**: Intermittent connection failures or "database not found" errors during high load or cold starts.
+
+**Resolution**:
+1. ✅ **Explicit Binding**: Ensure `binding = "DB"` in `wrangler.toml` matches exactly with the Cloudflare Dashboard configuration.
+2. ✅ **Active Health Check**: Use a dedicated health endpoint (`/api/health`) that runs `SELECT 1` to verify D1 connectivity before routing complex traffic.
+3. ✅ **Retry Logic**: Implement exponential backoff for D1 queries in the application layer to handle transient internal DNS resolution failures within the Cloudflare network.
+
 ---
 
 ## Cloudflare KV Storage
