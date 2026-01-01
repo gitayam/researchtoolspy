@@ -178,20 +178,36 @@ ${body.ethicalConsiderations ? `- Ethical Considerations: ${body.ethicalConsider
 Generate 3 research questions with varying scope that are SMART and FINER compliant.`
 
     // Call OpenAI API
-    const response = await callOpenAIViaGateway(
-      context.env.OPENAI_API_KEY,
-      'gpt-4o', // Use GPT-4o for high-quality question generation
-      [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      {
-        temperature: 0.7, // Balance creativity and consistency
-        max_tokens: 3000,
-        response_format: { type: 'json_object' }
-      },
-      context.env.AI_GATEWAY_ACCOUNT_ID
-    )
+    let response;
+    try {
+      response = await callOpenAIViaGateway(
+        context.env, // Pass full environment object
+        {
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_completion_tokens: 3000,
+          response_format: { type: 'json_object' }
+        },
+        {
+          // Optional metadata for logging/tracking
+          metadata: {
+            endpoint: 'generate-question',
+            userId: userId
+          }
+        }
+      )
+    } catch (aiError) {
+      console.error('[generate-question] AI Gateway Error:', aiError)
+      throw new Error(`AI Generation failed: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`)
+    }
+
+    if (!response?.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response format from AI provider')
+    }
 
     const aiResponse = JSON.parse(response.choices[0].message.content)
     const generatedQuestions: GeneratedQuestion[] = aiResponse.questions || []
