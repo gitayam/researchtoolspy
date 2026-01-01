@@ -2,8 +2,11 @@
 // Library Framework Detail API - Get individual framework details
 // ============================================================================
 
+import { getUserFromRequest, requireAuth } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 const CORS_HEADERS = {
@@ -22,7 +25,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   try {
     const libraryFrameworkId = params.id as string
-    const userHash = request.headers.get('X-User-Hash') || 'guest'
+    const userId = await getUserFromRequest(request, env)
+    
+    // Get user hash for legacy columns
+    let userHash = 'guest'
+    if (userId) {
+      const userResult = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+      if (userResult?.user_hash) userHash = userResult.user_hash as string
+    }
 
     if (request.method === 'GET') {
       // Get framework details with all metadata
@@ -75,15 +85,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // PUT: Update framework (only owner)
     if (request.method === 'PUT') {
-      if (userHash === 'guest') {
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401,
-          headers: CORS_HEADERS
-        })
-      }
-
+      const authUserId = await requireAuth(request, env)
+      
       // Check ownership
-      const framework = await env.DB.prepare(
+      const framework: any = await env.DB.prepare(
         'SELECT published_by FROM library_frameworks WHERE id = ?'
       ).bind(libraryFrameworkId).first()
 
@@ -98,23 +103,23 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const { title, description, tags, category } = body
 
       const updates: string[] = []
-      const params: any[] = []
+      const bindings: any[] = []
 
       if (title) {
         updates.push('title = ?')
-        params.push(title)
+        bindings.push(title)
       }
       if (description !== undefined) {
         updates.push('description = ?')
-        params.push(description)
+        bindings.push(description)
       }
       if (tags !== undefined) {
         updates.push('tags = ?')
-        params.push(tags)
+        bindings.push(tags)
       }
       if (category !== undefined) {
         updates.push('category = ?')
-        params.push(category)
+        bindings.push(category)
       }
 
       if (updates.length === 0) {
@@ -126,12 +131,12 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       updates.push('last_updated = ?')
       updates.push('version = version + 1')
-      params.push(new Date().toISOString())
-      params.push(libraryFrameworkId)
+      bindings.push(new Date().toISOString())
+      bindings.push(libraryFrameworkId)
 
       await env.DB.prepare(`
         UPDATE library_frameworks SET ${updates.join(', ')} WHERE id = ?
-      `).bind(...params).run()
+      `).bind(...bindings).run()
 
       return new Response(JSON.stringify({
         message: 'Framework updated successfully'
@@ -140,12 +145,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // DELETE: Unpublish framework (only owner)
     if (request.method === 'DELETE') {
-      if (userHash === 'guest') {
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401,
-          headers: CORS_HEADERS
-        })
-      }
+      const authUserId = await requireAuth(request, env)
 
       // Check ownership
       const framework: any = await env.DB.prepare(
@@ -181,6 +181,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     })
 
   } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('[Library Detail API] Error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
