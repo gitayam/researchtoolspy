@@ -2,23 +2,20 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { createLogger } from '@/lib/logger'
+import { apiClient } from '@/lib/api'
+import type { User } from '@/types/auth'
 
 const logger = createLogger('Auth')
 
-interface AuthUser {
-  account_hash: string
-  authenticated_at: string
-}
-
 interface AuthState {
-  user: AuthUser | null
+  user: User | null
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
   loginWithHash: (data: { account_hash: string }) => Promise<void>
   logout: () => void
   clearError: () => void
-  checkAuth: () => void
+  checkAuth: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -36,36 +33,19 @@ export const useAuthStore = create<AuthState>()(
 
           logger.info('Attempting login with hash:', hash.substring(0, 8) + '...')
 
-          // Validate hash exists in valid hashes list
-          const validHashesStr = localStorage.getItem('omnicore_valid_hashes')
-          const validHashes: string[] = validHashesStr ? JSON.parse(validHashesStr) : []
+          // Call API
+          const response = await apiClient.loginWithHash({ account_hash: hash })
 
-          logger.debug('Valid hashes in localStorage:', validHashes.length, 'hashes')
-          logger.debug('Hash being checked:', hash)
-          logger.debug('First valid hash (if exists):', validHashes[0]?.substring(0, 8) + '...')
-
-          if (!validHashes.includes(hash)) {
-            logger.error('Hash not found in valid hashes list')
-            throw new Error('Invalid hash. Please check your bookmark code.')
-          }
-
-          // Store as current user hash
-          localStorage.setItem('omnicore_user_hash', hash)
-
-          // Update auth state
-          const user: AuthUser = {
-            account_hash: hash,
-            authenticated_at: new Date().toISOString()
-          }
-
+          // API Client handles token storage
+          
           set({
-            user,
+            user: response.user,
             isAuthenticated: true,
             isLoading: false,
             error: null
           })
 
-          logger.info('Login successful for hash:', hash.substring(0, 8) + '...')
+          logger.info('Login successful for user:', response.user.username)
         } catch (error: any) {
           logger.error('Login failed:', error)
           set({
@@ -79,7 +59,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        localStorage.removeItem('omnicore_user_hash')
+        apiClient.logout()
         set({
           user: null,
           isAuthenticated: false,
@@ -90,26 +70,26 @@ export const useAuthStore = create<AuthState>()(
 
       clearError: () => set({ error: null }),
 
-      checkAuth: () => {
-        // Check if user is still authenticated (e.g., on page refresh)
-        const currentHash = localStorage.getItem('omnicore_user_hash')
-        const validHashesStr = localStorage.getItem('omnicore_valid_hashes')
-        const validHashes: string[] = validHashesStr ? JSON.parse(validHashesStr) : []
-
-        if (currentHash && validHashes.includes(currentHash)) {
+      checkAuth: async () => {
+        // Check if user is still authenticated (check token validity)
+        if (apiClient.isAuthenticated()) {
           const state = get()
           if (!state.isAuthenticated) {
-            set({
-              user: {
-                account_hash: currentHash,
-                authenticated_at: new Date().toISOString()
-              },
-              isAuthenticated: true
-            })
-            logger.info('Restored session from localStorage')
+             try {
+               const user = await apiClient.getCurrentUser()
+               set({
+                 user,
+                 isAuthenticated: true
+               })
+               logger.info('Restored session from token')
+             } catch (e) {
+               // Token might be invalid
+               apiClient.logout()
+               set({ user: null, isAuthenticated: false })
+             }
           }
         } else {
-          // Invalid or no hash, ensure logged out
+          // No token
           if (get().isAuthenticated) {
             set({ user: null, isAuthenticated: false })
             logger.info('Session invalid, logged out')
