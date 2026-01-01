@@ -6,7 +6,8 @@ import { Copy, Check, Bookmark, Share2, Shield, AlertCircle, RefreshCw } from 'l
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
-import { formatHashForDisplay, generateAccountHash } from '@/lib/hash-auth'
+import { formatHashForDisplay } from '@/lib/hash-auth'
+import { apiClient } from '@/lib/api'
 
 export function RegisterPage() {
   const { t } = useTranslation()
@@ -18,23 +19,23 @@ export function RegisterPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Generate hash client-side (Mullvad-style)
-  useEffect(() => {
-    const hash = generateAccountHash()
-    setAccountHash(hash)
-
-    // Immediately add to valid hashes so it can be used for login
+  // Generate hash from backend
+  const fetchNewHash = async () => {
+    setLoading(true)
+    setError('')
     try {
-      const validHashesStr = localStorage.getItem('omnicore_valid_hashes')
-      const validHashes: string[] = validHashesStr ? JSON.parse(validHashesStr) : []
-
-      if (!validHashes.includes(hash)) {
-        validHashes.push(hash)
-        localStorage.setItem('omnicore_valid_hashes', JSON.stringify(validHashes))
-      }
-    } catch (err) {
-      console.error('[Register] Failed to store hash in valid hashes:', err)
+      const response = await apiClient.registerWithHash()
+      setAccountHash(response.account_hash)
+    } catch (err: any) {
+      console.error('[Register] Failed to generate hash:', err)
+      setError(err.message || t('pages.register.failedToGenerate'))
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
+    fetchNewHash()
   }, [])
 
   const handleCopyHash = async () => {
@@ -85,35 +86,18 @@ export function RegisterPage() {
   const handleGenerateNew = () => {
     setCopied(false)
     setHashSaved(false)
-    const hash = generateAccountHash()
-    setAccountHash(hash)
+    fetchNewHash()
   }
 
   const handleSaveAndContinue = () => {
-    // Store the generated hash in localStorage as a valid hash
-    try {
-      const validHashes = JSON.parse(localStorage.getItem('omnicore_valid_hashes') || '[]')
-      if (!validHashes.includes(accountHash)) {
-        validHashes.push(accountHash)
-        localStorage.setItem('omnicore_valid_hashes', JSON.stringify(validHashes))
-      }
+    // Just acknowledge the user saved it manually (we don't store locally anymore for validation, only for convenience if we wanted, but let's keep it clean)
+    // We rely on the user copy-pasting it to login
+    setHashSaved(true)
 
-      // Also store as the current user's hash for auto-login
-      localStorage.setItem('omnicore_user_hash', accountHash)
-
-      setHashSaved(true)
-
-      // Redirect to login with the hash pre-filled
-      setTimeout(() => {
-        navigate(`/login?hash=${accountHash}`)
-      }, 1500)
-    } catch (error) {
-      // Failed to save - fallback to redirect to login
-      setHashSaved(true)
-      setTimeout(() => {
-        navigate('/login')
-      }, 1500)
-    }
+    // Redirect to login with the hash pre-filled
+    setTimeout(() => {
+      navigate(`/login?hash=${accountHash}`)
+    }, 1500)
   }
 
   const formattedHash = formatHashForDisplay(accountHash)
