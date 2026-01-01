@@ -1,14 +1,8 @@
-/**
- * Comments API
- * Threaded comments system for COG, ACH, and other framework entities
- * Supports @mentions, resolve/unresolve workflow, and collaboration
- */
-
-import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
-  SESSIONS: KVNamespace
+  JWT_SECRET?: string
 }
 
 interface Comment {
@@ -31,28 +25,6 @@ interface Comment {
   resolved_by?: string
   workspace_id: number
   reactions?: Record<string, number>
-}
-
-// Helper to get user from session or hash
-async function getUserFromRequest(request: Request, env: Env): Promise<{ userId?: string; userHash?: string }> {
-  // Try bearer token first (authenticated users)
-  const authHeader = request.headers.get('Authorization')
-  if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.substring(7)
-    const sessionData = await env.SESSIONS.get(token)
-    if (sessionData) {
-      const session = JSON.parse(sessionData)
-      return { userId: session.user_id?.toString() }
-    }
-  }
-
-  // Fall back to hash-based (guest mode)
-  const userHash = request.headers.get('X-User-Hash')
-  if (userHash) {
-    return { userHash }
-  }
-
-  return {}
 }
 
 // Generate UUID v4
@@ -154,13 +126,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // POST /api/comments
     // Create a new comment
     if (method === 'POST') {
-      const { userId, userHash } = await getUserFromRequest(request, env)
-      if (!userId && !userHash) {
+      const userId = await getUserFromRequest(request, env)
+      if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
       }
+
+      // Get user hash for legacy column
+      const userResult = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+      const userHash = userResult?.user_hash as string
 
       const body = await request.json() as Partial<Comment>
       const {
@@ -214,7 +190,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         depth,
         content,
         contentHtml,
-        userId || 'guest',
+        userId.toString(),
         userHash || null,
         JSON.stringify(mentions),
         workspace_id
@@ -261,8 +237,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         })
       }
 
-      const { userId, userHash } = await getUserFromRequest(request, env)
-      if (!userId && !userHash) {
+      const userId = await getUserFromRequest(request, env)
+      if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -282,8 +258,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
 
       // Check ownership
-      const isOwner = (userId && existing.user_id === userId) ||
-                     (userHash && existing.user_hash === userHash)
+      const isOwner = existing.user_id === userId.toString()
 
       const body = await request.json() as any
 
@@ -293,7 +268,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           UPDATE comments
           SET status = 'resolved', resolved_at = CURRENT_TIMESTAMP, resolved_by = ?
           WHERE id = ?
-        `).bind(userId || userHash, commentId).run()
+        `).bind(userId.toString(), commentId).run()
 
         const updated = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`).bind(commentId).first()
         return new Response(JSON.stringify(updated), {
@@ -364,8 +339,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         })
       }
 
-      const { userId, userHash } = await getUserFromRequest(request, env)
-      if (!userId && !userHash) {
+      const userId = await getUserFromRequest(request, env)
+      if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -385,8 +360,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
 
       // Check ownership
-      const isOwner = (userId && existing.user_id === userId) ||
-                     (userHash && existing.user_hash === userHash)
+      const isOwner = existing.user_id === userId.toString()
 
       if (!isOwner) {
         return new Response(JSON.stringify({ error: 'Only comment owner can delete' }), {
@@ -411,7 +385,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Comments API] Error:', error)
     return new Response(JSON.stringify({
       error: 'Internal server error',
