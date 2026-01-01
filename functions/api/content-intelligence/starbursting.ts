@@ -1,17 +1,8 @@
-/**
- * Starbursting Framework Integration
- *
- * Launch Starbursting analysis from content intelligence:
- * - Single link → auto-populate framework
- * - Multiple links → prompt user to select or use all
- * - Pre-fill central_topic and context from analyzed content
- * - Call existing /api/starbursting endpoint
- */
-
-import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest, requireAuth } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 interface StarburstingRequest {
@@ -27,10 +18,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash'
+  }
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    const userId = await requireAuth(request, env)
+    
+    // Get user hash for legacy association and cross-API calls
+    const userResult = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+    const userHash = userResult?.user_hash as string
+
+    if (!userHash) {
+      return new Response(JSON.stringify({ error: 'User hash not found' }), {
+        status: 404,
+        headers: corsHeaders
+      })
+    }
+
     const body = await request.json() as StarburstingRequest
     const { analysis_ids, title, use_ai_questions = true } = body
 
@@ -44,7 +52,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     console.log(`[Starbursting] Creating session from ${analysis_ids.length} content analysis(es)`)
-    console.log(`[Starbursting] Analysis IDs:`, analysis_ids)
 
     // Fetch content analyses
     const placeholders = analysis_ids.map(() => '?').join(',')
@@ -57,7 +64,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(...analysis_ids).all()
 
     if (!results.results || results.results.length === 0) {
-      console.error('[Starbursting] No content analyses found for IDs:', analysis_ids)
       return new Response(JSON.stringify({
         error: 'No content analyses found with provided IDs',
         provided_ids: analysis_ids
@@ -67,22 +73,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[Starbursting] Found ${results.results.length} content analysis(es)`)
     const analyses = results.results
 
     // Build Starbursting data
     const primaryAnalysis = analyses[0]
     const centralTopic = title || (primaryAnalysis.title as string) || 'Content Analysis'
 
-    // Build context from all analyses
-    // Forward auth headers (declare early for AI extraction)
+    // Forward auth headers
     const authHeader = request.headers.get('Authorization')
-    const userHash = request.headers.get('X-User-Hash')
-
-    console.log('[Starbursting] Auth headers:', {
-      hasAuthorization: !!authHeader,
-      hasUserHash: !!userHash
-    })
 
     const contextParts: string[] = []
 
@@ -119,32 +117,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       contextParts.push(analysisSummary)
     })
 
-    const context = contextParts.join('\n\n---\n\n')
+    const contextContent = contextParts.join('\n\n---\n\n')
 
     // Extract full Q&A using AI if enabled
     let extractedData: any = {}
 
     if (use_ai_questions && primaryAnalysis.url) {
       const scrapeEndpoint = `${new URL(request.url).origin}/api/ai/scrape-url`
-      console.log('[Starbursting] Calling AI scrape endpoint:', scrapeEndpoint)
-
-      // Build comprehensive context for AI
+      
       const aiContext = {
         url: primaryAnalysis.url,
         framework: 'starbursting',
         title: primaryAnalysis.title,
         summary: primaryAnalysis.summary,
-        extracted_text: primaryAnalysis.extracted_text ? primaryAnalysis.extracted_text.substring(0, 8000) : '', // Send first 8k chars
-        entities: context, // Entity-rich context we already built
+        extracted_text: primaryAnalysis.extracted_text ? (primaryAnalysis.extracted_text as string).substring(0, 8000) : '',
+        entities: contextContent,
         central_topic: centralTopic
       }
-
-      console.log('[Starbursting] AI context includes:', {
-        hasTitle: !!aiContext.title,
-        hasText: !!aiContext.extracted_text,
-        textLength: aiContext.extracted_text?.length || 0,
-        hasEntities: !!aiContext.entities
-      })
 
       try {
         const scrapeResponse = await fetch(scrapeEndpoint, {
@@ -158,10 +147,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         if (scrapeResponse.ok) {
           extractedData = await scrapeResponse.json()
-          console.log('[Starbursting] AI extraction successful')
-        } else {
-          const errorText = await scrapeResponse.text()
-          console.warn('[Starbursting] AI extraction failed:', scrapeResponse.status, errorText)
         }
       } catch (error) {
         console.error('[Starbursting] AI extraction error:', error)
@@ -174,27 +159,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Determine the Q&A structure to use
     let qaData
     if (extractedData.who) {
-      // AI extraction succeeded - use categorized structure
       qaData = extractedData
-      console.log('[Starbursting] Using AI-extracted qaData')
     } else {
-      // AI extraction failed - convert flat questions array to categorized structure
       qaData = categorizeFlatQuestions(initialQuestions)
-      console.log('[Starbursting] Using categorized flat questions')
     }
-
-    console.log('[Starbursting] qaData structure:', {
-      hasWho: !!qaData.who,
-      hasWhat: !!qaData.what,
-      keys: Object.keys(qaData),
-      whoLength: qaData.who?.length,
-      whatLength: qaData.what?.length
-    })
 
     // Create Starbursting session via framework API
     const frameworksEndpoint = `${new URL(request.url).origin}/api/frameworks`
-    console.log('[Starbursting] Calling frameworks API:', frameworksEndpoint)
-    console.log('[Starbursting] Central topic:', centralTopic)
 
     const starburstingPayload = {
       title: centralTopic,
@@ -202,83 +173,47 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 'draft',
       data: {
         central_topic: centralTopic,
-        context: context.substring(0, 5000), // Limit context size
+        context: contextContent.substring(0, 5000),
         ...qaData,
         source_url: primaryAnalysis.url,
         source_title: primaryAnalysis.title
       },
-      workspace_id: '1' // Default workspace
+      workspace_id: '1'
     }
-
-    console.log('[Starbursting] Payload data structure:', {
-      hasData: !!starburstingPayload.data,
-      dataKeys: Object.keys(starburstingPayload.data),
-      hasWhoInData: !!starburstingPayload.data.who
-    })
-
-    console.log('[Starbursting] Calling framework API with headers:', {
-      hasAuthorization: !!authHeader,
-      authHeaderValue: authHeader ? authHeader.substring(0, 20) + '...' : 'none',
-      hasUserHash: !!userHash,
-      userHashValue: userHash ? userHash.substring(0, 20) + '...' : 'none'
-    })
 
     const starburstingResponse = await fetch(frameworksEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(authHeader && { 'Authorization': authHeader }),
-        ...(userHash && { 'X-User-Hash': userHash })
+        'X-User-Hash': userHash
       },
       body: JSON.stringify(starburstingPayload)
     })
 
     if (!starburstingResponse.ok) {
       const errorText = await starburstingResponse.text()
-      console.error('[Starbursting] Framework API error:', starburstingResponse.status, errorText)
-      console.error('[Starbursting] Request headers sent:', {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader ? 'Bearer ...' : 'missing',
-        'X-User-Hash': userHash ? 'present' : 'missing'
-      })
       throw new Error(`Framework API error: ${starburstingResponse.status} - ${errorText}`)
     }
 
-    const starburstingData = await starburstingResponse.json()
-    console.log('[Starbursting] Framework created, ID:', starburstingData.id)
+    const starburstingData = await starburstingResponse.json() as { id: string }
     const sessionId = starburstingData.id
 
     // Link content analyses to Starbursting session
-    console.log('[Starbursting] Linking content analyses to session...')
     for (const analysisId of analysis_ids) {
-      try {
-        await env.DB.prepare(`
-          INSERT INTO starbursting_sources (session_id, content_analysis_id)
-          VALUES (?, ?)
-        `).bind(sessionId, analysisId).run()
-      } catch (linkError) {
-        console.error(`[Starbursting] Failed to link analysis ${analysisId}:`, linkError)
-        throw linkError
-      }
+      await env.DB.prepare(`
+        INSERT INTO starbursting_sources (session_id, content_analysis_id)
+        VALUES (?, ?)
+      `).bind(sessionId, analysisId).run()
     }
-    console.log('[Starbursting] Successfully linked all analyses')
 
-    // Instead of fetching from GET endpoint, construct the full framework data
-    // from what we already have (since we just created it)
     const fullFrameworkData = {
       id: sessionId,
       title: centralTopic,
       framework_type: 'starbursting',
-      data: starburstingPayload.data, // Use the data we just sent
+      data: starburstingPayload.data,
       created_at: new Date().toISOString()
     }
-
-    console.log('[Starbursting] Constructed framework data:', {
-      hasData: !!fullFrameworkData.data,
-      dataType: typeof fullFrameworkData.data,
-      keys: Object.keys(fullFrameworkData),
-      dataKeys: fullFrameworkData.data ? Object.keys(fullFrameworkData.data) : []
-    })
 
     const responsePayload = {
       session_id: sessionId,
@@ -289,30 +224,87 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       framework_data: fullFrameworkData
     }
 
-    console.log('[Starbursting] Response payload structure:', {
-      hasFrameworkData: !!responsePayload.framework_data,
-      hasFrameworkDataData: !!responsePayload.framework_data?.data,
-      frameworkDataKeys: responsePayload.framework_data ? Object.keys(responsePayload.framework_data) : []
-    })
-
     return new Response(JSON.stringify(responsePayload), {
       status: 201,
       headers: { 'Content-Type': 'application/json' }
     })
 
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('[Starbursting] Error:', error)
-    console.error('[Starbursting] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
-
-    // Return detailed error for debugging
     return new Response(JSON.stringify({
       error: 'Failed to create Starbursting session',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      errorName: error instanceof Error ? error.name : typeof error,
-      stack: error instanceof Error ? error.stack : undefined
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: corsHeaders
+    })
+  }
+}
+
+// CORS preflight
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash'
+    }
+  })
+}
+
+// ========================================
+// GET - Retrieve Starbursting sessions for analysis
+// ========================================
+export const onRequestGet: PagesFunction<Env> = async (context) => {
+  const { env } = context
+  const url = new URL(context.request.url)
+  const analysisId = url.searchParams.get('analysis_id')
+
+  if (!analysisId) {
+    return new Response(JSON.stringify({
+      error: 'analysis_id query parameter required'
+    }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
+  try {
+    const results = await env.DB.prepare(`
+      SELECT
+        ss.session_id,
+        ss.created_at,
+        fs.title,
+        fs.status,
+        fs.data
+      FROM starbursting_sources ss
+      LEFT JOIN framework_sessions fs ON ss.session_id = fs.id
+      WHERE ss.content_analysis_id = ?
+      ORDER BY ss.created_at DESC
+    `).bind(Number(analysisId)).all()
+
+    const sessions = results.results?.map(row => ({
+      session_id: row.session_id,
+      title: row.title,
+      status: row.status,
+      created_at: row.created_at,
+      data: row.data ? JSON.parse(row.data as string) : null
+    })) || []
+
+    return new Response(JSON.stringify({ sessions }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+  } catch (error: any) {
+    console.error('[Starbursting] Get sessions error:', error)
+    return new Response(JSON.stringify({
+      error: 'Failed to retrieve Starbursting sessions',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
     })
   }
 }
