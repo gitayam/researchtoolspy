@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { safeJSONParse, safeJSONStringify } from '@/utils/safe-json'
+import { useAuthStore } from '@/stores/auth'
 
 export type UserMode = 'guest' | 'authenticated'
 
@@ -28,21 +29,15 @@ interface GuestModeProviderProps {
 }
 
 export function GuestModeProvider({ children }: GuestModeProviderProps) {
-  const [mode, setModeState] = useState<UserMode>('guest')
   const [guestSessionId, setGuestSessionId] = useState<string | null>(null)
+  
+  // Use auth store as source of truth
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const mode: UserMode = isAuthenticated ? 'authenticated' : 'guest'
 
   // Initialize guest session
   useEffect(() => {
-    // Check if user is authenticated via hash-based auth
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    const validHashesStr = localStorage.getItem('omnicore_valid_hashes')
-    const validHashes: string[] = validHashesStr ? JSON.parse(validHashesStr) : []
-
-    // User is authenticated if they have a valid hash
-    if (userHash && validHashes.includes(userHash)) {
-      setModeState('authenticated')
-      return
-    }
+    if (isAuthenticated) return
 
     // Initialize or load guest session
     let sessionId = localStorage.getItem(GUEST_SESSION_KEY)
@@ -66,24 +61,18 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
     }
 
     setGuestSessionId(sessionId)
-  }, [])
+  }, [isAuthenticated])
 
   const setMode = (newMode: UserMode) => {
-    setModeState(newMode)
+    // Mode is derived from auth state, but we can support explicit logout/guest switch
     if (newMode === 'guest') {
-      // Remove hash-based auth
-      localStorage.removeItem('omnicore_user_hash')
+      useAuthStore.getState().logout()
     }
+    // To switch to authenticated, user must login via login page
   }
 
   const convertToAuthenticated = async (userId: number) => {
     // Transfer guest data to authenticated user
-    // This would typically involve:
-    // 1. Collecting all guest data from localStorage
-    // 2. Sending it to the backend to associate with the user
-    // 3. Clearing guest data
-    // 4. Switching to authenticated mode
-
     try {
       // Collect guest data
       const guestData: Record<string, any> = {}
@@ -111,8 +100,7 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
       if (response.ok) {
         // Clear guest data
         clearGuestData()
-        // Switch to authenticated mode
-        setModeState('authenticated')
+        // Auth state update happens elsewhere (e.g. login)
       }
     } catch (error) {
       console.error('Failed to convert guest to authenticated:', error)
@@ -155,7 +143,7 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
   const value: GuestModeContextType = {
     mode,
     isGuest: mode === 'guest',
-    isAuthenticated: mode === 'authenticated',
+    isAuthenticated,
     guestSessionId,
     setMode,
     convertToAuthenticated,
