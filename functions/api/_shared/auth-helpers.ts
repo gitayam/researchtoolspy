@@ -10,12 +10,20 @@ interface Env {
   SESSIONS?: KVNamespace
 }
 
+import { verifyToken } from '../../utils/jwt'
+
+interface Env {
+  DB?: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
+}
+
 /**
  * Get user ID from request Authorization header
- * Supports both hash-based auth and session-based auth
+ * Supports JWT tokens, session-based auth, and hash-based auth
  *
  * @param request - The incoming request
- * @param env - Cloudflare environment with DB and SESSIONS
+ * @param env - Cloudflare environment with DB, SESSIONS, and JWT_SECRET
  * @returns User ID (number) or null if not authenticated
  */
 export async function getUserFromRequest(
@@ -29,7 +37,15 @@ export async function getUserFromRequest(
 
   const token = authHeader.substring(7)
 
-  // Try session-based auth first (KV store)
+  // 1. Try JWT Auth first (Primary for new implementation)
+  if (token.includes('.') && env.JWT_SECRET) {
+    const payload = await verifyToken(token, env.JWT_SECRET)
+    if (payload?.sub) {
+      return Number(payload.sub)
+    }
+  }
+
+  // 2. Try session-based auth (KV store - legacy/standard)
   if (env.SESSIONS) {
     const sessionData = await env.SESSIONS.get(token)
     if (sessionData) {
@@ -44,7 +60,7 @@ export async function getUserFromRequest(
     }
   }
 
-  // Fallback to hash-based auth
+  // 3. Fallback to raw hash-based auth (Mullvad direct access)
   // For hash-based auth (16+ chars), create/retrieve guest user
   if (token.length >= 16 && env.DB) {
     try {
@@ -57,7 +73,7 @@ export async function getUserFromRequest(
         return Number(existingUser.id)
       }
 
-      // Create new guest user with hash
+      // Create new guest user with hash if not found
       const result = await env.DB.prepare(`
         INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at, is_active, is_verified, role)
         VALUES (?, ?, ?, ?, ?, ?, 1, 0, 'guest')
@@ -67,9 +83,9 @@ export async function getUserFromRequest(
         `${token.substring(0, 8)}@guest.local`,
         token,
         'Guest User',
-        '',
+        'HASH_AUTH_LEGACY',
         new Date().toISOString()
-      ).first()
+      ).first() as { id: number } | null
 
       if (result?.id) {
         return Number(result.id)

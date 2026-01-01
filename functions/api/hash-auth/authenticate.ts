@@ -1,6 +1,7 @@
 import { generateToken } from '../../utils/jwt' // We'll need to ensure this exists or mock it
 
 import { z } from 'zod'
+import { generateToken } from '../../utils/jwt'
 
 interface Env {
   DB: D1Database
@@ -40,7 +41,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Check DB
     const user = await env.DB.prepare(
       'SELECT * FROM users WHERE user_hash = ?'
-    ).bind(account_hash).first()
+    ).bind(account_hash).first() as { id: number, full_name: string, role: string, user_hash: string } | null
 
     if (!user) {
       return Response.json(
@@ -49,13 +50,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       )
     }
 
-    // Generate JWT (Simulated if util doesn't exist, but we should create it)
-    // Ideally use a library like jose or jsonwebtoken, but in Workers we might use web crypto or pure JS
-    // For now, let's create a basic JWT structure manually if no lib is imported
-    // But better to use a proper helper.
-    
-    // We'll defer to a helper we'll create next
-    const token = await generateJwt(user, env.JWT_SECRET || 'dev-secret-key')
+    // Generate JWT using shared utility
+    const token = await generateToken({
+      sub: user.id,
+      name: user.full_name,
+      role: user.role
+    }, env.JWT_SECRET || 'dev-secret-key')
 
     return Response.json({
       access_token: token,
@@ -73,42 +73,4 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       { status: 500 }
     )
   }
-}
-
-// Basic JWT generation for Cloudflare Workers (Web Crypto API)
-async function generateJwt(user: any, secret: string): Promise<string> {
-  const header = { alg: 'HS256', typ: 'JWT' }
-  const payload = {
-    sub: user.id,
-    name: user.full_name,
-    role: user.role,
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour
-  }
-
-  const encodedHeader = btoa(JSON.stringify(header))
-  const encodedPayload = btoa(JSON.stringify(payload))
-  
-  const signatureInput = `${encodedHeader}.${encodedPayload}`
-  
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-  
-  const signature = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    new TextEncoder().encode(signatureInput)
-  )
-  
-  // Convert signature to base64url
-  const signatureArray = Array.from(new Uint8Array(signature))
-  const encodedSignature = btoa(String.fromCharCode.apply(null, signatureArray))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-
-  return `${signatureInput}.${encodedSignature}`
 }
