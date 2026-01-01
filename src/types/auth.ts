@@ -18,24 +18,9 @@ export interface AuthTokens {
   expires_in: number
 }
 
-export interface LoginRequest {
-  username: string
-  password: string
-}
-
 export interface LoginResponse {
   user: User
   tokens: AuthTokens
-}
-
-export interface RegisterRequest {
-  email: string
-  password: string
-  name?: string
-}
-
-export interface RefreshTokenRequest {
-  refresh_token: string
 }
 
 export interface HashLoginRequest {
@@ -45,6 +30,8 @@ export interface HashLoginRequest {
 export interface HashRegisterResponse {
   account_hash: string
   message?: string
+  warning?: string
+  created_at?: string
 }
 
 export const UserRole = {
