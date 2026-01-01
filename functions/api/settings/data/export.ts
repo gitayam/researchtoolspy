@@ -4,8 +4,11 @@
  * POST: Export user data in various formats
  */
 
+import { requireAuth } from '../../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 interface ExportRequest {
@@ -17,17 +20,11 @@ interface ExportRequest {
 }
 
 /**
- * Extract user hash
+ * Helper to get user hash from authenticated user ID
  */
-function getUserHash(request: Request): string | null {
-  return request.headers.get('X-User-Hash') || null
-}
-
-/**
- * Validate hash format
- */
-function isValidHash(hash: string): boolean {
-  return /^\d{16}$/.test(hash)
+async function getUserHashFromId(db: D1Database, userId: number): Promise<string | null> {
+  const user = await db.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+  return user?.user_hash as string | null
 }
 
 /**
@@ -130,9 +127,11 @@ async function exportEvidence(db: D1Database, userHash: string, workspaceId?: st
  */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const userHash = getUserHash(context.request)
-    if (!userHash || !isValidHash(userHash)) {
-      return Response.json({ error: 'Invalid or missing user hash' }, { status: 400 })
+    const userId = await requireAuth(context.request, context.env)
+    const userHash = await getUserHashFromId(context.env.DB, userId)
+
+    if (!userHash) {
+      return Response.json({ error: 'User hash not found' }, { status: 404 })
     }
 
     const body = (await context.request.json()) as ExportRequest
@@ -201,7 +200,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         'Content-Length': blob.byteLength.toString(),
       },
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Export error:', error)
     return Response.json(
       {
