@@ -36,6 +36,9 @@ export const useAuthStore = create<AuthState>()(
           // Call API
           const response = await apiClient.loginWithHash({ account_hash: hash })
 
+          // Store hash for backward compatibility with existing components
+          localStorage.setItem('omnicore_user_hash', hash)
+
           // API Client handles token storage
           
           set({
@@ -60,6 +63,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         apiClient.logout()
+        localStorage.removeItem('omnicore_user_hash')
         set({
           user: null,
           isAuthenticated: false,
