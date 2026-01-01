@@ -185,8 +185,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(authHeader && { 'Authorization': authHeader }),
-        'X-User-Hash': userHash
+        ...(authHeader && { 'Authorization': authHeader })
       },
       body: JSON.stringify(starburstingPayload)
     })
