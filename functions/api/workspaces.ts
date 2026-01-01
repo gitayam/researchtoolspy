@@ -10,26 +10,11 @@ interface Env {
   SESSIONS: KVNamespace
 }
 
-// Helper to get user from session or hash
-async function getUserFromRequest(request: Request, env: Env): Promise<{ userId?: number; userHash?: string }> {
-  // Try bearer token first (authenticated users)
-  const authHeader = request.headers.get('Authorization')
-  if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.substring(7)
-    const sessionData = await env.SESSIONS.get(token)
-    if (sessionData) {
-      const session = JSON.parse(sessionData)
-      return { userId: session.user_id }
-    }
-  }
+import { getUserFromRequest, requireAuth } from './_shared/auth-helpers'
 
-  // Fall back to hash-based auth (guest mode)
-  const userHash = request.headers.get('X-User-Hash')
-  if (userHash && userHash !== 'guest') {
-    return { userHash }
-  }
-
-  return {}
+interface Env {
+  DB: D1Database
+  JWT_SECRET?: string
 }
 
 // Generate UUID v4
@@ -66,34 +51,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       )
     }
 
-    // Get authenticated user (supports both token and hash auth)
-    const user = await getUserFromRequest(request, env)
-    if (!user.userId && !user.userHash) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - Please log in or create a bookmark account' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
+    // Get authenticated user ID
+    const userId = await getUserFromRequest(request, env)
+    
     // GET /api/workspaces - List user's workspaces
     if (method === 'GET' && url.pathname === '/api/workspaces') {
-      // Get or create user ID for hash-based users
-      let userId = user.userId
-      if (!userId && user.userHash) {
-        const existingUser = await env.DB.prepare(`
-          SELECT id FROM users WHERE user_hash = ?
-        `).bind(user.userHash).first()
-
-        if (existingUser) {
-          userId = existingUser.id as number
-        }
-        // If no user exists yet, return empty workspaces (will be created on first workspace creation)
-        if (!userId) {
-          return new Response(
-            JSON.stringify({ owned: [], member: [] }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ owned: [], member: [] }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
 
       const { results: ownedWorkspaces } = await env.DB.prepare(`
@@ -131,6 +98,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // POST /api/workspaces - Create new workspace
     if (method === 'POST' && url.pathname === '/api/workspaces') {
+      const authUserId = await requireAuth(request, env)
       const body = await request.json() as any
 
       if (!body.name || !body.type) {
@@ -145,34 +113,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           JSON.stringify({ error: 'Invalid workspace type' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
-      }
-
-      // For hash-based users, create or get user record
-      let ownerId = user.userId
-      if (!ownerId && user.userHash) {
-        // Check if user exists with this hash
-        const existingUser = await env.DB.prepare(`
-          SELECT id FROM users WHERE user_hash = ?
-        `).bind(user.userHash).first()
-
-        if (existingUser) {
-          ownerId = existingUser.id as number
-        } else {
-          // Create new user with hash
-          // For hash-based users, generate unique username and provide default values
-          const userResult = await env.DB.prepare(`
-            INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-          `).bind(
-            `guest_${user.userHash.substring(0, 8)}`,  // Unique username
-            `${user.userHash.substring(0, 8)}@guest.local`,  // Placeholder email
-            user.userHash,
-            'Guest User',  // Default full name
-            '',  // No password for hash-based users
-            new Date().toISOString()
-          ).run()
-          ownerId = Number(userResult.meta.last_row_id)
-        }
       }
 
       const id = generateId()
@@ -193,7 +133,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         body.name,
         body.description || null,
         body.type,
-        ownerId,
+        authUserId,
         body.is_public ? 1 : 0,
         body.allow_cloning !== false ? 1 : 0,
         entityCount,
@@ -230,17 +170,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           JSON.stringify({ error: 'Workspace not found' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
-      }
-
-      // Get user ID for access check
-      let userId = user.userId
-      if (!userId && user.userHash) {
-        const existingUser = await env.DB.prepare(`
-          SELECT id FROM users WHERE user_hash = ?
-        `).bind(user.userHash).first()
-        if (existingUser) {
-          userId = existingUser.id as number
-        }
       }
 
       // Check access
@@ -301,17 +230,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
-      // Get user ID for permission check
-      let userId = user.userId
-      if (!userId && user.userHash) {
-        const existingUser = await env.DB.prepare(`
-          SELECT id FROM users WHERE user_hash = ?
-        `).bind(user.userHash).first()
-        if (existingUser) {
-          userId = existingUser.id as number
-        }
-      }
-
       // Only owner or admin can update
       const isOwner = workspace.owner_id === userId
       const member = userId ? await env.DB.prepare(`
@@ -370,17 +288,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           JSON.stringify({ error: 'Workspace not found' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
-      }
-
-      // Get user ID for ownership check
-      let userId = user.userId
-      if (!userId && user.userHash) {
-        const existingUser = await env.DB.prepare(`
-          SELECT id FROM users WHERE user_hash = ?
-        `).bind(user.userHash).first()
-        if (existingUser) {
-          userId = existingUser.id as number
-        }
       }
 
       // Only owner can delete
@@ -448,17 +355,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
-      // Get user ID for permission check
-      let userId = user.userId
-      if (!userId && user.userHash) {
-        const existingUser = await env.DB.prepare(`
-          SELECT id FROM users WHERE user_hash = ?
-        `).bind(user.userHash).first()
-        if (existingUser) {
-          userId = existingUser.id as number
-        }
-      }
-
       const isOwner = workspace.owner_id === userId
       const member = userId ? await env.DB.prepare(`
         SELECT role FROM workspace_members
@@ -499,7 +395,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Workspaces API error:', error)
     return new Response(
       JSON.stringify({
