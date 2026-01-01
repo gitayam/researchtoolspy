@@ -140,6 +140,18 @@
 
 **Git Tag**: `feedback-v1.0.0`
 
+### ✅ Phase 6: Architecture & Security (COMPLETE)
+
+#### Phase 6.1: Hash-Based Authentication Standardization ✅
+**Completed**: 2025-10-07
+- ✅ Removed legacy `X-User-Hash` header usage across 20+ endpoints.
+- ✅ Standardized on `Authorization: Bearer <token>` for all requests.
+- ✅ Implemented backend-driven hash generation (`/api/hash-auth/register`).
+- ✅ Added secure JWT support with raw hash fallback for CLI/legacy clients.
+- ✅ Implemented IP-based rate limiting for auth endpoints (5 req/min).
+- ✅ Updated frontend client (`apiClient`) to handle auth transparently.
+- **Impact**: Improved security, simplified API surface, Mullvad-style privacy standard compliance.
+
 ---
 
 ## 📋 Remaining Work
