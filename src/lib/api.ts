@@ -3,7 +3,6 @@ import type {
   User,
   AuthTokens,
   LoginResponse,
-  RefreshTokenRequest,
   HashLoginRequest
 } from '@/types/auth'
 import { UserRole } from '@/types/auth'
@@ -63,29 +62,15 @@ export class APIClient {
       (error) => Promise.reject(error)
     )
 
-    // Response interceptor for token refresh
+    // Response interceptor for token handling
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        const originalRequest = error.config as any
-
-        if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-          originalRequest._retry = true
-
-          try {
-            await this.refreshToken()
-            // Retry the original request with new token
-            if (this.tokens?.access_token && originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${this.tokens.access_token}`
-            }
-            return this.client.request(originalRequest)
-          } catch (refreshError) {
-            // Refresh failed, redirect to login
-            this.clearTokens()
-            if (typeof window !== 'undefined') {
-              window.location.href = '/login'
-            }
-            return Promise.reject(refreshError)
+        if (error.response?.status === 401) {
+          // Token expired or invalid, redirect to login
+          this.clearTokens()
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login'
           }
         }
 
@@ -249,19 +234,6 @@ export class APIClient {
       }
       throw error
     }
-  }
-
-  async refreshToken(): Promise<AuthTokens> {
-    if (!this.tokens?.refresh_token) {
-      throw new Error('No refresh token available')
-    }
-
-    const response = await this.client.post<AuthTokens>('/auth/refresh', {
-      refresh_token: this.tokens.refresh_token
-    })
-
-    this.saveTokensToStorage(response.data)
-    return response.data
   }
 
   async getCurrentUser(): Promise<User> {
