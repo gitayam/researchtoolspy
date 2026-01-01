@@ -2,8 +2,11 @@
 // Library Fork API - Clone frameworks to user workspace
 // ============================================================================
 
+import { requireAuth } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 const CORS_HEADERS = {
@@ -21,15 +24,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const userHash = request.headers.get('X-User-Hash') || 'guest'
-    const workspaceId = request.headers.get('X-Workspace-Id') || '1'
+    const userId = await requireAuth(request, env)
+    
+    // Get user hash for legacy columns
+    const userResult = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+    const userHash = userResult?.user_hash as string
 
-    if (userHash === 'guest') {
-      return new Response(JSON.stringify({ error: 'Authentication required to fork' }), {
-        status: 401,
-        headers: CORS_HEADERS
-      })
-    }
+    const workspaceId = request.headers.get('X-Workspace-Id') || '1'
 
     if (request.method === 'POST') {
       const body: any = await request.json()
@@ -75,9 +76,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
 
       // Insert forked framework
+      // Note: id might be a string in existing tables despite schema.sql saying INTEGER
       await env.DB.prepare(`
         INSERT INTO framework_sessions (
-          id, type, title, description, data, user_id, workspace_id,
+          id, framework_type, title, description, data, user_id, workspace_id,
           original_workspace_id, fork_parent_id, status,
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)
@@ -87,7 +89,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         frameworkData.title,
         frameworkData.description || '',
         JSON.stringify(frameworkData),
-        userHash,
+        userId,
         workspaceId,
         workspaceId,
         libraryFramework.framework_id, // Original framework ID
@@ -112,7 +114,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         now
       ).run()
 
-      // Update fork count (trigger will handle this, but we can also do it manually)
+      // Update fork count
       await env.DB.prepare(
         'UPDATE library_frameworks SET fork_count = fork_count + 1 WHERE id = ?'
       ).bind(library_framework_id).run()
@@ -129,6 +131,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     })
 
   } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('[Library Fork API] Error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
