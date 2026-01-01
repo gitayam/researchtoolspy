@@ -2,8 +2,11 @@
 // Public Library API - Browse and search published frameworks
 // ============================================================================
 
+import { getUserFromRequest } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 const CORS_HEADERS = {
@@ -22,7 +25,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   try {
     const url = new URL(request.url)
-    const userHash = request.headers.get('X-User-Hash') || 'guest'
+    const userId = await getUserFromRequest(request, env)
+    
+    // Get user hash for legacy lookups
+    let userHash = 'guest'
+    if (userId) {
+      const userResult = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+      if (userResult?.user_hash) userHash = userResult.user_hash as string
+    }
 
     if (request.method === 'GET') {
       // Browse/search library frameworks
@@ -133,8 +143,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // POST: Publish framework to library
     if (request.method === 'POST') {
-      const authToken = request.headers.get('Authorization')?.replace('Bearer ', '')
-      if (!authToken && userHash === 'guest') {
+      if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required to publish' }), {
           status: 401,
           headers: CORS_HEADERS
@@ -218,6 +227,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     })
 
   } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('[Library API] Error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
