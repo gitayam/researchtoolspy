@@ -1,4 +1,5 @@
 import { getUserFromRequest } from './_shared/auth-helpers'
+import { createNotification } from './_shared/notification-logger'
 
 interface Env {
   DB: D1Database
@@ -134,9 +135,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         })
       }
 
-      // Get user hash for legacy column
-      const userResult = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+      // Get user details
+      const userResult = await env.DB.prepare('SELECT id, user_hash, full_name, username FROM users WHERE id = ?').bind(userId).first()
       const userHash = userResult?.user_hash as string
+      const actorName = (userResult?.full_name as string) || (userResult?.username as string) || 'User'
 
       const body = await request.json() as Partial<Comment>
       const {
@@ -196,14 +198,44 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         workspace_id
       ).run()
 
-      // Create mention notifications
+      // Resolve and notify mentions
       if (mentions.length > 0) {
         for (const mentionedUsername of mentions) {
-          const mentionId = generateId()
-          await env.DB.prepare(`
-            INSERT INTO comment_mentions (id, comment_id, mentioned_user_id, workspace_id)
-            VALUES (?, ?, ?, ?)
-          `).bind(mentionId, commentId, mentionedUsername, workspace_id).run()
+          // Lookup user by username
+          const targetUser = await env.DB.prepare('SELECT id, user_hash FROM users WHERE username = ?').bind(mentionedUsername).first()
+          
+          if (targetUser) {
+            const mentionId = generateId()
+            const targetUserId = String(targetUser.id)
+            const targetUserHash = targetUser.user_hash as string
+
+            // Create mention record
+            await env.DB.prepare(`
+              INSERT INTO comment_mentions (id, comment_id, mentioned_user_id, mentioned_user_hash, workspace_id)
+              VALUES (?, ?, ?, ?, ?)
+            `).bind(
+              mentionId, 
+              commentId, 
+              targetUserId,
+              targetUserHash,
+              workspace_id
+            ).run()
+
+            // Trigger notification
+            await createNotification(env.DB, {
+              targetUserHash: targetUserHash,
+              workspaceId: String(workspace_id),
+              notificationType: 'COMMENT_MENTIONED',
+              title: `New mention from ${actorName}`,
+              message: `${actorName} mentioned you in a comment`,
+              // TODO: Improve deep linking to specific comment
+              actionUrl: `/dashboard/analysis-frameworks/${entity_type}/${entity_id}`,
+              entityType: entity_type,
+              entityId: entity_id,
+              actorHash: userHash,
+              actorName: actorName
+            })
+          }
         }
       }
 
