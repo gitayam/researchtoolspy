@@ -30,9 +30,11 @@ Authorization: Bearer <your_jwt_token>
 - `getUserFromRequest`: Extracts user ID from the JWT token.
 - `requireAuth`: Throws a 401 error if the user is not authenticated.
 
-## Known Issues / Inconsistencies
+## Security Model
 
-- **Legacy Headers**: Some endpoints (like `functions/api/settings/user.ts`) might still check for `X-User-Hash`. These should be refactored to use the standard `getUserFromRequest` helper.
+All API endpoints are protected and require a valid Bearer token. The backend supports two types of Bearer tokens:
+1.  **JWT Tokens**: Issued by `/api/hash-auth/authenticate`. (Recommended)
+2.  **Raw Account Hashes**: For backward compatibility and simplified CLI access.
 
 ## Error Handling
 
@@ -47,15 +49,19 @@ Standard error responses follow this JSON structure:
 
 ## Key Modules
 
-### Authentication (`/api/auth`)
-- **POST** `/api/auth/login`: Authenticate a user.
-- **POST** `/api/auth/register`: Create a new account.
-- **GET** `/api/auth/me`: Get current user details.
+### Authentication (`/api/hash-auth`)
+- **POST** `/api/hash-auth/register`: Create a new account and get a 16-digit hash.
+- **POST** `/api/hash-auth/authenticate`: Exchange hash for JWT.
 
 ### User Settings (`/api/settings`)
-- **GET** `/api/settings/user`: Retrieve user settings. Requires `X-User-Hash` header or `?hash=` query param.
-- **PUT** `/api/settings/user`: Update user settings. Requires `X-User-Hash` header or `?hash=` query param.
+- **GET** `/api/settings/user`: Retrieve user settings.
+- **PUT** `/api/settings/user`: Update user settings.
 - **DELETE** `/api/settings/user`: Reset settings to defaults.
+
+### Workspaces (`/api/workspaces` and `/api/settings/workspaces`)
+- **GET** `/api/workspaces`: List user's workspaces.
+- **POST** `/api/workspaces`: Create a new workspace.
+- **GET** `/api/settings/workspaces`: Manage workspace settings.
 
 ### Content Intelligence (`/api/content-intelligence`)
 Tools for analyzing and extracting data from URLs and content.
