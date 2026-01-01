@@ -4,22 +4,19 @@
  * DELETE: Clear all data in a workspace
  */
 
+import { requireAuth } from '../../../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 /**
- * Extract user hash
+ * Helper to get user hash from authenticated user ID
  */
-function getUserHash(request: Request): string | null {
-  return request.headers.get('X-User-Hash') || null
-}
-
-/**
- * Validate hash format
- */
-function isValidHash(hash: string): boolean {
-  return /^\d{16}$/.test(hash)
+async function getUserHashFromId(db: D1Database, userId: number): Promise<string | null> {
+  const user = await db.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+  return user?.user_hash as string | null
 }
 
 /**
@@ -28,9 +25,11 @@ function isValidHash(hash: string): boolean {
  */
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
-    const userHash = getUserHash(context.request)
-    if (!userHash || !isValidHash(userHash)) {
-      return Response.json({ error: 'Invalid or missing user hash' }, { status: 400 })
+    const userId = await requireAuth(context.request, context.env)
+    const userHash = await getUserHashFromId(context.env.DB, userId)
+
+    if (!userHash) {
+      return Response.json({ error: 'User hash not found' }, { status: 404 })
     }
 
     const workspaceId = context.params.id as string
@@ -90,9 +89,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     // Delete comments (if table exists)
     try {
       const result = await context.env.DB.prepare(
-        `DELETE FROM comments WHERE framework_id IN (
-          SELECT id FROM frameworks WHERE workspace_id = ?
-        )`
+        `DELETE FROM comments WHERE workspace_id = ?`
       )
         .bind(workspaceId)
         .run()
@@ -119,7 +116,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       deleted: deletedCounts,
       total: Object.values(deletedCounts).reduce((a, b) => a + b, 0),
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Clear workspace data error:', error)
     return Response.json(
       {
