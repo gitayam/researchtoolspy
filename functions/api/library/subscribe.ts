@@ -2,8 +2,11 @@
 // Library Subscribe API - Subscribe to framework updates
 // ============================================================================
 
+import { requireAuth } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 const CORS_HEADERS = {
@@ -21,11 +24,15 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const userHash = request.headers.get('X-User-Hash') || 'guest'
+    const userId = await requireAuth(request, env)
+    
+    // Get user hash for legacy columns
+    const userResult = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+    const userHash = userResult?.user_hash as string
 
-    if (userHash === 'guest') {
-      return new Response(JSON.stringify({ error: 'Authentication required to subscribe' }), {
-        status: 401,
+    if (!userHash) {
+      return new Response(JSON.stringify({ error: 'User hash not found' }), {
+        status: 404,
         headers: CORS_HEADERS
       })
     }
@@ -122,6 +129,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     })
 
   } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('[Library Subscribe API] Error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
