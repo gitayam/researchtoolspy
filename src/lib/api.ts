@@ -33,7 +33,7 @@ if (typeof window !== 'undefined') {
 export interface APIError {
   message: string
   status: number
-  details?: any
+  details?: unknown
 }
 
 export class APIClient {
@@ -86,7 +86,7 @@ export class APIClient {
 
   private handleError(error: AxiosError): APIError {
     if (error.response) {
-      const data = error.response.data as any
+      const data = error.response.data as { detail?: string | { message?: string } | { msg?: string }[]; message?: string }
       let message = 'An error occurred'
       
       // Handle different error formats from the backend
@@ -223,13 +223,14 @@ export class APIClient {
         user,
         tokens
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If hash auth fails, provide helpful error message
-      if (error.response?.status === 401) {
+      const axiosError = error as AxiosError
+      if (axiosError.response?.status === 401) {
         throw {
           message: 'Invalid account hash. Please check your account number.',
           status: 401,
-          details: error.response?.data
+          details: axiosError.response?.data
         }
       }
       throw error
@@ -247,22 +248,22 @@ export class APIClient {
   }
 
   // Generic HTTP methods
-  async get<T>(endpoint: string, config?: any): Promise<T> {
-    const response = await this.client.get<T>(endpoint, config)
+  async get<T>(endpoint: string, config?: unknown): Promise<T> {
+    const response = await this.client.get<T>(endpoint, config as any)
     return response.data
   }
 
-  async post<T>(endpoint: string, data?: any): Promise<T> {
+  async post<T>(endpoint: string, data?: unknown): Promise<T> {
     const response = await this.client.post<T>(endpoint, data)
     return response.data
   }
 
-  async put<T>(endpoint: string, data?: any): Promise<T> {
+  async put<T>(endpoint: string, data?: unknown): Promise<T> {
     const response = await this.client.put<T>(endpoint, data)
     return response.data
   }
 
-  async patch<T>(endpoint: string, data?: any): Promise<T> {
+  async patch<T>(endpoint: string, data?: unknown): Promise<T> {
     const response = await this.client.patch<T>(endpoint, data)
     return response.data
   }
