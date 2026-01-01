@@ -12,8 +12,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { normalizeClaims } from './normalize-claims'
 import { extractAndSaveClaimEntities } from './extract-claim-entities'
@@ -25,6 +24,7 @@ interface Env {
   AI_GATEWAY_ACCOUNT_ID?: string
   SESSIONS?: KVNamespace
   RATE_LIMIT?: KVNamespace
+  JWT_SECRET?: string
 }
 
 interface AnalyzeUrlRequest {
@@ -40,13 +40,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     console.log('[DEBUG] Starting analyze-url endpoint')
-    console.log(`[DEBUG] Request method: ${request.method}`)
-    console.log(`[DEBUG] Request URL: ${request.url}`)
-
-    // Check environment bindings
-    console.log(`[DEBUG] Environment check:`)
-    console.log(`[DEBUG]   - DB: ${!!env.DB}`)
-    console.log(`[DEBUG]   - OPENAI_API_KEY: ${!!env.OPENAI_API_KEY}`)
 
     if (!env.DB) {
       console.error('[DEBUG] CRITICAL: Database binding not available!')
@@ -59,32 +52,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (!env.OPENAI_API_KEY) {
-      console.error('[DEBUG] WARNING: OpenAI API key not available!')
+    // Determine user_id using shared auth helper
+    const userId = await getUserIdOrDefault(request, env)
+    
+    // Get user hash for legacy association
+    let bookmarkHash: string | null = null
+    if (userId) {
+      const user = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+      if (user?.user_hash) bookmarkHash = user.user_hash as string
     }
 
-    // Get workspace and user authentication
     const workspaceId = request.headers.get('X-Workspace-ID') || '1'
-    const userHash = request.headers.get('X-User-Hash')
-    const authToken = request.headers.get('Authorization')?.replace('Bearer ', '')
-
-    console.log(`[DEBUG] Auth: workspace=${workspaceId}, userHash=${!!userHash}, authToken=${!!authToken}`)
-
-    // Determine user_id using shared auth helper
-    // Supports both session-based and hash-based authentication
-    const userId = await getUserIdOrDefault(request, env)
-    const bookmarkHash: string | null = userHash || null
 
     // Parse request
     let body: AnalyzeUrlRequest
     try {
       body = await request.json() as AnalyzeUrlRequest
-      console.log(`[DEBUG] Request body parsed: ${JSON.stringify({ url: body.url, mode: body.mode })}`)
     } catch (error) {
-      console.error('[DEBUG] Failed to parse request body:', error)
       return new Response(JSON.stringify({
-        error: 'Invalid request body',
-        details: error instanceof Error ? error.message : 'Failed to parse JSON'
+        error: 'Invalid request body'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
