@@ -5,22 +5,19 @@
  * DELETE: Delete workspace
  */
 
+import { requireAuth } from '../../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 /**
- * Extract user hash from request
+ * Helper to get user hash from authenticated user ID
  */
-function getUserHash(request: Request): string | null {
-  return request.headers.get('X-User-Hash') || null
-}
-
-/**
- * Validate hash format
- */
-function isValidHash(hash: string): boolean {
-  return /^\d{16}$/.test(hash)
+async function getUserHashFromId(db: D1Database, userId: number): Promise<string | null> {
+  const user = await db.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+  return user?.user_hash as string | null
 }
 
 /**
@@ -29,9 +26,11 @@ function isValidHash(hash: string): boolean {
  */
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   try {
-    const userHash = getUserHash(context.request)
-    if (!userHash || !isValidHash(userHash)) {
-      return Response.json({ error: 'Invalid or missing user hash' }, { status: 400 })
+    const userId = await requireAuth(context.request, context.env)
+    const userHash = await getUserHashFromId(context.env.DB, userId)
+
+    if (!userHash) {
+      return Response.json({ error: 'User hash not found' }, { status: 404 })
     }
 
     const workspaceId = context.params.id as string
@@ -92,7 +91,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       .first()
 
     return Response.json(updated)
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Workspace PUT error:', error)
     return Response.json(
       {
@@ -110,9 +110,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
  */
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
-    const userHash = getUserHash(context.request)
-    if (!userHash || !isValidHash(userHash)) {
-      return Response.json({ error: 'Invalid or missing user hash' }, { status: 400 })
+    const userId = await requireAuth(context.request, context.env)
+    const userHash = await getUserHashFromId(context.env.DB, userId)
+
+    if (!userHash) {
+      return Response.json({ error: 'User hash not found' }, { status: 404 })
     }
 
     const workspaceId = context.params.id as string
@@ -145,7 +147,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       success: true,
       message: 'Workspace deleted successfully',
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Workspace DELETE error:', error)
     return Response.json(
       {
