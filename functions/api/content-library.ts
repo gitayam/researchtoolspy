@@ -3,10 +3,11 @@
  * Fetches all analyzed content for a user/workspace
  */
 
-import type { PagesFunction } from '@cloudflare/workers-types'
+import { requireAuth } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -24,41 +25,24 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     // Get authentication
+    const userId = await requireAuth(request, env)
     const workspaceId = request.headers.get('X-Workspace-ID') || '1'
-    const userHash = request.headers.get('X-User-Hash')
-    const authToken = request.headers.get('Authorization')?.replace('Bearer ', '')
-
-    console.log(`[Content Library] workspace=${workspaceId}, userHash=${!!userHash}, authToken=${!!authToken}`)
 
     // Parse query parameters
     const url = new URL(request.url)
     const limit = parseInt(url.searchParams.get('limit') || '50')
     const offset = parseInt(url.searchParams.get('offset') || '0')
 
-    // Build query based on auth method
+    // Build query
     let query = `
       SELECT
         id, url, url_normalized, title, author, publish_date, domain,
         summary, word_count, key_entities, created_at, updated_at,
         last_accessed_at
       FROM content_intelligence
-      WHERE 1=1
+      WHERE workspace_id = ?
     `
-    const params: any[] = []
-
-    // Filter by workspace
-    query += ` AND workspace_id = ?`
-    params.push(workspaceId)
-
-    // Filter by user authentication
-    if (userHash && userHash !== 'guest') {
-      query += ` AND user_hash = ?`
-      params.push(userHash)
-    } else if (authToken) {
-      // TODO: Get user_id from session token
-      query += ` AND user_id = ?`
-      params.push(1) // Placeholder
-    }
+    const params: any[] = [workspaceId]
 
     // Order by most recently accessed
     query += ` ORDER BY last_accessed_at DESC LIMIT ? OFFSET ?`
@@ -85,7 +69,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     })
 
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('[Content Library] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to fetch content library',
