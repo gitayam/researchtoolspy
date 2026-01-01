@@ -2,9 +2,7 @@ import axios, { type AxiosInstance, type AxiosError } from 'axios'
 import type {
   User,
   AuthTokens,
-  LoginRequest,
   LoginResponse,
-  RegisterRequest,
   RefreshTokenRequest,
   HashLoginRequest
 } from '@/types/auth'
@@ -20,9 +18,9 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL
   }
 
-  // For local development, always use localhost
-  // (Tunnel URL logic removed to prevent confusion)
-  return 'http://localhost:8000/api/v1'
+  // Default to relative path which works for both Wrangler dev and Production
+  // This assumes the API is served from the same origin (which is true for Cloudflare Pages)
+  return '/api'
 }
 
 const API_BASE_URL = getApiBaseUrl()
@@ -171,29 +169,6 @@ export class APIClient {
     }
   }
 
-  // Auth methods
-  async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const formData = new URLSearchParams()
-    formData.append('username', credentials.username)
-    formData.append('password', credentials.password)
-
-    const response = await this.client.post<AuthTokens>('/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    })
-
-    this.saveTokensToStorage(response.data)
-
-    // Get user profile
-    const user = await this.getCurrentUser()
-    
-    return {
-      user,
-      tokens: response.data
-    }
-  }
-
   // Hash-based registration
   async registerWithHash(): Promise<{ account_hash: string; message: string; warning: string; created_at: string }> {
     logger.info('Requesting new hash registration from backend')
@@ -274,11 +249,6 @@ export class APIClient {
       }
       throw error
     }
-  }
-
-  async register(userData: RegisterRequest): Promise<User> {
-    const response = await this.client.post<User>('/auth/register', userData)
-    return response.data
   }
 
   async refreshToken(): Promise<AuthTokens> {
