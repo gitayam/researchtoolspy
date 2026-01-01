@@ -7,6 +7,8 @@
  * DELETE: Reset settings to defaults
  */
 
+import { requireAuth } from '../../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
 }
@@ -83,26 +85,11 @@ const DEFAULT_SETTINGS: Omit<UserSettings, 'user_hash'> = {
 }
 
 /**
- * Extract user hash from request headers or query params
+ * Helper to get user hash from authenticated user ID
  */
-function getUserHash(request: Request): string | null {
-  // Try X-User-Hash header first
-  const headerHash = request.headers.get('X-User-Hash')
-  if (headerHash) return headerHash
-
-  // Try query parameter
-  const url = new URL(request.url)
-  const queryHash = url.searchParams.get('hash')
-  if (queryHash) return queryHash
-
-  return null
-}
-
-/**
- * Validate hash format (16 digits)
- */
-function isValidHash(hash: string): boolean {
-  return /^\d{16}$/.test(hash)
+async function getUserHashFromId(db: D1Database, userId: number): Promise<string | null> {
+  const user = await db.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+  return user?.user_hash as string | null
 }
 
 /**
@@ -180,17 +167,11 @@ async function saveSettings(
  */
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const userHash = getUserHash(context.request)
+    const userId = await requireAuth(context.request, context.env)
+    const userHash = await getUserHashFromId(context.env.DB, userId)
 
     if (!userHash) {
-      return Response.json(
-        { error: 'Missing user hash', message: 'Provide hash via X-User-Hash header or ?hash= param' },
-        { status: 400 }
-      )
-    }
-
-    if (!isValidHash(userHash)) {
-      return Response.json({ error: 'Invalid hash format', message: 'Hash must be 16 digits' }, { status: 400 })
+      return Response.json({ error: 'User hash not found' }, { status: 404 })
     }
 
     const settings = await loadSettings(context.env.DB, userHash)
@@ -200,7 +181,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         'Cache-Control': 'private, max-age=60',
       },
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Settings GET error:', error)
     return Response.json(
       {
@@ -218,17 +200,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
  */
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   try {
-    const userHash = getUserHash(context.request)
+    const userId = await requireAuth(context.request, context.env)
+    const userHash = await getUserHashFromId(context.env.DB, userId)
 
     if (!userHash) {
-      return Response.json(
-        { error: 'Missing user hash', message: 'Provide hash via X-User-Hash header or ?hash= param' },
-        { status: 400 }
-      )
-    }
-
-    if (!isValidHash(userHash)) {
-      return Response.json({ error: 'Invalid hash format', message: 'Hash must be 16 digits' }, { status: 400 })
+      return Response.json({ error: 'User hash not found' }, { status: 404 })
     }
 
     const updates = (await context.request.json()) as Partial<Omit<UserSettings, 'user_hash'>>
@@ -256,7 +232,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       success: true,
       settings,
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Settings PUT error:', error)
     return Response.json(
       {
@@ -274,17 +251,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
  */
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
-    const userHash = getUserHash(context.request)
+    const userId = await requireAuth(context.request, context.env)
+    const userHash = await getUserHashFromId(context.env.DB, userId)
 
     if (!userHash) {
-      return Response.json(
-        { error: 'Missing user hash', message: 'Provide hash via X-User-Hash header or ?hash= param' },
-        { status: 400 }
-      )
-    }
-
-    if (!isValidHash(userHash)) {
-      return Response.json({ error: 'Invalid hash format', message: 'Hash must be 16 digits' }, { status: 400 })
+      return Response.json({ error: 'User hash not found' }, { status: 404 })
     }
 
     // Delete all settings for this hash
@@ -298,7 +269,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         ...DEFAULT_SETTINGS,
       },
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Settings DELETE error:', error)
     return Response.json(
       {
