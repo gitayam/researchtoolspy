@@ -2,8 +2,11 @@
 // Activity Feed API - Workspace activity tracking
 // ============================================================================
 
+import { getUserFromRequest, requireAuth } from './_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 const CORS_HEADERS = {
@@ -21,11 +24,22 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const userHash = request.headers.get('X-User-Hash') || 'guest'
+    const userId = await getUserFromRequest(request, env)
+    
+    // Get user hash for logging if authenticated
+    let userHash = 'guest'
+    if (userId) {
+      const user = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+      if (user?.user_hash) userHash = user.user_hash as string
+    }
+
     const workspaceId = request.headers.get('X-Workspace-ID')
 
     // GET /api/activity - List workspace activity
     if (request.method === 'GET') {
+      // Require auth for viewing activity
+      await requireAuth(request, env)
+      
       const url = new URL(request.url)
       const limit = parseInt(url.searchParams.get('limit') || '50')
       const offset = parseInt(url.searchParams.get('offset') || '0')
@@ -164,6 +178,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     })
 
   } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('[Activity API] Error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
