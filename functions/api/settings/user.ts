@@ -7,7 +7,7 @@
  * DELETE: Reset settings to defaults
  */
 
-import { requireAuth } from '../../_shared/auth-helpers'
+import { requireAuth } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
