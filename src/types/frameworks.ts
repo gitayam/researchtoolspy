@@ -74,6 +74,7 @@ export interface QuestionAnswerItem {
   linked_actors?: Array<{ id: string; name: string; type: string }> // Who questions
   linked_places?: Array<{ id: string; name: string; place_type: string }> // Where questions
   linked_events?: Array<{ id: string; name: string; event_type: string; date_start: string }> // When questions
+  extracted_entities?: Array<{ name: string; type: string; details?: string; linked_id?: string }> // Structured entities from AI
   evidence_ids?: string[] // Supporting evidence for answers
 }
 

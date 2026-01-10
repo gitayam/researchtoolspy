@@ -16,7 +16,7 @@ import {
   Link2, Loader2, FileText, BarChart3, Users, MessageSquare,
   Star, Save, ExternalLink, Archive, Clock, Bookmark, FolderOpen, Send, AlertCircle, BookOpen, Shield,
   Copy, Check, Video, Download, Play, Info, Image, FileDown, Globe, SmileIcon, FrownIcon, MehIcon, Grid3x3, Share2,
-  Search, Sparkles, XCircle, MoreVertical, Mail, GitBranch, Code, Tag, PlusCircle
+  Search, Sparkles, XCircle, MoreVertical, Mail, GitBranch, Code, Tag, PlusCircle, MapPin, Calendar
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import type { ContentAnalysis, ProcessingStatus, SavedLink, QuestionAnswer } from '@/types/content-intelligence'
@@ -27,6 +27,7 @@ import { generateCitation } from '@/utils/citation-formatters'
 import { ClaimAnalysisDisplay } from '@/components/content-intelligence/ClaimAnalysisDisplay'
 import { AnalysisLayout } from '@/components/content-intelligence/AnalysisLayout'
 import { createLogger } from '@/lib/logger'
+import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
 
 const logger = createLogger('ContentIntelligence')
 
@@ -4839,6 +4840,24 @@ ${shortSummary}`
                                             <span className="italic text-gray-500 dark:text-gray-400">No answer provided</span>
                                           )}
                                         </div>
+                                        
+                                        {/* Extracted Entities Display */}
+                                        {item.extracted_entities && item.extracted_entities.length > 0 && (
+                                          <div className="ml-5 mt-2 flex flex-wrap gap-2">
+                                            {item.extracted_entities.map((entity: any, i: number) => (
+                                              <StarburstingEntityLinker 
+                                                key={`${item.id}-${i}`}
+                                                entity={entity}
+                                                sessionId={starburstingSession.session_id}
+                                                questionId={item.id}
+                                                onLinkCreated={(linkedId) => {
+                                                  // Optional: Update local state if needed
+                                                  console.log(`Linked entity ${entity.name} to ${linkedId}`);
+                                                }}
+                                              />
+                                            ))}
+                                          </div>
+                                        )}
                                       </li>
                                     ))}
                                   </ul>

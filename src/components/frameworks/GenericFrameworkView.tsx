@@ -24,6 +24,7 @@ import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
 import { LocationBadge } from '@/components/behavior/LocationBadge'
 import { CommentThread } from '@/components/comments/CommentThread'
 import { ShareButton } from './ShareButton'
+import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
 import type { CreateRelationshipRequest } from '@/types/entities'
 import type { ComBDeficits, InterventionFunction } from '@/types/behavior-change-wheel'
 import type { LocationContext } from '@/types/behavior'
@@ -427,6 +428,20 @@ export function GenericFrameworkView({
                         <div className="text-gray-700 dark:text-gray-300 ml-5">
                           A: {item.answer || <span className="italic text-gray-500 dark:text-gray-400">No answer provided</span>}
                         </div>
+
+                        {/* Display AI-extracted entities with linking support */}
+                        {item.extracted_entities && item.extracted_entities.length > 0 && (
+                          <div className="ml-5 mt-2 flex flex-wrap gap-2">
+                            {item.extracted_entities.map((entity, idx) => (
+                              <StarburstingEntityLinker
+                                key={`${item.id}-entity-${idx}`}
+                                entity={entity as any}
+                                sessionId={data.id}
+                                questionId={item.id}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         {item.citationId && (

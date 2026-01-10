@@ -109,116 +109,129 @@ function extractTextFromHTML(html: string): { title: string; content: string } {
 
 // Framework-specific extraction prompts
 const extractionPrompts: Record<string, string> = {
-  starbursting: `Analyze this article and extract 5W+How questions WITH answers:
+  starbursting: `Analyze this article and perform a 5W1H "Starbursting" analysis using a structured ontology.
 
 Article Title: {title}
 Article URL: {url}
 Article Content: {content}
 
-Generate 3-5 specific questions for each category based on the article content.
+### ONTOLOGY CLASSES
+1. **Actor** (Who): People, groups, or organizations. Properties: name, details (role/affiliation).
+2. **Event** (What/When): Actions, incidents, or temporal markers. Properties: name, details (date/type).
+3. **Place** (Where): Geographic locations. Properties: name, details (region/type).
+4. **Mechanism** (How): Methods, tools, or techniques used. Properties: name, details (tool/method).
+5. **Cause** (Why): Intent, motivations, or strategic goals. Properties: name, details (intent/goal).
+
+### INSTRUCTIONS
+1. Generate 3-5 specific questions for each category based on the article content.
+2. For each question, provide a detailed answer extracted from the article.
+3. EXTRACT specific entities mentioned in the answer and map them to the Ontology Classes.
+4. If the answer is not available in the article, set answer to empty string "".
 
 CRITICAL REQUIREMENTS for QUESTIONS:
-1. Include the specific article title in the question (NEVER use "this article", "the article", "this", or "it")
-2. Include specific dates, event names, and entity names mentioned in the article
-3. Questions must be self-contained and understandable without seeing the article
-4. Replace ALL pronouns with specific references (e.g., instead of "Who published this?", write "Who published '[Article Title]' on [Source] ([Date])?")
+1. Include the specific article title in the question (NEVER use "this article", "the article", "this", or "it").
+2. Include specific dates, event names, and entity names mentioned in the article.
+3. Replace ALL pronouns with specific references.
 
-CRITICAL REQUIREMENTS for ANSWERS:
-1. Answers must be SELF-CONTAINED and understandable on their own
-2. DO NOT use pronouns (it, they, them, this, these, that, those) without immediately clarifying what they refer to
-3. Use SPECIFIC names, organizations, locations, dates, and numbers instead of vague references
-4. Each answer should explicitly state the subject (e.g., "Newsweek published the article" instead of "It was published")
-5. Answers must be OBJECTIVE and contain actual information from the content
-6. Include specific details: names of people, organizations, places, dates, amounts
-
-For each question, provide an answer extracted from the article. If the answer is not available in the article, set answer to empty string "".
-
-Example of GOOD vs BAD questions:
-❌ BAD: "Who published the article?" (uses "the article")
-✅ GOOD: "Who published 'La Niña map shows winter forecast for each US state' on Newsweek (November 2024)?"
-
-❌ BAD: "What event is discussed?" (vague, uses "event")
-✅ GOOD: "What weather phenomenon does NOAA predict will influence the 2024-2025 winter season across the United States?"
-
-Example of GOOD vs BAD answers:
-❌ BAD: "It announced that they would increase spending." (pronouns without context)
-✅ GOOD: "The United States Department of Defense announced on March 15, 2024 that it would increase military spending by $20 billion."
-
-Return ONLY valid JSON with question-answer pairs:
-
+Return ONLY valid JSON with the following structure:
 {
   "who": [
-    {"question": "Who question with article title and specifics?", "answer": "Answer from article or empty string"},
-    {"question": "Who question with article title and specifics?", "answer": "Answer from article or empty string"}
+    {
+      "question": "Who question?",
+      "answer": "Specific answer.",
+      "extracted_entities": [{ "name": "Entity Name", "type": "Actor", "details": "Role" }]
+    }
   ],
   "what": [
-    {"question": "What question with article title and specifics?", "answer": "Answer from article or empty string"},
-    {"question": "What question with article title and specifics?", "answer": "Answer from article or empty string"}
-  ],
-  "when": [
-    {"question": "When question with article title and specifics?", "answer": "Answer from article or empty string"},
-    {"question": "When question with article title and specifics?", "answer": "Answer from article or empty string"}
+    {
+      "question": "What question?",
+      "answer": "Specific answer.",
+      "extracted_entities": [{ "name": "Entity Name", "type": "Event", "details": "Action" }]
+    }
   ],
   "where": [
-    {"question": "Where question with article title and specifics?", "answer": "Answer from article or empty string"},
-    {"question": "Where question with article title and specifics?", "answer": "Answer from article or empty string"}
+    {
+      "question": "Where question?",
+      "answer": "Specific answer.",
+      "extracted_entities": [{ "name": "Entity Name", "type": "Place", "details": "Location Type" }]
+    }
+  ],
+  "when": [
+    {
+      "question": "When question?",
+      "answer": "Specific answer.",
+      "extracted_entities": [{ "name": "Entity Name", "type": "Event", "details": "Date/Time" }]
+    }
   ],
   "why": [
-    {"question": "Why question with article title and specifics?", "answer": "Answer from article or empty string"},
-    {"question": "Why question with article title and specifics?", "answer": "Answer from article or empty string"}
+    {
+      "question": "Why question?",
+      "answer": "Specific answer.",
+      "extracted_entities": [{ "name": "Entity Name", "type": "Cause", "details": "Motivation" }]
+    }
   ],
   "how": [
-    {"question": "How question with article title and specifics?", "answer": "Answer from article or empty string"},
-    {"question": "How question with article title and specifics?", "answer": "Answer from article or empty string"}
+    {
+      "question": "How question?",
+      "answer": "Specific answer.",
+      "extracted_entities": [{ "name": "Entity Name", "type": "Mechanism", "details": "Method" }]
+    }
   ]
 }`,
 
-  dime: `Analyze this article using the DIME framework (Diplomatic, Information, Military, Economic) and extract specific question-answer pairs:
+  dime: `Analyze this article using the DIME framework (Diplomatic, Information, Military, Economic) and extract specific question-answer pairs with structured entities.
 
 Article Title: {title}
 Article URL: {url}
 Article Content: {content}
 
-For each DIME dimension, generate 2-4 specific questions about the article content WITH their answers extracted from the article.
+### ONTOLOGY CLASSES
+1. **Actor** (Diplomatic/Military): People, groups, or organizations.
+2. **Event** (Military/Information): Actions, incidents, or temporal markers.
+3. **Place** (Diplomatic/Military): Geographic locations.
+4. **Mechanism** (Information/Economic): Methods, tools, or techniques used.
+5. **Cause** (Diplomatic/Information): Intent, motivations, or strategic goals.
 
-CRITICAL REQUIREMENTS for each question:
-1. Include the specific article title in the question (NEVER use "this article", "the article", "this", or "it")
-2. Include specific dates, event names, country names, and entity names mentioned in the article
-3. Questions must be self-contained and understandable without seeing the article
-4. Replace ALL pronouns with specific references (e.g., instead of "What diplomatic action was taken?", write "What diplomatic action did [Country] take regarding [Specific Event] on [Date]?")
-5. Answers must be direct quotes or paraphrases from the article, also avoiding pronouns
-6. If an answer is not found in the article, use empty string ""
-7. Focus on concrete facts, events, actors, and impacts mentioned in the article
+### INSTRUCTIONS
+1. For each DIME dimension, generate 2-4 specific questions.
+2. Provide answers extracted from the article.
+3. EXTRACT specific entities mentioned in each answer and map them to the Ontology Classes.
+4. If an answer is not found, use empty string "".
 
-Example of GOOD vs BAD questions:
-❌ BAD: "What diplomatic relations are discussed?" (vague, uses "are discussed")
-✅ GOOD: "What diplomatic sanctions did the United States impose on Russia following the February 2022 invasion of Ukraine according to the '[Article Title]' report?"
+CRITICAL REQUIREMENTS:
+1. Include the specific article title in each question.
+2. Include specific dates, event names, country names, and entity names.
+3. Replace ALL pronouns with specific references.
 
-❌ BAD: "How does this impact the economy?" (uses "this", vague)
-✅ GOOD: "How does the proposed tariff increase on Chinese imports affect the U.S. semiconductor supply chain according to the analysis in '[Article Title]'?"
-
-DIPLOMATIC: Questions about international relations, negotiations, treaties, alliances, diplomacy, foreign policy, bilateral/multilateral agreements, sanctions, embargoes, state actors, ambassadors, summits
-
-INFORMATION: Questions about narratives, messaging, propaganda, disinformation, media coverage, public perception, strategic communications, information campaigns, cyber influence, social media
-
-MILITARY: Questions about armed forces, defense capabilities, weapons systems, military operations, troop movements, conflicts, security threats, defense spending, military alliances, deterrence
-
-ECONOMIC: Questions about trade, commerce, financial systems, economic sanctions, market impacts, investments, supply chains, economic aid, development, monetary policy, resources
-
-Return ONLY valid JSON with question-answer pairs:
-
+Return ONLY valid JSON:
 {
   "diplomatic": [
-    {"question": "Specific diplomatic question with article title, entities, and dates?", "answer": "Direct answer from article or empty string"}
+    {
+      "question": "Question?",
+      "answer": "Answer.",
+      "extracted_entities": [{ "name": "Name", "type": "Actor", "details": "Role" }]
+    }
   ],
   "information": [
-    {"question": "Specific information question with article title, entities, and dates?", "answer": "Direct answer from article or empty string"}
+    {
+      "question": "Question?",
+      "answer": "Answer.",
+      "extracted_entities": [{ "name": "Name", "type": "Mechanism", "details": "Narrative/Tool" }]
+    }
   ],
   "military": [
-    {"question": "Specific military question with article title, entities, and dates?", "answer": "Direct answer from article or empty string"}
+    {
+      "question": "Question?",
+      "answer": "Answer.",
+      "extracted_entities": [{ "name": "Name", "type": "Event", "details": "Operation" }]
+    }
   ],
   "economic": [
-    {"question": "Specific economic question with article title, entities, and dates?", "answer": "Direct answer from article or empty string"}
+    {
+      "question": "Question?",
+      "answer": "Answer.",
+      "extracted_entities": [{ "name": "Name", "type": "Mechanism", "details": "Sanction/Trade" }]
+    }
   ]
 }`,
 

@@ -27,6 +27,7 @@ import { StarburstingDashboard } from '@/components/frameworks/StarburstingDashb
 import { ActorLinker, ActorBadge, type LinkedActor } from '@/components/actors/ActorLinker'
 import { PlaceLinker, PlaceBadge, type LinkedPlace } from '@/components/places/PlaceLinker'
 import { EventLinker, EventBadge, type LinkedEvent } from '@/components/events/EventLinker'
+import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
 import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity, ConsequenceItem, SymbolItem } from '@/types/behavior'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
@@ -109,7 +110,8 @@ const SectionCard = memo(({
   onLinkQuestionEvents,
   onLinkQuestionEvidence,
   questionEvidence,
-  onRemoveQuestionEvidence
+  onRemoveQuestionEvidence,
+  sessionId
 }: {
   section: FrameworkSection
   items: FrameworkItem[]
@@ -138,6 +140,7 @@ const SectionCard = memo(({
   onLinkQuestionEvidence?: (questionId: string) => void
   questionEvidence?: { [questionId: string]: LinkedEvidence[] }
   onRemoveQuestionEvidence?: (questionId: string, evidence: LinkedEvidence) => void
+  sessionId?: string
 }) => {
   const { t } = useTranslation('frameworks')
   const isQA = itemType === 'qa'
@@ -475,12 +478,31 @@ const SectionCard = memo(({
                                   ))}
                                 </div>
                               )}
+                              {/* Display linked events */}
                               {item.linked_events && item.linked_events.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
                                   {item.linked_events.map((event) => (
                                     <Badge key={event.id} variant="secondary" className="text-xs">
                                       📅 {event.name}
                                     </Badge>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Display AI-extracted entities with linking support */}
+                              {item.extracted_entities && item.extracted_entities.length > 0 && (
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  {item.extracted_entities.map((entity, idx) => (
+                                    <StarburstingEntityLinker
+                                      key={`${item.id}-entity-${idx}`}
+                                      entity={entity as any}
+                                      sessionId={sessionId || ''}
+                                      questionId={item.id}
+                                      onLinkCreated={(linkedId) => {
+                                        // Update local state if we want immediate feedback
+                                        console.log(`Linked ${entity.name} to ${linkedId}`);
+                                      }}
+                                    />
                                   ))}
                                 </div>
                               )}
@@ -2026,6 +2048,7 @@ export function GenericFrameworkForm({
             <SectionCard
               key={section.key}
               section={section}
+              sessionId={frameworkId}
               items={sectionData[section.key]}
               newItem={newItems[section.key]}
               newAnswer={itemType === 'qa' ? newAnswers[section.key] : undefined}

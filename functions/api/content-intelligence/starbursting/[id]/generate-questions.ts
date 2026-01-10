@@ -6,6 +6,7 @@
 
 import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../../../_shared/ai-gateway'
+import { STARBURSTING_SYSTEM_PROMPT, STARBURSTING_JSON_SCHEMA } from '../schema'
 
 interface Env {
   DB: D1Database
@@ -196,51 +197,22 @@ async function generateAdditionalQuestions(
   // Build context of existing questions
   const existingQuestionsContext = buildExistingQuestionsContext(existingData)
 
-  const prompt = `Generate additional 5W1H Starbursting questions for deeper investigation.
-
+  const prompt = `
 Article Title: ${title}
 Summary: ${summary}
 
-Extracted Text Context (first 2000 chars):
-${fullText.substring(0, 2000)}
-
-Entities:
-- People: ${entities.people?.map((p: any) => p.name).join(', ') || 'None'}
-- Organizations: ${entities.organizations?.map((o: any) => o.name).join(', ') || 'None'}
-- Locations: ${entities.locations?.map((l: any) => l.name).join(', ') || 'None'}
+Extracted Text Context (first 2500 chars):
+${fullText.substring(0, 2500)}
 
 EXISTING QUESTIONS (DO NOT DUPLICATE):
 ${existingQuestionsContext}
 
-INSTRUCTIONS:
-1. Generate 2-3 NEW questions for each category (Who, What, Where, When, Why, How)
-2. Questions MUST be specific - reference actual names, places, dates, organizations, actions
-3. DO NOT use vague terms like "this", "it", "the situation", "these events"
-4. DO NOT duplicate or rephrase existing questions
-5. Focus on gaps in the existing questions - what hasn't been asked yet?
-6. Use the full text context to identify specific unanswered aspects
-7. Try to answer questions from the text when possible, leave blank if not found
-8. Mark status as 'answered' if answer found, 'pending' if not
-
-Return ONLY valid JSON in this format:
-{
-  "who": [
-    {
-      "id": "who_new_1",
-      "category": "who",
-      "question": "Who is [specific person] and what specific role do they play in [specific situation]?",
-      "answer": "Answer from text or empty string",
-      "priority": 3,
-      "source": "Text search" or "Requires investigation",
-      "status": "answered" or "pending"
-    }
-  ],
-  "what": [...],
-  "where": [...],
-  "when": [...],
-  "why": [...],
-  "how": [...]
-}`
+GENERATE NEW QUESTIONS:
+Generate 2-3 NEW, DEEP-DIVE questions for each category (Who, What, Where, When, Why, How) using the defined Ontology.
+Focus on gaps in the existing analysis.
+Return ONLY valid JSON matching the schema below:
+${STARBURSTING_JSON_SCHEMA}
+`
 
   try {
     const data = await callOpenAIViaGateway(env, {
@@ -248,11 +220,11 @@ Return ONLY valid JSON in this format:
       messages: [
         {
           role: 'system',
-          content: 'You are an expert investigative researcher. Generate specific, detailed 5W1H questions that avoid duplication and reference concrete nouns, entities, and actions from the text. Return ONLY valid JSON.'
+          content: STARBURSTING_SYSTEM_PROMPT
         },
         { role: 'user', content: prompt }
       ],
-      max_completion_tokens: 2000,
+      max_completion_tokens: 2500,
       temperature: 0.7
     }, {
       cacheTTL: getOptimalCacheTTL('starbursting-questions'),
@@ -272,7 +244,26 @@ Return ONLY valid JSON in this format:
       .replace(/```\n?/g, '')
       .trim()
 
-    return JSON.parse(jsonText)
+    const parsed = JSON.parse(jsonText)
+    const result: any = { who: [], what: [], where: [], when: [], why: [], how: [] }
+
+    // Post-process to add metadata and IDs
+    for (const cat of Object.keys(result)) {
+      if (parsed[cat] && Array.isArray(parsed[cat])) {
+        result[cat] = parsed[cat].map((q: any, index: number) => ({
+          ...q,
+          id: `${cat}_new_${Date.now()}_${index}`,
+          category: cat,
+          priority: 3,
+          source: 'AI Extracted',
+          status: q.answer ? 'answered' : 'pending',
+          // Ensure extracted_entities is present
+          extracted_entities: q.extracted_entities || []
+        }))
+      }
+    }
+
+    return result
 
   } catch (error) {
     console.error('[Generate Additional Questions] AI error:', error)
