@@ -15,6 +15,7 @@ interface DeceptionAnalysisData {
   pop: string
   moses: string
   eve: string
+  rageCheck?: string
   assessment: string
   scores: Partial<DeceptionScores>
   aiAnalysis?: any
