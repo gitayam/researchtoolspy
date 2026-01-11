@@ -63,6 +63,7 @@ const WebScraperPage = lazy(() => import('@/pages/WebScraperPage').then(m => ({ 
 const SocialMediaPage = lazy(() => import('@/pages/SocialMediaPage').then(m => ({ default: m.SocialMediaPage })))
 const ContentExtractionPage = lazy(() => import('@/pages/tools/ContentExtractionPage').then(m => ({ default: m.ContentExtractionPage })))
 const CitationsGeneratorPage = lazy(() => import('@/pages/tools/CitationsGeneratorPage').then(m => ({ default: m.CitationsGeneratorPage })))
+const RageCheckPage = lazy(() => import('@/pages/tools/RageCheckPage').then(m => ({ default: m.RageCheckPage })))
 const URLProcessingPage = lazy(() => import('@/pages/tools/URLProcessingPage').then(m => ({ default: m.URLProcessingPage })))
 const BatchProcessingPage = lazy(() => import('@/pages/tools/BatchProcessingPage').then(m => ({ default: m.BatchProcessingPage })))
 const ContentIntelligencePage = lazy(() => import('@/pages/tools/ContentIntelligencePage'))
@@ -377,6 +378,10 @@ export const router = createBrowserRouter([
       {
         path: 'tools/url',
         element: <LazyPage Component={URLProcessingPage} />,
+      },
+      {
+        path: 'tools/rage-check',
+        element: <LazyPage Component={RageCheckPage} />,
       },
       {
         path: 'tools/batch-processing',
