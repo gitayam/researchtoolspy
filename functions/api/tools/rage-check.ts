@@ -1,4 +1,5 @@
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+import { scrapeUrl } from '../_shared/scraper-utils'
 
 interface Env {
   OPENAI_API_KEY: string
@@ -14,80 +15,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'URL is required' }), { status: 400 })
     }
 
-    // 1. Scrape the URL (reusing the logic from scrape-url is best, but for now I'll just use a direct fetch/clean approach or call the scrape-url internal function if it was exported. 
-    // Since I can't easily import from sibling functions in Cloudflare Pages functions without shared modules, I will replicate the fetch/clean logic briefly or assume the user wants me to do the fetching here.)
-    // Actually, I can just fetch the URL here.
-
     console.log(`[RageCheck] Fetching ${url}...`)
     
-    let content = ''
-    let title = ''
+    // Use shared scraper
+    const scraped = await scrapeUrl(url)
 
-    // 1. Robust Scraping Strategy
-    const isTwitter = /twitter\.com|x\.com/.test(url)
-
-    if (isTwitter) {
-      try {
-        console.log('[RageCheck] Detected Twitter URL, using oEmbed...')
-        const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
-        const twitterResponse = await fetch(oembedUrl)
-        
-        if (twitterResponse.ok) {
-          const data = await twitterResponse.json() as any
-          const html = data.html || ''
-          // Extract text from blockquote
-          const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/)
-          if (pMatch && pMatch[1]) {
-            content = pMatch[1]
-              .replace(/<br\s*\/?>/g, '\n')
-              .replace(/<[^>]+>/g, '')
-              .replace(/&amp;/g, '&')
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/&quot;/g, '"')
-              .replace(/&#39;/g, "'")
-              .trim()
-          }
-          title = `Tweet by ${data.author_name}`
-        }
-      } catch (e) {
-        console.error('[RageCheck] Twitter oEmbed failed:', e)
-      }
-    } 
-    
-    // Fallback or Standard Fetch
-    if (!content) {
-      const response = await fetch(url, {
-        headers: { 
-          'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0; +http://research.example.com)',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-        }
-      })
-
-      if (!response.ok) {
-        // If 403/401, likely anti-bot. Return specific error to UI.
-        if (response.status === 403 || response.status === 401) {
-           return new Response(JSON.stringify({ 
-             error: 'Access Denied', 
-             details: 'The website blocked the analysis tool. Try copying the text manually.'
-           }), { status: 422 })
-        }
-        throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`)
-      }
-
-      const html = await response.text()
-      
-      // Extract Title
-      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-      title = titleMatch ? titleMatch[1].trim() : url
-
-      // Extract Text
-      let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-      text = text.replace(/<[^>]+>/g, ' ')
-      text = text.replace(/\s+/g, ' ').trim()
-      content = text.substring(0, 15000)
+    if (scraped.error) {
+       return new Response(JSON.stringify({ 
+         error: 'Scraping Failed', 
+         details: scraped.error 
+       }), { status: 422 })
     }
+
+    const content = scraped.content
+    const title = scraped.title
 
     if (!content || content.length < 50) {
        return new Response(JSON.stringify({ 

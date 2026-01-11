@@ -1,0 +1,101 @@
+/**
+ * Shared Scraping Utilities
+ * Centralizes logic for fetching and extracting text from URLs
+ * including platform-specific handlers (Twitter, etc.)
+ */
+
+export interface ScrapedContent {
+  title: string
+  content: string
+  error?: string
+}
+
+export async function scrapeUrl(url: string): Promise<ScrapedContent> {
+  // 1. Specialized Twitter/X Scraping (oEmbed)
+  // This bypasses the need for API keys or headless browsers for basic text
+  const isTwitter = /twitter\.com|x\.com/.test(url)
+  
+  if (isTwitter) {
+    try {
+      console.log('[Scrape] Detected Twitter URL, attempting oEmbed extraction...')
+      const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
+      const twitterResponse = await fetch(oembedUrl)
+      
+      if (twitterResponse.ok) {
+        const data = await twitterResponse.json() as any
+        const html = data.html || ''
+        let content = ''
+        
+        // Extract text from blockquote
+        const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/)
+        if (pMatch && pMatch[1]) {
+          content = pMatch[1]
+            .replace(/<br\s*\/?>/g, '\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .trim()
+        }
+        
+        return {
+          title: `Tweet by ${data.author_name}`,
+          content: content || 'No text content found in tweet.'
+        }
+      }
+    } catch (e) {
+      console.error('[Scrape] Twitter oEmbed failed:', e)
+      // Fall through to standard fetch if oEmbed fails
+    }
+  }
+
+  // 2. Standard Fetch
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0; +http://research.example.com)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      },
+      signal: controller.signal
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      if (response.status === 403 || response.status === 401) {
+        return { title: 'Access Denied', content: '', error: 'Access Denied: The website blocked automated access.' }
+      }
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const html = await response.text()
+    
+    // Extract Title
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+    const title = titleMatch ? titleMatch[1].trim() : url
+
+    // Extract Text (Simple)
+    let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+    text = text.replace(/<[^>]+>/g, ' ')
+    text = text.replace(/\s+/g, ' ').trim()
+    
+    return {
+      title,
+      content: text.substring(0, 20000) // Limit to 20k chars
+    }
+
+  } catch (error) {
+    console.error('[Scrape] Standard fetch failed:', error)
+    return { 
+      title: 'Error', 
+      content: '', 
+      error: error instanceof Error ? error.message : 'Unknown scraping error' 
+    }
+  }
+}
