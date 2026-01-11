@@ -24,6 +24,10 @@ interface RageCheckResult {
     category: string
     explanation: string
   }>
+  meta?: {
+    title?: string
+    contentPreview?: string
+  }
 }
 
 export function RageCheckPage() {
@@ -47,7 +51,8 @@ export function RageCheckPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Analysis failed')
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Analysis failed')
       }
 
       const data = await response.json()
@@ -117,6 +122,11 @@ export function RageCheckPage() {
           <Card className="border-t-4 border-t-primary">
             <CardHeader className="text-center pb-2">
               <CardTitle className="text-lg font-medium text-muted-foreground uppercase tracking-wide">Manipulative Framing Score</CardTitle>
+              {result.meta?.title && (
+                <div className="mt-2 text-xl font-bold text-gray-900 dark:text-white">
+                  {result.meta.title}
+                </div>
+              )}
             </CardHeader>
             <CardContent className="text-center">
               <div className="flex items-center justify-center gap-6 mb-6">
@@ -188,6 +198,20 @@ export function RageCheckPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Content Preview */}
+          {result.meta?.contentPreview && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Analyzed Content Preview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono bg-muted p-4 rounded-lg">
+                  {result.meta.contentPreview}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

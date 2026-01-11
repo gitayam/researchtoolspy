@@ -19,22 +19,82 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Actually, I can just fetch the URL here.
 
     console.log(`[RageCheck] Fetching ${url}...`)
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)' }
-    })
+    
+    let content = ''
+    let title = ''
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`)
+    // 1. Robust Scraping Strategy
+    const isTwitter = /twitter\.com|x\.com/.test(url)
+
+    if (isTwitter) {
+      try {
+        console.log('[RageCheck] Detected Twitter URL, using oEmbed...')
+        const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
+        const twitterResponse = await fetch(oembedUrl)
+        
+        if (twitterResponse.ok) {
+          const data = await twitterResponse.json() as any
+          const html = data.html || ''
+          // Extract text from blockquote
+          const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/)
+          if (pMatch && pMatch[1]) {
+            content = pMatch[1]
+              .replace(/<br\s*\/?>/g, '\n')
+              .replace(/<[^>]+>/g, '')
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'")
+              .trim()
+          }
+          title = `Tweet by ${data.author_name}`
+        }
+      } catch (e) {
+        console.error('[RageCheck] Twitter oEmbed failed:', e)
+      }
+    } 
+    
+    // Fallback or Standard Fetch
+    if (!content) {
+      const response = await fetch(url, {
+        headers: { 
+          'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0; +http://research.example.com)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        }
+      })
+
+      if (!response.ok) {
+        // If 403/401, likely anti-bot. Return specific error to UI.
+        if (response.status === 403 || response.status === 401) {
+           return new Response(JSON.stringify({ 
+             error: 'Access Denied', 
+             details: 'The website blocked the analysis tool. Try copying the text manually.'
+           }), { status: 422 })
+        }
+        throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`)
+      }
+
+      const html = await response.text()
+      
+      // Extract Title
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+      title = titleMatch ? titleMatch[1].trim() : url
+
+      // Extract Text
+      let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      text = text.replace(/<[^>]+>/g, ' ')
+      text = text.replace(/\s+/g, ' ').trim()
+      content = text.substring(0, 15000)
     }
 
-    const html = await response.text()
-    
-    // Simple text extraction (remove scripts, styles, tags)
-    let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-    text = text.replace(/<[^>]+>/g, ' ')
-    text = text.replace(/\s+/g, ' ').trim()
-    const content = text.substring(0, 15000) // Limit context
+    if (!content || content.length < 50) {
+       return new Response(JSON.stringify({ 
+         error: 'No Content Found', 
+         details: 'Could not extract enough text to analyze. The page might be empty, JavaScript-heavy, or blocked.'
+       }), { status: 422 })
+    }
 
     // 2. Perform RageCheck Analysis via AI
     // We strictly follow the scoring categories and weights from the reference repo
@@ -90,7 +150,14 @@ Return ONLY valid JSON in this structure:
     const jsonContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const analysis = JSON.parse(jsonContent)
 
-    return new Response(JSON.stringify(analysis), {
+    // Return analysis + extracted content preview
+    return new Response(JSON.stringify({
+      ...analysis,
+      meta: {
+        title,
+        contentPreview: content.substring(0, 500) + (content.length > 500 ? '...' : '')
+      }
+    }), {
       headers: { 'Content-Type': 'application/json' }
     })
 
