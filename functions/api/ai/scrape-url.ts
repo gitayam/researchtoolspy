@@ -267,6 +267,8 @@ Extract key information. Return ONLY valid JSON:
     "Catastrophizing: [Specific phrase/example]",
     "Generalization: [Specific phrase/example]"
   ],
+  "rage_score": 0, // Integer 0-100 indicating intensity of manipulative framing
+  "rage_intensity": "Low/Medium/High", // Qualitative assessment
   "assessment": "Overall assessment of deception risk and manipulative framing"
 }`,
 
