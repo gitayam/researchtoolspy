@@ -68,6 +68,42 @@ Tools for analyzing and extracting data from URLs and content.
 - **POST** `/api/content-intelligence/analyze-url`: Extract content from a URL.
 - **POST** `/api/content-intelligence/summarize-entity`: Generate summaries.
 
+### Tools (`/api/tools`)
+Standalone utility endpoints.
+
+#### RageCheck (`/api/tools/rage-check`)
+Analyzes content for manipulative framing, emotional provocation, and outrage-bait patterns.
+
+- **Method**: `POST`
+- **Body**:
+  ```json
+  {
+    "url": "https://example.com/article"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "score": 75, // 0-100 (Higher = More Manipulative)
+    "label": "High", // Low | Medium | High
+    "categoryScores": {
+      "loaded_language": 80,
+      "absolutist": 60,
+      "threat_panic": 90,
+      "us_vs_them": 70,
+      "engagement_bait": 50
+    },
+    "explanation": "Summary of findings...",
+    "highlights": [
+      { "text": "radical left", "category": "us_vs_them", "explanation": "..." }
+    ],
+    "meta": {
+      "title": "Article Title",
+      "contentPreview": "Extracted text preview..."
+    }
+  }
+  ```
+
 ### Research (`/api/research`)
 Core research workflow endpoints.
 - **POST** `/api/research/generate-question`: Generate research questions using AI.
