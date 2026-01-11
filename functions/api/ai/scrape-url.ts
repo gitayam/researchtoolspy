@@ -345,88 +345,132 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     console.log(`[Scrape] Fetching URL: ${url}`)
 
-    // Fetch the URL with timeout
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+    let content = ''
+    let title = ''
+    let html = ''
 
-    let response
-    try {
-      response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
-        },
-        signal: controller.signal
-      })
-    } catch (fetchError) {
-      clearTimeout(timeoutId)
-      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+    // 1. Specialized Twitter/X Scraping (oEmbed)
+    const isTwitter = /twitter\.com|x\.com/.test(url)
+    
+    if (isTwitter) {
+      try {
+        console.log('[Scrape] Detected Twitter URL, attempting oEmbed extraction...')
+        const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
+        const twitterResponse = await fetch(oembedUrl)
+        
+        if (twitterResponse.ok) {
+          const data = await twitterResponse.json() as any
+          html = data.html || ''
+          
+          // Extract text from blockquote
+          const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/)
+          if (pMatch && pMatch[1]) {
+            content = pMatch[1]
+              .replace(/<br\s*\/?>/g, '\n')
+              .replace(/<[^>]+>/g, '')
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'")
+              .trim()
+          }
+          title = `Tweet by ${data.author_name}`
+          console.log(`[Scrape] Successfully extracted tweet: "${title}"`)
+        }
+      } catch (e) {
+        console.error('[Scrape] Twitter oEmbed failed:', e)
+      }
+    }
+
+    // 2. Standard Fetch (if content not already extracted)
+    if (!content) {
+      // Fetch the URL with timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+
+      let response
+      try {
+        response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
+          },
+          signal: controller.signal
+        })
+      } catch (fetchError) {
+        clearTimeout(timeoutId)
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          return new Response(JSON.stringify({
+            error: 'The website took too long to respond',
+            errorType: 'timeout',
+            suggestions: [
+              'Try again - the site might be temporarily slow',
+              'Check if the URL is accessible in your browser',
+              'The website might have anti-bot protection'
+            ],
+            technicalDetails: 'Request timeout after 15 seconds'
+          }), {
+            status: 504,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        }
+        throw fetchError
+      } finally {
+        clearTimeout(timeoutId)
+      }
+
+      if (!response.ok) {
+        let userMessage = 'Failed to access the website'
+        let suggestions: string[] = []
+
+        if (response.status === 403 || response.status === 401) {
+          userMessage = 'The website is blocking automated access'
+          suggestions = [
+            'This website has anti-bot protection',
+            'Try accessing the URL directly in your browser',
+            'The content may require authentication',
+            'Consider manually copying the content instead'
+          ]
+        } else if (response.status === 404) {
+          userMessage = 'The page was not found'
+          suggestions = [
+            'Check if the URL is correct',
+            'The page might have been moved or deleted',
+            'Try searching for the content on the website'
+          ]
+        } else if (response.status >= 500) {
+          userMessage = 'The website server is having issues'
+          suggestions = [
+            'Try again later - the server might be temporarily down',
+            'Check if the website is accessible in your browser',
+            'The website might be experiencing technical difficulties'
+          ]
+        } else {
+          suggestions = [
+            'Try again later',
+            'Check if the URL is correct and accessible'
+          ]
+        }
+
         return new Response(JSON.stringify({
-          error: 'The website took too long to respond',
-          errorType: 'timeout',
-          suggestions: [
-            'Try again - the site might be temporarily slow',
-            'Check if the URL is accessible in your browser',
-            'The website might have anti-bot protection'
-          ],
-          technicalDetails: 'Request timeout after 15 seconds'
+          error: userMessage,
+          errorType: 'http_error',
+          suggestions,
+          technicalDetails: `HTTP ${response.status} ${response.statusText}`
         }), {
-          status: 504,
+          status: response.status,
           headers: { 'Content-Type': 'application/json' }
         })
       }
-      throw fetchError
-    } finally {
-      clearTimeout(timeoutId)
+
+      html = await response.text()
+      console.log(`[Scrape] Fetched ${html.length} characters from URL`)
+
+      const extracted = extractTextFromHTML(html)
+      title = extracted.title
+      content = extracted.content
     }
-
-    if (!response.ok) {
-      let userMessage = 'Failed to access the website'
-      let suggestions: string[] = []
-
-      if (response.status === 403 || response.status === 401) {
-        userMessage = 'The website is blocking automated access'
-        suggestions = [
-          'This website has anti-bot protection',
-          'Try accessing the URL directly in your browser',
-          'The content may require authentication',
-          'Consider manually copying the content instead'
-        ]
-      } else if (response.status === 404) {
-        userMessage = 'The page was not found'
-        suggestions = [
-          'Check if the URL is correct',
-          'The page might have been moved or deleted',
-          'Try searching for the content on the website'
-        ]
-      } else if (response.status >= 500) {
-        userMessage = 'The website server is having issues'
-        suggestions = [
-          'Try again later - the server might be temporarily down',
-          'Check if the website is accessible in your browser',
-          'The website might be experiencing technical difficulties'
-        ]
-      } else {
-        suggestions = [
-          'Try again later',
-          'Check if the URL is correct and accessible'
-        ]
-      }
-
-      return new Response(JSON.stringify({
-        error: userMessage,
-        errorType: 'http_error',
-        suggestions,
-        technicalDetails: `HTTP ${response.status} ${response.statusText}`
-      }), {
-        status: response.status,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    const html = await response.text()
-    console.log(`[Scrape] Fetched ${html.length} characters from URL`)
-
-    const { title, content } = extractTextFromHTML(html)
+    
     console.log(`[Scrape] Extracted title: "${title}", content length: ${content.length} chars`)
 
     // Generate citation from URL metadata
