@@ -38,11 +38,11 @@ export interface DeceptionAssessment {
   confidenceLevel: 'VERY_HIGH' | 'HIGH' | 'MODERATE' | 'LOW' | 'VERY_LOW'
   riskLevel: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'MINIMAL'
   categoryScores: {
-    mom: number
-    pop: number
-    moses: number
-    eve: number
-    rage: number
+    mom: number       // MOM average (0-5)
+    pop: number       // POP average (0-5)
+    moses: number     // MOSES average (0-5)
+    eve: number       // EVE average (0-5)
+    rage?: number      // RageCheck average (0-5)
   }
   breakdown: {
     category: string
