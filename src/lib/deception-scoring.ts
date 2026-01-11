@@ -25,7 +25,11 @@ export interface DeceptionScores {
   anomalyDetection: number     // Unusual patterns/red flags?
 
   // RageCheck Integration
-  rageCheckScore?: number      // 0-100 Score from RageCheck analysis
+  rageLoadedLanguage: number   // Emotional/inflammatory words
+  rageAbsolutist: number       // Certainty/black-and-white language
+  rageThreatPanic: number      // Fear-mongering framing
+  rageUsVsThem: number         // Divisive in-group/out-group language
+  rageEngagementBait: number   // Clickbait/viral patterns
 }
 
 export interface DeceptionAssessment {
@@ -38,6 +42,7 @@ export interface DeceptionAssessment {
     pop: number       // POP average (0-5)
     moses: number     // MOSES average (0-5)
     eve: number       // EVE average (0-5)
+    rage: number      // RageCheck average (0-5)
   }
   breakdown: {
     category: string
@@ -181,15 +186,76 @@ export const SCORING_CRITERIA = {
       { value: 4, label: 'Major', description: 'Serious anomalies present' },
       { value: 5, label: 'Critical', description: 'Glaring impossibilities/contradictions' }
     ]
+  },
+  rageLoadedLanguage: {
+    label: 'Loaded Language',
+    description: 'Emotional, inflammatory words designed to provoke reaction',
+    levels: [
+      { value: 0, label: 'None', description: 'Neutral, objective language' },
+      { value: 1, label: 'Low', description: 'Occasional mild emotional words' },
+      { value: 2, label: 'Moderate', description: 'Noticeable emotional framing' },
+      { value: 3, label: 'High', description: 'Frequent inflammatory language' },
+      { value: 4, label: 'Intense', description: 'Pervasive emotional manipulation' },
+      { value: 5, label: 'Extreme', description: 'Pure vitriol/outrage bait' }
+    ]
+  },
+  rageAbsolutist: {
+    label: 'Absolutist Language',
+    description: 'Certainty/black-and-white language',
+    levels: [
+      { value: 0, label: 'None', description: 'Nuanced, qualified statements' },
+      { value: 1, label: 'Low', description: 'Rare generalizations' },
+      { value: 2, label: 'Moderate', description: 'Some black-and-white framing' },
+      { value: 3, label: 'High', description: 'Frequent absolutist claims' },
+      { value: 4, label: 'Intense', description: 'Consistent lack of nuance' },
+      { value: 5, label: 'Extreme', description: 'Totalitarian certainty' }
+    ]
+  },
+  rageThreatPanic: {
+    label: 'Threat & Panic',
+    description: 'Fear-mongering and urgency',
+    levels: [
+      { value: 0, label: 'None', description: 'Calm, factual tone' },
+      { value: 1, label: 'Low', description: 'Mild concern expressed' },
+      { value: 2, label: 'Moderate', description: 'Noticeable urgency/threat' },
+      { value: 3, label: 'High', description: 'Clear fear-mongering' },
+      { value: 4, label: 'Intense', description: 'Severe panic induction' },
+      { value: 5, label: 'Extreme', description: 'Existential threat framing' }
+    ]
+  },
+  rageUsVsThem: {
+    label: 'Us vs Them',
+    description: 'Divisive in-group/out-group framing',
+    levels: [
+      { value: 0, label: 'None', description: 'Inclusive/neutral framing' },
+      { value: 1, label: 'Low', description: 'Mild group distinction' },
+      { value: 2, label: 'Moderate', description: 'Noticeable tribalism' },
+      { value: 3, label: 'High', description: 'Clear in-group/out-group bias' },
+      { value: 4, label: 'Intense', description: 'Strong demonization of "other"' },
+      { value: 5, label: 'Extreme', description: 'Dehumanization of opponents' }
+    ]
+  },
+  rageEngagementBait: {
+    label: 'Engagement Bait',
+    description: 'Clickbait and viral patterns',
+    levels: [
+      { value: 0, label: 'None', description: 'Straightforward presentation' },
+      { value: 1, label: 'Low', description: 'Slightly catchy hooks' },
+      { value: 2, label: 'Moderate', description: 'Standard clickbait tactics' },
+      { value: 3, label: 'High', description: 'Aggressive engagement hooks' },
+      { value: 4, label: 'Intense', description: 'Viral engineering priority' },
+      { value: 5, label: 'Extreme', description: 'Pure engagement farming' }
+    ]
   }
 }
 
 // Category weights for overall likelihood calculation
 const CATEGORY_WEIGHTS = {
-  mom: 0.30,      // 30% - Capability to deceive is critical
-  pop: 0.25,      // 25% - Historical patterns are strong indicators
-  moses: 0.25,    // 25% - Source vulnerability is key
-  eve: 0.20       // 20% - Evidence quality matters but can be misleading
+  mom: 0.30,      // 30% - Capability
+  pop: 0.20,      // 20% - History (Reduced from 25%)
+  moses: 0.20,    // 20% - Vulnerability (Reduced from 25%)
+  eve: 0.20,      // 20% - Evidence
+  rage: 0.10      // 10% - Manipulative Framing (New)
 }
 
 /**
@@ -209,27 +275,20 @@ export function calculateDeceptionLikelihood(scores: Partial<DeceptionScores>): 
     internalConsistency: scores.internalConsistency ?? 0,
     externalCorroboration: scores.externalCorroboration ?? 0,
     anomalyDetection: scores.anomalyDetection ?? 0,
-    rageCheckScore: scores.rageCheckScore ?? 0
-  }
-
-  // Integrate RageCheck into Manipulation Evidence
-  // If RageCheck detected high manipulation (score > 40), it strongly suggests manipulation evidence
-  if (fullScores.rageCheckScore && fullScores.rageCheckScore > 0) {
-    const rageBasedEvidence = Math.min(5, Math.round(fullScores.rageCheckScore / 20));
-    
-    // If manual manipulation evidence is 0/unset, take the RageCheck signal
-    if (fullScores.manipulationEvidence === 0) {
-      fullScores.manipulationEvidence = rageBasedEvidence;
-    } else {
-      // If set, average them (giving weight to the automated signal)
-      fullScores.manipulationEvidence = Math.max(fullScores.manipulationEvidence, Math.round((fullScores.manipulationEvidence + rageBasedEvidence) / 2));
-    }
+    // RageCheck scores
+    rageLoadedLanguage: scores.rageLoadedLanguage ?? 0,
+    rageAbsolutist: scores.rageAbsolutist ?? 0,
+    rageThreatPanic: scores.rageThreatPanic ?? 0,
+    rageUsVsThem: scores.rageUsVsThem ?? 0,
+    rageEngagementBait: scores.rageEngagementBait ?? 0
   }
 
   // Calculate category averages
   const momScore = (fullScores.motive + fullScores.opportunity + fullScores.means) / 3
   const popScore = (fullScores.historicalPattern + fullScores.sophisticationLevel + fullScores.successRate) / 3
   const mosesScore = (fullScores.sourceVulnerability + fullScores.manipulationEvidence) / 2
+  // RageCheck average
+  const rageScore = (fullScores.rageLoadedLanguage + fullScores.rageAbsolutist + fullScores.rageThreatPanic + fullScores.rageUsVsThem + fullScores.rageEngagementBait) / 5
 
   // EVE scores are inverted (low consistency = high deception risk)
   const eveScore = ((5 - fullScores.internalConsistency) + (5 - fullScores.externalCorroboration) + fullScores.anomalyDetection) / 3
@@ -238,7 +297,8 @@ export function calculateDeceptionLikelihood(scores: Partial<DeceptionScores>): 
     mom: momScore,
     pop: popScore,
     moses: mosesScore,
-    eve: eveScore
+    eve: eveScore,
+    rage: rageScore
   }
 
   // Calculate weighted overall likelihood (0-100%)
@@ -246,16 +306,17 @@ export function calculateDeceptionLikelihood(scores: Partial<DeceptionScores>): 
     (momScore * CATEGORY_WEIGHTS.mom) +
     (popScore * CATEGORY_WEIGHTS.pop) +
     (mosesScore * CATEGORY_WEIGHTS.moses) +
-    (eveScore * CATEGORY_WEIGHTS.eve)
+    (eveScore * CATEGORY_WEIGHTS.eve) +
+    (rageScore * CATEGORY_WEIGHTS.rage)
 
   const overallLikelihood = Math.round((weightedSum / 5) * 100)
 
   // Determine confidence level based on data completeness
   const totalScoresProvided = Object.values(fullScores).filter(s => s > 0).length
   const confidenceLevel =
-    totalScoresProvided >= 10 ? 'VERY_HIGH' :
-    totalScoresProvided >= 8 ? 'HIGH' :
-    totalScoresProvided >= 6 ? 'MODERATE' :
+    totalScoresProvided >= 14 ? 'VERY_HIGH' :
+    totalScoresProvided >= 10 ? 'HIGH' :
+    totalScoresProvided >= 7 ? 'MODERATE' :
     totalScoresProvided >= 4 ? 'LOW' : 'VERY_LOW'
 
   // Determine risk level
@@ -294,6 +355,13 @@ export function calculateDeceptionLikelihood(scores: Partial<DeceptionScores>): 
       weight: CATEGORY_WEIGHTS.eve,
       contribution: eveScore * CATEGORY_WEIGHTS.eve,
       description: getEVEDescription(eveScore)
+    },
+    {
+      category: 'RageCheck (Manipulative Framing)',
+      score: rageScore,
+      weight: CATEGORY_WEIGHTS.rage,
+      contribution: rageScore * CATEGORY_WEIGHTS.rage,
+      description: getRageDescription(rageScore)
     }
   ]
 
@@ -307,101 +375,10 @@ export function calculateDeceptionLikelihood(scores: Partial<DeceptionScores>): 
   }
 }
 
-function getMOMDescription(score: number): string {
-  if (score >= 4) return 'Adversary has strong capability and incentive to deceive'
-  if (score >= 3) return 'Adversary has moderate deception capability'
-  if (score >= 2) return 'Some deception capability exists'
-  if (score >= 1) return 'Limited deception capability'
-  return 'Minimal or no deception capability'
-}
-
-function getPOPDescription(score: number): string {
-  if (score >= 4) return 'Strong historical pattern of sophisticated deception'
-  if (score >= 3) return 'Established pattern of successful deception'
-  if (score >= 2) return 'Some history of deception attempts'
-  if (score >= 1) return 'Limited deception history'
-  return 'No significant deception history'
-}
-
-function getMOSESDescription(score: number): string {
-  if (score >= 4) return 'Sources highly vulnerable to manipulation'
-  if (score >= 3) return 'Significant source vulnerability exists'
-  if (score >= 2) return 'Moderate source vulnerability'
-  if (score >= 1) return 'Some source vulnerability'
-  return 'Sources appear secure'
-}
-
-function getEVEDescription(score: number): string {
-  if (score >= 4) return 'Evidence shows major inconsistencies and anomalies'
-  if (score >= 3) return 'Evidence has significant quality issues'
-  if (score >= 2) return 'Some evidence quality concerns'
-  if (score >= 1) return 'Minor evidence issues'
-  return 'Evidence appears sound and well-corroborated'
-}
-
-/**
- * Get color for risk level
- */
-export function getRiskColor(riskLevel: DeceptionAssessment['riskLevel']): string {
-  switch (riskLevel) {
-    case 'CRITICAL': return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
-    case 'HIGH': return 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20'
-    case 'MEDIUM': return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
-    case 'LOW': return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-    case 'MINIMAL': return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-  }
-}
-
-/**
- * Get confidence color
- */
-export function getConfidenceColor(level: DeceptionAssessment['confidenceLevel']): string {
-  switch (level) {
-    case 'VERY_HIGH': return 'text-green-600 dark:text-green-400'
-    case 'HIGH': return 'text-blue-600 dark:text-blue-400'
-    case 'MODERATE': return 'text-yellow-600 dark:text-yellow-400'
-    case 'LOW': return 'text-orange-600 dark:text-orange-400'
-    case 'VERY_LOW': return 'text-red-600 dark:text-red-400'
-  }
-}
-
-/**
- * Generate key indicators from scores
- */
-export function generateKeyIndicators(assessment: DeceptionAssessment): {
-  deceptionIndicators: string[]
-  counterIndicators: string[]
-} {
-  const deceptionIndicators: string[] = []
-  const counterIndicators: string[] = []
-  const { scores } = assessment
-
-  // Check MOM scores
-  if (scores.motive >= 4) deceptionIndicators.push(`Strong motive: ${SCORING_CRITERIA.motive.levels[scores.motive].description}`)
-  if (scores.opportunity >= 4) deceptionIndicators.push(`High opportunity: ${SCORING_CRITERIA.opportunity.levels[scores.opportunity].description}`)
-  if (scores.means >= 4) deceptionIndicators.push(`Advanced capabilities: ${SCORING_CRITERIA.means.levels[scores.means].description}`)
-
-  // Check POP scores
-  if (scores.historicalPattern >= 4) deceptionIndicators.push(`Routine deception pattern: ${SCORING_CRITERIA.historicalPattern.levels[scores.historicalPattern].description}`)
-  if (scores.sophisticationLevel >= 4) deceptionIndicators.push(`Highly sophisticated operations: ${SCORING_CRITERIA.sophisticationLevel.levels[scores.sophisticationLevel].description}`)
-  if (scores.successRate >= 4) deceptionIndicators.push(`High success rate: ${SCORING_CRITERIA.successRate.levels[scores.successRate].description}`)
-
-  // Check MOSES scores
-  if (scores.sourceVulnerability >= 4) deceptionIndicators.push(`Sources highly vulnerable: ${SCORING_CRITERIA.sourceVulnerability.levels[scores.sourceVulnerability].description}`)
-  if (scores.manipulationEvidence >= 3) deceptionIndicators.push(`Manipulation signs: ${SCORING_CRITERIA.manipulationEvidence.levels[scores.manipulationEvidence].description}`)
-
-  // Check EVE scores (inverted logic)
-  if (scores.internalConsistency <= 1) deceptionIndicators.push(`Evidence highly inconsistent: ${SCORING_CRITERIA.internalConsistency.levels[scores.internalConsistency].description}`)
-  if (scores.externalCorroboration <= 1) deceptionIndicators.push(`No corroboration: ${SCORING_CRITERIA.externalCorroboration.levels[scores.externalCorroboration].description}`)
-  if (scores.anomalyDetection >= 4) deceptionIndicators.push(`Major anomalies: ${SCORING_CRITERIA.anomalyDetection.levels[scores.anomalyDetection].description}`)
-
-  // Counter-indicators (evidence against deception)
-  if (scores.motive <= 1) counterIndicators.push('Weak or no motive to deceive')
-  if (scores.historicalPattern <= 1) counterIndicators.push('No significant deception history')
-  if (scores.sourceVulnerability <= 1) counterIndicators.push('Independent, secure sources')
-  if (scores.internalConsistency >= 4) counterIndicators.push('Evidence highly consistent')
-  if (scores.externalCorroboration >= 4) counterIndicators.push('Strong independent corroboration')
-  if (scores.anomalyDetection <= 1) counterIndicators.push('No significant anomalies detected')
-
-  return { deceptionIndicators, counterIndicators }
+function getRageDescription(score: number): string {
+  if (score >= 4) return 'Content uses extreme manipulative framing'
+  if (score >= 3) return 'Significant use of outrage bait/manipulation'
+  if (score >= 2) return 'Some manipulative framing present'
+  if (score >= 1) return 'Minor emotional loading detected'
+  return 'Content appears neutrally framed'
 }
