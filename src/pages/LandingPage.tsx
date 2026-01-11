@@ -90,7 +90,7 @@ export default function LandingPage() {
       { pattern: /^dime(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/dime', name: 'DIME' },
       { pattern: /^pest(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/pest', name: 'PEST' },
       { pattern: /^deception(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/deception', name: 'Deception' },
-      { pattern: /^rage(\s+check)?$/i, route: '/dashboard/analysis-frameworks/deception', name: 'Deception (RageCheck)' },
+      { pattern: /^rage(\s+check)?$/i, route: '/dashboard/tools/rage-check', name: 'RageCheck' },
       { pattern: /^behavior(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/behavior', name: 'Behavior' },
       { pattern: /^com(-|\s)?b(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/comb-analysis', name: 'COM-B' },
       { pattern: /^starbursting(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/starbursting', name: 'Starbursting' },
