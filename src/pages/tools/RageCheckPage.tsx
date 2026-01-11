@@ -214,6 +214,31 @@ export function RageCheckPage() {
           )}
         </div>
       )}
+
+      {/* Credits & Methodology */}
+      <Card className="mt-12 border-t bg-muted/30">
+        <CardHeader>
+          <CardTitle className="text-lg">Credits & Methodology</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-2">
+          <p>
+            This tool is an implementation of the open-source <a href="https://github.com/aagoldberg/ragecheck" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">RageCheck</a> project created by Andrew Goldberg (<a href="https://github.com/aagoldberg" target="_blank" rel="noopener noreferrer" className="hover:underline">@aagoldberg</a>).
+          </p>
+          <p>
+            <strong>Methodology:</strong> The analysis detects linguistic patterns commonly associated with manipulative framing, specifically focusing on five key signals:
+          </p>
+          <ul className="list-disc list-inside ml-2 space-y-1">
+            <li><strong>Loaded Language:</strong> Emotional, inflammatory words designed to provoke a reaction.</li>
+            <li><strong>Absolutism:</strong> Black-and-white certainty (e.g., "always", "never", "everyone knows").</li>
+            <li><strong>Threat & Panic:</strong> Fear-mongering framing (e.g., "they're coming for", "collapse").</li>
+            <li><strong>Us vs Them:</strong> Divisive in-group/out-group language.</li>
+            <li><strong>Engagement Bait:</strong> Viral patterns designed to maximize clicks (e.g., "you won't believe").</li>
+          </ul>
+          <p className="mt-4 text-xs italic">
+            Note: This tool analyzes framing, not factual accuracy. A high score indicates manipulative language, not necessarily false information.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }
