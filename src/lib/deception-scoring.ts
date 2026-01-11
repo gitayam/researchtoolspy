@@ -23,6 +23,9 @@ export interface DeceptionScores {
   internalConsistency: number  // Evidence consistent with itself?
   externalCorroboration: number // Other sources confirm?
   anomalyDetection: number     // Unusual patterns/red flags?
+
+  // RageCheck Integration
+  rageCheckScore?: number      // 0-100 Score from RageCheck analysis
 }
 
 export interface DeceptionAssessment {
@@ -205,7 +208,22 @@ export function calculateDeceptionLikelihood(scores: Partial<DeceptionScores>): 
     manipulationEvidence: scores.manipulationEvidence ?? 0,
     internalConsistency: scores.internalConsistency ?? 0,
     externalCorroboration: scores.externalCorroboration ?? 0,
-    anomalyDetection: scores.anomalyDetection ?? 0
+    anomalyDetection: scores.anomalyDetection ?? 0,
+    rageCheckScore: scores.rageCheckScore ?? 0
+  }
+
+  // Integrate RageCheck into Manipulation Evidence
+  // If RageCheck detected high manipulation (score > 40), it strongly suggests manipulation evidence
+  if (fullScores.rageCheckScore && fullScores.rageCheckScore > 0) {
+    const rageBasedEvidence = Math.min(5, Math.round(fullScores.rageCheckScore / 20));
+    
+    // If manual manipulation evidence is 0/unset, take the RageCheck signal
+    if (fullScores.manipulationEvidence === 0) {
+      fullScores.manipulationEvidence = rageBasedEvidence;
+    } else {
+      // If set, average them (giving weight to the automated signal)
+      fullScores.manipulationEvidence = Math.max(fullScores.manipulationEvidence, Math.round((fullScores.manipulationEvidence + rageBasedEvidence) / 2));
+    }
   }
 
   // Calculate category averages
