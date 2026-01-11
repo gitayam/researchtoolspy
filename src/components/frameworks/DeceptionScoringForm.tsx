@@ -73,7 +73,12 @@ export function DeceptionScoringForm({
     manipulationEvidence: initialScores?.manipulationEvidence ?? 0,
     internalConsistency: initialScores?.internalConsistency ?? 5,
     externalCorroboration: initialScores?.externalCorroboration ?? 5,
-    anomalyDetection: initialScores?.anomalyDetection ?? 0
+    anomalyDetection: initialScores?.anomalyDetection ?? 0,
+    rageLoadedLanguage: initialScores?.rageLoadedLanguage ?? 0,
+    rageAbsolutist: initialScores?.rageAbsolutist ?? 0,
+    rageThreatPanic: initialScores?.rageThreatPanic ?? 0,
+    rageUsVsThem: initialScores?.rageUsVsThem ?? 0,
+    rageEngagementBait: initialScores?.rageEngagementBait ?? 0
   })
 
   const [assessment, setAssessment] = useState<DeceptionAssessment>(calculateDeceptionLikelihood(scores))
@@ -200,6 +205,17 @@ export function DeceptionScoringForm({
                 <div
                   className="bg-blue-500 h-2 rounded-full"
                   style={{ width: `${(assessment.categoryScores.eve / 5) * 100}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">RageCheck (Framing)</span>
+                <span className="text-sm font-bold">{assessment.categoryScores.rage.toFixed(1)}/5.0</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-purple-500 h-2 rounded-full"
+                  style={{ width: `${(assessment.categoryScores.rage / 5) * 100}%` }}
                 />
               </div>
 
@@ -352,6 +368,59 @@ export function DeceptionScoringForm({
             value={scores.anomalyDetection}
             levels={translatedCriteria.getLevels('anomalyDetection')}
             onChange={(value) => handleScoreChange('anomalyDetection', value)}
+          />
+        </CardContent>
+      </Card>
+
+      {/* RageCheck Scoring */}
+      <Card className="border-l-4 border-purple-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded-full bg-purple-500" />
+            RageCheck (Manipulative Framing)
+          </CardTitle>
+          <CardDescription>Assess patterns of emotional manipulation and outrage baiting</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <ScoringSlider
+            criterion="rageLoadedLanguage"
+            label="Loaded Language"
+            description="Emotional, inflammatory words designed to provoke reaction"
+            value={scores.rageLoadedLanguage || 0}
+            levels={translatedCriteria.getLevels('rageLoadedLanguage')}
+            onChange={(value) => handleScoreChange('rageLoadedLanguage', value)}
+          />
+          <ScoringSlider
+            criterion="rageAbsolutist"
+            label="Absolutist Language"
+            description="Certainty/black-and-white language (always, never, everyone)"
+            value={scores.rageAbsolutist || 0}
+            levels={translatedCriteria.getLevels('rageAbsolutist')}
+            onChange={(value) => handleScoreChange('rageAbsolutist', value)}
+          />
+          <ScoringSlider
+            criterion="rageThreatPanic"
+            label="Threat & Panic"
+            description="Fear-mongering and urgency framing"
+            value={scores.rageThreatPanic || 0}
+            levels={translatedCriteria.getLevels('rageThreatPanic')}
+            onChange={(value) => handleScoreChange('rageThreatPanic', value)}
+          />
+          <ScoringSlider
+            criterion="rageUsVsThem"
+            label="Us vs Them"
+            description="Divisive in-group/out-group framing"
+            value={scores.rageUsVsThem || 0}
+            levels={translatedCriteria.getLevels('rageUsVsThem')}
+            onChange={(value) => handleScoreChange('rageUsVsThem', value)}
+          />
+          <ScoringSlider
+            criterion="rageEngagementBait"
+            label="Engagement Bait"
+            description="Clickbait and viral patterns"
+            value={scores.rageEngagementBait || 0}
+            levels={translatedCriteria.getLevels('rageEngagementBait')}
+            onChange={(value) => handleScoreChange('rageEngagementBait', value)}
           />
         </CardContent>
       </Card>
