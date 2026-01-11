@@ -381,6 +381,14 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         icon: '✓'
       },
       {
+        key: 'rage_check',
+        label: 'RageCheck Analysis',
+        description: 'Analysis of manipulative framing and emotional provocation patterns (outrage, tribalism, catastrophizing)',
+        color: 'border-red-600',
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        icon: '😡'
+      },
+      {
         key: 'assessment',
         label: 'Overall Assessment',
         description: 'Synthesize findings and determine deception likelihood',

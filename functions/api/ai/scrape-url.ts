@@ -249,7 +249,7 @@ Extract PUTAR components. Return ONLY valid JSON:
   "proximate_targets": ["target 1", "target 2", ...]
 }`,
 
-  deception: `Analyze this content for potential deception indicators using CIA SATS methodology:
+  deception: `Analyze this content for potential deception indicators using CIA SATS methodology and "RageCheck" analysis for manipulative framing:
 
 Article: {content}
 
@@ -260,7 +260,14 @@ Extract key information. Return ONLY valid JSON:
   "mom": ["Motive indicator", "Opportunity indicator", "Means indicator"],
   "pop": ["Historical pattern 1", "Pattern 2", ...],
   "moses": ["Source vulnerability 1", "Source issue 2", ...],
-  "eve": ["Consistency note 1", "Evidence note 2", ...]
+  "eve": ["Consistency note 1", "Evidence note 2", ...],
+  "rage_check": [
+    "Emotional Provocation: [Specific phrase/example]",
+    "Tribalism (Us vs Them): [Specific phrase/example]",
+    "Catastrophizing: [Specific phrase/example]",
+    "Generalization: [Specific phrase/example]"
+  ],
+  "assessment": "Overall assessment of deception risk and manipulative framing"
 }`,
 
   cog: `Analyze this content for Center of Gravity analysis:
