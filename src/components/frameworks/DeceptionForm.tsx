@@ -51,6 +51,7 @@ export function DeceptionForm({
   const [pop, setPop] = useState(initialData?.pop || '')
   const [moses, setMoses] = useState(initialData?.moses || '')
   const [eve, setEve] = useState(initialData?.eve || '')
+  const [rageCheck, setRageCheck] = useState(initialData?.rageCheck || '')
   const [assessment, setAssessment] = useState(initialData?.assessment || '')
 
   // Scoring
@@ -87,6 +88,9 @@ export function DeceptionForm({
     if (extractedData.eve && Array.isArray(extractedData.eve)) {
       setEve(extractedData.eve.join('\n'))
     }
+    if (extractedData.rage_check && Array.isArray(extractedData.rage_check)) {
+      setRageCheck(extractedData.rage_check.join('\n'))
+    }
 
     // Switch to the first populated tab
     if (extractedData.scenario) {
@@ -110,7 +114,7 @@ export function DeceptionForm({
         pop,
         moses,
         eve,
-        additionalContext: assessment,
+        additionalContext: assessment + '\n\nRageCheck Analysis:\n' + rageCheck,
         outputLanguage: i18n.language
       })
 
@@ -178,6 +182,7 @@ export function DeceptionForm({
         pop,
         moses,
         eve,
+        rageCheck,
         assessment,
         scores,
         aiAnalysis,
@@ -247,6 +252,7 @@ export function DeceptionForm({
                   pop,
                   moses,
                   eve,
+                  rageCheck,
                   assessment,
                   scores,
                   aiAnalysis,
@@ -315,12 +321,13 @@ export function DeceptionForm({
             </CardHeader>
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-6 w-full">
+                <TabsList className="grid grid-cols-7 w-full">
                   <TabsTrigger value="scenario">{t('sats.tabs.scenario')}</TabsTrigger>
                   <TabsTrigger value="mom">{t('sats.tabs.mom')}</TabsTrigger>
                   <TabsTrigger value="pop">{t('sats.tabs.pop')}</TabsTrigger>
                   <TabsTrigger value="moses">{t('sats.tabs.moses')}</TabsTrigger>
                   <TabsTrigger value="eve">{t('sats.tabs.eve')}</TabsTrigger>
+                  <TabsTrigger value="ragecheck">RageCheck</TabsTrigger>
                   <TabsTrigger value="assessment">{t('sats.tabs.assessment')}</TabsTrigger>
                 </TabsList>
 
@@ -469,6 +476,36 @@ export function DeceptionForm({
                           relatedFields: { scenario, mom, pop, moses }
                         }}
                         placeholder={t('categories.eve.placeholder')}
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="ragecheck" className="space-y-4 mt-4">
+                  <div>
+                    <Label htmlFor="ragecheck">
+                      RageCheck Analysis
+                      <span className="text-xs text-muted-foreground ml-2">
+                        Analysis of manipulative framing, emotional provocation, and tribalism signals
+                      </span>
+                    </Label>
+                    <div className="flex gap-2 mt-2">
+                      <Textarea
+                        id="ragecheck"
+                        value={rageCheck}
+                        onChange={(e) => setRageCheck(e.target.value)}
+                        placeholder="Analyze for: Emotional provocation, Tribalism/Us-vs-Them, Catastrophizing, Generalization..."
+                        rows={10}
+                      />
+                      <AIFieldAssistant
+                        fieldName="RageCheck Analysis"
+                        currentValue={rageCheck}
+                        onAccept={(value) => setRageCheck(value)}
+                        context={{
+                          framework: 'Deception Detection (RageCheck)',
+                          relatedFields: { scenario, mom, pop, moses, eve }
+                        }}
+                        placeholder="Detect manipulative framing..."
                       />
                     </div>
                   </div>

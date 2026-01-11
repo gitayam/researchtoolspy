@@ -38,6 +38,7 @@ interface DeceptionViewProps {
     pop?: string
     moses?: string
     eve?: string
+    rageCheck?: string
     assessment?: string
     scores?: Partial<DeceptionScores>
     aiAnalysis?: AIDeceptionAnalysis
@@ -794,6 +795,26 @@ export function DeceptionView({
               <CardContent>
                 <div className="prose dark:prose-invert max-w-none">
                   <p className="whitespace-pre-wrap">{data.eve}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* RageCheck Analysis */}
+          {data.rageCheck && (
+            <Card className="border-l-4 border-red-500 bg-red-50/10">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                  <span className="text-2xl">😡</span>
+                  RageCheck Analysis
+                </CardTitle>
+                <CardDescription>
+                  Analysis of manipulative framing and emotional provocation patterns
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="prose dark:prose-invert max-w-none">
+                  <p className="whitespace-pre-wrap">{data.rageCheck}</p>
                 </div>
               </CardContent>
             </Card>
