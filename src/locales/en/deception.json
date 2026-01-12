@@ -376,5 +376,40 @@
     "consistentEvidence": "Evidence highly consistent",
     "strongCorroboration": "Strong independent corroboration",
     "noAnomalies": "No significant anomalies detected"
+  },
+
+  "tool": {
+    "title": "RageCheck",
+    "description": "Analyze content for manipulative framing, emotional provocation, and outrage-bait patterns.",
+    "inputPlaceholder": "Paste article URL here...",
+    "analyzeButton": "Check",
+    "analyzing": "Analyzing...",
+    "scoreTitle": "Manipulative Framing Score",
+    "riskLabel": "Risk",
+    "signalBreakdown": "Signal Breakdown",
+    "signalBreakdownDesc": "Intensity of specific manipulation patterns",
+    "highlights": "Flagged Highlights",
+    "highlightsDesc": "Specific examples extracted from the text",
+    "noHighlights": "No specific highlights flagged.",
+    "contentPreview": "Analyzed Content Preview",
+    "creditsTitle": "Credits & Methodology",
+    "creditsText": "This tool is an implementation based on the <1>RageCheck open-source repository</1> and inspired by the original <2>RageCheck service</2> created by Andrew Goldberg (<3>@aagoldberg</3>).",
+    "methodologyTitle": "Methodology:",
+    "methodologyText": "The analysis detects linguistic patterns commonly associated with manipulative framing, specifically focusing on five key signals:",
+    "methodologyNote": "Note: This tool analyzes framing, not factual accuracy. A high score indicates manipulative language, not necessarily false information.",
+    "researchFoundations": "Research Foundations & Key Concepts",
+    "viewOnGithub": "View on GitHub",
+    "viewRepo": "View open-source repository"
+  },
+
+  "researchFoundations": {
+    "frameAnalysis": "Frame Analysis:",
+    "frameAnalysisDesc": "Based on Erving Goffman's sociological work on how individuals perceive and organize experiences.",
+    "socialIdentity": "Social Identity Theory:",
+    "socialIdentityDesc": "(Tajfel & Turner) Explains the \"Us-vs-Them\" dynamics and in-group/out-group biases.",
+    "attentionEconomy": "The Attention Economy:",
+    "attentionEconomyDesc": "(Tim Wu / Michael Goldhaber) Explores the commodification of human attention and viral provocation.",
+    "linguisticLoadedness": "Linguistic Loadedness:",
+    "linguisticLoadednessDesc": "Research on emotional valency and inflammatory rhetoric in propaganda studies."
   }
 }
