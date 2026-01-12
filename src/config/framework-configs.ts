@@ -953,5 +953,250 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         icon: '📈'
       }
     ]
+  },
+
+  'carver': {
+    type: 'carver',
+    title: 'CARVER Matrix',
+    description: 'Target analysis and vulnerability assessment (Criticality, Accessibility, Recuperability, Vulnerability, Effect, Recognizability)',
+    itemType: 'qa',
+    sections: [
+      {
+        key: 'criticality',
+        label: 'Criticality',
+        description: 'How essential is this target to the system/mission?',
+        color: 'border-red-500',
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        icon: '🎯'
+      },
+      {
+        key: 'accessibility',
+        label: 'Accessibility',
+        description: 'How easy is it to reach or access this target?',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '🔓'
+      },
+      {
+        key: 'recuperability',
+        label: 'Recuperability',
+        description: 'How long would it take to replace or repair?',
+        color: 'border-green-500',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        icon: '🔄'
+      },
+      {
+        key: 'vulnerability',
+        label: 'Vulnerability',
+        description: 'How susceptible is it to damage or exploitation?',
+        color: 'border-orange-500',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        icon: '🛡️'
+      },
+      {
+        key: 'effect',
+        label: 'Effect',
+        description: 'What is the impact of compromising this target?',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '💥'
+      },
+      {
+        key: 'recognizability',
+        label: 'Recognizability',
+        description: 'How easy is it to identify this target?',
+        color: 'border-yellow-500',
+        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+        icon: '👀'
+      }
+    ]
+  },
+
+  'ooda': {
+    type: 'ooda',
+    title: 'OODA Loop',
+    description: 'Decision-making cycle (Observe, Orient, Decide, Act) for rapid response and competitive advantage',
+    itemType: 'qa',
+    sections: [
+      {
+        key: 'observe',
+        label: 'Observe',
+        description: 'Gather raw data from the environment',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '👀'
+      },
+      {
+        key: 'orient',
+        label: 'Orient',
+        description: 'Analyze data, filter, and synthesize context',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '🧠'
+      },
+      {
+        key: 'decide',
+        label: 'Decide',
+        description: 'Formulate hypothesis and select course of action',
+        color: 'border-green-500',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        icon: '⚖️'
+      },
+      {
+        key: 'act',
+        label: 'Act',
+        description: 'Execute decision and test hypothesis',
+        color: 'border-red-500',
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        icon: '⚡'
+      }
+    ]
+  },
+
+  'abcde': {
+    type: 'abcde',
+    title: 'ABCDE Framework',
+    description: 'Disinformation analysis framework (Actor, Behaviour, Content, Degree, Effect)',
+    itemType: 'qa',
+    sections: [
+      {
+        key: 'actor',
+        label: 'Actor',
+        description: 'Who is behind the operation?',
+        color: 'border-red-500',
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        icon: '🎭'
+      },
+      {
+        key: 'behaviour',
+        label: 'Behaviour',
+        description: 'What tactics and techniques are being used?',
+        color: 'border-orange-500',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        icon: '🔄'
+      },
+      {
+        key: 'content',
+        label: 'Content',
+        description: 'What is the narrative or message?',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '📝'
+      },
+      {
+        key: 'degree',
+        label: 'Degree',
+        description: 'What is the scale and reach?',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '📊'
+      },
+      {
+        key: 'effect',
+        label: 'Effect',
+        description: 'What is the impact on the target audience?',
+        color: 'border-green-500',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        icon: '💥'
+      }
+    ]
+  },
+
+  'kac': {
+    type: 'kac',
+    title: 'Key Assumptions Check',
+    description: 'Structured analytic technique to list and challenge the underlying assumptions of an analysis',
+    itemType: 'text',
+    sections: [
+      {
+        key: 'identify_assumptions',
+        label: 'Identify Assumptions',
+        description: 'List all premises accepted as true without proof',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '📝'
+      },
+      {
+        key: 'challenge_assumptions',
+        label: 'Challenge Assumptions',
+        description: 'Critically examine each assumption. Is it solid? What if it\'s wrong?',
+        color: 'border-orange-500',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        icon: '🤔'
+      },
+      {
+        key: 'refine_drop',
+        label: 'Refine or Drop',
+        description: 'Categorize assumptions: Solid, Caveated, or Unsupported/Dropped',
+        color: 'border-green-500',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        icon: '✅'
+      }
+    ]
+  },
+
+  '5whys': {
+    type: '5whys',
+    title: '5 Whys',
+    description: 'Iterative interrogative technique to explore cause-and-effect relationships underlying a particular problem',
+    itemType: 'qa',
+    sections: [
+      {
+        key: 'problem_statement',
+        label: 'Problem Statement',
+        description: 'Define the specific problem to be analyzed',
+        color: 'border-red-500',
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        icon: '⚠️'
+      },
+      {
+        key: 'why_1',
+        label: 'Why? (1)',
+        description: 'First level cause',
+        color: 'border-orange-500',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        icon: '1️⃣'
+      },
+      {
+        key: 'why_2',
+        label: 'Why? (2)',
+        description: 'Second level cause',
+        color: 'border-yellow-500',
+        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+        icon: '2️⃣'
+      },
+      {
+        key: 'why_3',
+        label: 'Why? (3)',
+        description: 'Third level cause',
+        color: 'border-green-500',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        icon: '3️⃣'
+      },
+      {
+        key: 'why_4',
+        label: 'Why? (4)',
+        description: 'Fourth level cause',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '4️⃣'
+      },
+      {
+        key: 'why_5',
+        label: 'Why? (5)',
+        description: 'Root cause (usually)',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '5️⃣'
+      },
+      {
+        key: 'root_cause',
+        label: 'Root Cause & Countermeasure',
+        description: 'Final analysis and proposed solution',
+        color: 'border-gray-500',
+        bgColor: 'bg-gray-50 dark:bg-gray-900/20',
+        icon: '🎯'
+      }
+    ]
   }
 }
