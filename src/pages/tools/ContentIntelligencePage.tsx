@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import html2canvas from 'html2canvas'
@@ -28,6 +28,12 @@ import { ClaimAnalysisDisplay } from '@/components/content-intelligence/ClaimAna
 import { AnalysisLayout } from '@/components/content-intelligence/AnalysisLayout'
 import { createLogger } from '@/lib/logger'
 import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
+// New extracted components from refactor
+import {
+  SharePanel,
+  AnalysisSummaryExport,
+  WordCloudSection,
+} from '@/components/content-intelligence'
 
 const logger = createLogger('ContentIntelligence')
 
@@ -119,91 +125,94 @@ export default function ContentIntelligencePage() {
   const [showEntitySummary, setShowEntitySummary] = useState(false)
   const [currentEntitySummary, setCurrentEntitySummary] = useState<{ entity: string, type: string, summary: string } | null>(null)
 
-  // Section Configuration for Sidebar Navigation
-  const sections = analysis ? [
-    // Automatic Sections
-    {
-      id: 'overview' as AnalysisTab,
-      label: t('pages.contentIntelligence.sections.overview.label'),
-      icon: FileText,
-      description: t('pages.contentIntelligence.sections.overview.description'),
-      isAutomatic: true,
-      status: 'complete' as const,
-    },
-    {
-      id: 'entities' as AnalysisTab,
-      label: t('pages.contentIntelligence.sections.entities.label'),
-      icon: Users,
-      description: t('pages.contentIntelligence.sections.entities.description'),
-      isAutomatic: true,
-      status: 'complete' as const,
-    },
-    {
-      id: 'sentiment' as AnalysisTab,
-      label: t('pages.contentIntelligence.sections.sentiment.label'),
-      icon: SmileIcon,
-      description: t('pages.contentIntelligence.sections.sentiment.description'),
-      isAutomatic: true,
-      status: analysis?.sentiment_analysis ? ('complete' as const) : ('idle' as const),
-    },
-    {
-      id: 'links' as AnalysisTab,
-      label: t('pages.contentIntelligence.sections.links.label'),
-      icon: Link2,
-      description: t('pages.contentIntelligence.sections.links.description'),
-      isAutomatic: true,
-      status: 'complete' as const,
-    },
-    {
-      id: 'word-analysis' as AnalysisTab,
-      label: t('pages.contentIntelligence.sections.wordAnalysis.label'),
-      icon: BarChart3,
-      description: t('pages.contentIntelligence.sections.wordAnalysis.description'),
-      isAutomatic: true,
-      status: 'complete' as const,
-    },
-    // Framework Sections
-    {
-      id: 'claims' as AnalysisTab,
-      label: t('pages.contentIntelligence.sections.claims.label'),
-      icon: Shield,
-      description: t('pages.contentIntelligence.sections.claims.description'),
-      isAutomatic: false,
-      status: claimsLoading
-        ? ('processing' as const)
-        : (analysis?.claim_analysis || claimsAnalysis)
-        ? ('complete' as const)
-        : ('idle' as const),
-    },
-    {
-      id: 'dime' as AnalysisTab,
-      label: t('pages.contentIntelligence.sections.dime.label'),
-      icon: Grid3x3,
-      description: t('pages.contentIntelligence.sections.dime.description'),
-      isAutomatic: false,
-      status: dimeLoading
-        ? ('processing' as const)
-        : (analysis?.dime_analysis || dimeAnalysis)
-        ? ('complete' as const)
-        : ('idle' as const),
-    },
-    {
-      id: 'starbursting' as AnalysisTab,
-      label: t('pages.contentIntelligence.sections.starbursting.label'),
-      icon: Star,
-      description: t('pages.contentIntelligence.sections.starbursting.description'),
-      isAutomatic: false,
-      status: starburstingStatus,
-    },
-    {
-      id: 'qa' as AnalysisTab,
-      label: t('pages.contentIntelligence.sections.qa.label'),
-      icon: MessageSquare,
-      description: t('pages.contentIntelligence.sections.qa.description'),
-      isAutomatic: false,
-      status: 'ready' as const,
-    },
-  ] : []
+  // Section Configuration for Sidebar Navigation (memoized to prevent unnecessary re-renders)
+  const sections = useMemo(() => {
+    if (!analysis) return []
+    return [
+      // Automatic Sections
+      {
+        id: 'overview' as AnalysisTab,
+        label: t('pages.contentIntelligence.sections.overview.label'),
+        icon: FileText,
+        description: t('pages.contentIntelligence.sections.overview.description'),
+        isAutomatic: true,
+        status: 'complete' as const,
+      },
+      {
+        id: 'entities' as AnalysisTab,
+        label: t('pages.contentIntelligence.sections.entities.label'),
+        icon: Users,
+        description: t('pages.contentIntelligence.sections.entities.description'),
+        isAutomatic: true,
+        status: 'complete' as const,
+      },
+      {
+        id: 'sentiment' as AnalysisTab,
+        label: t('pages.contentIntelligence.sections.sentiment.label'),
+        icon: SmileIcon,
+        description: t('pages.contentIntelligence.sections.sentiment.description'),
+        isAutomatic: true,
+        status: analysis?.sentiment_analysis ? ('complete' as const) : ('idle' as const),
+      },
+      {
+        id: 'links' as AnalysisTab,
+        label: t('pages.contentIntelligence.sections.links.label'),
+        icon: Link2,
+        description: t('pages.contentIntelligence.sections.links.description'),
+        isAutomatic: true,
+        status: 'complete' as const,
+      },
+      {
+        id: 'word-analysis' as AnalysisTab,
+        label: t('pages.contentIntelligence.sections.wordAnalysis.label'),
+        icon: BarChart3,
+        description: t('pages.contentIntelligence.sections.wordAnalysis.description'),
+        isAutomatic: true,
+        status: 'complete' as const,
+      },
+      // Framework Sections
+      {
+        id: 'claims' as AnalysisTab,
+        label: t('pages.contentIntelligence.sections.claims.label'),
+        icon: Shield,
+        description: t('pages.contentIntelligence.sections.claims.description'),
+        isAutomatic: false,
+        status: claimsLoading
+          ? ('processing' as const)
+          : (analysis?.claim_analysis || claimsAnalysis)
+          ? ('complete' as const)
+          : ('idle' as const),
+      },
+      {
+        id: 'dime' as AnalysisTab,
+        label: t('pages.contentIntelligence.sections.dime.label'),
+        icon: Grid3x3,
+        description: t('pages.contentIntelligence.sections.dime.description'),
+        isAutomatic: false,
+        status: dimeLoading
+          ? ('processing' as const)
+          : (analysis?.dime_analysis || dimeAnalysis)
+          ? ('complete' as const)
+          : ('idle' as const),
+      },
+      {
+        id: 'starbursting' as AnalysisTab,
+        label: t('pages.contentIntelligence.sections.starbursting.label'),
+        icon: Star,
+        description: t('pages.contentIntelligence.sections.starbursting.description'),
+        isAutomatic: false,
+        status: starburstingStatus,
+      },
+      {
+        id: 'qa' as AnalysisTab,
+        label: t('pages.contentIntelligence.sections.qa.label'),
+        icon: MessageSquare,
+        description: t('pages.contentIntelligence.sections.qa.description'),
+        isAutomatic: false,
+        status: 'ready' as const,
+      },
+    ]
+  }, [analysis, t, claimsLoading, claimsAnalysis, dimeLoading, dimeAnalysis, starburstingStatus])
 
   // Format full text for better readability
   const formatFullText = (text: string): string => {
@@ -219,8 +228,8 @@ export default function ContentIntelligencePage() {
       .trim()
   }
 
-  // Find entity in text and highlight
-  const handleFindInText = (entityName: string) => {
+  // Find entity in text and highlight (memoized with useCallback)
+  const handleFindInText = useCallback((entityName: string) => {
     if (!analysis) return
 
     // Set highlighted entity
@@ -243,16 +252,16 @@ export default function ContentIntelligencePage() {
         description: `All occurrences of "${entityName}" are now highlighted in yellow`,
       })
     }, 100)
-  }
+  }, [analysis, toast])
 
-  // Clear entity highlighting
-  const handleClearHighlight = () => {
+  // Clear entity highlighting (memoized with useCallback)
+  const handleClearHighlight = useCallback(() => {
     setHighlightedEntity(null)
     toast({
       title: 'Highlighting Cleared',
       description: 'Entity highlighting has been removed',
     })
-  }
+  }, [toast])
 
   // Summarize entity using AI
   const handleSummarizeEntity = async (entityName: string, entityType: string) => {
@@ -1012,7 +1021,12 @@ ${shortSummary}`
   const loadSavedLinks = async () => {
     setLoadingSavedLinks(true)
     try {
-      const response = await fetch('/api/content-intelligence/saved-links?limit=5')
+      const userHash = localStorage.getItem('omnicore_user_hash')
+      const response = await fetch('/api/content-intelligence/saved-links?limit=5', {
+        headers: {
+          ...(userHash ? { 'Authorization': `Bearer ${userHash}` } : {})
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         setSavedLinks(data.links || [])
@@ -1024,8 +1038,8 @@ ${shortSummary}`
     }
   }
 
-  // Run DIME Framework Analysis
-  const runDIMEAnalysis = async () => {
+  // Run DIME Framework Analysis (memoized with useCallback)
+  const runDIMEAnalysis = useCallback(async () => {
     if (!analysis) {
       toast({ title: 'Error', description: 'No analysis available', variant: 'destructive' })
       return
@@ -1033,9 +1047,13 @@ ${shortSummary}`
 
     setDimeLoading(true)
     try {
+      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/content-intelligence/dime-analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userHash ? { 'Authorization': `Bearer ${userHash}` } : {})
+        },
         body: JSON.stringify({
           analysis_id: analysis.id.toString(),
           content_text: analysis.extracted_text,
@@ -1066,10 +1084,10 @@ ${shortSummary}`
     } finally {
       setDimeLoading(false)
     }
-  }
+  }, [analysis, toast])
 
-  // Run Claims Analysis
-  const runClaimsAnalysis = async () => {
+  // Run Claims Analysis (memoized with useCallback)
+  const runClaimsAnalysis = useCallback(async () => {
     if (!analysis) {
       toast({ title: 'Error', description: 'No analysis available', variant: 'destructive' })
       return
@@ -1116,10 +1134,10 @@ ${shortSummary}`
     } finally {
       setClaimsLoading(false)
     }
-  }
+  }, [analysis, toast])
 
-  // Framework Runner Handler - triggers framework analyses from sidebar
-  const handleRunFramework = async (framework: AnalysisTab) => {
+  // Framework Runner Handler - triggers framework analyses from sidebar (memoized with useCallback)
+  const handleRunFramework = useCallback(async (framework: AnalysisTab) => {
     if (!analysis) return
 
     switch (framework) {
@@ -1146,10 +1164,13 @@ ${shortSummary}`
           description: `${framework} framework will be available soon.`,
         })
     }
-  }
+  // Note: startStarburstingInBackground is excluded from deps as it's defined later
+  // and is a stable async function that won't cause stale closures
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis, runClaimsAnalysis, runDIMEAnalysis, toast])
 
-  // Save analysis permanently and generate share link
-  const saveAnalysisPermanently = async () => {
+  // Save analysis permanently and generate share link (memoized with useCallback)
+  const saveAnalysisPermanently = useCallback(async () => {
     if (!analysis) {
       toast({ title: 'Error', description: 'No analysis to save', variant: 'destructive' })
       return
@@ -1205,10 +1226,10 @@ ${shortSummary}`
     } finally {
       setSaveLoading(false)
     }
-  }
+  }, [analysis, saveNote, saveTags, toast])
 
-  // Quick save link (fetches title first, then saves without full analysis)
-  const handleQuickSave = async () => {
+  // Quick save link (fetches title first, then saves without full analysis) (memoized with useCallback)
+  const handleQuickSave = useCallback(async () => {
     if (!url) {
       toast({ title: 'Error', description: 'Please enter a URL', variant: 'destructive' })
       return
@@ -1218,9 +1239,13 @@ ${shortSummary}`
       // First, do a quick analysis to fetch the title
       toast({ title: 'Fetching page title...', description: 'Please wait', variant: 'default' })
 
+      const userHash = localStorage.getItem('omnicore_user_hash')
       const analyzeResponse = await fetch('/api/content-intelligence/analyze-url', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userHash ? { 'Authorization': `Bearer ${userHash}` } : {})
+        },
         body: JSON.stringify({
           url,
           mode: 'quick',
@@ -1272,7 +1297,7 @@ ${shortSummary}`
       console.error('Save error:', error)
       toast({ title: 'Error', description: 'Failed to save link', variant: 'destructive' })
     }
-  }
+  }, [url, saveNote, saveTags, toast, loadSavedLinks])
 
   // Analyze URL
   const handleAnalyze = async (urlToAnalyze?: string) => {
@@ -1344,9 +1369,13 @@ ${shortSummary}`
         }
       }, 2000) // Update every 2 seconds
 
+      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/content-intelligence/analyze-url', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userHash ? { 'Authorization': `Bearer ${userHash}` } : {})
+        },
         body: JSON.stringify({
           url: targetUrl,
           mode,
@@ -1524,9 +1553,13 @@ ${shortSummary}`
       if (!analysisId) {
         setCurrentStep('Saving analysis first...')
 
+        const userHash = localStorage.getItem('omnicore_user_hash')
         const saveResponse = await fetch('/api/content-intelligence/save', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(userHash ? { 'Authorization': `Bearer ${userHash}` } : {})
+          },
           body: JSON.stringify({
             analysis_id: analysisData.id?.toString() || 'temp',
             generate_share_link: false
@@ -3250,6 +3283,12 @@ ${shortSummary}`
                     <FileDown className="h-4 w-4 mr-2" />
                     Export Report
                   </Button>
+                  {/* New AnalysisSummaryExport component for multiple export formats */}
+                  <AnalysisSummaryExport
+                    analysis={analysis}
+                    dimeAnalysis={dimeAnalysis}
+                    claimsAnalysis={claimsAnalysis}
+                  />
                   <Button
                     variant="outline"
                     size="sm"
@@ -3260,17 +3299,8 @@ ${shortSummary}`
                     <Copy className="h-4 w-4 mr-2" />
                     Copy Summary
                   </Button>
-                  {!shareUrl && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleShareAnalysis}
-                      disabled={saveLoading}
-                    >
-                      <Share2 className="h-4 w-4 mr-2" />
-                      Share Analysis
-                    </Button>
-                  )}
+                  {/* New SharePanel component replaces inline share button */}
+                  <SharePanel analysis={analysis} />
                 </div>
               </div>
 
