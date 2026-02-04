@@ -2,7 +2,7 @@
 // Activity Feed API - Workspace activity tracking
 // ============================================================================
 
-import { getUserFromRequest, requireAuth } from './_shared/auth-helpers'
+import { getUserIdOrDefault } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -24,35 +24,25 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const userId = await getUserFromRequest(request, env)
-    
+    const userId = await getUserIdOrDefault(request, env)
+
     // Get user hash for logging if authenticated
     let userHash = 'guest'
-    if (userId) {
+    if (userId !== 'guest') {
       const user = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
       if (user?.user_hash) userHash = user.user_hash as string
     }
 
-    const workspaceId = request.headers.get('X-Workspace-ID')
+    const workspaceId = request.headers.get('X-Workspace-ID') || '1'
 
     // GET /api/activity - List workspace activity
     if (request.method === 'GET') {
-      // Require auth for viewing activity
-      await requireAuth(request, env)
-      
       const url = new URL(request.url)
       const limit = parseInt(url.searchParams.get('limit') || '50')
       const offset = parseInt(url.searchParams.get('offset') || '0')
       const actionType = url.searchParams.get('type')
       const entityType = url.searchParams.get('entity_type')
       const actorUserId = url.searchParams.get('user_id')
-
-      if (!workspaceId) {
-        return new Response(JSON.stringify({ error: 'X-Workspace-ID header required' }), {
-          status: 400,
-          headers: CORS_HEADERS
-        })
-      }
 
       let query = `
         SELECT *
@@ -62,7 +52,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const params: any[] = [workspaceId]
 
       if (actionType) {
-        query += ` AND action_type = ?`
+        query += ` AND activity_type = ?`
         params.push(actionType)
       }
 
@@ -72,7 +62,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
 
       if (actorUserId) {
-        query += ` AND actor_user_id = ?`
+        query += ` AND user_hash = ?`
         params.push(actorUserId)
       }
 
@@ -85,10 +75,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const summary = await env.DB.prepare(`
         SELECT
           COUNT(*) as total_activities,
-          COUNT(DISTINCT actor_user_id) as active_users,
-          SUM(CASE WHEN action_type = 'CREATED' THEN 1 ELSE 0 END) as creates,
-          SUM(CASE WHEN action_type = 'UPDATED' THEN 1 ELSE 0 END) as updates,
-          SUM(CASE WHEN action_type = 'COMMENTED' THEN 1 ELSE 0 END) as comments
+          COUNT(DISTINCT user_hash) as active_users,
+          SUM(CASE WHEN activity_type = 'CREATED' THEN 1 ELSE 0 END) as creates,
+          SUM(CASE WHEN activity_type = 'UPDATED' THEN 1 ELSE 0 END) as updates,
+          SUM(CASE WHEN activity_type = 'COMMENTED' THEN 1 ELSE 0 END) as comments
         FROM activity_feed
         WHERE workspace_id = ?
           AND created_at >= datetime('now', '-24 hours')
