@@ -263,11 +263,12 @@ export const AnalysisSummaryExport: React.FC<AnalysisSummaryExportProps> = ({
     }
 
     // Links Analysis
-    if (analysis.links_analysis && analysis.links_analysis.length > 0) {
+    const linksArray = Array.isArray(analysis.links_analysis) ? analysis.links_analysis : []
+    if (linksArray.length > 0) {
       sections.push('## Links Found')
       sections.push('')
-      const externalLinks = analysis.links_analysis.filter((l) => l.is_external)
-      const internalLinks = analysis.links_analysis.filter((l) => !l.is_external)
+      const externalLinks = linksArray.filter((l) => l.is_external)
+      const internalLinks = linksArray.filter((l) => !l.is_external)
 
       if (externalLinks.length > 0) {
         sections.push(`### External Links (${externalLinks.length})`)
@@ -352,7 +353,7 @@ export const AnalysisSummaryExport: React.FC<AnalysisSummaryExportProps> = ({
     const addEntities = (type: string, entities: EntityMention[] | undefined) => {
       if (!entities) return
       for (const entity of entities) {
-        const contexts = entity.contexts
+        const contexts = (entity.contexts || [])
           .slice(0, 3)
           .map((c) => c.replace(/"/g, '""'))
           .join(' | ')

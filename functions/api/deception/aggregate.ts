@@ -119,15 +119,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     // ===== 3. EVIDENCE EVE SCORES =====
+    // Note: evidence table uses sats_evaluation (not eve_assessment) and has no workspace_id
     const eveEvidence = await context.env.DB.prepare(`
       SELECT
         e.id,
         e.title,
-        e.eve_assessment
+        e.sats_evaluation
       FROM evidence e
-      WHERE e.workspace_id = ?
-        AND e.eve_assessment IS NOT NULL
-    `).bind(workspaceId).all()
+      WHERE e.sats_evaluation IS NOT NULL
+      LIMIT 200
+    `).all()
 
     let eveStats = { suspicious: 0, needs_review: 0, verified: 0, avg_score: 0, total: 0 }
     let eveAlerts: Alert[] = []
@@ -136,9 +137,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       const scores: number[] = []
       for (const evidence of eveEvidence.results as any[]) {
         try {
-          const eve = typeof evidence.eve_assessment === 'string'
-            ? JSON.parse(evidence.eve_assessment)
-            : evidence.eve_assessment
+          const eve = typeof evidence.sats_evaluation === 'string'
+            ? JSON.parse(evidence.sats_evaluation)
+            : evidence.sats_evaluation
 
           if (eve) {
             // EVE uses inverted scores for consistency/corroboration (high = good = low risk)

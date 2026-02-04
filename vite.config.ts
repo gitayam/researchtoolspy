@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
@@ -6,9 +6,21 @@ import { dirname, resolve } from 'path'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+// Plugin to disable Cloudflare Rocket Loader on script tags
+// Rocket Loader breaks ES modules by modifying script type attributes
+function disableRocketLoader(): Plugin {
+  return {
+    name: 'disable-rocket-loader',
+    transformIndexHtml(html) {
+      // Add data-cfasync="false" to all script tags to prevent Rocket Loader
+      return html.replace(/<script /g, '<script data-cfasync="false" ')
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), disableRocketLoader()],
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),

@@ -43,16 +43,16 @@ ENVIRONMENT = "development"
 ENABLE_AI_FEATURES = "true"
 DEFAULT_AI_MODEL = "gpt-4o-mini"
 AI_GATEWAY_ACCOUNT_ID = "04eac09ae835290383903273f68c79b0"
-SEARXNG_CONTAINER_URL = "http://searxng:8080"
-OSINT_AGENT_URL = "http://osint-agent:8000"
+SEARXNG_CONTAINER_URL = "https://search.irregularchat.com"
+OSINT_AGENT_URL = "https://researchtoolspy-containers.wemea-5ahhf.workers.dev/osint"
 
 [env.production.vars]
 ENVIRONMENT = "production"
 ENABLE_AI_FEATURES = "true"
 DEFAULT_AI_MODEL = "gpt-4o-mini"
 AI_GATEWAY_ACCOUNT_ID = "04eac09ae835290383903273f68c79b0"
-SEARXNG_CONTAINER_URL = "http://searxng:8080"
-OSINT_AGENT_URL = "http://osint-agent:8000"
+SEARXNG_CONTAINER_URL = "https://search.irregularchat.com"
+OSINT_AGENT_URL = "https://researchtoolspy-containers.wemea-5ahhf.workers.dev/osint"
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -76,29 +76,7 @@ binding = "UPLOADS"
 bucket_name = "researchtoolspy-uploads"
 
 # ==========================================
-# Cloudflare Containers Configuration
-# NOTE: Containers is in beta. Uncomment when ready to deploy containers.
-# See: https://developers.cloudflare.com/containers/
+# Cloudflare Containers
+# Containers are deployed as a separate Worker: researchtoolspy-containers
+# Deployed at: https://researchtoolspy-containers.wemea-5ahhf.workers.dev
 # ==========================================
-
-# [[containers]]
-# class_name = "SearXNGContainer"
-# image = "./containers/searxng/Dockerfile"
-# max_instances = 3
-
-# [[containers]]
-# class_name = "OSINTAgentContainer"
-# image = "./containers/osint-agent/Dockerfile"
-# max_instances = 5
-
-# [[durable_objects.bindings]]
-# name = "SEARXNG"
-# class_name = "SearXNGContainer"
-
-# [[durable_objects.bindings]]
-# name = "OSINT_AGENT"
-# class_name = "OSINTAgentContainer"
-
-# [[migrations]]
-# tag = "v1"
-# new_classes = ["SearXNGContainer", "OSINTAgentContainer"]

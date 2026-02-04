@@ -4,28 +4,11 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserIdOrDefault } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
   SESSIONS: KVNamespace
-}
-
-// Helper to get user from session
-async function getUserFromRequest(request: Request, env: Env): Promise<number | null> {
-  const authHeader = request.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return null
-  }
-
-  const token = authHeader.substring(7)
-  const sessionData = await env.SESSIONS.get(token)
-
-  if (!sessionData) {
-    return null
-  }
-
-  const session = JSON.parse(sessionData)
-  return session.user_id
 }
 
 // Generate UUID v4
@@ -88,14 +71,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const createMatch = url.pathname.match(/^\/api\/workspaces\/([^\/]+)\/invites$/)
     if (method === 'POST' && createMatch) {
       const workspaceId = createMatch[1]
-      const userId = await getUserFromRequest(request, env)
-
-      if (!userId) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
+      const userId = await getUserIdOrDefault(request, env)
 
       // Check permissions
       if (!await canManageInvites(env, workspaceId, userId)) {
@@ -167,14 +143,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // ============================================================
     if (method === 'GET' && createMatch) {
       const workspaceId = createMatch[1]
-      const userId = await getUserFromRequest(request, env)
-
-      if (!userId) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
+      const userId = await getUserIdOrDefault(request, env)
 
       // Check permissions
       if (!await canManageInvites(env, workspaceId, userId)) {
@@ -220,14 +189,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const revokeMatch = url.pathname.match(/^\/api\/workspaces\/([^\/]+)\/invites\/([^\/]+)$/)
     if (method === 'DELETE' && revokeMatch) {
       const [, workspaceId, inviteId] = revokeMatch
-      const userId = await getUserFromRequest(request, env)
-
-      if (!userId) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
+      const userId = await getUserIdOrDefault(request, env)
 
       // Check permissions
       if (!await canManageInvites(env, workspaceId, userId)) {
@@ -323,14 +285,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const acceptMatch = url.pathname.match(/^\/api\/invites\/([^\/]+)\/accept$/)
     if (method === 'POST' && acceptMatch) {
       const inviteToken = acceptMatch[1]
-      const userId = await getUserFromRequest(request, env)
-
-      if (!userId) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized - must be logged in to accept invite' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
+      const userId = await getUserIdOrDefault(request, env)
 
       const body = await request.json() as any
 

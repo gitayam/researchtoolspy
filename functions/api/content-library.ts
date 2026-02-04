@@ -3,7 +3,7 @@
  * Fetches all analyzed content for a user/workspace
  */
 
-import { requireAuth } from './_shared/auth-helpers'
+import { getUserIdOrDefault } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -24,8 +24,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    // Get authentication
-    const userId = await requireAuth(request, env)
+    // Get authentication (allow guest access for content browsing)
+    const userId = await getUserIdOrDefault(request, env)
     const workspaceId = request.headers.get('X-Workspace-ID') || '1'
 
     // Parse query parameters

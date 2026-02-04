@@ -4,37 +4,11 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserIdOrDefault } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
   SESSIONS: KVNamespace
-}
-
-// Helper to get user from session or hash
-async function getUserFromRequest(request: Request, env: Env): Promise<number | null> {
-  const authHeader = request.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return null
-  }
-
-  const token = authHeader.substring(7)
-
-  // Try session-based auth first
-  const sessionData = await env.SESSIONS.get(token)
-  if (sessionData) {
-    const session = JSON.parse(sessionData)
-    return session.user_id
-  }
-
-  // Fallback to hash-based auth
-  // For hash-based auth, we'll use a default user ID (1)
-  // This is a simplified approach - in production you'd want to map hashes to user IDs
-  if (token.length >= 16) {
-    // Valid hash format - return default user ID
-    return 1
-  }
-
-  return null
 }
 
 // Generate UUID v4
@@ -134,14 +108,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    // Get authenticated user
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    // Get authenticated user (allows guest access with default user)
+    const userId = await getUserIdOrDefault(request, env)
 
     // GET /api/actors/search?workspace_id=1&name=EntityName&type=PERSON - Check if actor exists
     if (method === 'GET' && url.pathname === '/api/actors/search') {

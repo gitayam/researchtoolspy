@@ -1,0 +1,43 @@
+name = "researchtoolspy-containers"
+main = "src/index.ts"
+compatibility_date = "2025-09-30"
+compatibility_flags = ["nodejs_compat"]
+
+# ==========================================
+# Cloudflare Containers Configuration
+# ==========================================
+
+# SearXNG metasearch engine container (needs more memory)
+[[containers]]
+class_name = "SearXNGContainer"
+image = "./searxng/Dockerfile"
+max_instances = 3
+instance_type = "standard"
+
+# OSINT Agent container for intelligent search collection
+[[containers]]
+class_name = "OSINTAgentContainer"
+image = "./osint-agent/Dockerfile"
+max_instances = 5
+
+# Durable Objects bindings for containers
+[[durable_objects.bindings]]
+name = "SEARXNG"
+class_name = "SearXNGContainer"
+
+[[durable_objects.bindings]]
+name = "OSINT_AGENT"
+class_name = "OSINTAgentContainer"
+
+# Container migrations
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SearXNGContainer", "OSINTAgentContainer"]
+
+# Environment Variables
+[vars]
+ENVIRONMENT = "production"
+
+# Secrets should be set via: wrangler secret put <NAME>
+# Required secrets:
+# - OPENAI_API_KEY

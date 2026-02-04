@@ -14,6 +14,7 @@ interface Env {
   CACHE?: KVNamespace
   SESSIONS?: KVNamespace
   OSINT_AGENT_URL?: string
+  SEARXNG_CONTAINER_URL?: string
 }
 
 const corsHeaders = {
@@ -52,8 +53,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const finalTimeRange: TimeRange = timeRange || 'year'
     const finalMaxResults = maxResults || 100
 
-    // Get agent URL from env or use default
-    const agentUrl = env.OSINT_AGENT_URL || 'http://osint-agent:8000'
+    // Get container URLs from env
+    const agentUrl = env.OSINT_AGENT_URL || 'https://researchtoolspy-containers.wemea-5ahhf.workers.dev/osint'
+    // Use self-hosted SearXNG via Cloudflare Tunnel
+    const searxngUrl = env.SEARXNG_CONTAINER_URL || 'https://search.irregularchat.com'
     const callbackUrl = new URL('/api/collection/callback', request.url).toString()
 
     // Prepare agent request
@@ -63,7 +66,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       categories: finalCategories,
       maxResults: finalMaxResults,
       timeRange: finalTimeRange,
-      searxngEndpoint: 'http://searxng:8080',
+      searxngEndpoint: searxngUrl,  // Use public SearXNG directly
       callbackUrl,
       useLocalLLM: useLocalLLM || false
     }

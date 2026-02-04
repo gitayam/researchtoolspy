@@ -36,7 +36,7 @@ interface WordCloudSectionProps {
 interface EntityWithType {
   name: string
   count: number
-  contexts: string[]
+  contexts?: string[]  // Optional - not all entities have contexts
   type: 'person' | 'organization' | 'location'
 }
 

@@ -4,28 +4,11 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserIdOrDefault } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
   SESSIONS: KVNamespace
-}
-
-// Helper to get user from session
-async function getUserFromRequest(request: Request, env: Env): Promise<number | null> {
-  const authHeader = request.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return null
-  }
-
-  const token = authHeader.substring(7)
-  const sessionData = await env.SESSIONS.get(token)
-
-  if (!sessionData) {
-    return null
-  }
-
-  const session = JSON.parse(sessionData)
-  return session.user_id
 }
 
 // Generate UUID v4
@@ -87,13 +70,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const userId = await getUserIdOrDefault(request, env)
 
     // GET /api/relationships?workspace_id=xxx
     if (method === 'GET' && url.pathname === '/api/relationships') {
