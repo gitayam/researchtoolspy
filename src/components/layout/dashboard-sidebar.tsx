@@ -39,6 +39,9 @@ const getNavigation = (t: (key: string) => string) => [
     children: [
       { name: 'Research Question Generator', href: '/dashboard/tools/research-question-generator', icon: Sparkles },
       { name: 'Content Research', href: '/dashboard/tools/content-intelligence', icon: Sparkles },
+      { name: 'Equilibrium Analysis', href: '/dashboard/tools/equilibrium-analysis', icon: Sparkles },
+      { name: 'Hamilton Rule', href: '/dashboard/tools/hamilton-rule', icon: Sparkles },
+      { name: 'OSINT Collection', href: '/dashboard/tools/collection', icon: Search },
       { name: t('tools.citationsGenerator'), href: '/dashboard/tools/citations-generator' },
       { name: t('tools.documents'), href: '/dashboard/tools/documents' },
     ]
