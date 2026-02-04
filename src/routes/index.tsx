@@ -71,6 +71,9 @@ const ResearchQuestionGeneratorPage = lazy(() => import('@/pages/ResearchQuestio
 const ResearchWorkspacePage = lazy(() => import('@/pages/ResearchWorkspacePage'))
 const EvidenceSubmissionsPage = lazy(() => import('@/pages/EvidenceSubmissionsPage'))
 const CreateSubmissionFormPage = lazy(() => import('@/pages/CreateSubmissionFormPage'))
+const EquilibriumAnalysisPage = lazy(() => import('@/pages/tools/EquilibriumAnalysisPage'))
+const HamiltonRulePage = lazy(() => import('@/pages/tools/HamiltonRulePage'))
+const CollectionPage = lazy(() => import('@/pages/tools/CollectionPage'))
 
 // Heavy pages (lazy loaded - only when needed)
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then(m => ({ default: m.ReportsPage })))
@@ -386,6 +389,18 @@ export const router = createBrowserRouter([
       {
         path: 'tools/batch-processing',
         element: <LazyPage Component={BatchProcessingPage} />,
+      },
+      {
+        path: 'tools/equilibrium-analysis',
+        element: <LazyPage Component={EquilibriumAnalysisPage} />,
+      },
+      {
+        path: 'tools/hamilton-rule',
+        element: <LazyPage Component={HamiltonRulePage} />,
+      },
+      {
+        path: 'tools/collection',
+        element: <LazyPage Component={CollectionPage} />,
       },
       {
         path: 'tools/social-media',
