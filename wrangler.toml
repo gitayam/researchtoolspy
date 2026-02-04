@@ -77,22 +77,28 @@ bucket_name = "researchtoolspy-uploads"
 
 # ==========================================
 # Cloudflare Containers Configuration
+# NOTE: Containers is in beta. Uncomment when ready to deploy containers.
+# See: https://developers.cloudflare.com/containers/
 # ==========================================
 
-[[containers]]
-class_name = "SearXNGContainer"
-image = "./containers/searxng"
-max_instances = 3
+# [[containers]]
+# class_name = "SearXNGContainer"
+# image = "./containers/searxng/Dockerfile"
+# max_instances = 3
 
-[[containers]]
-class_name = "OSINTAgentContainer"
-image = "./containers/osint-agent"
-max_instances = 5
+# [[containers]]
+# class_name = "OSINTAgentContainer"
+# image = "./containers/osint-agent/Dockerfile"
+# max_instances = 5
 
-[[durable_objects.bindings]]
-name = "SEARXNG"
-class_name = "SearXNGContainer"
+# [[durable_objects.bindings]]
+# name = "SEARXNG"
+# class_name = "SearXNGContainer"
 
-[[durable_objects.bindings]]
-name = "OSINT_AGENT"
-class_name = "OSINTAgentContainer"
+# [[durable_objects.bindings]]
+# name = "OSINT_AGENT"
+# class_name = "OSINTAgentContainer"
+
+# [[migrations]]
+# tag = "v1"
+# new_classes = ["SearXNGContainer", "OSINTAgentContainer"]
