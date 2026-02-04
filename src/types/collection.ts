@@ -1,4 +1,4 @@
-// OSINT Collection Types
+// Agentic Research Collection Types
 
 // ========================================
 // Collection Job

@@ -1,5 +1,5 @@
 /**
- * OSINT Collection Page
+ * Agentic Research Collection Page
  *
  * Comprehensive interface for automated source collection using
  * SearXNG search and AI-powered relevance scoring.
@@ -400,9 +400,9 @@ export default function CollectionPage() {
           Back to Tools
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">OSINT Collection</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Agentic Research</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Automated source gathering with AI-powered relevance scoring
+            AI-powered source collection with intelligent relevance scoring
           </p>
         </div>
         {activeJobId && (

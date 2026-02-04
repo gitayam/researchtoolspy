@@ -1,8 +1,8 @@
 /**
- * Collection Start API - Initiate OSINT Collection Job
+ * Collection Start API - Initiate Agentic Research Collection Job
  *
  * POST /api/collection/start
- * Starts a new collection job that queries the OSINT agent for source gathering
+ * Starts a new collection job that queries the research agent for source gathering
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'

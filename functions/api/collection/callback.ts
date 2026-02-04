@@ -1,8 +1,8 @@
 /**
- * Collection Callback API - Receive results from OSINT agent
+ * Collection Callback API - Receive results from research agent
  *
  * POST /api/collection/callback
- * Receives callback from OSINT agent when collection is complete
+ * Receives callback from research agent when collection is complete
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'

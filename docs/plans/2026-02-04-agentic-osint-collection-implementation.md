@@ -1,12 +1,14 @@
-# Agentic OSINT Collection System - Implementation Plan
+# Agentic Research Collection System - Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Implement SearXNG metasearch + CrewAI OSINT Collector on Cloudflare Containers with triage UI
+**Goal:** Implement SearXNG metasearch + AI Research Agent on Cloudflare with triage UI
 
-**Architecture:** Two Cloudflare Containers (SearXNG for search, CrewAI agent for query expansion/scoring) orchestrated by Workers, with D1 for job state and triage results
+**Architecture:** SearXNG (self-hosted via Cloudflare Tunnel) + Research Agent for query expansion/scoring, orchestrated by Workers, with D1 for job state and triage results
 
-**Tech Stack:** Cloudflare Containers (Docker), CrewAI + LangChain (Python), Cloudflare Workers (TypeScript), D1 (SQLite), React + TanStack Query (Frontend)
+**Tech Stack:** SearXNG (self-hosted), FastAPI Research Agent (Python), Cloudflare Workers (TypeScript), D1 (SQLite), React + TanStack Query (Frontend)
+
+**Status:** ✅ Phases 1-4 COMPLETE - Renamed from "OSINT" to "Agentic Research"
 
 ---
 
