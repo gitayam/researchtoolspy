@@ -43,12 +43,16 @@ ENVIRONMENT = "development"
 ENABLE_AI_FEATURES = "true"
 DEFAULT_AI_MODEL = "gpt-4o-mini"
 AI_GATEWAY_ACCOUNT_ID = "04eac09ae835290383903273f68c79b0"
+SEARXNG_CONTAINER_URL = "http://searxng:8080"
+OSINT_AGENT_URL = "http://osint-agent:8000"
 
 [env.production.vars]
 ENVIRONMENT = "production"
 ENABLE_AI_FEATURES = "true"
 DEFAULT_AI_MODEL = "gpt-4o-mini"
 AI_GATEWAY_ACCOUNT_ID = "04eac09ae835290383903273f68c79b0"
+SEARXNG_CONTAINER_URL = "http://searxng:8080"
+OSINT_AGENT_URL = "http://osint-agent:8000"
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -70,3 +74,25 @@ id = "7b7c607eb739402884712b0b033e3e7d"
 [[env.production.r2_buckets]]
 binding = "UPLOADS"
 bucket_name = "researchtoolspy-uploads"
+
+# ==========================================
+# Cloudflare Containers Configuration
+# ==========================================
+
+[[containers]]
+class_name = "SearXNGContainer"
+image = "./containers/searxng"
+max_instances = 3
+
+[[containers]]
+class_name = "OSINTAgentContainer"
+image = "./containers/osint-agent"
+max_instances = 5
+
+[[durable_objects.bindings]]
+name = "SEARXNG"
+class_name = "SearXNGContainer"
+
+[[durable_objects.bindings]]
+name = "OSINT_AGENT"
+class_name = "OSINTAgentContainer"
