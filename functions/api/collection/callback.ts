@@ -1,0 +1,157 @@
+/**
+ * Collection Callback API - Receive results from OSINT agent
+ *
+ * POST /api/collection/callback
+ * Receives callback from OSINT agent when collection is complete
+ */
+
+import type { PagesFunction } from '@cloudflare/workers-types'
+
+interface Env {
+  DB: D1Database
+}
+
+interface AgentCallback {
+  jobId: string
+  status: 'complete' | 'error'
+  results?: Array<{
+    url: string
+    title: string
+    snippet: string
+    category: string
+    source_domain: string
+    relevance_score: number
+    published_date?: string
+    engine: string
+  }>
+  queries?: Array<{
+    category: string
+    query: string
+    rationale: string
+    results_count: number
+  }>
+  error?: string
+  llm_used?: string
+}
+
+const corsHeaders = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+}
+
+export const onRequestPost: PagesFunction<Env> = async (context) => {
+  try {
+    const body = await context.request.json() as AgentCallback
+    const { jobId, status, results, queries, error, llm_used } = body
+
+    if (!jobId) {
+      return new Response(JSON.stringify({ error: 'Job ID required' }), {
+        status: 400,
+        headers: corsHeaders
+      })
+    }
+
+    // Verify job exists
+    const job = await context.env.DB.prepare(`
+      SELECT id, status FROM collection_jobs WHERE id = ?
+    `).bind(jobId).first()
+
+    if (!job) {
+      return new Response(JSON.stringify({ error: 'Job not found' }), {
+        status: 404,
+        headers: corsHeaders
+      })
+    }
+
+    if (status === 'error') {
+      // Update job as failed
+      await context.env.DB.prepare(`
+        UPDATE collection_jobs
+        SET status = 'error', error_message = ?, completed_at = datetime('now')
+        WHERE id = ?
+      `).bind(error || 'Unknown error', jobId).run()
+
+      return new Response(JSON.stringify({ received: true, status: 'error_recorded' }), {
+        headers: corsHeaders
+      })
+    }
+
+    // Insert results
+    if (results && results.length > 0) {
+      const insertStmt = context.env.DB.prepare(`
+        INSERT INTO collection_results (id, job_id, url, title, snippet, category, source_domain, relevance_score, published_date, engine, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `)
+
+      // Batch insert results
+      const batch = results.map(r =>
+        insertStmt.bind(
+          crypto.randomUUID(),
+          jobId,
+          r.url,
+          r.title || '',
+          r.snippet || '',
+          r.category || 'general',
+          r.source_domain || '',
+          r.relevance_score || 50,
+          r.published_date || null,
+          r.engine || 'unknown'
+        )
+      )
+
+      await context.env.DB.batch(batch)
+    }
+
+    // Insert queries
+    if (queries && queries.length > 0) {
+      const queryStmt = context.env.DB.prepare(`
+        INSERT INTO collection_queries (id, job_id, category, query, rationale, results_count, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+      `)
+
+      const queryBatch = queries.map(q =>
+        queryStmt.bind(
+          crypto.randomUUID(),
+          jobId,
+          q.category,
+          q.query,
+          q.rationale || '',
+          q.results_count || 0
+        )
+      )
+
+      await context.env.DB.batch(queryBatch)
+    }
+
+    // Update job as complete
+    await context.env.DB.prepare(`
+      UPDATE collection_jobs
+      SET status = 'complete', results_count = ?, llm_used = ?, completed_at = datetime('now')
+      WHERE id = ?
+    `).bind(results?.length || 0, llm_used || 'unknown', jobId).run()
+
+    return new Response(JSON.stringify({
+      received: true,
+      status: 'complete',
+      resultsStored: results?.length || 0,
+      queriesStored: queries?.length || 0
+    }), {
+      headers: corsHeaders
+    })
+
+  } catch (error: unknown) {
+    console.error('Collection callback error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Callback failed'
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: corsHeaders
+    })
+  }
+}
+
+// OPTIONS - CORS preflight
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, { status: 204, headers: corsHeaders })
+}
