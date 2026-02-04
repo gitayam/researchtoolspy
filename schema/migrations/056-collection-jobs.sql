@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS collection_jobs (
   llm_used TEXT, -- 'openai' or 'local'
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   completed_at TEXT,
-  FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
+  FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
 );
 
 -- Individual search results for triage
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS collection_results (
   engine TEXT, -- Which SearXNG engine found it
   approved INTEGER DEFAULT 0, -- 0=pending, 1=approved, -1=rejected
   approved_at TEXT,
-  analysis_id TEXT, -- Links to content_analysis after processing
+  analysis_id TEXT, -- Links to content_intelligence after processing
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (job_id) REFERENCES collection_jobs(id) ON DELETE CASCADE
 );
@@ -56,6 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_collection_jobs_workspace ON collection_jobs(work
 CREATE INDEX IF NOT EXISTS idx_collection_jobs_status ON collection_jobs(status);
 CREATE INDEX IF NOT EXISTS idx_collection_results_job ON collection_results(job_id);
 CREATE INDEX IF NOT EXISTS idx_collection_results_relevance ON collection_results(relevance_score DESC);
+CREATE INDEX IF NOT EXISTS idx_collection_results_job_relevance ON collection_results(job_id, relevance_score DESC);
 CREATE INDEX IF NOT EXISTS idx_collection_results_category ON collection_results(category);
 CREATE INDEX IF NOT EXISTS idx_collection_results_approved ON collection_results(approved);
 CREATE INDEX IF NOT EXISTS idx_collection_queries_job ON collection_queries(job_id);
