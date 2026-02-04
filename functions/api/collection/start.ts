@@ -52,27 +52,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const finalTimeRange: TimeRange = timeRange || 'year'
     const finalMaxResults = maxResults || 100
 
-    // Insert job record
-    await env.DB.prepare(`
-      INSERT INTO collection_jobs (
-        id,
-        workspace_id,
-        query,
-        categories,
-        time_range,
-        max_results,
-        status,
-        created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 'pending', datetime('now'))
-    `).bind(
-      jobId,
-      workspaceId,
-      query.trim(),
-      JSON.stringify(finalCategories),
-      finalTimeRange,
-      finalMaxResults
-    ).run()
-
     // Get agent URL from env or use default
     const agentUrl = env.OSINT_AGENT_URL || 'http://osint-agent:8000'
     const callbackUrl = new URL('/api/collection/callback', request.url).toString()
@@ -89,10 +68,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       useLocalLLM: useLocalLLM || false
     }
 
-    // Update status to running
+    // Insert job record with 'running' status directly to avoid race condition
+    // (previously: INSERT with 'pending' then UPDATE to 'running' had race condition risk)
     await env.DB.prepare(`
-      UPDATE collection_jobs SET status = 'running' WHERE id = ?
-    `).bind(jobId).run()
+      INSERT INTO collection_jobs (
+        id,
+        workspace_id,
+        query,
+        categories,
+        time_range,
+        max_results,
+        status,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 'running', datetime('now'))
+    `).bind(
+      jobId,
+      workspaceId,
+      query.trim(),
+      JSON.stringify(finalCategories),
+      finalTimeRange,
+      finalMaxResults
+    ).run()
 
     // Fire async request to agent (don't await - fire and forget)
     context.waitUntil(
