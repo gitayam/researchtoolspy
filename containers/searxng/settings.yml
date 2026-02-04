@@ -1,0 +1,358 @@
+# SearXNG Configuration for OSINT Research
+# This configuration enables comprehensive search across multiple engines
+# for open-source intelligence gathering
+
+general:
+  # Instance identification
+  instance_name: "ResearchTools SearXNG"
+  debug: false
+  # Privacy notice
+  privacypolicy_url: false
+  donation_url: false
+  contact_url: false
+  enable_metrics: false
+
+search:
+  # Disable safe search for comprehensive OSINT results
+  safe_search: 0
+  autocomplete: ""
+  # Supported output formats
+  formats:
+    - html
+    - json
+  # Default language (use all languages for broader results)
+  default_lang: "auto"
+
+server:
+  # Bind to all interfaces for container networking
+  bind_address: "0.0.0.0"
+  port: 8080
+  # Disable rate limiting for internal API use
+  limiter: false
+  # Secret key (should be overridden in production via environment)
+  secret_key: "change-this-in-production"
+  # Image proxy for privacy
+  image_proxy: true
+  # HTTP protocol version
+  http_protocol_version: "1.1"
+
+ui:
+  # Default theme
+  default_theme: simple
+  # Show engine stats
+  query_in_title: true
+  # Results per page
+  results_on_new_tab: false
+
+outgoing:
+  # Request timeout settings
+  request_timeout: 6.0
+  # Maximum redirects
+  max_redirects: 30
+  # Connection pool size
+  pool_connections: 100
+  pool_maxsize: 20
+  # Enable keepalive for better performance
+  enable_http2: true
+  # User agent for requests
+  useragent_suffix: ""
+  # Retry failed requests
+  retries: 2
+
+# Engine configuration organized by category
+engines:
+  # ============================================
+  # NEWS ENGINES - Current events and journalism
+  # ============================================
+
+  - name: google news
+    engine: google_news
+    shortcut: gn
+    disabled: false
+    categories: news
+    timeout: 4.0
+
+  - name: bing news
+    engine: bing_news
+    shortcut: bin
+    disabled: false
+    categories: news
+    timeout: 4.0
+
+  - name: duckduckgo news
+    engine: duckduckgo
+    shortcut: ddn
+    disabled: false
+    categories: news
+    timeout: 4.0
+
+  - name: brave news
+    engine: brave
+    shortcut: brn
+    disabled: false
+    categories: news
+    timeout: 4.0
+
+  - name: qwant news
+    engine: qwant
+    shortcut: qwn
+    disabled: false
+    categories: news
+    qwant_categ: news
+    timeout: 4.0
+
+  # ============================================
+  # ACADEMIC ENGINES - Research and scholarly
+  # ============================================
+
+  - name: google scholar
+    engine: google_scholar
+    shortcut: gs
+    disabled: false
+    categories: science
+    timeout: 6.0
+
+  - name: semantic scholar
+    engine: semantic_scholar
+    shortcut: ss
+    disabled: false
+    categories: science
+    timeout: 6.0
+
+  - name: arxiv
+    engine: arxiv
+    shortcut: arx
+    disabled: false
+    categories: science
+    timeout: 6.0
+
+  - name: pubmed
+    engine: pubmed
+    shortcut: pm
+    disabled: false
+    categories: science
+    timeout: 6.0
+
+  - name: crossref
+    engine: crossref
+    shortcut: cr
+    disabled: false
+    categories: science
+    timeout: 6.0
+
+  - name: base
+    engine: base
+    shortcut: ba
+    disabled: false
+    categories: science
+    timeout: 6.0
+
+  # ============================================
+  # GENERAL WEB SEARCH ENGINES
+  # ============================================
+
+  - name: google
+    engine: google
+    shortcut: g
+    disabled: false
+    categories: general
+    timeout: 4.0
+    use_mobile_ui: false
+
+  - name: bing
+    engine: bing
+    shortcut: bi
+    disabled: false
+    categories: general
+    timeout: 4.0
+
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    disabled: false
+    categories: general
+    timeout: 4.0
+
+  - name: yahoo
+    engine: yahoo
+    shortcut: yh
+    disabled: false
+    categories: general
+    timeout: 4.0
+
+  - name: mojeek
+    engine: mojeek
+    shortcut: mj
+    disabled: false
+    categories: general
+    timeout: 4.0
+
+  - name: brave
+    engine: brave
+    shortcut: br
+    disabled: false
+    categories: general
+    timeout: 4.0
+
+  # ============================================
+  # SOCIAL MEDIA & IT PLATFORMS
+  # ============================================
+
+  - name: reddit
+    engine: reddit
+    shortcut: re
+    disabled: false
+    categories: social media
+    timeout: 4.0
+
+  - name: github
+    engine: github
+    shortcut: gh
+    disabled: false
+    categories: it
+    timeout: 4.0
+
+  - name: stackoverflow
+    engine: stackoverflow
+    shortcut: so
+    disabled: false
+    categories: it
+    timeout: 4.0
+
+  - name: hackernews
+    engine: hackernews
+    shortcut: hn
+    disabled: false
+    categories: it
+    timeout: 4.0
+
+  # ============================================
+  # FILES & ARCHIVES
+  # ============================================
+
+  - name: archive.org
+    engine: archive_is
+    shortcut: arc
+    disabled: false
+    categories: general
+    timeout: 6.0
+
+  - name: internet archive
+    engine: internetarchive
+    shortcut: ia
+    disabled: false
+    categories: general
+    timeout: 6.0
+
+  - name: wikimedia commons
+    engine: wikicommons
+    shortcut: wc
+    disabled: false
+    categories: images
+    timeout: 4.0
+
+  # ============================================
+  # WIKIPEDIA & KNOWLEDGE BASES
+  # ============================================
+
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: wp
+    disabled: false
+    categories: general
+    timeout: 4.0
+
+  - name: wikidata
+    engine: wikidata
+    shortcut: wd
+    disabled: false
+    categories: general
+    timeout: 4.0
+
+  # ============================================
+  # MAPS & GEOLOCATION
+  # ============================================
+
+  - name: openstreetmap
+    engine: openstreetmap
+    shortcut: osm
+    disabled: false
+    categories: map
+    timeout: 4.0
+
+  # ============================================
+  # IMAGE SEARCH
+  # ============================================
+
+  - name: google images
+    engine: google_images
+    shortcut: gi
+    disabled: false
+    categories: images
+    timeout: 4.0
+
+  - name: bing images
+    engine: bing_images
+    shortcut: bii
+    disabled: false
+    categories: images
+    timeout: 4.0
+
+  - name: duckduckgo images
+    engine: duckduckgo_images
+    shortcut: ddi
+    disabled: false
+    categories: images
+    timeout: 4.0
+
+  # ============================================
+  # VIDEO SEARCH
+  # ============================================
+
+  - name: youtube
+    engine: youtube_noapi
+    shortcut: yt
+    disabled: false
+    categories: videos
+    timeout: 4.0
+
+  - name: bing videos
+    engine: bing_videos
+    shortcut: biv
+    disabled: false
+    categories: videos
+    timeout: 4.0
+
+  # ============================================
+  # SPECIALIZED SEARCH
+  # ============================================
+
+  - name: currency
+    engine: currency_convert
+    shortcut: cc
+    disabled: false
+    categories: general
+    timeout: 2.0
+
+  - name: dictzone
+    engine: dictzone
+    shortcut: dz
+    disabled: false
+    categories: general
+    timeout: 4.0
+
+# Categories definition for organizing results
+categories_as_tabs:
+  general:
+  images:
+  videos:
+  news:
+  map:
+  science:
+  it:
+  social media:
+  files:
+
+# Redis cache configuration (optional, for production scaling)
+# redis:
+#   url: redis://redis:6379/0
