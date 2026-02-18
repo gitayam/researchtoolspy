@@ -1,4 +1,4 @@
-import { getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
 
 interface Env {
@@ -12,13 +12,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const userId = await getUserIdOrDefault(request, env)
 
     const [frameworks, entities, evidenceCount] = await Promise.all([
       env.DB.prepare(`
@@ -31,15 +25,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
       env.DB.prepare(`
         SELECT name, entity_type FROM (
-          SELECT name, 'ACTOR' as entity_type FROM actors WHERE user_id = ?
+          SELECT name, 'ACTOR' as entity_type FROM actors WHERE created_by = ?
           UNION ALL
-          SELECT name, 'SOURCE' as entity_type FROM sources WHERE user_id = ?
+          SELECT name, 'SOURCE' as entity_type FROM sources WHERE created_by = ?
           UNION ALL
-          SELECT name, 'EVENT' as entity_type FROM events WHERE user_id = ?
+          SELECT name, 'EVENT' as entity_type FROM events WHERE created_by = ?
         ) LIMIT 50
       `).bind(userId, userId, userId).all<{ name: string; entity_type: string }>(),
 
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM evidence_items WHERE user_id = ?`)
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM evidence_items WHERE created_by = ?`)
         .bind(userId).first<{ cnt: number }>(),
     ])
 

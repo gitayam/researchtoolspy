@@ -1,4 +1,4 @@
-import { getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
 
 interface Env {
@@ -12,13 +12,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const userId = await getUserIdOrDefault(request, env)
 
     // Load all frameworks for this user
     const frameworks = await env.DB.prepare(`

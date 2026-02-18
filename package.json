@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "wrangler pages dev --port 8788 -- vite",
+    "dev": "wrangler pages dev --port 8788 & vite",
     "dev:vite": "vite",
+    "dev:wrangler": "wrangler pages dev --port 8788",
     "build": "tsc -b && vite build",
     "type-check": "tsc -b --noEmit",
     "lint": "eslint .",

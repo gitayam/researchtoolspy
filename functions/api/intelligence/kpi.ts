@@ -1,4 +1,4 @@
-import { getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -9,13 +9,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const userId = await getUserIdOrDefault(request, env)
 
     // Run all queries in parallel
     const [
@@ -38,13 +32,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         GROUP BY framework_type
       `).bind(userId).all<{ framework_type: string; cnt: number }>(),
 
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM actors WHERE (user_id = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM sources WHERE (user_id = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM events WHERE (user_id = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM places WHERE (user_id = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM behaviors WHERE (user_id = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM actors WHERE (created_by = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM sources WHERE (created_by = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM events WHERE (created_by = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM places WHERE (created_by = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM behaviors WHERE (created_by = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
 
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM evidence_items WHERE user_id = ?`).bind(userId).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM evidence_items WHERE created_by = ?`).bind(userId).first<{ cnt: number }>(),
 
       env.DB.prepare(`
         SELECT framework_type, data, created_at
@@ -59,7 +53,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         WHERE user_id = ?
       `).bind(userId).all<{ motive_score: number; opportunity_score: number; means_score: number }>(),
 
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM relationships WHERE user_id = ?`).bind(userId).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM relationships WHERE created_by = ?`).bind(userId).first<{ cnt: number }>(),
 
       env.DB.prepare(`
         SELECT created_at, framework_type, data

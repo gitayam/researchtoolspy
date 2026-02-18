@@ -1,4 +1,4 @@
-import { getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -9,13 +9,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const userId = await getUserIdOrDefault(request, env)
 
     const fwCount = await env.DB.prepare(`
       SELECT COUNT(*) as cnt FROM framework_sessions
@@ -31,21 +25,21 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         COALESCE(r_count.rel_count, 0) as relationship_count,
         m.avg_mom as mom_score
       FROM (
-        SELECT CAST(id AS TEXT) as id, name, 'ACTOR' as entity_type, user_id FROM actors WHERE user_id = ? OR is_public = 1
+        SELECT CAST(id AS TEXT) as id, name, 'ACTOR' as entity_type, created_by FROM actors WHERE created_by = ? OR is_public = 1
         UNION ALL
-        SELECT CAST(id AS TEXT) as id, name, 'SOURCE' as entity_type, user_id FROM sources WHERE user_id = ? OR is_public = 1
+        SELECT CAST(id AS TEXT) as id, name, 'SOURCE' as entity_type, created_by FROM sources WHERE created_by = ? OR is_public = 1
         UNION ALL
-        SELECT CAST(id AS TEXT) as id, name, 'EVENT' as entity_type, user_id FROM events WHERE user_id = ? OR is_public = 1
+        SELECT CAST(id AS TEXT) as id, name, 'EVENT' as entity_type, created_by FROM events WHERE created_by = ? OR is_public = 1
         UNION ALL
-        SELECT CAST(id AS TEXT) as id, name, 'PLACE' as entity_type, user_id FROM places WHERE user_id = ? OR is_public = 1
+        SELECT CAST(id AS TEXT) as id, name, 'PLACE' as entity_type, created_by FROM places WHERE created_by = ? OR is_public = 1
         UNION ALL
-        SELECT CAST(id AS TEXT) as id, name, 'BEHAVIOR' as entity_type, user_id FROM behaviors WHERE user_id = ? OR is_public = 1
+        SELECT CAST(id AS TEXT) as id, name, 'BEHAVIOR' as entity_type, created_by FROM behaviors WHERE created_by = ? OR is_public = 1
       ) e
       LEFT JOIN (
         SELECT entity_id, COUNT(*) as rel_count FROM (
-          SELECT source_entity_id as entity_id FROM relationships WHERE user_id = ?
+          SELECT source_entity_id as entity_id FROM relationships WHERE created_by = ?
           UNION ALL
-          SELECT target_entity_id as entity_id FROM relationships WHERE user_id = ?
+          SELECT target_entity_id as entity_id FROM relationships WHERE created_by = ?
         ) GROUP BY entity_id
       ) r_count ON r_count.entity_id = e.id
       LEFT JOIN (

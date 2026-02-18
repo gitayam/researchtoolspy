@@ -1,4 +1,4 @@
-import { getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -9,13 +9,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const userId = await getUserIdOrDefault(request, env)
 
     const [frameworkActivity, evidenceActivity, entityActivity, firstFramework] = await Promise.all([
       env.DB.prepare(`
@@ -32,22 +26,22 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       env.DB.prepare(`
         SELECT DATE(created_at) as date, COUNT(*) as count
         FROM evidence_items
-        WHERE user_id = ?
+        WHERE created_by = ?
         GROUP BY DATE(created_at)
         ORDER BY date ASC
       `).bind(userId).all<{ date: string; count: number }>(),
 
       env.DB.prepare(`
         SELECT date, SUM(count) as count FROM (
-          SELECT DATE(created_at) as date, COUNT(*) as count FROM actors WHERE user_id = ? GROUP BY DATE(created_at)
+          SELECT DATE(created_at) as date, COUNT(*) as count FROM actors WHERE created_by = ? GROUP BY DATE(created_at)
           UNION ALL
-          SELECT DATE(created_at) as date, COUNT(*) as count FROM sources WHERE user_id = ? GROUP BY DATE(created_at)
+          SELECT DATE(created_at) as date, COUNT(*) as count FROM sources WHERE created_by = ? GROUP BY DATE(created_at)
           UNION ALL
-          SELECT DATE(created_at) as date, COUNT(*) as count FROM events WHERE user_id = ? GROUP BY DATE(created_at)
+          SELECT DATE(created_at) as date, COUNT(*) as count FROM events WHERE created_by = ? GROUP BY DATE(created_at)
           UNION ALL
-          SELECT DATE(created_at) as date, COUNT(*) as count FROM places WHERE user_id = ? GROUP BY DATE(created_at)
+          SELECT DATE(created_at) as date, COUNT(*) as count FROM places WHERE created_by = ? GROUP BY DATE(created_at)
           UNION ALL
-          SELECT DATE(created_at) as date, COUNT(*) as count FROM behaviors WHERE user_id = ? GROUP BY DATE(created_at)
+          SELECT DATE(created_at) as date, COUNT(*) as count FROM behaviors WHERE created_by = ? GROUP BY DATE(created_at)
         ) GROUP BY date ORDER BY date ASC
       `).bind(userId, userId, userId, userId, userId).all<{ date: string; count: number }>(),
 

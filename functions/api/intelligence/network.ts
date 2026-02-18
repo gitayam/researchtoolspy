@@ -1,4 +1,4 @@
-import { getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -121,20 +121,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const userId = await getUserIdOrDefault(request, env)
 
     const [relationships, entities] = await Promise.all([
       env.DB.prepare(`
         SELECT source_entity_id, source_entity_type, target_entity_id, target_entity_type,
                relationship_type, confidence
         FROM relationships
-        WHERE user_id = ?
+        WHERE created_by = ?
       `).bind(userId).all<{
         source_entity_id: string; source_entity_type: string
         target_entity_id: string; target_entity_type: string
@@ -143,15 +137,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
       env.DB.prepare(`
         SELECT id, name, entity_type FROM (
-          SELECT CAST(id AS TEXT) as id, name, 'ACTOR' as entity_type FROM actors WHERE user_id = ? OR is_public = 1
+          SELECT CAST(id AS TEXT) as id, name, 'ACTOR' as entity_type FROM actors WHERE created_by = ? OR is_public = 1
           UNION ALL
-          SELECT CAST(id AS TEXT) as id, name, 'SOURCE' as entity_type FROM sources WHERE user_id = ? OR is_public = 1
+          SELECT CAST(id AS TEXT) as id, name, 'SOURCE' as entity_type FROM sources WHERE created_by = ? OR is_public = 1
           UNION ALL
-          SELECT CAST(id AS TEXT) as id, name, 'EVENT' as entity_type FROM events WHERE user_id = ? OR is_public = 1
+          SELECT CAST(id AS TEXT) as id, name, 'EVENT' as entity_type FROM events WHERE created_by = ? OR is_public = 1
           UNION ALL
-          SELECT CAST(id AS TEXT) as id, name, 'PLACE' as entity_type FROM places WHERE user_id = ? OR is_public = 1
+          SELECT CAST(id AS TEXT) as id, name, 'PLACE' as entity_type FROM places WHERE created_by = ? OR is_public = 1
           UNION ALL
-          SELECT CAST(id AS TEXT) as id, name, 'BEHAVIOR' as entity_type FROM behaviors WHERE user_id = ? OR is_public = 1
+          SELECT CAST(id AS TEXT) as id, name, 'BEHAVIOR' as entity_type FROM behaviors WHERE created_by = ? OR is_public = 1
         )
       `).bind(userId, userId, userId, userId, userId).all<{ id: string; name: string; entity_type: string }>(),
     ])
