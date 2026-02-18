@@ -106,23 +106,24 @@ Identify cross-framework patterns, agreements, contradictions, and provide an ov
     })
 
     const content = response.choices?.[0]?.message?.content || '{}'
-    let synthesis: any
+    let raw: any
     try {
-      synthesis = JSON.parse(content)
+      raw = JSON.parse(content)
     } catch {
-      synthesis = {
-        key_findings: [],
-        convergence_points: [],
-        contradictions: [],
-        overall_confidence: 0,
-        confidence_breakdown: [],
-      }
+      raw = {}
     }
 
-    return new Response(JSON.stringify({
-      ...synthesis,
+    // Validate and extract only expected fields (never spread raw LLM output)
+    const validated = {
+      key_findings: Array.isArray(raw.key_findings) ? raw.key_findings : [],
+      convergence_points: Array.isArray(raw.convergence_points) ? raw.convergence_points : [],
+      contradictions: Array.isArray(raw.contradictions) ? raw.contradictions : [],
+      overall_confidence: typeof raw.overall_confidence === 'number' ? raw.overall_confidence : 0,
+      confidence_breakdown: Array.isArray(raw.confidence_breakdown) ? raw.confidence_breakdown : [],
       generated_at: new Date().toISOString(),
-    }), {
+    }
+
+    return new Response(JSON.stringify(validated), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
@@ -176,11 +177,7 @@ function truncateForLLM(data: any, frameworkType: string): any {
     default: {
       const str = JSON.stringify(data)
       if (str.length <= 500) return data
-      try {
-        return JSON.parse(str.substring(0, 500) + '"}')
-      } catch {
-        return { summary: str.substring(0, 500) }
-      }
+      return { summary: str.substring(0, 500) + '...' }
     }
   }
 }

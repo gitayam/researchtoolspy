@@ -17,9 +17,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const url = new URL(request.url)
-    const workspaceId = url.searchParams.get('workspace_id') || 'default'
-
     // Run all queries in parallel
     const [
       frameworksResult,

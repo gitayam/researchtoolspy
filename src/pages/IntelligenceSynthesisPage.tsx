@@ -13,15 +13,11 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   LineChart,
   Line,
   XAxis,
@@ -30,9 +26,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts'
 import {
   Brain,
@@ -47,17 +40,14 @@ import {
   Network,
   Eye,
   Lightbulb,
-  BarChart3,
   ChevronUp,
   ChevronDown,
   Users,
   Layers,
   Crosshair,
   ArrowUpDown,
-  RefreshCw,
   Sparkles,
   CircleDot,
-  Gauge,
 } from 'lucide-react'
 import type {
   IntelligenceKpi,
@@ -252,7 +242,8 @@ function MiniSparkline({ data, color = '#3b82f6' }: { data: number[]; color?: st
 // ─── Confidence Gauge ─────────────────────────────────────────────────────────
 
 function ConfidenceGauge({ value }: { value: number }) {
-  const pct = Math.round(value * 100)
+  // value is 0-100 (from LLM)
+  const pct = Math.round(value)
   const color =
     pct >= 70 ? 'text-green-600 dark:text-green-400' :
     pct >= 40 ? 'text-amber-600 dark:text-amber-400' :
@@ -298,8 +289,6 @@ const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#e
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function IntelligenceSynthesisPage() {
-  const { t } = useTranslation()
-
   // ─── Section 1: KPI ────────────────────────────────────────────────────────
   const [kpiData, setKpiData] = useState<IntelligenceKpi | null>(null)
   const [kpiLoading, setKpiLoading] = useState(true)
@@ -503,7 +492,7 @@ export default function IntelligenceSynthesisPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-bold text-white">
-                    {Math.round(kpiData.avg_confidence * 100)}%
+                    {kpiData.avg_confidence}%
                   </p>
                   <MiniSparkline data={kpiData.confidence_sparkline} color="#a78bfa" />
                 </div>
@@ -517,7 +506,7 @@ export default function IntelligenceSynthesisPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-bold text-white">
-                    {Math.round(kpiData.deception_risk_score * 100)}%
+                    {kpiData.deception_risk_score}/5
                   </p>
                   <Badge className={`text-xs ${riskBadgeColor(kpiData.deception_risk_level)}`}>
                     {kpiData.deception_risk_level}
@@ -532,7 +521,7 @@ export default function IntelligenceSynthesisPage() {
                   <span className="text-xs text-blue-200 font-medium">Coverage Gaps</span>
                 </div>
                 <p className="text-2xl font-bold text-white">
-                  {Math.round(kpiData.coverage_gap_pct * 100)}%
+                  {kpiData.coverage_gap_pct}%
                 </p>
               </div>
             </div>
@@ -588,11 +577,11 @@ export default function IntelligenceSynthesisPage() {
                             <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                               <div
                                 className="bg-indigo-500 h-2 rounded-full transition-all"
-                                style={{ width: `${Math.round(finding.confidence * 100)}%` }}
+                                style={{ width: `${Math.round(finding.confidence)}%` }}
                               />
                             </div>
                             <span className="text-xs font-medium text-gray-600 dark:text-gray-400 shrink-0">
-                              {Math.round(finding.confidence * 100)}%
+                              {Math.round(finding.confidence)}%
                             </span>
                           </div>
                           {/* Framework badges */}
@@ -666,7 +655,7 @@ export default function IntelligenceSynthesisPage() {
                           <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                             <div
                               className="bg-indigo-500 h-1.5 rounded-full"
-                              style={{ width: `${Math.round(item.confidence * 100)}%` }}
+                              style={{ width: `${Math.round(item.confidence)}%` }}
                             />
                           </div>
                           <span className="text-xs text-gray-500 dark:text-gray-400 w-8">
@@ -1029,15 +1018,18 @@ export default function IntelligenceSynthesisPage() {
                         Entities that connect otherwise separate communities
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {networkData.bridge_nodes.map((node) => (
-                          <Badge
-                            key={node}
-                            variant="outline"
-                            className="bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300"
-                          >
-                            {node}
-                          </Badge>
-                        ))}
+                        {networkData.bridge_nodes.map((nodeId) => {
+                          const nodeName = networkData.nodes.find(n => n.id === nodeId)?.name || nodeId
+                          return (
+                            <Badge
+                              key={nodeId}
+                              variant="outline"
+                              className="bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300"
+                            >
+                              {nodeName}
+                            </Badge>
+                          )
+                        })}
                       </div>
 
                       {/* Community Summary */}

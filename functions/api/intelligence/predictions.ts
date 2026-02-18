@@ -114,23 +114,25 @@ Provide actionable, forward-looking intelligence recommendations.`
     })
 
     const content = response.choices?.[0]?.message?.content || '{}'
-    let predictions: any
+    let raw: any
     try {
-      predictions = JSON.parse(content)
+      raw = JSON.parse(content)
     } catch {
-      predictions = {
-        watch_list: [],
-        emerging_patterns: [],
-        collection_gaps: [],
-        risk_trajectory: 'STABLE',
-        risk_trajectory_reasoning: 'Unable to generate predictions.',
-      }
+      raw = {}
     }
 
-    return new Response(JSON.stringify({
-      ...predictions,
+    // Validate and extract only expected fields (never spread raw LLM output)
+    const VALID_TRAJECTORIES = ['ESCALATING', 'STABLE', 'DE_ESCALATING']
+    const validated = {
+      watch_list: Array.isArray(raw.watch_list) ? raw.watch_list : [],
+      emerging_patterns: Array.isArray(raw.emerging_patterns) ? raw.emerging_patterns : [],
+      collection_gaps: Array.isArray(raw.collection_gaps) ? raw.collection_gaps : [],
+      risk_trajectory: VALID_TRAJECTORIES.includes(raw.risk_trajectory) ? raw.risk_trajectory : 'STABLE',
+      risk_trajectory_reasoning: typeof raw.risk_trajectory_reasoning === 'string' ? raw.risk_trajectory_reasoning : 'Unable to generate predictions.',
       generated_at: new Date().toISOString(),
-    }), {
+    }
+
+    return new Response(JSON.stringify(validated), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
