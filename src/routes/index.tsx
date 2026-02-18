@@ -74,6 +74,7 @@ const CreateSubmissionFormPage = lazy(() => import('@/pages/CreateSubmissionForm
 const EquilibriumAnalysisPage = lazy(() => import('@/pages/tools/EquilibriumAnalysisPage'))
 const HamiltonRulePage = lazy(() => import('@/pages/tools/HamiltonRulePage'))
 const CollectionPage = lazy(() => import('@/pages/tools/CollectionPage'))
+const IntelligenceSynthesisPage = lazy(() => import('@/pages/IntelligenceSynthesisPage'))
 
 // Heavy pages (lazy loaded - only when needed)
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then(m => ({ default: m.ReportsPage })))
@@ -525,6 +526,10 @@ export const router = createBrowserRouter([
       {
         path: 'activity',
         element: <LazyPage Component={ActivityPage} />,
+      },
+      {
+        path: 'intelligence',
+        element: <LazyPage Component={IntelligenceSynthesisPage} />,
       },
       {
         path: 'investigations',
