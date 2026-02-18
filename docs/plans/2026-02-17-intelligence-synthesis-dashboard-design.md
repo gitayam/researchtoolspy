@@ -1,7 +1,7 @@
 # Intelligence Synthesis Dashboard — Design Document
 
 **Date**: 2026-02-17
-**Status**: Approved
+**Status**: Implemented (2026-02-18)
 **Author**: Claude (brainstorming session with user)
 
 ## Problem Statement
@@ -390,3 +390,54 @@ The Downtown-Guide project (`/Users/sac/Git/Downtown-Guide`) provides the refere
 - `web/src/pages/AnalyticsDashboardPage.tsx` — BI dashboard with 7 sections
 - `src/routes/analytics-bi.ts` — 7 API endpoints with independent loading
 - `web/src/pages/BusinessAnalyticsPage.tsx` — Foot traffic analytics with heatmaps
+
+---
+
+## Implementation Notes (2026-02-18)
+
+### Deviations from Design
+
+1. **Route changed**: `/dashboard/intelligence` (not `/intelligence/:workspaceId`). Workspace scoping deferred — queries filter by user ID instead.
+2. **AI model**: Uses `gpt-4o-mini` (not gpt-5-mini) via `callOpenAIViaGateway()`.
+3. **Auth pattern**: Uses `getUserIdOrDefault` for guest-mode compatibility (falls back to user ID 1), matching other dashboard endpoints.
+4. **Column naming**: Entity tables use `created_by` (not `user_id`). Only `framework_sessions` and `mom_assessments` have `user_id`.
+5. **Network metrics**: Closeness centrality and eigenvector centrality omitted. Betweenness uses Brandes algorithm, capped at 200 nodes.
+6. **recharts**: Added as new dependency (v3.7.0) — was not pre-installed.
+
+### Key Schema Facts
+
+| Table | User column | ID type |
+|-------|------------|---------|
+| `framework_sessions` | `user_id` | INTEGER |
+| `mom_assessments` | `user_id` | INTEGER |
+| `actors` | `created_by` | TEXT |
+| `sources` | `created_by` | TEXT |
+| `events` | `created_by` | TEXT |
+| `places` | `created_by` | TEXT |
+| `behaviors` | `created_by` | TEXT |
+| `evidence_items` | `created_by` | INTEGER |
+| `relationships` | `created_by` | INTEGER |
+
+### Commits
+
+| Commit | Description |
+|--------|-------------|
+| `3d1b455` | Install recharts + create type definitions |
+| `9dd3c4a` | KPI aggregation endpoint |
+| `334e0c5` | Entity convergence endpoint |
+| `1b22544` | Timeline endpoint |
+| `3ac4769` | Network intelligence endpoint (Brandes betweenness, label propagation) |
+| `6792090` | AI synthesis endpoint |
+| `8418e26` | Contradiction detection endpoint |
+| `bb3046d` | Predictions endpoint |
+| `3fd32cd` | Dashboard page + routing + sidebar link |
+| `5fcd92e` | Code review fixes (confidence scales, LLM validation, bridge nodes) |
+| `57d0ab2` | Guest auth + column name fixes |
+
+### Known Limitations
+
+1. No rate limiting on LLM-powered endpoints (synthesis, predictions)
+2. No fetch cancellation on component unmount
+3. Betweenness centrality silently skipped for networks > 200 nodes
+4. Local D1 requires running `d1-schema.sql` + migrations for dev (tables not auto-created)
+5. Workspace scoping not implemented — all queries filter by user ID only
