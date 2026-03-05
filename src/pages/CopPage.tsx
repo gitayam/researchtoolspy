@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import CopMap from '@/components/cop/CopMap'
 import CopLayerPanel from '@/components/cop/CopLayerPanel'
+import CopEventSidebar from '@/components/cop/CopEventSidebar'
 import { COP_LAYERS, getLayerById } from '@/components/cop/CopLayerCatalog'
 import type { CopSession, CopFeatureCollection, CopLayerDef } from '@/types/cop'
 
@@ -31,6 +32,7 @@ const TEMPLATE_LABELS: Record<string, string> = {
   event_monitor: 'Event Monitor',
   area_study: 'Area Study',
   crisis_response: 'Crisis Response',
+  event_analysis: 'Event Analysis',
   custom: 'Custom',
 }
 
@@ -196,6 +198,29 @@ export default function CopPage() {
     navigator.clipboard.writeText(url).catch(() => {})
   }, [id])
 
+  // ── Session update handler (for event sidebar) ─────────────────
+
+  const handleSessionUpdate = useCallback(
+    async (updates: Partial<CopSession>) => {
+      if (!id || !session) return
+
+      // Optimistic update
+      setSession(prev => prev ? { ...prev, ...updates } : prev)
+
+      try {
+        await fetch(`/api/cop/sessions/${id}`, {
+          method: 'PUT',
+          headers: getHeaders(),
+          body: JSON.stringify(updates),
+        })
+      } catch {
+        // Revert on failure by re-fetching
+        fetchSession()
+      }
+    },
+    [id, session, fetchSession]
+  )
+
   // ── Total feature count ─────────────────────────────────────────
 
   const totalFeatures = Object.values(layerCounts).reduce((sum, c) => sum + c, 0)
@@ -227,8 +252,10 @@ export default function CopPage() {
 
   // ── Main layout ─────────────────────────────────────────────────
 
+  // Use fixed positioning to break out of the DashboardLayout content wrapper
+  // entirely, so the COP view fills the available viewport next to the sidebar.
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="fixed inset-0 top-16 lg:left-64 flex flex-col bg-background z-30">
       {/* ── Header bar ──────────────────────────────────────────── */}
       <header className="flex items-center gap-3 px-4 py-2 bg-background border-b shrink-0">
         {/* Back */}
@@ -290,16 +317,26 @@ export default function CopPage() {
       </header>
 
       {/* ── Body: sidebar + map ─────────────────────────────────── */}
-      <div className="flex flex-1 min-h-0">
-        {/* Layer panel sidebar */}
-        <CopLayerPanel
-          activeLayers={activeLayers}
-          onToggleLayer={handleToggleLayer}
-          layerCounts={layerCounts}
-        />
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Sidebar: tabbed for event_analysis, layer panel otherwise */}
+        {session.template_type === 'event_analysis' ? (
+          <CopEventSidebar
+            session={session}
+            activeLayers={activeLayers}
+            onToggleLayer={handleToggleLayer}
+            layerCounts={layerCounts}
+            onSessionUpdate={handleSessionUpdate}
+          />
+        ) : (
+          <CopLayerPanel
+            activeLayers={activeLayers}
+            onToggleLayer={handleToggleLayer}
+            layerCounts={layerCounts}
+          />
+        )}
 
         {/* Map */}
-        <div className="flex-1 relative">
+        <div className="flex-1" style={{ position: 'relative', minHeight: 0 }}>
           <CopMap session={session} layers={layerData} />
         </div>
       </div>
