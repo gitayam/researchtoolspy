@@ -207,10 +207,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // 5. Build ACLED API URL
+    // 5. Build ACLED API URL (without credentials for safe logging)
     const acledUrl = new URL(ACLED_BASE_URL)
-    if (env.ACLED_API_KEY) acledUrl.searchParams.set('key', env.ACLED_API_KEY)
-    if (env.ACLED_EMAIL) acledUrl.searchParams.set('email', env.ACLED_EMAIL)
     acledUrl.searchParams.set('limit', String(ACLED_LIMIT))
 
     // ACLED uses BETWEEN syntax: latitude=minLat|maxLat, longitude=minLon|maxLon
@@ -226,12 +224,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       acledUrl.searchParams.set('event_date_where', '>=')
     }
 
+    // Add credentials only to the fetch URL (never log this URL)
+    const acledFetchUrl = new URL(acledUrl.toString())
+    if (env.ACLED_API_KEY) acledFetchUrl.searchParams.set('key', env.ACLED_API_KEY)
+    if (env.ACLED_EMAIL) acledFetchUrl.searchParams.set('email', env.ACLED_EMAIL)
+
     // 6. Fetch from ACLED API
     let acledData: AcledRecord[] = []
     let fetchError: string | undefined
 
     try {
-      const response = await fetch(acledUrl.toString(), {
+      const response = await fetch(acledFetchUrl.toString(), {
         headers: { 'Accept': 'application/json' },
         signal: AbortSignal.timeout(15000), // 15s timeout
       })
@@ -249,8 +252,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         }
       }
     } catch (e) {
-      fetchError = e instanceof Error ? e.message : 'ACLED API request failed'
-      console.error('[COP ACLED Layer] Fetch error:', e)
+      fetchError = e instanceof Error ? e.message.replace(/key=[^&]+/g, 'key=***').replace(/email=[^&]+/g, 'email=***') : 'ACLED API request failed'
+      console.error('[COP ACLED Layer] Fetch error:', fetchError)
     }
 
     // 7. Convert to GeoJSON features
