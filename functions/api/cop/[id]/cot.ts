@@ -22,6 +22,7 @@ import {
 
 interface Env {
   DB: D1Database
+  CACHE?: KVNamespace
 }
 
 const xmlHeaders = {
@@ -37,13 +38,26 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     const session = await env.DB.prepare(
-      'SELECT * FROM cop_sessions WHERE id = ?'
+      `SELECT workspace_id, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
+              rolling_hours, status
+       FROM cop_sessions WHERE id = ? AND status != 'ARCHIVED'`
     ).bind(sessionId).first<any>()
 
     if (!session) {
       return new Response('<error>COP session not found</error>', {
         status: 404, headers: xmlHeaders,
       })
+    }
+
+    // Check KV cache (30-second TTL for CoT feeds)
+    const COT_CACHE_KEY = `cot-feed:${sessionId}`
+    const COT_CACHE_TTL = 30
+
+    if (env.CACHE) {
+      const cached = await env.CACHE.get(COT_CACHE_KEY, 'text')
+      if (cached) {
+        return new Response(cached, { headers: xmlHeaders })
+      }
     }
 
     const wsId = session.workspace_id
@@ -163,7 +177,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }))
     }
 
-    return new Response(wrapCoTFeed(cotEvents), { headers: xmlHeaders })
+    const xml = wrapCoTFeed(cotEvents)
+
+    // Cache the generated XML
+    if (env.CACHE) {
+      await env.CACHE.put(COT_CACHE_KEY, xml, { expirationTtl: COT_CACHE_TTL }).catch(() => {})
+    }
+
+    return new Response(xml, { headers: xmlHeaders })
   } catch (error) {
     console.error('[CoT Export] Error:', error)
     return new Response('<error>Failed to generate CoT feed</error>', {
