@@ -5,7 +5,7 @@
  * GET  /api/cop/:id/shares - List existing share links
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+import { getUserIdOrDefault } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
