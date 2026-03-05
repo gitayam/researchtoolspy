@@ -125,7 +125,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     // 3. Determine search query and timespan
-    const query = url.searchParams.get('query') || DEFAULT_QUERY
+    const rawQuery = url.searchParams.get('query') || DEFAULT_QUERY
+    const query = rawQuery.replace(/[^\w\s()|'",-]/g, '').slice(0, 200) || DEFAULT_QUERY
     const rollingHours = session.rolling_hours ? Number(session.rolling_hours) : 24
     const timespan = rollingHours * 60 // GDELT expects minutes
 
