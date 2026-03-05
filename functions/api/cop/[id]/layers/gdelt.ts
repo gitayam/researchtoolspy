@@ -22,7 +22,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 
 interface Env {
   DB: D1Database
-  COP_CACHE?: KVNamespace
+  CACHE?: KVNamespace
 }
 
 const GDELT_BASE_URL = 'https://api.gdeltproject.org/api/v2/geo/geo'
@@ -132,9 +132,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // 4. Build cache key and check KV cache
     const cacheKey = buildCacheKey(bbox, query, timespan)
 
-    if (env.COP_CACHE) {
+    if (env.CACHE) {
       try {
-        const cached = await env.COP_CACHE.get(cacheKey, 'text')
+        const cached = await env.CACHE.get(cacheKey, 'text')
         if (cached) {
           console.log(`[COP GDELT Layer] Cache hit for ${cacheKey}`)
           const parsed = JSON.parse(cached)
@@ -225,9 +225,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     // 8. Cache successful results in KV
-    if (env.COP_CACHE && features.length > 0) {
+    if (env.CACHE && features.length > 0) {
       try {
-        await env.COP_CACHE.put(cacheKey, JSON.stringify(result), {
+        await env.CACHE.put(cacheKey, JSON.stringify(result), {
           expirationTtl: CACHE_TTL,
         })
         console.log(`[COP GDELT Layer] Cached ${features.length} features at ${cacheKey}`)
