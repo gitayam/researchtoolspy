@@ -26,7 +26,8 @@ import {
   AlertTriangle,
   Inbox,
   ClipboardCheck,
-  Lightbulb
+  Lightbulb,
+  Map
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -120,6 +121,7 @@ const getNavigation = (t: (key: string) => string) => [
     ]
   },
   { name: 'Intelligence', href: '/dashboard/intelligence', icon: Lightbulb },
+  { name: 'Operating Pictures', href: '/dashboard/cop', icon: Map },
   { name: t('navigation.networkAnalysis'), href: '/dashboard/network', icon: Network },
   { name: t('navigation.datasetLibrary'), href: '/dashboard/datasets', icon: Database },
   { name: t('navigation.reports'), href: '/dashboard/reports', icon: FileText },

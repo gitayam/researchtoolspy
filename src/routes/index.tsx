@@ -76,6 +76,10 @@ const HamiltonRulePage = lazy(() => import('@/pages/tools/HamiltonRulePage'))
 const CollectionPage = lazy(() => import('@/pages/tools/CollectionPage'))
 const IntelligenceSynthesisPage = lazy(() => import('@/pages/IntelligenceSynthesisPage'))
 
+// COP pages (lazy loaded)
+const CopListPage = lazy(() => import('@/pages/CopListPage'))
+const CopPage = lazy(() => import('@/pages/CopPage'))
+
 // Heavy pages (lazy loaded - only when needed)
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then(m => ({ default: m.ReportsPage })))
 const NetworkGraphPage = lazy(() => import('@/pages/NetworkGraphPage').then(m => ({ default: m.NetworkGraphPage })))
@@ -530,6 +534,15 @@ export const router = createBrowserRouter([
       {
         path: 'intelligence',
         element: <LazyPage Component={IntelligenceSynthesisPage} />,
+      },
+      // COP Routes
+      {
+        path: 'cop',
+        element: <LazyPage Component={CopListPage} />,
+      },
+      {
+        path: 'cop/:id',
+        element: <LazyPage Component={CopPage} />,
       },
       {
         path: 'investigations',
