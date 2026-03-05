@@ -21,7 +21,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID'
 }
 
-const jsonFields = ['active_layers', 'layer_config', 'linked_frameworks', 'key_questions'] as const
+const jsonFields = ['active_layers', 'layer_config', 'linked_frameworks', 'key_questions', 'event_facts', 'content_analyses'] as const
 
 function parseJsonFields(row: any): any {
   const parsed = { ...row }
@@ -88,7 +88,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       'name', 'description', 'template_type', 'status',
       'bbox_min_lat', 'bbox_min_lon', 'bbox_max_lat', 'bbox_max_lon',
       'center_lat', 'center_lon', 'zoom_level',
-      'time_window_start', 'time_window_end', 'rolling_hours'
+      'time_window_start', 'time_window_end', 'rolling_hours',
+      'event_type', 'event_description'
     ] as const
 
     for (const field of scalarFields) {

@@ -24,7 +24,7 @@ function generateId(): string {
   return `cop-${crypto.randomUUID().slice(0, 12)}`
 }
 
-const jsonFields = ['active_layers', 'layer_config', 'linked_frameworks', 'key_questions'] as const
+const jsonFields = ['active_layers', 'layer_config', 'linked_frameworks', 'key_questions', 'event_facts', 'content_analyses'] as const
 
 function parseJsonFields(row: any): any {
   const parsed = { ...row }
@@ -96,9 +96,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         center_lat, center_lon, zoom_level,
         time_window_start, time_window_end, rolling_hours,
         active_layers, layer_config, linked_frameworks, key_questions,
+        event_type, event_description, event_facts, content_analyses,
         workspace_id, created_by, is_public,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id,
       body.name,
@@ -119,6 +120,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.layer_config ? JSON.stringify(body.layer_config) : '{}',
       body.linked_frameworks ? JSON.stringify(body.linked_frameworks) : '[]',
       body.key_questions ? JSON.stringify(body.key_questions) : '[]',
+      body.event_type || null,
+      body.event_description || null,
+      body.event_facts ? JSON.stringify(body.event_facts) : '[]',
+      body.content_analyses ? JSON.stringify(body.content_analyses) : '[]',
       workspaceId,
       userId,
       body.is_public ? 1 : 0,
