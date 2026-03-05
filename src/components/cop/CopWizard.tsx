@@ -91,6 +91,26 @@ const TIME_OPTIONS: TimeOption[] = [
 const STEP_LABELS = ['Purpose', 'Location', 'Time Window', 'Key Questions']
 const STEP_ICONS = [Target, MapPin, Clock, HelpCircle]
 
+// ── Parse location for lat/lon ─────────────────────────────────────
+
+function parseLocationCoords(search: string): { lat: number; lon: number } | null {
+  const coordMatch = search.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/)
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1])
+    const lon = parseFloat(coordMatch[2])
+    if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+      return { lat, lon }
+    }
+  }
+  return null
+}
+
+// ── Template label helper ─────────────────────────────────────────
+
+function getTemplateLabel(type: CopTemplateType): string {
+  return TEMPLATES.find(t => t.type === type)?.label ?? 'COP'
+}
+
 // ── Props ─────────────────────────────────────────────────────────
 
 interface CopWizardProps {
@@ -167,26 +187,6 @@ export default function CopWizard({ onClose }: CopWizardProps) {
     },
     [addQuestion]
   )
-
-  // ── Parse location for lat/lon ────────────────────────────────
-
-  function parseLocationCoords(search: string): { lat: number; lon: number } | null {
-    const coordMatch = search.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/)
-    if (coordMatch) {
-      const lat = parseFloat(coordMatch[1])
-      const lon = parseFloat(coordMatch[2])
-      if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-        return { lat, lon }
-      }
-    }
-    return null
-  }
-
-  // ── Template label helper ─────────────────────────────────────
-
-  function getTemplateLabel(type: CopTemplateType): string {
-    return TEMPLATES.find(t => t.type === type)?.label ?? 'COP'
-  }
 
   // ── Submit ────────────────────────────────────────────────────
 

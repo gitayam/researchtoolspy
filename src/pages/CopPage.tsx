@@ -34,6 +34,15 @@ const TEMPLATE_LABELS: Record<string, string> = {
   custom: 'Custom',
 }
 
+// ── Auth headers ──────────────────────────────────────────────────
+
+function getHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const userHash = localStorage.getItem('omnicore_user_hash')
+  if (userHash) headers['X-User-Hash'] = userHash
+  return headers
+}
+
 // ── Component ────────────────────────────────────────────────────
 
 export default function CopPage() {
@@ -52,29 +61,21 @@ export default function CopPage() {
   // Auto-refresh timer refs
   const timersRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
 
-  // ── Auth headers ────────────────────────────────────────────────
-
-  function getHeaders(): Record<string, string> {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    if (userHash) headers['X-User-Hash'] = userHash
-    return headers
-  }
-
   // ── Fetch session ───────────────────────────────────────────────
 
-  const fetchSession = useCallback(async () => {
+  const fetchSession = useCallback(async (signal?: AbortSignal) => {
     if (!id) return
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/cop/sessions/${id}`, { headers: getHeaders() })
+      const res = await fetch(`/api/cop/sessions/${id}`, { headers: getHeaders(), signal })
       if (!res.ok) throw new Error(`Server responded with ${res.status}`)
       const data = await res.json()
       const sess: CopSession = data.session ?? data
       setSession(sess)
       setActiveLayers(sess.active_layers ?? [])
-    } catch (err) {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') return
       setError(err instanceof Error ? err.message : 'Failed to load session')
     } finally {
       setLoading(false)
@@ -82,7 +83,9 @@ export default function CopPage() {
   }, [id])
 
   useEffect(() => {
-    fetchSession()
+    const controller = new AbortController()
+    fetchSession(controller.signal)
+    return () => controller.abort()
   }, [fetchSession])
 
   // ── Fetch a single layer as GeoJSON ─────────────────────────────
@@ -162,6 +165,7 @@ export default function CopPage() {
 
   const handleToggleLayer = useCallback(
     async (layerId: string) => {
+      const prevLayers = activeLayers
       const newLayers = activeLayers.includes(layerId)
         ? activeLayers.filter((l) => l !== layerId)
         : [...activeLayers, layerId]
@@ -178,7 +182,7 @@ export default function CopPage() {
           })
         } catch {
           // Revert on failure
-          setActiveLayers(activeLayers)
+          setActiveLayers(prevLayers)
         }
       }
     },

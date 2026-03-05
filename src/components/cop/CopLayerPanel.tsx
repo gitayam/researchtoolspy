@@ -122,6 +122,9 @@ export default function CopLayerPanel({
                       <button
                         key={layer.id}
                         type="button"
+                        role="checkbox"
+                        aria-checked={isActive}
+                        aria-label={`${layer.name}: ${isActive ? 'enabled' : 'disabled'}`}
                         onClick={() => onToggleLayer(layer.id)}
                         className={`w-full flex items-center gap-2 px-4 py-1.5 text-left text-xs transition-colors hover:bg-gray-800 ${
                           isActive ? 'text-gray-200' : 'text-gray-500'

@@ -140,7 +140,7 @@ export default function CopMap({
         if (isLine) {
           addLineLayer(map, sourceId, layerId, color)
         } else {
-          addPointLayers(map, sourceId, layerId, color)
+          addPointLayers(map, sourceId, layerId, color, popupRef)
         }
       }
     }
@@ -148,7 +148,13 @@ export default function CopMap({
     if (map.isStyleLoaded()) {
       applyLayers()
     } else {
-      map.once('load', applyLayers)
+      let cancelled = false
+      const guardedApply = () => { if (!cancelled) applyLayers() }
+      map.once('load', guardedApply)
+      return () => {
+        cancelled = true
+        map.off('load', guardedApply)
+      }
     }
   }, [layers])
 
@@ -196,6 +202,7 @@ function addPointLayers(
   sourceId: string,
   layerId: string,
   color: string,
+  popupRef: React.MutableRefObject<maplibregl.Popup | null>,
 ) {
   const clusterId = `cop-cluster-${layerId}`
   const clusterCountId = `cop-cluster-count-${layerId}`
@@ -273,7 +280,7 @@ function addPointLayers(
     const html = `
       <div style="max-width: 220px; font-family: system-ui, sans-serif;">
         <strong style="font-size: 13px; color: #e2e8f0;">${escapeHtml(name)}</strong>
-        ${entityType ? `<div style="font-size: 11px; color: ${color}; margin-top: 2px;">${escapeHtml(entityType)}</div>` : ''}
+        ${entityType ? `<div style="font-size: 11px; color: ${sanitizeColor(color)}; margin-top: 2px;">${escapeHtml(entityType)}</div>` : ''}
         ${description ? `<div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">${escapeHtml(description)}</div>` : ''}
       </div>
     `
@@ -284,7 +291,8 @@ function addPointLayers(
       coords[0] += e.lngLat.lng > coords[0] ? 360 : -360
     }
 
-    new maplibregl.Popup({ closeButton: true, closeOnClick: true })
+    popupRef.current?.remove()
+    popupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true })
       .setLngLat(coords)
       .setHTML(html)
       .addTo(map)
@@ -321,4 +329,11 @@ function escapeHtml(text: string): string {
   const div = document.createElement('div')
   div.textContent = text
   return div.innerHTML
+}
+
+function sanitizeColor(value: string): string {
+  if (/^#[0-9a-fA-F]{3,8}$/.test(value)) return value
+  if (/^(rgb|hsl)a?\([^)]+\)$/.test(value)) return value
+  if (/^[a-zA-Z]+$/.test(value)) return value
+  return '#94a3b8'
 }

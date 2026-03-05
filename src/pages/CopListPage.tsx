@@ -51,6 +51,19 @@ const STATUS_VARIANT: Record<CopStatus, 'default' | 'secondary' | 'outline' | 'd
   ARCHIVED: 'outline',
 }
 
+// ── Relative time helper ─────────────────────────────────────────
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
 // ── Component ────────────────────────────────────────────────────
 
 export default function CopListPage() {
@@ -62,7 +75,7 @@ export default function CopListPage() {
 
   // ── Fetch sessions ──────────────────────────────────────────────
 
-  const fetchSessions = useCallback(async () => {
+  const fetchSessions = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
     try {
@@ -70,14 +83,15 @@ export default function CopListPage() {
       const userHash = localStorage.getItem('omnicore_user_hash')
       if (userHash) headers['X-User-Hash'] = userHash
 
-      const res = await fetch('/api/cop/sessions', { headers })
+      const res = await fetch('/api/cop/sessions', { headers, signal })
       if (!res.ok) throw new Error(`Server responded with ${res.status}`)
 
       const data = await res.json()
       // API may return { sessions: [...] } or an array directly
       const list = Array.isArray(data) ? data : data.sessions ?? []
       setSessions(list)
-    } catch (err) {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') return
       setError(err instanceof Error ? err.message : 'Failed to load sessions')
     } finally {
       setLoading(false)
@@ -85,21 +99,10 @@ export default function CopListPage() {
   }, [])
 
   useEffect(() => {
-    fetchSessions()
+    const controller = new AbortController()
+    fetchSessions(controller.signal)
+    return () => controller.abort()
   }, [fetchSessions])
-
-  // ── Relative time helper ─────────────────────────────────────────
-
-  function timeAgo(dateStr: string): string {
-    const diff = Date.now() - new Date(dateStr).getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    return `${days}d ago`
-  }
 
   // ── Wizard close handler ────────────────────────────────────────
 
