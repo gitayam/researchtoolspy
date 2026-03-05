@@ -41,13 +41,14 @@ function parseJsonFields(row: any): any {
 
 // GET - Get single COP session
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { request, env, params } = context
   const id = params.id as string
+  const workspaceId = request.headers.get('X-Workspace-ID') || '1'
 
   try {
     const result = await env.DB.prepare(`
-      SELECT * FROM cop_sessions WHERE id = ?
-    `).bind(id).first()
+      SELECT * FROM cop_sessions WHERE id = ? AND (workspace_id = ? OR is_public = 1)
+    `).bind(id, workspaceId).first()
 
     if (!result) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), {
@@ -72,6 +73,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
+  const workspaceId = request.headers.get('X-Workspace-ID') || '1'
 
   try {
     const body = await request.json() as any
@@ -110,12 +112,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       values.push(body.is_public ? 1 : 0)
     }
 
-    values.push(id)
+    values.push(id, workspaceId)
 
     await env.DB.prepare(`
       UPDATE cop_sessions
       SET ${updates.join(', ')}
-      WHERE id = ?
+      WHERE id = ? AND workspace_id = ?
     `).bind(...values).run()
 
     return new Response(JSON.stringify({ message: 'COP session updated' }), { headers: corsHeaders })
@@ -130,8 +132,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
 // DELETE - Soft delete (archive) COP session
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { request, env, params } = context
   const id = params.id as string
+  const workspaceId = request.headers.get('X-Workspace-ID') || '1'
 
   try {
     const now = new Date().toISOString()
@@ -139,8 +142,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     await env.DB.prepare(`
       UPDATE cop_sessions
       SET status = 'ARCHIVED', updated_at = ?
-      WHERE id = ?
-    `).bind(now, id).run()
+      WHERE id = ? AND workspace_id = ?
+    `).bind(now, id, workspaceId).run()
 
     return new Response(JSON.stringify({ message: 'COP session archived' }), { headers: corsHeaders })
   } catch (error) {
