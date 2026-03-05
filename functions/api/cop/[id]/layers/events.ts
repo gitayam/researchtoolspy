@@ -104,7 +104,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Time filter: rolling_hours takes precedence over explicit window
     if (session.rolling_hours) {
-      sql += ` AND e.date_start >= datetime('now', '-${Number(session.rolling_hours)} hours')`
+      const hours = Math.floor(Number(session.rolling_hours))
+      if (!isNaN(hours) && hours > 0 && hours <= 8760) {
+        sql += ` AND e.date_start >= datetime('now', ? || ' hours')`
+        bindings.push(`-${hours}`)
+      }
     } else if (session.time_window_start && session.time_window_end) {
       sql += ` AND e.date_start >= ? AND e.date_start <= ?`
       bindings.push(session.time_window_start, session.time_window_end)
