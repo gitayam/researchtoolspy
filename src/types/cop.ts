@@ -5,6 +5,7 @@ export const CopTemplateType = {
   EVENT_MONITOR: 'event_monitor',
   AREA_STUDY: 'area_study',
   CRISIS_RESPONSE: 'crisis_response',
+  EVENT_ANALYSIS: 'event_analysis',
   CUSTOM: 'custom',
 } as const
 
@@ -50,6 +51,12 @@ export interface CopSession {
   layer_config: Record<string, LayerOverride>
   linked_frameworks: string[]
   key_questions: string[]
+
+  // Event analysis fields (only populated when template_type === 'event_analysis')
+  event_type: string | null
+  event_description: string | null
+  event_facts: EventFact[]
+  content_analyses: string[]
 
   workspace_id: string
   created_by: number
@@ -150,6 +157,10 @@ export interface CopWizardInput {
     end?: string
   }
   questions: string[]
+  // Event analysis fields (optional, only used for event_analysis template)
+  eventType?: CopEventType
+  eventDescription?: string
+  initialUrls?: string[]
 }
 
 export interface CopWizardOutput {
@@ -159,3 +170,116 @@ export interface CopWizardOutput {
   suggested_frameworks: string[]
   additional_questions: string[]
 }
+
+// ── Event Analysis Types ────────────────────────────────────────
+
+export interface EventFact {
+  time: string
+  text: string
+  source_url?: string
+}
+
+export const CopEventType = {
+  NATURAL_DISASTER: 'natural_disaster',
+  MASS_CASUALTY: 'mass_casualty',
+  ELECTION: 'election',
+  PROTEST: 'protest',
+  MILITARY: 'military',
+  SPORTS: 'sports',
+  CYBER: 'cyber',
+  PUBLIC_HEALTH: 'public_health',
+  OTHER: 'other',
+} as const
+
+export type CopEventType = typeof CopEventType[keyof typeof CopEventType]
+
+export const EVENT_TYPE_LABELS: Record<CopEventType, string> = {
+  natural_disaster: 'Natural Disaster',
+  mass_casualty: 'Mass Casualty',
+  election: 'Election / Political',
+  protest: 'Protest / Civil Unrest',
+  military: 'Military / Conflict',
+  sports: 'Sports Event',
+  cyber: 'Cyber Incident',
+  public_health: 'Public Health',
+  other: 'Other',
+}
+
+export const EVENT_TYPE_COLORS: Record<CopEventType, string> = {
+  natural_disaster: '#22c55e',
+  mass_casualty: '#ef4444',
+  election: '#8b5cf6',
+  protest: '#f59e0b',
+  military: '#dc2626',
+  sports: '#3b82f6',
+  cyber: '#06b6d4',
+  public_health: '#10b981',
+  other: '#6b7280',
+}
+
+// ── RFI Types ───────────────────────────────────────────────────
+
+export const CopRfiStatus = {
+  OPEN: 'open',
+  ANSWERED: 'answered',
+  ACCEPTED: 'accepted',
+  CLOSED: 'closed',
+} as const
+
+export type CopRfiStatus = typeof CopRfiStatus[keyof typeof CopRfiStatus]
+
+export const CopRfiPriority = {
+  CRITICAL: 'critical',
+  HIGH: 'high',
+  MEDIUM: 'medium',
+  LOW: 'low',
+} as const
+
+export type CopRfiPriority = typeof CopRfiPriority[keyof typeof CopRfiPriority]
+
+export const RFI_PRIORITY_COLORS: Record<CopRfiPriority, string> = {
+  critical: '#dc2626',
+  high: '#f59e0b',
+  medium: '#3b82f6',
+  low: '#6b7280',
+}
+
+export interface CopRfi {
+  id: string
+  cop_session_id: string
+  question: string
+  priority: CopRfiPriority
+  status: CopRfiStatus
+  created_by: number
+  assigned_to: number | null
+  created_at: string
+  updated_at: string
+  answers?: CopRfiAnswer[]
+}
+
+export interface CopRfiAnswer {
+  id: string
+  rfi_id: string
+  answer_text: string
+  source_url: string | null
+  source_description: string | null
+  is_accepted: number
+  created_by: number
+  responder_name: string | null
+  created_at: string
+}
+
+// ── Share Types ─────────────────────────────────────────────────
+
+export interface CopShare {
+  id: string
+  cop_session_id: string
+  share_token: string
+  visible_panels: string[]
+  allow_rfi_answers: number
+  created_by: number
+  created_at: string
+  view_count: number
+}
+
+export type CopSidebarTab = 'event' | 'intel' | 'rfi' | 'questions' | 'layers'
