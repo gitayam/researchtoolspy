@@ -75,11 +75,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    if (typeof body.lat !== 'number' || body.lat < -90 || body.lat > 90) {
+      return new Response(JSON.stringify({ error: 'lat must be between -90 and 90' }), { status: 400, headers: corsHeaders })
+    }
+    if (typeof body.lon !== 'number' || body.lon < -180 || body.lon > 180) {
+      return new Response(JSON.stringify({ error: 'lon must be between -180 and 180' }), { status: 400, headers: corsHeaders })
+    }
+
     const id = `mkr-${crypto.randomUUID().slice(0, 12)}`
     const uid = body.uid || crypto.randomUUID()
     const now = new Date().toISOString()
-    const staleMinutes = body.stale_minutes ?? 5
-    const staleTime = new Date(Date.now() + staleMinutes * 60000).toISOString()
+    const staleMinutes = body.stale_minutes === null ? null : Math.min(Math.max(body.stale_minutes ?? 5, 1), 1440)
+    const staleTime = staleMinutes === null ? null : new Date(Date.now() + staleMinutes * 60000).toISOString()
 
     await env.DB.prepare(`
       INSERT INTO cop_markers (
