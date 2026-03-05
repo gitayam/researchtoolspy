@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Zap,
@@ -6,6 +6,7 @@ import {
   BookOpen,
   AlertTriangle,
   Settings,
+  Search,
   ArrowLeft,
   ArrowRight,
   X,
@@ -20,7 +21,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getLayersForTemplate } from '@/components/cop/CopLayerCatalog'
-import type { CopTemplateType } from '@/types/cop'
+import type { CopTemplateType, CopEventType } from '@/types/cop'
+import { EVENT_TYPE_LABELS } from '@/types/cop'
 
 // ── Template definitions ──────────────────────────────────────────
 
@@ -62,6 +64,13 @@ const TEMPLATES: TemplateOption[] = [
     timeHint: 'Ongoing',
   },
   {
+    type: 'event_analysis',
+    icon: Search,
+    label: 'Event Analysis',
+    description: 'Analyze an event with full intel toolkit',
+    timeHint: 'Event-driven',
+  },
+  {
     type: 'custom',
     icon: Settings,
     label: 'Custom',
@@ -86,10 +95,9 @@ const TIME_OPTIONS: TimeOption[] = [
   { label: 'Ongoing', hours: null },
 ]
 
-// ── Step labels for the progress bar ──────────────────────────────
+// ── Event type options (for dropdown) ─────────────────────────────
 
-const STEP_LABELS = ['Purpose', 'Location', 'Time Window', 'Key Questions']
-const STEP_ICONS = [Target, MapPin, Clock, HelpCircle]
+const EVENT_TYPE_OPTIONS = Object.entries(EVENT_TYPE_LABELS) as [CopEventType, string][]
 
 // ── Parse location for lat/lon ─────────────────────────────────────
 
@@ -133,29 +141,68 @@ export default function CopWizard({ onClose }: CopWizardProps) {
   const [questions, setQuestions] = useState<string[]>([])
   const [newQuestion, setNewQuestion] = useState('')
 
+  // Event analysis state
+  const [eventType, setEventType] = useState<CopEventType | ''>('')
+  const [eventDescription, setEventDescription] = useState('')
+  const [initialUrls, setInitialUrls] = useState('')
+
+  // ── Dynamic step labels/icons based on template ─────────────────
+
+  const isEventAnalysis = selectedTemplate === 'event_analysis'
+
+  const stepLabels = useMemo(() => {
+    if (isEventAnalysis) {
+      return ['Purpose', 'Event Details', 'Location', 'Time Window', 'Key Questions']
+    }
+    return ['Purpose', 'Location', 'Time Window', 'Key Questions']
+  }, [isEventAnalysis])
+
+  const stepIcons = useMemo(() => {
+    if (isEventAnalysis) {
+      return [Target, Search, MapPin, Clock, HelpCircle]
+    }
+    return [Target, MapPin, Clock, HelpCircle]
+  }, [isEventAnalysis])
+
+  const totalSteps = stepLabels.length
+  const lastStep = totalSteps - 1
+
+  const PROGRESS_COLORS = [
+    'bg-blue-500',
+    'bg-emerald-500',
+    'bg-amber-500',
+    'bg-violet-500',
+    'bg-rose-500',
+  ]
+
   // ── Navigation helpers ────────────────────────────────────────
 
   const canProceed = useCallback((): boolean => {
-    switch (step) {
-      case 0:
-        return selectedTemplate !== null
-      case 1:
-        return locationSearch.trim().length > 0
-      case 2:
-        return selectedTimeHours !== undefined
-      case 3:
-        return true // questions are optional
-      default:
-        return false
+    if (isEventAnalysis) {
+      switch (step) {
+        case 0: return selectedTemplate !== null
+        case 1: return eventType !== ''
+        case 2: return locationSearch.trim().length > 0
+        case 3: return selectedTimeHours !== undefined
+        case 4: return true
+        default: return false
+      }
     }
-  }, [step, selectedTemplate, locationSearch, selectedTimeHours])
+    switch (step) {
+      case 0: return selectedTemplate !== null
+      case 1: return locationSearch.trim().length > 0
+      case 2: return selectedTimeHours !== undefined
+      case 3: return true
+      default: return false
+    }
+  }, [step, selectedTemplate, locationSearch, selectedTimeHours, isEventAnalysis, eventType])
 
   const handleNext = useCallback(() => {
-    if (canProceed() && step < 3) {
+    if (canProceed() && step < lastStep) {
       setStep(s => s + 1)
       setError(null)
     }
-  }, [canProceed, step])
+  }, [canProceed, step, lastStep])
 
   const handleBack = useCallback(() => {
     if (step > 0) {
@@ -203,7 +250,7 @@ export default function CopWizard({ onClose }: CopWizardProps) {
       const rollingHours =
         selectedTimeHours === null ? null : selectedTimeHours ?? 24
 
-      const body = {
+      const body: Record<string, unknown> = {
         name: `${getTemplateLabel(selectedTemplate)} - ${locationSearch.trim()}`,
         description: `${getTemplateLabel(selectedTemplate)} for ${locationSearch.trim()}`,
         template_type: selectedTemplate,
@@ -213,6 +260,19 @@ export default function CopWizard({ onClose }: CopWizardProps) {
         rolling_hours: rollingHours,
         active_layers: activeLayers,
         key_questions: questions,
+      }
+
+      // Include event analysis fields when applicable
+      if (isEventAnalysis && eventType) {
+        body.event_type = eventType
+        body.event_description = eventDescription || null
+        const urls = initialUrls
+          .split('\n')
+          .map(u => u.trim())
+          .filter(u => u.length > 0)
+        if (urls.length > 0) {
+          body.initial_urls = urls
+        }
       }
 
       const res = await fetch('/api/cop/sessions', {
@@ -239,22 +299,15 @@ export default function CopWizard({ onClose }: CopWizardProps) {
     } finally {
       setSubmitting(false)
     }
-  }, [selectedTemplate, locationSearch, selectedTimeHours, questions, navigate])
+  }, [selectedTemplate, locationSearch, selectedTimeHours, questions, navigate, isEventAnalysis, eventType, eventDescription, initialUrls])
 
   // ── Progress bar ──────────────────────────────────────────────
-
-  const PROGRESS_COLORS = [
-    'bg-blue-500',
-    'bg-emerald-500',
-    'bg-amber-500',
-    'bg-violet-500',
-  ]
 
   function renderProgressBar() {
     return (
       <div className="mb-6">
         <div className="flex gap-1.5 mb-3">
-          {STEP_LABELS.map((_, i) => (
+          {stepLabels.map((_, i) => (
             <div
               key={i}
               className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
@@ -264,8 +317,8 @@ export default function CopWizard({ onClose }: CopWizardProps) {
           ))}
         </div>
         <div className="flex justify-between">
-          {STEP_LABELS.map((label, i) => {
-            const Icon = STEP_ICONS[i]
+          {stepLabels.map((label, i) => {
+            const Icon = stepIcons[i]
             return (
               <div
                 key={i}
@@ -333,7 +386,72 @@ export default function CopWizard({ onClose }: CopWizardProps) {
     )
   }
 
-  // ── Step 1: Location ──────────────────────────────────────────
+  // ── Event Details step (event_analysis only) ───────────────────
+
+  function renderEventDetailsStep() {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold">Describe the event</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Classify and describe the event you are analyzing.
+          </p>
+        </div>
+
+        {/* Event Type dropdown */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium" htmlFor="event-type">
+            Event Type
+          </label>
+          <select
+            id="event-type"
+            value={eventType}
+            onChange={e => setEventType(e.target.value as CopEventType)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <option value="">Select event type...</option>
+            {EVENT_TYPE_OPTIONS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Event Description */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium" htmlFor="event-description">
+            Event Description
+          </label>
+          <textarea
+            id="event-description"
+            value={eventDescription}
+            onChange={e => setEventDescription(e.target.value)}
+            placeholder="2-3 sentences describing the event..."
+            rows={3}
+            className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+          />
+        </div>
+
+        {/* Initial URLs */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium" htmlFor="initial-urls">
+            Initial URLs <span className="text-muted-foreground font-normal">(optional, one per line, up to 5)</span>
+          </label>
+          <textarea
+            id="initial-urls"
+            value={initialUrls}
+            onChange={e => setInitialUrls(e.target.value)}
+            placeholder="https://example.com/article&#10;https://example.com/report"
+            rows={3}
+            className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Step: Location ──────────────────────────────────────────
 
   function renderLocationStep() {
     return (
@@ -363,7 +481,7 @@ export default function CopWizard({ onClose }: CopWizardProps) {
     )
   }
 
-  // ── Step 2: Time Window ───────────────────────────────────────
+  // ── Step: Time Window ───────────────────────────────────────
 
   function renderTimeWindowStep() {
     return (
@@ -399,7 +517,7 @@ export default function CopWizard({ onClose }: CopWizardProps) {
     )
   }
 
-  // ── Step 3: Key Questions ─────────────────────────────────────
+  // ── Step: Key Questions ─────────────────────────────────────
 
   function renderQuestionsStep() {
     return (
@@ -468,17 +586,22 @@ export default function CopWizard({ onClose }: CopWizardProps) {
   // ── Render current step ───────────────────────────────────────
 
   function renderStep() {
+    if (isEventAnalysis) {
+      switch (step) {
+        case 0: return renderPurposeStep()
+        case 1: return renderEventDetailsStep()
+        case 2: return renderLocationStep()
+        case 3: return renderTimeWindowStep()
+        case 4: return renderQuestionsStep()
+        default: return null
+      }
+    }
     switch (step) {
-      case 0:
-        return renderPurposeStep()
-      case 1:
-        return renderLocationStep()
-      case 2:
-        return renderTimeWindowStep()
-      case 3:
-        return renderQuestionsStep()
-      default:
-        return null
+      case 0: return renderPurposeStep()
+      case 1: return renderLocationStep()
+      case 2: return renderTimeWindowStep()
+      case 3: return renderQuestionsStep()
+      default: return null
     }
   }
 
@@ -526,7 +649,7 @@ export default function CopWizard({ onClose }: CopWizardProps) {
           </div>
 
           <div>
-            {step < 3 ? (
+            {step < lastStep ? (
               <Button onClick={handleNext} disabled={!canProceed()}>
                 Next
                 <ArrowRight className="h-4 w-4 ml-1.5" />
