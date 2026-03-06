@@ -5,6 +5,7 @@ import {
   BarChart3,
   Brain,
   FileText,
+  Map,
   Plus,
   Search,
   Target,
@@ -169,11 +170,18 @@ export function DashboardPage() {
       color: 'bg-purple-500 hover:bg-purple-600'
     },
     {
+      title: 'Workspaces',
+      description: 'Investigation command center',
+      href: '/dashboard/cop',
+      icon: Map,
+      color: 'bg-orange-500 hover:bg-orange-600'
+    },
+    {
       title: t('dashboard.viewReports'),
       description: t('dashboard.exportShare'),
       href: '/dashboard/reports',
       icon: FileText,
-      color: 'bg-orange-500 hover:bg-orange-600'
+      color: 'bg-gray-600 hover:bg-gray-700'
     },
   ], [t])
 
@@ -364,7 +372,7 @@ export function DashboardPage() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-lg font-semibold mb-4">{t('dashboard.quickActions')}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {quickActions.map((action) => (
             <Link key={action.title} to={action.href}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
