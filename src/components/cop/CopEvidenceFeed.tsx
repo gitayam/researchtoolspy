@@ -1,0 +1,268 @@
+import { useState, useEffect, useCallback } from 'react'
+import { FileText, Globe, Users, Brain, Link, ExternalLink, Loader2, Send } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+// ── Types ────────────────────────────────────────────────────────
+
+interface FeedItem {
+  id: string
+  type: 'evidence' | 'analysis' | 'entity' | 'framework' | 'url'
+  title: string
+  description?: string
+  url?: string
+  created_at: string
+}
+
+// ── Props ────────────────────────────────────────────────────────
+
+interface CopEvidenceFeedProps {
+  sessionId: string
+  expanded: boolean
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
+
+function timeAgo(dateStr: string): string {
+  const now = Date.now()
+  const then = new Date(dateStr).getTime()
+  if (isNaN(then)) return ''
+  const diffMs = now - then
+  const diffMin = Math.floor(diffMs / 60_000)
+  if (diffMin < 1) return 'just now'
+  if (diffMin < 60) return `${diffMin}m ago`
+  const diffHr = Math.floor(diffMin / 60)
+  if (diffHr < 24) return `${diffHr}h ago`
+  const diffDay = Math.floor(diffHr / 24)
+  return `${diffDay}d ago`
+}
+
+const TYPE_CONFIG: Record<FeedItem['type'], { icon: typeof FileText; color: string; darkColor: string }> = {
+  evidence:  { icon: FileText, color: 'bg-blue-100 text-blue-700',     darkColor: 'dark:bg-blue-900/40 dark:text-blue-300' },
+  analysis:  { icon: Globe,    color: 'bg-purple-100 text-purple-700', darkColor: 'dark:bg-purple-900/40 dark:text-purple-300' },
+  entity:    { icon: Users,    color: 'bg-emerald-100 text-emerald-700', darkColor: 'dark:bg-emerald-900/40 dark:text-emerald-300' },
+  framework: { icon: Brain,    color: 'bg-amber-100 text-amber-700',   darkColor: 'dark:bg-amber-900/40 dark:text-amber-300' },
+  url:       { icon: Link,     color: 'bg-gray-100 text-gray-700',     darkColor: 'dark:bg-gray-800 dark:text-gray-300' },
+}
+
+// ── Component ────────────────────────────────────────────────────
+
+export default function CopEvidenceFeed({ sessionId, expanded }: CopEvidenceFeedProps) {
+  const [items, setItems] = useState<FeedItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [url, setUrl] = useState('')
+  const [analyzing, setAnalyzing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // ── Fetch evidence ──────────────────────────────────────────
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchEvidence() {
+      setLoading(true)
+      try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+        const userHash = localStorage.getItem('omnicore_user_hash')
+        if (userHash) headers['Authorization'] = `Bearer ${userHash}`
+
+        const res = await fetch('/api/evidence', { headers })
+        if (!res.ok) throw new Error(`Failed to fetch evidence (${res.status})`)
+
+        const data = await res.json()
+        const list: FeedItem[] = (Array.isArray(data) ? data : data.evidence ?? data.items ?? []).map(
+          (e: any) => ({
+            id: e.id ?? crypto.randomUUID(),
+            type: e.type ?? 'evidence',
+            title: e.title ?? e.name ?? 'Untitled',
+            description: e.description ?? e.summary ?? undefined,
+            url: e.url ?? e.source_url ?? undefined,
+            created_at: e.created_at ?? e.created ?? new Date().toISOString(),
+          })
+        )
+
+        if (!cancelled) {
+          list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          setItems(list)
+        }
+      } catch (err) {
+        console.error('[CopEvidenceFeed] fetch error:', err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    fetchEvidence()
+    return () => { cancelled = true }
+  }, [sessionId])
+
+  // ── URL analysis ────────────────────────────────────────────
+
+  const analyzeUrl = useCallback(async () => {
+    const trimmed = url.trim()
+    if (!trimmed) return
+
+    setAnalyzing(true)
+    setError(null)
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      const userHash = localStorage.getItem('omnicore_user_hash')
+      if (userHash) headers['Authorization'] = `Bearer ${userHash}`
+
+      const res = await fetch('/api/content-intelligence/analyze-url', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ url: trimmed }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null)
+        throw new Error(errData?.error ?? `Analysis failed (${res.status})`)
+      }
+
+      const data = await res.json()
+      const newItem: FeedItem = {
+        id: data.id ?? data.analysis_id ?? crypto.randomUUID(),
+        type: 'url',
+        title: data.title ?? trimmed,
+        description: data.summary ?? data.description ?? undefined,
+        url: trimmed,
+        created_at: new Date().toISOString(),
+      }
+
+      setItems(prev => [newItem, ...prev])
+      setUrl('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analysis failed')
+    } finally {
+      setAnalyzing(false)
+    }
+  }, [url])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        analyzeUrl()
+      }
+    },
+    [analyzeUrl]
+  )
+
+  // ── Derived ─────────────────────────────────────────────────
+
+  const visibleItems = expanded ? items.slice(0, 100) : items.slice(0, 10)
+
+  // ── Render ──────────────────────────────────────────────────
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="px-3 py-3 border-b border-gray-700">
+        <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-wider">Evidence</h2>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+        {/* URL input */}
+        <div className="space-y-1.5">
+          <div className="flex gap-1.5">
+            <input
+              type="url"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Paste URL to analyze..."
+              className="flex-1 rounded-md border border-gray-700 bg-gray-800 px-2 py-1.5 text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              disabled={analyzing}
+            />
+            <Button
+              size="sm"
+              onClick={analyzeUrl}
+              disabled={analyzing || !url.trim()}
+              className="h-8 shrink-0"
+            >
+              {analyzing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          </div>
+          {error && (
+            <p className="text-xs text-red-400">{error}</p>
+          )}
+        </div>
+
+        {/* Feed list */}
+        {loading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+          </div>
+        ) : visibleItems.length > 0 ? (
+          <div className="space-y-1.5">
+            {visibleItems.map(item => {
+              const cfg = TYPE_CONFIG[item.type] ?? TYPE_CONFIG.evidence
+              const Icon = cfg.icon
+
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-start gap-2 rounded border border-gray-700 bg-gray-800/50 px-2.5 py-2"
+                >
+                  {/* Type icon badge */}
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      'h-6 w-6 p-0 flex items-center justify-center rounded-full shrink-0',
+                      cfg.color,
+                      cfg.darkColor
+                    )}
+                  >
+                    <Icon className="h-3 w-3" />
+                  </Badge>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-200 font-medium truncate flex-1">
+                        {item.title}
+                      </span>
+                      {item.url && (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-500 hover:text-blue-400 shrink-0"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                    {expanded && item.description && (
+                      <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">
+                        {item.description}
+                      </p>
+                    )}
+                    <span className="text-[10px] text-gray-500 mt-0.5 block">
+                      {timeAgo(item.created_at)}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <FileText className="h-6 w-6 text-gray-600 mx-auto mb-2" />
+            <p className="text-xs text-gray-500">No evidence yet</p>
+            <p className="text-[10px] text-gray-600 mt-1">
+              Paste a URL above or add evidence from the dashboard.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
