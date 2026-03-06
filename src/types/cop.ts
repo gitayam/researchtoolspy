@@ -58,6 +58,11 @@ export interface CopSession {
   event_facts: EventFact[]
   content_analyses: string[]
 
+  // Workspace fields (optional — only populated for workspace sessions)
+  panel_layout?: CopPanelLayout | null
+  workspace_mode?: CopWorkspaceMode
+  investigation_id?: string | null
+
   workspace_id: string
   created_by: number
   is_public: number
@@ -283,3 +288,47 @@ export interface CopShare {
 }
 
 export type CopSidebarTab = 'event' | 'intel' | 'rfi' | 'questions' | 'layers'
+
+// ── Workspace Types ─────────────────────────────────────────
+
+export type CopWorkspaceMode = 'progress' | 'monitor'
+
+export type CopPanelId = 'graph' | 'timeline' | 'questions' | 'analysis' | 'feed' | 'map'
+
+export interface CopPanelState {
+  visible: boolean
+  expanded: boolean
+  position: [number, number] // [column, row]
+}
+
+export interface CopPanelLayout {
+  mode: CopWorkspaceMode
+  panels: Record<CopPanelId, CopPanelState>
+}
+
+export const DEFAULT_PANEL_LAYOUT: CopPanelLayout = {
+  mode: 'progress',
+  panels: {
+    graph:     { visible: true, expanded: false, position: [0, 1] },
+    timeline:  { visible: true, expanded: false, position: [1, 1] },
+    questions: { visible: true, expanded: false, position: [0, 2] },
+    analysis:  { visible: true, expanded: false, position: [1, 2] },
+    feed:      { visible: true, expanded: false, position: [0, 3] },
+    map:       { visible: false, expanded: false, position: [0, 4] },
+  },
+}
+
+// ── Workspace Stats ─────────────────────────────────────────
+
+export interface CopWorkspaceStats {
+  evidence_count: number
+  entity_count: number
+  actor_count: number
+  source_count: number
+  event_count: number
+  relationship_count: number
+  framework_count: number
+  open_questions: number
+  answered_questions: number
+  open_rfis: number
+}
