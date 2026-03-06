@@ -25,7 +25,8 @@ import {
   Zap,
   Target,
   MapPin,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Map as MapIcon
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -57,6 +58,8 @@ export function InvestigationDetailPage() {
   const [investigation, setInvestigation] = useState<Investigation | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [linkedCopId, setLinkedCopId] = useState<string | null>(null)
+  const [checkingCop, setCheckingCop] = useState(true)
 
   useEffect(() => {
     if (id) {
@@ -101,6 +104,33 @@ export function InvestigationDetailPage() {
     }
   }
 
+  // Check for linked COP workspace
+  useEffect(() => {
+    if (!id) return
+    const checkLinkedCop = async () => {
+      try {
+        const userHash = localStorage.getItem('omnicore_user_hash')
+        const headers: Record<string, string> = {}
+        if (userHash) headers['Authorization'] = `Bearer ${userHash}`
+
+        // Check if a COP session is linked to this investigation
+        const res = await fetch(`/api/cop/sessions?investigation_id=${id}`, { headers })
+        if (res.ok) {
+          const data = await res.json()
+          const sessions = data.sessions ?? data ?? []
+          if (sessions.length > 0) {
+            setLinkedCopId(sessions[0].id)
+          }
+        }
+      } catch {
+        // Non-fatal: just don't redirect
+      } finally {
+        setCheckingCop(false)
+      }
+    }
+    checkLinkedCop()
+  }, [id])
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'structured_research': return <FileText className="h-5 w-5" />
@@ -124,6 +154,24 @@ export function InvestigationDetailPage() {
       case 'archived': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
       default: return 'bg-gray-100 text-gray-800'
     }
+  }
+
+  // Redirect to COP workspace if one is linked
+  useEffect(() => {
+    if (!checkingCop && linkedCopId) {
+      navigate(`/dashboard/cop/${linkedCopId}`, { replace: true })
+    }
+  }, [checkingCop, linkedCopId, navigate])
+
+  // Show loading while checking for linked COP
+  if (checkingCop) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        </div>
+      </div>
+    )
   }
 
   if (loading) {
@@ -177,6 +225,41 @@ export function InvestigationDetailPage() {
               {t(`investigation:status.${investigation.status}`)}
             </Badge>
           </div>
+          {!linkedCopId && (
+            <Button
+              onClick={async () => {
+                if (!investigation) return
+                try {
+                  const userHash = localStorage.getItem('omnicore_user_hash')
+                  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+                  if (userHash) headers['X-User-Hash'] = userHash
+
+                  const res = await fetch('/api/cop/sessions', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                      name: investigation.title,
+                      description: investigation.description,
+                      template_type: investigation.type === 'structured_research' ? 'area_study'
+                        : investigation.type === 'rapid_analysis' ? 'quick_brief' : 'custom',
+                      investigation_id: id,
+                    }),
+                  })
+                  if (res.ok) {
+                    const data = await res.json()
+                    const sessionId = data.session?.id ?? data.id
+                    if (sessionId) navigate(`/dashboard/cop/${sessionId}`)
+                  }
+                } catch {
+                  // ignore
+                }
+              }}
+              className="gap-2"
+            >
+              <MapIcon className="h-4 w-4" />
+              Open Workspace
+            </Button>
+          )}
         </div>
       </div>
 
