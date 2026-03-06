@@ -183,7 +183,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       await context.env.DB.prepare(`
         INSERT INTO workspaces (id, name, description, type, owner_id, is_public, created_at, updated_at)
-        VALUES (?, 'Guest Workspace', 'Temporary workspace for guest user', 'GUEST', NULL, 0, datetime('now'), datetime('now'))
+        VALUES (?, 'Guest Workspace', 'Temporary workspace for guest user', 'GUEST', 1, 0, datetime('now'), datetime('now'))
       `).bind(workspace_id).run()
 
       console.log('[investigations] Created guest workspace:', workspace_id)
