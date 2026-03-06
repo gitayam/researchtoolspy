@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import { DashboardLayout } from '@/layouts/DashboardLayout'
+import { DashboardLayout, DashboardFullBleedLayout } from '@/layouts/DashboardLayout'
 
 // Enhanced loading fallback component with progress indicator
 const PageLoader = () => (
@@ -78,7 +78,7 @@ const IntelligenceSynthesisPage = lazy(() => import('@/pages/IntelligenceSynthes
 
 // COP pages (lazy loaded)
 const CopListPage = lazy(() => import('@/pages/CopListPage'))
-const CopPage = lazy(() => import('@/pages/CopPage'))
+const CopWorkspacePage = lazy(() => import('@/pages/CopWorkspacePage'))
 
 // Heavy pages (lazy loaded - only when needed)
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then(m => ({ default: m.ReportsPage })))
@@ -168,6 +168,13 @@ export const router = createBrowserRouter([
   {
     path: '/tools',
     element: <Navigate to="/dashboard/tools" replace />,
+  },
+  {
+    path: '/dashboard/cop/:id',
+    element: <DashboardFullBleedLayout />,
+    children: [
+      { index: true, element: <LazyPage Component={CopWorkspacePage} /> },
+    ],
   },
   {
     path: '/dashboard',
@@ -544,10 +551,6 @@ export const router = createBrowserRouter([
       {
         path: 'cop',
         element: <LazyPage Component={CopListPage} />,
-      },
-      {
-        path: 'cop/:id',
-        element: <LazyPage Component={CopPage} />,
       },
       {
         path: 'investigations',
