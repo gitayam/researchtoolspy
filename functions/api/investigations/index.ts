@@ -225,6 +225,33 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.tags ? JSON.stringify(body.tags) : JSON.stringify([])
     ).run()
 
+    // Auto-create linked COP workspace
+    const copSessionId = crypto.randomUUID()
+    const templateType = body.type === 'structured_research' ? 'area_study'
+      : body.type === 'rapid_analysis' ? 'quick_brief'
+      : 'custom'
+
+    try {
+      await context.env.DB.prepare(`
+        INSERT INTO cop_sessions (
+          id, name, description, template_type, workspace_id, created_by,
+          investigation_id, workspace_mode, active_layers, key_questions
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'progress', '[]', '[]')
+      `).bind(
+        copSessionId,
+        body.title,
+        body.description || null,
+        templateType,
+        workspace_id,
+        user_id ?? 1,
+        id
+      ).run()
+      console.log('[investigations] Auto-created COP session:', copSessionId, 'for investigation:', id)
+    } catch (copError) {
+      // Non-fatal: investigation was created, COP creation is optional
+      console.error('[investigations] Failed to auto-create COP session:', copError)
+    }
+
     // Log activity (only if user is authenticated)
     if (user_id) {
       await context.env.DB.prepare(`
@@ -295,6 +322,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       tags: investigation.tags ? JSON.parse(investigation.tags) : [],
       metadata: investigation.metadata ? JSON.parse(investigation.metadata) : {}
     }
+
+    // Include linked COP session ID in response
+    parsed.cop_session_id = copSessionId
 
     console.log('[investigations] Created:', id)
 
