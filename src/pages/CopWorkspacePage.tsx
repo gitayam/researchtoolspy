@@ -24,6 +24,7 @@ import {
   Brain,
   FileText,
   Plus,
+  Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,9 @@ import CopQuestionsTab from '@/components/cop/CopQuestionsTab'
 import CopRfiTab from '@/components/cop/CopRfiTab'
 import CopMap from '@/components/cop/CopMap'
 import CopLayerPanel from '@/components/cop/CopLayerPanel'
+import CopActivityPanel from '@/components/cop/CopActivityPanel'
+import CopInviteDialog from '@/components/cop/CopInviteDialog'
+import CopGapAnalysis from '@/components/cop/CopGapAnalysis'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
 
@@ -79,6 +83,9 @@ export default function CopWorkspacePage() {
 
   // ── RFI badge count ────────────────────────────────────────────
   const [rfiCount, setRfiCount] = useState(0)
+
+  // ── Invite dialog state ───────────────────────────────────────
+  const [inviteOpen, setInviteOpen] = useState(false)
 
   // ── Layer state ────────────────────────────────────────────────
   const [activeLayers, setActiveLayers] = useState<string[]>([])
@@ -303,7 +310,7 @@ export default function CopWorkspacePage() {
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="sm" title="Invite collaborator">
+          <Button variant="ghost" size="sm" title="Invite collaborator" onClick={() => setInviteOpen(true)}>
             <UserPlus className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="sm" onClick={handleShare} title="Copy share link">
@@ -353,6 +360,14 @@ export default function CopWorkspacePage() {
           )}
         </div>
       </div>
+
+      {/* Invite dialog */}
+      <CopInviteDialog
+        sessionId={id!}
+        sessionName={session.name}
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+      />
     </div>
   )
 }
@@ -421,12 +436,17 @@ function ProgressLayout({
                 <CopQuestionsTab session={session} />
               </div>
               {expanded && (
-                <div className="border-t border-gray-700 pt-4">
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                    Requests for Information
-                  </h3>
-                  <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} />
-                </div>
+                <>
+                  <div className="border-t border-gray-700 pt-4">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                      Requests for Information
+                    </h3>
+                    <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} />
+                  </div>
+                  <div className="border-t border-gray-700 pt-4">
+                    <CopGapAnalysis sessionId={sessionId} />
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -450,6 +470,17 @@ function ProgressLayout({
       >
         {(expanded) => (
           <CopEvidenceFeed sessionId={sessionId} expanded={expanded} />
+        )}
+      </CopPanelExpander>
+
+      {/* Activity Log */}
+      <CopPanelExpander
+        title="Activity Log"
+        icon={<Activity className="h-4 w-4 text-gray-400" />}
+        collapsedHeight="h-[200px]"
+      >
+        {(expanded) => (
+          <CopActivityPanel sessionId={sessionId} expanded={expanded} />
         )}
       </CopPanelExpander>
 
@@ -521,7 +552,7 @@ function MonitorLayout({
         collapsedHeight="h-[500px]"
       >
         {(expanded) => (
-          <CopEvidenceFeed sessionId={sessionId} expanded={expanded} />
+          <CopEvidenceFeed sessionId={sessionId} expanded={expanded} monitorMode />
         )}
       </CopPanelExpander>
 
