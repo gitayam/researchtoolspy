@@ -9,10 +9,12 @@ import { cn } from '@/lib/utils'
 interface FeedItem {
   id: string
   type: 'evidence' | 'analysis' | 'entity' | 'framework' | 'url'
+  evidence_type?: string
   title: string
   description?: string
   url?: string
   created_at: string
+  entities?: Array<{ name: string } | string>
 }
 
 // ── Props ────────────────────────────────────────────────────────
@@ -54,6 +56,7 @@ export default function CopEvidenceFeed({ sessionId, expanded }: CopEvidenceFeed
   const [url, setUrl] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState<string>('all')
 
   // ── Fetch evidence ──────────────────────────────────────────
 
@@ -75,10 +78,12 @@ export default function CopEvidenceFeed({ sessionId, expanded }: CopEvidenceFeed
           (e: any) => ({
             id: e.id ?? crypto.randomUUID(),
             type: e.type ?? 'evidence',
+            evidence_type: e.evidence_type ?? undefined,
             title: e.title ?? e.name ?? 'Untitled',
             description: e.description ?? e.summary ?? undefined,
             url: e.url ?? e.source_url ?? undefined,
             created_at: e.created_at ?? e.created ?? new Date().toISOString(),
+            entities: e.entities ?? undefined,
           })
         )
 
@@ -153,7 +158,18 @@ export default function CopEvidenceFeed({ sessionId, expanded }: CopEvidenceFeed
 
   // ── Derived ─────────────────────────────────────────────────
 
-  const visibleItems = expanded ? items.slice(0, 100) : items.slice(0, 10)
+  const filteredItems = typeFilter === 'all'
+    ? items
+    : items.filter(item => {
+        const itemType = item.evidence_type ?? item.type ?? 'evidence'
+        if (typeFilter === 'evidence') return ['document', 'testimony', 'physical', 'digital', 'evidence'].includes(itemType)
+        if (typeFilter === 'analysis') return ['analysis', 'framework', 'synthesis'].includes(itemType)
+        if (typeFilter === 'entity') return ['actor', 'source', 'event', 'entity'].includes(itemType)
+        if (typeFilter === 'url_analysis') return itemType === 'url_analysis'
+        return true
+      })
+
+  const visibleItems = expanded ? filteredItems.slice(0, 100) : filteredItems.slice(0, 10)
 
   // ── Render ──────────────────────────────────────────────────
 
@@ -193,6 +209,25 @@ export default function CopEvidenceFeed({ sessionId, expanded }: CopEvidenceFeed
           {error && (
             <p className="text-xs text-red-400">{error}</p>
           )}
+        </div>
+
+        {/* Type filter bar */}
+        <div className="flex items-center gap-1.5 px-3 py-2 border-b border-gray-700 overflow-x-auto">
+          {['all', 'evidence', 'analysis', 'entity', 'url_analysis'].map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setTypeFilter(type)}
+              className={cn(
+                'px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors',
+                typeFilter === type
+                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                  : 'text-gray-500 hover:text-gray-400 border border-transparent hover:border-gray-700'
+              )}
+            >
+              {type === 'all' ? `All (${items.length})` : type === 'url_analysis' ? 'URL Analysis' : type.charAt(0).toUpperCase() + type.slice(1)}
+            </button>
+          ))}
         </div>
 
         {/* Feed list */}
@@ -244,6 +279,21 @@ export default function CopEvidenceFeed({ sessionId, expanded }: CopEvidenceFeed
                       <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">
                         {item.description}
                       </p>
+                    )}
+                    {/* Entity tags */}
+                    {item.entities && item.entities.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.entities.slice(0, 3).map((entity: any, i: number) => (
+                          <span key={i} className="px-1.5 py-0.5 rounded text-[9px] bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                            {entity.name ?? entity}
+                          </span>
+                        ))}
+                        {item.entities.length > 3 && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] text-gray-500">
+                            +{item.entities.length - 3} more
+                          </span>
+                        )}
+                      </div>
                     )}
                     <span className="text-[10px] text-gray-500 mt-0.5 block">
                       {timeAgo(item.created_at)}
