@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { FileText, Globe, Users, Brain, Link, ExternalLink, Loader2, Send } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,6 +22,7 @@ interface FeedItem {
 interface CopEvidenceFeedProps {
   sessionId: string
   expanded: boolean
+  monitorMode?: boolean
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -50,13 +51,17 @@ const TYPE_CONFIG: Record<FeedItem['type'], { icon: typeof FileText; color: stri
 
 // ── Component ────────────────────────────────────────────────────
 
-export default function CopEvidenceFeed({ sessionId, expanded }: CopEvidenceFeedProps) {
+export default function CopEvidenceFeed({ sessionId, expanded, monitorMode = false }: CopEvidenceFeedProps) {
   const [items, setItems] = useState<FeedItem[]>([])
   const [loading, setLoading] = useState(true)
   const [url, setUrl] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [newItemCount, setNewItemCount] = useState(0)
+  const [autoScroll, setAutoScroll] = useState(true)
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const prevItemCountRef = useRef(0)
 
   // ── Fetch evidence ──────────────────────────────────────────
 
@@ -101,6 +106,59 @@ export default function CopEvidenceFeed({ sessionId, expanded }: CopEvidenceFeed
     fetchEvidence()
     return () => { cancelled = true }
   }, [sessionId])
+
+  // Polling in monitor mode
+  useEffect(() => {
+    if (!monitorMode) {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+      return
+    }
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+        const userHash = localStorage.getItem('omnicore_user_hash')
+        if (userHash) headers['X-User-Hash'] = userHash
+
+        const res = await fetch(`/api/evidence?workspace_id=${sessionId}&limit=50`, { headers })
+        if (!res.ok) return
+        const data = await res.json()
+        const newItems: FeedItem[] = (data.evidence ?? data.items ?? []).map((e: any) => ({
+          id: e.id,
+          type: 'evidence' as const,
+          evidence_type: e.evidence_type ?? e.type,
+          title: e.title ?? e.name ?? 'Untitled',
+          description: e.description ?? e.content?.substring(0, 200),
+          url: e.source_url ?? e.url,
+          created_at: e.created_at ?? new Date().toISOString(),
+          entities: e.entities,
+        }))
+
+        // Check for new items
+        const currentCount = newItems.length
+        if (currentCount > prevItemCountRef.current && prevItemCountRef.current > 0) {
+          setNewItemCount(currentCount - prevItemCountRef.current)
+        }
+        prevItemCountRef.current = currentCount
+
+        // Update items (this is a full refresh, not incremental)
+        // We use a setter function to avoid stale closures
+        setItems(newItems)
+      } catch {
+        // Silent failure on polling
+      }
+    }, 30000)
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+    }
+  }, [monitorMode, sessionId])
 
   // ── URL analysis ────────────────────────────────────────────
 
@@ -180,7 +238,7 @@ export default function CopEvidenceFeed({ sessionId, expanded }: CopEvidenceFeed
         <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-wider">Evidence</h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+      <div id="evidence-feed-scroll" className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
         {/* URL input */}
         <div className="space-y-1.5">
           <div className="flex gap-1.5">
@@ -229,6 +287,36 @@ export default function CopEvidenceFeed({ sessionId, expanded }: CopEvidenceFeed
             </button>
           ))}
         </div>
+
+        {/* Monitor mode controls */}
+        {monitorMode && (
+          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-gray-700 bg-gray-800/50">
+            {newItemCount > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNewItemCount(0)
+                  // Scroll to top
+                  const feedEl = document.getElementById('evidence-feed-scroll')
+                  if (feedEl) feedEl.scrollTop = 0
+                }}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-medium animate-pulse"
+              >
+                {newItemCount} new item{newItemCount !== 1 ? 's' : ''}
+              </button>
+            )}
+            <div className="flex-1" />
+            <label className="flex items-center gap-1.5 text-[10px] text-gray-500 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoScroll}
+                onChange={(e) => setAutoScroll(e.target.checked)}
+                className="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 h-3 w-3"
+              />
+              Auto-scroll
+            </label>
+          </div>
+        )}
 
         {/* Feed list */}
         {loading ? (
