@@ -23,44 +23,146 @@ interface ExtractClaimsRequest {
   include_summary?: boolean   // default true
 }
 
-// ─── Content extraction (mirrors content-intelligence pipeline) ───
+interface OgMetadata {
+  title?: string
+  description?: string
+  author?: string
+  publishDate?: string
+  siteName?: string
+}
 
-function extractMetaTag(html: string, tag: string): string | undefined {
-  // Try property-based meta tags (Open Graph, article:*)
-  const propertyMatch = html.match(
-    new RegExp(`<meta[^>]+property=["'](?:og:|article:)?${tag}["'][^>]+content=["']([^"']+)["']`, 'i')
-  )
-  if (propertyMatch) return propertyMatch[1].replace(/&amp;/g, '&').replace(/&#039;/g, "'").replace(/&quot;/g, '"')
+// ─── Paywall detection ───
 
-  // Try name-based meta tags
-  const nameMatch = html.match(
-    new RegExp(`<meta[^>]+name=["']${tag}["'][^>]+content=["']([^"']+)["']`, 'i')
-  )
-  if (nameMatch) return nameMatch[1].replace(/&amp;/g, '&').replace(/&#039;/g, "'").replace(/&quot;/g, '"')
+const PAYWALL_INDICATORS = [
+  'subscribe to read', 'subscribe to continue', 'subscription required',
+  'sign in to read', 'sign in to continue', 'log in to read',
+  'register to read', 'create an account', 'premium content',
+  'this content is for subscribers', 'subscribers only',
+  'already a subscriber', 'become a member', 'start your free trial',
+  'to unlock this article', 'unlock full access', 'get unlimited access',
+  'read the full story', 'continue reading for', 'paywall',
+  'you\'ve reached your limit', 'article limit', 'articles remaining',
+  'free articles', 'monthly limit',
+]
+
+function isPaywalledContent(text: string, html: string): boolean {
+  const lower = text.toLowerCase()
+  const lowerHtml = html.toLowerCase()
+
+  // Check text for paywall phrases
+  const hasPaywallPhrase = PAYWALL_INDICATORS.some(p => lower.includes(p))
+  if (hasPaywallPhrase) return true
+
+  // Check for paywall meta tags or classes
+  if (lowerHtml.includes('class="paywall"') ||
+      lowerHtml.includes('id="paywall"') ||
+      lowerHtml.includes('data-paywall') ||
+      lowerHtml.includes('class="barrier"') ||
+      lowerHtml.includes('class="gate"') ||
+      lowerHtml.includes('name="robots" content="noarchive"')) {
+    return true
+  }
+
+  // Very short article body relative to HTML size = likely paywall
+  // Real articles typically have >500 words; paywall pages have <200 words of actual content
+  const wordCount = text.split(/\s+/).length
+  if (wordCount < 150 && html.length > 10000) return true
+
+  return false
+}
+
+// ─── Content extraction ───
+
+function extractOgMetadata(html: string): OgMetadata {
+  const meta: OgMetadata = {}
+
+  // OG tags
+  const ogTitle = extractMetaContent(html, 'og:title')
+  const ogDesc = extractMetaContent(html, 'og:description')
+  const ogSite = extractMetaContent(html, 'og:site_name')
+
+  // Twitter cards
+  const twTitle = extractMetaContent(html, 'twitter:title')
+  const twDesc = extractMetaContent(html, 'twitter:description')
+
+  // Standard meta
+  const metaDesc = extractMetaByName(html, 'description')
+  const metaAuthor = extractMetaByName(html, 'author')
+  const articleAuthor = extractMetaContent(html, 'article:author')
+  const pubDate = extractMetaContent(html, 'article:published_time')
 
   // Title tag
-  if (tag === 'title') {
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-    if (titleMatch) return titleMatch[1].trim().replace(/&amp;/g, '&').replace(/&#039;/g, "'")
-  }
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+  const pageTitle = titleMatch ? decodeEntities(titleMatch[1].trim()) : undefined
+
+  meta.title = ogTitle || twTitle || pageTitle
+  meta.description = ogDesc || twDesc || metaDesc
+  meta.author = articleAuthor || metaAuthor
+  meta.publishDate = pubDate
+  meta.siteName = ogSite
+
+  return meta
+}
+
+function extractMetaContent(html: string, property: string): string | undefined {
+  // property="og:title" content="..."
+  const propMatch = html.match(
+    new RegExp(`<meta[^>]+property=["']${property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]+content=["']([^"']+)["']`, 'i')
+  )
+  if (propMatch) return decodeEntities(propMatch[1])
+
+  // content="..." property="og:title"  (reversed order)
+  const revMatch = html.match(
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`, 'i')
+  )
+  if (revMatch) return decodeEntities(revMatch[1])
 
   return undefined
 }
 
+function extractMetaByName(html: string, name: string): string | undefined {
+  const nameMatch = html.match(
+    new RegExp(`<meta[^>]+name=["']${name}["'][^>]+content=["']([^"']+)["']`, 'i')
+  )
+  if (nameMatch) return decodeEntities(nameMatch[1])
+
+  const revMatch = html.match(
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+name=["']${name}["']`, 'i')
+  )
+  if (revMatch) return decodeEntities(revMatch[1])
+
+  return undefined
+}
+
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#8217;/g, "\u2019")
+    .replace(/&#8216;/g, "\u2018")
+    .replace(/&#8220;/g, "\u201C")
+    .replace(/&#8221;/g, "\u201D")
+}
+
 function cleanHtmlText(html: string): string {
   let text = html
-  // Remove scripts, styles, nav, footer, header, aside
+  // Remove scripts, styles, nav, footer, header, aside, forms
   text = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
   text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
   text = text.replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, '')
   text = text.replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '')
   text = text.replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, '')
   text = text.replace(/<aside\b[^<]*(?:(?!<\/aside>)<[^<]*)*<\/aside>/gi, '')
+  text = text.replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '')
   // Remove all remaining tags
   text = text.replace(/<[^>]+>/g, ' ')
-  // Decode common entities
-  text = text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&nbsp;/g, ' ')
+  // Decode entities
+  text = decodeEntities(text).replace(/&nbsp;/g, ' ')
   // Collapse whitespace
   text = text.replace(/\s+/g, ' ').trim()
   return text
@@ -68,33 +170,85 @@ function cleanHtmlText(html: string): string {
 
 async function fetchWithFallback(url: string): Promise<{
   html: string
-  title: string
-  author?: string
-  publishDate?: string
+  text: string
+  ogMetadata: OgMetadata
   source: string
+  paywalled: boolean
   error?: string
 }> {
+  let ogMetadata: OgMetadata = {}
+  let paywalled = false
+
   // 1. Try original URL with enhanced browser headers
   try {
     const response = await enhancedFetch(url, { maxRetries: 2, retryDelay: 500 })
     if (response.ok) {
       const html = await response.text()
+      ogMetadata = extractOgMetadata(html)
       const text = cleanHtmlText(html)
-      if (text.length > 200) {
-        return {
-          html,
-          title: extractMetaTag(html, 'title') || url,
-          author: extractMetaTag(html, 'author'),
-          publishDate: extractMetaTag(html, 'article:published_time'),
-          source: 'original'
-        }
+
+      if (text.length > 200 && !isPaywalledContent(text, html)) {
+        return { html, text, ogMetadata, source: 'original', paywalled: false }
+      }
+
+      if (isPaywalledContent(text, html)) {
+        paywalled = true
+        console.log(`[ExtractClaims] Paywall detected on original, trying fallbacks... (OG: "${ogMetadata.title}")`)
       }
     }
   } catch (e) {
     console.log('[ExtractClaims] Original fetch failed, trying fallbacks...')
   }
 
-  // 2. Try archive.ph
+  // 2. Try Google AMP cache (works for many news sites)
+  try {
+    const ampUrl = `https://cdn.ampproject.org/v/s/${url.replace(/^https?:\/\//, '')}?amp_js_v=0.1`
+    const ampResp = await fetch(ampUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      redirect: 'follow'
+    })
+    if (ampResp.ok) {
+      const html = await ampResp.text()
+      const text = cleanHtmlText(html)
+      if (text.length > 500 && !isPaywalledContent(text, html)) {
+        const meta = extractOgMetadata(html)
+        return {
+          html, text,
+          ogMetadata: { ...ogMetadata, ...meta },
+          source: 'google-amp',
+          paywalled: false
+        }
+      }
+    }
+  } catch (e) {
+    console.log('[ExtractClaims] AMP cache failed')
+  }
+
+  // 3. Try Google webcache
+  try {
+    const cacheUrl = `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(url)}`
+    const cacheResp = await fetch(cacheUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      redirect: 'follow'
+    })
+    if (cacheResp.ok) {
+      const html = await cacheResp.text()
+      const text = cleanHtmlText(html)
+      if (text.length > 500 && !isPaywalledContent(text, html)) {
+        const meta = extractOgMetadata(html)
+        return {
+          html, text,
+          ogMetadata: { ...ogMetadata, ...meta },
+          source: 'google-cache',
+          paywalled: false
+        }
+      }
+    }
+  } catch (e) {
+    console.log('[ExtractClaims] Google cache failed')
+  }
+
+  // 4. Try archive.ph
   try {
     const archiveResp = await fetch(`https://archive.ph/newest/${url}`, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
@@ -103,12 +257,13 @@ async function fetchWithFallback(url: string): Promise<{
     if (archiveResp.ok) {
       const html = await archiveResp.text()
       const text = cleanHtmlText(html)
-      if (text.length > 200) {
+      if (text.length > 500 && !isPaywalledContent(text, html)) {
+        const meta = extractOgMetadata(html)
         return {
-          html,
-          title: extractMetaTag(html, 'title') || url,
-          author: extractMetaTag(html, 'author'),
-          source: 'archive.ph'
+          html, text,
+          ogMetadata: { ...ogMetadata, ...meta },
+          source: 'archive.ph',
+          paywalled: false
         }
       }
     }
@@ -116,7 +271,7 @@ async function fetchWithFallback(url: string): Promise<{
     console.log('[ExtractClaims] archive.ph failed')
   }
 
-  // 3. Try Wayback Machine
+  // 5. Try Wayback Machine
   try {
     const wbResp = await fetch(
       `https://archive.org/wayback/available?url=${encodeURIComponent(url)}`
@@ -130,11 +285,15 @@ async function fetchWithFallback(url: string): Promise<{
         })
         if (archiveResp.ok) {
           const html = await archiveResp.text()
-          return {
-            html,
-            title: extractMetaTag(html, 'title') || url,
-            author: extractMetaTag(html, 'author'),
-            source: 'wayback'
+          const text = cleanHtmlText(html)
+          if (text.length > 500) {
+            const meta = extractOgMetadata(html)
+            return {
+              html, text,
+              ogMetadata: { ...ogMetadata, ...meta },
+              source: 'wayback',
+              paywalled: false
+            }
           }
         }
       }
@@ -143,7 +302,19 @@ async function fetchWithFallback(url: string): Promise<{
     console.log('[ExtractClaims] Wayback failed')
   }
 
-  return { html: '', title: url, source: 'failed', error: 'All fetch methods failed' }
+  // 6. All real sources failed — return OG metadata if we have it
+  if (ogMetadata.title && ogMetadata.title.length > 10) {
+    const syntheticText = [ogMetadata.title, ogMetadata.description].filter(Boolean).join('. ')
+    return {
+      html: '',
+      text: syntheticText,
+      ogMetadata,
+      source: 'og-metadata-only',
+      paywalled
+    }
+  }
+
+  return { html: '', text: '', ogMetadata, source: 'failed', paywalled, error: 'All fetch methods failed' }
 }
 
 // ─── GPT analysis ───
@@ -152,9 +323,20 @@ async function analyzeContent(
   text: string,
   title: string,
   env: Env,
-  options: { include_entities: boolean; include_summary: boolean }
+  options: {
+    include_entities: boolean
+    include_summary: boolean
+    source: string
+    paywalled: boolean
+  }
 ): Promise<any> {
   const truncated = text.substring(0, 14000)
+
+  // Adjust prompt based on how much content we have
+  const isPartial = options.source === 'og-metadata-only' || text.length < 500
+  const contentQualifier = isPartial
+    ? `NOTE: Only partial content is available (likely paywalled). Extract what you can from the title and description. For claims you cannot verify from the available text, set confidence to 0.3 and note "inferred from headline" in the source field. Still generate suggested_market questions based on the topic.\n\n`
+    : ''
 
   const entityBlock = options.include_entities ? `
 PART 2 — ENTITIES
@@ -177,7 +359,7 @@ Write a 2-3 sentence summary of the article.` : ''
       "source": "who said/reported this",
       "confidence": 0.0-1.0,
       "market_potential": "high|medium|low",
-      "suggested_market": "Optional: how this could be framed as a yes/no prediction market question"
+      "suggested_market": "How this could be framed as a yes/no prediction market question"
     }
   ]${options.include_entities ? `,
   "entities": {
@@ -192,7 +374,7 @@ Write a 2-3 sentence summary of the article.` : ''
   const prompt = `Analyze this article for prediction market research.
 
 Article Title: ${title}
-
+${contentQualifier}
 PART 1 — CLAIMS EXTRACTION
 Extract 5-15 objective, verifiable claims that could map to prediction market outcomes.
 
@@ -206,10 +388,11 @@ Categories:
 Rules:
 - Each claim MUST be self-contained (understandable without the article)
 - Include specific names, dates, locations, numbers
-- For each claim, suggest how it could be a yes/no market question
+- EVERY claim MUST have a suggested_market: a clear yes/no question suitable for a prediction market (e.g., "Will X happen by Y date?", "Will X reach Y?")
 - market_potential: "high" = directly maps to yes/no, "medium" = needs framing, "low" = hard to bet on
 - NO opinions, editorials, or vague speculation
 - Prioritize claims with clear resolvable outcomes
+- suggested_market questions should be specific, time-bound when possible, and resolvable
 ${entityBlock}
 ${summaryBlock}
 
@@ -224,7 +407,7 @@ ${truncated}`
     messages: [
       {
         role: 'system',
-        content: 'You are an expert analyst specializing in extracting verifiable claims from news articles for prediction market matching. Extract specific, actionable claims with clear outcomes. Return ONLY valid JSON.'
+        content: 'You are an expert analyst specializing in extracting verifiable claims from news articles for prediction market matching. Extract specific, actionable claims with clear outcomes. EVERY claim must include a suggested_market question phrased as a yes/no prediction market question. Return ONLY valid JSON.'
       },
       { role: 'user', content: prompt }
     ],
@@ -260,47 +443,55 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.log(`[ExtractClaims] Fetching ${url}...`)
     const fetched = await fetchWithFallback(url)
 
-    if (fetched.error || !fetched.html) {
+    if (fetched.error && !fetched.text) {
       return new Response(JSON.stringify({
         error: 'Failed to fetch content',
-        details: fetched.error || 'Empty response from all sources'
+        details: fetched.error || 'Empty response from all sources',
+        og_metadata: fetched.ogMetadata,
+        paywalled: fetched.paywalled
       }), {
         status: 422,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
-    // 2. Extract clean text
-    const text = cleanHtmlText(fetched.html)
-    const wordCount = text.split(/\s+/).length
+    // 2. Check content quality
+    const wordCount = fetched.text.split(/\s+/).length
 
-    if (text.length < 100) {
+    if (fetched.text.length < 30) {
       return new Response(JSON.stringify({
         error: 'Insufficient content',
-        details: `Only ${text.length} characters extracted. Page may be JavaScript-rendered or paywalled.`,
-        source: fetched.source
+        details: `Only ${fetched.text.length} characters extracted. Page may be JavaScript-rendered or paywalled.`,
+        source: fetched.source,
+        og_metadata: fetched.ogMetadata,
+        paywalled: fetched.paywalled
       }), {
         status: 422,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
-    console.log(`[ExtractClaims] Extracted ${wordCount} words from ${fetched.source}`)
+    const title = fetched.ogMetadata.title || fetched.text.substring(0, 100)
+    console.log(`[ExtractClaims] Extracted ${wordCount} words from ${fetched.source} (paywalled: ${fetched.paywalled})`)
 
     // 3. Run GPT analysis (claims + entities + summary)
-    const analysis = await analyzeContent(text, fetched.title, context.env, {
+    const analysis = await analyzeContent(fetched.text, title, context.env, {
       include_entities,
-      include_summary
+      include_summary,
+      source: fetched.source,
+      paywalled: fetched.paywalled
     })
 
     // 4. Return structured response
     return new Response(JSON.stringify({
       url,
-      title: fetched.title,
-      author: fetched.author,
-      publish_date: fetched.publishDate,
+      title,
+      author: fetched.ogMetadata.author,
+      publish_date: fetched.ogMetadata.publishDate,
+      site_name: fetched.ogMetadata.siteName,
       content_source: fetched.source,
       word_count: wordCount,
+      paywalled: fetched.paywalled,
       claims: analysis.claims || [],
       entities: analysis.entities || null,
       summary: analysis.summary || null,

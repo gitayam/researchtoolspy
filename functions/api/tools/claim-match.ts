@@ -9,6 +9,7 @@ interface Env {
 
 interface ClaimMatchRequest {
   claim: string
+  claims?: string[]  // Additional claims for richer context
   candidates: Array<{
     slug: string
     title: string
@@ -41,8 +42,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (body.candidates.length > 20) {
-      return new Response(JSON.stringify({ error: 'Maximum 20 candidates per request' }), {
+    if (body.candidates.length > 25) {
+      return new Response(JSON.stringify({ error: 'Maximum 25 candidates per request' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
@@ -52,14 +53,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       `${i + 1}. slug: "${c.slug}" | title: "${c.title}" | description: "${(c.description || '').substring(0, 200)}"`
     ).join('\n')
 
-    const systemPrompt = `You are a prediction market analyst. Given a claim or research finding, score how relevant each candidate Polymarket market is to that claim.
+    // Build context from primary claim + additional claims
+    const additionalContext = body.claims && body.claims.length > 0
+      ? `\n\nADDITIONAL CONTEXT (related claims from the same source):\n${body.claims.slice(0, 10).map((c, i) => `- ${c}`).join('\n')}`
+      : ''
+
+    const systemPrompt = `You are a prediction market analyst. Given a claim (and optionally additional related claims for context), score how relevant each candidate Polymarket market is.
 
 SCORING GUIDE:
-- 90-100: Direct match — the market is explicitly about this claim
-- 70-89: Strong match — the market covers the same topic/event with minor differences
-- 40-69: Partial match — related topic but different specific question
+- 90-100: Direct match — the market is explicitly about this claim or event
+- 70-89: Strong match — the market covers the same topic/event/person with minor differences in framing
+- 40-69: Partial match — related topic area but different specific question
 - 10-39: Weak match — tangentially related at best
 - 0-9: No match
+
+IMPORTANT MATCHING RULES:
+- Focus on SEMANTIC meaning, not exact word overlap
+- "Will X happen?" matches claims about X happening or being planned
+- Claims about a person/country/topic match markets about the same person/country/topic
+- A claim about "tariffs on China" should match markets about "US-China trade war", "China tariffs", etc.
+- Consider the ADDITIONAL CONTEXT claims to understand the broader topic — a market matching ANY of the context claims should score higher
+- Be generous with partial matches (40-69) when the topic area overlaps
 
 Return ONLY valid JSON in this exact structure:
 {
@@ -70,12 +84,12 @@ Return ONLY valid JSON in this exact structure:
 
 Include ALL candidates in the results array. Sort by relevance descending.`
 
-    const userPrompt = `CLAIM: "${body.claim}"
+    const userPrompt = `PRIMARY CLAIM: "${body.claim}"${additionalContext}
 
 CANDIDATE MARKETS:
 ${candidateList}
 
-Score each candidate's relevance to the claim.`
+Score each candidate's relevance to the claim and its broader topic.`
 
     const aiData = await callOpenAIViaGateway(context.env, {
       model: 'gpt-4o-mini',
