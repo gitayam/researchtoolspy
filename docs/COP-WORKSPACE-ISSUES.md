@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-09 (cycle 11)
+> Last updated: 2026-03-09 (cycle 12)
 > Source: Live production data audit against `cop-b0f96023-cdf` / workspace `6fde45ce-ae4b-4ff0-97c6-d2773a6ff108`
 
 ## Status Legend
@@ -166,7 +166,7 @@
 **Status:** Partially addressed in `docs/COP-WORKSPACE-API.md` (964 lines)
 
 ### L2. E2E Test Coverage
-**Status:** ALL PASSING — 158 pass / 0 fail / 16 skip (2026-03-09 cycle 11)
+**Status:** ALL PASSING — 158 pass / 0 fail / 16 skip (2026-03-09 cycle 12)
 **Key fixes this round:**
 - `networkidle` → `domcontentloaded` in workspace POM (was still using networkidle)
 - Mode toggle buttons: added `data-testid="mode-progress"` / `data-testid="mode-monitor"` for mobile viewport compatibility

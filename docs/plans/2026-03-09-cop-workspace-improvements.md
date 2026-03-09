@@ -67,11 +67,16 @@
 | 18 | Three-column wide layout (Phase 5) | 1440px+ sticky evidence sidebar + activity log | DONE (2026-03-09) |
 | 19 | Accessibility polish (Phase 6) | ARIA landmarks, reduced motion, focus management, Escape key | DONE (2026-03-09) |
 | 20 | Framework count query fix | JSON_ARRAY_LENGTH(linked_frameworks) instead of wrong table | DONE (2026-03-09) |
-| 21 | COP responsive layout | dvh height, mobile sidebar toggle, error boundaries, full-bleed layout | IN PROGRESS |
+| 21 | COP responsive layout | dvh height, mobile sidebar toggle, error boundaries, full-bleed layout | DONE (2026-03-09) |
 | 22 | CopLayerPanel loading skeleton | Skeleton loaders + empty layer indicator | DONE (2026-03-09) |
 | 23 | CopEventSidebar error boundary | TabErrorBoundary with retry for crashed tabs | DONE (2026-03-09) |
+| 24 | Dark mode cycle 11 | 6 fixes in CopGlobalCaptureBar + CopEvidenceFeed | DONE (2026-03-09) |
+| 25 | RageCheck manipulation detector | 5-category scoring in analyze-url sentiment | DONE (2026-03-09) |
+| 26 | Schema alignment | actor_type→type, owner→ADMIN, graceful DB errors | DONE (2026-03-09) |
+| 27 | OSINT search fallback chain | DuckDuckGo + public SearXNG fallbacks | DONE (2026-03-09) |
+| 28 | Git cleanup | Committed all untracked COP files, E2E infra, migrations, plans | DONE (2026-03-09) |
 
-## Investigation Data Status (2026-03-09 cycle 6)
+## Investigation Data Status (2026-03-09 cycle 12)
 
 | Data | Count | Notes |
 |------|-------|-------|

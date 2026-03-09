@@ -1,5 +1,18 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-09 - COP Workspace Cycle 12
+
+### Git Hygiene: Commit Untracked Files Regularly
+Over 12 cycles, many files were created but never committed (personas API, evidence-tags API, E2E infrastructure, migrations 061-063, tool pages). This makes `git status` noisy and risks losing work. Commit new files as soon as they pass basic verification, even if they're not the focus of the current cycle.
+
+### Search Resilience: Fallback Chain Pattern
+The OSINT agent's SearXNG dependency was a single point of failure. Adding a fallback chain (primary container → 5 public instances → DuckDuckGo library) ensures search works even when the container is down. Pattern: try endpoints in order, return first success, log which endpoint worked.
+
+### RageCheck: Extend Existing Endpoints
+Rather than creating a new `/api/rage-check` endpoint, the manipulation scoring was added to the existing `analyzeSentiment()` function in `analyze-url.ts`. This avoids an extra API call and keeps all content analysis in one response. Backwards-compatible via null defaults.
+
+---
+
 ## Session: 2026-03-09 - COP Workspace Cycle 11
 
 ### Stats Queries Must Match Data Model
