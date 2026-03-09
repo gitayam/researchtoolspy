@@ -7,6 +7,8 @@
  * Markers are CoT-compatible tactical points that can be placed manually
  * or programmatically on the COP map. They support stale times for
  * automatic expiration and CoT type codes for ATAK interoperability.
+ *
+ * Supported source_type values: MANUAL, ENTITY, ACLED, GDELT, FRAMEWORK, EVIDENCE, HYPOTHESIS
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
@@ -88,13 +90,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const staleMinutes = body.stale_minutes === null ? null : Math.min(Math.max(body.stale_minutes ?? 5, 1), 1440)
     const staleTime = staleMinutes === null ? null : new Date(Date.now() + staleMinutes * 60000).toISOString()
 
+    const confidence = ['CONFIRMED', 'PROBABLE', 'POSSIBLE', 'SUSPECTED', 'DOUBTFUL'].includes(body.confidence)
+      ? body.confidence : 'POSSIBLE'
+
     await env.DB.prepare(`
       INSERT INTO cop_markers (
         id, cop_session_id, uid, cot_type, callsign,
         lat, lon, hae, label, description, icon, color, detail,
         event_time, stale_time, source_type, source_id,
-        workspace_id, created_by, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        workspace_id, created_by, created_at, confidence, rationale
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id, sessionId, uid,
       body.cot_type || 'a-u-G',
@@ -109,6 +114,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.source_type || 'MANUAL',
       body.source_id || null,
       workspaceId, userId, now,
+      confidence,
+      body.rationale || null,
+    ).run()
+
+    // Insert changelog entry for marker creation
+    const changelogId = `mcl-${crypto.randomUUID().slice(0, 12)}`
+    await env.DB.prepare(`
+      INSERT INTO cop_marker_changelog (
+        id, marker_id, cop_session_id, action, new_value,
+        rationale, created_by, created_by_name, created_at
+      ) VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?)
+    `).bind(
+      changelogId, id, sessionId,
+      JSON.stringify({ lat: body.lat, lon: body.lon, label: body.label || null, confidence }),
+      body.rationale || null,
+      userId,
+      body.created_by_name || null,
+      now,
     ).run()
 
     return new Response(JSON.stringify({ id, uid, message: 'Marker created' }), {

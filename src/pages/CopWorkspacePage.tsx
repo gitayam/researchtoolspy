@@ -34,6 +34,7 @@ import {
   MapPinned,
   BookOpen,
   Eye,
+  ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -58,6 +59,7 @@ import CopBlockerStrip from '@/components/cop/CopBlockerStrip'
 import CopPersonaPanel from '@/components/cop/CopPersonaPanel'
 import CopEvidencePersonaLinkDialog from '@/components/cop/CopEvidencePersonaLinkDialog'
 import CopEntityDrawer from '@/components/cop/CopEntityDrawer'
+import CopTaskBoard from '@/components/cop/CopTaskBoard'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
 
@@ -832,6 +834,17 @@ function ProgressLayout({
           )}
         </CopPanelExpander>
       </div>
+
+      {/* Row 2.5: Task Board */}
+      <CopPanelExpander
+        title="Task Board"
+        icon={<ClipboardList className="h-4 w-4 text-orange-400" />}
+        collapsedHeight="h-[200px]"
+      >
+        {(expanded) => (
+          <CopTaskBoard sessionId={sessionId} expanded={expanded} />
+        )}
+      </CopPanelExpander>
 
       {/* Row 3: Evidence & Intel Feed (full-width) */}
       <CopPanelExpander
