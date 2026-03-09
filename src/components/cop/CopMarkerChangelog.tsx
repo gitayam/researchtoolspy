@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import {
   MapPin,
   Shield,
@@ -60,13 +61,6 @@ function timeAgo(dateStr: string): string {
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
   return `${Math.floor(seconds / 86400)}d ago`
-}
-
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['x-user-hash'] = userHash
-  return headers
 }
 
 function actionIcon(action: string) {
@@ -171,7 +165,7 @@ export default function CopMarkerChangelog({
     try {
       const res = await fetch(
         `/api/cop/${sessionId}/marker-changelog?marker_id=${encodeURIComponent(markerId)}`,
-        { headers: getHeaders() },
+        { headers: getCopHeaders() },
       )
       if (!res.ok) throw new Error(`Failed to fetch changelog (${res.status})`)
       const data = await res.json()

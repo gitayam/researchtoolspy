@@ -23,6 +23,7 @@ import {
   Database,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -73,16 +74,6 @@ const ENTITY_TYPE_MAP: Record<string, string> = {
 function detectEntityLabel(input: string): string | null {
   const match = input.trim().match(/^\+(actor|event|place|source|behavior)\s/i)
   return match ? match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase() : null
-}
-
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) {
-    headers['Authorization'] = `Bearer ${userHash}`
-    headers['X-User-Hash'] = userHash
-  }
-  return headers
 }
 
 const RECENT_KEY = 'cop_quick_capture_recent'
@@ -176,7 +167,7 @@ export default function CopGlobalCapture({
         case 'url': {
           res = await fetch('/api/content-intelligence/analyze-url', {
             method: 'POST',
-            headers: getHeaders(),
+            headers: getCopHeaders(),
             body: JSON.stringify({ url: trimmed, workspace_id: sessionId }),
           })
           break
@@ -186,7 +177,7 @@ export default function CopGlobalCapture({
           if (!question) throw new Error('RFI question cannot be empty')
           res = await fetch(`/api/cop/${sessionId}/rfis`, {
             method: 'POST',
-            headers: getHeaders(),
+            headers: getCopHeaders(),
             body: JSON.stringify({ question, priority: 'medium' }),
           })
           break
@@ -196,7 +187,7 @@ export default function CopGlobalCapture({
           if (!statement) throw new Error('Hypothesis statement cannot be empty')
           res = await fetch(`/api/cop/${sessionId}/hypotheses`, {
             method: 'POST',
-            headers: getHeaders(),
+            headers: getCopHeaders(),
             body: JSON.stringify({ statement }),
           })
           break
@@ -212,7 +203,7 @@ export default function CopGlobalCapture({
         default: {
           res = await fetch('/api/evidence', {
             method: 'POST',
-            headers: getHeaders(),
+            headers: getCopHeaders(),
             body: JSON.stringify({
               title: trimmed.slice(0, 100),
               description: trimmed,

@@ -61,6 +61,7 @@ import CopTaskBoard from '@/components/cop/CopTaskBoard'
 import CopSidebar from '@/components/cop/CopSidebar'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Template labels ──────────────────────────────────────────────
 
@@ -71,15 +72,6 @@ const TEMPLATE_LABELS: Record<string, string> = {
   crisis_response: 'Crisis Response',
   event_analysis: 'Event Analysis',
   custom: 'Custom',
-}
-
-// ── Auth headers ──────────────────────────────────────────────────
-
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
 }
 
 // ── Entities Quick-Access Panel ──────────────────────────────────
@@ -228,7 +220,7 @@ export default function CopWorkspacePage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/cop/sessions/${id}`, { headers: getHeaders(), signal })
+      const res = await fetch(`/api/cop/sessions/${id}`, { headers: getCopHeaders(), signal })
       if (!res.ok) throw new Error(`Server responded with ${res.status}`)
       const data = await res.json()
       const sess: CopSession = data.session ?? data
@@ -256,7 +248,7 @@ export default function CopWorkspacePage() {
   // Fetch workspace stats (shared by sidebar + entities panel)
   useEffect(() => {
     if (!id) return
-    fetch(`/api/cop/${id}/stats`, { headers: getHeaders() })
+    fetch(`/api/cop/${id}/stats`, { headers: getCopHeaders() })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.stats) setWorkspaceStats(data.stats) })
       .catch(() => {})
@@ -271,7 +263,7 @@ export default function CopWorkspacePage() {
 
       try {
         const endpoint = `/api/cop/${id}${layerDef.source.endpoint}`
-        const res = await fetch(endpoint, { headers: getHeaders() })
+        const res = await fetch(endpoint, { headers: getCopHeaders() })
         if (!res.ok) return
 
         const fc: CopFeatureCollection = await res.json()
@@ -423,7 +415,7 @@ export default function CopWorkspacePage() {
       try {
         await fetch(`/api/cop/${id}/markers`, {
           method: 'POST',
-          headers: getHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify({
             lat,
             lon,
@@ -477,7 +469,7 @@ export default function CopWorkspacePage() {
         try {
           await fetch(`/api/cop/sessions/${id}`, {
             method: 'PUT',
-            headers: getHeaders(),
+            headers: getCopHeaders(),
             body: JSON.stringify({ active_layers: newLayers }),
           })
         } catch {
@@ -500,7 +492,7 @@ export default function CopWorkspacePage() {
       try {
         const res = await fetch(`/api/cop/sessions/${id}`, {
           method: 'PUT',
-          headers: getHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify({ mission_brief: brief }),
         })
         if (!res.ok) throw new Error('Failed to update mission brief')
@@ -748,7 +740,7 @@ export default function CopWorkspacePage() {
           setShowMap(true)
           fetch(`/api/cop/${id}/markers`, {
             method: 'POST',
-            headers: getHeaders(),
+            headers: getCopHeaders(),
             body: JSON.stringify({
               lat, lon,
               label,

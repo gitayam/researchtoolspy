@@ -25,6 +25,7 @@ import CopLayerPanel from '@/components/cop/CopLayerPanel'
 import CopEventSidebar from '@/components/cop/CopEventSidebar'
 import { COP_LAYERS, getLayerById } from '@/components/cop/CopLayerCatalog'
 import type { CopSession, CopFeatureCollection, CopLayerDef } from '@/types/cop'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Template labels ──────────────────────────────────────────────
 
@@ -39,12 +40,6 @@ const TEMPLATE_LABELS: Record<string, string> = {
 
 // ── Auth headers ──────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 // ── Component ────────────────────────────────────────────────────
 
@@ -74,7 +69,7 @@ export default function CopPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/cop/sessions/${id}`, { headers: getHeaders(), signal })
+      const res = await fetch(`/api/cop/sessions/${id}`, { headers: getCopHeaders(), signal })
       if (!res.ok) throw new Error(`Server responded with ${res.status}`)
       const data = await res.json()
       const sess: CopSession = data.session ?? data
@@ -103,7 +98,7 @@ export default function CopPage() {
 
       try {
         const endpoint = `/api/cop/${id}${layerDef.source.endpoint}`
-        const res = await fetch(endpoint, { headers: getHeaders() })
+        const res = await fetch(endpoint, { headers: getCopHeaders() })
         if (!res.ok) return
 
         const fc: CopFeatureCollection = await res.json()
@@ -183,7 +178,7 @@ export default function CopPage() {
         try {
           await fetch(`/api/cop/sessions/${id}`, {
             method: 'PUT',
-            headers: getHeaders(),
+            headers: getCopHeaders(),
             body: JSON.stringify({ active_layers: newLayers }),
           })
         } catch {
@@ -214,7 +209,7 @@ export default function CopPage() {
       try {
         await fetch(`/api/cop/sessions/${id}`, {
           method: 'PUT',
-          headers: getHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify(updates),
         })
       } catch {

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -45,13 +46,7 @@ export default function CopAnalysisSummary({ sessionId, expanded }: CopAnalysisS
     setLoading(true)
     setError(null)
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    }
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    if (userHash) {
-      headers['Authorization'] = `Bearer ${userHash}`
-    }
+    const headers = getCopHeaders()
 
     try {
       const [synthRes, contraRes] = await Promise.all([

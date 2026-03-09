@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -26,12 +27,6 @@ type InviteRole = 'viewer' | 'editor'
 
 // ── Auth helper ────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 // ── Props ──────────────────────────────────────────────────────
 
@@ -76,7 +71,7 @@ export default function CopInviteDialog({
     setFetchError(false)
     try {
       const res = await fetch(`/api/cop/${sessionId}/collaborators`, {
-        headers: getHeaders(),
+        headers: getCopHeaders(),
       })
       if (!res.ok) throw new Error('Failed to fetch collaborators')
       const data = await res.json()
@@ -109,7 +104,7 @@ export default function CopInviteDialog({
     try {
       const res = await fetch(`/api/cop/${sessionId}/collaborators`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({ email: trimmed, role }),
       })
       if (!res.ok) {
@@ -134,7 +129,7 @@ export default function CopInviteDialog({
     try {
       const res = await fetch(`/api/cop/${sessionId}/collaborators`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({ role: 'viewer' }),
       })
       if (!res.ok) throw new Error('Failed to generate link')
@@ -172,7 +167,7 @@ export default function CopInviteDialog({
       try {
         const res = await fetch(`/api/cop/${sessionId}/collaborators`, {
           method: 'DELETE',
-          headers: getHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify({ collaborator_id: collaboratorId }),
         })
         if (!res.ok) throw new Error('Failed to remove collaborator')

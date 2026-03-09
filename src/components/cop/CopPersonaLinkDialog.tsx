@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Link2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
+import { getCopHeaders } from '@/lib/cop-auth'
 import {
   Dialog,
   DialogContent,
@@ -40,12 +41,6 @@ interface CopPersonaLinkDialogProps {
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 const LINK_TYPES: { value: LinkType; label: string; description: string }[] = [
   { value: 'alias', label: 'Alias', description: 'Same person, different handle' },
@@ -92,7 +87,7 @@ export default function CopPersonaLinkDialog({
     try {
       const res = await fetch(`/api/cop/${sessionId}/personas/link`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           persona_a_id: personaA,
           persona_b_id: personaB,

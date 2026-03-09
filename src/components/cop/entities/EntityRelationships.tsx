@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { EntitySearch } from './EntitySearch'
 import ConfidenceDots from './ConfidenceDots'
 import type { Relationship, RelationshipType, RelationshipConfidence, EntityType } from '@/types/entities'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface EntityRelationshipsProps {
   entityId: string
@@ -43,12 +44,6 @@ const TYPE_BADGE_COLORS: Record<string, string> = {
 
 const DEFAULT_BADGE_COLOR = 'border-gray-400 text-gray-600 dark:border-gray-500 dark:text-gray-400'
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 function resolveTargetName(rel: Relationship, entityId: string): string {
   // The API may return joined entity names — check common patterns
@@ -93,7 +88,7 @@ export default function EntityRelationships({
         workspace_id: workspaceId || sessionId,
       })
       const response = await fetch(`/api/relationships?${params}`, {
-        headers: getHeaders(),
+        headers: getCopHeaders(),
       })
       if (!response.ok) throw new Error('Failed to load relationships')
 
@@ -119,7 +114,7 @@ export default function EntityRelationships({
     try {
       const response = await fetch('/api/relationships', {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           source_entity_id: entityId,
           source_entity_type: entityType as EntityType,

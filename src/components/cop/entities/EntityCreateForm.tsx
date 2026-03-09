@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { Loader2, Check, X } from 'lucide-react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type {
   ActorType,
   EventType,
@@ -34,12 +35,6 @@ export interface EntityCreateFormProps {
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 const INPUT_CLS =
   'w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-200 rounded px-2.5 py-1.5 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500'
@@ -185,7 +180,7 @@ export default function EntityCreateForm({
     try {
       const res = await fetch(`/api/${entityType}`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify(buildBody()),
       })
 

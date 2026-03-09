@@ -9,6 +9,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { Tag, Plus, X, Search, ChevronDown, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── OSINT Clue Taxonomy ─────────────────────────────────────────
 
@@ -51,12 +52,6 @@ interface CopTagSelectorProps {
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 function formatCategory(cat: string): string {
   return cat
@@ -137,7 +132,7 @@ export default function CopTagSelector({
       try {
         const res = await fetch(`/api/cop/${sessionId}/evidence-tags`, {
           method: 'POST',
-          headers: getHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify({
             evidence_id: evidenceId,
             tag_category: category,

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { CopWorkspaceStats } from '@/types/cop'
 
 // ── Props ────────────────────────────────────────────────────────
@@ -134,11 +135,7 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
 
   const fetchStats = useCallback(async () => {
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
-      const headers: Record<string, string> = {}
-      if (userHash) headers['X-User-Hash'] = userHash
-
-      const res = await fetch(`/api/cop/${sessionId}/stats`, { headers })
+      const res = await fetch(`/api/cop/${sessionId}/stats`, { headers: getCopHeaders() })
       if (!res.ok) throw new Error('Failed to fetch stats')
       const data = await res.json()
       setStats(data.stats ?? data)

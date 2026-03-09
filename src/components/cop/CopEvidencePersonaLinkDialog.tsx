@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Link2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { getCopHeaders } from '@/lib/cop-auth'
 import {
   Dialog,
   DialogContent,
@@ -27,12 +28,6 @@ interface CopEvidencePersonaLinkDialogProps {
   onLinked?: () => void
 }
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 export default function CopEvidencePersonaLinkDialog({
   sessionId,
@@ -66,7 +61,7 @@ export default function CopEvidencePersonaLinkDialog({
   const fetchPersonas = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/cop/${sessionId}/personas`, { headers: getHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/personas`, { headers: getCopHeaders() })
       if (res.ok) {
         const data = await res.json()
         setPersonas(data.personas ?? data ?? [])
@@ -88,7 +83,7 @@ export default function CopEvidencePersonaLinkDialog({
       if (mode === 'create') {
         const createRes = await fetch(`/api/cop/${sessionId}/personas`, {
           method: 'POST',
-          headers: getHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify({
             display_name: displayName || handle,
             platform: platform,

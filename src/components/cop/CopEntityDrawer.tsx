@@ -23,6 +23,7 @@ import EntityCreateForm from '@/components/cop/entities/EntityCreateForm'
 import EntityRelationships from '@/components/cop/entities/EntityRelationships'
 import EntityEvidenceLinks from '@/components/cop/entities/EntityEvidenceLinks'
 import type { Actor, Event, Place, Source, Behavior } from '@/types/entities'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -65,12 +66,6 @@ const EXTRACT_KEYS: Record<TabKey, string> = {
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 function singularUpper(tab: TabKey): string {
   return tab.slice(0, -1).toUpperCase() // 'actors' → 'ACTOR'
@@ -115,7 +110,7 @@ export default function CopEntityDrawer({
       try {
         const params = new URLSearchParams({ workspace_id: workspaceId || sessionId })
         const res = await fetch(`/api/${tab}?${params}`, {
-          headers: getHeaders(),
+          headers: getCopHeaders(),
         })
         if (!res.ok) throw new Error(`Failed to fetch ${tab}`)
         const data = await res.json()

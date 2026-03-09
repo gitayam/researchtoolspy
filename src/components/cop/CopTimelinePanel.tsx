@@ -10,6 +10,7 @@ import {
 import { Users, FileText, Brain, Clock, Loader2, Calendar } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -42,13 +43,6 @@ interface CopTimelinePanelProps {
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-function getAuthHeaders(): HeadersInit {
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  return {
-    ...(userHash && { Authorization: `Bearer ${userHash}` }),
-  }
-}
-
 function normalizeEntry(raw: RawActivity): TimelineEntry {
   return {
     date: raw.date,
@@ -79,7 +73,7 @@ export default function CopTimelinePanel({ sessionId, expanded }: CopTimelinePan
 
       try {
         const res = await fetch('/api/intelligence/timeline', {
-          headers: getAuthHeaders(),
+          headers: getCopHeaders(),
         })
 
         if (!res.ok) {

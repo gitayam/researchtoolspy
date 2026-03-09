@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 import CopArtifactLightbox from '@/components/cop/CopArtifactLightbox'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -167,29 +168,18 @@ export default function CopEvidenceFeed({
   const fetchTagsForItems = useCallback(async (evidenceIds: string[]) => {
     if (evidenceIds.length === 0) return {}
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      const userHash = localStorage.getItem('omnicore_user_hash')
-      if (userHash) headers['X-User-Hash'] = userHash
-
-      // Unfortunately the current API is per-evidence_id
-      // We'll fetch in parallel for now, but in production a bulk API is better
-      const tagResults = await Promise.all(
-        evidenceIds.map(async (eid) => {
-          const res = await fetch(`/api/cop/${sessionId}/evidence-tags?evidence_id=${eid}`, { headers })
-          if (!res.ok) return { eid, tags: [] }
-          const data = await res.json()
-          return { eid, tags: data.tags ?? [] }
-        })
-      )
-
-      return tagResults.reduce((acc, curr) => {
-        acc[curr.eid] = curr.tags
-        return acc
-      }, {} as Record<string, any[]>)
+      const res = await fetch('/api/evidence-tags/batch', {
+        method: 'POST',
+        headers: getCopHeaders(),
+        body: JSON.stringify({ evidence_ids: evidenceIds }),
+      })
+      if (!res.ok) return {}
+      const data = await res.json()
+      return (data.tags ?? {}) as Record<string, any[]>
     } catch {
       return {}
     }
-  }, [sessionId])
+  }, [])
 
   const handleTagUpdate = useCallback(async (evidenceId: string) => {
     const tagsMap = await fetchTagsForItems([evidenceId])
@@ -209,9 +199,7 @@ export default function CopEvidenceFeed({
     async function fetchEvidence() {
       setLoading(true)
       try {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-        const userHash = localStorage.getItem('omnicore_user_hash')
-        if (userHash) headers['Authorization'] = `Bearer ${userHash}`
+        const headers = getCopHeaders()
         if (sessionId) headers['X-Workspace-ID'] = sessionId
 
         const res = await fetch(`/api/evidence?workspace_id=${sessionId}`, { headers })
@@ -269,9 +257,7 @@ export default function CopEvidenceFeed({
 
     pollingRef.current = setInterval(async () => {
       try {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-        const userHash = localStorage.getItem('omnicore_user_hash')
-        if (userHash) headers['X-User-Hash'] = userHash
+        const headers = getCopHeaders()
         if (sessionId) headers['X-Workspace-ID'] = sessionId
 
         const res = await fetch(`/api/evidence?workspace_id=${sessionId}&limit=50`, { headers })
@@ -353,9 +339,7 @@ export default function CopEvidenceFeed({
     setError(null)
 
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      const userHash = localStorage.getItem('omnicore_user_hash')
-      if (userHash) headers['Authorization'] = `Bearer ${userHash}`
+      const headers = getCopHeaders()
       if (sessionId) headers['X-Workspace-ID'] = sessionId
 
       const res = await fetch('/api/content-intelligence/analyze-url', {

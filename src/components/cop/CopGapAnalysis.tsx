@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AlertTriangle, Brain, CheckCircle, HelpCircle, Loader2, Network, Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -18,12 +19,6 @@ interface CopGapAnalysisProps {
 
 // ── Auth helper ──────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 // ── Severity badge colors ────────────────────────────────────────
 
@@ -112,8 +107,8 @@ export default function CopGapAnalysis({ sessionId }: CopGapAnalysisProps) {
       setLoading(true)
       try {
         const [statsRes, rfisRes] = await Promise.all([
-          fetch(`/api/cop/${sessionId}/stats`, { headers: getHeaders() }),
-          fetch(`/api/cop/${sessionId}/rfis`, { headers: getHeaders() }),
+          fetch(`/api/cop/${sessionId}/stats`, { headers: getCopHeaders() }),
+          fetch(`/api/cop/${sessionId}/rfis`, { headers: getCopHeaders() }),
         ])
 
         if (cancelled) return

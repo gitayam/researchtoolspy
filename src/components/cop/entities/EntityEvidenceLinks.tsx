@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import ConfidenceDots from './ConfidenceDots'
 import type { Relationship, RelationshipType } from '@/types/entities'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -37,12 +38,6 @@ const REL_TYPE_STYLES: Record<EvidenceRelationType, string> = {
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 function truncate(text: string, max = 50): string {
   if (text.length <= max) return text
@@ -81,7 +76,7 @@ export default function EntityEvidenceLinks({
       setError(null)
       const res = await fetch(
         `/api/relationships?entity_id=${encodeURIComponent(entityId)}&workspace_id=${encodeURIComponent(workspaceId || sessionId)}`,
-        { headers: getHeaders() },
+        { headers: getCopHeaders() },
       )
       if (!res.ok) throw new Error(`Failed to fetch relationships (${res.status})`)
       const data = await res.json()
@@ -112,7 +107,7 @@ export default function EntityEvidenceLinks({
       setLoadingEvidence(true)
       const res = await fetch(
         `/api/evidence?workspace_id=${encodeURIComponent(workspaceId || sessionId)}`,
-        { headers: getHeaders() },
+        { headers: getCopHeaders() },
       )
       if (!res.ok) throw new Error('Failed to fetch evidence')
       const data = await res.json()
@@ -144,7 +139,7 @@ export default function EntityEvidenceLinks({
       setSubmitting(true)
       const res = await fetch('/api/relationships', {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           source_entity_id: String(selectedEvidenceId),
           source_entity_type: 'EVIDENCE',

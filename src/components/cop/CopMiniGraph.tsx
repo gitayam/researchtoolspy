@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Network, Loader2 } from 'lucide-react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { NetworkGraphCanvas } from '@/components/network/NetworkGraphCanvas'
 import type { EntityType, Relationship } from '@/types/entities'
 
@@ -127,11 +128,7 @@ export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, 
     async function load() {
       setLoading(true)
       try {
-        const userHash = localStorage.getItem('omnicore_user_hash')
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-          ...(userHash ? { Authorization: `Bearer ${userHash}` } : {}),
-        }
+        const headers = getCopHeaders()
 
         const workspaceId = propWorkspaceId || localStorage.getItem('currentWorkspaceId') || 'default'
         const res = await fetch(`/api/relationships?workspace_id=${workspaceId}`, { headers })

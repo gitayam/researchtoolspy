@@ -9,6 +9,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -30,12 +31,6 @@ interface CopActivityPanelProps {
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 function timeAgo(dateStr: string): string {
   const now = Date.now()
@@ -83,7 +78,7 @@ export default function CopActivityPanel({ sessionId, expanded }: CopActivityPan
       try {
         const res = await fetch(
           `/api/cop/${sessionId}/activity?limit=50&offset=${offset}`,
-          { headers: getHeaders() },
+          { headers: getCopHeaders() },
         )
 
         if (!res.ok) {

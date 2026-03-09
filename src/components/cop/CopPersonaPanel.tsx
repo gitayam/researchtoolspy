@@ -23,6 +23,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Local types (TODO: import from @/types/cop when backend merges types) ─
 
@@ -45,12 +46,6 @@ type CopPersonaPlatform = 'twitter' | 'telegram' | 'reddit' | 'onlyfans' | 'inst
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 const PLATFORM_OPTIONS: { value: CopPersonaPlatform; label: string }[] = [
   { value: 'twitter', label: 'Twitter / X' },
@@ -113,7 +108,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
 
   const fetchPersonas = useCallback(async () => {
     try {
-      const res = await fetch(`/api/cop/${sessionId}/personas`, { headers: getHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/personas`, { headers: getCopHeaders() })
       if (!res.ok) {
         setPersonas([])
         return
@@ -141,7 +136,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
     try {
       const res = await fetch(`/api/cop/${sessionId}/personas`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           display_name: name,
           platform: formPlatform,

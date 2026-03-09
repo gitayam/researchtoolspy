@@ -10,21 +10,13 @@ import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { CopRfi } from '@/types/cop'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Props ────────────────────────────────────────────────────────
 
 interface CopBlockerStripProps {
   sessionId: string
   onGoToBlocker?: (rfiId: string) => void
-}
-
-// ── Helpers ──────────────────────────────────────────────────────
-
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {}
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
 }
 
 // ── Component ────────────────────────────────────────────────────
@@ -34,7 +26,7 @@ export default function CopBlockerStrip({ sessionId, onGoToBlocker }: CopBlocker
 
   const fetchBlockers = useCallback(async () => {
     try {
-      const res = await fetch(`/api/cop/${sessionId}/rfis`, { headers: getHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/rfis`, { headers: getCopHeaders() })
       if (!res.ok) return
       const data = await res.json()
       const rfis: CopRfi[] = data.rfis ?? data ?? []

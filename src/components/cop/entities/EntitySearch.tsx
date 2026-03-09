@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Search, Loader2, User, Calendar, MapPin, Radio, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface EntitySearchProps {
   sessionId: string
@@ -83,12 +84,6 @@ const ENTITY_TYPE_CONFIG: Record<string, {
   },
 }
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 export function EntitySearch({
   sessionId,
@@ -119,7 +114,7 @@ export function EntitySearch({
       }
 
       setLoading(true)
-      const headers = getHeaders()
+      const headers = getCopHeaders()
 
       try {
         const fetches = typesToSearch.map(async (typeKey) => {

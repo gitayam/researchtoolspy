@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import {
   Plus,
   Loader2,
@@ -103,12 +104,6 @@ const STATUS_TRANSITIONS: Record<TaskStatus, { label: string; target: TaskStatus
 
 // ── Helpers ───────────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 function getInitials(name: string): string {
   return name
@@ -163,7 +158,7 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
   const fetchTasks = useCallback(async (isBackground = false) => {
     if (isBackground) setPolling(true)
     try {
-      const res = await fetch(`/api/cop/${sessionId}/tasks`, { headers: getHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/tasks`, { headers: getCopHeaders() })
       if (!res.ok) throw new Error('Failed to fetch tasks')
       const data = await res.json()
       const items: CopTask[] = data.tasks ?? data ?? []
@@ -198,7 +193,7 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
     try {
       const res = await fetch(`/api/cop/${sessionId}/tasks`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           title: trimmed,
           description: newDescription.trim() || null,
@@ -236,7 +231,7 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
     try {
       const res = await fetch(`/api/cop/${sessionId}/tasks`, {
         method: 'PUT',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({ id: taskId, status: newStatus }),
       })
       if (!res.ok) throw new Error('Failed to update task')

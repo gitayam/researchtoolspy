@@ -16,15 +16,10 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Auth ─────────────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 // ── Confidence helpers ───────────────────────────────────────────
 
@@ -95,7 +90,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
     try {
       // For now, using a mock/placeholder endpoint or state until backend catch up
       // In a real implementation, this would hit /api/cop/${sessionId}/hypotheses
-      const res = await fetch(`/api/cop/${sessionId}/hypotheses`, { headers: getHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/hypotheses`, { headers: getCopHeaders() })
       if (!res.ok) {
          setHypotheses([])
          return
@@ -130,7 +125,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
     try {
       const res = await fetch(`/api/cop/${sessionId}/hypotheses`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({ statement: newStatement.trim(), confidence: newConfidence }),
       })
       if (res.ok) {
@@ -152,7 +147,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
     try {
       await fetch(`/api/cop/${sessionId}/hypotheses`, {
         method: 'PUT',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({ id: hypId, ...updates }),
       })
       await fetchHypotheses()
@@ -169,7 +164,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
     try {
       await fetch(`/api/cop/${sessionId}/hypotheses`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({ hypothesis_id: hypId, title: linkTitle.trim(), type: linkType }),
       })
       setLinkTitle('')
