@@ -93,16 +93,17 @@ const ENTITY_TABS = [
   { key: 'behaviors', label: 'Behaviors', icon: Eye, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-800/40', hoverBg: 'hover:bg-red-100 dark:hover:bg-red-900/40' },
 ] as const
 
-function CopEntitiesPanel({ sessionId, onOpenEntityDrawer }: {
-  sessionId: string
+function CopEntitiesPanel({ workspaceId, onOpenEntityDrawer }: {
+  workspaceId: string
   onOpenEntityDrawer?: (tab?: string, prefill?: any) => void
 }) {
   const [counts, setCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
+    if (!workspaceId) return
     const headers = getHeaders()
     ENTITY_TABS.forEach(({ key }) => {
-      fetch(`/api/${key}?workspace_id=${sessionId}`, { headers })
+      fetch(`/api/${key}?workspace_id=${workspaceId}`, { headers })
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           if (data) {
@@ -113,7 +114,7 @@ function CopEntitiesPanel({ sessionId, onOpenEntityDrawer }: {
         })
         .catch(() => setCounts(prev => ({ ...prev, [key]: 0 })))
     })
-  }, [sessionId])
+  }, [workspaceId])
 
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0)
 
@@ -682,6 +683,7 @@ export default function CopWorkspacePage() {
       {/* Entity Drawer */}
       <CopEntityDrawer
         sessionId={id!}
+        workspaceId={session?.workspace_id}
         open={entityDrawerOpen}
         onOpenChange={(open) => {
           setEntityDrawerOpen(open)
@@ -754,7 +756,7 @@ function ProgressLayout({
   return (
     <>
       {/* Row 0: Entities Quick-Access Panel */}
-      <CopEntitiesPanel sessionId={sessionId} onOpenEntityDrawer={onOpenEntityDrawer} />
+      <CopEntitiesPanel workspaceId={session.workspace_id} onOpenEntityDrawer={onOpenEntityDrawer} />
 
       {/* Row 1: Entity Relationships + Timeline + Personas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -763,7 +765,7 @@ function ProgressLayout({
           icon={<Network className="h-4 w-4 text-purple-400" />}
         >
           {(expanded) => (
-            <CopMiniGraph sessionId={sessionId} expanded={expanded} />
+            <CopMiniGraph sessionId={sessionId} workspaceId={session.workspace_id} expanded={expanded} />
           )}
         </CopPanelExpander>
 

@@ -18,6 +18,8 @@
 | - | Evidence thumbnails + domain badges | DONE | `0d12868dd` |
 | - | Collaborator attribution (RFI requester_name) | DONE | `0d12868dd` |
 | - | Activity log actor_name + details columns | DONE | migration 069 |
+| - | Fix workspace_id in entity endpoints (403 bug) | DONE | pending commit |
+| - | Marker confidence upgrades (Bariloche CONFIRMED) | DONE | D1 direct |
 
 ## Wave 3 — Remaining Features
 
@@ -35,7 +37,7 @@
 | Hypotheses | 5 | Bariloche 85%, Multi-location 70%, Buenos Aires 60%, DACH 20%, E.Europe 15% |
 | Evidence links | 16 | Supporting + contradicting evidence linked to all 5 hypotheses |
 | Tasks | 14 | 3 done, 2 in_progress, 9 todo |
-| Map markers | 9 | +2 new (Mar del Plata coastal, Coquimbo escort ads) |
+| Map markers | 9 | 2 CONFIRMED (Bariloche, Cerro Catedral), 2 PROBABLE (BA, airport) |
 | Activity entries | 26 | All with actor names and details |
 | Event facts | 28 | +10 new from image/PDF analysis |
 
@@ -57,6 +59,7 @@
 | Dark/light mode inconsistencies | Fixed missing `dark:` variants across 3 component files |
 | Session metadata lost (0 event_facts) | Setup script missing X-Workspace-ID header — re-pushed with correct header |
 | Activity entries missing names | Table lacked actor_name/details columns — migration 069 + repopulate |
+| Entities panel 403 errors | Entity endpoints received COP session ID instead of workspace UUID — fixed workspace_id propagation |
 
 ## Schema Changes
 

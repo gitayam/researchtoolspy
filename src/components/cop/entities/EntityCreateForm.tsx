@@ -26,6 +26,7 @@ import type {
 export interface EntityCreateFormProps {
   entityType: 'actors' | 'events' | 'places' | 'sources' | 'behaviors'
   sessionId: string
+  workspaceId?: string
   onCreated: (entity: any) => void
   onCancel: () => void
   prefill?: Record<string, any>
@@ -67,6 +68,7 @@ const SOPHISTICATION_LEVELS: BehaviorSophistication[] = ['ADVANCED', 'INTERMEDIA
 export default function EntityCreateForm({
   entityType,
   sessionId,
+  workspaceId,
   onCreated,
   onCancel,
   prefill,
@@ -120,7 +122,7 @@ export default function EntityCreateForm({
   function buildBody(): Record<string, any> {
     const base: Record<string, any> = {
       name: name.trim(),
-      workspace_id: sessionId,
+      workspace_id: workspaceId || sessionId,
     }
     if (description.trim()) base.description = description.trim()
 

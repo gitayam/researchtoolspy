@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 
 interface EntitySearchProps {
   sessionId: string
+  workspaceId?: string
   onSelect: (entityId: string, entityType: string, entityName: string) => void
   excludeId?: string
   filterTypes?: string[]
@@ -91,6 +92,7 @@ function getHeaders(): Record<string, string> {
 
 export function EntitySearch({
   sessionId,
+  workspaceId,
   onSelect,
   excludeId,
   filterTypes,
@@ -123,7 +125,7 @@ export function EntitySearch({
         const fetches = typesToSearch.map(async (typeKey) => {
           const config = ENTITY_TYPE_CONFIG[typeKey]
           const params = new URLSearchParams({
-            workspace_id: sessionId,
+            workspace_id: workspaceId || sessionId,
             search: searchQuery,
             limit: '5',
           })

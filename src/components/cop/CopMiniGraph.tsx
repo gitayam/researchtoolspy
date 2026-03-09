@@ -24,6 +24,7 @@ interface NetworkLink {
 
 interface CopMiniGraphProps {
   sessionId: string
+  workspaceId?: string
   expanded: boolean
 }
 
@@ -115,7 +116,7 @@ async function fetchEntityNames(
 
 // ── Component ────────────────────────────────────────────────────
 
-export default function CopMiniGraph({ sessionId, expanded }: CopMiniGraphProps) {
+export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, expanded }: CopMiniGraphProps) {
   const [relationships, setRelationships] = useState<Relationship[]>([])
   const [entityNames, setEntityNames] = useState<Record<string, { name: string; type: EntityType }>>({})
   const [loading, setLoading] = useState(true)
@@ -132,7 +133,7 @@ export default function CopMiniGraph({ sessionId, expanded }: CopMiniGraphProps)
           ...(userHash ? { Authorization: `Bearer ${userHash}` } : {}),
         }
 
-        const workspaceId = localStorage.getItem('currentWorkspaceId') || 'default'
+        const workspaceId = propWorkspaceId || localStorage.getItem('currentWorkspaceId') || 'default'
         const res = await fetch(`/api/relationships?workspace_id=${workspaceId}`, { headers })
 
         if (!res.ok) throw new Error(`Failed to fetch relationships (${res.status})`)
@@ -156,7 +157,7 @@ export default function CopMiniGraph({ sessionId, expanded }: CopMiniGraphProps)
 
     load()
     return () => { cancelled = true }
-  }, [sessionId])
+  }, [sessionId, propWorkspaceId])
 
   // Build graph nodes and links from relationship data
   const { nodes, links } = useMemo(() => {

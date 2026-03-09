@@ -14,6 +14,7 @@ interface EntityRelationshipsProps {
   entityId: string
   entityType: string // 'ACTOR', 'EVENT', 'PLACE', 'SOURCE', 'BEHAVIOR'
   sessionId: string  // workspace_id
+  workspaceId?: string
   onRelationshipCreated?: () => void
 }
 
@@ -67,6 +68,7 @@ export default function EntityRelationships({
   entityId,
   entityType,
   sessionId,
+  workspaceId,
   onRelationshipCreated,
 }: EntityRelationshipsProps) {
   const [relationships, setRelationships] = useState<Relationship[]>([])
@@ -88,7 +90,7 @@ export default function EntityRelationships({
     try {
       const params = new URLSearchParams({
         entity_id: entityId,
-        workspace_id: sessionId,
+        workspace_id: workspaceId || sessionId,
       })
       const response = await fetch(`/api/relationships?${params}`, {
         headers: getHeaders(),
@@ -104,7 +106,7 @@ export default function EntityRelationships({
     } finally {
       setLoading(false)
     }
-  }, [entityId, sessionId])
+  }, [entityId, sessionId, workspaceId])
 
   useEffect(() => {
     fetchRelationships()
@@ -125,7 +127,7 @@ export default function EntityRelationships({
           target_entity_type: selectedTarget.type.toUpperCase() as EntityType,
           relationship_type: selectedType,
           confidence: selectedConfidence,
-          workspace_id: sessionId,
+          workspace_id: workspaceId || sessionId,
         }),
       })
 
@@ -271,6 +273,7 @@ export default function EntityRelationships({
             ) : (
               <EntitySearch
                 sessionId={sessionId}
+                workspaceId={workspaceId || sessionId}
                 excludeId={entityId}
                 onSelect={(id, type, name) => setSelectedTarget({ id, type, name })}
                 placeholder="Search for target entity..."

@@ -12,6 +12,7 @@ interface EntityEvidenceLinksProps {
   entityId: string
   entityType: string // 'ACTOR', 'EVENT', 'PLACE', 'SOURCE', 'BEHAVIOR'
   sessionId: string  // workspace_id
+  workspaceId?: string
 }
 
 interface EvidenceItem {
@@ -58,6 +59,7 @@ export default function EntityEvidenceLinks({
   entityId,
   entityType,
   sessionId,
+  workspaceId,
 }: EntityEvidenceLinksProps) {
   const [relationships, setRelationships] = useState<Relationship[]>([])
   const [loading, setLoading] = useState(true)
@@ -78,7 +80,7 @@ export default function EntityEvidenceLinks({
       setLoading(true)
       setError(null)
       const res = await fetch(
-        `/api/relationships?entity_id=${encodeURIComponent(entityId)}&workspace_id=${encodeURIComponent(sessionId)}`,
+        `/api/relationships?entity_id=${encodeURIComponent(entityId)}&workspace_id=${encodeURIComponent(workspaceId || sessionId)}`,
         { headers: getHeaders() },
       )
       if (!res.ok) throw new Error(`Failed to fetch relationships (${res.status})`)
@@ -97,7 +99,7 @@ export default function EntityEvidenceLinks({
     } finally {
       setLoading(false)
     }
-  }, [entityId, sessionId])
+  }, [entityId, sessionId, workspaceId])
 
   useEffect(() => {
     fetchRelationships()
@@ -109,7 +111,7 @@ export default function EntityEvidenceLinks({
     try {
       setLoadingEvidence(true)
       const res = await fetch(
-        `/api/evidence?workspace_id=${encodeURIComponent(sessionId)}`,
+        `/api/evidence?workspace_id=${encodeURIComponent(workspaceId || sessionId)}`,
         { headers: getHeaders() },
       )
       if (!res.ok) throw new Error('Failed to fetch evidence')
@@ -123,7 +125,7 @@ export default function EntityEvidenceLinks({
     } finally {
       setLoadingEvidence(false)
     }
-  }, [sessionId])
+  }, [sessionId, workspaceId])
 
   // ── Open link form ─────────────────────────────────────────────
 
@@ -149,7 +151,7 @@ export default function EntityEvidenceLinks({
           target_entity_id: entityId,
           target_entity_type: entityType,
           relationship_type: selectedRelType,
-          workspace_id: sessionId,
+          workspace_id: workspaceId || sessionId,
         }),
       })
       if (!res.ok) throw new Error(`Failed to create link (${res.status})`)

@@ -32,6 +32,7 @@ type AnyEntity = Actor | Event | Place | Source | Behavior
 
 interface CopEntityDrawerProps {
   sessionId: string
+  workspaceId?: string
   open: boolean
   onOpenChange: (open: boolean) => void
   initialTab?: TabKey
@@ -84,6 +85,7 @@ function singularLabel(tab: TabKey): string {
 
 export default function CopEntityDrawer({
   sessionId,
+  workspaceId,
   open,
   onOpenChange,
   initialTab,
@@ -111,7 +113,7 @@ export default function CopEntityDrawer({
       if (!force && cache[tab] !== null) return
       setLoading(true)
       try {
-        const params = new URLSearchParams({ workspace_id: sessionId })
+        const params = new URLSearchParams({ workspace_id: workspaceId || sessionId })
         const res = await fetch(`/api/${tab}?${params}`, {
           headers: getHeaders(),
         })
@@ -393,11 +395,13 @@ export default function CopEntityDrawer({
                       entityId={entity.id}
                       entityType={singularUpper(activeTab)}
                       sessionId={sessionId}
+                      workspaceId={workspaceId || sessionId}
                     />
                     <EntityEvidenceLinks
                       entityId={entity.id}
                       entityType={singularUpper(activeTab)}
                       sessionId={sessionId}
+                      workspaceId={workspaceId || sessionId}
                     />
                   </div>
                 )}
@@ -427,6 +431,7 @@ export default function CopEntityDrawer({
                 <EntityCreateForm
                   entityType={activeTab}
                   sessionId={sessionId}
+                  workspaceId={workspaceId || sessionId}
                   onCreated={handleEntityCreated}
                   onCancel={() => setShowCreateForm(false)}
                   prefill={prefill?.data}
