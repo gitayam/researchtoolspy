@@ -53,7 +53,7 @@ export default function CopPanelExpander({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 cursor-pointer"
             onClick={handleCollapse}
             aria-label="Minimize panel"
           >
@@ -62,7 +62,7 @@ export default function CopPanelExpander({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 cursor-pointer"
             onClick={handleCollapse}
             aria-label="Close panel"
           >
@@ -81,7 +81,7 @@ export default function CopPanelExpander({
   // ── Collapsed: compact card ──────────────────────────────────
 
   return (
-    <Card className={cn('overflow-hidden flex flex-col', collapsedHeight, className)}>
+    <Card className={cn('overflow-hidden flex flex-col relative', collapsedHeight, className)}>
       <CardHeader className="flex flex-row items-center gap-2 space-y-0 px-4 py-3">
         <span className="shrink-0">{icon}</span>
         <CardTitle className="text-sm flex-1">{title}</CardTitle>
@@ -91,16 +91,18 @@ export default function CopPanelExpander({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 cursor-pointer"
           onClick={handleExpand}
           aria-label="Expand panel"
         >
           <Maximize2 className="h-4 w-4" />
         </Button>
       </CardHeader>
-      <CardContent className="flex-1 overflow-hidden px-4 pb-4 pt-0">
+      <CardContent className="flex-1 overflow-y-auto px-4 pb-4 pt-0">
         {children(false)}
       </CardContent>
+      {/* Fade-out gradient at bottom of collapsed card */}
+      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-gray-950 to-transparent pointer-events-none" />
     </Card>
   )
 }

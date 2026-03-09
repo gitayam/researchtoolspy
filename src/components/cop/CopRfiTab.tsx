@@ -502,8 +502,8 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
           })
         ) : (
           <div className="text-center py-6">
-            <HelpCircle className="h-6 w-6 text-gray-600 mx-auto mb-2" />
-            <p className="text-xs text-gray-500">
+            <HelpCircle className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               No RFIs yet. Create one to request information.
             </p>
           </div>

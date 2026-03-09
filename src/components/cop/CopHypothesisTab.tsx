@@ -37,11 +37,11 @@ const CONFIDENCE_LEVELS = [
 ]
 
 function confidenceColor(c: number): string {
-  if (c >= 80) return 'text-green-500'
-  if (c >= 60) return 'text-blue-500'
-  if (c >= 40) return 'text-amber-500'
-  if (c >= 20) return 'text-orange-500'
-  return 'text-red-500'
+  if (c >= 80) return 'text-green-600 dark:text-green-400'
+  if (c >= 60) return 'text-blue-600 dark:text-blue-400'
+  if (c >= 40) return 'text-amber-600 dark:text-amber-400'
+  if (c >= 20) return 'text-orange-600 dark:text-orange-400'
+  return 'text-red-600 dark:text-red-400'
 }
 
 function confidenceBg(c: number): string {
@@ -252,7 +252,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
 
         {loading ? (
           <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
+            <Loader2 className="h-5 w-5 animate-spin text-gray-400 dark:text-gray-500" />
           </div>
         ) : hypotheses.length > 0 ? (
           hypotheses.map(h => (
@@ -428,9 +428,9 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
           ))
         ) : (
           <div className="text-center py-8">
-            <Brain className="h-6 w-6 text-gray-600 mx-auto mb-2" />
-            <p className="text-xs text-gray-500">No hypotheses proposed yet.</p>
-            <p className="text-[10px] text-gray-600 mt-1">
+            <Brain className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500 dark:text-gray-400">No hypotheses proposed yet.</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
               Propose a hypothesis to start Analysis of Competing Hypotheses (ACH).
             </p>
           </div>
