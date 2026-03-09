@@ -105,3 +105,10 @@ dist
 .wrangler/
 .DS_Store
 deploy.log
+
+# Playwright
+playwright-report/
+test-results/
+
+# Claude Code
+.claude/
