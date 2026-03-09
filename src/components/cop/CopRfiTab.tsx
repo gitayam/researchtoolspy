@@ -323,7 +323,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
             <button
               type="button"
               onClick={() => { setLoading(true); setFetchError(false); fetchRfis() }}
-              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors cursor-pointer"
             >
               Retry
             </button>
@@ -342,7 +342,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
                 <button
                   type="button"
                   onClick={() => toggleExpand(rfi.id)}
-                  className="w-full flex items-start gap-2 px-2.5 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
+                  className="w-full flex items-start gap-2 px-2.5 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
                 >
                   {isExpanded ? (
                     <ChevronDown className="h-3 w-3 text-gray-500 mt-0.5 shrink-0" />

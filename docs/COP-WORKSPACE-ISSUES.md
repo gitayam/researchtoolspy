@@ -133,7 +133,7 @@
 **Status:** Partially addressed in `docs/COP-WORKSPACE-API.md` (964 lines)
 
 ### L2. E2E Test Coverage
-**Status:** ALL PASSING — 158 pass / 0 fail / 16 skip (2026-03-09 cycle 4)
+**Status:** ALL PASSING — 157 pass / 0 fail / 16 skip (2026-03-09 cycle 5)
 **Key fixes this round:**
 - `networkidle` → `domcontentloaded` in workspace POM (was still using networkidle)
 - Mode toggle buttons: added `data-testid="mode-progress"` / `data-testid="mode-monitor"` for mobile viewport compatibility

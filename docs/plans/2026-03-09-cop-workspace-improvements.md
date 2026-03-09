@@ -60,7 +60,7 @@
 | 11 | Evidence feed header locator fix (E2E) | POM uses unique panel title text | DONE (2026-03-09) |
 | 12 | Hypothesis count in stats + KPI strip | API returns hypothesis_count, status strip shows it | DONE (2026-03-09) |
 
-## Investigation Data Status (2026-03-09 cycle 3)
+## Investigation Data Status (2026-03-09 cycle 5)
 
 | Data | Count | Notes |
 |------|-------|-------|
@@ -70,13 +70,13 @@
 | Relationships | 14 | 9 CONTROLS, 1 ASSOCIATED_WITH, 4 LOCATED_AT |
 | Places | 3 | Bariloche CONFIRMED, Cerro Catedral CONFIRMED, Buenos Aires PROBABLE |
 | Sources | 4 | Instagram @ufqsoo, Twitter @lanaraae, PimEyes, HackYourMom |
-| Personas | 13 | +3 new (Lannah escort alias, @lanameys Telegram, sofiaisyours3 link) |
+| Personas/Actors | 13 | Renamed panel to "Actors". 10 have platform=other (data quality TODO) |
 | RFIs | 10 | 7 answered, 3 open, 1 blocker (AI authenticity) |
 | Hypotheses | 5 | Bariloche 85%, Multi-location 70%, Buenos Aires 60%, DACH 28%, E.Europe 15% |
 | Evidence items | 1 | Capture bar fix deployed (F11) — first user-created evidence flowing |
 | Tasks | 14 | 6 done, 4 in_progress, 4 todo |
 | Map markers | 9 | 2 CONFIRMED (Bariloche, Cerro Catedral), 2 PROBABLE (BA, airport) |
-| Activity entries | 31 | +4 research findings (coastal, Lannah, hackyourmom, outlet) |
+| Activity entries | 31 | All 15 API endpoints healthy (200). +4 research findings |
 | Mission brief | SET | "Geolocate and map the distributed persona farm..." |
 | Blocker count | 1 | Down from 4 — auto-clear implemented for answered/closed RFIs |
 
@@ -99,6 +99,11 @@
 | Tasks not persisting from setup script | Migration 066 deploy timing — repopulated 12 tasks |
 | Entity drawer trigger too hidden | Added prominent Entities panel + labeled button |
 | Dark/light mode inconsistencies | Fixed missing `dark:` variants across 3 component files |
+| Dark mode audit cycle 4 | Fixed 6 files: empty states, domain badges, duplicate grays, map fallback |
+| Personas → Actors rename | Full-width panel, xl:4-col grid, E2E heading locators |
+| Auto-extract toast not wired | Added useToast hook for handle detection notifications |
+| Map marker backlinks missing | Added View Evidence/Hypothesis button in popup |
+| Auto-geocode toast missing | Added location detection toast from analyze-url |
 | Session metadata lost (0 event_facts) | Setup script missing X-Workspace-ID header — re-pushed with correct header |
 | Activity entries missing names | Table lacked actor_name/details columns — migration 069 + repopulate |
 | Entities panel 403 errors | Entity endpoints received COP session ID instead of workspace UUID — fixed workspace_id propagation |
@@ -107,6 +112,7 @@
 | "No location data" warning | Missing LOCATED_AT relationships between actors and places — created 4 |
 | Evidence POST 500 (SQLITE_MISMATCH) | Removed TEXT id from INSERT, let AUTOINCREMENT handle it |
 | Evidence POST 500 (NOT NULL credibility) | Added `credibility`/`reliability` columns to INSERT with defaults |
+| Dark mode audit cycle 5 | CopEventTab footer border, text contrast; CopRfiTab cursor-pointer + retry link contrast |
 
 ## Schema Changes
 

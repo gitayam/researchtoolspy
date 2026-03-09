@@ -124,7 +124,7 @@ export default function CopEventTab({ session, onSessionUpdate }: CopEventTabPro
                   <button
                     type="button"
                     onClick={() => removeFact(i)}
-                    className="shrink-0 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5"
+                    className="shrink-0 text-gray-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 cursor-pointer"
                     title="Remove fact"
                   >
                     <X className="h-3 w-3" />
@@ -139,7 +139,7 @@ export default function CopEventTab({ session, onSessionUpdate }: CopEventTabPro
       </div>
 
       {/* Summary counts at bottom */}
-      <div className="px-3 py-2 border-t border-gray-700 flex items-center gap-4 text-xs text-gray-400 shrink-0">
+      <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 shrink-0">
         <span>Claims: 0</span>
         <span>Entities: 0</span>
       </div>
