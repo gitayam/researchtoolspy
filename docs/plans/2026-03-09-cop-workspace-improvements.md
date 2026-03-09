@@ -15,24 +15,48 @@
 | - | Task Board (Kanban + API + migration 066) | DONE | `acfbecac1` |
 | - | Geolocation Changelog (API + migration 067) | DONE | `acfbecac1` |
 | - | Marker Confidence + Rationale | DONE | `acfbecac1` |
-| - | Session populated: 10 personas, 10 RFIs, 7 markers, 5 hypotheses, 12 tasks | DONE | script |
+| - | Evidence thumbnails + domain badges | DONE | `0d12868dd` |
+| - | Collaborator attribution (RFI requester_name) | DONE | `0d12868dd` |
+| - | Activity log actor_name + details columns | DONE | migration 069 |
 
 ## Wave 3 — Remaining Features
 
 | # | Feature | Description | Status |
 |---|---------|-------------|--------|
-| 5 | Image thumbnails in evidence feed | URL evidence renders with OG + domain badges | DONE |
 | 6 | Chat import / bulk ingest | Parse chat exports into evidence + personas | TODO |
 | 7 | Persona-to-persona network view | Visual graph of persona aliases | TODO |
-| 8 | Collaborator attribution | requester_name on RFIs + migration 068 | DONE |
+
+## Investigation Data Status
+
+| Data | Count | Notes |
+|------|-------|-------|
+| Personas | 13 | +3 new (Lannah escort alias, @lanameys Telegram, sofiaisyours3 link) |
+| RFIs | 10 | 4 blockers, 3 answered by image analysis |
+| Hypotheses | 5 | Bariloche 85%, Multi-location 70%, Buenos Aires 60%, DACH 20%, E.Europe 15% |
+| Evidence links | 16 | Supporting + contradicting evidence linked to all 5 hypotheses |
+| Tasks | 14 | 3 done, 2 in_progress, 9 todo |
+| Map markers | 9 | +2 new (Mar del Plata coastal, Coquimbo escort ads) |
+| Activity entries | 26 | All with actor names and details |
+| Event facts | 28 | +10 new from image/PDF analysis |
+
+## Key Breakthroughs This Session
+
+1. **TIP Bus Identified** — Turismo Integral Patagonico bus at ski resort CONFIRMS Bariloche, NOT Chile
+2. **Jackie Smith Confirmed** — Argentine leather brand on @ufqsoo bag strap, answers RFI
+3. **PimEyes @lanaraae** — 20 matches, alias "Lannah" on escort sites across 8 countries (stolen images)
+4. **Buenos Aires Skyline** — ChatGPT 5.4 geoguessed @lanaraae balcony as Buenos Aires
+5. **Prompt Injection Confirmed** — Telegram bot responded to aardvark, proving AI operation
+6. **Coastal Photos** — @ufqsoo on Argentine Atlantic coast with Mercosur license plate
 
 ## Bug Fixes Applied
 
 | Issue | Fix |
 |-------|-----|
-| Tasks not persisting from setup script | Migration 066 deploy timing — repopulated 12 tasks successfully |
+| Tasks not persisting from setup script | Migration 066 deploy timing — repopulated 12 tasks |
 | Entity drawer trigger too hidden | Added prominent Entities panel + labeled button |
-| Dark/light mode inconsistencies in entity drawer | Fixed missing `dark:` variants across 3 component files |
+| Dark/light mode inconsistencies | Fixed missing `dark:` variants across 3 component files |
+| Session metadata lost (0 event_facts) | Setup script missing X-Workspace-ID header — re-pushed with correct header |
+| Activity entries missing names | Table lacked actor_name/details columns — migration 069 + repopulate |
 
 ## Schema Changes
 
@@ -43,22 +67,4 @@
 | 066 | cop_tasks | NEW table |
 | 067 | cop_markers, cop_marker_changelog | ADD confidence/rationale, NEW changelog table |
 | 068 | cop_rfis | ADD requester_name TEXT |
-
-## Files Created This Session
-
-- `functions/api/cop/[id]/hypotheses.ts` — Hypothesis CRUD + evidence linking
-- `functions/api/cop/[id]/evidence.ts` — COP-scoped evidence endpoint
-- `functions/api/cop/[id]/tasks.ts` — Task board CRUD
-- `functions/api/cop/[id]/marker-changelog.ts` — Marker changelog API
-- `src/components/cop/CopTaskBoard.tsx` — Kanban board component
-- `src/components/cop/CopMarkerChangelog.tsx` — Marker changelog + confidence UI
-- `src/components/cop/CopEntityDrawer.tsx` — Unified entity drawer
-- `schema/migrations/064-067` — 4 migration files
-- `scripts/setup-defcon-cop.sh` — DEF CON investigation data population
-
-## Files Modified This Session
-
-- `functions/api/cop/sessions/[id].ts` — added mission_brief to scalarFields
-- `functions/api/cop/[id]/markers.ts` — confidence/rationale + auto-changelog
-- `src/components/cop/CopHypothesisTab.tsx` — evidence linking, confidence slider, status buttons
-- `src/pages/CopWorkspacePage.tsx` — entities panel, task board panel, entity drawer wiring
+| 069 | cop_activity | ADD actor_name TEXT, ADD details TEXT |

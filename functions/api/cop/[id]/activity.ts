@@ -41,20 +41,27 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') ?? '50', 10) || 50, 1), 200)
     const offset = Math.max(parseInt(url.searchParams.get('offset') ?? '0', 10) || 0, 0)
 
-    const [activityResult, countResult] = await Promise.all([
-      env.DB.prepare(
-        `SELECT * FROM cop_activity WHERE cop_session_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
-      ).bind(sessionId, limit, offset).all(),
+    let activity: any[] = []
+    let total = 0
 
-      env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM cop_activity WHERE cop_session_id = ?`
-      ).bind(sessionId).first<{ cnt: number }>(),
-    ])
+    try {
+      const [activityResult, countResult] = await Promise.all([
+        env.DB.prepare(
+          `SELECT * FROM cop_activity WHERE cop_session_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
+        ).bind(sessionId, limit, offset).all(),
 
-    return new Response(JSON.stringify({
-      activity: activityResult.results ?? [],
-      total: countResult?.cnt ?? 0,
-    }), { headers: corsHeaders })
+        env.DB.prepare(
+          `SELECT COUNT(*) as cnt FROM cop_activity WHERE cop_session_id = ?`
+        ).bind(sessionId).first<{ cnt: number }>(),
+      ])
+      activity = activityResult.results ?? []
+      total = countResult?.cnt ?? 0
+    } catch (dbError) {
+      // Table may not exist yet — return empty results gracefully
+      console.warn('[COP Activity] DB query failed (table may not exist):', dbError)
+    }
+
+    return new Response(JSON.stringify({ activity, total }), { headers: corsHeaders })
   } catch (error) {
     console.error('[COP Activity] GET error:', error)
     return new Response(JSON.stringify({
@@ -77,6 +84,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       entity_type?: string
       entity_id?: string
       summary?: string
+      actor_name?: string
+      details?: string
     }>()
 
     if (!body.action) {
@@ -89,19 +98,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = getUserId(request)
     const createdAt = new Date().toISOString().replace('T', ' ').replace('Z', '').slice(0, 19)
 
-    await env.DB.prepare(
-      `INSERT INTO cop_activity (id, cop_session_id, user_id, action, entity_type, entity_id, summary, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      id,
-      sessionId,
-      userId,
-      body.action,
-      body.entity_type ?? null,
-      body.entity_id ?? null,
-      body.summary ?? null,
-      createdAt,
-    ).run()
+    try {
+      await env.DB.prepare(
+        `INSERT INTO cop_activity (id, cop_session_id, user_id, action, entity_type, entity_id, summary, actor_name, details, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        id,
+        sessionId,
+        userId,
+        body.action,
+        body.entity_type ?? null,
+        body.entity_id ?? null,
+        body.summary ?? null,
+        body.actor_name ?? null,
+        body.details ?? null,
+        createdAt,
+      ).run()
+    } catch (dbError) {
+      // Table may not exist yet — log but don't fail the request
+      console.warn('[COP Activity] INSERT failed (table may not exist):', dbError)
+    }
 
     return new Response(JSON.stringify({
       activity: {
@@ -112,6 +128,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         entity_type: body.entity_type ?? null,
         entity_id: body.entity_id ?? null,
         summary: body.summary ?? null,
+        actor_name: body.actor_name ?? null,
+        details: body.details ?? null,
         created_at: createdAt,
       },
     }), { status: 201, headers: corsHeaders })
