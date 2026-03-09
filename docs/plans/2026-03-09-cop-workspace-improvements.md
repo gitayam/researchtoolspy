@@ -60,7 +60,7 @@
 | 11 | Evidence feed header locator fix (E2E) | POM uses unique panel title text | DONE (2026-03-09) |
 | 12 | Hypothesis count in stats + KPI strip | API returns hypothesis_count, status strip shows it | DONE (2026-03-09) |
 
-## Investigation Data Status (2026-03-09 cycle 5)
+## Investigation Data Status (2026-03-09 cycle 6)
 
 | Data | Count | Notes |
 |------|-------|-------|
@@ -70,12 +70,12 @@
 | Relationships | 14 | 9 CONTROLS, 1 ASSOCIATED_WITH, 4 LOCATED_AT |
 | Places | 3 | Bariloche CONFIRMED, Cerro Catedral CONFIRMED, Buenos Aires PROBABLE |
 | Sources | 4 | Instagram @ufqsoo, Twitter @lanaraae, PimEyes, HackYourMom |
-| Personas/Actors | 13 | Renamed panel to "Actors". 10 have platform=other (data quality TODO) |
+| Personas/Actors | 13 | Platform data fixed: 8 onlyfans, 1 telegram, 1 twitter, 1 reddit, 1 instagram, 1 other |
 | RFIs | 10 | 7 answered, 3 open, 1 blocker (AI authenticity) |
 | Hypotheses | 5 | Bariloche 85%, Multi-location 70%, Buenos Aires 60%, DACH 28%, E.Europe 15% |
-| Evidence items | 1 | Capture bar fix deployed (F11) — first user-created evidence flowing |
+| Evidence items | 10 | Was 1 — seeded 9 evidence items from RFI research findings |
 | Tasks | 14 | 6 done, 4 in_progress, 4 todo |
-| Map markers | 9 | 2 CONFIRMED (Bariloche, Cerro Catedral), 2 PROBABLE (BA, airport) |
+| Map markers | 9 | Deduplicated: BARILOCHE-CENTRO separated from SKI-CATEDRAL |
 | Activity entries | 31 | All 15 API endpoints healthy (200). +4 research findings |
 | Mission brief | SET | "Geolocate and map the distributed persona farm..." |
 | Blocker count | 1 | Down from 4 — auto-clear implemented for answered/closed RFIs |
@@ -113,6 +113,10 @@
 | Evidence POST 500 (SQLITE_MISMATCH) | Removed TEXT id from INSERT, let AUTOINCREMENT handle it |
 | Evidence POST 500 (NOT NULL credibility) | Added `credibility`/`reliability` columns to INSERT with defaults |
 | Dark mode audit cycle 5 | CopEventTab footer border, text contrast; CopRfiTab cursor-pointer + retry link contrast |
+| Dark mode audit cycle 5b | CopActivityPanel empty state, CopHypothesisTab status text + evidence empty states |
+| Persona platform data quality | Fixed 10/13 personas from `platform=other` to correct platforms (8 onlyfans, 1 reddit) |
+| Duplicate Bariloche marker | Separated BARILOCHE-CENTRO from SKI-CATEDRAL (were at same coords) |
+| Evidence count = 1 | Seeded 9 evidence items from RFI research findings (bus ID, purse brand, PimEyes, etc.) |
 
 ## Schema Changes
 

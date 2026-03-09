@@ -32,6 +32,16 @@ The session PUT endpoint at `/api/cop/sessions/:id` supports `mission_brief` but
 
 **Rule**: When API PUT doesn't work for a quick data fix, verify with `wrangler d1 execute --remote` directly. But always prefer API for audit trail.
 
+### Evidence Seeding: Populate From Research Findings
+When a workspace has rich research data (answered RFIs, activity log entries) but an empty evidence feed, seed evidence items from those findings via the evidence POST endpoint. The evidence_items table uses `INTEGER PRIMARY KEY AUTOINCREMENT` — do not generate TEXT IDs. Include `credibility` and `reliability` columns (NOT NULL) or use defaults (`unverified`/`unknown`).
+
+**Pattern**: After answering RFIs or completing research tasks, create corresponding evidence items so the Evidence & Intel Feed reflects the investigation's progress.
+
+### Data Quality: Platform Fields Default to 'other'
+When creating personas via batch scripts, the `platform` field often defaults to `other` because the script doesn't know the exact platform. Fix this proactively by updating platform values once the investigation identifies where each persona operates (e.g., OnlyFans, Reddit, Telegram).
+
+**Rule**: After batch persona creation, audit and fix platform values via `UPDATE cop_personas SET platform = '...' WHERE handle = '...'`.
+
 ---
 
 ## Session: 2025-12-30 - React Error #185 Infinite Loop Fix

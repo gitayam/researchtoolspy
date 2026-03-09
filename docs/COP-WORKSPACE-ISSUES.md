@@ -154,6 +154,9 @@
 3. ~~**New** — Evidence creation through COP workflow~~ DONE (F11) — capture bar works
 4. ~~**New** — hypothesis_count missing from stats~~ DONE — added to API + KPI strip
 5. ~~**New** — 4B Auto-geocode prompt~~ DONE — toast fires on location detection
-6. ~~**New** — Dark/light mode audit~~ DONE — fixed 6 files, empty states, domain badges
-7. **L1** — API docs for newer endpoints
-8. **New** — Auto-sync event_facts → events table on session update
+6. ~~**New** — Dark/light mode audit~~ DONE — 8 files fixed across cycles 4-6
+7. ~~**New** — Persona platform data quality~~ DONE — 10/13 fixed from `other` to correct platforms
+8. ~~**New** — Evidence seeding from RFI research~~ DONE — 9 items, evidence_count: 1→10
+9. ~~**New** — Duplicate Bariloche marker~~ DONE — separated CENTRO from SKI-CATEDRAL
+10. **L1** — API docs for newer endpoints
+11. **New** — Auto-sync event_facts → events table on session update
