@@ -5,6 +5,12 @@
 ### Git Hygiene: Commit Untracked Files Regularly
 Over 12 cycles, many files were created but never committed (personas API, evidence-tags API, E2E infrastructure, migrations 061-063, tool pages). This makes `git status` noisy and risks losing work. Commit new files as soon as they pass basic verification, even if they're not the focus of the current cycle.
 
+### Two-Step Framework Linking: Create Then Link
+To connect a framework to a COP session, you need two API calls: (1) POST `/api/frameworks` to create the session, (2) PUT `/api/cop/sessions/:id` with the `linked_frameworks` array. Since these aren't atomic, the UI should handle partial failures gracefully — if the link fails, the framework still exists and can be retried.
+
+### Cloudflare Pages Deploy: UTF-8 Commit Messages
+Wrangler Pages deploy reads the git commit message and sends it to the Cloudflare API. Special characters (em dashes, certain Unicode) can cause `Invalid commit message, it must be a valid UTF-8 string` errors. Use `--commit-message="..."` flag with ASCII-only text to bypass.
+
 ### CHECK Constraints Fail Silently in Try/Catch
 `match-entities-to-actors.ts` inserted lowercase `'person'` into a column with `CHECK(type IN ('PERSON', 'ORGANIZATION', ...))`. The D1 error was caught by a generic try/catch, so auto-actor creation silently failed with no visible error. The actors table appeared to work fine for manual creation (which used correct casing).
 

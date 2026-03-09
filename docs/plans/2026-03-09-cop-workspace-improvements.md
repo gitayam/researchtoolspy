@@ -75,6 +75,8 @@
 | 26 | Schema alignment | actor_type→type, owner→ADMIN, graceful DB errors | DONE (2026-03-09) |
 | 27 | OSINT search fallback chain | DuckDuckGo + public SearXNG fallbacks | DONE (2026-03-09) |
 | 28 | Git cleanup | Committed all untracked COP files, E2E infra, migrations, plans | DONE (2026-03-09) |
+| 29 | Generate Questions UI (I4) | Enable button → create starbursting → link to COP session | DONE (2026-03-09) |
+| 30 | CopQuestionsTab dark mode | gray-* → slate-* dual-mode classes, answer display | DONE (2026-03-09) |
 
 ## Investigation Data Status (2026-03-09 cycle 12)
 

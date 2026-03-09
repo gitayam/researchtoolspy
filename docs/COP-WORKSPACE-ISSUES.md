@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-09 (cycle 12)
+> Last updated: 2026-03-09 (cycle 13)
 > Source: Live production data audit against `cop-b0f96023-cdf` / workspace `6fde45ce-ae4b-4ff0-97c6-d2773a6ff108`
 
 ## Status Legend
@@ -159,14 +159,10 @@
 **Now:** `blocker_count: 1` — only the legitimately open AI authenticity RFI remains
 **Status:** Moved to Fixed (F8)
 
-### I4. No UI to Link/Create Frameworks from Workspace
-**Observed:** CopQuestionsTab has a disabled "Generate Questions" button. No dialog or button exists to create a framework session or link an existing one to the COP session.
-**API support:** PUT `/api/cop/sessions/:id` already accepts `{"linked_frameworks": [id1, id2]}`. POST `/api/frameworks` creates framework sessions.
-**Impact:** `framework_count` will always be 0 from the UI — users must use API calls to link frameworks.
-**Fix needed:** Add a "Link Framework" button/dialog in CopQuestionsTab that:
-1. Lists existing framework sessions (GET `/api/frameworks?workspace_id=...`)
-2. Creates new starbursting/5W1H session if none exist
-3. Updates `linked_frameworks` via PUT session endpoint
+### I4. No UI to Link/Create Frameworks from Workspace — RESOLVED
+**Was:** CopQuestionsTab had a disabled "Generate Questions" button with no functionality.
+**Fix:** Enabled button — on click: POST `/api/frameworks` (starbursting with 16 default 5W1H questions), then PUT `/api/cop/sessions/:id` to link via `linked_frameworks`. Optimistic state update shows questions immediately.
+**Status:** Deployed. Users can now generate and link frameworks from the workspace UI.
 
 ### I3. Framework Count = 0 — PARTIALLY FIXED
 **Observed:** `framework_count: 0` in stats endpoint
@@ -182,7 +178,7 @@
 **Status:** Partially addressed in `docs/COP-WORKSPACE-API.md` (964 lines)
 
 ### L2. E2E Test Coverage
-**Status:** ALL PASSING — 158 pass / 0 fail / 16 skip (2026-03-09 cycle 12)
+**Status:** ALL PASSING — 158 pass / 0 fail / 16 skip (2026-03-09 cycle 13)
 **Key fixes this round:**
 - `networkidle` → `domcontentloaded` in workspace POM (was still using networkidle)
 - Mode toggle buttons: added `data-testid="mode-progress"` / `data-testid="mode-monitor"` for mobile viewport compatibility
