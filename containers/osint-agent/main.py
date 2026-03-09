@@ -46,7 +46,16 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 LOCAL_LLM_BASE_URL = os.getenv("LOCAL_LLM_BASE_URL", "http://ollama:11434/v1")
 LOCAL_LLM_MODEL = os.getenv("LOCAL_LLM_MODEL", "llama3.2")
-DEFAULT_SEARXNG_ENDPOINT = os.getenv("SEARXNG_ENDPOINT", "http://searxng:8080")
+# SearXNG endpoints - primary is container, fallback to public instances
+DEFAULT_SEARXNG_ENDPOINT = os.getenv("SEARXNG_ENDPOINT", "https://searx.be")
+FALLBACK_SEARXNG_ENDPOINTS = [
+    "https://searx.be",
+    "https://search.sapti.me",
+    "https://searx.tiekoetter.com",
+    "https://priv.au",
+    "https://search.ononoki.org",
+]
+# DuckDuckGo search library as ultimate fallback (more reliable than HTML scraping)
 
 # Model selection - use gpt-5 for expansion, gpt-5-mini for bulk scoring
 EXPANSION_MODEL = os.getenv("EXPANSION_MODEL", "gpt-5")
@@ -222,6 +231,46 @@ Return ONLY a JSON array of search query strings, no explanations. Example forma
         ]
 
 
+async def search_duckduckgo(
+    query: str,
+    max_results: int
+) -> list[SearchResult]:
+    """
+    Fallback: Search DuckDuckGo using the duckduckgo_search library.
+    This is more reliable than HTML scraping.
+    """
+    from duckduckgo_search import DDGS
+
+    results: list[SearchResult] = []
+
+    try:
+        # Run synchronous DuckDuckGo search in thread pool
+        import asyncio
+        loop = asyncio.get_event_loop()
+
+        def do_search():
+            with DDGS() as ddgs:
+                return list(ddgs.text(query, max_results=max_results))
+
+        search_results = await loop.run_in_executor(None, do_search)
+
+        for item in search_results:
+            results.append(SearchResult(
+                title=item.get("title", "Untitled"),
+                url=item.get("href", ""),
+                snippet=item.get("body", ""),
+                source="duckduckgo",
+                category="general"
+            ))
+
+        logger.info(f"DuckDuckGo fallback returned {len(results)} results for '{query}'")
+
+    except Exception as e:
+        logger.error(f"DuckDuckGo search failed for '{query}': {e}")
+
+    return results
+
+
 async def execute_searches(
     queries: list[str],
     categories: list[str],
@@ -231,65 +280,110 @@ async def execute_searches(
 ) -> list[SearchResult]:
     """
     Execute searches against SearXNG for all expanded queries.
+    Includes fallback to public SearXNG instances and DuckDuckGo HTML if all fail.
     """
     results: list[SearchResult] = []
     seen_urls: set[str] = set()
     results_per_query = max(5, max_results // len(queries))
 
+    # Build list of endpoints to try (primary + fallbacks)
+    endpoints_to_try = [searxng_endpoint] + FALLBACK_SEARXNG_ENDPOINTS
+    working_endpoint = None
+    searxng_failed_completely = True
+
     async with httpx.AsyncClient(timeout=30.0) as client:
         for query in queries:
+            if len(results) >= max_results:
+                break
+
+            query_got_results = False
+
+            # Try SearXNG endpoints first
             for category in categories:
-                if len(results) >= max_results:
+                if len(results) >= max_results or query_got_results:
                     break
 
-                try:
-                    params = {
-                        "q": query,
-                        "format": "json",
-                        "categories": category,
-                        "pageno": 1,
-                    }
+                for endpoint in endpoints_to_try:
+                    # If we found a working endpoint, prioritize it
+                    if working_endpoint and endpoint != working_endpoint:
+                        continue
 
-                    if time_range:
-                        params["time_range"] = time_range
+                    try:
+                        params = {
+                            "q": query,
+                            "format": "json",
+                            "categories": category,
+                            "pageno": 1,
+                        }
 
-                    response = await client.get(
-                        f"{searxng_endpoint}/search",
-                        params=params
-                    )
-                    response.raise_for_status()
+                        if time_range:
+                            params["time_range"] = time_range
 
-                    data = response.json()
-
-                    for item in data.get("results", [])[:results_per_query]:
-                        url = item.get("url", "")
-
-                        # Deduplicate by URL
-                        if url in seen_urls:
-                            continue
-                        seen_urls.add(url)
-
-                        result = SearchResult(
-                            title=item.get("title", "Untitled"),
-                            url=url,
-                            snippet=item.get("content", ""),
-                            source=item.get("engine", "unknown"),
-                            publishedDate=item.get("publishedDate"),
-                            category=category
+                        response = await client.get(
+                            f"{endpoint}/search",
+                            params=params,
+                            headers={
+                                "User-Agent": "Mozilla/5.0 (compatible; OSINTAgent/1.0)",
+                                "Accept": "application/json",
+                            },
+                            follow_redirects=True
                         )
-                        results.append(result)
+                        response.raise_for_status()
 
+                        data = response.json()
+
+                        # Mark this endpoint as working
+                        if not working_endpoint:
+                            working_endpoint = endpoint
+                            logger.info(f"Using SearXNG endpoint: {endpoint}")
+
+                        searxng_failed_completely = False
+
+                        for item in data.get("results", [])[:results_per_query]:
+                            url = item.get("url", "")
+
+                            # Deduplicate by URL
+                            if url in seen_urls:
+                                continue
+                            seen_urls.add(url)
+
+                            result = SearchResult(
+                                title=item.get("title", "Untitled"),
+                                url=url,
+                                snippet=item.get("content", ""),
+                                source=item.get("engine", "unknown"),
+                                publishedDate=item.get("publishedDate"),
+                                category=category
+                            )
+                            results.append(result)
+                            query_got_results = True
+
+                            if len(results) >= max_results:
+                                break
+
+                        # Successfully got results from this endpoint
+                        break
+
+                    except httpx.HTTPError as e:
+                        logger.warning(f"Search failed on {endpoint} for '{query}' in {category}: {e}")
+                        continue
+                    except Exception as e:
+                        logger.error(f"Unexpected error on {endpoint} searching '{query}': {e}")
+                        continue
+
+            # If no results from SearXNG, try DuckDuckGo fallback
+            if not query_got_results and len(results) < max_results:
+                logger.info(f"SearXNG failed for '{query}', trying DuckDuckGo fallback")
+                ddg_results = await search_duckduckgo(query, results_per_query)
+                for result in ddg_results:
+                    if result.url not in seen_urls:
+                        seen_urls.add(result.url)
+                        results.append(result)
                         if len(results) >= max_results:
                             break
 
-                except httpx.HTTPError as e:
-                    logger.warning(f"Search failed for '{query}' in {category}: {e}")
-                    continue
-                except Exception as e:
-                    logger.error(f"Unexpected error searching '{query}': {e}")
-                    continue
-
-    logger.info(f"Collected {len(results)} unique results from {len(queries)} queries")
+    source_info = working_endpoint if not searxng_failed_completely else "DuckDuckGo HTML fallback"
+    logger.info(f"Collected {len(results)} unique results from {len(queries)} queries using {source_info}")
     return results
 
 
