@@ -17,6 +17,16 @@ Migration 005 included `ALTER TABLE evidence_items ADD COLUMN workspace_id TEXT`
 
 **Rule**: After deploying migrations, always verify with `SELECT sql FROM sqlite_master WHERE name='table'` that columns actually exist. D1's ALTER TABLE fails silently if the migration file errors out early on a prior statement.
 
+### D1 Schema: Always Check NOT NULL + AUTOINCREMENT Before INSERT
+The `evidence_items` table has 45 columns, with `credibility` and `reliability` being `NOT NULL` without defaults. The COP evidence endpoint only inserted a subset of columns, causing `SQLITE_CONSTRAINT`. Separately, trying to INSERT a TEXT id into an `INTEGER PRIMARY KEY AUTOINCREMENT` column caused `SQLITE_MISMATCH`.
+
+**Rule**: Before writing any INSERT for an existing table, run `PRAGMA table_info(table_name)` to identify all NOT NULL columns and the primary key type. Never assume column nullability from the endpoint's perspective alone.
+
+### E2E: Panel Title Locators Clash When Same Text Appears in Multiple Contexts
+Renaming "Personas" → "Actors" caused `getByText('Actors', { exact: true })` to match an entity panel button (which had a child `<span>Actors</span>`) before the panel heading. On mobile, the wrong element was found.
+
+**Rule**: When panel titles overlap with button/card text, use `getByRole('heading', { name: '...', level: 3 })` to scope to the panel header specifically.
+
 ### PUT vs Direct D1 for Session Fields
 The session PUT endpoint at `/api/cop/sessions/:id` supports `mission_brief` but the update appeared not to work via curl. Setting the value directly via `wrangler d1 execute --remote` worked immediately. Possible issue: the PUT endpoint might require auth headers or specific content-type handling.
 

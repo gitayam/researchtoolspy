@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-09 (cycle 3)
+> Last updated: 2026-03-09 (cycle 4)
 > Source: Live production data audit against `cop-b0f96023-cdf` / workspace `6fde45ce-ae4b-4ff0-97c6-d2773a6ff108`
 
 ## Status Legend
@@ -76,6 +76,18 @@
 **Root cause:** `credibility` and `reliability` columns are `NOT NULL` but INSERT omitted them.
 **Fix:** Removed TEXT id (let AUTOINCREMENT handle), added `credibility`/`reliability` with sensible defaults (`unverified`/`unknown`). Capture bar now works.
 
+### F12. Personas Panel Too Small + Wrong Semantics
+**Observed:** Panel was 1/3 width in 3-col grid, cramming 13 cards. Name "Personas" conflicted with team sock puppet meaning.
+**Fix:** Renamed to "Actors" (research targets), moved to full-width row, added `xl:grid-cols-4` card grid. E2E updated with `getByRole('heading')` to avoid locator clash with entity panel buttons.
+
+### F13. Auto-Extract Toast Not Wired
+**Observed:** Handle regex extraction worked in CopEvidenceFeed but no user notification was shown.
+**Fix:** Wired `useToast` hook — fires `"N handle(s) detected"` toast when auto-extract finds handles.
+
+### F14. Map Marker Backlinks Not Implemented (4C)
+**Observed:** Marker popups showed only name/type/description. `source_type`/`source_id` linking existed but popup had no interactive backlink.
+**Fix:** Added "View Evidence" / "View Hypothesis" button in popup. Wired `onMarkerOpenInFeed` callback to scroll to evidence feed.
+
 ---
 
 ## 🔴 Critical Issues
@@ -121,7 +133,7 @@
 **Status:** Partially addressed in `docs/COP-WORKSPACE-API.md` (964 lines)
 
 ### L2. E2E Test Coverage
-**Status:** ALL PASSING — 158 pass / 0 fail / 16 skip (2026-03-09 cycle 3)
+**Status:** ALL PASSING — 158 pass / 0 fail / 16 skip (2026-03-09 cycle 4)
 **Key fixes this round:**
 - `networkidle` → `domcontentloaded` in workspace POM (was still using networkidle)
 - Mode toggle buttons: added `data-testid="mode-progress"` / `data-testid="mode-monitor"` for mobile viewport compatibility
@@ -130,6 +142,8 @@
 - Viewport-conditional checks for `hidden sm:` elements (keyboard hint, template badge)
 - Added tile request blocking to workspace spec mock function
 - Fixed evidence feed header locator clash with KPI label (F9)
+- Actors panel: `getByRole('heading', { level: 3 })` to avoid entity button clash (F12)
+- Add Actor button: `.first()` to prefer panel button over entity drawer button
 
 ---
 
@@ -137,7 +151,9 @@
 
 1. ~~**I1** — Event entities~~ DONE — 32 events created
 2. **I3** — Framework linkage for intelligence synthesis
-3. **L1** — API docs for newer endpoints
-4. **New** — Auto-sync event_facts → events table on session update
-5. **New** — Evidence creation through COP workflow (evidence_count still 0)
-6. ~~**New** — hypothesis_count missing from stats~~ DONE — added to API + KPI strip
+3. ~~**New** — Evidence creation through COP workflow~~ DONE (F11) — capture bar works
+4. ~~**New** — hypothesis_count missing from stats~~ DONE — added to API + KPI strip
+5. ~~**New** — 4B Auto-geocode prompt~~ DONE — toast fires on location detection
+6. ~~**New** — Dark/light mode audit~~ DONE — fixed 6 files, empty states, domain badges
+7. **L1** — API docs for newer endpoints
+8. **New** — Auto-sync event_facts → events table on session update
