@@ -17,6 +17,41 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+// ── Auth ─────────────────────────────────────────────────────────
+
+function getHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const userHash = localStorage.getItem('omnicore_user_hash')
+  if (userHash) headers['X-User-Hash'] = userHash
+  return headers
+}
+
+// ── Confidence helpers ───────────────────────────────────────────
+
+const CONFIDENCE_LEVELS = [
+  { value: 10, label: 'Very Low' },
+  { value: 30, label: 'Low' },
+  { value: 50, label: 'Medium' },
+  { value: 70, label: 'High' },
+  { value: 90, label: 'Very High' },
+]
+
+function confidenceColor(c: number): string {
+  if (c >= 80) return 'text-green-500'
+  if (c >= 60) return 'text-blue-500'
+  if (c >= 40) return 'text-amber-500'
+  if (c >= 20) return 'text-orange-500'
+  return 'text-red-500'
+}
+
+function confidenceBg(c: number): string {
+  if (c >= 80) return 'bg-green-500'
+  if (c >= 60) return 'bg-blue-500'
+  if (c >= 40) return 'bg-amber-500'
+  if (c >= 20) return 'bg-orange-500'
+  return 'bg-red-500'
+}
+
 // ── Types ────────────────────────────────────────────────────────
 
 interface HypothesisEvidence {
@@ -60,9 +95,8 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
     try {
       // For now, using a mock/placeholder endpoint or state until backend catch up
       // In a real implementation, this would hit /api/cop/${sessionId}/hypotheses
-      const res = await fetch(`/api/cop/${sessionId}/hypotheses`)
+      const res = await fetch(`/api/cop/${sessionId}/hypotheses`, { headers: getHeaders() })
       if (!res.ok) {
-         // Fallback to empty if not implemented yet
          setHypotheses([])
          return
       }
@@ -79,6 +113,15 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
     fetchHypotheses()
   }, [fetchHypotheses])
 
+  // New Hypothesis Form - confidence
+  const [newConfidence, setNewConfidence] = useState(50)
+
+  // Evidence linking
+  const [linkingHypId, setLinkingHypId] = useState<string | null>(null)
+  const [linkTitle, setLinkTitle] = useState('')
+  const [linkType, setLinkType] = useState<'supporting' | 'contradicting'>('supporting')
+  const [linkSubmitting, setLinkSubmitting] = useState(false)
+
   // ── Create Hypothesis ──────────────────────────────────────────
 
   const handleCreate = async () => {
@@ -87,11 +130,12 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
     try {
       const res = await fetch(`/api/cop/${sessionId}/hypotheses`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ statement: newStatement.trim() }),
+        headers: getHeaders(),
+        body: JSON.stringify({ statement: newStatement.trim(), confidence: newConfidence }),
       })
       if (res.ok) {
         setNewStatement('')
+        setNewConfidence(50)
         setShowForm(false)
         await fetchHypotheses()
       }
@@ -99,6 +143,43 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
       // ignore
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // ── Update Status/Confidence ──────────────────────────────────
+
+  const handleUpdateHypothesis = async (hypId: string, updates: { status?: string; confidence?: number }) => {
+    try {
+      await fetch(`/api/cop/${sessionId}/hypotheses`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ id: hypId, ...updates }),
+      })
+      await fetchHypotheses()
+    } catch {
+      // ignore
+    }
+  }
+
+  // ── Link Evidence ─────────────────────────────────────────────
+
+  const handleLinkEvidence = async (hypId: string) => {
+    if (!linkTitle.trim()) return
+    setLinkSubmitting(true)
+    try {
+      await fetch(`/api/cop/${sessionId}/hypotheses`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ hypothesis_id: hypId, title: linkTitle.trim(), type: linkType }),
+      })
+      setLinkTitle('')
+      setLinkType('supporting')
+      setLinkingHypId(null)
+      await fetchHypotheses()
+    } catch {
+      // ignore
+    } finally {
+      setLinkSubmitting(false)
     }
   }
 
@@ -134,12 +215,26 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
               className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 text-xs text-gray-900 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
               autoFocus
             />
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0">Confidence:</label>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={newConfidence}
+                onChange={e => setNewConfidence(Number(e.target.value))}
+                className="flex-1 h-1.5 accent-emerald-500"
+              />
+              <span className={cn('text-[10px] font-medium tabular-nums w-8 text-right', confidenceColor(newConfidence))}>
+                {newConfidence}%
+              </span>
+            </div>
             <div className="flex justify-end gap-2">
                <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setShowForm(false)}
-                className="h-6 text-[10px]"
+                className="h-6 text-[10px] cursor-pointer"
               >
                 Cancel
               </Button>
@@ -147,7 +242,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
                 size="sm"
                 onClick={handleCreate}
                 disabled={submitting || !newStatement.trim()}
-                className="h-6 text-[10px] bg-emerald-600 hover:bg-emerald-700"
+                className="h-6 text-[10px] bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
               >
                 {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Propose'}
               </Button>
@@ -188,6 +283,9 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
                           </span>
                        </div>
                        <div className="flex-1" />
+                       <span className={cn('text-[10px] font-medium tabular-nums', confidenceColor(h.confidence))}>
+                          {h.confidence}%
+                       </span>
                        <span className="text-[10px] text-gray-500">
                           {h.status.toUpperCase()}
                        </span>
@@ -211,8 +309,50 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
                )}
 
                {expandedId === h.id && (
-
                  <div className="px-2.5 pb-2 border-t border-gray-200 dark:border-gray-700 pt-2 space-y-2">
+                    {/* Confidence bar */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0">Confidence:</span>
+                      <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className={cn('h-full rounded-full transition-all', confidenceBg(h.confidence))} style={{ width: `${h.confidence}%` }} />
+                      </div>
+                      <span className={cn('text-[10px] font-bold tabular-nums', confidenceColor(h.confidence))}>{h.confidence}%</span>
+                    </div>
+
+                    {/* Status actions */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {(['active', 'proven', 'disproven', 'archived'] as const).map(s => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => handleUpdateHypothesis(h.id, { status: s })}
+                          className={cn(
+                            'text-[9px] px-1.5 py-0.5 rounded border cursor-pointer transition-colors',
+                            h.status === s
+                              ? s === 'proven' ? 'bg-green-100 dark:bg-green-900/30 border-green-400 text-green-700 dark:text-green-400'
+                              : s === 'disproven' ? 'bg-red-100 dark:bg-red-900/30 border-red-400 text-red-700 dark:text-red-400'
+                              : s === 'archived' ? 'bg-gray-100 dark:bg-gray-800 border-gray-400 text-gray-600 dark:text-gray-400'
+                              : 'bg-blue-100 dark:bg-blue-900/30 border-blue-400 text-blue-700 dark:text-blue-400'
+                              : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
+                          )}
+                        >
+                          {s === 'proven' && <Check className="h-2.5 w-2.5 inline mr-0.5" />}
+                          {s === 'disproven' && <X className="h-2.5 w-2.5 inline mr-0.5" />}
+                          {s.charAt(0).toUpperCase() + s.slice(1)}
+                        </button>
+                      ))}
+                      <div className="flex-1" />
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={h.confidence}
+                        onChange={e => handleUpdateHypothesis(h.id, { confidence: Number(e.target.value) })}
+                        className="w-20 h-1 accent-emerald-500"
+                        title="Adjust confidence"
+                      />
+                    </div>
+
                     {/* Evidence List */}
                     <div className="space-y-1">
                        <h3 className="text-[10px] font-semibold text-gray-500 uppercase">Supporting Evidence</h3>
@@ -224,7 +364,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
                              </div>
                           ))
                        ) : (
-                          <p className="text-[10px] text-gray-600 italic pl-2">No supporting evidence linked.</p>
+                          <p className="text-[10px] text-gray-600 dark:text-gray-500 italic pl-2">No supporting evidence linked.</p>
                        )}
                     </div>
                     <div className="space-y-1">
@@ -237,9 +377,51 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
                              </div>
                           ))
                        ) : (
-                          <p className="text-[10px] text-gray-600 italic pl-2">No contradicting evidence linked.</p>
+                          <p className="text-[10px] text-gray-600 dark:text-gray-500 italic pl-2">No contradicting evidence linked.</p>
                        )}
                     </div>
+
+                    {/* Link Evidence Form */}
+                    {linkingHypId === h.id ? (
+                      <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 p-2 space-y-1.5">
+                        <input
+                          type="text"
+                          value={linkTitle}
+                          onChange={e => setLinkTitle(e.target.value)}
+                          placeholder="Evidence description..."
+                          className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs text-gray-900 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          autoFocus
+                        />
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={linkType}
+                            onChange={e => setLinkType(e.target.value as any)}
+                            className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          >
+                            <option value="supporting">Supporting</option>
+                            <option value="contradicting">Contradicting</option>
+                          </select>
+                          <div className="flex-1" />
+                          <Button size="sm" variant="ghost" onClick={() => setLinkingHypId(null)} className="h-5 text-[9px] cursor-pointer">Cancel</Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleLinkEvidence(h.id)}
+                            disabled={linkSubmitting || !linkTitle.trim()}
+                            className="h-5 text-[9px] bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
+                          >
+                            {linkSubmitting ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : 'Link'}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setLinkingHypId(h.id)}
+                        className="text-[10px] text-emerald-500 hover:text-emerald-400 cursor-pointer transition-colors"
+                      >
+                        + Link Evidence
+                      </button>
+                    )}
                  </div>
                )}
             </div>
