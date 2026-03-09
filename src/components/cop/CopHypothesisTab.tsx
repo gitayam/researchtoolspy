@@ -286,7 +286,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
                        <span className={cn('text-[10px] font-medium tabular-nums', confidenceColor(h.confidence))}>
                           {h.confidence}%
                        </span>
-                       <span className="text-[10px] text-gray-500">
+                       <span className="text-[10px] text-gray-600 dark:text-gray-400">
                           {h.status.toUpperCase()}
                        </span>
                     </div>
@@ -364,7 +364,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
                              </div>
                           ))
                        ) : (
-                          <p className="text-[10px] text-gray-600 dark:text-gray-500 italic pl-2">No supporting evidence linked.</p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 italic pl-2">No supporting evidence linked.</p>
                        )}
                     </div>
                     <div className="space-y-1">
@@ -377,7 +377,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
                              </div>
                           ))
                        ) : (
-                          <p className="text-[10px] text-gray-600 dark:text-gray-500 italic pl-2">No contradicting evidence linked.</p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 italic pl-2">No contradicting evidence linked.</p>
                        )}
                     </div>
 

@@ -155,9 +155,9 @@ export default function CopActivityPanel({ sessionId, expanded }: CopActivityPan
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2 px-4">
-        <Activity className="h-6 w-6 text-gray-600" />
-        <p className="text-xs text-gray-500 font-medium">No activity yet</p>
-        <p className="text-[10px] text-gray-600 text-center">
+        <Activity className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">No activity yet</p>
+        <p className="text-[10px] text-gray-500 dark:text-gray-400 text-center">
           Actions like adding evidence, running analyses, and answering RFIs will appear here.
         </p>
       </div>
