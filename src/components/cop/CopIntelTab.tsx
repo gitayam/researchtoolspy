@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { Link, Loader2, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import type { CopSession } from '@/types/cop'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -11,6 +12,8 @@ interface ContentAnalysis {
   url: string
   entity_count: number
   claim_count: number
+  status?: 'pending' | 'completed' | 'failed'
+  error?: string
 }
 
 // ── Props ────────────────────────────────────────────────────────
@@ -24,7 +27,6 @@ interface CopIntelTabProps {
 
 export default function CopIntelTab({ session, onSessionUpdate }: CopIntelTabProps) {
   const [url, setUrl] = useState('')
-  const [analyzing, setAnalyzing] = useState(false)
   const [analyses, setAnalyses] = useState<ContentAnalysis[]>([])
   const [error, setError] = useState<string | null>(null)
 
@@ -32,14 +34,25 @@ export default function CopIntelTab({ session, onSessionUpdate }: CopIntelTabPro
     const trimmed = url.trim()
     if (!trimmed) return
 
-    setAnalyzing(true)
+    const tempId = crypto.randomUUID()
+    const pendingAnalysis: ContentAnalysis = {
+      id: tempId,
+      title: trimmed,
+      url: trimmed,
+      entity_count: 0,
+      claim_count: 0,
+      status: 'pending'
+    }
+
+    setAnalyses(prev => [pendingAnalysis, ...prev])
+    setUrl('')
     setError(null)
 
     try {
       const res = await fetch('/api/content-intelligence/analyze-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: trimmed }),
+        body: JSON.stringify({ url: trimmed, workspace_id: session.id }),
       })
 
       if (!res.ok) {
@@ -49,26 +62,29 @@ export default function CopIntelTab({ session, onSessionUpdate }: CopIntelTabPro
 
       const data = await res.json()
       const analysis: ContentAnalysis = {
-        id: data.id ?? data.analysis_id ?? crypto.randomUUID(),
+        id: data.id ?? data.analysis_id ?? tempId,
         title: data.title ?? trimmed,
         url: trimmed,
         entity_count: data.entity_count ?? data.entities?.length ?? 0,
         claim_count: data.claim_count ?? data.claims?.length ?? 0,
+        status: 'completed'
       }
 
-      setAnalyses(prev => [...prev, analysis])
+      setAnalyses(prev => prev.map(a => a.id === tempId ? analysis : a))
 
       // Update session content_analyses array
       const updatedIds = [...(session.content_analyses ?? []), analysis.id]
       onSessionUpdate({ content_analyses: updatedIds })
 
-      setUrl('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed')
-    } finally {
-      setAnalyzing(false)
+      const errorMessage = err instanceof Error ? err.message : 'Analysis failed'
+      setAnalyses(prev => prev.map(a => 
+        a.id === tempId 
+          ? { ...a, status: 'failed', error: errorMessage, title: `Error: ${errorMessage}` } 
+          : a
+      ))
     }
-  }, [url, session.content_analyses, onSessionUpdate])
+  }, [url, session.id, session.content_analyses, onSessionUpdate])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -100,22 +116,23 @@ export default function CopIntelTab({ session, onSessionUpdate }: CopIntelTabPro
                 onKeyDown={handleKeyDown}
                 placeholder="Paste URL to analyze..."
                 className="w-full rounded border border-gray-700 bg-gray-800 pl-7 pr-2 py-1.5 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                disabled={analyzing}
               />
             </div>
             <Button
               size="sm"
               onClick={analyzeUrl}
-              disabled={analyzing || !url.trim()}
+              disabled={!url.trim()}
               className="h-7 text-xs shrink-0"
             >
-              {analyzing ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                'Analyze'
-              )}
+              Analyze
             </Button>
           </div>
+          {analyses.some(a => a.status === 'pending') && (
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Analyzing URL content...</span>
+            </div>
+          )}
           {error && (
             <p className="text-xs text-red-400">{error}</p>
           )}
@@ -127,25 +144,42 @@ export default function CopIntelTab({ session, onSessionUpdate }: CopIntelTabPro
             {analyses.map(a => (
               <div
                 key={a.id}
-                className="rounded border border-gray-700 bg-gray-800/50 px-2.5 py-2 space-y-1"
+                className={cn(
+                  "rounded border border-gray-700 bg-gray-800/50 px-2.5 py-2 space-y-1 transition-opacity",
+                  a.status === 'pending' && "opacity-70",
+                  a.status === 'failed' && "border-red-900/50 bg-red-900/10"
+                )}
               >
                 <div className="flex items-start gap-1.5">
-                  <span className="text-xs text-gray-200 font-medium flex-1 line-clamp-2">
+                  <span className={cn(
+                    "text-xs font-medium flex-1 line-clamp-2",
+                    a.status === 'failed' ? "text-red-400" : "text-gray-200"
+                  )}>
                     {a.title}
+                    {a.status === 'pending' && (
+                      <Loader2 className="h-3 w-3 animate-spin inline ml-2 text-blue-400" />
+                    )}
                   </span>
-                  <a
-                    href={a.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-500 hover:text-blue-400 shrink-0"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+                  {a.url && a.status === 'completed' && (
+                    <a
+                      href={a.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-500 hover:text-blue-400 shrink-0 cursor-pointer"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
                 </div>
-                <div className="flex items-center gap-3 text-[10px] text-gray-500">
-                  <span>{a.entity_count} entities</span>
-                  <span>{a.claim_count} claims</span>
-                </div>
+                {a.status === 'completed' && (
+                  <div className="flex items-center gap-3 text-[10px] text-gray-500">
+                    <span>{a.entity_count} entities</span>
+                    <span>{a.claim_count} claims</span>
+                  </div>
+                )}
+                {a.status === 'failed' && a.error && (
+                  <p className="text-[10px] text-red-400/80">{a.error}</p>
+                )}
               </div>
             ))}
           </div>
