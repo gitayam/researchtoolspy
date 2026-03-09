@@ -196,16 +196,21 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
           </div>
         ) : (
           <div
-            className="group flex-1 flex items-center gap-2 cursor-pointer"
+            className={cn(
+              "group flex-1 flex items-center gap-2 cursor-pointer rounded px-2 py-0.5 transition-colors",
+              brief
+                ? "hover:bg-gray-100 dark:hover:bg-gray-800"
+                : "bg-amber-50 dark:bg-amber-900/20 border border-dashed border-amber-300 dark:border-amber-700/50 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+            )}
             onClick={() => setIsEditing(true)}
           >
             <span className={cn(
               "text-xs truncate flex-1",
-              brief ? "text-gray-700 dark:text-gray-200 italic" : "text-gray-400 italic"
+              brief ? "text-gray-700 dark:text-gray-200" : "text-amber-600 dark:text-amber-400"
             )}>
-              {brief || 'Click to set mission objective...'}
+              {brief || 'Set mission objective so newcomers know what to work on...'}
             </span>
-            <Edit2 className="h-3 w-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Edit2 className="h-3 w-3 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
           </div>
         )}
       </div>
@@ -224,13 +229,17 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
           return (
             <div
               key={kpi.key}
-              className="flex items-center gap-2 shrink-0"
+              className="flex items-center gap-1.5 shrink-0"
+              title={`${kpi.label}: ${value}`}
             >
-              <Icon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <Icon className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+              <span className="hidden lg:inline text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+                {kpi.label}
+              </span>
               <Badge
                 variant="outline"
                 className={cn(
-                  'text-[11px] px-2 py-0 leading-5 border-transparent font-semibold',
+                  'text-[11px] px-1.5 py-0 leading-5 border-transparent font-semibold tabular-nums',
                   STATUS_COLOR_CLASSES[color],
                 )}
               >

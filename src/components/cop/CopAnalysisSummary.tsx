@@ -141,7 +141,7 @@ export default function CopAnalysisSummary({ sessionId, expanded }: CopAnalysisS
               <div key={i} className="flex items-start gap-2 text-xs">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0 space-y-1">
-                  <p className="text-gray-200 leading-relaxed">{f.finding}</p>
+                  <p className="text-gray-700 dark:text-gray-200 leading-relaxed">{f.finding}</p>
                   <div className="flex flex-wrap items-center gap-1">
                     <Badge
                       className={cn(
@@ -191,11 +191,11 @@ export default function CopAnalysisSummary({ sessionId, expanded }: CopAnalysisS
             {contradictions.map((c, i) => (
               <div
                 key={i}
-                className="rounded border border-amber-800/40 bg-amber-900/20 px-2.5 py-2 space-y-1.5"
+                className="rounded border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-2 space-y-1.5"
               >
                 <div className="flex items-start gap-2 text-xs">
                   <AlertTriangle className="h-3 w-3 text-amber-400 mt-0.5 shrink-0" />
-                  <p className="text-gray-300 leading-relaxed">{c.description}</p>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{c.description}</p>
                 </div>
                 <div className="flex items-center gap-1.5 pl-5">
                   <Badge

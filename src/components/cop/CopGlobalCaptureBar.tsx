@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Link, FileText, Brain, Send, Loader2, Sparkles, Command } from 'lucide-react'
+import { Link, Brain, Loader2, Sparkles, Command, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -38,13 +38,13 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
         body = { statement: trimmed.replace(/^(hypothesis|maybe):/i, '').trim() }
         type = 'hypothesis'
       } else if (!isUrl) {
-        // Handle as a quick note / evidence text if not a URL
-        endpoint = '/api/evidence'
-        body = { 
+        // Route notes through COP-scoped evidence endpoint (not global /api/evidence)
+        endpoint = `/api/cop/${sessionId}/evidence`
+        body = {
           title: trimmed.substring(0, 50) + (trimmed.length > 50 ? '...' : ''),
-          description: trimmed,
-          evidence_type: 'digital',
-          workspace_id: sessionId 
+          content: trimmed,
+          source_type: 'observation',
+          confidence: 'medium',
         }
         type = 'note'
       }
@@ -64,7 +64,6 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
       const evidenceId = data.id ?? data.analysis_id ?? data.evidence_id
 
       // Simplified geocoding detection from analysis result
-      // In a real system, the analysis API would return structured locations
       const locationMatch = (data.summary ?? data.title ?? '').match(/in ([\w\s,]{3,30})/i)
       if (locationMatch && evidenceId) {
         setDetection({ location: locationMatch[1], evidenceId: String(evidenceId) })
@@ -83,6 +82,9 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       handleCapture()
     }
+    if (e.key === 'Escape') {
+      inputRef.current?.blur()
+    }
   }
 
   // Keyboard shortcut Ctrl+K to focus
@@ -98,21 +100,21 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
   }, [])
 
   return (
-    <div className="sticky top-0 z-30 px-4 py-2 bg-gray-900/80 backdrop-blur-md border-b border-gray-700/50 shadow-xl">
+    <div className="sticky top-0 z-30 px-4 py-2 bg-white/90 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-xl">
       <div className="max-w-5xl mx-auto flex flex-col gap-1">
         <div className="relative flex items-center gap-2">
           <div className="absolute left-3 flex items-center gap-1.5 pointer-events-none">
             {loading ? (
               <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
             ) : isUrl ? (
-              <Link className="h-4 w-4 text-blue-400" />
+              <Link className="h-4 w-4 text-blue-500 dark:text-blue-400" />
             ) : isHypothesis ? (
-              <Brain className="h-4 w-4 text-emerald-400" />
+              <Brain className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
             ) : (
-              <Sparkles className="h-4 w-4 text-purple-400" />
+              <Sparkles className="h-4 w-4 text-purple-500 dark:text-purple-400" />
             )}
           </div>
-          
+
           <input
             ref={inputRef}
             type="text"
@@ -121,7 +123,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
             onKeyDown={handleKeyDown}
             placeholder="Drop a URL, type a quick note, or start with 'Hypothesis:'..."
             className={cn(
-              "w-full bg-gray-800/50 border border-gray-700 rounded-lg pl-10 pr-24 py-2.5 text-sm text-gray-100 placeholder:text-gray-500 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50",
+              "w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-700 rounded-lg pl-10 pr-24 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50",
               isHypothesis && "focus:ring-emerald-500/50",
               !isUrl && !isHypothesis && input.trim() && "focus:ring-purple-500/50"
             )}
@@ -129,7 +131,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
 
           <div className="absolute right-2 flex items-center gap-2">
             {!input.trim() && (
-              <div className="hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-gray-700 bg-gray-900/50 text-[10px] text-gray-500 font-medium">
+              <div data-testid="capture-kbd-hint" className="hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-900/50 text-[10px] text-gray-500 font-medium">
                 <Command className="h-2.5 w-2.5" />
                 <span>K</span>
               </div>
@@ -139,36 +141,37 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
               onClick={handleCapture}
               disabled={loading || !input.trim()}
               className={cn(
-                "h-7 text-[10px] px-3 font-bold uppercase tracking-tighter transition-all",
-                isHypothesis ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700"
+                "h-7 text-[10px] px-3 font-bold uppercase tracking-tighter transition-all cursor-pointer",
+                isHypothesis ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
               )}
             >
               {loading ? "Capturing..." : "Capture"}
             </Button>
           </div>
         </div>
-        
+
         {error && (
-          <p className="text-[10px] text-red-400 ml-10 font-medium animate-in fade-in slide-in-from-top-1">
+          <p className="text-[10px] text-red-600 dark:text-red-400 ml-10 font-medium animate-in fade-in slide-in-from-top-1" role="alert">
             {error}
           </p>
         )}
-        
+
         {input.trim() && !loading && (
           <div className="flex items-center gap-3 ml-10 animate-in fade-in slide-in-from-top-1">
-             <span className="text-[10px] text-gray-500">
-               Routing to: <span className="font-bold text-gray-300">
+             <span className="text-[10px] text-gray-500 dark:text-gray-500">
+               Routing to: <span className="font-bold text-gray-700 dark:text-gray-300">
                  {isUrl ? "Evidence Feed (URL Analysis)" : isHypothesis ? "Hypothesis Ledger" : "Evidence Feed (Quick Note)"}
                </span>
              </span>
-             <span className="text-[10px] text-gray-600">Press Cmd+Enter to send</span>
+             <span className="text-[10px] text-gray-400 dark:text-gray-600">Press Cmd+Enter to send</span>
           </div>
         )}
 
         {detection && !loading && (
-          <div className="flex items-center gap-3 ml-10 animate-in fade-in slide-in-from-top-1 bg-green-500/10 border border-green-500/20 rounded px-2 py-1">
-             <span className="text-[10px] text-green-400">
-               📍 Detected location: <span className="font-bold uppercase">{detection.location}</span>
+          <div className="flex items-center gap-3 ml-10 animate-in fade-in slide-in-from-top-1 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 rounded px-2 py-1">
+             <span className="text-[10px] text-green-700 dark:text-green-400 flex items-center gap-1">
+               <MapPin className="h-3 w-3" />
+               Detected location: <span className="font-bold uppercase">{detection.location}</span>
              </span>
              <Button
                size="sm"
@@ -177,13 +180,13 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
                  onLocationDetected?.(detection.location, detection.evidenceId)
                  setDetection(null)
                }}
-               className="h-5 text-[9px] px-2 bg-green-600 hover:bg-green-700 text-white font-bold uppercase"
+               className="h-5 text-[9px] px-2 bg-green-600 hover:bg-green-700 text-white font-bold uppercase cursor-pointer"
              >
                Pin to Map
              </Button>
-             <button 
+             <button
                onClick={() => setDetection(null)}
-               className="text-[9px] text-gray-500 hover:text-gray-300 uppercase underline decoration-dotted"
+               className="text-[9px] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 uppercase underline decoration-dotted cursor-pointer"
              >
                Dismiss
              </button>

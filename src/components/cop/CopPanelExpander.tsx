@@ -102,7 +102,7 @@ export default function CopPanelExpander({
         {children(false)}
       </CardContent>
       {/* Fade-out gradient at bottom of collapsed card */}
-      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-gray-950 to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent pointer-events-none" />
     </Card>
   )
 }

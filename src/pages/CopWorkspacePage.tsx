@@ -408,10 +408,16 @@ export default function CopWorkspacePage() {
     [id],
   )
 
-  const handleBlockerResolve = useCallback(
+  const handleGoToBlocker = useCallback(
     (rfiId: string) => {
-      // Scroll to/open the RFI panel -- for now, switch to progress mode where RFIs are visible
+      // Switch to progress mode where RFIs are visible, then scroll to the RFI panel
       setMode('progress')
+      requestAnimationFrame(() => {
+        const rfiPanel = document.querySelector('[data-panel="rfi"]')
+        if (rfiPanel) {
+          rfiPanel.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      })
     },
     [],
   )
@@ -522,7 +528,8 @@ export default function CopWorkspacePage() {
           variant="ghost"
           size="sm"
           onClick={() => navigate('/dashboard/cop')}
-          className="shrink-0"
+          className="shrink-0 cursor-pointer"
+          aria-label="Back to sessions"
         >
           <ArrowLeft className="h-4 w-4 md:mr-1" />
           <span className="hidden md:inline">Back</span>
@@ -530,19 +537,26 @@ export default function CopWorkspacePage() {
 
         {/* Session name + template badge */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <h1 className="font-semibold text-sm truncate">{session.name}</h1>
+          <h1 className="font-semibold text-sm truncate text-gray-900 dark:text-gray-100">{session.name}</h1>
           <Badge variant="secondary" className="shrink-0 text-[10px] hidden sm:inline-flex">
             {TEMPLATE_LABELS[session.template_type] ?? session.template_type}
           </Badge>
+          {session.status === 'ACTIVE' && (
+            <span className="hidden md:inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse" />
+              Live
+            </span>
+          )}
         </div>
 
         {/* Mode toggle (segmented control) */}
         <div className="flex items-center bg-muted rounded-md p-0.5 shrink-0">
           <button
             type="button"
+            data-testid="mode-progress"
             onClick={() => setMode('progress')}
             className={cn(
-              'flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors',
+              'flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer',
               mode === 'progress'
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
@@ -553,9 +567,10 @@ export default function CopWorkspacePage() {
           </button>
           <button
             type="button"
+            data-testid="mode-monitor"
             onClick={() => setMode('monitor')}
             className={cn(
-              'flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors',
+              'flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer',
               mode === 'monitor'
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
@@ -578,10 +593,10 @@ export default function CopWorkspacePage() {
             <Database className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Entities</span>
           </Button>
-          <Button variant="ghost" size="sm" title="Invite collaborator" onClick={() => setInviteOpen(true)}>
+          <Button variant="ghost" size="sm" title="Invite collaborator" onClick={() => setInviteOpen(true)} className="cursor-pointer" aria-label="Invite collaborator">
             <UserPlus className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleShare} title="Copy share link">
+          <Button variant="ghost" size="sm" onClick={handleShare} title="Copy share link" className="cursor-pointer" aria-label="Copy share link">
             <Share2 className="h-4 w-4" />
           </Button>
           <Button
@@ -589,6 +604,8 @@ export default function CopWorkspacePage() {
             size="sm"
             onClick={() => window.open(`/api/cop/${id}/cot`, '_blank')}
             title="Export as Cursor-on-Target (ATAK compatible)"
+            className="cursor-pointer"
+            aria-label="Export as Cursor-on-Target"
           >
             <Radio className="h-4 w-4" />
           </Button>
@@ -610,7 +627,7 @@ export default function CopWorkspacePage() {
 
         {/* ── Panel grid ──────────────────────────────────────────── */}
 
-      <CopBlockerStrip sessionId={id!} onResolveClick={handleBlockerResolve} />
+      <CopBlockerStrip sessionId={id!} onGoToBlocker={handleGoToBlocker} />
 
       {/* ── Panel grid ──────────────────────────────────────────── */}
       <div className="overflow-y-auto p-3 md:p-4 lg:p-6 flex-1">
@@ -790,6 +807,7 @@ function ProgressLayout({
 
       {/* Row 2: Key Questions & RFIs + Analysis Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div data-panel="rfi" className="scroll-mt-4">
         <CopPanelExpander
           title="Key Questions & RFIs"
           icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
@@ -816,6 +834,7 @@ function ProgressLayout({
             </div>
           )}
         </CopPanelExpander>
+        </div>
 
         <CopPanelExpander
           title="Analysis & Hypotheses"

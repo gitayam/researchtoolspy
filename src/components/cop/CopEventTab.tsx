@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Plus, Clock } from 'lucide-react'
+import { Plus, Clock, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { CopSession, EventFact } from '@/types/cop'
@@ -38,6 +38,11 @@ export default function CopEventTab({ session, onSessionUpdate }: CopEventTabPro
     setFactText('')
   }, [factTime, factText, facts, onSessionUpdate])
 
+  const removeFact = useCallback((index: number) => {
+    const updatedFacts = facts.filter((_, i) => i !== index)
+    onSessionUpdate({ event_facts: updatedFacts })
+  }, [facts, onSessionUpdate])
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -51,8 +56,8 @@ export default function CopEventTab({ session, onSessionUpdate }: CopEventTabPro
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-3 py-3 border-b border-gray-700">
-        <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-wider">Event</h2>
+      <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">Event</h2>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
@@ -68,7 +73,7 @@ export default function CopEventTab({ session, onSessionUpdate }: CopEventTabPro
 
         {/* Event description */}
         {session.event_description && (
-          <p className="text-sm text-gray-300 leading-relaxed">
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
             {session.event_description}
           </p>
         )}
@@ -86,7 +91,7 @@ export default function CopEventTab({ session, onSessionUpdate }: CopEventTabPro
               value={factTime}
               onChange={e => setFactTime(e.target.value)}
               placeholder="Time"
-              className="w-16 rounded border border-gray-700 bg-gray-800 px-1.5 py-1 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-16 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-1.5 py-1 text-xs text-gray-900 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             <input
               type="text"
@@ -94,7 +99,7 @@ export default function CopEventTab({ session, onSessionUpdate }: CopEventTabPro
               onChange={e => setFactText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="New fact..."
-              className="flex-1 rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="flex-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs text-gray-900 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             <Button
               size="sm"
@@ -110,12 +115,20 @@ export default function CopEventTab({ session, onSessionUpdate }: CopEventTabPro
           {facts.length > 0 ? (
             <div className="space-y-1.5">
               {facts.map((fact, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs">
+                <div key={i} className="flex items-start gap-2 text-xs group">
                   <span className="text-gray-500 shrink-0 flex items-center gap-0.5 mt-0.5">
                     <Clock className="h-3 w-3" />
                     {fact.time}
                   </span>
-                  <span className="text-gray-300">{fact.text}</span>
+                  <span className="text-gray-700 dark:text-gray-300 flex-1">{fact.text}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFact(i)}
+                    className="shrink-0 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5"
+                    title="Remove fact"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
               ))}
             </div>

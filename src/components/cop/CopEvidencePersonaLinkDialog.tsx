@@ -128,7 +128,7 @@ export default function CopEvidencePersonaLinkDialog({
             Link Extracted Handle
           </DialogTitle>
           <DialogDescription>
-            Found handle <strong className="text-gray-200">@{handle}</strong> on {platform}. Link this to a tracking persona.
+            Found handle <strong className="text-gray-900 dark:text-gray-200">@{handle}</strong> on {platform}. Link this to a tracking persona.
           </DialogDescription>
         </DialogHeader>
 
