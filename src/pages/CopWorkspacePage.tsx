@@ -29,6 +29,11 @@ import {
   Users,
   Command,
   Database,
+  Briefcase,
+  Calendar,
+  MapPinned,
+  BookOpen,
+  Eye,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -74,6 +79,88 @@ function getHeaders(): Record<string, string> {
   const userHash = localStorage.getItem('omnicore_user_hash')
   if (userHash) headers['X-User-Hash'] = userHash
   return headers
+}
+
+// ── Entities Quick-Access Panel ──────────────────────────────────
+
+const ENTITY_TABS = [
+  { key: 'actors', label: 'Actors', icon: Briefcase, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-200 dark:border-blue-800/40', hoverBg: 'hover:bg-blue-100 dark:hover:bg-blue-900/40' },
+  { key: 'events', label: 'Events', icon: Calendar, color: 'text-amber-500 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200 dark:border-amber-800/40', hoverBg: 'hover:bg-amber-100 dark:hover:bg-amber-900/40' },
+  { key: 'places', label: 'Places', icon: MapPinned, color: 'text-green-500 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-200 dark:border-green-800/40', hoverBg: 'hover:bg-green-100 dark:hover:bg-green-900/40' },
+  { key: 'sources', label: 'Sources', icon: BookOpen, color: 'text-purple-500 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-200 dark:border-purple-800/40', hoverBg: 'hover:bg-purple-100 dark:hover:bg-purple-900/40' },
+  { key: 'behaviors', label: 'Behaviors', icon: Eye, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-800/40', hoverBg: 'hover:bg-red-100 dark:hover:bg-red-900/40' },
+] as const
+
+function CopEntitiesPanel({ sessionId, onOpenEntityDrawer }: {
+  sessionId: string
+  onOpenEntityDrawer?: (tab?: string, prefill?: any) => void
+}) {
+  const [counts, setCounts] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    const headers = getHeaders()
+    ENTITY_TABS.forEach(({ key }) => {
+      fetch(`/api/${key}?workspace_id=${sessionId}`, { headers })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data) {
+            // APIs return { actors: [...] }, { events: [...] }, etc.
+            const arr = data[key] ?? (Array.isArray(data) ? data : [])
+            setCounts(prev => ({ ...prev, [key]: arr.length }))
+          }
+        })
+        .catch(() => setCounts(prev => ({ ...prev, [key]: 0 })))
+    })
+  }, [sessionId])
+
+  const totalCount = Object.values(counts).reduce((a, b) => a + b, 0)
+
+  return (
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 overflow-hidden">
+      <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center gap-2">
+          <Database className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
+            Entities
+          </h3>
+          {totalCount > 0 && (
+            <Badge variant="outline" className="text-[10px] border-purple-500/30 text-purple-600 dark:text-purple-400">
+              {totalCount}
+            </Badge>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onOpenEntityDrawer?.()}
+          className="h-6 text-[10px] px-2 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer"
+        >
+          Open Drawer
+          <span className="ml-1 text-[9px] text-gray-400 dark:text-gray-500 font-mono">⌘E</span>
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 p-3">
+        {ENTITY_TABS.map(({ key, label, icon: Icon, color, bg, border, hoverBg }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onOpenEntityDrawer?.(key)}
+            className={cn(
+              'flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-all duration-200 cursor-pointer',
+              bg, border, hoverBg,
+              'hover:shadow-sm hover:scale-[1.02]',
+            )}
+          >
+            <Icon className={cn('h-5 w-5', color)} />
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{label}</span>
+            <span className={cn('text-lg font-bold tabular-nums', color)}>
+              {counts[key] ?? '—'}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // ── Component ────────────────────────────────────────────────────
@@ -478,8 +565,15 @@ export default function CopWorkspacePage() {
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="sm" onClick={() => setEntityDrawerOpen(true)} title="Entity Drawer (Cmd+E)">
-            <Database className="h-4 w-4" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEntityDrawerOpen(true)}
+            title="Entity Drawer (Cmd+E)"
+            className="h-7 text-[11px] px-2.5 gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 cursor-pointer"
+          >
+            <Database className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Entities</span>
           </Button>
           <Button variant="ghost" size="sm" title="Invite collaborator" onClick={() => setInviteOpen(true)}>
             <UserPlus className="h-4 w-4" />
@@ -657,6 +751,9 @@ function ProgressLayout({
 }: ProgressLayoutProps) {
   return (
     <>
+      {/* Row 0: Entities Quick-Access Panel */}
+      <CopEntitiesPanel sessionId={sessionId} onOpenEntityDrawer={onOpenEntityDrawer} />
+
       {/* Row 1: Entity Relationships + Timeline + Personas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <CopPanelExpander
