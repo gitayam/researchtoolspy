@@ -221,9 +221,9 @@ export default function CopMap({
     return (
       <div
         data-testid="cop-map-fallback"
-        className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-[#1a1a2e]"
+        className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-900"
       >
-        <span className="text-sm text-gray-500 dark:text-gray-500">{mapError}</span>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{mapError}</span>
       </div>
     )
   }

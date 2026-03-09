@@ -253,7 +253,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
         {/* Card grid */}
         {loading ? (
           <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
+            <Loader2 className="h-5 w-5 animate-spin text-gray-600 dark:text-gray-400" />
           </div>
         ) : visiblePersonas.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
@@ -373,9 +373,9 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
           </div>
         ) : (
           <div className="text-center py-8">
-            <User className="h-6 w-6 text-gray-600 mx-auto mb-2" />
-            <p className="text-xs text-gray-500">No actors tracked yet.</p>
-            <p className="text-[10px] text-gray-600 mt-1">
+            <User className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500 dark:text-gray-400">No actors tracked yet.</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
               Add actors to track research targets across platforms.
             </p>
           </div>

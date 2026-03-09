@@ -383,6 +383,17 @@ export default function CopEvidenceFeed({
 
       setItems(prev => prev.map(item => item.id === tempId ? newItem : item))
 
+      // Auto-geocode prompt: detect locations from analyze-url response
+      const locations = data.entities?.locations as Array<{ name: string; count: number }> | undefined
+      if (locations && locations.length > 0) {
+        const top = locations.slice(0, 3).map(l => l.name).join(', ')
+        const more = locations.length > 3 ? ` (+${locations.length - 3} more)` : ''
+        toast({
+          title: `${locations.length} location${locations.length > 1 ? 's' : ''} detected`,
+          description: `${top}${more} — use Pin to Map to geolocate`,
+        })
+      }
+
       // Handle auto-extraction: scan the new evidence for social handles
       const textToScan = `${trimmed} ${data.title ?? ''} ${data.summary ?? ''}`
       const detected = extractHandles(textToScan)
@@ -630,9 +641,9 @@ export default function CopEvidenceFeed({
             </div>
           ) : (
             <div className="text-center py-8">
-              <LayoutGrid className="h-6 w-6 text-gray-600 mx-auto mb-2" />
-              <p className="text-xs text-gray-500">No visual evidence yet.</p>
-              <p className="text-[10px] text-gray-600 mt-1">
+              <LayoutGrid className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+              <p className="text-xs text-gray-500 dark:text-gray-400">No visual evidence yet.</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
                 Drop an image URL into Quick Capture.
               </p>
             </div>
@@ -744,7 +755,7 @@ export default function CopEvidenceFeed({
                         </div>
                         {/* URL domain badge */}
                         {item.url && item.status === 'completed' && !isImageUrl(item.url) && (
-                          <span className="text-[10px] text-gray-500 dark:text-gray-500 truncate block">
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate block">
                             {(() => { try { return new URL(item.url).hostname.replace('www.', '') } catch { return '' } })()}
                           </span>
                         )}
@@ -788,9 +799,9 @@ export default function CopEvidenceFeed({
               </div>
             ) : (
               <div className="text-center py-8">
-                <FileText className="h-6 w-6 text-gray-600 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">No evidence yet</p>
-                <p className="text-[10px] text-gray-600 mt-1">
+                <FileText className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                <p className="text-xs text-gray-500 dark:text-gray-400">No evidence yet</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
                   Paste a URL above or add evidence from the dashboard.
                 </p>
               </div>
