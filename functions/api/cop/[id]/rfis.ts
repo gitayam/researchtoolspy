@@ -153,9 +153,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       const userId = await getUserIdOrDefault(request, env)
       const answerId = `rfa-${crypto.randomUUID().slice(0, 12)}`
       await env.DB.prepare(`
-        INSERT INTO cop_rfi_answers (id, rfi_id, answer, answered_by, created_at)
-        VALUES (?, ?, ?, ?, ?)
-      `).bind(answerId, body.id, body.answer.trim(), userId, now).run()
+        INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, source_description, created_by, responder_name, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(answerId, body.id, body.answer.trim(), body.source_description || null, userId, body.responder_name || null, now).run()
     }
 
     return new Response(JSON.stringify({ id: body.id, message: 'RFI updated' }), {

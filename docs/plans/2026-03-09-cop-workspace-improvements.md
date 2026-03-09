@@ -65,6 +65,7 @@
 | Session metadata lost (0 event_facts) | Setup script missing X-Workspace-ID header — re-pushed with correct header |
 | Activity entries missing names | Table lacked actor_name/details columns — migration 069 + repopulate |
 | Entities panel 403 errors | Entity endpoints received COP session ID instead of workspace UUID — fixed workspace_id propagation |
+| Workspace access denied (403) | Workspace `6fde45ce` had `is_public=0` and `owner_id=5` — set `is_public=1` for COP viewer access |
 
 ## Schema Changes
 

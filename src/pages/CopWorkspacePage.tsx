@@ -795,24 +795,23 @@ function ProgressLayout({
           icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
           badge={rfiCount > 0 ? rfiCount : undefined}
           badgeVariant="destructive"
+          collapsedHeight="h-[480px]"
         >
           {(expanded) => (
             <div className="flex flex-col h-full gap-4">
-              <div className={expanded ? '' : 'flex-1 overflow-hidden'}>
+              <div className={expanded ? '' : ''}>
                 <CopQuestionsTab session={session} />
               </div>
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3">
+                  Requests for Information
+                </h3>
+                <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} />
+              </div>
               {expanded && (
-                <>
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                    <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3">
-                      Requests for Information
-                    </h3>
-                    <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} />
-                  </div>
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                    <CopGapAnalysis sessionId={sessionId} />
-                  </div>
-                </>
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <CopGapAnalysis sessionId={sessionId} />
+                </div>
               )}
             </div>
           )}
@@ -821,17 +820,16 @@ function ProgressLayout({
         <CopPanelExpander
           title="Analysis & Hypotheses"
           icon={<Brain className="h-4 w-4 text-emerald-400" />}
+          collapsedHeight="h-[480px]"
         >
           {(expanded) => (
             <div className="flex flex-col h-full gap-4">
-              <div className={expanded ? '' : 'flex-1 overflow-hidden'}>
+              <div className={expanded ? '' : ''}>
                 <CopAnalysisSummary sessionId={sessionId} expanded={expanded} />
               </div>
-              {expanded && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
-                </div>
-              )}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
+              </div>
             </div>
           )}
         </CopPanelExpander>
@@ -841,7 +839,7 @@ function ProgressLayout({
       <CopPanelExpander
         title="Task Board"
         icon={<ClipboardList className="h-4 w-4 text-orange-400" />}
-        collapsedHeight="h-[200px]"
+        collapsedHeight="h-[360px]"
       >
         {(expanded) => (
           <CopTaskBoard sessionId={sessionId} expanded={expanded} />
@@ -1013,16 +1011,14 @@ function MonitorLayout({
         <CopPanelExpander
           title="Intel & Hypotheses"
           icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
+          collapsedHeight="h-[480px]"
         >
-          {(expanded) => (
+          {() => (
             <div className="flex flex-col h-full gap-4">
               <CopQuestionsTab session={session} />
-              {expanded && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
-                </div>
-              )}
-
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
+              </div>
             </div>
           )}
         </CopPanelExpander>
