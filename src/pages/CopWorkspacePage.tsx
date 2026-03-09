@@ -37,6 +37,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 import CopStatusStrip from '@/components/cop/CopStatusStrip'
 import CopPanelExpander from '@/components/cop/CopPanelExpander'
@@ -141,14 +142,14 @@ function CopEntitiesPanel({ stats, onOpenEntityDrawer }: {
             type="button"
             onClick={() => onOpenEntityDrawer?.(key)}
             className={cn(
-              'flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-all duration-200 cursor-pointer',
+              'flex flex-col items-center gap-1 sm:gap-1.5 rounded-lg border p-2 sm:p-3 transition-all duration-200 cursor-pointer',
               bg, border, hoverBg,
               'hover:shadow-sm hover:scale-[1.02]',
             )}
           >
-            <Icon className={cn('h-5 w-5', color)} />
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{label}</span>
-            <span className={cn('text-lg font-bold tabular-nums', color)}>
+            <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', color)} />
+            <span className="text-[10px] sm:text-xs font-medium text-slate-700 dark:text-slate-300">{label}</span>
+            <span className={cn('text-base sm:text-lg font-bold tabular-nums', color)}>
               {counts[key] ?? '—'}
             </span>
           </button>
@@ -538,7 +539,7 @@ export default function CopWorkspacePage() {
   // ── Main layout ────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col bg-background min-h-[calc(100dvh_-_4rem)] sm:min-h-[calc(100dvh_-_4.5rem)]">
+    <div className="flex flex-col bg-background min-h-dvh lg:min-h-[calc(100dvh_-_4.5rem)]">
       {/* ── Header bar ──────────────────────────────────────────── */}
       <header className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 px-2 sm:px-3 md:px-4 py-2 bg-background border-b shrink-0">
         {/* Back button */}
@@ -627,6 +628,10 @@ export default function CopWorkspacePage() {
           >
             <Radio className="h-4 w-4" />
           </Button>
+          {/* Theme toggle — visible on mobile since DashboardHeader is hidden */}
+          <span className="lg:hidden">
+            <ThemeToggle />
+          </span>
         </div>
       </header>
 

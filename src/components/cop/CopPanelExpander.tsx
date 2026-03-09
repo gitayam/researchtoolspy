@@ -21,9 +21,9 @@ interface CopPanelExpanderProps {
 }
 
 const HEIGHT_MAP: Record<string, string> = {
-  compact: 'h-[200px]',
-  standard: 'h-[320px]',
-  tall: 'h-[480px]',
+  compact: 'max-h-[200px] sm:h-[200px]',
+  standard: 'max-h-[320px] sm:h-[320px]',
+  tall: 'max-h-[480px] sm:h-[480px]',
 }
 
 // ── Component ────────────────────────────────────────────────────

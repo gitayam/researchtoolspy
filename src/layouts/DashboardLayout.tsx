@@ -31,9 +31,14 @@ export function DashboardFullBleedLayout() {
     <div className="min-h-screen bg-background">
       <SkipToContent />
       <ScrollToTop />
-      <DashboardSidebar />
+      {/* Hide sidebar + header on mobile — COP workspace has its own header/nav */}
+      <div className="hidden lg:block">
+        <DashboardSidebar />
+      </div>
       <div className="lg:pl-64">
-        <DashboardHeader />
+        <div className="hidden lg:block">
+          <DashboardHeader />
+        </div>
         <Outlet />
       </div>
     </div>
