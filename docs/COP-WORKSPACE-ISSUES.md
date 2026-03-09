@@ -68,15 +68,22 @@
 **Root cause:** Migration 005 added `workspace_id` to `evidence_items` via `ALTER TABLE`, but this migration was never applied to production D1. The COP evidence endpoint queries `WHERE workspace_id = ?`.
 **Fix:** Ran `ALTER TABLE evidence_items ADD COLUMN workspace_id TEXT` directly on production D1.
 
+### F11. Evidence POST 500 — SQLITE_MISMATCH + NOT NULL Constraint
+**Endpoint:** `POST /api/cop/{id}/evidence`
+**Error 1:** `D1_ERROR: datatype mismatch: SQLITE_MISMATCH`
+**Root cause:** Code generated TEXT id (`evi-xxxx`) for `id INTEGER PRIMARY KEY AUTOINCREMENT` column.
+**Error 2:** `D1_ERROR: NOT NULL constraint failed: evidence_items.credibility: SQLITE_CONSTRAINT`
+**Root cause:** `credibility` and `reliability` columns are `NOT NULL` but INSERT omitted them.
+**Fix:** Removed TEXT id (let AUTOINCREMENT handle), added `credibility`/`reliability` with sensible defaults (`unverified`/`unknown`). Capture bar now works.
+
 ---
 
 ## 🔴 Critical Issues
 
-### C1. Evidence Count = 0
-**Endpoint:** `GET /api/cop/{id}/stats`
-**Observed:** `evidence_count: 0` despite workspace having entity data
-**Root cause (confirmed):** Data issue — evidence was created as entities (actors, sources) directly, not through the COP evidence endpoint. The evidence endpoint was also returning 500 due to missing `workspace_id` column (now fixed in F10).
-**Resolution:** Column added. Evidence must be created through `/api/cop/{id}/evidence`.
+### C1. Evidence Count = 0 — RESOLVED
+**Was:** `evidence_count: 0` despite workspace having entity data
+**Root cause:** Evidence was created as entities (actors, sources) directly, not through COP evidence endpoint. Endpoint was also returning 500 (F10, F11).
+**Resolution:** F10 + F11 fixes deployed. Capture bar now creates evidence. `evidence_count: 1` confirmed.
 
 ### C2. RFI Answers = 0 for "Answered" RFIs
 **Root cause (confirmed):** Data issue — answers were set by updating RFI status directly (PUT), not through the answer submission flow. The `cop_rfi_answers` table has no rows.

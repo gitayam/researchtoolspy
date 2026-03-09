@@ -125,6 +125,26 @@ D1_TYPE_ERROR: Type 'undefined' not supported for value 'undefined'
 
 **Detection**: This error surfaces as a 500 with no useful message in the browser. Check `wrangler pages tail` for the actual D1_TYPE_ERROR.
 
+### SQLITE_MISMATCH: Wrong Type for AUTOINCREMENT Column
+
+**Problem**: Inserting a TEXT value into an `INTEGER PRIMARY KEY AUTOINCREMENT` column causes:
+```
+D1_ERROR: datatype mismatch: SQLITE_MISMATCH
+```
+
+**Root cause**: Code generated a TEXT id (`evi-xxxx`) and included it in the INSERT for a column that expects AUTOINCREMENT. D1 enforces strict type affinity for INTEGER PRIMARY KEY.
+
+**Fix**: Omit the `id` column from INSERT entirely. Let D1 auto-generate. Read back via `result.meta?.last_row_id`.
+
+### NOT NULL Constraint Failures on Legacy Tables
+
+**Problem**: Legacy tables may have `NOT NULL` columns without defaults that aren't obvious from the endpoint's perspective:
+```
+D1_ERROR: NOT NULL constraint failed: evidence_items.credibility: SQLITE_CONSTRAINT
+```
+
+**Prevention**: Before writing INSERT statements for existing tables, **always** run `PRAGMA table_info(table_name)` to identify all NOT NULL columns and ensure they're included in the INSERT or have defaults.
+
 ### Query Performance
 
 **Optimized Patterns**:

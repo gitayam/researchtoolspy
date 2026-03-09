@@ -18,10 +18,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
 }
 
-function generateId(): string {
-  return `evi-${crypto.randomUUID().slice(0, 12)}`
-}
-
 async function getSessionWorkspaceId(db: D1Database, sessionId: string): Promise<string | null> {
   const row = await db.prepare(
     `SELECT workspace_id FROM cop_sessions WHERE id = ?`
@@ -76,26 +72,29 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const id = generateId()
     const now = new Date().toISOString()
 
-    await env.DB.prepare(`
+    const result = await env.DB.prepare(`
       INSERT INTO evidence_items (
-        id, title, description, source_url, evidence_type, confidence_level,
+        title, description, source_url, evidence_type, confidence_level,
+        credibility, reliability,
         status, workspace_id, created_by, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?)
     `).bind(
-      id,
       body.title.trim(),
       (body.content ?? '').trim(),
       body.url ?? null,
       body.source_type ?? 'observation',
       body.confidence ?? 'medium',
+      body.credibility ?? 'unverified',
+      body.reliability ?? 'unknown',
       workspaceId,
       userId,
       now,
       now
     ).run()
+
+    const id = result.meta?.last_row_id ?? 0
 
     return new Response(JSON.stringify({ id, message: 'Evidence created' }), {
       status: 201, headers: corsHeaders,

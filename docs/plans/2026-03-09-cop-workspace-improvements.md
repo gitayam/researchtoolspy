@@ -105,6 +105,8 @@
 | Workspace access denied (403) | Workspace `6fde45ce` had `is_public=0` and `owner_id=5` — set `is_public=1` for COP viewer access |
 | Entity counts all 0 | Personas existed but not mirrored as Actors — populated 10 actors, 14 relationships, 3 places, 4 sources |
 | "No location data" warning | Missing LOCATED_AT relationships between actors and places — created 4 |
+| Evidence POST 500 (SQLITE_MISMATCH) | Removed TEXT id from INSERT, let AUTOINCREMENT handle it |
+| Evidence POST 500 (NOT NULL credibility) | Added `credibility`/`reliability` columns to INSERT with defaults |
 
 ## Schema Changes
 
