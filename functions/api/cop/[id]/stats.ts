@@ -41,64 +41,35 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const { workspace_id, created_by } = session
 
-    // 2. Run parallel COUNT queries
+    // Helper: run a COUNT query, return 0 if table/column is missing
+    const safeCount = async (sql: string, ...bindings: any[]): Promise<number> => {
+      try {
+        const r = await env.DB.prepare(sql).bind(...bindings).first<{ cnt: number }>()
+        return r?.cnt ?? 0
+      } catch {
+        return 0
+      }
+    }
+
+    // 2. Run parallel COUNT queries (each individually resilient)
     const [
-      actorResult,
-      sourceResult,
-      eventResult,
-      evidenceResult,
-      frameworkResult,
-      relationshipResult,
-      openRfiResult,
-      answeredRfiResult,
+      actor_count, source_count, event_count, evidence_count,
+      framework_count, relationship_count, open_rfis, answered_questions,
+      blocker_count, hypothesis_count,
     ] = await Promise.all([
-      env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM actors WHERE workspace_id = ?`
-      ).bind(workspace_id).first<{ cnt: number }>(),
-
-      env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM sources WHERE workspace_id = ?`
-      ).bind(workspace_id).first<{ cnt: number }>(),
-
-      env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM events WHERE workspace_id = ?`
-      ).bind(workspace_id).first<{ cnt: number }>(),
-
-      env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM evidence_items WHERE workspace_id = ?`
-      ).bind(workspace_id).first<{ cnt: number }>(),
-
-      env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM framework_sessions WHERE user_id = ?`
-      ).bind(created_by).first<{ cnt: number }>(),
-
-      env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM relationships WHERE workspace_id = ?`
-      ).bind(workspace_id).first<{ cnt: number }>(),
-
-      env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM cop_rfis WHERE cop_session_id = ? AND status = 'open'`
-      ).bind(sessionId).first<{ cnt: number }>(),
-
-      env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM cop_rfis WHERE cop_session_id = ? AND status IN ('answered', 'accepted')`
-      ).bind(sessionId).first<{ cnt: number }>(),
+      safeCount(`SELECT COUNT(*) as cnt FROM actors WHERE workspace_id = ?`, workspace_id),
+      safeCount(`SELECT COUNT(*) as cnt FROM sources WHERE workspace_id = ?`, workspace_id),
+      safeCount(`SELECT COUNT(*) as cnt FROM events WHERE workspace_id = ?`, workspace_id),
+      safeCount(`SELECT COUNT(*) as cnt FROM evidence_items WHERE workspace_id = ?`, workspace_id),
+      safeCount(`SELECT COUNT(*) as cnt FROM framework_sessions WHERE user_id = ?`, created_by),
+      safeCount(`SELECT COUNT(*) as cnt FROM relationships WHERE workspace_id = ?`, workspace_id),
+      safeCount(`SELECT COUNT(*) as cnt FROM cop_rfis WHERE cop_session_id = ? AND status = 'open'`, sessionId),
+      safeCount(`SELECT COUNT(*) as cnt FROM cop_rfis WHERE cop_session_id = ? AND status IN ('answered', 'accepted')`, sessionId),
+      safeCount(`SELECT COUNT(*) as cnt FROM cop_rfis WHERE cop_session_id = ? AND is_blocker = 1 AND status != 'closed'`, sessionId),
+      safeCount(`SELECT COUNT(*) as cnt FROM cop_hypotheses WHERE cop_session_id = ?`, sessionId),
     ])
 
-    const actor_count = actorResult?.cnt ?? 0
-    const source_count = sourceResult?.cnt ?? 0
-    const event_count = eventResult?.cnt ?? 0
-    const evidence_count = evidenceResult?.cnt ?? 0
-    const framework_count = frameworkResult?.cnt ?? 0
-    const relationship_count = relationshipResult?.cnt ?? 0
-    const open_rfis = openRfiResult?.cnt ?? 0
-    const answered_questions = answeredRfiResult?.cnt ?? 0
-
-    // entity_count = actors + sources + events (all tracked entities)
     const entity_count = actor_count + source_count + event_count
-
-    // open_questions = key_questions from session that don't yet have RFI answers
-    // For now, map to open RFIs as the primary question-tracking mechanism
     const open_questions = open_rfis
 
     const stats = {
@@ -112,6 +83,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       open_questions,
       answered_questions,
       open_rfis,
+      blocker_count,
+      hypothesis_count,
     }
 
     return new Response(JSON.stringify({ stats }), { headers: corsHeaders })

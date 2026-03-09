@@ -90,9 +90,17 @@ const KPI_DEFS: KpiDef[] = [
     getColor: standardColor,
   },
   {
+    key: 'hypotheses',
+    label: 'Hypotheses',
+    icon: Brain,
+    getValue: (s) => s.hypothesis_count ?? 0,
+    getColor: standardColor,
+    hideWhenZero: true,
+  },
+  {
     key: 'analyses',
     label: 'Analyses',
-    icon: Brain,
+    icon: Flag,
     getValue: (s) => s.framework_count,
     getColor: standardColor,
   },

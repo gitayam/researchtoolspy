@@ -58,6 +58,7 @@
 | 9 | Marker backlinks (4C) | Map popup shows linked evidence/hypothesis | TODO |
 | 10 | Auto-clear blocker on answered RFIs | Auto `is_blocker=0` when status→answered/closed | DONE (2026-03-09) |
 | 11 | Evidence feed header locator fix (E2E) | POM uses unique panel title text | DONE (2026-03-09) |
+| 12 | Hypothesis count in stats + KPI strip | API returns hypothesis_count, status strip shows it | DONE (2026-03-09) |
 
 ## Investigation Data Status (2026-03-09 cycle 2)
 

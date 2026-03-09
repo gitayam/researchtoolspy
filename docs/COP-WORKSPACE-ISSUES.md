@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-09 (cycle 2)
+> Last updated: 2026-03-09 (cycle 3)
 > Source: Live production data audit against `cop-b0f96023-cdf` / workspace `6fde45ce-ae4b-4ff0-97c6-d2773a6ff108`
 
 ## Status Legend
@@ -133,3 +133,4 @@
 3. **L1** — API docs for newer endpoints
 4. **New** — Auto-sync event_facts → events table on session update
 5. **New** — Evidence creation through COP workflow (evidence_count still 0)
+6. ~~**New** — hypothesis_count missing from stats~~ DONE — added to API + KPI strip

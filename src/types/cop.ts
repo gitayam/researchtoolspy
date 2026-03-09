@@ -334,6 +334,7 @@ export interface CopWorkspaceStats {
   answered_questions: number
   open_rfis: number
   blocker_count: number
+  hypothesis_count?: number
 }
 
 // ── Persona Types ────────────────────────────────────────────
