@@ -12,6 +12,11 @@ When a panel needs to appear in different positions at different breakpoints (in
 
 **Trade-off**: This doubles the component mount (two Evidence Feeds, two Activity Logs), which means two sets of API polls. For frequently-polling components, consider lifting the data fetch to the parent and passing data down as props instead.
 
+### Accessibility: Focus-Visible on Hover-Only Elements
+The expand button on CopPanelExpander used `opacity-0 group-hover:opacity-100` — invisible until mouse hover. Keyboard users could never see or reach it. Adding `focus:opacity-100` ensures the button becomes visible when tabbed to, making it keyboard-accessible without changing the visual design for mouse users.
+
+**Rule**: Any element hidden behind `hover:` must also have a `focus:` equivalent. Search for `opacity-0.*hover:opacity-100` and add matching `focus:opacity-100`.
+
 ### Map Promotion: Always-Visible Geospatial Context
 For investigation workspaces with geospatial data, the map should never be hidden behind an opt-in button. A compact mini-map (200px) at the top of the layout provides immediate spatial context without dominating screen space. Users can expand to full-screen overlay for detailed work.
 

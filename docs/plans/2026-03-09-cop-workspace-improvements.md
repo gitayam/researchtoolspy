@@ -65,6 +65,7 @@
 | 16 | Map promotion (Phase 3) | Map always visible at top of Progress layout, mini-map 200px | DONE (2026-03-09) |
 | 17 | Panel consistency (Phase 1) | Unified CopPanelExpander with id, height scale, localStorage | DONE (2026-03-09) |
 | 18 | Three-column wide layout (Phase 5) | 1440px+ sticky evidence sidebar + activity log | DONE (2026-03-09) |
+| 19 | Accessibility polish (Phase 6) | ARIA landmarks, reduced motion, focus management, Escape key | DONE (2026-03-09) |
 
 ## Investigation Data Status (2026-03-09 cycle 6)
 

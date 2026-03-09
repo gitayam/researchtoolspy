@@ -1,4 +1,4 @@
-import { type ReactNode, useState, useCallback, useEffect } from 'react'
+import { type ReactNode, useState, useCallback, useEffect, useRef } from 'react'
 import { Maximize2, Minimize2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -40,7 +40,9 @@ export default function CopPanelExpander({
   defaultHidden = false,
 }: CopPanelExpanderProps) {
   const storageKey = `cop_panel_${id}_expanded`
-  
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
+
   // Initialize from localStorage if available
   const [expanded, setExpanded] = useState(() => {
     const saved = localStorage.getItem(storageKey)
@@ -58,6 +60,28 @@ export default function CopPanelExpander({
     localStorage.setItem(storageKey, 'false')
   }, [storageKey])
 
+  // Focus management: focus overlay on expand, restore trigger on collapse
+  useEffect(() => {
+    if (expanded && overlayRef.current) {
+      overlayRef.current.focus()
+    } else if (!expanded && triggerRef.current) {
+      triggerRef.current.focus()
+    }
+  }, [expanded])
+
+  // Keyboard: Escape to collapse expanded overlay
+  useEffect(() => {
+    if (!expanded) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        handleCollapse()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [expanded, handleCollapse])
+
   // Sync with localStorage if external changes happen (rare but good for consistency)
   useEffect(() => {
     const saved = localStorage.getItem(storageKey)
@@ -72,9 +96,14 @@ export default function CopPanelExpander({
 
   if (expanded) {
     return (
-      <div 
+      <div
+        ref={overlayRef}
         className="fixed inset-0 z-50 bg-background flex flex-col"
         data-panel={id}
+        role="dialog"
+        aria-label={`${title} — expanded`}
+        aria-modal="true"
+        tabIndex={-1}
       >
         {/* Unified Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
@@ -126,13 +155,15 @@ export default function CopPanelExpander({
   const resolvedHeight = HEIGHT_MAP[height] || height
 
   return (
-    <div 
+    <div
       className={cn(
-        'group flex flex-col relative overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm transition-all duration-200',
-        resolvedHeight, 
+        'group flex flex-col relative overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm transition-all duration-200 motion-reduce:transition-none',
+        resolvedHeight,
         className
       )}
       data-panel={id}
+      role="region"
+      aria-label={title}
     >
       {/* Unified Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
@@ -149,11 +180,12 @@ export default function CopPanelExpander({
         </div>
         <div className="flex items-center gap-1">
           <Button
+            ref={triggerRef}
             variant="ghost"
             size="icon"
-            className="h-6 w-6 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-200 dark:hover:bg-slate-700"
+            className="h-6 w-6 cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity motion-reduce:transition-none hover:bg-slate-200 dark:hover:bg-slate-700"
             onClick={handleExpand}
-            aria-label="Expand panel"
+            aria-label={`Expand ${title} panel`}
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </Button>

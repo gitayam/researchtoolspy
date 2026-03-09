@@ -180,3 +180,4 @@
 14. ~~**New** — UI/UX Phase 5 (Three-Column Layout)~~ DONE — 1440px+ evidence sidebar
 15. ~~**New** — Task board in Monitor mode~~ DONE — compact 200px task board
 16. ~~**New** — CopPanelExpander hidden state crash~~ DONE (F15)
+17. ~~**New** — UI/UX Phase 6 (Accessibility Polish)~~ DONE — ARIA, reduced motion, focus, Escape
