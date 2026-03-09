@@ -380,6 +380,24 @@ export default function CopWorkspacePage() {
     [],
   )
 
+  const handleMarkerOpenInFeed = useCallback(
+    (_sourceType: string, _sourceId: string) => {
+      // Scroll to evidence feed panel
+      const feedEl = document.querySelector('[data-panel="evidence"]') ??
+        document.querySelector('h3:has(~ div)')
+      // Find the Evidence & Intel Feed heading and scroll to it
+      const headings = document.querySelectorAll('h3')
+      for (const h of headings) {
+        if (h.textContent?.includes('Evidence & Intel Feed')) {
+          h.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          return
+        }
+      }
+      feedEl?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    },
+    [],
+  )
+
   const handlePinPlaced = useCallback(
     async (lat: number, lon: number) => {
       setPinPlacementMode(false)
@@ -649,6 +667,7 @@ export default function CopWorkspacePage() {
               onPinToMapFromFeed={handlePinToMapFromFeed}
               onPinToMapFromHypothesis={handlePinToMapFromHypothesis}
               onLinkPersona={handleLinkPersona}
+              onMarkerOpenInFeed={handleMarkerOpenInFeed}
               onOpenEntityDrawer={(tab?: string, prefill?: any) => {
                 if (tab) setEntityDrawerTab(tab)
                 if (prefill) setEntityDrawerPrefill(prefill)
@@ -669,6 +688,7 @@ export default function CopWorkspacePage() {
               onPinPlaced={handlePinPlaced}
               onPinToMapFromFeed={handlePinToMapFromFeed}
               onLinkPersona={handleLinkPersona}
+              onMarkerOpenInFeed={handleMarkerOpenInFeed}
               onOpenEntityDrawer={(tab?: string, prefill?: any) => {
                 if (tab) setEntityDrawerTab(tab)
                 if (prefill) setEntityDrawerPrefill(prefill)
@@ -750,6 +770,7 @@ interface ProgressLayoutProps {
   onPinToMapFromHypothesis?: (hypothesisId: string, text: string) => void
   onLinkPersona?: (handle: string, platform: string, itemId: string) => void
   onOpenEntityDrawer?: (tab?: string, prefill?: any) => void
+  onMarkerOpenInFeed?: (sourceType: string, sourceId: string) => void
 }
 
 function ProgressLayout({
@@ -769,6 +790,7 @@ function ProgressLayout({
   onPinToMapFromHypothesis,
   onLinkPersona,
   onOpenEntityDrawer,
+  onMarkerOpenInFeed,
 }: ProgressLayoutProps) {
   return (
     <>
@@ -915,6 +937,7 @@ function ProgressLayout({
                   layers={layerData}
                   pinPlacementMode={pinPlacementMode}
                   onPinPlaced={onPinPlaced}
+                  onMarkerOpenInFeed={onMarkerOpenInFeed}
                 />
               </div>
             </div>
@@ -951,6 +974,7 @@ interface MonitorLayoutProps {
   onPinToMapFromHypothesis?: (hypothesisId: string, text: string) => void
   onLinkPersona?: (handle: string, platform: string, itemId: string) => void
   onOpenEntityDrawer?: (tab?: string, prefill?: any) => void
+  onMarkerOpenInFeed?: (sourceType: string, sourceId: string) => void
 }
 
 function MonitorLayout({
@@ -968,6 +992,7 @@ function MonitorLayout({
   onPinToMapFromHypothesis,
   onLinkPersona,
   onOpenEntityDrawer,
+  onMarkerOpenInFeed,
 }: MonitorLayoutProps) {
   return (
     <>
@@ -1010,6 +1035,7 @@ function MonitorLayout({
                   layers={layerData}
                   pinPlacementMode={pinPlacementMode}
                   onPinPlaced={onPinPlaced}
+                  onMarkerOpenInFeed={onMarkerOpenInFeed}
                 />
               </div>
             </div>

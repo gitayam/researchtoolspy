@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { CopSession, CopFeatureCollection } from '@/types/cop'
@@ -33,6 +33,12 @@ export interface CopMapProps {
   layers: Record<string, CopFeatureCollection>
   onMapClick?: (lngLat: { lng: number; lat: number }) => void
   onBboxChange?: (bbox: [number, number, number, number]) => void
+  /** When true, the map enters pin-placement mode with a crosshair cursor */
+  pinPlacementMode?: boolean
+  /** Called when user clicks to place a pin in placement mode */
+  onPinPlaced?: (lat: number, lon: number) => void
+  /** Called when user clicks "Open in Feed" on a marker with a backlink */
+  onMarkerOpenInFeed?: (sourceType: string, sourceId: string) => void
 }
 
 // ── Component ───────────────────────────────────────────────────
@@ -41,17 +47,27 @@ export default function CopMap({
   layers,
   onMapClick,
   onBboxChange,
+  pinPlacementMode = false,
+  onPinPlaced,
+  onMarkerOpenInFeed,
 }: CopMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const popupRef = useRef<maplibregl.Popup | null>(null)
   const addedSourcesRef = useRef<Set<string>>(new Set())
+  const [mapError, setMapError] = useState<string | null>(null)
 
   // Stable callback refs so we don't re-register listeners on every render
   const onMapClickRef = useRef(onMapClick)
   onMapClickRef.current = onMapClick
   const onBboxChangeRef = useRef(onBboxChange)
   onBboxChangeRef.current = onBboxChange
+  const pinPlacementModeRef = useRef(pinPlacementMode)
+  pinPlacementModeRef.current = pinPlacementMode
+  const onPinPlacedRef = useRef(onPinPlaced)
+  onPinPlacedRef.current = onPinPlaced
+  const onMarkerOpenInFeedRef = useRef(onMarkerOpenInFeed)
+  onMarkerOpenInFeedRef.current = onMarkerOpenInFeed
 
   // ── Fire bbox on current bounds ─────────────────────────────
   const emitBbox = useCallback((map: maplibregl.Map) => {
@@ -66,45 +82,88 @@ export default function CopMap({
 
   // ── Initialize map ──────────────────────────────────────────
   useEffect(() => {
-    if (!containerRef.current) return
+    const el = containerRef.current
+    if (!el) return
 
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-      center: [session.center_lon ?? 0, session.center_lat ?? 0],
-      zoom: session.zoom_level ?? 3,
+    let map: maplibregl.Map | null = null
+    let ro: ResizeObserver | null = null
+
+    function initMap() {
+      if (map || !el) return
+      // Guard: don't init if container has no dimensions yet
+      if (el.clientWidth === 0 || el.clientHeight === 0) return
+
+      try {
+        map = new maplibregl.Map({
+          container: el,
+          style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+          center: [session.center_lon ?? 0, session.center_lat ?? 0],
+          zoom: session.zoom_level ?? 5,
+        })
+
+        map.addControl(new maplibregl.NavigationControl(), 'top-right')
+        map.addControl(new maplibregl.ScaleControl(), 'bottom-right')
+
+        map.on('click', (e) => {
+          if (pinPlacementModeRef.current && onPinPlacedRef.current) {
+            onPinPlacedRef.current(e.lngLat.lat, e.lngLat.lng)
+            return
+          }
+          onMapClickRef.current?.({ lng: e.lngLat.lng, lat: e.lngLat.lat })
+        })
+        map.on('moveend', () => { if (map) emitBbox(map) })
+        map.on('load', () => { if (map) emitBbox(map) })
+
+        mapRef.current = map
+      } catch (err) {
+        console.warn('[CopMap] Failed to initialize map:', err)
+        setMapError('Map could not be loaded')
+      }
+    }
+
+    // Use ResizeObserver to wait for the container to get real dimensions,
+    // then init the map and keep it resized on layout changes.
+    ro = new ResizeObserver(() => {
+      if (!map) {
+        initMap()
+      } else {
+        map.resize()
+      }
     })
+    ro.observe(el)
 
-    map.addControl(new maplibregl.NavigationControl(), 'top-right')
-    map.addControl(new maplibregl.ScaleControl(), 'bottom-right')
-
-    // Map click handler
-    map.on('click', (e) => {
-      onMapClickRef.current?.({ lng: e.lngLat.lng, lat: e.lngLat.lat })
-    })
-
-    // Bbox change on moveend
-    map.on('moveend', () => {
-      emitBbox(map)
-    })
-
-    // Emit initial bbox once the map is loaded
-    map.on('load', () => {
-      emitBbox(map)
-    })
-
-    mapRef.current = map
+    // Also try immediately in case layout is already calculated
+    initMap()
 
     return () => {
+      ro?.disconnect()
       popupRef.current?.remove()
       popupRef.current = null
-      map.remove()
+      if (map) {
+        map.remove()
+        map = null
+      }
       mapRef.current = null
       addedSourcesRef.current.clear()
     }
     // Only initialize once; session props are read at mount time
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // ── Pin placement mode cursor ──────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const canvas = map.getCanvas()
+    if (pinPlacementMode) {
+      canvas.style.cursor = 'crosshair'
+    } else {
+      canvas.style.cursor = ''
+    }
+    return () => {
+      canvas.style.cursor = ''
+    }
+  }, [pinPlacementMode])
 
   // ── Sync layers with the map ────────────────────────────────
   useEffect(() => {
@@ -140,7 +199,7 @@ export default function CopMap({
         if (isLine) {
           addLineLayer(map, sourceId, layerId, color)
         } else {
-          addPointLayers(map, sourceId, layerId, color, popupRef)
+          addPointLayers(map, sourceId, layerId, color, popupRef, onMarkerOpenInFeedRef)
         }
       }
     }
@@ -158,12 +217,41 @@ export default function CopMap({
     }
   }, [layers])
 
+  if (mapError) {
+    return (
+      <div
+        data-testid="cop-map-fallback"
+        className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-[#1a1a2e]"
+      >
+        <span className="text-sm text-gray-500 dark:text-gray-500">{mapError}</span>
+      </div>
+    )
+  }
+
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-full"
-      style={{ minHeight: 400 }}
-    />
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <div
+        ref={containerRef}
+        data-testid="cop-map"
+        style={{ width: '100%', height: '100%' }}
+      />
+      {/* Pin placement mode banner */}
+      {pinPlacementMode && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 10,
+          }}
+          className="px-4 py-2 rounded-lg bg-blue-600/90 text-white text-xs font-medium shadow-lg backdrop-blur-sm flex items-center gap-2"
+        >
+          <span className="inline-block h-2 w-2 rounded-full bg-white motion-safe:animate-pulse" />
+          Click on the map to place pin
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -203,6 +291,7 @@ function addPointLayers(
   layerId: string,
   color: string,
   popupRef: React.MutableRefObject<maplibregl.Popup | null>,
+  onMarkerOpenInFeedRef?: React.MutableRefObject<((sourceType: string, sourceId: string) => void) | undefined>,
 ) {
   const clusterId = `cop-cluster-${layerId}`
   const clusterCountId = `cop-cluster-count-${layerId}`
@@ -277,11 +366,19 @@ function addPointLayers(
     const description = String(props.description ?? '')
     const entityType = String(props.entity_type ?? props.event_type ?? props.source_type ?? '')
 
+    const sourceType = String(props.source_type ?? '')
+    const sourceId = String(props.source_id ?? '')
+    const hasBacklink = sourceId && (sourceType === 'EVIDENCE' || sourceType === 'HYPOTHESIS')
+
+    const backlinkLabel = sourceType === 'EVIDENCE' ? 'View Evidence' : sourceType === 'HYPOTHESIS' ? 'View Hypothesis' : ''
+    const backlinkBtnId = hasBacklink ? `cop-backlink-${Date.now()}` : ''
+
     const html = `
-      <div style="max-width: 220px; font-family: system-ui, sans-serif;">
+      <div style="max-width: 240px; font-family: system-ui, sans-serif;">
         <strong style="font-size: 13px; color: #e2e8f0;">${escapeHtml(name)}</strong>
         ${entityType ? `<div style="font-size: 11px; color: ${sanitizeColor(color)}; margin-top: 2px;">${escapeHtml(entityType)}</div>` : ''}
         ${description ? `<div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">${escapeHtml(description)}</div>` : ''}
+        ${hasBacklink ? `<button id="${backlinkBtnId}" style="margin-top: 6px; padding: 3px 8px; font-size: 11px; background: #3b82f6; color: #fff; border: none; border-radius: 4px; cursor: pointer;">${backlinkLabel}</button>` : ''}
       </div>
     `
 
@@ -292,10 +389,20 @@ function addPointLayers(
     }
 
     popupRef.current?.remove()
-    popupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true })
+    const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true })
       .setLngLat(coords)
       .setHTML(html)
       .addTo(map)
+    popupRef.current = popup
+
+    // Wire backlink button click
+    if (hasBacklink && backlinkBtnId) {
+      const btn = document.getElementById(backlinkBtnId)
+      btn?.addEventListener('click', () => {
+        onMarkerOpenInFeedRef?.current?.(sourceType, sourceId)
+        popup.remove()
+      })
+    }
   })
 
   // Click on a cluster: zoom in
