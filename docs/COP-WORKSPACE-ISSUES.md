@@ -115,6 +115,13 @@
 - Loader spinner and entity overflow badge missing dark variants
 **Fix:** Applied 6 targeted color fixes across both files
 
+### F21. Auto-Actor Creation Broken — CHECK Constraint Violation
+**Endpoint:** `match-entities-to-actors.ts` → `createActorFromUnmatchedEntity()`
+**Error:** `D1_ERROR: CHECK constraint failed` (silent — auto-creation just failed)
+**Root cause:** Inserted lowercase `'person'`/`'organization'` but schema CHECK requires uppercase `'PERSON'`/`'ORGANIZATION'`. Also missing `created_by` column.
+**Fix:** Uppercase types + added `created_by` binding.
+**Impact:** All auto-created actors from entity extraction were failing silently in production.
+
 ### F19. Batch Evidence Endpoint
 **Feature:** Added `POST /api/cop/:id/evidence/batch` for bulk evidence import (up to 100 items).
 **Uses:** `env.DB.batch()` for atomic D1 insert, parameterized queries, auto-increment IDs.
@@ -151,6 +158,15 @@
 **Was:** `blocker_count: 4` — 3 answered RFIs had stale `is_blocker=1`
 **Now:** `blocker_count: 1` — only the legitimately open AI authenticity RFI remains
 **Status:** Moved to Fixed (F8)
+
+### I4. No UI to Link/Create Frameworks from Workspace
+**Observed:** CopQuestionsTab has a disabled "Generate Questions" button. No dialog or button exists to create a framework session or link an existing one to the COP session.
+**API support:** PUT `/api/cop/sessions/:id` already accepts `{"linked_frameworks": [id1, id2]}`. POST `/api/frameworks` creates framework sessions.
+**Impact:** `framework_count` will always be 0 from the UI — users must use API calls to link frameworks.
+**Fix needed:** Add a "Link Framework" button/dialog in CopQuestionsTab that:
+1. Lists existing framework sessions (GET `/api/frameworks?workspace_id=...`)
+2. Creates new starbursting/5W1H session if none exist
+3. Updates `linked_frameworks` via PUT session endpoint
 
 ### I3. Framework Count = 0 — PARTIALLY FIXED
 **Observed:** `framework_count: 0` in stats endpoint

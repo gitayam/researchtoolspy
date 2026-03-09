@@ -5,6 +5,11 @@
 ### Git Hygiene: Commit Untracked Files Regularly
 Over 12 cycles, many files were created but never committed (personas API, evidence-tags API, E2E infrastructure, migrations 061-063, tool pages). This makes `git status` noisy and risks losing work. Commit new files as soon as they pass basic verification, even if they're not the focus of the current cycle.
 
+### CHECK Constraints Fail Silently in Try/Catch
+`match-entities-to-actors.ts` inserted lowercase `'person'` into a column with `CHECK(type IN ('PERSON', 'ORGANIZATION', ...))`. The D1 error was caught by a generic try/catch, so auto-actor creation silently failed with no visible error. The actors table appeared to work fine for manual creation (which used correct casing).
+
+**Rule:** When a D1 INSERT uses a column with a CHECK constraint, verify the value matches the constraint EXACTLY (case-sensitive). Search for CHECK constraints in schema before writing INSERT statements: `grep -i "CHECK" schema/d1-schema.sql`.
+
 ### Search Resilience: Fallback Chain Pattern
 The OSINT agent's SearXNG dependency was a single point of failure. Adding a fallback chain (primary container → 5 public instances → DuckDuckGo library) ensures search works even when the container is down. Pattern: try endpoints in order, return first success, log which endpoint worked.
 
