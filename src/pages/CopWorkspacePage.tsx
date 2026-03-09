@@ -17,7 +17,7 @@ import {
   Share2,
   Radio,
   Loader2,
-  Map,
+  Map as MapIcon,
   Network,
   Clock,
   HelpCircle,
@@ -25,6 +25,9 @@ import {
   FileText,
   Plus,
   Activity,
+  Target,
+  Users,
+  Command,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -37,12 +40,17 @@ import CopTimelinePanel from '@/components/cop/CopTimelinePanel'
 import CopAnalysisSummary from '@/components/cop/CopAnalysisSummary'
 import CopEvidenceFeed from '@/components/cop/CopEvidenceFeed'
 import CopQuestionsTab from '@/components/cop/CopQuestionsTab'
+import CopHypothesisTab from '@/components/cop/CopHypothesisTab'
 import CopRfiTab from '@/components/cop/CopRfiTab'
 import CopMap from '@/components/cop/CopMap'
 import CopLayerPanel from '@/components/cop/CopLayerPanel'
 import CopActivityPanel from '@/components/cop/CopActivityPanel'
 import CopInviteDialog from '@/components/cop/CopInviteDialog'
 import CopGapAnalysis from '@/components/cop/CopGapAnalysis'
+import CopGlobalCaptureBar from '@/components/cop/CopGlobalCaptureBar'
+import CopBlockerStrip from '@/components/cop/CopBlockerStrip'
+import CopPersonaPanel from '@/components/cop/CopPersonaPanel'
+import CopEvidencePersonaLinkDialog from '@/components/cop/CopEvidencePersonaLinkDialog'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
 
@@ -86,6 +94,16 @@ export default function CopWorkspacePage() {
 
   // ── Invite dialog state ───────────────────────────────────────
   const [inviteOpen, setInviteOpen] = useState(false)
+
+  // ── Quick Capture state ─────────────────────────────────────
+  const [captureOpen, setCaptureOpen] = useState(false)
+
+  // ── Persona linking state ───────────────────────────────────
+  const [personaLinkData, setPersonaLinkData] = useState<{ handle: string; platform: string; itemId: string } | null>(null)
+
+  // ── Pin placement state ─────────────────────────────────────
+  const [pinPlacementMode, setPinPlacementMode] = useState(false)
+  const pinSourceRef = useRef<{ type: 'evidence' | 'hypothesis'; id: string; text: string } | null>(null)
 
   // ── Layer state ────────────────────────────────────────────────
   const [activeLayers, setActiveLayers] = useState<string[]>([])
@@ -195,6 +213,120 @@ export default function CopWorkspacePage() {
     }
   }, [activeLayers, fetchLayerData])
 
+  // ── Keyboard shortcuts ────────────────────────────────────────
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const mod = e.metaKey || e.ctrlKey
+      if (!mod) return
+
+      // Cmd/Ctrl+K -> Quick Capture
+      if (e.key === 'k') {
+        e.preventDefault()
+        setCaptureOpen((prev) => !prev)
+        return
+      }
+      // Cmd/Ctrl+M -> Toggle map
+      if (e.key === 'm') {
+        e.preventDefault()
+        setShowMap((prev) => !prev)
+        return
+      }
+      // Cmd/Ctrl+1 -> Progress mode
+      if (e.key === '1') {
+        e.preventDefault()
+        setMode('progress')
+        return
+      }
+      // Cmd/Ctrl+2 -> Monitor mode
+      if (e.key === '2') {
+        e.preventDefault()
+        setMode('monitor')
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // ── Pin placement handlers ──────────────────────────────────
+
+  const handlePinToMapFromFeed = useCallback(
+    (item: { id: string; title: string }) => {
+      pinSourceRef.current = { type: 'evidence', id: item.id, text: item.title }
+      setPinPlacementMode(true)
+      setShowMap(true)
+    },
+    [],
+  )
+
+  const handlePinToMapFromHypothesis = useCallback(
+    (hypothesisId: string, text: string) => {
+      pinSourceRef.current = { type: 'hypothesis', id: hypothesisId, text }
+      setPinPlacementMode(true)
+      setShowMap(true)
+    },
+    [],
+  )
+
+  const handleLinkPersona = useCallback(
+    (handle: string, platform: string, itemId: string) => {
+      setPersonaLinkData({ handle, platform, itemId })
+    },
+    [],
+  )
+
+  const handlePinPlaced = useCallback(
+    async (lat: number, lon: number) => {
+      setPinPlacementMode(false)
+      const source = pinSourceRef.current
+      pinSourceRef.current = null
+
+      if (!source || !id) return
+
+      try {
+        await fetch(`/api/cop/${id}/markers`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({
+            lat,
+            lon,
+            callsign: source.text.slice(0, 50),
+            label: source.text.slice(0, 100),
+            source_type: source.type === 'evidence' ? 'EVIDENCE' : 'HYPOTHESIS',
+            source_id: source.id,
+          }),
+        })
+      } catch {
+        // Silent failure
+      }
+    },
+    [id],
+  )
+
+  const handleBlockerResolve = useCallback(
+    (rfiId: string) => {
+      // Scroll to/open the RFI panel -- for now, switch to progress mode where RFIs are visible
+      setMode('progress')
+    },
+    [],
+  )
+
+  // ── Evidence added callback (refresh feed) ──────────────────
+
+  const handleEvidenceAdded = useCallback(() => {
+    // The feed component will auto-refresh on next poll; no-op for now
+  }, [])
+
+  const handleLocationDetected = useCallback(
+    (location: string, evidenceId: string) => {
+      // Trigger pin placement mode using the detected location text as label
+      handlePinToMapFromFeed({ id: evidenceId, title: `📍 Detected: ${location}` })
+    },
+    [handlePinToMapFromFeed],
+  )
+
   // ── Toggle layer (optimistic + persist) ────────────────────────
 
   const handleToggleLayer = useCallback(
@@ -219,6 +351,29 @@ export default function CopWorkspacePage() {
       }
     },
     [activeLayers, id],
+  )
+
+  // ── Mission Brief handler ──────────────────────────────────────
+
+  const handleUpdateMissionBrief = useCallback(
+    async (brief: string) => {
+      if (!id || !session) return
+      
+      const prevSession = session
+      setSession(prev => prev ? { ...prev, mission_brief: brief } : null)
+
+      try {
+        const res = await fetch(`/api/cop/sessions/${id}`, {
+          method: 'PUT',
+          headers: getHeaders(),
+          body: JSON.stringify({ mission_brief: brief }),
+        })
+        if (!res.ok) throw new Error('Failed to update mission brief')
+      } catch (err) {
+        setSession(prevSession)
+      }
+    },
+    [id, session],
   )
 
   // ── Share handler ──────────────────────────────────────────────
@@ -328,7 +483,21 @@ export default function CopWorkspacePage() {
       </header>
 
       {/* ── Status strip ────────────────────────────────────────── */}
-      <CopStatusStrip sessionId={id!} />
+      <CopStatusStrip
+        sessionId={id!}
+        missionBrief={session.mission_brief ?? undefined}
+        onUpdateMissionBrief={handleUpdateMissionBrief}
+        />
+
+        {/* ── Global Quick Capture Bar ────────────────────────────── */}
+        <CopGlobalCaptureBar 
+          sessionId={id!} 
+          onLocationDetected={handleLocationDetected}
+        />
+
+        {/* ── Panel grid ──────────────────────────────────────────── */}
+
+      <CopBlockerStrip sessionId={id!} onResolveClick={handleBlockerResolve} />
 
       {/* ── Panel grid ──────────────────────────────────────────── */}
       <div className="overflow-y-auto p-3 md:p-4 lg:p-6 flex-1">
@@ -345,6 +514,11 @@ export default function CopWorkspacePage() {
               onToggleLayer={handleToggleLayer}
               layerData={layerData}
               layerCounts={layerCounts}
+              pinPlacementMode={pinPlacementMode}
+              onPinPlaced={handlePinPlaced}
+              onPinToMapFromFeed={handlePinToMapFromFeed}
+              onPinToMapFromHypothesis={handlePinToMapFromHypothesis}
+              onLinkPersona={handleLinkPersona}
             />
           ) : (
             <MonitorLayout
@@ -356,10 +530,24 @@ export default function CopWorkspacePage() {
               onToggleLayer={handleToggleLayer}
               layerData={layerData}
               layerCounts={layerCounts}
+              pinPlacementMode={pinPlacementMode}
+              onPinPlaced={handlePinPlaced}
+              onPinToMapFromFeed={handlePinToMapFromFeed}
+              onLinkPersona={handleLinkPersona}
             />
           )}
         </div>
       </div>
+
+      {/* Persona Link dialog */}
+      <CopEvidencePersonaLinkDialog
+        sessionId={id!}
+        open={!!personaLinkData}
+        onOpenChange={(open) => { if (!open) setPersonaLinkData(null) }}
+        handle={personaLinkData?.handle ?? ''}
+        platform={personaLinkData?.platform ?? ''}
+        evidenceId={personaLinkData?.itemId ?? ''}
+      />
 
       {/* Invite dialog */}
       <CopInviteDialog
@@ -385,6 +573,11 @@ interface ProgressLayoutProps {
   onToggleLayer: (id: string) => void
   layerData: Record<string, CopFeatureCollection>
   layerCounts: Record<string, number>
+  pinPlacementMode?: boolean
+  onPinPlaced?: (lat: number, lon: number) => void
+  onPinToMapFromFeed?: (item: { id: string; title: string }) => void
+  onPinToMapFromHypothesis?: (hypothesisId: string, text: string) => void
+  onLinkPersona?: (handle: string, platform: string, itemId: string) => void
 }
 
 function ProgressLayout({
@@ -398,11 +591,16 @@ function ProgressLayout({
   onToggleLayer,
   layerData,
   layerCounts,
+  pinPlacementMode,
+  onPinPlaced,
+  onPinToMapFromFeed,
+  onPinToMapFromHypothesis,
+  onLinkPersona,
 }: ProgressLayoutProps) {
   return (
     <>
-      {/* Row 1: Entity Relationships + Timeline */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Row 1: Entity Relationships + Timeline + Personas */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <CopPanelExpander
           title="Entity Relationships"
           icon={<Network className="h-4 w-4 text-purple-400" />}
@@ -418,6 +616,15 @@ function ProgressLayout({
         >
           {(expanded) => (
             <CopTimelinePanel sessionId={sessionId} expanded={expanded} />
+          )}
+        </CopPanelExpander>
+
+        <CopPanelExpander
+          title="Personas"
+          icon={<Users className="h-4 w-4 text-purple-400" />}
+        >
+          {(expanded) => (
+            <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
           )}
         </CopPanelExpander>
       </div>
@@ -437,13 +644,13 @@ function ProgressLayout({
               </div>
               {expanded && (
                 <>
-                  <div className="border-t border-gray-700 pt-4">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3">
                       Requests for Information
                     </h3>
                     <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} />
                   </div>
-                  <div className="border-t border-gray-700 pt-4">
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                     <CopGapAnalysis sessionId={sessionId} />
                   </div>
                 </>
@@ -453,11 +660,20 @@ function ProgressLayout({
         </CopPanelExpander>
 
         <CopPanelExpander
-          title="Analysis Summary"
+          title="Analysis & Hypotheses"
           icon={<Brain className="h-4 w-4 text-emerald-400" />}
         >
           {(expanded) => (
-            <CopAnalysisSummary sessionId={sessionId} expanded={expanded} />
+            <div className="flex flex-col h-full gap-4">
+              <div className={expanded ? '' : 'flex-1 overflow-hidden'}>
+                <CopAnalysisSummary sessionId={sessionId} expanded={expanded} />
+              </div>
+              {expanded && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
+                </div>
+              )}
+            </div>
           )}
         </CopPanelExpander>
       </div>
@@ -469,7 +685,12 @@ function ProgressLayout({
         collapsedHeight="h-[280px]"
       >
         {(expanded) => (
-          <CopEvidenceFeed sessionId={sessionId} expanded={expanded} />
+          <CopEvidenceFeed 
+            sessionId={sessionId} 
+            expanded={expanded} 
+            onPinToMap={onPinToMapFromFeed} 
+            onLinkPersona={onLinkPersona}
+          />
         )}
       </CopPanelExpander>
 
@@ -488,7 +709,7 @@ function ProgressLayout({
       {showMap ? (
         <CopPanelExpander
           title="Map"
-          icon={<Map className="h-4 w-4 text-green-400" />}
+          icon={<MapIcon className="h-4 w-4 text-green-400" />}
           collapsedHeight="h-[400px]"
         >
           {(expanded) => (
@@ -501,7 +722,12 @@ function ProgressLayout({
                 />
               )}
               <div className="flex-1">
-                <CopMap session={session} layers={layerData} />
+                <CopMap
+                  session={session}
+                  layers={layerData}
+                  pinPlacementMode={pinPlacementMode}
+                  onPinPlaced={onPinPlaced}
+                />
               </div>
             </div>
           )}
@@ -510,7 +736,7 @@ function ProgressLayout({
         <button
           type="button"
           onClick={() => setShowMap(true)}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border-2 border-dashed border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-400 transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           <span className="text-sm font-medium">Show Map Panel</span>
@@ -531,6 +757,11 @@ interface MonitorLayoutProps {
   onToggleLayer: (id: string) => void
   layerData: Record<string, CopFeatureCollection>
   layerCounts: Record<string, number>
+  pinPlacementMode?: boolean
+  onPinPlaced?: (lat: number, lon: number) => void
+  onPinToMapFromFeed?: (item: { id: string; title: string }) => void
+  onPinToMapFromHypothesis?: (hypothesisId: string, text: string) => void
+  onLinkPersona?: (handle: string, platform: string, itemId: string) => void
 }
 
 function MonitorLayout({
@@ -542,6 +773,11 @@ function MonitorLayout({
   onToggleLayer,
   layerData,
   layerCounts,
+  pinPlacementMode,
+  onPinPlaced,
+  onPinToMapFromFeed,
+  onPinToMapFromHypothesis,
+  onLinkPersona,
 }: MonitorLayoutProps) {
   return (
     <>
@@ -552,7 +788,13 @@ function MonitorLayout({
         collapsedHeight="h-[500px]"
       >
         {(expanded) => (
-          <CopEvidenceFeed sessionId={sessionId} expanded={expanded} monitorMode />
+          <CopEvidenceFeed 
+            sessionId={sessionId} 
+            expanded={expanded} 
+            monitorMode 
+            onPinToMap={onPinToMapFromFeed} 
+            onLinkPersona={onLinkPersona}
+          />
         )}
       </CopPanelExpander>
 
@@ -560,7 +802,7 @@ function MonitorLayout({
       {showMap ? (
         <CopPanelExpander
           title="Map"
-          icon={<Map className="h-4 w-4 text-green-400" />}
+          icon={<MapIcon className="h-4 w-4 text-green-400" />}
           collapsedHeight="h-[400px]"
         >
           {(expanded) => (
@@ -573,7 +815,12 @@ function MonitorLayout({
                 />
               )}
               <div className="flex-1">
-                <CopMap session={session} layers={layerData} />
+                <CopMap
+                  session={session}
+                  layers={layerData}
+                  pinPlacementMode={pinPlacementMode}
+                  onPinPlaced={onPinPlaced}
+                />
               </div>
             </div>
           )}
@@ -582,22 +829,42 @@ function MonitorLayout({
         <button
           type="button"
           onClick={() => setShowMap(true)}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border-2 border-dashed border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-400 transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           <span className="text-sm font-medium">Show Map Panel</span>
         </button>
       )}
 
-      {/* Key Questions */}
-      <CopPanelExpander
-        title="Key Questions"
-        icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
-      >
-        {() => (
-          <CopQuestionsTab session={session} />
-        )}
-      </CopPanelExpander>
+      {/* Key Questions & Hypotheses */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <CopPanelExpander
+          title="Intel & Hypotheses"
+          icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
+        >
+          {(expanded) => (
+            <div className="flex flex-col h-full gap-4">
+              <CopQuestionsTab session={session} />
+              {expanded && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
+                </div>
+              )}
+
+            </div>
+          )}
+        </CopPanelExpander>
+
+        <CopPanelExpander
+          title="Personas"
+          icon={<Users className="h-4 w-4 text-purple-400" />}
+        >
+          {(expanded) => (
+            <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
+          )}
+        </CopPanelExpander>
+      </div>
+
     </>
   )
 }

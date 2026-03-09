@@ -7,6 +7,7 @@ import {
   Check,
   ExternalLink,
   Loader2,
+  AlertTriangle,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -43,31 +44,37 @@ interface CopRfiTabProps {
 export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProps) {
   const [rfis, setRfis] = useState<CopRfi[]>([])
   const [loading, setLoading] = useState(true)
+  const [polling, setPolling] = useState(false)
+  const [fetchError, setFetchError] = useState(false)
   const [expandedRfi, setExpandedRfi] = useState<string | null>(null)
 
   // New RFI form
   const [showForm, setShowForm] = useState(false)
   const [newQuestion, setNewQuestion] = useState('')
   const [newPriority, setNewPriority] = useState<CopRfiPriority>('medium')
+  const [isBlocker, setIsBlocker] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Fetch RFIs ──────────────────────────────────────────────
 
-  const fetchRfis = useCallback(async () => {
+  const fetchRfis = useCallback(async (isBackground = false) => {
+    if (isBackground) setPolling(true)
     try {
       const res = await fetch(`/api/cop/${sessionId}/rfis`)
-      if (!res.ok) return
+      if (!res.ok) throw new Error('Failed to fetch RFIs')
       const data = await res.json()
       const items: CopRfi[] = data.rfis ?? data ?? []
       setRfis(items)
+      setFetchError(false)
       const openCount = items.filter(r => r.status === 'open').length
       onRfiCountChange?.(openCount)
     } catch {
-      // ignore
+      if (!isBackground) setFetchError(true)
     } finally {
       setLoading(false)
+      setPolling(false)
     }
   }, [sessionId, onRfiCountChange])
 
@@ -78,7 +85,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
 
   // Poll every 30s
   useEffect(() => {
-    intervalRef.current = setInterval(fetchRfis, 30000)
+    intervalRef.current = setInterval(() => fetchRfis(true), 30000)
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
@@ -111,11 +118,16 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       const res = await fetch(`/api/cop/${sessionId}/rfis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: trimmed, priority: newPriority }),
+        body: JSON.stringify({ 
+          question: trimmed, 
+          priority: newPriority,
+          is_blocker: isBlocker
+        }),
       })
       if (!res.ok) throw new Error('Failed to create RFI')
       setNewQuestion('')
       setNewPriority('medium')
+      setIsBlocker(false)
       setShowForm(false)
       await fetchRfis()
     } catch {
@@ -143,6 +155,72 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
     [sessionId, fetchRfis]
   )
 
+  // ── Submit answer ──────────────────────────────────────────
+
+  const [answerText, setAnswerText] = useState('')
+  const [answerSource, setAnswerSource] = useState('')
+  const [answerResponder, setAnswerResponder] = useState('')
+  const [submittingAnswer, setSubmittingAnswer] = useState(false)
+
+  const handleSubmitAnswer = useCallback(
+    async (rfiId: string) => {
+      const trimmed = answerText.trim()
+      if (!trimmed) return
+
+      setSubmittingAnswer(true)
+      try {
+        const res = await fetch(`/api/cop/${sessionId}/rfis/${rfiId}/answers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            answer_text: trimmed,
+            source_url: answerSource.trim() || undefined,
+            responder_name: answerResponder.trim() || undefined,
+          }),
+        })
+        if (!res.ok) throw new Error('Failed to submit answer')
+        setAnswerText('')
+        setAnswerSource('')
+        setAnswerResponder('')
+        await fetchRfis()
+      } catch {
+        // ignore
+      } finally {
+        setSubmittingAnswer(false)
+      }
+    },
+    [answerText, answerSource, answerResponder, sessionId, fetchRfis]
+  )
+
+  // ── Toggle blocker ──────────────────────────────────────────
+
+  const handleToggleBlocker = useCallback(
+    async (rfiId: string, currentValue: number) => {
+      const newValue = currentValue === 1 ? 0 : 1
+      // Optimistic update
+      setRfis((prev) =>
+        prev.map((r) =>
+          r.id === rfiId ? { ...r, is_blocker: newValue } as any : r,
+        ),
+      )
+      try {
+        await fetch(`/api/cop/${sessionId}/rfis`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rfi_id: rfiId, is_blocker: newValue }),
+        })
+      } catch {
+        // Revert on failure
+        setRfis((prev) =>
+          prev.map((r) =>
+            r.id === rfiId ? { ...r, is_blocker: currentValue } as any : r,
+          ),
+        )
+      }
+    },
+    [sessionId],
+  )
+
   // ── Toggle expand ───────────────────────────────────────────
 
   const toggleExpand = (rfiId: string) => {
@@ -154,20 +232,23 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-3 py-3 border-b border-gray-700 flex items-center justify-between">
+      <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-wider">RFI</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">RFI</h2>
           {openCount > 0 && (
             <span className="flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-blue-500 text-white text-[10px] font-bold px-1">
               {openCount}
             </span>
+          )}
+          {polling && (
+            <Loader2 className="h-3 w-3 text-gray-500 animate-spin" />
           )}
         </div>
         <Button
           size="sm"
           variant="outline"
           onClick={() => setShowForm(!showForm)}
-          className="h-6 text-[10px] px-2 border-gray-600 text-gray-300 hover:bg-gray-800"
+          className="h-6 text-[10px] px-2 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
         >
           <Plus className="h-3 w-3 mr-0.5" />
           New RFI
@@ -177,20 +258,20 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
         {/* New RFI form */}
         {showForm && (
-          <div className="rounded border border-gray-700 bg-gray-800/60 p-2 space-y-2">
+          <div className="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-2 space-y-2">
             <textarea
               value={newQuestion}
               onChange={e => setNewQuestion(e.target.value)}
               placeholder="What do you need to know?"
               rows={2}
-              className="w-full rounded border border-gray-700 bg-gray-800 px-2 py-1.5 text-xs text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+              className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 text-xs text-gray-900 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
               autoFocus
             />
             <div className="flex items-center gap-2">
               <select
                 value={newPriority}
                 onChange={e => setNewPriority(e.target.value as CopRfiPriority)}
-                className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 {PRIORITY_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>
@@ -198,6 +279,15 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
                   </option>
                 ))}
               </select>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isBlocker}
+                  onChange={e => setIsBlocker(e.target.checked)}
+                  className="rounded border-gray-600 bg-gray-800 text-red-500 focus:ring-red-500 h-3 w-3"
+                />
+                <span className="text-[10px] text-gray-400 font-medium uppercase">Blocker</span>
+              </label>
               <div className="flex-1" />
               <Button
                 size="sm"
@@ -213,7 +303,21 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
 
         {/* RFI list */}
         {loading ? (
-          <p className="text-xs text-gray-500 text-center py-4">Loading RFIs...</p>
+          <div className="flex items-center justify-center gap-2 py-4">
+            <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />
+            <span className="text-xs text-gray-500">Loading RFIs...</span>
+          </div>
+        ) : fetchError ? (
+          <div className="text-center py-6">
+            <p className="text-xs text-gray-500 mb-2">Failed to load RFIs.</p>
+            <button
+              type="button"
+              onClick={() => { setLoading(true); setFetchError(false); fetchRfis() }}
+              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
         ) : sortedRfis.length > 0 ? (
           sortedRfis.map(rfi => {
             const isExpanded = expandedRfi === rfi.id
@@ -222,13 +326,13 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
             return (
               <div
                 key={rfi.id}
-                className="rounded border border-gray-700 bg-gray-800/30"
+                className="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30"
               >
                 {/* RFI header */}
                 <button
                   type="button"
                   onClick={() => toggleExpand(rfi.id)}
-                  className="w-full flex items-start gap-2 px-2.5 py-2 text-left hover:bg-gray-800/50 transition-colors"
+                  className="w-full flex items-start gap-2 px-2.5 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
                 >
                   {isExpanded ? (
                     <ChevronDown className="h-3 w-3 text-gray-500 mt-0.5 shrink-0" />
@@ -236,7 +340,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
                     <ChevronRight className="h-3 w-3 text-gray-500 mt-0.5 shrink-0" />
                   )}
                   <div className="flex-1 min-w-0 space-y-1">
-                    <p className="text-xs text-gray-200 leading-relaxed">{rfi.question}</p>
+                    <p className="text-xs text-gray-900 dark:text-gray-200 leading-relaxed">{rfi.question}</p>
                     <div className="flex items-center gap-2">
                       <Badge
                         className="text-white text-[9px] px-1.5 py-0 leading-4"
@@ -256,6 +360,14 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
                       >
                         {rfi.status}
                       </Badge>
+                      {(rfi as any).is_blocker === 1 && (
+                        <Badge
+                          className="text-[9px] px-1.5 py-0 leading-4 bg-red-900/50 text-red-400 border-red-500/30"
+                        >
+                          <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                          BLOCKER
+                        </Badge>
+                      )}
                       {answers.length > 0 && (
                         <span className="text-[10px] text-gray-500">
                           {answers.length} answer{answers.length !== 1 ? 's' : ''}
@@ -267,14 +379,28 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
 
                 {/* Expanded answers */}
                 {isExpanded && (
-                  <div className="border-t border-gray-700 px-2.5 py-2 space-y-2">
+                  <div className="border-t border-gray-200 dark:border-gray-700 px-2.5 py-2 space-y-2">
+                    {/* Blocker toggle */}
+                    <label className="flex items-center gap-2 cursor-pointer py-1">
+                      <input
+                        type="checkbox"
+                        checked={(rfi as any).is_blocker === 1}
+                        onChange={() => handleToggleBlocker(rfi.id, (rfi as any).is_blocker ?? 0)}
+                        className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-red-500 focus:ring-red-500 h-3.5 w-3.5 cursor-pointer"
+                      />
+                      <span className="text-[10px] text-gray-600 dark:text-gray-400">
+                        Mark as blocker
+                      </span>
+                      <AlertTriangle className="h-3 w-3 text-red-400 opacity-50" />
+                    </label>
+
                     {answers.length > 0 ? (
                       answers.map(answer => (
                         <div
                           key={answer.id}
-                          className="rounded bg-gray-800/60 px-2 py-1.5 space-y-1"
+                          className="rounded bg-gray-100 dark:bg-gray-800/60 px-2 py-1.5 space-y-1"
                         >
-                          <p className="text-xs text-gray-300">{answer.answer_text}</p>
+                          <p className="text-xs text-gray-700 dark:text-gray-300">{answer.answer_text}</p>
                           <div className="flex items-center gap-2 text-[10px] text-gray-500">
                             {answer.source_url && (
                               <a
@@ -314,6 +440,45 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
                       ))
                     ) : (
                       <p className="text-[10px] text-gray-500 italic">No answers yet.</p>
+                    )}
+
+                    {/* Answer submission form */}
+                    {rfi.status !== 'accepted' && rfi.status !== 'closed' && (
+                      <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/40 p-2 space-y-1.5 mt-1">
+                        <textarea
+                          value={answerText}
+                          onChange={e => setAnswerText(e.target.value)}
+                          placeholder="Your answer..."
+                          rows={2}
+                          className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs text-gray-900 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                        />
+                        <div className="flex gap-1.5">
+                          <input
+                            type="url"
+                            value={answerSource}
+                            onChange={e => setAnswerSource(e.target.value)}
+                            placeholder="Source URL (optional)"
+                            className="flex-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs text-gray-900 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                          <input
+                            type="text"
+                            value={answerResponder}
+                            onChange={e => setAnswerResponder(e.target.value)}
+                            placeholder="Name (optional)"
+                            className="w-24 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs text-gray-900 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div className="flex justify-end">
+                          <Button
+                            size="sm"
+                            onClick={() => handleSubmitAnswer(rfi.id)}
+                            disabled={submittingAnswer || !answerText.trim()}
+                            className="h-6 text-[10px] px-2"
+                          >
+                            {submittingAnswer ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Submit'}
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}

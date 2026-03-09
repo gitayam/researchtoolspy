@@ -6,8 +6,13 @@ import {
   Brain,
   HelpCircle,
   Loader2,
+  Flag,
+  Edit2,
+  Check,
+  AlertTriangle,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { CopWorkspaceStats } from '@/types/cop'
 
@@ -16,6 +21,8 @@ import type { CopWorkspaceStats } from '@/types/cop'
 interface CopStatusStripProps {
   sessionId: string
   className?: string
+  missionBrief?: string
+  onUpdateMissionBrief?: (brief: string) => void
 }
 
 // ── Color helpers ────────────────────────────────────────────────
@@ -42,14 +49,22 @@ function invertedColor(count: number): StatusColor {
   return 'red'
 }
 
+/** Blocker color: 0 = green (no blockers), any > 0 = red */
+function blockerColor(count: number): StatusColor {
+  if (count === 0) return 'green'
+  return 'red'
+}
+
 // ── KPI definitions ─────────────────────────────────────────────
 
 interface KpiDef {
   key: string
   label: string
   icon: React.ComponentType<{ className?: string }>
-  getValue: (stats: CopWorkspaceStats) => number
+  getValue: (stats: CopWorkspaceStats & { blocker_count?: number }) => number
   getColor: (count: number) => StatusColor
+  /** Only show this KPI when its value is non-zero */
+  hideWhenZero?: boolean
 }
 
 const KPI_DEFS: KpiDef[] = [
@@ -88,13 +103,27 @@ const KPI_DEFS: KpiDef[] = [
     getValue: (s) => s.open_questions,
     getColor: invertedColor,
   },
+  {
+    key: 'blockers',
+    label: 'Blockers',
+    icon: AlertTriangle,
+    getValue: (s) => (s as any).blocker_count ?? 0,
+    getColor: blockerColor,
+    hideWhenZero: true,
+  },
 ]
 
 // ── Component ────────────────────────────────────────────────────
 
-export default function CopStatusStrip({ sessionId, className }: CopStatusStripProps) {
+export default function CopStatusStrip({ sessionId, className, missionBrief: initialBrief, onUpdateMissionBrief }: CopStatusStripProps) {
   const [stats, setStats] = useState<CopWorkspaceStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
+  const [brief, setBrief] = useState(initialBrief || '')
+
+  useEffect(() => {
+    setBrief(initialBrief || '')
+  }, [initialBrief])
 
   const fetchStats = useCallback(async () => {
     try {
@@ -115,58 +144,102 @@ export default function CopStatusStrip({ sessionId, className }: CopStatusStripP
 
   useEffect(() => {
     fetchStats()
+    const interval = setInterval(fetchStats, 30000)
+    return () => clearInterval(interval)
   }, [fetchStats])
+
+  const handleSaveBrief = () => {
+    onUpdateMissionBrief?.(brief)
+    setIsEditing(false)
+  }
 
   // ── Loading state ─────────────────────────────────────────────
 
   if (loading) {
     return (
-      <div className={cn('flex items-center gap-2 px-4 py-2', className)}>
+      <div className={cn('flex items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50', className)}>
         <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />
         <span className="text-xs text-gray-500">Loading workspace stats...</span>
       </div>
     )
   }
 
-  // ── Failed fetch: render nothing ──────────────────────────────
-
-  if (!stats) return null
-
   // ── KPI bar ───────────────────────────────────────────────────
 
   return (
     <div
       className={cn(
-        'flex items-center gap-4 overflow-x-auto px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-900/50',
+        'flex flex-col md:flex-row md:items-center gap-3 md:gap-6 px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-900/50',
         className,
       )}
     >
-      {KPI_DEFS.map((kpi) => {
-        const value = kpi.getValue(stats)
-        const color = kpi.getColor(value)
-        const Icon = kpi.icon
-
-        return (
-          <div
-            key={kpi.key}
-            className="flex items-center gap-2 shrink-0"
-          >
-            <Icon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-            <span className="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-              {kpi.label}
-            </span>
-            <Badge
-              variant="outline"
-              className={cn(
-                'text-[11px] px-2 py-0 leading-5 border-transparent font-semibold',
-                STATUS_COLOR_CLASSES[color],
-              )}
-            >
-              {value}
-            </Badge>
+      {/* Mission Brief Section */}
+      <div className="flex-1 flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Flag className="h-4 w-4 text-emerald-500" />
+          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider">Mission Brief:</span>
+        </div>
+        {isEditing ? (
+          <div className="flex-1 flex items-center gap-1">
+            <input
+              type="text"
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveBrief()}
+              className="flex-1 bg-white dark:bg-gray-800 border border-emerald-500/50 rounded px-2 py-0.5 text-xs text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              autoFocus
+              placeholder="e.g. Geoguess the bus and identify persona @lanaraae"
+            />
+            <button onClick={handleSaveBrief} className="p-1 hover:bg-emerald-500/20 rounded text-emerald-500 cursor-pointer">
+              <Check className="h-3 w-3" />
+            </button>
           </div>
-        )
-      })}
+        ) : (
+          <div
+            className="group flex-1 flex items-center gap-2 cursor-pointer"
+            onClick={() => setIsEditing(true)}
+          >
+            <span className={cn(
+              "text-xs truncate flex-1",
+              brief ? "text-gray-700 dark:text-gray-200 italic" : "text-gray-400 italic"
+            )}>
+              {brief || 'Click to set mission objective...'}
+            </span>
+            <Edit2 className="h-3 w-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        )}
+      </div>
+
+      {/* KPI Stats */}
+      <div className="flex items-center gap-4 overflow-x-auto shrink-0 pb-1 md:pb-0">
+        {KPI_DEFS.map((kpi) => {
+          const value = stats ? kpi.getValue(stats) : 0
+
+          // Skip KPIs that should be hidden when zero
+          if (kpi.hideWhenZero && value === 0) return null
+
+          const color = kpi.getColor(value)
+          const Icon = kpi.icon
+
+          return (
+            <div
+              key={kpi.key}
+              className="flex items-center gap-2 shrink-0"
+            >
+              <Icon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <Badge
+                variant="outline"
+                className={cn(
+                  'text-[11px] px-2 py-0 leading-5 border-transparent font-semibold',
+                  STATUS_COLOR_CLASSES[color],
+                )}
+              >
+                {value}
+              </Badge>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

@@ -51,6 +51,7 @@ export interface CopSession {
   layer_config: Record<string, LayerOverride>
   linked_frameworks: string[]
   key_questions: string[]
+  mission_brief?: string | null
 
   // Event analysis fields (only populated when template_type === 'event_analysis')
   event_type: string | null
@@ -97,7 +98,7 @@ export interface CopMarker {
   event_time: string
   stale_time: string | null
 
-  source_type: 'MANUAL' | 'ENTITY' | 'ACLED' | 'GDELT' | 'FRAMEWORK'
+  source_type: 'MANUAL' | 'ENTITY' | 'ACLED' | 'GDELT' | 'FRAMEWORK' | 'EVIDENCE' | 'HYPOTHESIS'
   source_id: string | null
 
   workspace_id: string
@@ -255,6 +256,7 @@ export interface CopRfi {
   question: string
   priority: CopRfiPriority
   status: CopRfiStatus
+  is_blocker: number
   created_by: number
   assigned_to: number | null
   created_at: string
@@ -331,4 +333,79 @@ export interface CopWorkspaceStats {
   open_questions: number
   answered_questions: number
   open_rfis: number
+  blocker_count: number
+}
+
+// ── Persona Types ────────────────────────────────────────────
+
+export interface CopPersona {
+  id: string
+  cop_session_id: string
+  display_name: string
+  platform: CopPersonaPlatform
+  handle: string | null
+  profile_url: string | null
+  status: CopPersonaStatus
+  linked_actor_id: string | null
+  notes: string | null
+  created_by: number
+  workspace_id: string
+  created_at: string
+  updated_at: string
+  links?: CopPersonaLink[]
+}
+
+export const CopPersonaPlatform = {
+  TWITTER: 'twitter',
+  TELEGRAM: 'telegram',
+  REDDIT: 'reddit',
+  ONLYFANS: 'onlyfans',
+  INSTAGRAM: 'instagram',
+  TIKTOK: 'tiktok',
+  OTHER: 'other',
+} as const
+
+export type CopPersonaPlatform = typeof CopPersonaPlatform[keyof typeof CopPersonaPlatform]
+
+export const CopPersonaStatus = {
+  ACTIVE: 'active',
+  SUSPENDED: 'suspended',
+  DELETED: 'deleted',
+  UNKNOWN: 'unknown',
+} as const
+
+export type CopPersonaStatus = typeof CopPersonaStatus[keyof typeof CopPersonaStatus]
+
+export interface CopPersonaLink {
+  id: string
+  persona_a_id: string
+  persona_b_id: string
+  link_type: 'alias' | 'operator' | 'affiliated' | 'unknown'
+  confidence: number
+  evidence_id: string | null
+  created_by: number
+  created_at: string
+}
+
+// ── Evidence Tag Types ───────────────────────────────────────
+
+export interface CopEvidenceTag {
+  id: string
+  evidence_id: string
+  tag_category: string
+  tag_value: string
+  confidence: number
+  created_by: number
+  created_at: string
+}
+
+export const CLUE_TAXONOMY: Record<string, string[]> = {
+  architecture: ['Building style', 'Window type', 'Roof type', 'Door style', 'Construction material'],
+  infrastructure: ['Power outlet type', 'Street light', 'Road marking', 'Traffic sign', 'Utility pole'],
+  flora_fauna: ['Tree species', 'Vegetation type', 'Crop type', 'Animal species'],
+  logos_brands: ['Vehicle brand', 'Store chain', 'Telecom provider', 'Bus company', 'Fuel station'],
+  language_text: ['Script type', 'Language detected', 'Sign text', 'License plate format'],
+  geography: ['Terrain type', 'Coastline', 'Mountain range', 'Water body', 'Soil color'],
+  transport: ['Vehicle type', 'Road surface', 'Rail type', 'Port infrastructure'],
+  people_culture: ['Clothing style', 'Religious symbol', 'Flag', 'Currency'],
 }
