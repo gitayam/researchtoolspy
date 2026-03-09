@@ -29,6 +29,7 @@ interface FeedItem {
   title: string
   description?: string
   url?: string
+  og_image?: string
   created_at: string
   entities?: Array<{ name: string } | string>
   status?: 'pending' | 'completed' | 'failed'
@@ -228,6 +229,7 @@ export default function CopEvidenceFeed({
             title: e.title ?? e.name ?? 'Untitled',
             description: e.description ?? e.summary ?? undefined,
             url: e.url ?? e.source_url ?? undefined,
+            og_image: e.og_image ?? e.thumbnail_url ?? undefined,
             created_at: e.created_at ?? e.created ?? new Date().toISOString(),
             entities: e.entities ?? undefined,
             status: 'completed' as const,
@@ -285,6 +287,7 @@ export default function CopEvidenceFeed({
           title: e.title ?? e.name ?? 'Untitled',
           description: e.description ?? e.content?.substring(0, 200),
           url: e.source_url ?? e.url,
+          og_image: e.og_image ?? e.thumbnail_url ?? undefined,
           created_at: e.created_at ?? new Date().toISOString(),
           entities: e.entities,
           status: 'completed' as const,
@@ -371,6 +374,7 @@ export default function CopEvidenceFeed({
         title: data.title ?? trimmed,
         description: data.summary ?? data.description ?? undefined,
         url: trimmed,
+        og_image: data.og_image ?? data.thumbnail_url ?? undefined,
         created_at: new Date().toISOString(),
         status: 'completed' as const,
       }
@@ -667,6 +671,24 @@ export default function CopEvidenceFeed({
                         )}
                       </Badge>
 
+                      {/* URL Thumbnail */}
+                      {item.url && item.status !== 'pending' && (isImageUrl(item.url) || item.og_image) && (
+                        <div
+                          className="h-10 w-10 rounded overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 shrink-0 cursor-pointer"
+                          onClick={() => {
+                            if (isImageUrl(item.url)) setLightboxItem(item)
+                          }}
+                        >
+                          <img
+                            src={isImageUrl(item.url) ? item.url : item.og_image}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          />
+                        </div>
+                      )}
+
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
@@ -716,6 +738,12 @@ export default function CopEvidenceFeed({
                             </a>
                           )}
                         </div>
+                        {/* URL domain badge */}
+                        {item.url && item.status === 'completed' && !isImageUrl(item.url) && (
+                          <span className="text-[10px] text-gray-500 dark:text-gray-500 truncate block">
+                            {(() => { try { return new URL(item.url).hostname.replace('www.', '') } catch { return '' } })()}
+                          </span>
+                        )}
                         {expanded && item.description && (
                           <p className={cn(
                             "text-[11px] mt-0.5 line-clamp-2",

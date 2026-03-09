@@ -89,11 +89,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const id = generateId()
     const now = new Date().toISOString()
     const priority = ['critical', 'high', 'medium', 'low'].includes(body.priority) ? body.priority : 'medium'
+    const isBLocker = body.is_blocker ? 1 : 0
 
     await env.DB.prepare(`
-      INSERT INTO cop_rfis (id, cop_session_id, question, priority, status, created_by, assigned_to, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?)
-    `).bind(id, sessionId, body.question.trim(), priority, userId, body.assigned_to ?? null, now, now).run()
+      INSERT INTO cop_rfis (id, cop_session_id, question, priority, status, is_blocker, created_by, assigned_to, requester_name, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?)
+    `).bind(id, sessionId, body.question.trim(), priority, isBLocker, userId, body.assigned_to ?? null, body.requester_name ?? null, now, now).run()
 
     return new Response(JSON.stringify({ id, message: 'RFI created' }), {
       status: 201, headers: corsHeaders,

@@ -52,6 +52,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
   const [showForm, setShowForm] = useState(false)
   const [newQuestion, setNewQuestion] = useState('')
   const [newPriority, setNewPriority] = useState<CopRfiPriority>('medium')
+  const [newRequester, setNewRequester] = useState('')
   const [isBlocker, setIsBlocker] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -118,15 +119,17 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       const res = await fetch(`/api/cop/${sessionId}/rfis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          question: trimmed, 
+        body: JSON.stringify({
+          question: trimmed,
           priority: newPriority,
-          is_blocker: isBlocker
+          is_blocker: isBlocker,
+          requester_name: newRequester.trim() || undefined,
         }),
       })
       if (!res.ok) throw new Error('Failed to create RFI')
       setNewQuestion('')
       setNewPriority('medium')
+      setNewRequester('')
       setIsBlocker(false)
       setShowForm(false)
       await fetchRfis()
@@ -279,14 +282,21 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
                   </option>
                 ))}
               </select>
+              <input
+                type="text"
+                value={newRequester}
+                onChange={e => setNewRequester(e.target.value)}
+                placeholder="Your name"
+                className="w-24 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs text-gray-900 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={isBlocker}
                   onChange={e => setIsBlocker(e.target.checked)}
-                  className="rounded border-gray-600 bg-gray-800 text-red-500 focus:ring-red-500 h-3 w-3"
+                  className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-red-500 focus:ring-red-500 h-3 w-3"
                 />
-                <span className="text-[10px] text-gray-400 font-medium uppercase">Blocker</span>
+                <span className="text-[10px] text-gray-600 dark:text-gray-400 font-medium uppercase">Blocker</span>
               </label>
               <div className="flex-1" />
               <Button
@@ -367,6 +377,11 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
                           <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
                           BLOCKER
                         </Badge>
+                      )}
+                      {(rfi as any).requester_name && (
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                          by {(rfi as any).requester_name}
+                        </span>
                       )}
                       {answers.length > 0 && (
                         <span className="text-[10px] text-gray-500">
