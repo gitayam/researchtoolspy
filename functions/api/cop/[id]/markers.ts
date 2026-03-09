@@ -3,6 +3,7 @@
  *
  * GET  /api/cop/:id/markers - List all markers for a COP session
  * POST /api/cop/:id/markers - Create a new tactical marker
+ * PUT  /api/cop/:id/markers - Update marker (confidence, rationale, label, etc.)
  *
  * Markers are CoT-compatible tactical points that can be placed manually
  * or programmatically on the COP map. They support stale times for
@@ -22,7 +23,7 @@ interface Env {
 const corsHeaders = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
 }
 
@@ -141,6 +142,76 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP Markers] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create marker',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    }), {
+      status: 500, headers: corsHeaders,
+    })
+  }
+}
+
+// PUT - Update a marker's confidence, rationale, label, description, etc.
+export const onRequestPut: PagesFunction<Env> = async (context) => {
+  const { request, env, params } = context
+  const sessionId = params.id as string
+
+  try {
+    const userId = await getUserIdOrDefault(request, env)
+    const body = await request.json() as any
+
+    if (!body.id) {
+      return new Response(JSON.stringify({ error: 'id is required' }), {
+        status: 400, headers: corsHeaders,
+      })
+    }
+
+    // Build SET clause dynamically from allowed fields
+    const allowed: Record<string, any> = {}
+    if (body.confidence && ['CONFIRMED', 'PROBABLE', 'POSSIBLE', 'SUSPECTED', 'DOUBTFUL'].includes(body.confidence)) {
+      allowed.confidence = body.confidence
+    }
+    if (body.rationale !== undefined) allowed.rationale = body.rationale || null
+    if (body.label !== undefined) allowed.label = body.label || null
+    if (body.description !== undefined) allowed.description = body.description || null
+    if (body.lat != null && typeof body.lat === 'number') allowed.lat = body.lat
+    if (body.lon != null && typeof body.lon === 'number') allowed.lon = body.lon
+
+    if (Object.keys(allowed).length === 0) {
+      return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
+        status: 400, headers: corsHeaders,
+      })
+    }
+
+    const setClauses = Object.keys(allowed).map(k => `${k} = ?`).join(', ')
+    const values = Object.values(allowed)
+
+    await env.DB.prepare(
+      `UPDATE cop_markers SET ${setClauses} WHERE id = ? AND cop_session_id = ?`
+    ).bind(...values, body.id, sessionId).run()
+
+    // Log changelog entry
+    const changelogId = `mcl-${crypto.randomUUID().slice(0, 12)}`
+    const now = new Date().toISOString()
+    await env.DB.prepare(`
+      INSERT INTO cop_marker_changelog (
+        id, marker_id, cop_session_id, action, new_value,
+        rationale, created_by, created_by_name, created_at
+      ) VALUES (?, ?, ?, 'updated', ?, ?, ?, ?, ?)
+    `).bind(
+      changelogId, body.id, sessionId,
+      JSON.stringify(allowed),
+      body.rationale || null,
+      userId,
+      body.updated_by_name || null,
+      now,
+    ).run()
+
+    return new Response(JSON.stringify({ id: body.id, message: 'Marker updated' }), {
+      headers: corsHeaders,
+    })
+  } catch (error) {
+    console.error('[COP Markers] Update error:', error)
+    return new Response(JSON.stringify({
+      error: 'Failed to update marker',
       details: error instanceof Error ? error.message : 'Unknown error',
     }), {
       status: 500, headers: corsHeaders,

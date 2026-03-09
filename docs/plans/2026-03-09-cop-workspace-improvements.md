@@ -18,8 +18,12 @@
 | - | Evidence thumbnails + domain badges | DONE | `0d12868dd` |
 | - | Collaborator attribution (RFI requester_name) | DONE | `0d12868dd` |
 | - | Activity log actor_name + details columns | DONE | migration 069 |
-| - | Fix workspace_id in entity endpoints (403 bug) | DONE | pending commit |
+| - | Fix workspace_id in entity endpoints (403 bug) | DONE | `b216f9a5d` |
 | - | Marker confidence upgrades (Bariloche CONFIRMED) | DONE | D1 direct |
+| - | Marker PUT endpoint (update confidence/rationale) | DONE | pending commit |
+| - | RFI PUT endpoint (update status/priority/answer) | DONE | pending commit |
+| - | IKEA Argentina research + RFI answered | DONE | web research |
+| - | Close 5 answered RFIs (bus, skyline, purse, bus co, IKEA) | DONE | D1 direct |
 
 ## Wave 3 — Remaining Features
 
@@ -33,13 +37,13 @@
 | Data | Count | Notes |
 |------|-------|-------|
 | Personas | 13 | +3 new (Lannah escort alias, @lanameys Telegram, sofiaisyours3 link) |
-| RFIs | 10 | 4 blockers, 3 answered by image analysis |
+| RFIs | 10 | 5 answered (bus, skyline, purse, bus co, IKEA), 5 open |
 | Hypotheses | 5 | Bariloche 85%, Multi-location 70%, Buenos Aires 60%, DACH 20%, E.Europe 15% |
 | Evidence links | 16 | Supporting + contradicting evidence linked to all 5 hypotheses |
-| Tasks | 14 | 3 done, 2 in_progress, 9 todo |
+| Tasks | 14 | 4 done, 2 in_progress, 8 todo |
 | Map markers | 9 | 2 CONFIRMED (Bariloche, Cerro Catedral), 2 PROBABLE (BA, airport) |
-| Activity entries | 26 | All with actor names and details |
-| Event facts | 28 | +10 new from image/PDF analysis |
+| Activity entries | 27 | All with actor names and details |
+| Event facts | 29 | +1 IKEA Argentina (no stores/resellers) |
 
 ## Key Breakthroughs This Session
 
@@ -49,6 +53,7 @@
 4. **Buenos Aires Skyline** — ChatGPT 5.4 geoguessed @lanaraae balcony as Buenos Aires
 5. **Prompt Injection Confirmed** — Telegram bot responded to aardvark, proving AI operation
 6. **Coastal Photos** — @ufqsoo on Argentine Atlantic coast with Mercosur license plate
+7. **IKEA Not In Argentina** — No stores, pop-ups, or resellers. IKEA furniture = imported or photos taken elsewhere
 
 ## Bug Fixes Applied
 

@@ -3,6 +3,7 @@
  *
  * GET  /api/cop/:id/rfis - List RFIs for session (with answers)
  * POST /api/cop/:id/rfis - Create new RFI
+ * PUT  /api/cop/:id/rfis - Update RFI (status, priority, answer)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
@@ -14,7 +15,7 @@ interface Env {
 const corsHeaders = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
 }
 
@@ -103,6 +104,67 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP RFI API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create RFI',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    }), { status: 500, headers: corsHeaders })
+  }
+}
+
+// PUT - Update RFI status, priority, or add answer
+export const onRequestPut: PagesFunction<Env> = async (context) => {
+  const { request, env, params } = context
+  const sessionId = params.id as string
+
+  try {
+    const body = await request.json() as any
+
+    if (!body.id) {
+      return new Response(JSON.stringify({ error: 'id is required' }), {
+        status: 400, headers: corsHeaders,
+      })
+    }
+
+    const now = new Date().toISOString()
+    const sets: string[] = ['updated_at = ?']
+    const vals: any[] = [now]
+
+    if (body.status && ['open', 'answered', 'closed', 'blocked'].includes(body.status)) {
+      sets.push('status = ?')
+      vals.push(body.status)
+    }
+    if (body.priority && ['critical', 'high', 'medium', 'low'].includes(body.priority)) {
+      sets.push('priority = ?')
+      vals.push(body.priority)
+    }
+    if (body.is_blocker !== undefined) {
+      sets.push('is_blocker = ?')
+      vals.push(body.is_blocker ? 1 : 0)
+    }
+    if (body.assigned_to !== undefined) {
+      sets.push('assigned_to = ?')
+      vals.push(body.assigned_to || null)
+    }
+
+    await env.DB.prepare(
+      `UPDATE cop_rfis SET ${sets.join(', ')} WHERE id = ? AND cop_session_id = ?`
+    ).bind(...vals, body.id, sessionId).run()
+
+    // If an answer is provided, insert into cop_rfi_answers
+    if (body.answer?.trim()) {
+      const userId = await getUserIdOrDefault(request, env)
+      const answerId = `rfa-${crypto.randomUUID().slice(0, 12)}`
+      await env.DB.prepare(`
+        INSERT INTO cop_rfi_answers (id, rfi_id, answer, answered_by, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).bind(answerId, body.id, body.answer.trim(), userId, now).run()
+    }
+
+    return new Response(JSON.stringify({ id: body.id, message: 'RFI updated' }), {
+      headers: corsHeaders,
+    })
+  } catch (error) {
+    console.error('[COP RFI API] Update error:', error)
+    return new Response(JSON.stringify({
+      error: 'Failed to update RFI',
       details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
