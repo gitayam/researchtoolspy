@@ -307,7 +307,6 @@ test.describe('COP Workspace -- Navigation & Layout', () => {
     const panelTitles = [
       'Entity Relationships',
       'Timeline',
-      'Personas',
       'Key Questions & RFIs',
       'Analysis & Hypotheses',
       'Evidence & Intel Feed',
@@ -319,6 +318,11 @@ test.describe('COP Workspace -- Navigation & Layout', () => {
         copWorkspacePage.page.getByText(title, { exact: true }).first(),
       ).toBeVisible()
     }
+
+    // "Actors" panel — check h3 heading to avoid matching Entities panel button
+    await expect(
+      copWorkspacePage.page.getByRole('heading', { name: 'Actors', level: 3 }),
+    ).toBeVisible()
   })
 
   test('switching to Monitor mode changes layout', async ({ copWorkspacePage }) => {
@@ -691,18 +695,18 @@ test.describe('COP Workspace -- Evidence Feed', () => {
 // Persona Panel
 // =====================================================================
 
-test.describe('COP Workspace -- Persona Panel', () => {
+test.describe('COP Workspace -- Actors Panel', () => {
   test.beforeEach(async ({ page }) => {
     await mockWorkspaceRoutes(page)
   })
 
-  test('@smoke persona panel renders in progress layout', async ({ copWorkspacePage }) => {
+  test('@smoke actors panel renders in progress layout', async ({ copWorkspacePage }) => {
     await copWorkspacePage.goto(SESSION_ID)
     await copWorkspacePage.waitForLoad()
 
-    // "Personas" panel title visible
+    // "Actors" panel h3 heading visible (not the Entities panel button)
     await expect(
-      copWorkspacePage.page.getByText('Personas').first(),
+      copWorkspacePage.page.getByRole('heading', { name: 'Actors', level: 3 }),
     ).toBeVisible()
   })
 

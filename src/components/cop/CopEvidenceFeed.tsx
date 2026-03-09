@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useToast } from '@/components/ui/use-toast'
 import {
   FileText,
   Globe,
@@ -140,6 +141,7 @@ export default function CopEvidenceFeed({
   onLinkPersona,
   viewMode: externalViewMode,
 }: CopEvidenceFeedProps) {
+  const { toast } = useToast()
   const [items, setItems] = useState<FeedItem[]>([])
   const [loading, setLoading] = useState(true)
   const [url, setUrl] = useState('')
@@ -392,6 +394,8 @@ export default function CopEvidenceFeed({
           dismissAt: Date.now() + 8000,
         }))
         setHandleDetections((prev) => [...prev, ...newDetections])
+        const handles = detected.map(d => `@${d.handle}`).join(', ')
+        toast({ title: `${detected.length} handle${detected.length > 1 ? 's' : ''} detected`, description: handles })
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Analysis failed'

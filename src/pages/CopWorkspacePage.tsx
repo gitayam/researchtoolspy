@@ -775,8 +775,8 @@ function ProgressLayout({
       {/* Row 0: Entities Quick-Access Panel */}
       <CopEntitiesPanel workspaceId={session.workspace_id} onOpenEntityDrawer={onOpenEntityDrawer} />
 
-      {/* Row 1: Entity Relationships + Timeline + Personas */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Row 1: Entity Relationships + Timeline */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <CopPanelExpander
           title="Entity Relationships"
           icon={<Network className="h-4 w-4 text-purple-400" />}
@@ -794,16 +794,17 @@ function ProgressLayout({
             <CopTimelinePanel sessionId={sessionId} expanded={expanded} />
           )}
         </CopPanelExpander>
-
-        <CopPanelExpander
-          title="Personas"
-          icon={<Users className="h-4 w-4 text-purple-400" />}
-        >
-          {(expanded) => (
-            <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
-          )}
-        </CopPanelExpander>
       </div>
+
+      {/* Row 1.5: Actors (research targets) — full width for card grid */}
+      <CopPanelExpander
+        title="Actors"
+        icon={<Users className="h-4 w-4 text-purple-400" />}
+      >
+        {(expanded) => (
+          <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
+        )}
+      </CopPanelExpander>
 
       {/* Row 2: Key Questions & RFIs + Analysis Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1026,31 +1027,30 @@ function MonitorLayout({
       )}
 
       {/* Key Questions & Hypotheses */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <CopPanelExpander
-          title="Intel & Hypotheses"
-          icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
-          collapsedHeight="h-[480px]"
-        >
-          {() => (
-            <div className="flex flex-col h-full gap-4">
-              <CopQuestionsTab session={session} />
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
-              </div>
+      <CopPanelExpander
+        title="Intel & Hypotheses"
+        icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
+        collapsedHeight="h-[480px]"
+      >
+        {() => (
+          <div className="flex flex-col h-full gap-4">
+            <CopQuestionsTab session={session} />
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
             </div>
-          )}
-        </CopPanelExpander>
+          </div>
+        )}
+      </CopPanelExpander>
 
-        <CopPanelExpander
-          title="Personas"
-          icon={<Users className="h-4 w-4 text-purple-400" />}
-        >
-          {(expanded) => (
-            <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
-          )}
-        </CopPanelExpander>
-      </div>
+      {/* Actors (research targets) — full width */}
+      <CopPanelExpander
+        title="Actors"
+        icon={<Users className="h-4 w-4 text-purple-400" />}
+      >
+        {(expanded) => (
+          <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
+        )}
+      </CopPanelExpander>
 
     </>
   )

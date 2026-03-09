@@ -110,7 +110,7 @@ export class CopWorkspacePage {
     // Panels (identified by their panel expander titles)
     this.entityRelationshipsPanel = page.getByText('Entity Relationships', { exact: true }).locator('..').locator('..')
     this.timelinePanel = page.getByText('Timeline', { exact: true }).locator('..').locator('..')
-    this.personasPanel = page.getByText('Personas').first().locator('..').locator('..')
+    this.personasPanel = page.getByText('Actors').first().locator('..').locator('..')
     this.questionsPanel = page.getByText('Key Questions & RFIs', { exact: true }).locator('..').locator('..')
     this.analysisPanel = page.getByText('Analysis & Hypotheses', { exact: true }).locator('..').locator('..')
     this.evidencePanel = page.getByText('Evidence & Intel Feed', { exact: true }).locator('..').locator('..')
@@ -118,8 +118,8 @@ export class CopWorkspacePage {
     this.mapPanel = page.getByText('Map', { exact: true }).locator('..').locator('..')
     this.showMapButton = page.getByText('Show Map Panel')
 
-    // Persona panel internals
-    this.addPersonaButton = page.getByRole('button', { name: /Add Persona/i })
+    // Actors panel internals — use .first() to pick the panel button (before entity drawer)
+    this.addPersonaButton = page.getByRole('button', { name: /Add Actor/i }).first()
     this.personaFormNameInput = page.locator('input[placeholder="Display name"]')
     this.personaFormPlatformSelect = page.locator('select').filter({ has: page.locator('option[value="twitter"]') })
     this.personaFormHandleInput = page.locator('input[placeholder*="@handle"]')
@@ -127,7 +127,7 @@ export class CopWorkspacePage {
     this.personaFormCreateButton = page.getByRole('button', { name: 'Create' })
     this.personaFormCancelButton = page.getByRole('button', { name: 'Cancel' })
     this.personaCards = page.locator('div.grid div[class*="rounded"][class*="border"]').filter({ has: page.locator('button') })
-    this.personaEmptyState = page.getByText('No personas tracked yet.')
+    this.personaEmptyState = page.getByText('No actors tracked yet.')
 
     // Evidence feed internals
     this.evidenceFeedHeader = page.getByText('Evidence & Intel Feed', { exact: true }).first()

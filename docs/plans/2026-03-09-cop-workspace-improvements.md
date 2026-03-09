@@ -60,7 +60,7 @@
 | 11 | Evidence feed header locator fix (E2E) | POM uses unique panel title text | DONE (2026-03-09) |
 | 12 | Hypothesis count in stats + KPI strip | API returns hypothesis_count, status strip shows it | DONE (2026-03-09) |
 
-## Investigation Data Status (2026-03-09 cycle 2)
+## Investigation Data Status (2026-03-09 cycle 3)
 
 | Data | Count | Notes |
 |------|-------|-------|
@@ -73,7 +73,7 @@
 | Personas | 13 | +3 new (Lannah escort alias, @lanameys Telegram, sofiaisyours3 link) |
 | RFIs | 10 | 7 answered, 3 open, 1 blocker (AI authenticity) |
 | Hypotheses | 5 | Bariloche 85%, Multi-location 70%, Buenos Aires 60%, DACH 28%, E.Europe 15% |
-| Evidence items | 0 | evidence_items table now has workspace_id column — endpoint working |
+| Evidence items | 1 | Capture bar fix deployed (F11) — first user-created evidence flowing |
 | Tasks | 14 | 6 done, 4 in_progress, 4 todo |
 | Map markers | 9 | 2 CONFIRMED (Bariloche, Cerro Catedral), 2 PROBABLE (BA, airport) |
 | Activity entries | 31 | +4 research findings (coastal, Lannah, hackyourmom, outlet) |

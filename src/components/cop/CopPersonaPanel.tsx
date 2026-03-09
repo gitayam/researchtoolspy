@@ -172,7 +172,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
       {/* Header */}
       <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">Personas</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">Actors</h2>
           {personas.length > 0 && (
             <Badge variant="outline" className="text-[10px] border-purple-500/30 text-purple-400">
               {personas.length}
@@ -186,7 +186,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
           className="h-6 text-[10px] px-2 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
         >
           <Plus className="h-3 w-3 mr-0.5" />
-          Add Persona
+          Add Actor
         </Button>
       </div>
 
@@ -256,7 +256,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
             <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
           </div>
         ) : visiblePersonas.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
             {visiblePersonas.map((persona) => {
               const isOpen = expandedId === persona.id
               const PlatformIcon = PLATFORM_ICONS[persona.platform] ?? Globe
@@ -374,9 +374,9 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
         ) : (
           <div className="text-center py-8">
             <User className="h-6 w-6 text-gray-600 mx-auto mb-2" />
-            <p className="text-xs text-gray-500">No personas tracked yet.</p>
+            <p className="text-xs text-gray-500">No actors tracked yet.</p>
             <p className="text-[10px] text-gray-600 mt-1">
-              Add a persona to track digital identities across platforms.
+              Add actors to track research targets across platforms.
             </p>
           </div>
         )}
