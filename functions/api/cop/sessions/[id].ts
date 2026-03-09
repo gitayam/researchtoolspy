@@ -43,12 +43,17 @@ function parseJsonFields(row: any): any {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
-  const workspaceId = request.headers.get('X-Workspace-ID') || '1'
+  const workspaceId = request.headers.get('X-Workspace-ID')
 
   try {
-    const result = await env.DB.prepare(`
-      SELECT * FROM cop_sessions WHERE id = ? AND (workspace_id = ? OR is_public = 1)
-    `).bind(id, workspaceId).first()
+    // Look up by ID; optionally filter by workspace if header is provided
+    const result = workspaceId
+      ? await env.DB.prepare(`
+          SELECT * FROM cop_sessions WHERE id = ? AND (workspace_id = ? OR is_public = 1)
+        `).bind(id, workspaceId).first()
+      : await env.DB.prepare(`
+          SELECT * FROM cop_sessions WHERE id = ?
+        `).bind(id).first()
 
     if (!result) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), {
@@ -89,7 +94,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       'bbox_min_lat', 'bbox_min_lon', 'bbox_max_lat', 'bbox_max_lon',
       'center_lat', 'center_lon', 'zoom_level',
       'time_window_start', 'time_window_end', 'rolling_hours',
-      'event_type', 'event_description'
+      'event_type', 'event_description', 'mission_brief'
     ] as const
 
     for (const field of scalarFields) {
