@@ -24,6 +24,10 @@
 | - | RFI PUT endpoint (update status/priority/answer) | DONE | pending commit |
 | - | IKEA Argentina research + RFI answered | DONE | web research |
 | - | Close 5 answered RFIs (bus, skyline, purse, bus co, IKEA) | DONE | D1 direct |
+| - | HackYourMom.com research (Telegram bot army TTPs) | DONE | web research |
+| - | Outlet type research (Argentina = Type I) | DONE | web research |
+| - | Fix panels: hypotheses/RFIs always visible | DONE | `b00c1931b` |
+| - | Fix RFI answer insert (answer_text column) | DONE | `b00c1931b` |
 
 ## Wave 3 — Remaining Features
 
@@ -37,13 +41,13 @@
 | Data | Count | Notes |
 |------|-------|-------|
 | Personas | 13 | +3 new (Lannah escort alias, @lanameys Telegram, sofiaisyours3 link) |
-| RFIs | 10 | 5 answered (bus, skyline, purse, bus co, IKEA), 5 open |
+| RFIs | 10 | 7 answered (+outlet type, +hackyourmom), 3 open |
 | Hypotheses | 5 | Bariloche 85%, Multi-location 70%, Buenos Aires 60%, DACH 20%, E.Europe 15% |
 | Evidence links | 16 | Supporting + contradicting evidence linked to all 5 hypotheses |
-| Tasks | 14 | 4 done, 2 in_progress, 8 todo |
+| Tasks | 14 | 6 done, 4 in_progress, 4 todo |
 | Map markers | 9 | 2 CONFIRMED (Bariloche, Cerro Catedral), 2 PROBABLE (BA, airport) |
-| Activity entries | 27 | All with actor names and details |
-| Event facts | 29 | +1 IKEA Argentina (no stores/resellers) |
+| Activity entries | 31 | +4 research findings (coastal, Lannah, hackyourmom, outlet) |
+| Event facts | 32 | +3 (hackyourmom TTPs, outlet types, PimEyes Lannah network) |
 
 ## Key Breakthroughs This Session
 
@@ -54,6 +58,8 @@
 5. **Prompt Injection Confirmed** — Telegram bot responded to aardvark, proving AI operation
 6. **Coastal Photos** — @ufqsoo on Argentine Atlantic coast with Mercosur license plate
 7. **IKEA Not In Argentina** — No stores, pop-ups, or resellers. IKEA furniture = imported or photos taken elsewhere
+8. **HackYourMom TTP Match** — Ukrainian cyber army documented identical bot pattern: AI comments in 60s, $0.05/account, stolen images, deception funnels
+9. **Outlet Type I = Argentina** — National standard is Type I (3 flat V-pins). Type C in older buildings. Strong geolocation indicator
 
 ## Bug Fixes Applied
 
