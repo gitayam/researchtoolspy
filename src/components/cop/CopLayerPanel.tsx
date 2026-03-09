@@ -48,6 +48,7 @@ export interface CopLayerPanelProps {
   activeLayers: string[]
   onToggleLayer: (layerId: string) => void
   layerCounts?: Record<string, number>
+  loading?: boolean
 }
 
 // ── Group layers by category ────────────────────────────────────
@@ -71,6 +72,7 @@ export default function CopLayerPanel({
   activeLayers,
   onToggleLayer,
   layerCounts,
+  loading = false,
 }: CopLayerPanelProps) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
 
@@ -89,6 +91,23 @@ export default function CopLayerPanel({
 
       {/* Category sections */}
       <div className="flex-1 py-1">
+        {loading ? (
+          <div className="px-3 py-2 space-y-3">
+            {[0, 1, 2].map(g => (
+              <div key={g} className="space-y-1.5">
+                <div className="h-3 w-20 rounded bg-gray-800 animate-pulse" />
+                {[0, 1, 2].map(r => (
+                  <div key={r} className="flex items-center gap-2 px-1">
+                    <div className="h-3.5 w-3.5 rounded bg-gray-800 animate-pulse" />
+                    <div className="h-3 w-3 rounded bg-gray-800 animate-pulse" />
+                    <div className="h-3 flex-1 rounded bg-gray-800 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+        <>
         {CATEGORIES.map(({ key, label }) => {
           const layers = LAYER_GROUPS[key]
           if (!layers || layers.length === 0) return null
@@ -166,9 +185,14 @@ export default function CopLayerPanel({
                         <span className="truncate flex-1">{layer.name}</span>
 
                         {/* Optional count badge */}
-                        {count != null && (
+                        {count != null && count > 0 && (
                           <span className="text-[10px] text-gray-500 tabular-nums">
                             {count}
+                          </span>
+                        )}
+                        {isActive && count === 0 && (
+                          <span className="text-[10px] text-gray-600 italic">
+                            empty
                           </span>
                         )}
                       </button>
@@ -179,6 +203,21 @@ export default function CopLayerPanel({
             </div>
           )
         })}
+
+        {/* Hint when no layers have features */}
+        {(() => {
+          const hasFeatures = activeLayers.some(id => (layerCounts?.[id] ?? 0) > 0)
+          if (!hasFeatures) {
+            return (
+              <p className="px-3 py-2 text-[10px] text-gray-500 italic">
+                Toggle layers above to see data on the map.
+              </p>
+            )
+          }
+          return null
+        })()}
+        </>
+        )}
       </div>
     </aside>
   )

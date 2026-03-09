@@ -28,10 +28,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
-    // 1. Look up the session to get workspace_id and created_by
+    // 1. Look up the session to get workspace_id
     const session = await env.DB.prepare(
-      `SELECT workspace_id, created_by FROM cop_sessions WHERE id = ?`
-    ).bind(sessionId).first<{ workspace_id: string; created_by: number }>()
+      `SELECT workspace_id FROM cop_sessions WHERE id = ?`
+    ).bind(sessionId).first<{ workspace_id: string }>()
 
     if (!session) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), {
@@ -39,7 +39,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const { workspace_id, created_by } = session
+    const { workspace_id } = session
 
     // Helper: run a COUNT query, return 0 if table/column is missing
     const safeCount = async (sql: string, ...bindings: any[]): Promise<number> => {
@@ -61,7 +61,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       safeCount(`SELECT COUNT(*) as cnt FROM sources WHERE workspace_id = ?`, workspace_id),
       safeCount(`SELECT COUNT(*) as cnt FROM events WHERE workspace_id = ?`, workspace_id),
       safeCount(`SELECT COUNT(*) as cnt FROM evidence_items WHERE workspace_id = ?`, workspace_id),
-      safeCount(`SELECT COUNT(*) as cnt FROM framework_sessions WHERE user_id = ?`, created_by),
+      safeCount(`SELECT COALESCE(JSON_ARRAY_LENGTH(linked_frameworks), 0) as cnt FROM cop_sessions WHERE id = ?`, sessionId),
       safeCount(`SELECT COUNT(*) as cnt FROM relationships WHERE workspace_id = ?`, workspace_id),
       safeCount(`SELECT COUNT(*) as cnt FROM cop_rfis WHERE cop_session_id = ? AND status = 'open'`, sessionId),
       safeCount(`SELECT COUNT(*) as cnt FROM cop_rfis WHERE cop_session_id = ? AND status IN ('answered', 'accepted')`, sessionId),

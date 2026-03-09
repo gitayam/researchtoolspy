@@ -36,7 +36,9 @@ export const FrameworkType = {
   SURVEILLANCE: 'surveillance',
   TREND: 'trend',
   STARBURSTING: 'starbursting',
-  FUNDAMENTAL_FLOW: 'fundamental-flow'
+  FUNDAMENTAL_FLOW: 'fundamental-flow',
+  EQUILIBRIUM_ANALYSIS: 'equilibrium-analysis',
+  HAMILTON_RULE: 'hamilton-rule'
 } as const
 
 export type FrameworkType = typeof FrameworkType[keyof typeof FrameworkType]

@@ -63,7 +63,7 @@ export default function CopBlockerStrip({ sessionId, onGoToBlocker }: CopBlocker
   return (
     <div
       className={cn(
-        'bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-500/30 rounded-lg mx-3 md:mx-4 lg:mx-6 mt-2 px-4 py-2',
+        'bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-500/30 rounded-lg mx-3 md:mx-4 lg:mx-6 mt-2 px-4 py-2 shrink-0',
         'flex items-center gap-3 flex-wrap',
       )}
       role="alert"

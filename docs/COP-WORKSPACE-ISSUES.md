@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-09 (cycle 8)
+> Last updated: 2026-03-09 (cycle 11)
 > Source: Live production data audit against `cop-b0f96023-cdf` / workspace `6fde45ce-ae4b-4ff0-97c6-d2773a6ff108`
 
 ## Status Legend
@@ -103,6 +103,14 @@
 **Observed:** Monitor mode only showed Evidence Feed, Map, Questions/Hypotheses, and Actors — no task board. Users had to switch to Progress mode to manage tasks.
 **Fix:** Added compact (200px) task board panel to Monitor mode layout.
 
+### F18. Framework Count Query Wrong Table
+**Root cause:** Stats endpoint queried `framework_sessions WHERE user_id = ?` (global user count) instead of reading `linked_frameworks` JSON array from `cop_sessions`.
+**Fix:** Changed to `JSON_ARRAY_LENGTH(linked_frameworks)` on the COP session itself. Also removed unused `created_by` from SELECT.
+
+### F19. Batch Evidence Endpoint
+**Feature:** Added `POST /api/cop/:id/evidence/batch` for bulk evidence import (up to 100 items).
+**Uses:** `env.DB.batch()` for atomic D1 insert, parameterized queries, auto-increment IDs.
+
 ---
 
 ## 🔴 Critical Issues
@@ -136,9 +144,11 @@
 **Now:** `blocker_count: 1` — only the legitimately open AI authenticity RFI remains
 **Status:** Moved to Fixed (F8)
 
-### I3. Framework Count = 0
-**Observed:** No framework sessions linked to this COP session/workspace
-**Impact:** Intelligence synthesis panel has no framework data
+### I3. Framework Count = 0 — PARTIALLY FIXED
+**Observed:** `framework_count: 0` in stats endpoint
+**Root cause (confirmed):** Stats query was `SELECT COUNT(*) FROM framework_sessions WHERE user_id = ?` — counting ALL user frameworks globally instead of reading the `linked_frameworks` JSON array from the COP session.
+**Fix:** Changed to `SELECT COALESCE(JSON_ARRAY_LENGTH(linked_frameworks), 0) as cnt FROM cop_sessions WHERE id = ?`
+**Remaining:** The `linked_frameworks` array on session `cop-b0f96023-cdf` is empty (`[]`). Need to link actual framework sessions to it via PUT.
 
 ---
 
@@ -148,7 +158,7 @@
 **Status:** Partially addressed in `docs/COP-WORKSPACE-API.md` (964 lines)
 
 ### L2. E2E Test Coverage
-**Status:** ALL PASSING — 154 pass / 0 fail / 16 skip (2026-03-09 cycle 8)
+**Status:** ALL PASSING — 158 pass / 0 fail / 16 skip (2026-03-09 cycle 11)
 **Key fixes this round:**
 - `networkidle` → `domcontentloaded` in workspace POM (was still using networkidle)
 - Mode toggle buttons: added `data-testid="mode-progress"` / `data-testid="mode-monitor"` for mobile viewport compatibility
@@ -165,7 +175,7 @@
 ## Investigation Priority Order
 
 1. ~~**I1** — Event entities~~ DONE — 32 events created
-2. **I3** — Framework linkage for intelligence synthesis
+2. ~~**I3** — Framework count query fix~~ DONE (F18) — `linked_frameworks` still empty, needs data
 3. ~~**New** — Evidence creation through COP workflow~~ DONE (F11) — capture bar works
 4. ~~**New** — hypothesis_count missing from stats~~ DONE — added to API + KPI strip
 5. ~~**New** — 4B Auto-geocode prompt~~ DONE — toast fires on location detection
@@ -174,10 +184,13 @@
 8. ~~**New** — Evidence seeding from RFI research~~ DONE — 9 items, evidence_count: 1→10
 9. ~~**New** — Duplicate Bariloche marker~~ DONE — separated CENTRO from SKI-CATEDRAL
 10. **L1** — API docs for newer endpoints
-11. **New** — Auto-sync event_facts → events table on session update (in progress — agent building)
+11. ~~**New** — Auto-sync event_facts → events table on session update~~ DONE — append-only sync in session PUT
 12. ~~**New** — UI/UX Phase 1 (Panel Consistency)~~ DONE — CopPanelExpander unified
 13. ~~**New** — UI/UX Phase 3 (Map Promotion)~~ DONE — map at top, mini-map 200px
 14. ~~**New** — UI/UX Phase 5 (Three-Column Layout)~~ DONE — 1440px+ evidence sidebar
 15. ~~**New** — Task board in Monitor mode~~ DONE — compact 200px task board
 16. ~~**New** — CopPanelExpander hidden state crash~~ DONE (F15)
 17. ~~**New** — UI/UX Phase 6 (Accessibility Polish)~~ DONE — ARIA, reduced motion, focus, Escape
+18. ~~**New** — Batch evidence endpoint~~ DONE (F19) — POST /api/cop/:id/evidence/batch
+19. **New** — COP responsive layout (dvh, mobile sidebar toggle, error boundaries)
+20. **New** — Link framework sessions to COP `linked_frameworks` array

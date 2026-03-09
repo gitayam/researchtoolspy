@@ -25,3 +25,17 @@ export function DashboardLayout() {
     </div>
   )
 }
+
+export function DashboardFullBleedLayout() {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <SkipToContent />
+      <ScrollToTop />
+      <DashboardSidebar />
+      <div className="lg:pl-64">
+        <DashboardHeader />
+        <Outlet />
+      </div>
+    </div>
+  )
+}

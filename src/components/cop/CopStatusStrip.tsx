@@ -12,7 +12,6 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { CopWorkspaceStats } from '@/types/cop'
 
@@ -165,9 +164,9 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
 
   if (loading) {
     return (
-      <div className={cn('flex items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50', className)}>
-        <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />
-        <span className="text-xs text-gray-500">Loading workspace stats...</span>
+      <div className={cn('flex items-center gap-2 px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50', className)}>
+        <Loader2 className="h-4 w-4 text-slate-500 animate-spin" />
+        <span className="text-xs text-slate-500">Loading workspace stats...</span>
       </div>
     )
   }
@@ -177,7 +176,7 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
   return (
     <div
       className={cn(
-        'flex flex-col md:flex-row md:items-center gap-3 md:gap-6 px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-900/50',
+        'flex flex-col md:flex-row md:items-center gap-3 md:gap-6 px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 shrink-0',
         className,
       )}
     >
@@ -194,7 +193,7 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
               value={brief}
               onChange={(e) => setBrief(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSaveBrief()}
-              className="flex-1 bg-white dark:bg-gray-800 border border-emerald-500/50 rounded px-2 py-0.5 text-xs text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="flex-1 bg-white dark:bg-slate-800 border border-emerald-500/50 rounded px-2 py-0.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               autoFocus
               placeholder="e.g. Geoguess the bus and identify persona @lanaraae"
             />
@@ -207,18 +206,18 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
             className={cn(
               "group flex-1 flex items-center gap-2 cursor-pointer rounded px-2 py-0.5 transition-colors",
               brief
-                ? "hover:bg-gray-100 dark:hover:bg-gray-800"
+                ? "hover:bg-slate-100 dark:hover:bg-slate-800"
                 : "bg-amber-50 dark:bg-amber-900/20 border border-dashed border-amber-300 dark:border-amber-700/50 hover:bg-amber-100 dark:hover:bg-amber-900/30"
             )}
             onClick={() => setIsEditing(true)}
           >
             <span className={cn(
               "text-xs truncate flex-1",
-              brief ? "text-gray-700 dark:text-gray-200" : "text-amber-600 dark:text-amber-400"
+              brief ? "text-slate-700 dark:text-slate-200" : "text-amber-600 dark:text-amber-400"
             )}>
               {brief || 'Set mission objective so newcomers know what to work on...'}
             </span>
-            <Edit2 className="h-3 w-3 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+            <Edit2 className="h-3 w-3 text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
           </div>
         )}
       </div>
@@ -240,8 +239,8 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
               className="flex items-center gap-1.5 shrink-0"
               title={`${kpi.label}: ${value}`}
             >
-              <Icon className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
-              <span className="hidden lg:inline text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+              <Icon className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+              <span className="hidden lg:inline text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
                 {kpi.label}
               </span>
               <Badge

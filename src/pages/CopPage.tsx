@@ -17,6 +17,7 @@ import {
   HelpCircle,
   ExternalLink,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import CopMap from '@/components/cop/CopMap'
@@ -59,6 +60,9 @@ export default function CopPage() {
   const [layerData, setLayerData] = useState<Record<string, CopFeatureCollection>>({})
   const [layerCounts, setLayerCounts] = useState<Record<string, number>>({})
   const [refreshing, setRefreshing] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : true
+  )
 
   // Auto-refresh timer refs
   const timersRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
@@ -252,12 +256,10 @@ export default function CopPage() {
 
   // ── Main layout ─────────────────────────────────────────────────
 
-  // Use fixed positioning to break out of the DashboardLayout content wrapper
-  // entirely, so the COP view fills the available viewport next to the sidebar.
   return (
-    <div className="fixed inset-0 top-16 lg:left-64 flex flex-col bg-background z-30">
+    <div className="flex flex-col bg-background overflow-hidden h-[calc(100dvh_-_4rem)] sm:h-[calc(100dvh_-_4.5rem)]">
       {/* ── Header bar ──────────────────────────────────────────── */}
-      <header className="flex items-center gap-3 px-4 py-2 bg-background border-b shrink-0">
+      <header className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 bg-background border-b shrink-0">
         {/* Back */}
         <Button
           variant="ghost"
@@ -265,14 +267,25 @@ export default function CopPage() {
           onClick={() => navigate('/dashboard/cop')}
           className="shrink-0"
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back
+          <ArrowLeft className="h-4 w-4 md:mr-1" />
+          <span className="hidden md:inline">Back</span>
+        </Button>
+
+        {/* Mobile sidebar toggle */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSidebarOpen(prev => !prev)}
+          className="shrink-0 md:hidden"
+          title="Toggle sidebar"
+        >
+          <Layers className="h-4 w-4" />
         </Button>
 
         {/* Name + template badge */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <h1 className="font-semibold text-sm truncate">{session.name}</h1>
-          <Badge variant="secondary" className="shrink-0 text-[10px]">
+          <Badge variant="secondary" className="shrink-0 text-[10px] hidden sm:inline-flex">
             {TEMPLATE_LABELS[session.template_type] ?? session.template_type}
           </Badge>
         </div>
@@ -317,7 +330,7 @@ export default function CopPage() {
       </header>
 
       {/* ── Body: sidebar + map ─────────────────────────────────── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
         {/* Sidebar: tabbed for event_analysis, layer panel otherwise */}
         {session.template_type === 'event_analysis' ? (
           <CopEventSidebar
@@ -326,17 +339,34 @@ export default function CopPage() {
             onToggleLayer={handleToggleLayer}
             layerCounts={layerCounts}
             onSessionUpdate={handleSessionUpdate}
+            collapsed={!sidebarOpen}
+            onToggleCollapse={() => setSidebarOpen(prev => !prev)}
           />
         ) : (
-          <CopLayerPanel
-            activeLayers={activeLayers}
-            onToggleLayer={handleToggleLayer}
-            layerCounts={layerCounts}
-          />
+          <>
+            {/* Mobile: overlay backdrop when sidebar open */}
+            {sidebarOpen && (
+              <div
+                className="fixed inset-0 bg-black/40 z-30 md:hidden"
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
+            <div className={cn(
+              sidebarOpen
+                ? 'absolute left-0 top-0 bottom-0 z-40 w-56 md:relative md:z-auto md:w-56'
+                : 'hidden md:block md:relative md:w-56',
+            )}>
+              <CopLayerPanel
+                activeLayers={activeLayers}
+                onToggleLayer={handleToggleLayer}
+                layerCounts={layerCounts}
+              />
+            </div>
+          </>
         )}
 
         {/* Map */}
-        <div className="flex-1" style={{ position: 'relative', minHeight: 0 }}>
+        <div className="flex-1 overflow-hidden" style={{ position: 'relative', minHeight: 0 }}>
           <CopMap session={session} layers={layerData} />
         </div>
       </div>

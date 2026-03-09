@@ -1,5 +1,19 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-09 - COP Workspace Cycle 11
+
+### Stats Queries Must Match Data Model
+The `framework_count` query used `SELECT COUNT(*) FROM framework_sessions WHERE user_id = ?` — counting all user frameworks globally. But frameworks link to COP sessions via a `linked_frameworks` JSON array field on `cop_sessions`, not through `framework_sessions`. Fix: `JSON_ARRAY_LENGTH(linked_frameworks)`.
+
+**Rule**: Before writing aggregate queries for stats endpoints, verify HOW the data relationship works (FK? JSON array? join table?). A query against the wrong table will silently return 0 instead of erroring.
+
+### Error Boundaries for Tab Components
+CopEventSidebar tabs can crash independently (bad data, missing props). A class-based `TabErrorBoundary` wrapping each tab shows a retry button instead of crashing the entire sidebar. The boundary resets when `tabKey` changes (switching tabs clears the error).
+
+**Pattern**: `componentDidUpdate(prevProps)` → reset `hasError` when tab changes. This avoids stale error states when navigating away and back.
+
+---
+
 ## Session: 2026-03-09 - COP Workspace UI/UX Improvements (Cycle 8)
 
 ### Linter Can Remove Used Variables via Unused Setter

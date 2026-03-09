@@ -16,13 +16,13 @@ import {
   BookOpen,
   AlertTriangle,
   Settings,
+  Search,
   Layers,
   Clock,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import CopWizard from '@/components/cop/CopWizard'
 import type { CopSession, CopTemplateType, CopStatus } from '@/types/cop'
 
 // ── Template icon mapping ────────────────────────────────────────
@@ -32,6 +32,7 @@ const TEMPLATE_ICONS: Record<CopTemplateType, typeof Zap> = {
   event_monitor: Radio,
   area_study: BookOpen,
   crisis_response: AlertTriangle,
+  event_analysis: Search,
   custom: Settings,
 }
 
@@ -40,6 +41,7 @@ const TEMPLATE_LABELS: Record<CopTemplateType, string> = {
   event_monitor: 'Event Monitor',
   area_study: 'Area Study',
   crisis_response: 'Crisis Response',
+  event_analysis: 'Event Analysis',
   custom: 'Custom',
 }
 
@@ -71,8 +73,6 @@ export default function CopListPage() {
   const [sessions, setSessions] = useState<CopSession[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [wizardOpen, setWizardOpen] = useState(false)
-
   // ── Fetch sessions ──────────────────────────────────────────────
 
   const fetchSessions = useCallback(async (signal?: AbortSignal) => {
@@ -104,29 +104,12 @@ export default function CopListPage() {
     return () => controller.abort()
   }, [fetchSessions])
 
-  // ── Wizard close handler ────────────────────────────────────────
-
-  const handleWizardClose = useCallback(() => {
-    setWizardOpen(false)
-    fetchSessions() // refresh list after potential creation
-  }, [fetchSessions])
-
   // ── Loading state ───────────────────────────────────────────────
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
-  // ── Wizard overlay ──────────────────────────────────────────────
-
-  if (wizardOpen) {
-    return (
-      <div className="min-h-screen p-4 sm:p-8 flex items-start justify-center pt-16">
-        <CopWizard onClose={handleWizardClose} />
       </div>
     )
   }
@@ -139,7 +122,7 @@ export default function CopListPage() {
         <div className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive mb-4">
           {error}
         </div>
-        <Button onClick={fetchSessions} variant="outline">
+        <Button onClick={() => fetchSessions()} variant="outline">
           Retry
         </Button>
       </div>
@@ -159,9 +142,9 @@ export default function CopListPage() {
           Build a Common Operating Picture to overlay entities, events, and external
           data on an interactive map.
         </p>
-        <Button onClick={() => setWizardOpen(true)} size="lg">
+        <Button onClick={() => navigate('/dashboard/workspace/new')} size="lg">
           <Plus className="h-5 w-5 mr-2" />
-          New COP
+          New Workspace
         </Button>
       </div>
     )
@@ -179,9 +162,9 @@ export default function CopListPage() {
             {sessions.length} session{sessions.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button onClick={() => setWizardOpen(true)}>
+        <Button onClick={() => navigate('/dashboard/workspace/new')}>
           <Plus className="h-4 w-4 mr-2" />
-          New COP
+          New Workspace
         </Button>
       </div>
 
