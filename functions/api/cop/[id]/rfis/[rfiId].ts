@@ -30,6 +30,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (body.status && ['open', 'answered', 'accepted', 'closed'].includes(body.status)) {
       updates.push('status = ?')
       values.push(body.status)
+      // Auto-clear blocker flag when RFI is resolved
+      if (body.status === 'answered' || body.status === 'closed') {
+        updates.push('is_blocker = ?')
+        values.push(0)
+      }
     }
     if (body.priority && ['critical', 'high', 'medium', 'low'].includes(body.priority)) {
       updates.push('priority = ?')
