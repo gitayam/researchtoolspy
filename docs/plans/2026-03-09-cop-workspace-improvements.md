@@ -41,12 +41,12 @@
 | 1A | Quick Capture (Cmd+K + sticky bar) | DONE |
 | 1B | Blocker Alert Strip | DONE |
 | 2A | Persona Panel (CRUD + card grid) | DONE |
-| 2B | Auto-Extract Pipeline (handle regex → toast) | PARTIAL — regex exists, toast not wired |
+| 2B | Auto-Extract Pipeline (handle regex → toast) | DONE |
 | 3A | Artifact Tagging (taxonomy + API + CopTagSelector) | DONE |
 | 3B | Gallery View Toggle + Lightbox | DONE |
 | 4A | Pin to Map (1-click from feed/hypothesis) | DONE |
 | 4B | Auto-Geocoding Prompt (from analyze-url) | NOT STARTED |
-| 4C | Map Marker Backlinks (popup → evidence card) | NOT STARTED |
+| 4C | Map Marker Backlinks (popup → evidence card) | DONE |
 
 ## Wave 3 — Remaining Features
 
@@ -55,7 +55,7 @@
 | 6 | Chat import / bulk ingest | Parse chat exports into evidence + personas | TODO |
 | 7 | Persona-to-persona network view | Visual graph of persona aliases | TODO |
 | 8 | Auto-geocode prompt (4B) | Show location prompt when analyze-url finds locations | TODO |
-| 9 | Marker backlinks (4C) | Map popup shows linked evidence/hypothesis | TODO |
+| 9 | Marker backlinks (4C) | Map popup shows linked evidence/hypothesis | DONE (2026-03-09) |
 | 10 | Auto-clear blocker on answered RFIs | Auto `is_blocker=0` when status→answered/closed | DONE (2026-03-09) |
 | 11 | Evidence feed header locator fix (E2E) | POM uses unique panel title text | DONE (2026-03-09) |
 | 12 | Hypothesis count in stats + KPI strip | API returns hypothesis_count, status strip shows it | DONE (2026-03-09) |
