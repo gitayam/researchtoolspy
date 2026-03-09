@@ -62,6 +62,12 @@
 - On mobile viewport, the KPI label is `hidden`, so the locator resolved to a hidden element
 - **Fix:** Changed POM locator to `getByText('Evidence & Intel Feed', { exact: true })` — unique to the panel header
 
+### F10. Evidence Endpoint 500 — Missing `workspace_id` Column
+**Endpoint:** `GET /api/cop/{id}/evidence`
+**Error:** `D1_ERROR: no such column: workspace_id at offset 42: SQLITE_ERROR`
+**Root cause:** Migration 005 added `workspace_id` to `evidence_items` via `ALTER TABLE`, but this migration was never applied to production D1. The COP evidence endpoint queries `WHERE workspace_id = ?`.
+**Fix:** Ran `ALTER TABLE evidence_items ADD COLUMN workspace_id TEXT` directly on production D1.
+
 ---
 
 ## 🔴 Critical Issues
@@ -69,8 +75,8 @@
 ### C1. Evidence Count = 0
 **Endpoint:** `GET /api/cop/{id}/stats`
 **Observed:** `evidence_count: 0` despite workspace having entity data
-**Root cause (confirmed):** Data issue — evidence was created as entities (actors, sources) directly, not through the COP evidence endpoint.
-**Resolution:** Not a code bug. Evidence must be created through `/api/cop/{id}/evidence`.
+**Root cause (confirmed):** Data issue — evidence was created as entities (actors, sources) directly, not through the COP evidence endpoint. The evidence endpoint was also returning 500 due to missing `workspace_id` column (now fixed in F10).
+**Resolution:** Column added. Evidence must be created through `/api/cop/{id}/evidence`.
 
 ### C2. RFI Answers = 0 for "Answered" RFIs
 **Root cause (confirmed):** Data issue — answers were set by updating RFI status directly (PUT), not through the answer submission flow. The `cop_rfi_answers` table has no rows.
