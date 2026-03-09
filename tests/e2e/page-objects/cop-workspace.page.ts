@@ -130,7 +130,7 @@ export class CopWorkspacePage {
     this.personaEmptyState = page.getByText('No personas tracked yet.')
 
     // Evidence feed internals
-    this.evidenceFeedHeader = page.getByText('Evidence', { exact: true }).first()
+    this.evidenceFeedHeader = page.getByText('Evidence & Intel Feed', { exact: true }).first()
     this.feedViewButton = page.locator('button[aria-label="Feed view"]')
     this.galleryViewButton = page.locator('button[aria-label="Gallery view"]')
     this.evidenceUrlInput = page.locator('input[placeholder="Paste URL to analyze..."]')

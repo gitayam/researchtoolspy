@@ -1,5 +1,19 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-09 - COP Workspace Production Fixes
+
+### E2E: Responsive CSS Classes Break Generic Locators
+When adding `hidden lg:inline` KPI labels to the status strip, the generic `getByText('Evidence', { exact: true }).first()` locator started matching the hidden label instead of the panel header. On mobile viewports, this locator resolved to a hidden element, failing the test.
+
+**Rule**: Use specific, unique text for E2E locators (e.g., `'Evidence & Intel Feed'` instead of `'Evidence'`). When adding new UI text that matches existing locator patterns, check the POM for conflicts.
+
+### Data Hygiene: Stale Flags After Status Changes
+Answered RFIs retained `is_blocker=1` because the blocker flag is "orthogonal to the lifecycle" — updating `status` doesn't auto-clear `is_blocker`. The stats query `is_blocker=1 AND status!='closed'` counted them as blockers even after being answered.
+
+**Options**: (a) Auto-clear `is_blocker` when status changes to `answered`/`closed`, or (b) change stats query to only count open blockers. For now, manual cleanup via PUT API.
+
+---
+
 ## Session: 2025-12-30 - React Error #185 Infinite Loop Fix
 
 ### Summary
@@ -817,15 +831,63 @@ function extractMentions(content: string): string[] {
 
 ---
 
+---
+
+## #186 — COP Workspace Dark/Light Mode & Panel UX (2026-03-09)
+
+### Dark Mode Color Classes Must Be Dual-Mode
+**Problem:** Color utility functions (e.g., `confidenceColor()`) returned single-mode classes like `text-green-500`. In dark mode, these can be too bright or clash; in light mode, some grays (`text-gray-600`) have poor contrast.
+
+**Fix:** Always use dual-mode classes: `text-green-600 dark:text-green-400`. For empty states, `text-gray-400 dark:text-gray-500` works in both modes.
+
+**Pattern:** Any function that returns Tailwind color classes must include `dark:` variants.
+
+### CopPanelExpander: Overflow + Visual Cues
+**Problem:** Collapsed panels used `overflow-hidden` which hard-clipped content with no indication that more existed below the fold.
+
+**Fix:** Changed to `overflow-y-auto` for scroll access, plus a fade gradient (`bg-gradient-to-t from-white dark:from-gray-950 to-transparent`) at the bottom as a visual cue. Also added `cursor-pointer` to expand/collapse buttons.
+
+### Two-ID Architecture in COP
+COP sessions use a human-readable session ID (`cop-b0f96023-cdf`) while the workspace uses a UUID (`6fde45ce-...`). The stats endpoint must look up `workspace_id` from the session first, then query entity tables by workspace_id. Framework sessions are an exception — they query by `user_id` (INTEGER), not workspace_id.
+
+### E2E Test Patterns — Mock Route Interception
+COP E2E tests use Playwright `page.route()` to intercept API calls and return mock data. This keeps tests fast and deterministic. Key pattern:
+```typescript
+await page.route('**/api/cop/sessions/*', route =>
+  route.fulfill({ status: 200, body: JSON.stringify(mockSession) })
+)
+```
+Tests that timeout (30s) almost always mean a selector doesn't match the current component DOM.
+
+---
+
+## #187 — E2E Test Audit (2026-03-09)
+
+### Test Results: 32 passed / 33 failed
+**Failure pattern:** All failures are timeouts (30.6s) — elements not found.
+
+| Spec File | Pass | Fail | Issue |
+|-----------|------|------|-------|
+| cop-workspace.spec.ts | 18 | 4 | Command palette selectors |
+| cop-viewer.spec.ts | 7 | 6 | Layer panel + sidebar changes |
+| cop-event-sidebar.spec.ts | 0 | 13 | Full component restructure |
+| cop-wizard.spec.ts | 0 | 10 | Wizard replaced by new flow |
+| cop-public-share.spec.ts | 7 | 0 | All passing |
+
+**Root cause:** Components evolved (CopEventSidebar restructured, wizard replaced with NewWorkspacePage) but tests weren't updated to match.
+
+**Lesson:** When refactoring components, grep for the component name in `tests/e2e/` and update tests in the same commit.
+
 ## References
 
 - [Instagram Extraction Guide](./INSTAGRAM_EXTRACTION.md)
 - [Maltego Integration Guide](./MALTEGO_INTEGRATION_GUIDE.md)
 - [i2 ANB Integration Guide](./I2ANB_INTEGRATION_GUIDE.md)
 - [Project Roadmap Status](../PROJECT_ROADMAP_STATUS.md)
+- [COP Workspace API](./COP-WORKSPACE-API.md)
+- [COP Workspace Issues](./COP-WORKSPACE-ISSUES.md)
 
 ---
 
-**Last Updated**: 2025-10-07
-**Session Duration**: ~2 hours
-**Major Features**: Instagram extraction, OSINT tools, Comments system
+**Last Updated**: 2026-03-09
+**Major Features**: COP workspace dark/light mode, panel UX, API documentation, E2E test audit

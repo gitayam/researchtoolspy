@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-09
+> Last updated: 2026-03-09 (post-deploy)
 > Source: Live production data audit against `cop-b0f96023-cdf` / workspace `6fde45ce-ae4b-4ff0-97c6-d2773a6ff108`
 
 ## Status Legend
@@ -50,6 +50,18 @@
 - "Resolve" button was confusing — users expected it to resolve the blocker inline
 - **Fix:** Changed to "Go to Blocker" which scrolls to the RFI panel for context
 
+### F8. Stale Blocker Flags on Answered RFIs
+**Observed:** `blocker_count: 4` but 3 of the 4 blockers had `status=answered`
+- Bus RFI (`rfi-65c4ebcd-5b9`), skyline RFI (`rfi-fa971391-fc5`), van/bus RFI (`rfi-92d049de-02f`)
+- Stats query counts `is_blocker=1 AND status!='closed'` — answered RFIs still counted
+- **Fix:** Cleared `is_blocker` via PUT `/api/cop/:id/rfis` for the 3 answered RFIs
+- **Result:** `blocker_count: 4 → 1` (only legitimate open blocker remains)
+
+### F9. E2E Evidence Feed Header Locator Clash
+- `getByText('Evidence', { exact: true }).first()` matched KPI label `<span class="hidden lg:inline">Evidence</span>` before the panel header
+- On mobile viewport, the KPI label is `hidden`, so the locator resolved to a hidden element
+- **Fix:** Changed POM locator to `getByText('Evidence & Intel Feed', { exact: true })` — unique to the panel header
+
 ---
 
 ## 🔴 Critical Issues
@@ -78,9 +90,10 @@
 **Likely cause:** `event_facts` stored as JSON array, not in `events` entity table
 **Impact:** Event layer on COP map shows nothing; timeline is empty.
 
-### I2. Blocker Count = 4
-**Observed:** `blocker_count: 4` — 4 RFIs have `is_blocker = 1` and status != 'closed'
-**Status:** Blocker strip now shows these with "Go to Blocker" navigation
+### I2. Blocker Count — RESOLVED
+**Was:** `blocker_count: 4` — 3 answered RFIs had stale `is_blocker=1`
+**Now:** `blocker_count: 1` — only the legitimately open AI authenticity RFI remains
+**Status:** Moved to Fixed (F8)
 
 ### I3. Framework Count = 0
 **Observed:** No framework sessions linked to this COP session/workspace
@@ -94,7 +107,7 @@
 **Status:** Partially addressed in `docs/COP-WORKSPACE-API.md` (964 lines)
 
 ### L2. E2E Test Coverage
-**Status:** ALL PASSING — 101 pass / 0 fail / 1 skip (2026-03-09)
+**Status:** ALL PASSING — 69 pass / 0 fail / 1 skip (2026-03-09 post-deploy)
 **Key fixes this round:**
 - `networkidle` → `domcontentloaded` in workspace POM (was still using networkidle)
 - Mode toggle buttons: added `data-testid="mode-progress"` / `data-testid="mode-monitor"` for mobile viewport compatibility
@@ -102,6 +115,7 @@
 - Scoped RFI badge assertions to avoid matching "Nodal & Critical Point Analysis"
 - Viewport-conditional checks for `hidden sm:` elements (keyboard hint, template badge)
 - Added tile request blocking to workspace spec mock function
+- Fixed evidence feed header locator clash with KPI label (F9)
 
 ---
 

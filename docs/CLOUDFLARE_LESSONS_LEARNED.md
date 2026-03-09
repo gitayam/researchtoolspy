@@ -103,6 +103,23 @@ database_id = "your-db-id-here"
 3. ✅ **Binding must match code** - `env.DB` in TypeScript
 4. ⚠️ **Preview and production use same DB** - Be careful with data
 
+### D1_TYPE_ERROR: undefined in .bind() (CRITICAL)
+
+**Problem**: D1 rejects `undefined` values in `.bind()` with:
+```
+D1_TYPE_ERROR: Type 'undefined' not supported for value 'undefined'
+```
+
+**Root cause pattern**: Frontend sends a field name that doesn't match backend expectations. E.g., frontend sends `evidence_type: 'digital'` but backend reads `body.type` — gets `undefined` and passes it to `.bind()`.
+
+**Prevention**:
+1. Always validate/default bound values before passing to `.bind()`
+2. Use `?? null` for optional fields: `.bind(body.type ?? null)`
+3. When routing to a shared endpoint, verify the field names match exactly
+4. Prefer COP-scoped endpoints (`/api/cop/:id/evidence`) over global ones — they handle field mapping specific to COP context
+
+**Detection**: This error surfaces as a 500 with no useful message in the browser. Check `wrangler pages tail` for the actual D1_TYPE_ERROR.
+
 ### Query Performance
 
 **Optimized Patterns**:
@@ -913,7 +930,29 @@ Before deploying AI prompts to production:
 
 ---
 
-**Last Updated**: 2025-10-30
+## COP Workspace D1 Patterns (2026-03-09)
+
+### safeCount Pattern for Stats Endpoints
+When running multiple COUNT queries against tables that may not exist yet (migrations pending), wrap each in a try/catch returning 0:
+```typescript
+const safeCount = async (sql: string, ...bindings: any[]): Promise<number> => {
+  try {
+    const r = await env.DB.prepare(sql).bind(...bindings).first<{ cnt: number }>()
+    return r?.cnt ?? 0
+  } catch { return 0 }
+}
+```
+Use `Promise.all()` for parallel execution. This prevents one missing table from crashing the entire stats response.
+
+### Two-ID Session Pattern
+COP sessions have a human-readable `id` (e.g., `cop-b0f96023-cdf`) but reference a `workspace_id` UUID for entity data. Stats endpoints must first look up `workspace_id` from the session, then query entity tables. Never assume session ID = workspace ID.
+
+### Dynamic PUT with Scalar + JSON Fields
+The session PUT endpoint dynamically builds `SET` clauses from request body, handling scalar fields (title, status) and JSON fields (key_questions, event_facts) differently — JSON fields are stringified before binding. This prevents accidentally nulling fields not included in the update.
+
+---
+
+**Last Updated**: 2026-03-09
 **Cloudflare Products Used**: Pages, Workers, D1, KV
 **AI Models Used**: GPT-4o-mini (primary), GPT-4o (complex reasoning)
 **Deployment URL**: https://researchtoolspy.pages.dev
