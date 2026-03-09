@@ -58,6 +58,7 @@ import CopPersonaPanel from '@/components/cop/CopPersonaPanel'
 import CopEvidencePersonaLinkDialog from '@/components/cop/CopEvidencePersonaLinkDialog'
 import CopEntityDrawer from '@/components/cop/CopEntityDrawer'
 import CopTaskBoard from '@/components/cop/CopTaskBoard'
+import CopSidebar from '@/components/cop/CopSidebar'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
 
@@ -187,6 +188,15 @@ export default function CopWorkspacePage() {
   // ── RFI badge count ────────────────────────────────────────────
   const [rfiCount, setRfiCount] = useState(0)
 
+  // ── Sidebar stats ────────────────────────────────────────────
+  const [sidebarStats, setSidebarStats] = useState<{
+    evidence_count?: number
+    entity_count?: number
+    open_rfis?: number
+    blocker_count?: number
+    hypothesis_count?: number
+  }>({})
+
   // ── Invite dialog state ───────────────────────────────────────
   const [inviteOpen, setInviteOpen] = useState(false)
 
@@ -241,6 +251,15 @@ export default function CopWorkspacePage() {
     fetchSession(controller.signal)
     return () => controller.abort()
   }, [fetchSession])
+
+  // Fetch sidebar stats
+  useEffect(() => {
+    if (!id) return
+    fetch(`/api/cop/${id}/stats`, { headers: getHeaders() })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setSidebarStats(data) })
+      .catch(() => {})
+  }, [id])
 
   // ── Fetch a single layer as GeoJSON ────────────────────────────
 
@@ -641,55 +660,61 @@ export default function CopWorkspacePage() {
 
       <CopBlockerStrip sessionId={id!} onGoToBlocker={handleGoToBlocker} />
 
-      {/* ── Panel grid ──────────────────────────────────────────── */}
-      <main className="overflow-y-auto p-3 md:p-4 lg:p-6 flex-1" role="main" aria-label="COP workspace panels">
-        <div className="max-w-7xl mx-auto space-y-4">
-          {mode === 'progress' ? (
-            <ProgressLayout
-              sessionId={id!}
-              session={session}
-              rfiCount={rfiCount}
-              setRfiCount={setRfiCount}
-              activeLayers={activeLayers}
-              onToggleLayer={handleToggleLayer}
-              layerData={layerData}
-              layerCounts={layerCounts}
-              pinPlacementMode={pinPlacementMode}
-              onPinPlaced={handlePinPlaced}
-              onPinToMapFromFeed={handlePinToMapFromFeed}
-              onPinToMapFromHypothesis={handlePinToMapFromHypothesis}
-              onLinkPersona={handleLinkPersona}
-              onMarkerOpenInFeed={handleMarkerOpenInFeed}
-              onOpenEntityDrawer={(tab?: string, prefill?: any) => {
-                if (tab) setEntityDrawerTab(tab)
-                if (prefill) setEntityDrawerPrefill(prefill)
-                setEntityDrawerOpen(true)
-              }}
-            />
-          ) : (
-            <MonitorLayout
-              sessionId={id!}
-              session={session}
-              showMap={showMap}
-              setShowMap={setShowMap}
-              activeLayers={activeLayers}
-              onToggleLayer={handleToggleLayer}
-              layerData={layerData}
-              layerCounts={layerCounts}
-              pinPlacementMode={pinPlacementMode}
-              onPinPlaced={handlePinPlaced}
-              onPinToMapFromFeed={handlePinToMapFromFeed}
-              onLinkPersona={handleLinkPersona}
-              onMarkerOpenInFeed={handleMarkerOpenInFeed}
-              onOpenEntityDrawer={(tab?: string, prefill?: any) => {
-                if (tab) setEntityDrawerTab(tab)
-                if (prefill) setEntityDrawerPrefill(prefill)
-                setEntityDrawerOpen(true)
-              }}
-            />
-          )}
-        </div>
-      </main>
+      {/* ── Sidebar + Panel grid ────────────────────────────────── */}
+      <div className="flex flex-1 min-h-0">
+        {/* Persistent sidebar (hidden on mobile, icon rail on md, full on lg+) */}
+        <CopSidebar mode={mode} stats={sidebarStats} />
+
+        {/* Panel grid (scrollable main area) */}
+        <main className="overflow-y-auto p-3 md:p-4 lg:p-5 flex-1 min-w-0" role="main" aria-label="COP workspace panels">
+          <div className="max-w-7xl mx-auto space-y-4">
+            {mode === 'progress' ? (
+              <ProgressLayout
+                sessionId={id!}
+                session={session}
+                rfiCount={rfiCount}
+                setRfiCount={setRfiCount}
+                activeLayers={activeLayers}
+                onToggleLayer={handleToggleLayer}
+                layerData={layerData}
+                layerCounts={layerCounts}
+                pinPlacementMode={pinPlacementMode}
+                onPinPlaced={handlePinPlaced}
+                onPinToMapFromFeed={handlePinToMapFromFeed}
+                onPinToMapFromHypothesis={handlePinToMapFromHypothesis}
+                onLinkPersona={handleLinkPersona}
+                onMarkerOpenInFeed={handleMarkerOpenInFeed}
+                onOpenEntityDrawer={(tab?: string, prefill?: any) => {
+                  if (tab) setEntityDrawerTab(tab)
+                  if (prefill) setEntityDrawerPrefill(prefill)
+                  setEntityDrawerOpen(true)
+                }}
+              />
+            ) : (
+              <MonitorLayout
+                sessionId={id!}
+                session={session}
+                showMap={showMap}
+                setShowMap={setShowMap}
+                activeLayers={activeLayers}
+                onToggleLayer={handleToggleLayer}
+                layerData={layerData}
+                layerCounts={layerCounts}
+                pinPlacementMode={pinPlacementMode}
+                onPinPlaced={handlePinPlaced}
+                onPinToMapFromFeed={handlePinToMapFromFeed}
+                onLinkPersona={handleLinkPersona}
+                onMarkerOpenInFeed={handleMarkerOpenInFeed}
+                onOpenEntityDrawer={(tab?: string, prefill?: any) => {
+                  if (tab) setEntityDrawerTab(tab)
+                  if (prefill) setEntityDrawerPrefill(prefill)
+                  setEntityDrawerOpen(true)
+                }}
+              />
+            )}
+          </div>
+        </main>
+      </div>
 
       {/* Persona Link dialog */}
       <CopEvidencePersonaLinkDialog

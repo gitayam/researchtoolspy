@@ -294,11 +294,14 @@ All interactive elements minimum **44x44px** touch target:
 - ✅ Add `data-panel` attributes to all panels via `id` prop
 - ✅ Persist panel expanded/collapsed state in localStorage
 
-### Phase 2: Desktop Sidebar (Medium — 2-3 sessions)
-- Add collapsible sidebar with panel jump-links
-- Move capture bar to sidebar
-- Add live stat counts in sidebar footer
-- Sidebar collapses to icon rail on tablet
+### Phase 2: Desktop Sidebar (Medium — 2-3 sessions) ✅ DONE
+- ✅ Add collapsible sidebar with panel jump-links (CopSidebar.tsx)
+- ✅ IntersectionObserver scroll-spy highlights active panel in sidebar
+- ✅ Live stat counts in sidebar footer (evidence, entities, RFIs, blockers, hypotheses)
+- ✅ Sidebar collapses to icon rail on tablet (48px collapsed, 240px full)
+- ✅ Collapse state persisted in localStorage
+- Capture bar stays in main header (sidebar position tested but header is more discoverable)
+- ✅ E2E tests updated: panel title locators scoped to `[role="main"]` to avoid sidebar text clashes
 
 ### Phase 3: Map Promotion (Small — 1 session) ✅ DONE
 - ✅ Move map to top of main content area (Row 0.5, after Entities)
@@ -331,7 +334,7 @@ All interactive elements minimum **44x44px** touch target:
 ## Accessibility Checklist
 
 - [x] All panels have `role="region"` with `aria-label`
-- [ ] Sidebar nav uses `role="navigation"` with `aria-label="Panel navigation"` (Phase 2)
+- [x] Sidebar nav uses `role="navigation"` with `aria-label="Panel navigation"` (Phase 2)
 - [ ] Bottom tabs use `role="tablist"` with `role="tab"` on each (Phase 4)
 - [x] Focus visible on all interactive elements (`focus:opacity-100` on expand button)
 - [x] Color is never the only indicator (icons + labels always)

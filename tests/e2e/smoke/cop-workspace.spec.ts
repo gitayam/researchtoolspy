@@ -304,6 +304,8 @@ test.describe('COP Workspace -- Navigation & Layout', () => {
     await copWorkspacePage.waitForLoad()
 
     // All panel titles should be visible in progress mode
+    // Scope to main content area to avoid matching sidebar nav items on mobile
+    const mainContent = copWorkspacePage.page.locator('[role="main"]')
     const panelTitles = [
       'Entity Relationships',
       'Timeline',
@@ -315,7 +317,7 @@ test.describe('COP Workspace -- Navigation & Layout', () => {
 
     for (const title of panelTitles) {
       await expect(
-        copWorkspacePage.page.getByText(title, { exact: true }).first(),
+        mainContent.getByText(title, { exact: true }).first(),
       ).toBeVisible()
     }
 
@@ -507,7 +509,7 @@ test.describe('COP Workspace -- Keyboard Shortcuts', () => {
     await copWorkspacePage.waitForLoad()
 
     // Map is always visible in Progress mode
-    await expect(copWorkspacePage.page.getByText('Map', { exact: true }).first()).toBeVisible()
+    await expect(copWorkspacePage.page.locator('[data-panel="map"]').first()).toBeVisible()
 
     // Switch to Monitor mode where map toggle works
     await copWorkspacePage.switchToMonitorMode()
@@ -800,7 +802,7 @@ test.describe('COP Workspace -- Pin to Map', () => {
     await copWorkspacePage.waitForLoad()
 
     // In Progress mode, map is always visible — verify it's there
-    await expect(copWorkspacePage.page.getByText('Map', { exact: true }).first()).toBeVisible()
+    await expect(copWorkspacePage.page.locator('[data-panel="map"]').first()).toBeVisible()
 
     // Click a pin-to-map button on evidence
     const pinButton = copWorkspacePage.page.locator('button[title="Pin to map"]').first()
@@ -808,7 +810,7 @@ test.describe('COP Workspace -- Pin to Map', () => {
     await pinButton.click()
 
     // Map panel should still be visible after pin action
-    await expect(copWorkspacePage.page.getByText('Map', { exact: true }).first()).toBeVisible()
+    await expect(copWorkspacePage.page.locator('[data-panel="map"]').first()).toBeVisible()
   })
 })
 
