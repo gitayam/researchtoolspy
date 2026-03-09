@@ -126,6 +126,19 @@
 **Feature:** Added `POST /api/cop/:id/evidence/batch` for bulk evidence import (up to 100 items).
 **Uses:** `env.DB.batch()` for atomic D1 insert, parameterized queries, auto-increment IDs.
 
+### F22. Desktop Sidebar (UI/UX Phase 2)
+**Feature:** Added `CopSidebar.tsx` — persistent navigation sidebar with panel jump-links.
+- 240px full sidebar on lg+ (1024px+), 48px icon rail on md (768-1023px), hidden on mobile
+- IntersectionObserver scroll-spy highlights active panel
+- Live stat counts (evidence, entities, RFIs, blockers) in sidebar footer
+- Collapse/expand state persisted in localStorage
+- E2E: scoped panel title locators to `[role="main"]` to avoid sidebar text clashes
+
+### F23. N+1 Entity Count Fetch Eliminated
+**Was:** CopEntitiesPanel fired 5 separate API calls (one per entity type) fetching full arrays just to count `.length`
+**Fix:** Stats endpoint now includes `place_count` and `behavior_count`. CopEntitiesPanel receives counts via shared stats fetch — 0 extra API calls.
+**Also:** Removed `error.message` leak from stats 500 response, removed unused `handleEvidenceAdded` no-op.
+
 ---
 
 ## 🔴 Critical Issues
@@ -214,3 +227,9 @@
 18. ~~**New** — Batch evidence endpoint~~ DONE (F19) — POST /api/cop/:id/evidence/batch
 19. **New** — COP responsive layout (dvh, mobile sidebar toggle, error boundaries)
 20. **New** — Link framework sessions to COP `linked_frameworks` array
+21. ~~**New** — Desktop Sidebar (UI/UX Phase 2)~~ DONE (F22) — CopSidebar with scroll-spy
+22. ~~**New** — N+1 entity count fetch~~ DONE (F23) — stats endpoint now serves all counts
+23. **New** — N+1 tag fetch per evidence item (CopEvidenceFeed fetchTagsForItems) — needs bulk tags endpoint
+24. **New** — Activity POST returns 201 on DB failure (silent data loss) — activity.ts:117
+25. **New** — getHeaders() duplicated 19x across COP files — extract to shared util
+26. **New** — UI/UX Phase 4: Mobile Bottom Tab Navigation
