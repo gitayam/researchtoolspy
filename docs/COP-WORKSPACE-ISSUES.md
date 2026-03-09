@@ -139,6 +139,22 @@
 **Fix:** Stats endpoint now includes `place_count` and `behavior_count`. CopEntitiesPanel receives counts via shared stats fetch — 0 extra API calls.
 **Also:** Removed `error.message` leak from stats 500 response, removed unused `handleEvidenceAdded` no-op.
 
+### F24. getCopHeaders() Shared Utility
+**Refactor:** Extracted `getHeaders()` from 22 COP component files into `src/lib/cop-auth.ts`.
+- Renamed to `getCopHeaders()` for clarity
+- Removed 133 lines of duplicated code (net -133 LOC)
+- All inline `omnicore_user_hash` references eliminated from components
+
+### F25. Bulk Evidence Tags Endpoint
+**Feature:** `POST /api/evidence-tags/batch` — fetches tags for up to 100 evidence items in a single query.
+- Parameterized IN clause, grouped response by `evidence_id`
+- CopEvidenceFeed updated to use batch endpoint (was N individual calls per feed load)
+
+### F26. API Error Response Hardening
+**Security:** Removed `error.message` leak from 44 error responses across 23 COP API endpoints.
+- Activity POST now returns 500 (not 201) when DB insert fails
+- No internal error details exposed to clients (OWASP A01)
+
 ---
 
 ## 🔴 Critical Issues
@@ -229,7 +245,9 @@
 20. **New** — Link framework sessions to COP `linked_frameworks` array
 21. ~~**New** — Desktop Sidebar (UI/UX Phase 2)~~ DONE (F22) — CopSidebar with scroll-spy
 22. ~~**New** — N+1 entity count fetch~~ DONE (F23) — stats endpoint now serves all counts
-23. **New** — N+1 tag fetch per evidence item (CopEvidenceFeed fetchTagsForItems) — needs bulk tags endpoint
-24. **New** — Activity POST returns 201 on DB failure (silent data loss) — activity.ts:117
-25. **New** — getHeaders() duplicated 19x across COP files — extract to shared util
-26. **New** — UI/UX Phase 4: Mobile Bottom Tab Navigation
+23. ~~**New** — N+1 tag fetch per evidence item~~ DONE — POST /api/evidence-tags/batch, CopEvidenceFeed updated
+24. ~~**New** — Activity POST silent data loss~~ DONE — now returns 500 on DB failure
+25. ~~**New** — getHeaders() duplicated 19x~~ DONE — extracted to src/lib/cop-auth.ts getCopHeaders()
+26. ~~**New** — error.message leaks in API responses~~ DONE — removed from 44 error responses across 23 endpoints
+27. **New** — UI/UX Phase 4: Mobile Bottom Tab Navigation
+28. **New** — COP responsive layout (dvh, mobile sidebar toggle, error boundaries)

@@ -1,5 +1,22 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-09 - COP Workspace Cycle 15
+
+### Agent Import Insertion Breaks Multi-Line Imports
+When dispatching agents to insert `import` statements, they frequently insert inside an existing multi-line `import { ... } from '...'` block, splitting it in half. This passes `tsc --noEmit` (which is lenient) but fails `vite build` (which uses esbuild's strict parser). **Always run `vite build` after agent-driven import changes, not just `tsc`.**
+
+**Rule:** After any agent modifies imports across multiple files, run `vite build` immediately. Check for `Expected "as" but found "{"` or `Unexpected "}"` errors — these indicate split imports.
+
+### Never Leak error.message in API Responses
+44 COP endpoints were returning `details: error instanceof Error ? error.message : 'Unknown error'` in 500 responses. This leaks internal implementation details (table names, query syntax, stack traces) to clients. Log the error server-side with `console.error()`, return only a generic message to the client.
+
+**Pattern:** `catch (error) { console.error('[Context]', error); return Response.json({ error: 'Generic message' }, { status: 500 }) }`
+
+### Silent 201 on DB Failure = Data Loss
+Activity POST was returning 201 with the "persisted" activity object even when the DB insert failed (caught by inner try/catch). The client had no way to know data was lost. Inner try/catch blocks around DB operations should return 500, not fall through to the success path.
+
+---
+
 ## Session: 2026-03-09 - COP Workspace Cycle 12
 
 ### Git Hygiene: Commit Untracked Files Regularly
