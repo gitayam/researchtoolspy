@@ -10,7 +10,17 @@ When adding `hidden lg:inline` KPI labels to the status strip, the generic `getB
 ### Data Hygiene: Stale Flags After Status Changes
 Answered RFIs retained `is_blocker=1` because the blocker flag is "orthogonal to the lifecycle" — updating `status` doesn't auto-clear `is_blocker`. The stats query `is_blocker=1 AND status!='closed'` counted them as blockers even after being answered.
 
-**Options**: (a) Auto-clear `is_blocker` when status changes to `answered`/`closed`, or (b) change stats query to only count open blockers. For now, manual cleanup via PUT API.
+**Resolution**: Implemented auto-clear in both RFI PUT handlers — `is_blocker` is now set to 0 when status changes to `answered` or `closed`.
+
+### D1 Migrations: ALTER TABLE Can Silently Fail
+Migration 005 included `ALTER TABLE evidence_items ADD COLUMN workspace_id TEXT` but this was never applied to production. The evidence endpoint returned 500 (`no such column: workspace_id`) for weeks without anyone noticing because evidence_count was 0 anyway.
+
+**Rule**: After deploying migrations, always verify with `SELECT sql FROM sqlite_master WHERE name='table'` that columns actually exist. D1's ALTER TABLE fails silently if the migration file errors out early on a prior statement.
+
+### PUT vs Direct D1 for Session Fields
+The session PUT endpoint at `/api/cop/sessions/:id` supports `mission_brief` but the update appeared not to work via curl. Setting the value directly via `wrangler d1 execute --remote` worked immediately. Possible issue: the PUT endpoint might require auth headers or specific content-type handling.
+
+**Rule**: When API PUT doesn't work for a quick data fix, verify with `wrangler d1 execute --remote` directly. But always prefer API for audit trail.
 
 ---
 

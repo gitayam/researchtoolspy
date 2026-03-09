@@ -59,24 +59,25 @@
 | 10 | Auto-clear blocker on answered RFIs | Auto `is_blocker=0` when status→answered/closed | DONE (2026-03-09) |
 | 11 | Evidence feed header locator fix (E2E) | POM uses unique panel title text | DONE (2026-03-09) |
 
-## Investigation Data Status (2026-03-09 post-deploy)
+## Investigation Data Status (2026-03-09 cycle 2)
 
 | Data | Count | Notes |
 |------|-------|-------|
+| Entities | 46 | Was 14 — added 32 events from event_facts |
 | Actors | 10 | 9 personas + 1 Unknown Operator (mirrored from personas) |
+| Events | 32 | Migrated from session event_facts JSON array — was 0 |
 | Relationships | 14 | 9 CONTROLS, 1 ASSOCIATED_WITH, 4 LOCATED_AT |
 | Places | 3 | Bariloche CONFIRMED, Cerro Catedral CONFIRMED, Buenos Aires PROBABLE |
 | Sources | 4 | Instagram @ufqsoo, Twitter @lanaraae, PimEyes, HackYourMom |
 | Personas | 13 | +3 new (Lannah escort alias, @lanameys Telegram, sofiaisyours3 link) |
-| RFIs | 10 | 7 answered, 3 open, 1 blocker (was 4 — cleared 3 stale) |
-| Hypotheses | 5 | Bariloche 85%, Multi-location 70%, Buenos Aires 60%, DACH 20%, E.Europe 15% |
-| Evidence links | 16 | Supporting + contradicting evidence linked to all 5 hypotheses |
+| RFIs | 10 | 7 answered, 3 open, 1 blocker (AI authenticity) |
+| Hypotheses | 5 | Bariloche 85%, Multi-location 70%, Buenos Aires 60%, DACH 28%, E.Europe 15% |
+| Evidence items | 0 | evidence_items table now has workspace_id column — endpoint working |
 | Tasks | 14 | 6 done, 4 in_progress, 4 todo |
 | Map markers | 9 | 2 CONFIRMED (Bariloche, Cerro Catedral), 2 PROBABLE (BA, airport) |
 | Activity entries | 31 | +4 research findings (coastal, Lannah, hackyourmom, outlet) |
-| Event facts | 32 | +3 (hackyourmom TTPs, outlet types, PimEyes Lannah network) |
-| Evidence count | 0 | Data issue — entities created directly, not through COP evidence endpoint |
-| Blocker count | 1 | Down from 4 — cleared 3 answered RFIs with stale is_blocker flags |
+| Mission brief | SET | "Geolocate and map the distributed persona farm..." |
+| Blocker count | 1 | Down from 4 — auto-clear implemented for answered/closed RFIs |
 
 ## Key Breakthroughs This Session
 

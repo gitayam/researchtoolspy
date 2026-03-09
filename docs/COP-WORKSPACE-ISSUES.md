@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-09 (post-deploy)
+> Last updated: 2026-03-09 (cycle 2)
 > Source: Live production data audit against `cop-b0f96023-cdf` / workspace `6fde45ce-ae4b-4ff0-97c6-d2773a6ff108`
 
 ## Status Legend
@@ -82,19 +82,20 @@
 **Root cause (confirmed):** Data issue — answers were set by updating RFI status directly (PUT), not through the answer submission flow. The `cop_rfi_answers` table has no rows.
 **Resolution:** Not a code bug.
 
-### C3. Mission Brief = null
-**Endpoint:** `GET /api/cop/sessions/{id}`
-**Observed:** `mission_brief: null` on active session
-**Status:** UI now shows prominent amber "Set mission objective" prompt when null. Code fix was in migration 065 (column exists). This is a data/UX issue — needs to be set by the user.
+### C3. Mission Brief = null — RESOLVED
+**Was:** `mission_brief: null` on active session
+**Fix:** Set via `wrangler d1 execute --remote`: "Geolocate and map the distributed persona farm operating across Reddit, Telegram, and OnlyFans..."
+**Status:** Mission brief now visible in status strip for all collaborators
 
 ---
 
 ## 🟡 Important Issues
 
-### I1. Event Count = 0 (No Event Entities)
-**Observed:** `event_count: 0` despite 28 `event_facts` in session JSON
-**Likely cause:** `event_facts` stored as JSON array, not in `events` entity table
-**Impact:** Event layer on COP map shows nothing; timeline is empty.
+### I1. Event Count = 0 — RESOLVED
+**Was:** `event_count: 0` despite 32 `event_facts` in session JSON
+**Fix:** Created 32 events via POST `/api/events` from the session's event_facts array
+**Now:** `event_count: 32`, `entity_count: 46` (was 14)
+**Status:** Moved to operational — map event layer and timeline now populated
 
 ### I2. Blocker Count — RESOLVED
 **Was:** `blocker_count: 4` — 3 answered RFIs had stale `is_blocker=1`
@@ -127,6 +128,8 @@
 
 ## Investigation Priority Order
 
-1. **I1** — Event entities needed for map/timeline (event_facts → events migration)
+1. ~~**I1** — Event entities~~ DONE — 32 events created
 2. **I3** — Framework linkage for intelligence synthesis
 3. **L1** — API docs for newer endpoints
+4. **New** — Auto-sync event_facts → events table on session update
+5. **New** — Evidence creation through COP workflow (evidence_count still 0)

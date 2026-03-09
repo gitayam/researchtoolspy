@@ -86,6 +86,11 @@ wrangler d1 execute researchtoolspy-db --file=schema/migrations/020-create-comme
 4. ✅ **Number migrations sequentially** - 001, 002, 003... for order
 5. ⚠️ **D1 doesn't track migrations** - You must track applied migrations manually
 6. ❌ **Don't forget database binding** - Causes "database not found" errors
+7. ⚠️ **ALTER TABLE in multi-statement files can silently fail** - If an early statement in a migration file errors (e.g., duplicate column), D1 may abort the rest. Always verify columns exist after migration:
+   ```sql
+   SELECT sql FROM sqlite_master WHERE name='table_name';
+   ```
+8. ⚠️ **Use correct database name** - Production is `researchtoolspy-prod`, NOT `researchtoolspy-db`. Check wrangler.toml `database_name`.
 
 ### Database Binding
 
