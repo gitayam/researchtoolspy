@@ -92,28 +92,24 @@ const ENTITY_TABS = [
   { key: 'behaviors', label: 'Behaviors', icon: Eye, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-800/40', hoverBg: 'hover:bg-red-100 dark:hover:bg-red-900/40' },
 ] as const
 
-function CopEntitiesPanel({ workspaceId, onOpenEntityDrawer }: {
-  workspaceId: string
+function CopEntitiesPanel({ stats, onOpenEntityDrawer }: {
+  stats?: Record<string, number | undefined>
   onOpenEntityDrawer?: (tab?: string, prefill?: any) => void
 }) {
-  const [counts, setCounts] = useState<Record<string, number>>({})
+  // Map stats endpoint field names to entity tab keys
+  const STAT_KEY_MAP: Record<string, string> = {
+    actors: 'actor_count',
+    events: 'event_count',
+    places: 'place_count',
+    sources: 'source_count',
+    behaviors: 'behavior_count',
+  }
 
-  useEffect(() => {
-    if (!workspaceId) return
-    const headers = getHeaders()
-    ENTITY_TABS.forEach(({ key }) => {
-      fetch(`/api/${key}?workspace_id=${workspaceId}`, { headers })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (data) {
-            // APIs return { actors: [...] }, { events: [...] }, etc.
-            const arr = data[key] ?? (Array.isArray(data) ? data : [])
-            setCounts(prev => ({ ...prev, [key]: arr.length }))
-          }
-        })
-        .catch(() => setCounts(prev => ({ ...prev, [key]: 0 })))
-    })
-  }, [workspaceId])
+  const counts: Record<string, number> = {}
+  for (const tab of ENTITY_TABS) {
+    const statKey = STAT_KEY_MAP[tab.key]
+    counts[tab.key] = (stats?.[statKey] as number) ?? 0
+  }
 
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0)
 
@@ -188,10 +184,15 @@ export default function CopWorkspacePage() {
   // ── RFI badge count ────────────────────────────────────────────
   const [rfiCount, setRfiCount] = useState(0)
 
-  // ── Sidebar stats ────────────────────────────────────────────
-  const [sidebarStats, setSidebarStats] = useState<{
+  // ── Workspace stats (shared by sidebar + entities panel) ─────
+  const [workspaceStats, setWorkspaceStats] = useState<{
     evidence_count?: number
     entity_count?: number
+    actor_count?: number
+    source_count?: number
+    event_count?: number
+    place_count?: number
+    behavior_count?: number
     open_rfis?: number
     blocker_count?: number
     hypothesis_count?: number
@@ -252,12 +253,12 @@ export default function CopWorkspacePage() {
     return () => controller.abort()
   }, [fetchSession])
 
-  // Fetch sidebar stats
+  // Fetch workspace stats (shared by sidebar + entities panel)
   useEffect(() => {
     if (!id) return
     fetch(`/api/cop/${id}/stats`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setSidebarStats(data) })
+      .then(data => { if (data?.stats) setWorkspaceStats(data.stats) })
       .catch(() => {})
   }, [id])
 
@@ -452,12 +453,6 @@ export default function CopWorkspacePage() {
     },
     [],
   )
-
-  // ── Evidence added callback (refresh feed) ──────────────────
-
-  const handleEvidenceAdded = useCallback(() => {
-    // The feed component will auto-refresh on next poll; no-op for now
-  }, [])
 
   const handleLocationDetected = useCallback(
     (location: string, evidenceId: string) => {
@@ -663,7 +658,7 @@ export default function CopWorkspacePage() {
       {/* ── Sidebar + Panel grid ────────────────────────────────── */}
       <div className="flex flex-1 min-h-0">
         {/* Persistent sidebar (hidden on mobile, icon rail on md, full on lg+) */}
-        <CopSidebar mode={mode} stats={sidebarStats} />
+        <CopSidebar mode={mode} stats={workspaceStats} />
 
         {/* Panel grid (scrollable main area) */}
         <main className="overflow-y-auto p-3 md:p-4 lg:p-5 flex-1 min-w-0" role="main" aria-label="COP workspace panels">
@@ -672,6 +667,7 @@ export default function CopWorkspacePage() {
               <ProgressLayout
                 sessionId={id!}
                 session={session}
+                stats={workspaceStats}
                 rfiCount={rfiCount}
                 setRfiCount={setRfiCount}
                 activeLayers={activeLayers}
@@ -773,6 +769,7 @@ export default function CopWorkspacePage() {
 interface ProgressLayoutProps {
   sessionId: string
   session: CopSession
+  stats?: Record<string, number | undefined>
   rfiCount: number
   setRfiCount: (v: number) => void
   activeLayers: string[]
@@ -791,6 +788,7 @@ interface ProgressLayoutProps {
 function ProgressLayout({
   sessionId,
   session,
+  stats,
   rfiCount,
   setRfiCount,
   activeLayers,
@@ -810,7 +808,7 @@ function ProgressLayout({
       {/* ── Left column: main content panels ── */}
       <div className="2xl:flex-1 2xl:min-w-0 space-y-4">
         {/* Row 0: Entities Quick-Access Panel */}
-        <CopEntitiesPanel workspaceId={session.workspace_id} onOpenEntityDrawer={onOpenEntityDrawer} />
+        <CopEntitiesPanel stats={stats} onOpenEntityDrawer={onOpenEntityDrawer} />
 
         {/* Row 0.5: Map (always visible, mini-map when collapsed) */}
         <CopPanelExpander

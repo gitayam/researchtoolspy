@@ -53,13 +53,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // 2. Run parallel COUNT queries (each individually resilient)
     const [
-      actor_count, source_count, event_count, evidence_count,
+      actor_count, source_count, event_count, place_count, behavior_count,
+      evidence_count,
       framework_count, relationship_count, open_rfis, answered_questions,
       blocker_count, hypothesis_count,
     ] = await Promise.all([
       safeCount(`SELECT COUNT(*) as cnt FROM actors WHERE workspace_id = ?`, workspace_id),
       safeCount(`SELECT COUNT(*) as cnt FROM sources WHERE workspace_id = ?`, workspace_id),
       safeCount(`SELECT COUNT(*) as cnt FROM events WHERE workspace_id = ?`, workspace_id),
+      safeCount(`SELECT COUNT(*) as cnt FROM places WHERE workspace_id = ?`, workspace_id),
+      safeCount(`SELECT COUNT(*) as cnt FROM behaviors WHERE workspace_id = ?`, workspace_id),
       safeCount(`SELECT COUNT(*) as cnt FROM evidence_items WHERE workspace_id = ?`, workspace_id),
       safeCount(`SELECT COALESCE(JSON_ARRAY_LENGTH(linked_frameworks), 0) as cnt FROM cop_sessions WHERE id = ?`, sessionId),
       safeCount(`SELECT COUNT(*) as cnt FROM relationships WHERE workspace_id = ?`, workspace_id),
@@ -69,7 +72,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       safeCount(`SELECT COUNT(*) as cnt FROM cop_hypotheses WHERE cop_session_id = ?`, sessionId),
     ])
 
-    const entity_count = actor_count + source_count + event_count
+    const entity_count = actor_count + source_count + event_count + place_count + behavior_count
     const open_questions = open_rfis
 
     const stats = {
@@ -78,6 +81,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       actor_count,
       source_count,
       event_count,
+      place_count,
+      behavior_count,
       relationship_count,
       framework_count,
       open_questions,
@@ -92,7 +97,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Stats] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to get workspace stats',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), {
       status: 500, headers: corsHeaders,
     })
