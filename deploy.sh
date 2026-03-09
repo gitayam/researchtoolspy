@@ -13,8 +13,9 @@
 # development version (points to /src/main.tsx) and results in a blank page.
 #
 # Usage:
-#   ./deploy.sh              # Full deploy (build + functions + deploy)
+#   ./deploy.sh              # Full deploy (migrate + build + functions + deploy)
 #   ./deploy.sh --skip-build # Skip build, just copy functions + deploy
+#   ./deploy.sh --skip-migrate # Skip database migrations
 #   ./deploy.sh --dry-run    # Build + verify but don't deploy
 #   ./deploy.sh --help       # Show help
 # =============================================================================
@@ -34,12 +35,16 @@ PROJECT_NAME="researchtoolspy"
 # Parse Arguments
 # =============================================================================
 SKIP_BUILD=false
+SKIP_MIGRATE=false
 DRY_RUN=false
 
 for arg in "$@"; do
     case $arg in
         --skip-build)
             SKIP_BUILD=true
+            ;;
+        --skip-migrate)
+            SKIP_MIGRATE=true
             ;;
         --dry-run)
             DRY_RUN=true
@@ -48,10 +53,11 @@ for arg in "$@"; do
             echo "ResearchToolsPy - Deployment Script"
             echo ""
             echo "Usage:"
-            echo "  ./deploy.sh              Full deploy (build + functions + deploy)"
-            echo "  ./deploy.sh --skip-build Skip build, just copy functions + deploy"
-            echo "  ./deploy.sh --dry-run    Build + verify but don't deploy"
-            echo "  ./deploy.sh --help       Show this help message"
+            echo "  ./deploy.sh                Full deploy (migrate + build + functions + deploy)"
+            echo "  ./deploy.sh --skip-build   Skip build, just copy functions + deploy"
+            echo "  ./deploy.sh --skip-migrate Skip database migrations"
+            echo "  ./deploy.sh --dry-run      Build + verify but don't deploy"
+            echo "  ./deploy.sh --help         Show this help message"
             echo ""
             exit 0
             ;;
@@ -104,6 +110,35 @@ if [ ! -f "package.json" ]; then
 fi
 
 echo "${GREEN}Project files verified${NC}"
+echo ""
+
+# =============================================================================
+# Step 0.5: Apply Database Migrations
+# =============================================================================
+if [ "$SKIP_MIGRATE" = true ]; then
+    echo "${YELLOW}Step 0.5: Skipping migrations (--skip-migrate)${NC}"
+else
+    echo "${YELLOW}Step 0.5: Applying database migrations...${NC}"
+    MIGRATION_DIR="schema/migrations"
+    if [ -d "$MIGRATION_DIR" ]; then
+        MIGRATION_COUNT=0
+        MIGRATION_ERRORS=0
+        for migration in $(ls "$MIGRATION_DIR"/*.sql 2>/dev/null | sort); do
+            MIGRATION_NAME=$(basename "$migration")
+            echo -n "  Applying $MIGRATION_NAME... "
+            if npx wrangler d1 execute researchtoolspy-prod --remote --file="$migration" 2>/dev/null; then
+                echo "${GREEN}OK${NC}"
+                ((MIGRATION_COUNT++))
+            else
+                echo "${YELLOW}SKIPPED (may already be applied)${NC}"
+                ((MIGRATION_ERRORS++))
+            fi
+        done
+        echo "${GREEN}Migrations processed: $MIGRATION_COUNT applied, $MIGRATION_ERRORS skipped${NC}"
+    else
+        echo "${YELLOW}No migrations directory found${NC}"
+    fi
+fi
 echo ""
 
 # =============================================================================
@@ -179,6 +214,19 @@ if [ "$INTEL_COUNT" -lt 7 ]; then
 else
     echo "${GREEN}Intelligence endpoints verified ($INTEL_COUNT files)${NC}"
 fi
+
+# Check COP endpoints exist (new high-velocity workflow endpoints)
+COP_COUNT=$(find dist/functions/api/cop -name "*.ts" 2>/dev/null | wc -l | tr -d ' ')
+echo "${GREEN}COP endpoints verified ($COP_COUNT files)${NC}"
+
+# Verify critical new endpoints
+for endpoint in "personas.ts" "evidence-tags.ts" "rfis.ts" "markers.ts" "stats.ts"; do
+    if find dist/functions/api/cop -name "$endpoint" 2>/dev/null | grep -q .; then
+        echo "  ${GREEN}$endpoint present${NC}"
+    else
+        echo "  ${YELLOW}Warning: $endpoint not found in COP endpoints${NC}"
+    fi
+done
 
 # Check _routes.json
 if [ -f "dist/_routes.json" ]; then
@@ -259,8 +307,9 @@ echo "${GREEN}=============================================="
 echo "Deployment Complete!"
 echo "==============================================${NC}"
 echo ""
-echo "  Pages:  $PROD_URL"
-echo "  Dashboard: $PROD_URL/dashboard/intelligence"
+echo "  Pages:       $PROD_URL"
+echo "  Dashboard:   $PROD_URL/dashboard/intelligence"
+echo "  COP:         $PROD_URL/dashboard/cop"
 echo ""
 echo "  Preview URL shown above in wrangler output."
 echo ""
