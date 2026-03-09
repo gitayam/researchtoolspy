@@ -502,17 +502,19 @@ test.describe('COP Workspace -- Keyboard Shortcuts', () => {
     await mockWorkspaceRoutes(page)
   })
 
-  test('Cmd/Ctrl+M toggles map panel visibility', async ({ copWorkspacePage }) => {
+  test('Cmd/Ctrl+M toggles map panel visibility in monitor mode', async ({ copWorkspacePage }) => {
     await copWorkspacePage.goto(SESSION_ID)
     await copWorkspacePage.waitForLoad()
 
-    // Session has center_lat/lon, so map auto-shows
-    // The "Map" panel title should be visible
+    // Map is always visible in Progress mode
     await expect(copWorkspacePage.page.getByText('Map', { exact: true }).first()).toBeVisible()
+
+    // Switch to Monitor mode where map toggle works
+    await copWorkspacePage.switchToMonitorMode()
 
     // Toggle map off
     await copWorkspacePage.pressCommandM()
-    // "Show Map Panel" placeholder button should now appear
+    // "Show Map Panel" placeholder button should now appear in monitor mode
     await expect(copWorkspacePage.showMapButton).toBeVisible()
 
     // Toggle map back on
@@ -625,8 +627,9 @@ test.describe('COP Workspace -- Evidence Feed', () => {
     await expect(copWorkspacePage.evidenceFeedHeader).toBeVisible()
 
     // Should show evidence items (wait for fetch to complete)
+    // .first() because three-column layout renders Evidence Feed twice
     await expect(
-      copWorkspacePage.page.getByText('Bus photo from Twitter post'),
+      copWorkspacePage.page.getByText('Bus photo from Twitter post').first(),
     ).toBeVisible({ timeout: 10000 })
   })
 
@@ -650,9 +653,9 @@ test.describe('COP Workspace -- Evidence Feed', () => {
 
     // Switch back to feed view
     await copWorkspacePage.switchToFeedView()
-    // Should show evidence items again in list layout
+    // Should show evidence items again in list layout (.first() for dual-render)
     await expect(
-      copWorkspacePage.page.getByText('Bus photo from Twitter post'),
+      copWorkspacePage.page.getByText('Bus photo from Twitter post').first(),
     ).toBeVisible()
   })
 
@@ -796,17 +799,16 @@ test.describe('COP Workspace -- Pin to Map', () => {
     await copWorkspacePage.goto(SESSION_ID)
     await copWorkspacePage.waitForLoad()
 
-    // First toggle map off via keyboard
-    await copWorkspacePage.pressCommandM()
-    await expect(copWorkspacePage.showMapButton).toBeVisible()
+    // In Progress mode, map is always visible — verify it's there
+    await expect(copWorkspacePage.page.getByText('Map', { exact: true }).first()).toBeVisible()
 
     // Click a pin-to-map button on evidence
     const pinButton = copWorkspacePage.page.locator('button[title="Pin to map"]').first()
     await expect(pinButton).toBeVisible({ timeout: 10000 })
     await pinButton.click()
 
-    // Map panel should now be visible (pin handler calls setShowMap(true))
-    await expect(copWorkspacePage.showMapButton).not.toBeVisible()
+    // Map panel should still be visible after pin action
+    await expect(copWorkspacePage.page.getByText('Map', { exact: true }).first()).toBeVisible()
   })
 })
 

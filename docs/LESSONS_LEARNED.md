@@ -1,5 +1,22 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-09 - COP Workspace UI/UX Improvements (Cycle 8)
+
+### Linter Can Remove Used Variables via Unused Setter
+When using `const [hidden, setHidden] = useState(defaultHidden)`, the linter removed the entire line because `setHidden` was never called — but `hidden` was referenced later, causing a `ReferenceError` crash at runtime. TypeScript doesn't catch this because the linter runs after type checking.
+
+**Rule**: When a state variable is read-only (no setter needed), use `const [hidden] = useState(defaultHidden)` — omit the setter from destructuring to keep the linter happy while preserving the variable.
+
+### Three-Column Layout: Dual-Render for Responsive Breakpoints
+When a panel needs to appear in different positions at different breakpoints (inline on mobile, sidebar on desktop), render it twice with complementary visibility classes: `2xl:hidden` on the inline version, `hidden 2xl:flex` on the sidebar version. Use different `id` props for each so localStorage state doesn't conflict.
+
+**Trade-off**: This doubles the component mount (two Evidence Feeds, two Activity Logs), which means two sets of API polls. For frequently-polling components, consider lifting the data fetch to the parent and passing data down as props instead.
+
+### Map Promotion: Always-Visible Geospatial Context
+For investigation workspaces with geospatial data, the map should never be hidden behind an opt-in button. A compact mini-map (200px) at the top of the layout provides immediate spatial context without dominating screen space. Users can expand to full-screen overlay for detailed work.
+
+---
+
 ## Session: 2026-03-09 - COP Workspace Production Fixes
 
 ### E2E: Responsive CSS Classes Break Generic Locators

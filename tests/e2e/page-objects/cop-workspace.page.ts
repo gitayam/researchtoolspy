@@ -113,8 +113,9 @@ export class CopWorkspacePage {
     this.personasPanel = page.getByText('Actors').first().locator('..').locator('..')
     this.questionsPanel = page.getByText('Key Questions & RFIs', { exact: true }).locator('..').locator('..')
     this.analysisPanel = page.getByText('Analysis & Hypotheses', { exact: true }).locator('..').locator('..')
-    this.evidencePanel = page.getByText('Evidence & Intel Feed', { exact: true }).locator('..').locator('..')
-    this.activityPanel = page.getByText('Activity Log', { exact: true }).locator('..').locator('..')
+    // .first() because three-column layout renders these panels twice (inline + sidebar)
+    this.evidencePanel = page.getByText('Evidence & Intel Feed', { exact: true }).first().locator('..').locator('..')
+    this.activityPanel = page.getByText('Activity Log', { exact: true }).first().locator('..').locator('..')
     this.mapPanel = page.getByText('Map', { exact: true }).locator('..').locator('..')
     this.showMapButton = page.getByText('Show Map Panel')
 
@@ -131,12 +132,13 @@ export class CopWorkspacePage {
 
     // Evidence feed internals
     this.evidenceFeedHeader = page.getByText('Evidence & Intel Feed', { exact: true }).first()
-    this.feedViewButton = page.locator('button[aria-label="Feed view"]')
-    this.galleryViewButton = page.locator('button[aria-label="Gallery view"]')
-    this.evidenceUrlInput = page.locator('input[placeholder="Paste URL to analyze..."]')
+    // Use .first() because three-column layout renders Evidence Feed twice (inline + sidebar)
+    this.feedViewButton = page.locator('button[aria-label="Feed view"]').first()
+    this.galleryViewButton = page.locator('button[aria-label="Gallery view"]').first()
+    this.evidenceUrlInput = page.locator('input[placeholder="Paste URL to analyze..."]').first()
     this.evidenceSubmitButton = this.evidenceUrlInput.locator('..').locator('button')
     this.evidenceItems = page.locator('#evidence-feed-scroll .space-y-1\\.5 > div')
-    this.evidencePinButtons = page.locator('button[aria-label="Pin to map"]')
+    this.evidencePinButtons = page.locator('button[aria-label="Pin to map"]').first()
     this.evidenceTypeFilters = page.locator('button').filter({ hasText: /^(All|Evidence|Analysis|Entity|URL Analysis)/ })
 
     // States

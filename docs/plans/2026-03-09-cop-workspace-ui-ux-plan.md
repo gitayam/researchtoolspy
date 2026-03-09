@@ -312,10 +312,11 @@ All interactive elements minimum **44x44px** touch target:
 - Sticky capture bar above bottom nav
 - Swipe gesture support between panels
 
-### Phase 5: Three-Column Wide Layout (Small — 1 session)
-- On 1440px+, split main area into two columns
-- Evidence Feed in persistent right column
-- Activity Log below Evidence Feed
+### Phase 5: Three-Column Wide Layout (Small — 1 session) ✅ DONE
+- ✅ On 1536px+ (2xl breakpoint), split main area into two columns
+- ✅ Evidence Feed in persistent sticky right column (400px)
+- ✅ Activity Log below Evidence Feed in sidebar
+- Dual-render: panels appear inline below 2xl, sidebar at 2xl+
 
 ### Phase 6: Polish (Small — 1 session)
 - Reduced motion support (`prefers-reduced-motion`)

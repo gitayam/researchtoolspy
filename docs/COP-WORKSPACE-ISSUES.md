@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-09 (cycle 4)
+> Last updated: 2026-03-09 (cycle 8)
 > Source: Live production data audit against `cop-b0f96023-cdf` / workspace `6fde45ce-ae4b-4ff0-97c6-d2773a6ff108`
 
 ## Status Legend
@@ -88,6 +88,21 @@
 **Observed:** Marker popups showed only name/type/description. `source_type`/`source_id` linking existed but popup had no interactive backlink.
 **Fix:** Added "View Evidence" / "View Hypothesis" button in popup. Wired `onMarkerOpenInFeed` callback to scroll to evidence feed.
 
+### F15. CopPanelExpander `hidden` ReferenceError
+**Commit:** `ad141b3c2`
+**Observed:** Linter removed `const [hidden, setHidden] = useState(defaultHidden)` because `setHidden` was unused. But `hidden` was still referenced on line 68, causing `ReferenceError: hidden is not defined` crash on page load.
+**Fix:** Changed to `const [hidden] = useState(defaultHidden)` — destructure without setter keeps linter happy.
+
+### F16. Map Buried at Bottom of Progress Layout
+**Commit:** `ad141b3c2`
+**Observed:** Map panel was at the bottom of 8+ panels in Progress mode, hidden behind a "Show Map Panel" click. Users had to scroll past all panels to reach geospatial context.
+**Fix:** Moved map to Row 0.5 (right after Entities), defaulted `showMap` to `true`, removed "Show Map Panel" button. Mini-map at 200px (`compact` height).
+
+### F17. No Task Board in Monitor Mode
+**Commit:** `ad141b3c2`
+**Observed:** Monitor mode only showed Evidence Feed, Map, Questions/Hypotheses, and Actors — no task board. Users had to switch to Progress mode to manage tasks.
+**Fix:** Added compact (200px) task board panel to Monitor mode layout.
+
 ---
 
 ## 🔴 Critical Issues
@@ -133,7 +148,7 @@
 **Status:** Partially addressed in `docs/COP-WORKSPACE-API.md` (964 lines)
 
 ### L2. E2E Test Coverage
-**Status:** ALL PASSING — 157 pass / 0 fail / 16 skip (2026-03-09 cycle 5)
+**Status:** ALL PASSING — 154 pass / 0 fail / 16 skip (2026-03-09 cycle 8)
 **Key fixes this round:**
 - `networkidle` → `domcontentloaded` in workspace POM (was still using networkidle)
 - Mode toggle buttons: added `data-testid="mode-progress"` / `data-testid="mode-monitor"` for mobile viewport compatibility
@@ -159,4 +174,9 @@
 8. ~~**New** — Evidence seeding from RFI research~~ DONE — 9 items, evidence_count: 1→10
 9. ~~**New** — Duplicate Bariloche marker~~ DONE — separated CENTRO from SKI-CATEDRAL
 10. **L1** — API docs for newer endpoints
-11. **New** — Auto-sync event_facts → events table on session update
+11. **New** — Auto-sync event_facts → events table on session update (in progress — agent building)
+12. ~~**New** — UI/UX Phase 1 (Panel Consistency)~~ DONE — CopPanelExpander unified
+13. ~~**New** — UI/UX Phase 3 (Map Promotion)~~ DONE — map at top, mini-map 200px
+14. ~~**New** — UI/UX Phase 5 (Three-Column Layout)~~ DONE — 1440px+ evidence sidebar
+15. ~~**New** — Task board in Monitor mode~~ DONE — compact 200px task board
+16. ~~**New** — CopPanelExpander hidden state crash~~ DONE (F15)

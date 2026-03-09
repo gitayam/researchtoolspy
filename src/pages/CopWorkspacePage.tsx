@@ -779,169 +779,211 @@ function ProgressLayout({
   onMarkerOpenInFeed,
 }: ProgressLayoutProps) {
   return (
-    <>
-      {/* Row 0: Entities Quick-Access Panel */}
-      <CopEntitiesPanel workspaceId={session.workspace_id} onOpenEntityDrawer={onOpenEntityDrawer} />
+    <div className="2xl:flex 2xl:gap-4">
+      {/* ── Left column: main content panels ── */}
+      <div className="2xl:flex-1 2xl:min-w-0 space-y-4">
+        {/* Row 0: Entities Quick-Access Panel */}
+        <CopEntitiesPanel workspaceId={session.workspace_id} onOpenEntityDrawer={onOpenEntityDrawer} />
 
-      {/* Row 0.5: Map (always visible, mini-map when collapsed) */}
-      <CopPanelExpander
-        id="map"
-        title="Map"
-        icon={<MapIcon className="h-4 w-4 text-green-400" />}
-        height="compact"
-      >
-        {(expanded) => (
-          <div className={cn('flex h-full', expanded ? 'min-h-[600px]' : '')}>
-            {expanded && (
-              <CopLayerPanel
-                activeLayers={activeLayers}
-                onToggleLayer={onToggleLayer}
-                layerCounts={layerCounts}
-              />
-            )}
-            <div className="flex-1">
-              <CopMap
-                session={session}
-                layers={layerData}
-                pinPlacementMode={pinPlacementMode}
-                onPinPlaced={onPinPlaced}
-                onMarkerOpenInFeed={onMarkerOpenInFeed}
-              />
-            </div>
-          </div>
-        )}
-      </CopPanelExpander>
-
-      {/* Row 1: Entity Relationships + Timeline */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Row 0.5: Map (always visible, mini-map when collapsed) */}
         <CopPanelExpander
-          id="graph"
-          title="Entity Relationships"
-          icon={<Network className="h-4 w-4 text-purple-400" />}
-          height="standard"
+          id="map"
+          title="Map"
+          icon={<MapIcon className="h-4 w-4 text-green-400" />}
+          height="compact"
         >
           {(expanded) => (
-            <CopMiniGraph sessionId={sessionId} workspaceId={session.workspace_id} expanded={expanded} />
-          )}
-        </CopPanelExpander>
-
-        <CopPanelExpander
-          id="timeline"
-          title="Timeline"
-          icon={<Clock className="h-4 w-4 text-blue-400" />}
-          height="standard"
-        >
-          {(expanded) => (
-            <CopTimelinePanel sessionId={sessionId} expanded={expanded} />
-          )}
-        </CopPanelExpander>
-      </div>
-
-      {/* Row 1.5: Actors (research targets) — full width for card grid */}
-      <CopPanelExpander
-        id="actors"
-        title="Actors"
-        icon={<Users className="h-4 w-4 text-purple-400" />}
-        height="standard"
-      >
-        {(expanded) => (
-          <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
-        )}
-      </CopPanelExpander>
-
-      {/* Row 2: Key Questions & RFIs + Analysis Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div data-panel="rfi" className="scroll-mt-4">
-        <CopPanelExpander
-          id="rfi"
-          title="Key Questions & RFIs"
-          icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
-          badge={rfiCount > 0 ? rfiCount : undefined}
-          badgeVariant="destructive"
-          height="tall"
-        >
-          {(expanded) => (
-            <div className="flex flex-col h-full gap-4">
-              <div className={expanded ? '' : ''}>
-                <CopQuestionsTab session={session} />
-              </div>
-              <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
-                <h3 className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-                  Requests for Information
-                </h3>
-                <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} />
-              </div>
+            <div className={cn('flex h-full', expanded ? 'min-h-[600px]' : '')}>
               {expanded && (
-                <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
-                  <CopGapAnalysis sessionId={sessionId} />
-                </div>
+                <CopLayerPanel
+                  activeLayers={activeLayers}
+                  onToggleLayer={onToggleLayer}
+                  layerCounts={layerCounts}
+                />
               )}
+              <div className="flex-1">
+                <CopMap
+                  session={session}
+                  layers={layerData}
+                  pinPlacementMode={pinPlacementMode}
+                  onPinPlaced={onPinPlaced}
+                  onMarkerOpenInFeed={onMarkerOpenInFeed}
+                />
+              </div>
             </div>
           )}
         </CopPanelExpander>
+
+        {/* Row 1: Entity Relationships + Timeline */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <CopPanelExpander
+            id="graph"
+            title="Entity Relationships"
+            icon={<Network className="h-4 w-4 text-purple-400" />}
+            height="standard"
+          >
+            {(expanded) => (
+              <CopMiniGraph sessionId={sessionId} workspaceId={session.workspace_id} expanded={expanded} />
+            )}
+          </CopPanelExpander>
+
+          <CopPanelExpander
+            id="timeline"
+            title="Timeline"
+            icon={<Clock className="h-4 w-4 text-blue-400" />}
+            height="standard"
+          >
+            {(expanded) => (
+              <CopTimelinePanel sessionId={sessionId} expanded={expanded} />
+            )}
+          </CopPanelExpander>
         </div>
 
+        {/* Row 1.5: Actors (research targets) — full width for card grid */}
         <CopPanelExpander
-          id="analysis"
-          title="Analysis & Hypotheses"
-          icon={<Brain className="h-4 w-4 text-emerald-400" />}
-          height="tall"
+          id="actors"
+          title="Actors"
+          icon={<Users className="h-4 w-4 text-purple-400" />}
+          height="standard"
         >
           {(expanded) => (
-            <div className="flex flex-col h-full gap-4">
-              <div className={expanded ? '' : ''}>
-                <CopAnalysisSummary sessionId={sessionId} expanded={expanded} />
-              </div>
-              <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
-                <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
-              </div>
-            </div>
+            <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
           )}
         </CopPanelExpander>
+
+        {/* Row 2: Key Questions & RFIs + Analysis Summary */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div data-panel="rfi" className="scroll-mt-4">
+          <CopPanelExpander
+            id="rfi"
+            title="Key Questions & RFIs"
+            icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
+            badge={rfiCount > 0 ? rfiCount : undefined}
+            badgeVariant="destructive"
+            height="tall"
+          >
+            {(expanded) => (
+              <div className="flex flex-col h-full gap-4">
+                <div className={expanded ? '' : ''}>
+                  <CopQuestionsTab session={session} />
+                </div>
+                <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+                  <h3 className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                    Requests for Information
+                  </h3>
+                  <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} />
+                </div>
+                {expanded && (
+                  <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+                    <CopGapAnalysis sessionId={sessionId} />
+                  </div>
+                )}
+              </div>
+            )}
+          </CopPanelExpander>
+          </div>
+
+          <CopPanelExpander
+            id="analysis"
+            title="Analysis & Hypotheses"
+            icon={<Brain className="h-4 w-4 text-emerald-400" />}
+            height="tall"
+          >
+            {(expanded) => (
+              <div className="flex flex-col h-full gap-4">
+                <div className={expanded ? '' : ''}>
+                  <CopAnalysisSummary sessionId={sessionId} expanded={expanded} />
+                </div>
+                <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+                  <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
+                </div>
+              </div>
+            )}
+          </CopPanelExpander>
+        </div>
+
+        {/* Row 2.5: Task Board */}
+        <CopPanelExpander
+          id="tasks"
+          title="Task Board"
+          icon={<ClipboardList className="h-4 w-4 text-orange-400" />}
+          height="standard"
+        >
+          {(expanded) => (
+            <CopTaskBoard sessionId={sessionId} expanded={expanded} />
+          )}
+        </CopPanelExpander>
+
+        {/* Row 3: Evidence & Intel Feed — inline for screens below 2xl */}
+        <div className="2xl:hidden">
+          <CopPanelExpander
+            id="evidence"
+            title="Evidence & Intel Feed"
+            icon={<FileText className="h-4 w-4 text-blue-400" />}
+            height="standard"
+          >
+            {(expanded) => (
+              <CopEvidenceFeed
+                sessionId={sessionId}
+                expanded={expanded}
+                onPinToMap={onPinToMapFromFeed}
+                onLinkPersona={onLinkPersona}
+              />
+            )}
+          </CopPanelExpander>
+        </div>
+
+        {/* Activity Log — inline for screens below 2xl */}
+        <div className="2xl:hidden">
+          <CopPanelExpander
+            id="activity"
+            title="Activity Log"
+            icon={<Activity className="h-4 w-4 text-slate-400" />}
+            height="compact"
+          >
+            {(expanded) => (
+              <CopActivityPanel sessionId={sessionId} expanded={expanded} />
+            )}
+          </CopPanelExpander>
+        </div>
       </div>
 
-      {/* Row 2.5: Task Board */}
-      <CopPanelExpander
-        id="tasks"
-        title="Task Board"
-        icon={<ClipboardList className="h-4 w-4 text-orange-400" />}
-        height="standard"
-      >
-        {(expanded) => (
-          <CopTaskBoard sessionId={sessionId} expanded={expanded} />
-        )}
-      </CopPanelExpander>
+      {/* ── Right column: Evidence + Activity sidebar (2xl+ only) ── */}
+      <div className="hidden 2xl:flex 2xl:flex-col 2xl:w-[400px] 2xl:shrink-0 2xl:sticky 2xl:top-0 2xl:h-[calc(100vh-200px)] gap-4">
+        {/* Evidence & Intel Feed — scrollable, takes remaining space */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <CopPanelExpander
+            id="evidence-sidebar"
+            title="Evidence & Intel Feed"
+            icon={<FileText className="h-4 w-4 text-blue-400" />}
+            height="tall"
+          >
+            {(expanded) => (
+              <CopEvidenceFeed
+                sessionId={sessionId}
+                expanded={expanded}
+                onPinToMap={onPinToMapFromFeed}
+                onLinkPersona={onLinkPersona}
+              />
+            )}
+          </CopPanelExpander>
+        </div>
 
-      {/* Row 3: Evidence & Intel Feed (full-width) */}
-      <CopPanelExpander
-        id="evidence"
-        title="Evidence & Intel Feed"
-        icon={<FileText className="h-4 w-4 text-blue-400" />}
-        height="standard"
-      >
-        {(expanded) => (
-          <CopEvidenceFeed 
-            sessionId={sessionId} 
-            expanded={expanded} 
-            onPinToMap={onPinToMapFromFeed} 
-            onLinkPersona={onLinkPersona}
-          />
-        )}
-      </CopPanelExpander>
-
-      {/* Activity Log */}
-      <CopPanelExpander
-        id="activity"
-        title="Activity Log"
-        icon={<Activity className="h-4 w-4 text-slate-400" />}
-        height="compact"
-      >
-        {(expanded) => (
-          <CopActivityPanel sessionId={sessionId} expanded={expanded} />
-        )}
-      </CopPanelExpander>
-
-    </>
+        {/* Activity Log — compact at bottom */}
+        <div className="shrink-0">
+          <CopPanelExpander
+            id="activity-sidebar"
+            title="Activity Log"
+            icon={<Activity className="h-4 w-4 text-slate-400" />}
+            height="compact"
+          >
+            {(expanded) => (
+              <CopActivityPanel sessionId={sessionId} expanded={expanded} />
+            )}
+          </CopPanelExpander>
+        </div>
+      </div>
+    </div>
   )
 }
 

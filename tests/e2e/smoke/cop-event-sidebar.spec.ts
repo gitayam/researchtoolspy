@@ -322,8 +322,8 @@ test.describe('COP Workspace Panels @smoke', () => {
     await page.waitForLoadState('domcontentloaded')
     await page.getByText('Event Analysis - Test Earthquake').waitFor({ timeout: 10000 }).catch(() => {})
 
-    // The Evidence panel title should be visible
-    await expect(page.getByText('Evidence & Intel Feed')).toBeVisible()
+    // .first() because three-column layout renders Evidence Feed twice (inline + sidebar)
+    await expect(page.getByText('Evidence & Intel Feed').first()).toBeVisible()
   })
 
   test('shows Entity Relationships panel', async ({ page }) => {

@@ -126,6 +126,53 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       WHERE id = ? AND workspace_id = ?
     `).bind(...values).run()
 
+    // --- Auto-sync event_facts to events table (append-only) ---
+    if (body.event_facts !== undefined && Array.isArray(body.event_facts) && body.event_facts.length > 0) {
+      try {
+        // Get the session's authoritative workspace_id from DB
+        const session = await env.DB.prepare(
+          `SELECT workspace_id FROM cop_sessions WHERE id = ?`
+        ).bind(id).first<{ workspace_id: string }>()
+
+        if (session?.workspace_id) {
+          const userId = await getUserIdOrDefault(request, env)
+          const facts: string[] = body.event_facts.filter((f: any) => typeof f === 'string' && f.trim().length > 0)
+
+          if (facts.length > 0) {
+            // Fetch existing event descriptions for this workspace to avoid duplicates
+            const existing = await env.DB.prepare(
+              `SELECT description FROM events WHERE workspace_id = ?`
+            ).bind(session.workspace_id).all<{ description: string }>()
+
+            const existingDescriptions = new Set(
+              (existing.results || []).map((r) => r.description)
+            )
+
+            // Filter to only new facts
+            const newFacts = facts.filter((fact) => !existingDescriptions.has(fact))
+
+            if (newFacts.length > 0) {
+              // Batch insert using D1 batch API
+              const stmts = newFacts.map((fact) => {
+                const eventId = crypto.randomUUID()
+                const eventName = fact.length > 100 ? fact.substring(0, 100) : fact
+                return env.DB.prepare(`
+                  INSERT INTO events (id, name, description, event_type, date_start, workspace_id, created_by, created_at, updated_at)
+                  VALUES (?, ?, ?, 'ACTIVITY', ?, ?, ?, ?, ?)
+                `).bind(eventId, eventName, fact, now, session.workspace_id, userId, now, now)
+              })
+
+              await env.DB.batch(stmts)
+              console.log(`[COP Sessions API] Synced ${newFacts.length} event_facts to events table for workspace ${session.workspace_id}`)
+            }
+          }
+        }
+      } catch (syncError) {
+        // Log but don't fail the main update if sync fails
+        console.error('[COP Sessions API] event_facts sync error:', syncError)
+      }
+    }
+
     return new Response(JSON.stringify({ message: 'COP session updated' }), { headers: corsHeaders })
   } catch (error) {
     console.error('[COP Sessions API] Update error:', error)

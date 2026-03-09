@@ -59,11 +59,12 @@
 | 10 | Auto-clear blocker on answered RFIs | Auto `is_blocker=0` when status→answered/closed | DONE (2026-03-09) |
 | 11 | Evidence feed header locator fix (E2E) | POM uses unique panel title text | DONE (2026-03-09) |
 | 12 | Hypothesis count in stats + KPI strip | API returns hypothesis_count, status strip shows it | DONE (2026-03-09) |
-| 13 | Event facts → entities auto-sync | When event_facts updated on session, sync to events table | TODO (P1) |
+| 13 | Event facts → entities auto-sync | Append-only sync in session PUT handler | DONE (2026-03-09) |
 | 14 | Evidence batch creation endpoint | POST /api/cop/:id/evidence/batch for bulk evidence import | TODO (P2) |
 | 15 | Task board in Monitor mode | Compact task board (200px) in monitor layout | DONE (2026-03-09) |
 | 16 | Map promotion (Phase 3) | Map always visible at top of Progress layout, mini-map 200px | DONE (2026-03-09) |
 | 17 | Panel consistency (Phase 1) | Unified CopPanelExpander with id, height scale, localStorage | DONE (2026-03-09) |
+| 18 | Three-column wide layout (Phase 5) | 1440px+ sticky evidence sidebar + activity log | DONE (2026-03-09) |
 
 ## Investigation Data Status (2026-03-09 cycle 6)
 
