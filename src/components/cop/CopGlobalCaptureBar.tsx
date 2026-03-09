@@ -158,12 +158,12 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
 
         {input.trim() && !loading && (
           <div className="flex items-center gap-3 ml-10 animate-in fade-in slide-in-from-top-1">
-             <span className="text-[10px] text-gray-500 dark:text-gray-500">
+             <span className="text-[10px] text-gray-500 dark:text-gray-400">
                Routing to: <span className="font-bold text-gray-700 dark:text-gray-300">
                  {isUrl ? "Evidence Feed (URL Analysis)" : isHypothesis ? "Hypothesis Ledger" : "Evidence Feed (Quick Note)"}
                </span>
              </span>
-             <span className="text-[10px] text-gray-400 dark:text-gray-600">Press Cmd+Enter to send</span>
+             <span className="text-[10px] text-gray-400 dark:text-gray-500">Press Cmd+Enter to send</span>
           </div>
         )}
 

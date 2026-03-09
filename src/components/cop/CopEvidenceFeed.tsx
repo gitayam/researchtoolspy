@@ -627,8 +627,8 @@ export default function CopEvidenceFeed({
                   />
                   {/* Overlay */}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                    <p className="text-[10px] text-gray-200 line-clamp-1">{item.title}</p>
-                    <p className="text-[9px] text-gray-400">{timeAgo(item.created_at)}</p>
+                    <p className="text-[10px] text-gray-100 line-clamp-1">{item.title}</p>
+                    <p className="text-[9px] text-gray-300">{timeAgo(item.created_at)}</p>
                   </div>
                   {/* Pin indicator */}
                   {item.hasPinned && (
@@ -653,7 +653,7 @@ export default function CopEvidenceFeed({
           <>
             {loading && items.length === 0 ? (
               <div className="flex items-center justify-center py-10">
-                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400 dark:text-gray-500" />
               </div>
             ) : visibleItems.length > 0 ? (
               <div className="space-y-1.5">
@@ -776,7 +776,7 @@ export default function CopEvidenceFeed({
                               </span>
                             ))}
                             {item.entities.length > 3 && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] text-gray-500">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] text-gray-500 dark:text-gray-400">
                                 +{item.entities.length - 3} more
                               </span>
                             )}
