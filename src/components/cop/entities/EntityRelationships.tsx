@@ -244,7 +244,7 @@ export default function EntityRelationships({
             <button
               type="button"
               onClick={resetForm}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -263,7 +263,7 @@ export default function EntityRelationships({
                 <button
                   type="button"
                   onClick={() => setSelectedTarget(null)}
-                  className="text-gray-400 hover:text-gray-600 shrink-0"
+                  className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 shrink-0"
                 >
                   <X className="h-3 w-3" />
                 </button>

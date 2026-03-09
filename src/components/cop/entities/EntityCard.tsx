@@ -305,7 +305,7 @@ function SourceDetail({ entity }: { entity: Source }) {
                   style={{ width: `${(moses.source_vulnerability / 5) * 100}%` }}
                 />
               </div>
-              <span className="text-[10px] text-gray-500">{moses.source_vulnerability}/5</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-400">{moses.source_vulnerability}/5</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-gray-500 dark:text-gray-400 w-20">Access</span>
@@ -408,9 +408,9 @@ export default function EntityCard({
           </Badge>
           <div className="shrink-0">
             {expanded ? (
-              <ChevronDown className="h-3.5 w-3.5 text-gray-500" />
+              <ChevronDown className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />
             ) : (
-              <ChevronRight className="h-3.5 w-3.5 text-gray-500" />
+              <ChevronRight className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />
             )}
           </div>
         </div>
@@ -506,14 +506,14 @@ export default function EntityCard({
           {entityType === 'behaviors' && <BehaviorDetail entity={entity as Behavior} />}
 
           {/* Placeholder slots for parent drawer to populate */}
-          <div className="pt-2 border-t border-gray-100 dark:border-gray-700/50">
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700/50">
             <h4 className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
               Relationships
             </h4>
             <div data-slot="entity-relationships" className="min-h-[24px]" />
           </div>
 
-          <div className="pt-2 border-t border-gray-100 dark:border-gray-700/50">
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700/50">
             <h4 className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
               Evidence Links
             </h4>

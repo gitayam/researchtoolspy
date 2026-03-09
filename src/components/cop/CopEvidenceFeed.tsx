@@ -9,6 +9,7 @@ import {
   Loader2,
   Send,
   MapPin,
+  Link2,
   LayoutGrid,
   LayoutList,
   AtSign,
@@ -51,6 +52,7 @@ interface CopEvidenceFeedProps {
   expanded: boolean
   monitorMode?: boolean
   onPinToMap?: (item: FeedItem) => void
+  onLinkEntity?: (item: FeedItem) => void
   onLinkPersona?: (handle: string, platform: string, itemId: string) => void
   viewMode?: 'feed' | 'gallery'
 }
@@ -133,6 +135,7 @@ export default function CopEvidenceFeed({
   expanded,
   monitorMode = false,
   onPinToMap,
+  onLinkEntity,
   onLinkPersona,
   viewMode: externalViewMode,
 }: CopEvidenceFeedProps) {
@@ -689,6 +692,17 @@ export default function CopEvidenceFeed({
                               aria-label={item.hasPinned ? 'View on map' : 'Pin to map'}
                             >
                               <MapPin className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {onLinkEntity && item.status === 'completed' && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); onLinkEntity(item) }}
+                              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shrink-0"
+                              title="Link to entity"
+                              aria-label="Link evidence to entity"
+                            >
+                              <Link2 className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />
                             </button>
                           )}
                           {item.url && item.status !== 'pending' && (

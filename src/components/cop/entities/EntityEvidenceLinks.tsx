@@ -275,7 +275,7 @@ export default function EntityEvidenceLinks({
                 value={selectedEvidenceId}
                 onChange={(e) => setSelectedEvidenceId(e.target.value)}
                 className={cn(
-                  'w-full mt-0.5 rounded border border-gray-300 dark:border-gray-600',
+                  'w-full mt-0.5 rounded border border-gray-300 dark:border-gray-700',
                   'bg-white dark:bg-gray-900 text-xs text-gray-900 dark:text-gray-200',
                   'px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500',
                 )}
@@ -299,7 +299,7 @@ export default function EntityEvidenceLinks({
               value={selectedRelType}
               onChange={(e) => setSelectedRelType(e.target.value as EvidenceRelationType)}
               className={cn(
-                'w-full mt-0.5 rounded border border-gray-300 dark:border-gray-600',
+                'w-full mt-0.5 rounded border border-gray-300 dark:border-gray-700',
                 'bg-white dark:bg-gray-900 text-xs text-gray-900 dark:text-gray-200',
                 'px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500',
               )}

@@ -28,6 +28,7 @@ import {
   Target,
   Users,
   Command,
+  Database,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -51,6 +52,7 @@ import CopGlobalCaptureBar from '@/components/cop/CopGlobalCaptureBar'
 import CopBlockerStrip from '@/components/cop/CopBlockerStrip'
 import CopPersonaPanel from '@/components/cop/CopPersonaPanel'
 import CopEvidencePersonaLinkDialog from '@/components/cop/CopEvidencePersonaLinkDialog'
+import CopEntityDrawer from '@/components/cop/CopEntityDrawer'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
 
@@ -97,6 +99,11 @@ export default function CopWorkspacePage() {
 
   // ── Quick Capture state ─────────────────────────────────────
   const [captureOpen, setCaptureOpen] = useState(false)
+
+  // ── Entity Drawer state ────────────────────────────────────
+  const [entityDrawerOpen, setEntityDrawerOpen] = useState(false)
+  const [entityDrawerTab, setEntityDrawerTab] = useState<string | undefined>()
+  const [entityDrawerPrefill, setEntityDrawerPrefill] = useState<any>(undefined)
 
   // ── Persona linking state ───────────────────────────────────
   const [personaLinkData, setPersonaLinkData] = useState<{ handle: string; platform: string; itemId: string } | null>(null)
@@ -224,6 +231,12 @@ export default function CopWorkspacePage() {
       if (e.key === 'k') {
         e.preventDefault()
         setCaptureOpen((prev) => !prev)
+        return
+      }
+      // Cmd/Ctrl+E -> Toggle Entity Drawer
+      if (e.key === 'e') {
+        e.preventDefault()
+        setEntityDrawerOpen((prev) => !prev)
         return
       }
       // Cmd/Ctrl+M -> Toggle map
@@ -465,6 +478,9 @@ export default function CopWorkspacePage() {
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="sm" onClick={() => setEntityDrawerOpen(true)} title="Entity Drawer (Cmd+E)">
+            <Database className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="sm" title="Invite collaborator" onClick={() => setInviteOpen(true)}>
             <UserPlus className="h-4 w-4" />
           </Button>
@@ -519,6 +535,11 @@ export default function CopWorkspacePage() {
               onPinToMapFromFeed={handlePinToMapFromFeed}
               onPinToMapFromHypothesis={handlePinToMapFromHypothesis}
               onLinkPersona={handleLinkPersona}
+              onOpenEntityDrawer={(tab?: string, prefill?: any) => {
+                if (tab) setEntityDrawerTab(tab)
+                if (prefill) setEntityDrawerPrefill(prefill)
+                setEntityDrawerOpen(true)
+              }}
             />
           ) : (
             <MonitorLayout
@@ -534,6 +555,11 @@ export default function CopWorkspacePage() {
               onPinPlaced={handlePinPlaced}
               onPinToMapFromFeed={handlePinToMapFromFeed}
               onLinkPersona={handleLinkPersona}
+              onOpenEntityDrawer={(tab?: string, prefill?: any) => {
+                if (tab) setEntityDrawerTab(tab)
+                if (prefill) setEntityDrawerPrefill(prefill)
+                setEntityDrawerOpen(true)
+              }}
             />
           )}
         </div>
@@ -555,6 +581,36 @@ export default function CopWorkspacePage() {
         sessionName={session.name}
         open={inviteOpen}
         onOpenChange={setInviteOpen}
+      />
+
+      {/* Entity Drawer */}
+      <CopEntityDrawer
+        sessionId={id!}
+        open={entityDrawerOpen}
+        onOpenChange={(open) => {
+          setEntityDrawerOpen(open)
+          if (!open) {
+            setEntityDrawerTab(undefined)
+            setEntityDrawerPrefill(undefined)
+          }
+        }}
+        initialTab={entityDrawerTab as any}
+        prefill={entityDrawerPrefill}
+        onPinToMap={(lat, lon, label) => {
+          setShowMap(true)
+          fetch(`/api/cop/${id}/markers`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+              lat, lon,
+              label,
+              callsign: label,
+              cot_type: 'a-f-G',
+              source_type: 'ENTITY',
+              description: `Pinned from Entity Drawer: ${label}`,
+            }),
+          }).catch(() => {})
+        }}
       />
     </div>
   )
@@ -578,6 +634,7 @@ interface ProgressLayoutProps {
   onPinToMapFromFeed?: (item: { id: string; title: string }) => void
   onPinToMapFromHypothesis?: (hypothesisId: string, text: string) => void
   onLinkPersona?: (handle: string, platform: string, itemId: string) => void
+  onOpenEntityDrawer?: (tab?: string, prefill?: any) => void
 }
 
 function ProgressLayout({
@@ -596,6 +653,7 @@ function ProgressLayout({
   onPinToMapFromFeed,
   onPinToMapFromHypothesis,
   onLinkPersona,
+  onOpenEntityDrawer,
 }: ProgressLayoutProps) {
   return (
     <>
@@ -762,6 +820,7 @@ interface MonitorLayoutProps {
   onPinToMapFromFeed?: (item: { id: string; title: string }) => void
   onPinToMapFromHypothesis?: (hypothesisId: string, text: string) => void
   onLinkPersona?: (handle: string, platform: string, itemId: string) => void
+  onOpenEntityDrawer?: (tab?: string, prefill?: any) => void
 }
 
 function MonitorLayout({
@@ -778,6 +837,7 @@ function MonitorLayout({
   onPinToMapFromFeed,
   onPinToMapFromHypothesis,
   onLinkPersona,
+  onOpenEntityDrawer,
 }: MonitorLayoutProps) {
   return (
     <>
