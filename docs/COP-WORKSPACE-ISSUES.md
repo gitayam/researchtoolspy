@@ -107,6 +107,14 @@
 **Root cause:** Stats endpoint queried `framework_sessions WHERE user_id = ?` (global user count) instead of reading `linked_frameworks` JSON array from `cop_sessions`.
 **Fix:** Changed to `JSON_ARRAY_LENGTH(linked_frameworks)` on the COP session itself. Also removed unused `created_by` from SELECT.
 
+### F20. Dark Mode Cycle 11 — Capture Bar + Evidence Feed
+**Files:** CopGlobalCaptureBar.tsx, CopEvidenceFeed.tsx
+- Routing hint had same color for light/dark (`gray-500`/`gray-500`)
+- Cmd+Enter hint used `dark:text-gray-600` (too dark on dark bg)
+- Gallery overlay text was `text-gray-200` (fine on dark gradient but inconsistent)
+- Loader spinner and entity overflow badge missing dark variants
+**Fix:** Applied 6 targeted color fixes across both files
+
 ### F19. Batch Evidence Endpoint
 **Feature:** Added `POST /api/cop/:id/evidence/batch` for bulk evidence import (up to 100 items).
 **Uses:** `env.DB.batch()` for atomic D1 insert, parameterized queries, auto-increment IDs.
