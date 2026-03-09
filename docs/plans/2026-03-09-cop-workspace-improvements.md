@@ -61,7 +61,9 @@
 | 12 | Hypothesis count in stats + KPI strip | API returns hypothesis_count, status strip shows it | DONE (2026-03-09) |
 | 13 | Event facts → entities auto-sync | When event_facts updated on session, sync to events table | TODO (P1) |
 | 14 | Evidence batch creation endpoint | POST /api/cop/:id/evidence/batch for bulk evidence import | TODO (P2) |
-| 15 | Task board in Monitor mode | Quick-actions sidebar showing open tasks in monitor layout | TODO (P2) |
+| 15 | Task board in Monitor mode | Compact task board (200px) in monitor layout | DONE (2026-03-09) |
+| 16 | Map promotion (Phase 3) | Map always visible at top of Progress layout, mini-map 200px | DONE (2026-03-09) |
+| 17 | Panel consistency (Phase 1) | Unified CopPanelExpander with id, height scale, localStorage | DONE (2026-03-09) |
 
 ## Investigation Data Status (2026-03-09 cycle 6)
 

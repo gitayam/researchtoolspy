@@ -288,11 +288,11 @@ All interactive elements minimum **44x44px** touch target:
 
 ## Implementation Phases
 
-### Phase 1: Panel Consistency (Small — 1-2 sessions)
-- Unify all panel headers to shared visual pattern
-- Standardize collapsed heights (200/320/480)
-- Add `data-panel` attributes to all panels for sidebar nav
-- Persist panel expanded/collapsed state in localStorage
+### Phase 1: Panel Consistency (Small — 1-2 sessions) ✅ DONE
+- ✅ Unify all panel headers to shared visual pattern (CopPanelExpander)
+- ✅ Standardize collapsed heights (200/320/480 via compact/standard/tall)
+- ✅ Add `data-panel` attributes to all panels via `id` prop
+- ✅ Persist panel expanded/collapsed state in localStorage
 
 ### Phase 2: Desktop Sidebar (Medium — 2-3 sessions)
 - Add collapsible sidebar with panel jump-links
@@ -300,11 +300,11 @@ All interactive elements minimum **44x44px** touch target:
 - Add live stat counts in sidebar footer
 - Sidebar collapses to icon rail on tablet
 
-### Phase 3: Map Promotion (Small — 1 session)
-- Move map to top of main content area
-- Add mini-map collapsed mode (200px)
-- Float layer toggles as overlay on map
-- Always show map in Progress mode (remove "Show Map Panel" button)
+### Phase 3: Map Promotion (Small — 1 session) ✅ DONE
+- ✅ Move map to top of main content area (Row 0.5, after Entities)
+- ✅ Add mini-map collapsed mode (200px via `compact` height)
+- Float layer toggles as overlay on map (deferred — layer panel shows on expand)
+- ✅ Always show map in Progress mode (`showMap` defaults to `true`, removed "Show Map Panel" button)
 
 ### Phase 4: Mobile Bottom Navigation (Medium — 2-3 sessions)
 - Add bottom tab bar for mobile viewports

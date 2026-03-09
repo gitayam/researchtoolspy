@@ -25,9 +25,7 @@ import {
   FileText,
   Plus,
   Activity,
-  Target,
   Users,
-  Command,
   Database,
   Briefcase,
   Calendar,
@@ -119,15 +117,18 @@ function CopEntitiesPanel({ workspaceId, onOpenEntityDrawer }: {
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0)
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 overflow-hidden">
-      <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
+    <div 
+      className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden"
+      data-panel="entities"
+    >
+      <div className="px-3 py-2 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
         <div className="flex items-center gap-2">
           <Database className="h-4 w-4 text-purple-500 dark:text-purple-400" />
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
             Entities
           </h3>
           {totalCount > 0 && (
-            <Badge variant="outline" className="text-[10px] border-purple-500/30 text-purple-600 dark:text-purple-400">
+            <Badge variant="outline" className="text-[10px] px-1.5 h-4 border-purple-500/30 text-purple-600 dark:text-purple-400">
               {totalCount}
             </Badge>
           )}
@@ -136,10 +137,10 @@ function CopEntitiesPanel({ workspaceId, onOpenEntityDrawer }: {
           variant="ghost"
           size="sm"
           onClick={() => onOpenEntityDrawer?.()}
-          className="h-6 text-[10px] px-2 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer"
+          className="h-6 text-[10px] px-2 text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer"
         >
           Open Drawer
-          <span className="ml-1 text-[9px] text-gray-400 dark:text-gray-500 font-mono">⌘E</span>
+          <span className="ml-1 text-[9px] text-slate-400 dark:text-slate-500 font-mono">⌘E</span>
         </Button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 p-3">
@@ -155,7 +156,7 @@ function CopEntitiesPanel({ workspaceId, onOpenEntityDrawer }: {
             )}
           >
             <Icon className={cn('h-5 w-5', color)} />
-            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{label}</span>
+            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{label}</span>
             <span className={cn('text-lg font-bold tabular-nums', color)}>
               {counts[key] ?? '—'}
             </span>
@@ -179,16 +180,13 @@ export default function CopWorkspacePage() {
 
   // ── Mode & map state ───────────────────────────────────────────
   const [mode, setMode] = useState<CopWorkspaceMode>('progress')
-  const [showMap, setShowMap] = useState(false)
+  const [showMap, setShowMap] = useState(true)
 
   // ── RFI badge count ────────────────────────────────────────────
   const [rfiCount, setRfiCount] = useState(0)
 
   // ── Invite dialog state ───────────────────────────────────────
   const [inviteOpen, setInviteOpen] = useState(false)
-
-  // ── Quick Capture state ─────────────────────────────────────
-  const [captureOpen, setCaptureOpen] = useState(false)
 
   // ── Entity Drawer state ────────────────────────────────────
   const [entityDrawerOpen, setEntityDrawerOpen] = useState(false)
@@ -317,12 +315,6 @@ export default function CopWorkspacePage() {
       const mod = e.metaKey || e.ctrlKey
       if (!mod) return
 
-      // Cmd/Ctrl+K -> Quick Capture
-      if (e.key === 'k') {
-        e.preventDefault()
-        setCaptureOpen((prev) => !prev)
-        return
-      }
       // Cmd/Ctrl+E -> Toggle Entity Drawer
       if (e.key === 'e') {
         e.preventDefault()
@@ -654,8 +646,6 @@ export default function CopWorkspacePage() {
             <ProgressLayout
               sessionId={id!}
               session={session}
-              showMap={showMap}
-              setShowMap={setShowMap}
               rfiCount={rfiCount}
               setRfiCount={setRfiCount}
               activeLayers={activeLayers}
@@ -756,8 +746,6 @@ export default function CopWorkspacePage() {
 interface ProgressLayoutProps {
   sessionId: string
   session: CopSession
-  showMap: boolean
-  setShowMap: (v: boolean) => void
   rfiCount: number
   setRfiCount: (v: number) => void
   activeLayers: string[]
@@ -776,8 +764,6 @@ interface ProgressLayoutProps {
 function ProgressLayout({
   sessionId,
   session,
-  showMap,
-  setShowMap,
   rfiCount,
   setRfiCount,
   activeLayers,
@@ -797,11 +783,42 @@ function ProgressLayout({
       {/* Row 0: Entities Quick-Access Panel */}
       <CopEntitiesPanel workspaceId={session.workspace_id} onOpenEntityDrawer={onOpenEntityDrawer} />
 
+      {/* Row 0.5: Map (always visible, mini-map when collapsed) */}
+      <CopPanelExpander
+        id="map"
+        title="Map"
+        icon={<MapIcon className="h-4 w-4 text-green-400" />}
+        height="compact"
+      >
+        {(expanded) => (
+          <div className={cn('flex h-full', expanded ? 'min-h-[600px]' : '')}>
+            {expanded && (
+              <CopLayerPanel
+                activeLayers={activeLayers}
+                onToggleLayer={onToggleLayer}
+                layerCounts={layerCounts}
+              />
+            )}
+            <div className="flex-1">
+              <CopMap
+                session={session}
+                layers={layerData}
+                pinPlacementMode={pinPlacementMode}
+                onPinPlaced={onPinPlaced}
+                onMarkerOpenInFeed={onMarkerOpenInFeed}
+              />
+            </div>
+          </div>
+        )}
+      </CopPanelExpander>
+
       {/* Row 1: Entity Relationships + Timeline */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <CopPanelExpander
+          id="graph"
           title="Entity Relationships"
           icon={<Network className="h-4 w-4 text-purple-400" />}
+          height="standard"
         >
           {(expanded) => (
             <CopMiniGraph sessionId={sessionId} workspaceId={session.workspace_id} expanded={expanded} />
@@ -809,8 +826,10 @@ function ProgressLayout({
         </CopPanelExpander>
 
         <CopPanelExpander
+          id="timeline"
           title="Timeline"
           icon={<Clock className="h-4 w-4 text-blue-400" />}
+          height="standard"
         >
           {(expanded) => (
             <CopTimelinePanel sessionId={sessionId} expanded={expanded} />
@@ -820,8 +839,10 @@ function ProgressLayout({
 
       {/* Row 1.5: Actors (research targets) — full width for card grid */}
       <CopPanelExpander
+        id="actors"
         title="Actors"
         icon={<Users className="h-4 w-4 text-purple-400" />}
+        height="standard"
       >
         {(expanded) => (
           <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
@@ -832,25 +853,26 @@ function ProgressLayout({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div data-panel="rfi" className="scroll-mt-4">
         <CopPanelExpander
+          id="rfi"
           title="Key Questions & RFIs"
           icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
           badge={rfiCount > 0 ? rfiCount : undefined}
           badgeVariant="destructive"
-          collapsedHeight="h-[480px]"
+          height="tall"
         >
           {(expanded) => (
             <div className="flex flex-col h-full gap-4">
               <div className={expanded ? '' : ''}>
                 <CopQuestionsTab session={session} />
               </div>
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3">
+              <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+                <h3 className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                   Requests for Information
                 </h3>
                 <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} />
               </div>
               {expanded && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
                   <CopGapAnalysis sessionId={sessionId} />
                 </div>
               )}
@@ -860,16 +882,17 @@ function ProgressLayout({
         </div>
 
         <CopPanelExpander
+          id="analysis"
           title="Analysis & Hypotheses"
           icon={<Brain className="h-4 w-4 text-emerald-400" />}
-          collapsedHeight="h-[480px]"
+          height="tall"
         >
           {(expanded) => (
             <div className="flex flex-col h-full gap-4">
               <div className={expanded ? '' : ''}>
                 <CopAnalysisSummary sessionId={sessionId} expanded={expanded} />
               </div>
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
                 <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
               </div>
             </div>
@@ -879,9 +902,10 @@ function ProgressLayout({
 
       {/* Row 2.5: Task Board */}
       <CopPanelExpander
+        id="tasks"
         title="Task Board"
         icon={<ClipboardList className="h-4 w-4 text-orange-400" />}
-        collapsedHeight="h-[360px]"
+        height="standard"
       >
         {(expanded) => (
           <CopTaskBoard sessionId={sessionId} expanded={expanded} />
@@ -890,9 +914,10 @@ function ProgressLayout({
 
       {/* Row 3: Evidence & Intel Feed (full-width) */}
       <CopPanelExpander
+        id="evidence"
         title="Evidence & Intel Feed"
         icon={<FileText className="h-4 w-4 text-blue-400" />}
-        collapsedHeight="h-[280px]"
+        height="standard"
       >
         {(expanded) => (
           <CopEvidenceFeed 
@@ -906,53 +931,16 @@ function ProgressLayout({
 
       {/* Activity Log */}
       <CopPanelExpander
+        id="activity"
         title="Activity Log"
-        icon={<Activity className="h-4 w-4 text-gray-400" />}
-        collapsedHeight="h-[200px]"
+        icon={<Activity className="h-4 w-4 text-slate-400" />}
+        height="compact"
       >
         {(expanded) => (
           <CopActivityPanel sessionId={sessionId} expanded={expanded} />
         )}
       </CopPanelExpander>
 
-      {/* Row 4: Map (optional) */}
-      {showMap ? (
-        <CopPanelExpander
-          title="Map"
-          icon={<MapIcon className="h-4 w-4 text-green-400" />}
-          collapsedHeight="h-[400px]"
-        >
-          {(expanded) => (
-            <div className={cn('flex h-full', expanded ? 'min-h-[600px]' : '')}>
-              {expanded && (
-                <CopLayerPanel
-                  activeLayers={activeLayers}
-                  onToggleLayer={onToggleLayer}
-                  layerCounts={layerCounts}
-                />
-              )}
-              <div className="flex-1">
-                <CopMap
-                  session={session}
-                  layers={layerData}
-                  pinPlacementMode={pinPlacementMode}
-                  onPinPlaced={onPinPlaced}
-                  onMarkerOpenInFeed={onMarkerOpenInFeed}
-                />
-              </div>
-            </div>
-          )}
-        </CopPanelExpander>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setShowMap(true)}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="text-sm font-medium">Show Map Panel</span>
-        </button>
-      )}
     </>
   )
 }
@@ -998,9 +986,10 @@ function MonitorLayout({
     <>
       {/* Evidence Feed (tall) */}
       <CopPanelExpander
+        id="evidence"
         title="Evidence & Intel Feed"
         icon={<FileText className="h-4 w-4 text-blue-400" />}
-        collapsedHeight="h-[500px]"
+        height="tall"
       >
         {(expanded) => (
           <CopEvidenceFeed 
@@ -1016,9 +1005,10 @@ function MonitorLayout({
       {/* Map (optional) */}
       {showMap ? (
         <CopPanelExpander
+          id="map"
           title="Map"
           icon={<MapIcon className="h-4 w-4 text-green-400" />}
-          collapsedHeight="h-[400px]"
+          height="tall"
         >
           {(expanded) => (
             <div className={cn('flex h-full', expanded ? 'min-h-[600px]' : '')}>
@@ -1045,7 +1035,7 @@ function MonitorLayout({
         <button
           type="button"
           onClick={() => setShowMap(true)}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-500 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           <span className="text-sm font-medium">Show Map Panel</span>
@@ -1054,24 +1044,39 @@ function MonitorLayout({
 
       {/* Key Questions & Hypotheses */}
       <CopPanelExpander
+        id="analysis"
         title="Intel & Hypotheses"
         icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
-        collapsedHeight="h-[480px]"
+        height="tall"
       >
         {() => (
           <div className="flex flex-col h-full gap-4">
             <CopQuestionsTab session={session} />
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
               <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
             </div>
           </div>
         )}
       </CopPanelExpander>
 
+      {/* Task Board (compact in monitor mode) */}
+      <CopPanelExpander
+        id="tasks"
+        title="Task Board"
+        icon={<ClipboardList className="h-4 w-4 text-orange-400" />}
+        height="compact"
+      >
+        {(expanded) => (
+          <CopTaskBoard sessionId={sessionId} expanded={expanded} />
+        )}
+      </CopPanelExpander>
+
       {/* Actors (research targets) — full width */}
       <CopPanelExpander
+        id="actors"
         title="Actors"
         icon={<Users className="h-4 w-4 text-purple-400" />}
+        height="standard"
       >
         {(expanded) => (
           <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
