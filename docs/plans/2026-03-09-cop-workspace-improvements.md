@@ -28,6 +28,11 @@
 | - | Outlet type research (Argentina = Type I) | DONE | web research |
 | - | Fix panels: hypotheses/RFIs always visible | DONE | `b00c1931b` |
 | - | Fix RFI answer insert (answer_text column) | DONE | `b00c1931b` |
+| - | Populate 10 Actors from personas + Unknown Operator | DONE | API calls |
+| - | Create 14 relationships (9 CONTROLS, 1 ASSOCIATED, 4 LOCATED_AT) | DONE | API calls |
+| - | Create 3 Places (Bariloche, Cerro Catedral, Buenos Aires) | DONE | API calls |
+| - | Create 4 Sources (Instagram, Twitter, PimEyes, HackYourMom) | DONE | API calls |
+| - | Add user 1 as ADMIN of workspace | DONE | D1 direct |
 
 ## Wave 3 — Remaining Features
 
@@ -40,6 +45,10 @@
 
 | Data | Count | Notes |
 |------|-------|-------|
+| Actors | 10 | 9 personas + 1 Unknown Operator (mirrored from personas) |
+| Relationships | 14 | 9 CONTROLS, 1 ASSOCIATED_WITH, 4 LOCATED_AT |
+| Places | 3 | Bariloche CONFIRMED, Cerro Catedral CONFIRMED, Buenos Aires PROBABLE |
+| Sources | 4 | Instagram @ufqsoo, Twitter @lanaraae, PimEyes, HackYourMom |
 | Personas | 13 | +3 new (Lannah escort alias, @lanameys Telegram, sofiaisyours3 link) |
 | RFIs | 10 | 7 answered (+outlet type, +hackyourmom), 3 open |
 | Hypotheses | 5 | Bariloche 85%, Multi-location 70%, Buenos Aires 60%, DACH 20%, E.Europe 15% |
@@ -72,6 +81,8 @@
 | Activity entries missing names | Table lacked actor_name/details columns — migration 069 + repopulate |
 | Entities panel 403 errors | Entity endpoints received COP session ID instead of workspace UUID — fixed workspace_id propagation |
 | Workspace access denied (403) | Workspace `6fde45ce` had `is_public=0` and `owner_id=5` — set `is_public=1` for COP viewer access |
+| Entity counts all 0 | Personas existed but not mirrored as Actors — populated 10 actors, 14 relationships, 3 places, 4 sources |
+| "No location data" warning | Missing LOCATED_AT relationships between actors and places — created 4 |
 
 ## Schema Changes
 
