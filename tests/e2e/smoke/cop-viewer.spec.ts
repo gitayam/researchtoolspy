@@ -128,7 +128,8 @@ test.describe('COP Viewer — Event Monitor', () => {
 
   test.skip('refresh button exists and is clickable — route now serves CopWorkspacePage', () => {})
 
-  test('CoT export button opens /api/cop/:id/cot', async ({ copViewerPage }) => {
+  test('CoT export button opens /api/cop/:id/cot', async ({ copViewerPage, isMobile }) => {
+    test.skip(isMobile, 'CoT export button is hidden on mobile (sm:inline-flex)')
     await copViewerPage.goto(MOCK_SESSION_ID)
     await copViewerPage.waitForLoad()
 

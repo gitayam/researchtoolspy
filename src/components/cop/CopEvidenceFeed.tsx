@@ -625,7 +625,7 @@ export default function CopEvidenceFeed({
             </div>
           ) : (
             <div className="text-center py-8">
-              <LayoutGrid className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+              <LayoutGrid className="h-6 w-6 text-gray-500 dark:text-gray-400 mx-auto mb-2" />
               <p className="text-xs text-gray-500 dark:text-gray-400">No visual evidence yet.</p>
               <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
                 Drop an image URL into Quick Capture.
@@ -637,7 +637,7 @@ export default function CopEvidenceFeed({
           <>
             {loading && items.length === 0 ? (
               <div className="flex items-center justify-center py-10">
-                <Loader2 className="h-5 w-5 animate-spin text-gray-400 dark:text-gray-500" />
+                <Loader2 className="h-5 w-5 animate-spin text-gray-500 dark:text-gray-400" />
               </div>
             ) : visibleItems.length > 0 ? (
               <div className="space-y-1.5">
@@ -783,7 +783,7 @@ export default function CopEvidenceFeed({
               </div>
             ) : (
               <div className="text-center py-8">
-                <FileText className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                <FileText className="h-6 w-6 text-gray-500 dark:text-gray-400 mx-auto mb-2" />
                 <p className="text-xs text-gray-500 dark:text-gray-400">No evidence yet</p>
                 <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
                   Paste a URL above or add evidence from the dashboard.

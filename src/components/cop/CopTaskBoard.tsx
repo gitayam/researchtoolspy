@@ -563,7 +563,7 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
           </div>
         ) : totalCount === 0 && !showForm ? (
           <div className="text-center py-6">
-            <Circle className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+            <Circle className="h-6 w-6 text-gray-500 dark:text-gray-400 mx-auto mb-2" />
             <p className="text-xs text-gray-500 dark:text-gray-400">
               No tasks yet. Create one to track investigative actions.
             </p>

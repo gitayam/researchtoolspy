@@ -298,7 +298,7 @@ export default function CopGlobalCapture({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="shrink-0 p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="shrink-0 p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500"
             aria-label="Close quick capture"
           >
             <X className="h-4 w-4" />

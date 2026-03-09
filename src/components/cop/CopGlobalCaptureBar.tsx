@@ -100,7 +100,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
   }, [])
 
   return (
-    <div className="sticky top-0 z-30 px-4 py-2 bg-white/90 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-xl">
+    <div className="sticky top-0 z-30 px-2 sm:px-4 py-2 bg-white/90 dark:bg-gray-900/80 backdrop-blur-md border-b border-slate-200 dark:border-gray-700/50 shadow-sm dark:shadow-xl">
       <div className="max-w-5xl mx-auto flex flex-col gap-1">
         <div className="relative flex items-center gap-2">
           <div className="absolute left-3 flex items-center gap-1.5 pointer-events-none">
@@ -163,7 +163,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
                  {isUrl ? "Evidence Feed (URL Analysis)" : isHypothesis ? "Hypothesis Ledger" : "Evidence Feed (Quick Note)"}
                </span>
              </span>
-             <span className="text-[10px] text-gray-400 dark:text-gray-500">Press Cmd+Enter to send</span>
+             <span className="text-[10px] text-gray-500 dark:text-gray-400">Press Cmd+Enter to send</span>
           </div>
         )}
 

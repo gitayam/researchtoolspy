@@ -106,7 +106,7 @@ export default function CopPanelExpander({
         tabIndex={-1}
       >
         {/* Unified Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
           <div className="flex items-center gap-2">
             <span className="shrink-0">{icon}</span>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
@@ -141,7 +141,7 @@ export default function CopPanelExpander({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-4 md:p-6 bg-slate-50/30 dark:bg-slate-950/30">
+        <div className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 bg-slate-50/30 dark:bg-slate-950/30">
           <div className="max-w-7xl mx-auto">
             {children(true)}
           </div>
@@ -166,10 +166,10 @@ export default function CopPanelExpander({
       aria-label={title}
     >
       {/* Unified Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <span className="shrink-0">{icon}</span>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          <h3 className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 truncate">
             {title}
           </h3>
           {badge != null && (
@@ -193,7 +193,7 @@ export default function CopPanelExpander({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 md:px-4 md:py-4">
+      <div className="flex-1 overflow-y-auto px-2 py-2 sm:px-3 sm:py-3 md:px-4 md:py-4">
         {children(false)}
       </div>
 

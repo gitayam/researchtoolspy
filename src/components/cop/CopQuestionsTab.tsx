@@ -190,7 +190,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
         {loading ? (
           <div className="flex items-center justify-center py-6">
-            <Loader2 className="h-4 w-4 animate-spin text-slate-400 dark:text-slate-500" />
+            <Loader2 className="h-4 w-4 animate-spin text-slate-500 dark:text-slate-400" />
             <span className="ml-2 text-xs text-slate-500">Loading questions...</span>
           </div>
         ) : starburst ? (
@@ -249,7 +249,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
                             {q.question}
                           </span>
                           {q.answer && (
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 line-clamp-2">
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
                               {q.answer}
                             </p>
                           )}
@@ -284,7 +284,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
             <p className="text-xs text-slate-500">
               No analysis framework linked yet.
             </p>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 max-w-[200px] mx-auto">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 max-w-[200px] mx-auto">
               Generate 5W1H questions to guide the investigation systematically.
             </p>
             {error && (

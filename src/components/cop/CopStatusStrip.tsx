@@ -173,7 +173,7 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
   return (
     <div
       className={cn(
-        'flex flex-col md:flex-row md:items-center gap-3 md:gap-6 px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 shrink-0',
+        'flex flex-col md:flex-row md:items-center gap-2 sm:gap-3 md:gap-6 px-2 sm:px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/50 shrink-0',
         className,
       )}
     >
@@ -214,7 +214,7 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
             )}>
               {brief || 'Set mission objective so newcomers know what to work on...'}
             </span>
-            <Edit2 className="h-3 w-3 text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+            <Edit2 className="h-3 w-3 text-slate-500 dark:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
           </div>
         )}
       </div>
@@ -236,7 +236,7 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
               className="flex items-center gap-1.5 shrink-0"
               title={`${kpi.label}: ${value}`}
             >
-              <Icon className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+              <Icon className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
               <span className="hidden lg:inline text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
                 {kpi.label}
               </span>

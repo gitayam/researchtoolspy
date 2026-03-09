@@ -9,14 +9,14 @@ export function DashboardLayout() {
   // No authentication required - tools and frameworks are publicly accessible
   // Users can optionally log in to save their work
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <SkipToContent />
       <ScrollToTop />
       <DashboardSidebar />
       <div className="lg:pl-64">
         <DashboardHeader />
-        <main id="main-content" className="py-4 sm:py-6 lg:py-8" role="main" aria-label="Main content">
-          <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8">
+        <main id="main-content" className="py-3 sm:py-4 md:py-6 lg:py-8" role="main" aria-label="Main content">
+          <div className="mx-auto max-w-7xl px-2 sm:px-4 md:px-6 lg:px-8">
             <GuestModeBanner />
             <Outlet />
           </div>
@@ -28,7 +28,7 @@ export function DashboardLayout() {
 
 export function DashboardFullBleedLayout() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <SkipToContent />
       <ScrollToTop />
       <DashboardSidebar />

@@ -247,7 +247,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
 
         {loading ? (
           <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin text-gray-400 dark:text-gray-500" />
+            <Loader2 className="h-5 w-5 animate-spin text-gray-500 dark:text-gray-400" />
           </div>
         ) : hypotheses.length > 0 ? (
           hypotheses.map(h => (
@@ -423,7 +423,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
           ))
         ) : (
           <div className="text-center py-8">
-            <Brain className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+            <Brain className="h-6 w-6 text-gray-500 dark:text-gray-400 mx-auto mb-2" />
             <p className="text-xs text-gray-500 dark:text-gray-400">No hypotheses proposed yet.</p>
             <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
               Propose a hypothesis to start Analysis of Competing Hypotheses (ACH).

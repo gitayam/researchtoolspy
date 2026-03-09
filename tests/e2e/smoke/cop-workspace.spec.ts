@@ -273,7 +273,7 @@ test.describe('COP Workspace -- Navigation & Layout', () => {
     await expect(copWorkspacePage.sessionName).toHaveText(mockWorkspaceSession.name)
   })
 
-  test('@smoke header shows mode toggle, action buttons', async ({ copWorkspacePage }) => {
+  test('@smoke header shows mode toggle, action buttons', async ({ copWorkspacePage, isMobile }) => {
     await copWorkspacePage.goto(SESSION_ID)
     await copWorkspacePage.waitForLoad()
 
@@ -284,7 +284,9 @@ test.describe('COP Workspace -- Navigation & Layout', () => {
     // Action buttons
     await expect(copWorkspacePage.inviteButton).toBeVisible()
     await expect(copWorkspacePage.shareButton).toBeVisible()
-    await expect(copWorkspacePage.cotExportButton).toBeVisible()
+    if (!isMobile) {
+      await expect(copWorkspacePage.cotExportButton).toBeVisible()
+    }
   })
 
   test('@smoke status strip renders with KPI badges', async ({ copWorkspacePage }) => {

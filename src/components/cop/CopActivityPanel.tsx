@@ -150,7 +150,7 @@ export default function CopActivityPanel({ sessionId, expanded }: CopActivityPan
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2 px-4">
-        <Activity className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+        <Activity className="h-6 w-6 text-gray-500 dark:text-gray-400" />
         <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">No activity yet</p>
         <p className="text-[10px] text-gray-500 dark:text-gray-400 text-center">
           Actions like adding evidence, running analyses, and answering RFIs will appear here.
@@ -166,20 +166,20 @@ export default function CopActivityPanel({ sessionId, expanded }: CopActivityPan
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto min-h-0">
-        <ul className="divide-y divide-gray-700">
+        <ul className="divide-y divide-slate-200 dark:divide-gray-700">
           {items.map((item) => {
             const { icon: Icon, color } = getActionIcon(item.action)
             return (
               <li
                 key={item.id}
-                className="flex items-start gap-3 px-3 py-2.5 bg-gray-800/30 hover:bg-gray-800/50 transition-colors"
+                className="flex items-start gap-3 px-3 py-2.5 bg-slate-50 dark:bg-gray-800/30 hover:bg-slate-100 dark:hover:bg-gray-800/50 transition-colors"
               >
                 <span className={`mt-0.5 shrink-0 ${color}`}>
                   <Icon size={16} />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-200 leading-snug">{item.summary}</p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">{timeAgo(item.created_at)}</p>
+                  <p className="text-xs text-slate-700 dark:text-gray-200 leading-snug">{item.summary}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-gray-500 mt-0.5">{timeAgo(item.created_at)}</p>
                 </div>
               </li>
             )
@@ -189,11 +189,11 @@ export default function CopActivityPanel({ sessionId, expanded }: CopActivityPan
 
       {/* Load more — only visible in expanded mode when there are more items */}
       {expanded && hasMore && (
-        <div className="border-t border-gray-700 px-3 py-2 flex justify-center">
+        <div className="border-t border-slate-200 dark:border-gray-700 px-3 py-2 flex justify-center">
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs text-gray-400 hover:text-gray-200"
+            className="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200"
             onClick={handleLoadMore}
             disabled={loadingMore}
           >

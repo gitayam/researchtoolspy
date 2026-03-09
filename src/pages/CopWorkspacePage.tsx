@@ -134,7 +134,7 @@ function CopEntitiesPanel({ stats, onOpenEntityDrawer }: {
           <span className="ml-1 text-[9px] text-slate-400 dark:text-slate-500 font-mono">⌘E</span>
         </Button>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 p-3">
+      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-1.5 sm:gap-2 p-2 sm:p-3">
         {ENTITY_TABS.map(({ key, label, icon: Icon, color, bg, border, hoverBg }) => (
           <button
             key={key}
@@ -540,29 +540,29 @@ export default function CopWorkspacePage() {
   return (
     <div className="flex flex-col bg-background min-h-[calc(100dvh_-_4rem)] sm:min-h-[calc(100dvh_-_4.5rem)]">
       {/* ── Header bar ──────────────────────────────────────────── */}
-      <header className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 bg-background border-b shrink-0">
+      <header className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 px-2 sm:px-3 md:px-4 py-2 bg-background border-b shrink-0">
         {/* Back button */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate('/dashboard/cop')}
-          className="shrink-0 cursor-pointer"
+          className="shrink-0 cursor-pointer h-8 w-8 sm:h-auto sm:w-auto p-0 sm:px-3"
           aria-label="Back to sessions"
         >
-          <ArrowLeft className="h-4 w-4 md:mr-1" />
-          <span className="hidden md:inline">Back</span>
+          <ArrowLeft className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">Back</span>
         </Button>
 
         {/* Session name + template badge */}
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <h1 className="font-semibold text-sm truncate text-gray-900 dark:text-gray-100">{session.name}</h1>
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+          <h1 className="font-semibold text-xs sm:text-sm truncate text-gray-900 dark:text-gray-100">{session.name}</h1>
           <Badge variant="secondary" className="shrink-0 text-[10px] hidden sm:inline-flex">
             {TEMPLATE_LABELS[session.template_type] ?? session.template_type}
           </Badge>
           {session.status === 'ACTIVE' && (
-            <span className="hidden md:inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse" />
-              Live
+              <span className="hidden sm:inline">Live</span>
             </span>
           )}
         </div>
@@ -574,47 +574,47 @@ export default function CopWorkspacePage() {
             data-testid="mode-progress"
             onClick={() => setMode('progress')}
             className={cn(
-              'flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer',
+              'flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer',
               mode === 'progress'
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
             <BarChart3 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Progress</span>
+            <span className="hidden xs:inline">Progress</span>
           </button>
           <button
             type="button"
             data-testid="mode-monitor"
             onClick={() => setMode('monitor')}
             className={cn(
-              'flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer',
+              'flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer',
               mode === 'monitor'
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
             <MonitorPlay className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Monitor</span>
+            <span className="hidden xs:inline">Monitor</span>
           </button>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setEntityDrawerOpen(true)}
             title="Entity Drawer (Cmd+E)"
-            className="h-7 text-[11px] px-2.5 gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 cursor-pointer"
+            className="h-7 text-[11px] px-1.5 sm:px-2.5 gap-1 sm:gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 cursor-pointer"
           >
             <Database className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Entities</span>
           </Button>
-          <Button variant="ghost" size="sm" title="Invite collaborator" onClick={() => setInviteOpen(true)} className="cursor-pointer" aria-label="Invite collaborator">
+          <Button variant="ghost" size="sm" title="Invite collaborator" onClick={() => setInviteOpen(true)} className="cursor-pointer h-7 w-7 sm:h-auto sm:w-auto p-0 sm:p-2" aria-label="Invite collaborator">
             <UserPlus className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleShare} title="Copy share link" className="cursor-pointer" aria-label="Copy share link">
+          <Button variant="ghost" size="sm" onClick={handleShare} title="Copy share link" className="cursor-pointer h-7 w-7 sm:h-auto sm:w-auto p-0 sm:p-2" aria-label="Copy share link">
             <Share2 className="h-4 w-4" />
           </Button>
           <Button
@@ -622,7 +622,7 @@ export default function CopWorkspacePage() {
             size="sm"
             onClick={() => window.open(`/api/cop/${id}/cot`, '_blank')}
             title="Export as Cursor-on-Target (ATAK compatible)"
-            className="cursor-pointer"
+            className="cursor-pointer hidden sm:inline-flex"
             aria-label="Export as Cursor-on-Target"
           >
             <Radio className="h-4 w-4" />
@@ -653,7 +653,7 @@ export default function CopWorkspacePage() {
         <CopSidebar mode={mode} stats={workspaceStats} />
 
         {/* Panel grid (scrollable main area) */}
-        <main className="overflow-y-auto p-3 md:p-4 lg:p-5 flex-1 min-w-0" role="main" aria-label="COP workspace panels">
+        <main className="overflow-y-auto p-2 sm:p-3 md:p-4 lg:p-5 flex-1 min-w-0" role="main" aria-label="COP workspace panels">
           <div className="max-w-7xl mx-auto space-y-4">
             {mode === 'progress' ? (
               <ProgressLayout

@@ -368,7 +368,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
           </div>
         ) : (
           <div className="text-center py-8">
-            <User className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+            <User className="h-6 w-6 text-gray-500 dark:text-gray-400 mx-auto mb-2" />
             <p className="text-xs text-gray-500 dark:text-gray-400">No actors tracked yet.</p>
             <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
               Add actors to track research targets across platforms.

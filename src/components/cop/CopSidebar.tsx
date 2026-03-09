@@ -184,7 +184,7 @@ export default function CopSidebar({ mode, stats }: CopSidebarProps) {
                         {item.label}
                       </span>
                       {badge != null && badge > 0 && (
-                        <span className="text-[10px] tabular-nums font-medium text-slate-400 dark:text-slate-500">
+                        <span className="text-[10px] tabular-nums font-medium text-slate-500 dark:text-slate-400">
                           {badge}
                         </span>
                       )}
@@ -222,7 +222,7 @@ export default function CopSidebar({ mode, stats }: CopSidebarProps) {
         <button
           type="button"
           onClick={toggleCollapsed}
-          className="w-full flex items-center justify-center py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (
