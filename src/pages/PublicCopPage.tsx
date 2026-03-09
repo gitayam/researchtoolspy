@@ -518,7 +518,7 @@ export default function PublicCopPage() {
         )}
 
         {/* Map */}
-        <div className="flex-1" style={{ position: 'relative', minHeight: 0 }}>
+        <div className="flex-1 overflow-hidden" style={{ position: 'relative', minHeight: 0 }}>
           <CopMap session={session} layers={layerData} />
         </div>
       </div>

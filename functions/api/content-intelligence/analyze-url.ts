@@ -17,6 +17,7 @@ import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { normalizeClaims } from './normalize-claims'
 import { extractAndSaveClaimEntities } from './extract-claim-entities'
 import { matchMultipleClaimsEntities } from './match-entities-to-actors'
+import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
 
 interface Env {
   DB: D1Database
@@ -352,11 +353,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.log('[DEBUG] Calling generateSummary with GPT...')
 
       // For large PDFs (>2000 words), use intelligent chunking
-      if (contentData.isPDF && wordCount > 2000) {
+      const textWordCount = countWords(contentData.text)
+      if (contentData.isPDF && textWordCount > 2000) {
         console.log('[DEBUG] Large PDF detected, using intelligent summarization')
         const intelligentResult = await intelligentPDFSummary(
           contentData.text,
-          wordCount,
+          textWordCount,
           env.OPENAI_API_KEY
         )
         summary = intelligentResult.summary
@@ -2127,6 +2129,22 @@ async function analyzeSentiment(text: string, env: Env): Promise<{
     sadness: number
     surprise: number
   }
+  rage_check: {
+    score: number // 0-100 weighted composite
+    label: 'Low' | 'Medium' | 'High'
+    category_scores: {
+      loaded_language: number
+      absolutist: number
+      threat_panic: number
+      us_vs_them: number
+      engagement_bait: number
+    }
+  }
+  claims: Array<{
+    text: string
+    category: string
+    risk: 'low' | 'medium' | 'high'
+  }>
   controversialClaims: Array<{
     text: string
     sentiment: string
@@ -2136,13 +2154,29 @@ async function analyzeSentiment(text: string, env: Env): Promise<{
 }> {
   const truncated = text.substring(0, 10000)
 
-  const prompt = `Analyze the sentiment of this content. Provide:
+  const prompt = `Analyze this content for sentiment, manipulation patterns, and factual claims.
+
+PART 1 — SENTIMENT
 1. Overall sentiment (positive, negative, neutral, or mixed)
 2. Sentiment score from -1.0 (very negative) to +1.0 (very positive)
 3. Confidence score (0.0 to 1.0)
 4. Emotion breakdown (joy, anger, fear, sadness, surprise) as percentages 0-100
-5. Controversial or inflammatory claims (if any)
-6. Key insights about the tone and messaging
+5. Key insights about the tone and messaging
+
+PART 2 — MANIPULATION CHECK (RageCheck)
+Score these 5 categories (0-100 each) based on linguistic patterns found:
+1. loaded_language (Weight: 25%): Emotional, inflammatory words (e.g., "disgusting", "evil", "radical")
+2. absolutist (Weight: 15%): Certainty/black-and-white language (e.g., "always", "never", "undeniable")
+3. threat_panic (Weight: 25%): Fear-mongering framing (e.g., "coming for", "under attack", "collapse")
+4. us_vs_them (Weight: 15%): Divisive in-group/out-group language (e.g., "those people", "elites", "enemies")
+5. engagement_bait (Weight: 20%): Clickbait/viral patterns (e.g., "you won't believe", "shocking", "must see")
+Calculate weighted score. Label: Low (0-33), Medium (34-66), High (67-100).
+
+PART 3 — FACTUAL CLAIMS
+Extract up to 10 key factual claims made in the content. For each:
+- The claim text (verbatim or close paraphrase, max 200 chars)
+- Category: geopolitical, economic, scientific, legal, social, military, technology, health, or other
+- Risk level: low (easily verified mundane fact), medium (notable claim needing source), high (extraordinary claim requiring strong evidence)
 
 Text to analyze:
 ${truncated}
@@ -2159,12 +2193,22 @@ Return ONLY valid JSON in this exact format:
     "sadness": 0-100,
     "surprise": 0-100
   },
-  "controversialClaims": [
-    {
-      "text": "claim snippet",
-      "sentiment": "description",
-      "reason": "why controversial"
+  "rage_check": {
+    "score": 0-100,
+    "label": "Low|Medium|High",
+    "category_scores": {
+      "loaded_language": 0-100,
+      "absolutist": 0-100,
+      "threat_panic": 0-100,
+      "us_vs_them": 0-100,
+      "engagement_bait": 0-100
     }
+  },
+  "claims": [
+    { "text": "claim text", "category": "geopolitical", "risk": "low|medium|high" }
+  ],
+  "controversialClaims": [
+    { "text": "claim snippet", "sentiment": "description", "reason": "why controversial" }
   ],
   "keyInsights": [
     "Main positive aspect: ...",
@@ -2174,25 +2218,25 @@ Return ONLY valid JSON in this exact format:
 }`
 
   try {
-    console.log('[DEBUG] Calling OpenAI API for sentiment analysis via AI Gateway...')
+    console.log('[DEBUG] Calling OpenAI API for sentiment+rage+claims analysis via AI Gateway...')
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a sentiment analysis expert. Analyze content objectively and return only valid JSON.' },
+        { role: 'system', content: 'You are an expert media analyst specializing in sentiment analysis, manipulation detection, and factual claim extraction. Analyze content objectively and return only valid JSON.' },
         { role: 'user', content: prompt }
       ],
-      max_completion_tokens: 1000,
-      temperature: 0.3 // Lower temperature for more consistent analysis
+      max_completion_tokens: 1800,
+      temperature: 0.2 // Low temperature for consistent scoring
     }, {
       cacheTTL: getOptimalCacheTTL('sentiment-analysis'),
       metadata: {
         endpoint: 'content-intelligence',
-        operation: 'analyze-sentiment'
+        operation: 'analyze-sentiment-rage-claims'
       },
-      timeout: 15000
+      timeout: 20000
     })
 
-    console.log('[DEBUG] Sentiment analysis response received via AI Gateway')
+    console.log('[DEBUG] Sentiment+rage+claims analysis response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid API response for sentiment')
@@ -2203,9 +2247,22 @@ Return ONLY valid JSON in this exact format:
       .replace(/```\n?/g, '')
       .trim()
 
-    console.log('[DEBUG] Parsing sentiment JSON...')
+    console.log('[DEBUG] Parsing sentiment+rage+claims JSON...')
     const result = JSON.parse(jsonText)
-    console.log('[DEBUG] Sentiment parsed:', result.overall, result.score)
+    console.log('[DEBUG] Sentiment parsed:', result.overall, result.score, '| Rage:', result.rage_check?.score, result.rage_check?.label, '| Claims:', result.claims?.length || 0)
+
+    // Ensure backwards compatibility: if rage_check missing, provide defaults
+    if (!result.rage_check) {
+      result.rage_check = { score: 0, label: 'Low', category_scores: { loaded_language: 0, absolutist: 0, threat_panic: 0, us_vs_them: 0, engagement_bait: 0 } }
+    }
+    if (!result.claims) {
+      result.claims = []
+    }
+    // Keep controversialClaims for backwards compat
+    if (!result.controversialClaims) {
+      result.controversialClaims = []
+    }
+
     return result
 
   } catch (error) {
@@ -2216,6 +2273,8 @@ Return ONLY valid JSON in this exact format:
       score: 0,
       confidence: 0,
       emotions: { joy: 0, anger: 0, fear: 0, sadness: 0, surprise: 0 },
+      rage_check: { score: 0, label: 'Low', category_scores: { loaded_language: 0, absolutist: 0, threat_panic: 0, us_vs_them: 0, engagement_bait: 0 } },
+      claims: [],
       controversialClaims: [],
       keyInsights: ['Sentiment analysis unavailable']
     }

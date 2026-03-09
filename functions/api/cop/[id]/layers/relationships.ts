@@ -129,7 +129,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     sql += ' LIMIT 200'
 
-    const results = await env.DB.prepare(sql).bind(...bindings).all()
+    let results: any
+    try {
+      results = await env.DB.prepare(sql).bind(...bindings).all()
+    } catch (dbError) {
+      // Table or column may not exist — return empty FeatureCollection
+      console.warn('[COP Relationships Layer] DB query failed:', dbError)
+      return new Response(JSON.stringify({ type: 'FeatureCollection', features: [] }), { headers: corsHeaders })
+    }
 
     // 4. Convert to GeoJSON FeatureCollection with LineString geometries
     const features = (results.results || []).map((row: any) => {

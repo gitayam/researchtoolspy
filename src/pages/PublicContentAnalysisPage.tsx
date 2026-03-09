@@ -377,7 +377,7 @@ export function PublicContentAnalysisPage() {
           )}
 
           {/* Links Analysis */}
-          {analysis.links_analysis && analysis.links_analysis.length > 0 && (
+          {Array.isArray(analysis.links_analysis) && analysis.links_analysis.length > 0 && (
             <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

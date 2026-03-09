@@ -266,14 +266,15 @@ export async function createActorFromUnmatchedEntity(
     // Create new actor
     await db.prepare(`
       INSERT INTO actors (
-        id, workspace_id, name, type, description, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        id, workspace_id, name, type, description, created_by, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `).bind(
       actorId,
       workspaceId,
       entityName,
-      entityType === 'person' ? 'person' : 'organization',
-      `Auto-created from claim entity mention (role: ${entity.role})`
+      entityType === 'person' ? 'PERSON' : 'ORGANIZATION',
+      `Auto-created from claim entity mention (role: ${entity.role})`,
+      userId
     ).run()
 
     // Update entity mention with new actor ID

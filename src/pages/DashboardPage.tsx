@@ -215,11 +215,11 @@ export function DashboardPage() {
             </p>
             <div className="flex gap-3">
               <Button
-                onClick={() => navigate('/dashboard/investigations/new')}
+                onClick={() => navigate('/dashboard/workspace/new')}
                 className="bg-white text-purple-700 hover:bg-purple-50"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                New Investigation
+                New Workspace
               </Button>
               <Button
                 onClick={() => navigate('/dashboard/investigations')}
@@ -360,9 +360,9 @@ export function DashboardPage() {
               <Folder className="h-12 w-12 text-gray-400 mx-auto mb-3" />
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">No active investigations</p>
               <p className="text-xs text-gray-500 mb-4">Create your first investigation to organize your research</p>
-              <Button onClick={() => navigate('/dashboard/investigations/new')} size="sm" className="bg-purple-600 hover:bg-purple-700">
+              <Button onClick={() => navigate('/dashboard/workspace/new')} size="sm" className="bg-purple-600 hover:bg-purple-700">
                 <Plus className="h-4 w-4 mr-2" />
-                Create Investigation
+                Create Workspace
               </Button>
             </div>
           )}

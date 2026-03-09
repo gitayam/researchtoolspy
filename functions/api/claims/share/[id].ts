@@ -157,7 +157,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Get linked entities
     const entities = await context.env.DB.prepare(`
-      SELECT a.id, a.name, a.actor_type, cem.role, cem.credibility_assessment
+      SELECT a.id, a.name, a.type, cem.role, cem.credibility_assessment
       FROM claim_entity_mentions cem
       JOIN actors a ON cem.actor_id = a.id
       WHERE cem.claim_adjustment_id = ?

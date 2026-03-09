@@ -44,7 +44,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       SELECT
         a.id,
         a.name,
-        a.actor_type,
+        a.type,
         a.description,
         a.created_at
       FROM actors a
@@ -56,7 +56,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Add type filter if specified
     if (type) {
-      query += ` AND a.actor_type = ?`
+      query += ` AND a.type = ?`
       params.push(type)
     }
 
@@ -75,7 +75,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         actor: {
           id: result.id,
           name: result.name,
-          type: result.actor_type,
+          type: result.type,
           description: result.description,
           created_at: result.created_at
         }

@@ -15,7 +15,11 @@
     "wrangler:deploy": "npm run build && wrangler pages deploy dist --project-name=researchtoolspy",
     "validate:schema": "ts-node scripts/validate-schema.ts",
     "validate:pre-deploy": "./scripts/pre-deployment-check.sh",
-    "migrate:prod": "wrangler d1 migrations apply researchtoolspy-prod --remote"
+    "migrate:prod": "wrangler d1 migrations apply researchtoolspy-prod --remote",
+    "test:e2e": "npx playwright test",
+    "test:e2e:smoke": "npx playwright test --grep @smoke",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:debug": "npx playwright test --debug"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -76,6 +80,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^24.6.0",
     "@types/papaparse": "^5.3.16",

@@ -171,7 +171,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         await context.env.DB.prepare(`
           INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
-          VALUES (?, ?, 'owner', datetime('now'))
+          VALUES (?, ?, 'ADMIN', datetime('now'))
         `).bind(workspace_id, userId).run()
 
         user_id = userId
