@@ -126,7 +126,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP Evidence Batch API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create evidence batch',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

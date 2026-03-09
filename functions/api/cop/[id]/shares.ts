@@ -62,7 +62,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP Share API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create share link',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -86,7 +85,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Share API] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list share links',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

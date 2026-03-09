@@ -56,7 +56,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     console.error('[COP RFI API] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update RFI',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

@@ -49,7 +49,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Marker Changelog] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list changelog',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -100,7 +99,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP Marker Changelog] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create changelog entry',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

@@ -65,7 +65,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Hypotheses API] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list hypotheses',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -128,7 +127,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP Hypotheses API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create hypothesis',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -177,7 +175,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     console.error('[COP Hypotheses API] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update hypothesis',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

@@ -66,7 +66,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Activity] GET error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to fetch activity',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), {
       status: 500, headers: corsHeaders,
     })
@@ -98,46 +97,41 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = getUserId(request)
     const createdAt = new Date().toISOString().replace('T', ' ').replace('Z', '').slice(0, 19)
 
+    const activity = {
+      id,
+      cop_session_id: sessionId,
+      user_id: userId,
+      action: body.action,
+      entity_type: body.entity_type ?? null,
+      entity_id: body.entity_id ?? null,
+      summary: body.summary ?? null,
+      actor_name: body.actor_name ?? null,
+      details: body.details ?? null,
+      created_at: createdAt,
+    }
+
     try {
       await env.DB.prepare(
         `INSERT INTO cop_activity (id, cop_session_id, user_id, action, entity_type, entity_id, summary, actor_name, details, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
-        id,
-        sessionId,
-        userId,
-        body.action,
-        body.entity_type ?? null,
-        body.entity_id ?? null,
-        body.summary ?? null,
-        body.actor_name ?? null,
-        body.details ?? null,
-        createdAt,
+        id, sessionId, userId, body.action,
+        body.entity_type ?? null, body.entity_id ?? null, body.summary ?? null,
+        body.actor_name ?? null, body.details ?? null, createdAt,
       ).run()
     } catch (dbError) {
-      // Table may not exist yet — log but don't fail the request
-      console.warn('[COP Activity] INSERT failed (table may not exist):', dbError)
+      console.error('[COP Activity] INSERT failed:', dbError)
+      return new Response(JSON.stringify({
+        error: 'Failed to persist activity',
+        activity,
+      }), { status: 500, headers: corsHeaders })
     }
 
-    return new Response(JSON.stringify({
-      activity: {
-        id,
-        cop_session_id: sessionId,
-        user_id: userId,
-        action: body.action,
-        entity_type: body.entity_type ?? null,
-        entity_id: body.entity_id ?? null,
-        summary: body.summary ?? null,
-        actor_name: body.actor_name ?? null,
-        details: body.details ?? null,
-        created_at: createdAt,
-      },
-    }), { status: 201, headers: corsHeaders })
+    return new Response(JSON.stringify({ activity }), { status: 201, headers: corsHeaders })
   } catch (error) {
     console.error('[COP Activity] POST error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to log activity',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), {
       status: 500, headers: corsHeaders,
     })

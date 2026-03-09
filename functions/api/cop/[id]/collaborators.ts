@@ -47,7 +47,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Collaborators] GET error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list collaborators',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), {
       status: 500, headers: corsHeaders,
     })
@@ -106,7 +105,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP Collaborators] POST error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to invite collaborator',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), {
       status: 500, headers: corsHeaders,
     })
@@ -138,7 +136,6 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     console.error('[COP Collaborators] DELETE error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to remove collaborator',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), {
       status: 500, headers: corsHeaders,
     })

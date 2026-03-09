@@ -69,7 +69,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP Public RFI API] Submit error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to submit answer',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

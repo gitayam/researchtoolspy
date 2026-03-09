@@ -74,7 +74,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Personas] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list personas',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -178,7 +177,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP Personas] Create/Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create/update persona',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

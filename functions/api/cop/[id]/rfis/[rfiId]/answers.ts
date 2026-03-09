@@ -60,7 +60,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP RFI Answers API] Submit error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to submit answer',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -104,7 +103,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     console.error('[COP RFI Answers API] Accept error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update answer',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

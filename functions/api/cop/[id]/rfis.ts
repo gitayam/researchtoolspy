@@ -68,7 +68,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP RFI API] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list RFIs',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -104,7 +103,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP RFI API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create RFI',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -170,7 +168,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     console.error('[COP RFI API] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update RFI',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

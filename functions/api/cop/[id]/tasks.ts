@@ -66,7 +66,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Tasks] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list tasks',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -124,7 +123,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP Tasks] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create task',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -228,7 +226,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     console.error('[COP Tasks] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update task',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -262,7 +259,6 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     console.error('[COP Tasks] Delete error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to delete task',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

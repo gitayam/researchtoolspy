@@ -162,7 +162,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Events Layer] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to load events layer',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

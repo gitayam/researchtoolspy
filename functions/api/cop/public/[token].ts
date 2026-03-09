@@ -108,7 +108,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Public API] Get error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to load shared COP',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

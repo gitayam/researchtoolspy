@@ -69,7 +69,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Sessions API] Get error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to get COP session',
-      details: error instanceof Error ? error.message : 'Unknown error'
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -178,7 +177,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     console.error('[COP Sessions API] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update COP session',
-      details: error instanceof Error ? error.message : 'Unknown error'
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -203,7 +201,6 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     console.error('[COP Sessions API] Delete error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to archive COP session',
-      details: error instanceof Error ? error.message : 'Unknown error'
     }), { status: 500, headers: corsHeaders })
   }
 }

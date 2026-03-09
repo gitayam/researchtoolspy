@@ -64,7 +64,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Sessions API] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list COP sessions',
-      details: error instanceof Error ? error.message : 'Unknown error'
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -139,7 +138,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP Sessions API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create COP session',
-      details: error instanceof Error ? error.message : 'Unknown error'
     }), { status: 500, headers: corsHeaders })
   }
 }

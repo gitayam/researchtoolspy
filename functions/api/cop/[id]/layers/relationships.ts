@@ -186,7 +186,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[COP Relationships Layer] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to load relationships layer',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }
