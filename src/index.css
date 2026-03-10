@@ -141,6 +141,40 @@ button:active, .active\:scale-95:active {
   }
 }
 
+/* Slide-up animation for mobile bottom sheets */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* ── MapLibre mobile overrides ──────────────────────────────── */
+
+/* Compact attribution on mobile to not eat map space */
+@media (max-width: 767px) {
+  .maplibregl-ctrl-attrib {
+    font-size: 9px !important;
+    max-width: 160px;
+    padding: 2px 4px !important;
+  }
+  .maplibregl-ctrl-attrib.maplibregl-compact {
+    min-height: 20px;
+  }
+  /* Larger touch targets for zoom controls */
+  .maplibregl-ctrl-group button {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  /* Scale control compact */
+  .maplibregl-ctrl-scale {
+    font-size: 9px !important;
+    padding: 0 4px !important;
+  }
+}
+
 /* Indeterminate progress bar animation for page loading */
 @keyframes progress-indeterminate {
   0% {

@@ -48,8 +48,7 @@ import CopEvidenceFeed from '@/components/cop/CopEvidenceFeed'
 import CopQuestionsTab from '@/components/cop/CopQuestionsTab'
 import CopHypothesisTab from '@/components/cop/CopHypothesisTab'
 import CopRfiTab from '@/components/cop/CopRfiTab'
-import CopMap from '@/components/cop/CopMap'
-import CopLayerPanel from '@/components/cop/CopLayerPanel'
+import CopMapWithLayers from '@/components/cop/CopMapWithLayers'
 import CopActivityPanel from '@/components/cop/CopActivityPanel'
 import CopInviteDialog from '@/components/cop/CopInviteDialog'
 import CopGapAnalysis from '@/components/cop/CopGapAnalysis'
@@ -814,27 +813,24 @@ function ProgressLayout({
           id="map"
           title="Map"
           icon={<MapIcon className="h-4 w-4 text-green-400" />}
-          height="compact"
+          height="h-[280px] sm:h-[200px]"
         >
           {(expanded) => (
-            <div className={cn('flex h-full', expanded ? 'min-h-[600px]' : '')}>
-              {expanded && (
-                <CopLayerPanel
-                  activeLayers={activeLayers}
-                  onToggleLayer={onToggleLayer}
-                  layerCounts={layerCounts}
-                />
-              )}
-              <div className="flex-1">
-                <CopMap
-                  session={session}
-                  layers={layerData}
-                  pinPlacementMode={pinPlacementMode}
-                  onPinPlaced={onPinPlaced}
-                  onMarkerOpenInFeed={onMarkerOpenInFeed}
-                />
-              </div>
-            </div>
+            <CopMapWithLayers
+              expanded={expanded}
+              mapProps={{
+                session,
+                layers: layerData,
+                pinPlacementMode,
+                onPinPlaced,
+                onMarkerOpenInFeed,
+              }}
+              layerProps={{
+                activeLayers,
+                onToggleLayer,
+                layerCounts,
+              }}
+            />
           )}
         </CopPanelExpander>
 
@@ -1077,24 +1073,21 @@ function MonitorLayout({
           height="tall"
         >
           {(expanded) => (
-            <div className={cn('flex h-full', expanded ? 'min-h-[600px]' : '')}>
-              {expanded && (
-                <CopLayerPanel
-                  activeLayers={activeLayers}
-                  onToggleLayer={onToggleLayer}
-                  layerCounts={layerCounts}
-                />
-              )}
-              <div className="flex-1">
-                <CopMap
-                  session={session}
-                  layers={layerData}
-                  pinPlacementMode={pinPlacementMode}
-                  onPinPlaced={onPinPlaced}
-                  onMarkerOpenInFeed={onMarkerOpenInFeed}
-                />
-              </div>
-            </div>
+            <CopMapWithLayers
+              expanded={expanded}
+              mapProps={{
+                session,
+                layers: layerData,
+                pinPlacementMode,
+                onPinPlaced,
+                onMarkerOpenInFeed,
+              }}
+              layerProps={{
+                activeLayers,
+                onToggleLayer,
+                layerCounts,
+              }}
+            />
           )}
         </CopPanelExpander>
       ) : (

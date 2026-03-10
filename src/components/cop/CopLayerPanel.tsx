@@ -81,9 +81,9 @@ export default function CopLayerPanel({
   }
 
   return (
-    <aside className="w-56 bg-white dark:bg-gray-900 border-r border-slate-200 dark:border-gray-700 flex flex-col overflow-y-auto shrink-0">
-      {/* Header */}
-      <div className="px-3 py-3 border-b border-slate-200 dark:border-gray-700">
+    <aside className="w-full md:w-56 bg-white dark:bg-gray-900 md:border-r border-slate-200 dark:border-gray-700 flex flex-col overflow-y-auto shrink-0">
+      {/* Header — hidden on mobile since parent overlay provides its own */}
+      <div className="hidden md:block px-3 py-3 border-b border-slate-200 dark:border-gray-700">
         <h2 className="text-sm font-semibold text-slate-800 dark:text-gray-200 uppercase tracking-wider">
           Layers
         </h2>
@@ -145,7 +145,7 @@ export default function CopLayerPanel({
                         aria-checked={isActive}
                         aria-label={`${layer.name}: ${isActive ? 'enabled' : 'disabled'}`}
                         onClick={() => onToggleLayer(layer.id)}
-                        className={`w-full flex items-center gap-2 px-4 py-1.5 text-left text-xs transition-colors cursor-pointer hover:bg-slate-100 dark:hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none rounded ${
+                        className={`w-full flex items-center gap-2 px-4 py-2.5 md:py-1.5 text-left text-xs transition-colors cursor-pointer hover:bg-slate-100 dark:hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none rounded touch-manipulation ${
                           isActive ? 'text-slate-800 dark:text-gray-200' : 'text-slate-500 dark:text-gray-500'
                         }`}
                       >
