@@ -83,14 +83,14 @@ export default function CopBlockerStrip({ sessionId, onGoToBlocker }: CopBlocker
             className="flex items-start sm:items-center gap-2 min-w-0"
           >
             <AlertTriangle className="h-3.5 w-3.5 text-red-500 dark:text-red-400 shrink-0 mt-0.5 sm:mt-0" />
-            <span className="text-xs text-red-700 dark:text-red-200 line-clamp-2 sm:line-clamp-1 flex-1">
+            <span className="text-xs text-red-700 dark:text-red-200 line-clamp-2 sm:line-clamp-1 flex-1" title={blocker.question}>
               {blocker.question}
             </span>
             <Button
               size="sm"
               variant="outline"
               onClick={() => onGoToBlocker?.(blocker.id)}
-              className="h-6 text-[10px] px-2 border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-200 shrink-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-red-500"
+              className="h-8 sm:h-6 text-[10px] px-2 border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-200 shrink-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-red-500"
             >
               Go to Blocker
             </Button>

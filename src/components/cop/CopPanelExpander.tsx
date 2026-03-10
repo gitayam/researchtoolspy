@@ -122,18 +122,18 @@ export default function CopPanelExpander({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800"
+              className="h-8 w-8 sm:h-7 sm:w-7 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-blue-500"
               onClick={handleCollapse}
-              aria-label="Minimize panel"
+              aria-label={`Minimize ${title} panel`}
             >
               <Minimize2 className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800"
+              className="h-8 w-8 sm:h-7 sm:w-7 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-blue-500"
               onClick={handleCollapse}
-              aria-label="Close panel"
+              aria-label={`Close ${title} panel`}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -183,7 +183,7 @@ export default function CopPanelExpander({
             ref={triggerRef}
             variant="ghost"
             size="icon"
-            className="h-6 w-6 cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity motion-reduce:transition-none hover:bg-slate-200 dark:hover:bg-slate-700"
+            className="h-8 w-8 sm:h-6 sm:w-6 cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity motion-reduce:transition-none hover:bg-slate-200 dark:hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:opacity-100"
             onClick={handleExpand}
             aria-label={`Expand ${title} panel`}
           >
