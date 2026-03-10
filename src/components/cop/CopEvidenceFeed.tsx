@@ -502,14 +502,14 @@ export default function CopEvidenceFeed({
         </div>
 
         {/* Type filter bar */}
-        <div className="flex items-center gap-1.5 px-3 py-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <div className="flex items-center gap-1.5 px-3 py-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto scrollbar-thin">
           {['all', 'evidence', 'analysis', 'entity', 'url_analysis'].map((type) => (
             <button
               key={type}
               type="button"
               onClick={() => setTypeFilter(type)}
               className={cn(
-                'px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors cursor-pointer',
+                'px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none',
                 typeFilter === type
                   ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30'
                   : 'text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 border border-transparent hover:border-gray-300 dark:hover:border-gray-700'
@@ -611,7 +611,7 @@ export default function CopEvidenceFeed({
                   />
                   {/* Overlay */}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                    <p className="text-[10px] text-gray-100 line-clamp-1">{item.title}</p>
+                    <p className="text-[10px] sm:text-[10px] text-gray-100 line-clamp-1" title={item.title}>{item.title}</p>
                     <p className="text-[9px] text-gray-300">{timeAgo(item.created_at)}</p>
                   </div>
                   {/* Pin indicator */}
@@ -691,10 +691,13 @@ export default function CopEvidenceFeed({
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className={cn(
-                            "text-xs font-medium line-clamp-2 sm:truncate flex-1",
-                            item.status === 'failed' ? "text-red-400" : "text-gray-900 dark:text-gray-200"
-                          )}>
+                          <span
+                            className={cn(
+                              "text-xs font-medium line-clamp-2 sm:truncate flex-1",
+                              item.status === 'failed' ? "text-red-400" : "text-gray-900 dark:text-gray-200"
+                            )}
+                            title={item.title}
+                          >
                             {item.title}
                           </span>
                           {/* Pin to map button */}

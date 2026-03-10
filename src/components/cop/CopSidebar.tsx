@@ -169,7 +169,7 @@ export default function CopSidebar({ mode, stats }: CopSidebarProps) {
                   onClick={() => handleNavClick(item.id)}
                   title={collapsed ? item.label : undefined}
                   className={cn(
-                    'w-full flex items-center gap-2.5 rounded-md transition-colors duration-150 cursor-pointer',
+                    'w-full flex items-center gap-2.5 rounded-md transition-colors duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none',
                     collapsed ? 'justify-center px-1.5 py-2' : 'px-2.5 py-1.5',
                     isActive
                       ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
