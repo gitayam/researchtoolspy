@@ -183,7 +183,7 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
       )}
     >
       {/* Mission Brief Section */}
-      <div className="flex-1 flex items-center gap-2 min-w-0">
+      <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
         <div className="flex items-center gap-1.5 shrink-0">
           <Flag className="h-4 w-4 text-emerald-500" />
           <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider">Mission Brief:</span>
