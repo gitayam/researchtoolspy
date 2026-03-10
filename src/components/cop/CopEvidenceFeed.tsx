@@ -692,7 +692,7 @@ export default function CopEvidenceFeed({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className={cn(
-                            "text-xs font-medium truncate flex-1",
+                            "text-xs font-medium line-clamp-2 sm:truncate flex-1",
                             item.status === 'failed' ? "text-red-400" : "text-gray-900 dark:text-gray-200"
                           )}>
                             {item.title}

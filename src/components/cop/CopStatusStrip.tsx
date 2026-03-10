@@ -209,10 +209,10 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
             onClick={() => setIsEditing(true)}
           >
             <span className={cn(
-              "text-xs truncate flex-1",
+              "text-xs flex-1 line-clamp-2 sm:line-clamp-1",
               brief ? "text-slate-700 dark:text-slate-200" : "text-amber-600 dark:text-amber-400"
             )}>
-              {brief || 'Set mission objective so newcomers know what to work on...'}
+              {brief || 'Set mission objective...'}
             </span>
             <Edit2 className="h-3 w-3 text-slate-500 dark:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
           </div>

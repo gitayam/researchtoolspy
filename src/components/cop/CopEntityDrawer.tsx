@@ -252,7 +252,7 @@ export default function CopEntityDrawer({
       {/* Drawer panel */}
       <div
         className={cn(
-          'fixed top-0 right-0 h-full w-[440px] z-50',
+          'fixed top-0 right-0 h-full w-full sm:w-[440px] z-50',
           'transform transition-transform duration-200 ease-out',
           'bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 shadow-2xl',
           'flex flex-col',

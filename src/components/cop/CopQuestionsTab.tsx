@@ -284,7 +284,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
             <p className="text-xs text-slate-500">
               No analysis framework linked yet.
             </p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 max-w-[200px] mx-auto">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 max-w-[250px] sm:max-w-[200px] mx-auto">
               Generate 5W1H questions to guide the investigation systematically.
             </p>
             {error && (

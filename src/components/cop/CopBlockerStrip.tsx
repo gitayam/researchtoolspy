@@ -76,14 +76,14 @@ export default function CopBlockerStrip({ sessionId, onGoToBlocker }: CopBlocker
       </div>
 
       {/* Blocker items */}
-      <div className="flex-1 flex items-center gap-3 min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
         {visible.map((blocker) => (
           <div
             key={blocker.id}
-            className="flex items-center gap-2 min-w-0"
+            className="flex items-start sm:items-center gap-2 min-w-0"
           >
-            <AlertTriangle className="h-3.5 w-3.5 text-red-500 dark:text-red-400 shrink-0" />
-            <span className="text-xs text-red-700 dark:text-red-200 truncate max-w-[300px]">
+            <AlertTriangle className="h-3.5 w-3.5 text-red-500 dark:text-red-400 shrink-0 mt-0.5 sm:mt-0" />
+            <span className="text-xs text-red-700 dark:text-red-200 line-clamp-2 sm:line-clamp-1 flex-1">
               {blocker.question}
             </span>
             <Button

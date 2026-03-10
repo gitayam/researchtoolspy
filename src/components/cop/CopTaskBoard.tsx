@@ -284,7 +284,7 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
 
           <div className="flex-1 min-w-0">
             {/* Title */}
-            <p className="text-xs font-semibold text-gray-900 dark:text-gray-200 truncate leading-snug">
+            <p className="text-xs font-semibold text-gray-900 dark:text-gray-200 line-clamp-2 sm:truncate leading-snug">
               {task.title}
             </p>
 
@@ -438,7 +438,7 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
               return (
                 <div key={task.id} className="flex items-center gap-1.5 text-[10px]">
                   <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${PRIORITY_DOT[task.priority]}`} />
-                  <span className="text-gray-900 dark:text-gray-200 truncate flex-1">{task.title}</span>
+                  <span className="text-gray-900 dark:text-gray-200 line-clamp-1 flex-1">{task.title}</span>
                   <span className={`shrink-0 px-1 py-0 rounded text-[8px] border ${typeConfig.color}`}>
                     {typeConfig.label}
                   </span>
@@ -571,7 +571,7 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
         ) : (
           <>
             {/* Kanban columns */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {COLUMNS.map(col => {
                 const colTasks =
                   col.key === 'todo' ? todoTasks
