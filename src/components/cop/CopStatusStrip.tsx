@@ -133,13 +133,14 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
     setBrief(initialBrief || '')
   }, [initialBrief])
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch(`/api/cop/${sessionId}/stats`, { headers: getCopHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/stats`, { headers: getCopHeaders(), signal })
       if (!res.ok) throw new Error('Failed to fetch stats')
       const data = await res.json()
       setStats(data.stats ?? data)
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
       setStats(null)
     } finally {
       setLoading(false)
@@ -147,9 +148,13 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
   }, [sessionId])
 
   useEffect(() => {
-    fetchStats()
-    const interval = setInterval(fetchStats, 30000)
-    return () => clearInterval(interval)
+    const controller = new AbortController()
+    fetchStats(controller.signal)
+    const interval = setInterval(() => fetchStats(controller.signal), 30000)
+    return () => {
+      controller.abort()
+      clearInterval(interval)
+    }
   }, [fetchStats])
 
   const handleSaveBrief = () => {

@@ -69,7 +69,7 @@ export default function CopActivityPanel({ sessionId, expanded }: CopActivityPan
   // ── Fetch activity ──────────────────────────────────────────────
 
   const fetchActivity = useCallback(
-    async (offset = 0, append = false) => {
+    async (offset = 0, append = false, signal?: AbortSignal) => {
       if (!append) setLoading(true)
       else setLoadingMore(true)
 
@@ -78,7 +78,7 @@ export default function CopActivityPanel({ sessionId, expanded }: CopActivityPan
       try {
         const res = await fetch(
           `/api/cop/${sessionId}/activity?limit=50&offset=${offset}`,
-          { headers: getCopHeaders() },
+          { headers: getCopHeaders(), signal },
         )
 
         if (!res.ok) {
@@ -96,6 +96,7 @@ export default function CopActivityPanel({ sessionId, expanded }: CopActivityPan
           setItems(incoming)
         }
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
         setError(err instanceof Error ? err.message : 'Failed to load activity')
       } finally {
         setLoading(false)
@@ -108,13 +109,15 @@ export default function CopActivityPanel({ sessionId, expanded }: CopActivityPan
   // ── Initial fetch + auto-refresh every 30s ─────────────────────
 
   useEffect(() => {
-    fetchActivity(0, false)
+    const controller = new AbortController()
+    fetchActivity(0, false, controller.signal)
 
     intervalRef.current = setInterval(() => {
-      fetchActivity(0, false)
+      fetchActivity(0, false, controller.signal)
     }, 30_000)
 
     return () => {
+      controller.abort()
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [fetchActivity])

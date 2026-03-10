@@ -252,7 +252,7 @@ export default function CopWorkspacePage() {
     fetch(`/api/cop/${id}/stats`, { headers: getCopHeaders() })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.stats) setWorkspaceStats(data.stats) })
-      .catch(() => {})
+      .catch((err) => { console.error('Failed to fetch workspace stats:', err) })
   }, [id])
 
   // ── Fetch a single layer as GeoJSON ────────────────────────────
@@ -273,8 +273,8 @@ export default function CopWorkspacePage() {
           ...prev,
           [layerDef.id]: fc.features?.length ?? 0,
         }))
-      } catch {
-        // Silently skip failed layers
+      } catch (err) {
+        console.error(`Failed to fetch layer data for "${layerDef.id}":`, err)
       }
     },
     [id],
@@ -426,8 +426,8 @@ export default function CopWorkspacePage() {
             source_id: source.id,
           }),
         })
-      } catch {
-        // Silent failure
+      } catch (err) {
+        console.error('Failed to place map pin marker:', err)
       }
     },
     [id],
@@ -473,7 +473,8 @@ export default function CopWorkspacePage() {
             headers: getCopHeaders(),
             body: JSON.stringify({ active_layers: newLayers }),
           })
-        } catch {
+        } catch (err) {
+          console.error('Failed to persist layer toggle:', err)
           setActiveLayers(prevLayers)
         }
       }
@@ -498,6 +499,7 @@ export default function CopWorkspacePage() {
         })
         if (!res.ok) throw new Error('Failed to update mission brief')
       } catch (err) {
+        console.error('Failed to update mission brief:', err)
         setSession(prevSession)
       }
     },
@@ -508,7 +510,7 @@ export default function CopWorkspacePage() {
 
   const handleShare = useCallback(() => {
     const url = `${window.location.origin}/dashboard/cop/${id}`
-    navigator.clipboard.writeText(url).catch(() => {})
+    navigator.clipboard.writeText(url).catch((err) => { console.error('Failed to copy share link to clipboard:', err) })
   }, [id])
 
   // ── Loading state ──────────────────────────────────────────────
@@ -754,7 +756,7 @@ export default function CopWorkspacePage() {
               source_type: 'ENTITY',
               description: `Pinned from Entity Drawer: ${label}`,
             }),
-          }).catch(() => {})
+          }).catch((err) => { console.error('Failed to create entity pin marker:', err) })
         }}
       />
     </div>

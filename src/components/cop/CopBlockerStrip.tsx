@@ -24,9 +24,9 @@ interface CopBlockerStripProps {
 export default function CopBlockerStrip({ sessionId, onGoToBlocker }: CopBlockerStripProps) {
   const [blockers, setBlockers] = useState<CopRfi[]>([])
 
-  const fetchBlockers = useCallback(async () => {
+  const fetchBlockers = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch(`/api/cop/${sessionId}/rfis`, { headers: getCopHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/rfis`, { headers: getCopHeaders(), signal })
       if (!res.ok) return
       const data = await res.json()
       const rfis: CopRfi[] = data.rfis ?? data ?? []
@@ -35,15 +35,20 @@ export default function CopBlockerStrip({ sessionId, onGoToBlocker }: CopBlocker
         (r: any) => r.is_blocker === 1 && r.status !== 'closed',
       )
       setBlockers(active)
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
       // Silent failure
     }
   }, [sessionId])
 
   useEffect(() => {
-    fetchBlockers()
-    const interval = setInterval(fetchBlockers, 30_000)
-    return () => clearInterval(interval)
+    const controller = new AbortController()
+    fetchBlockers(controller.signal)
+    const interval = setInterval(() => fetchBlockers(controller.signal), 30_000)
+    return () => {
+      controller.abort()
+      clearInterval(interval)
+    }
   }, [fetchBlockers])
 
   // Don't render if no blockers

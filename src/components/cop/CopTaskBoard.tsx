@@ -155,16 +155,17 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
 
   // ── Fetch tasks ──────────────────────────────────────────────
 
-  const fetchTasks = useCallback(async (isBackground = false) => {
+  const fetchTasks = useCallback(async (isBackground = false, signal?: AbortSignal) => {
     if (isBackground) setPolling(true)
     try {
-      const res = await fetch(`/api/cop/${sessionId}/tasks`, { headers: getCopHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/tasks`, { headers: getCopHeaders(), signal })
       if (!res.ok) throw new Error('Failed to fetch tasks')
       const data = await res.json()
       const items: CopTask[] = data.tasks ?? data ?? []
       setTasks(items)
       setFetchError(false)
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
       if (!isBackground) setFetchError(true)
     } finally {
       setLoading(false)
@@ -173,12 +174,11 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
   }, [sessionId])
 
   useEffect(() => {
-    fetchTasks()
-  }, [fetchTasks])
-
-  useEffect(() => {
-    intervalRef.current = setInterval(() => fetchTasks(true), 30000)
+    const controller = new AbortController()
+    fetchTasks(false, controller.signal)
+    intervalRef.current = setInterval(() => fetchTasks(true, controller.signal), 30000)
     return () => {
+      controller.abort()
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [fetchTasks])
