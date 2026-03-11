@@ -400,6 +400,52 @@ export interface CopEvidenceTag {
   created_at: string
 }
 
+// -- Task Dependencies & Templates (Phase 3) --
+
+export interface CopTaskDependency {
+  id: string
+  task_id: string
+  depends_on_task_id: string
+  cop_session_id: string
+  created_at: string
+}
+
+export interface CopTaskTemplate {
+  id: string
+  name: string
+  description: string | null
+  template_type: string
+  tasks_json: string
+  created_by: number
+  workspace_id: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CopTaskTemplateDef {
+  ref: string
+  title: string
+  description?: string
+  task_type?: string
+  priority?: string
+  depends_on?: string[]
+  subtasks?: CopTaskTemplateSubDef[]
+}
+
+export interface CopTaskTemplateSubDef {
+  ref: string
+  title: string
+  task_type?: string
+  priority?: string
+}
+
+export interface CopCollaboratorSkillsData {
+  skills: string[]
+  max_concurrent: number
+  timezone: string | null
+  availability: 'available' | 'busy' | 'offline'
+}
+
 export const CLUE_TAXONOMY: Record<string, string[]> = {
   architecture: ['Building style', 'Window type', 'Roof type', 'Door style', 'Construction material'],
   infrastructure: ['Power outlet type', 'Street light', 'Road marking', 'Traffic sign', 'Utility pole'],
