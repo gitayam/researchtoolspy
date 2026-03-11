@@ -528,6 +528,58 @@ export const EXPORT_FORMAT_CONFIG: Record<ExportFormat, { label: string; ext: st
   csv: { label: 'CSV', ext: '.csv', mime: 'text/csv', description: 'Spreadsheet-friendly tables' },
 }
 
+// -- COP Intake Forms & Submissions (Phase 2: Crowdsource/Ingest) --
+
+export type IntakeFormFieldType = 'text' | 'textarea' | 'number' | 'datetime' | 'select' | 'multiselect' | 'file' | 'checkbox'
+
+export interface IntakeFormField {
+  name: string
+  type: IntakeFormFieldType
+  label: string
+  required?: boolean
+  placeholder?: string
+  options?: string[]  // For select/multiselect
+  accept?: string     // For file (e.g., "image/*")
+}
+
+export type IntakeFormStatus = 'draft' | 'active' | 'closed'
+export type SubmissionStatus = 'pending' | 'triaged' | 'accepted' | 'rejected'
+
+export interface CopIntakeForm {
+  id: string
+  cop_session_id: string
+  title: string
+  description: string | null
+  form_schema: IntakeFormField[]
+  share_token: string
+  status: IntakeFormStatus
+  auto_tag_category: string | null
+  require_location: number
+  require_contact: number
+  submission_count: number
+  created_by: number
+  workspace_id: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CopSubmission {
+  id: string
+  intake_form_id: string
+  cop_session_id: string
+  form_data: Record<string, unknown>
+  submitter_name: string | null
+  submitter_contact: string | null
+  lat: number | null
+  lon: number | null
+  status: SubmissionStatus
+  triaged_by: number | null
+  rejection_reason: string | null
+  linked_evidence_id: string | null
+  linked_task_id: string | null
+  created_at: string
+}
+
 // -- COP Events (Phase 1: Event System Foundation) --
 
 export interface CopEvent {
