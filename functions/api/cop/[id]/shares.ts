@@ -6,6 +6,8 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { SHARE_CREATED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -51,6 +53,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.allow_rfi_answers ? 1 : 0,
       userId, now
     ).run()
+
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: SHARE_CREATED,
+      entityType: 'share',
+      entityId: id,
+      payload: { share_token: token, visible_panels: visiblePanels, allow_rfi_answers: !!body.allow_rfi_answers },
+      createdBy: userId,
+    })
 
     return new Response(JSON.stringify({
       id,

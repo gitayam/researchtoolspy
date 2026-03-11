@@ -7,6 +7,8 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { PERSONA_CREATED, PERSONA_LINKED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -107,6 +109,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(id, body.persona_a_id, body.persona_b_id, linkType, confidence, body.evidence_id ?? null, userId, now).run()
 
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId,
+        eventType: PERSONA_LINKED,
+        entityType: 'persona',
+        entityId: body.persona_a_id,
+        payload: { link_id: id, persona_b_id: body.persona_b_id, link_type: linkType, confidence },
+        createdBy: userId,
+      })
+
       return new Response(JSON.stringify({ id, message: 'Persona link created' }), {
         status: 201, headers: corsHeaders,
       })
@@ -169,6 +180,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.linked_actor_id ?? null, body.notes ?? null,
       userId, workspaceId, now, now,
     ).run()
+
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: PERSONA_CREATED,
+      entityType: 'persona',
+      entityId: id,
+      payload: { display_name: body.display_name, platform: body.platform },
+      createdBy: userId,
+    })
 
     return new Response(JSON.stringify({ id, message: 'Persona created' }), {
       status: 201, headers: corsHeaders,

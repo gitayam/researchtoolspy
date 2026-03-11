@@ -7,6 +7,8 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { RFI_CREATED, RFI_ANSWERED, RFI_CLOSED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -96,6 +98,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?)
     `).bind(id, sessionId, body.question.trim(), priority, isBLocker, userId, body.assigned_to ?? null, body.requester_name ?? null, now, now).run()
 
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: RFI_CREATED,
+      entityType: 'rfi',
+      entityId: id,
+      payload: { question: body.question, priority, is_blocker: !!body.is_blocker },
+      createdBy: userId,
+    })
+
     return new Response(JSON.stringify({ id, message: 'RFI created' }), {
       status: 201, headers: corsHeaders,
     })
@@ -159,6 +170,26 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, source_description, created_by, responder_name, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).bind(answerId, body.id, body.answer.trim(), body.source_description || null, userId, body.responder_name || null, now).run()
+    }
+
+    // Emit event for status transitions
+    if (body.status) {
+      const userId = await getUserIdOrDefault(request, env)
+      const statusEventMap: Record<string, string> = {
+        'answered': RFI_ANSWERED,
+        'closed': RFI_CLOSED,
+      }
+      const eventType = statusEventMap[body.status]
+      if (eventType) {
+        await emitCopEvent(env.DB, {
+          copSessionId: sessionId,
+          eventType: eventType as any,
+          entityType: 'rfi',
+          entityId: body.id,
+          payload: { new_status: body.status },
+          createdBy: userId,
+        })
+      }
     }
 
     return new Response(JSON.stringify({ id: body.id, message: 'RFI updated' }), {

@@ -6,6 +6,8 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { EVIDENCE_CREATED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -94,6 +96,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).run()
 
     const id = result.meta?.last_row_id ?? 0
+
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: EVIDENCE_CREATED,
+      entityType: 'evidence',
+      entityId: String(id),
+      payload: { title: body.title, evidence_type: body.source_type ?? 'observation' },
+      createdBy: userId,
+    })
 
     return new Response(JSON.stringify({ id, message: 'Evidence created' }), {
       status: 201, headers: corsHeaders,

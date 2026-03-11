@@ -9,6 +9,8 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { COLLABORATOR_ADDED, COLLABORATOR_REMOVED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -95,6 +97,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       accepted_at: null,
     }
 
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: COLLABORATOR_ADDED,
+      entityType: 'collaborator',
+      entityId: id,
+      payload: { email: body.email ?? null, role },
+      createdBy: invitedBy,
+    })
+
     return new Response(JSON.stringify({
       collaborator,
       invite_link: `/dashboard/cop/${sessionId}?invite=${inviteToken}`,
@@ -128,6 +139,16 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     await env.DB.prepare(
       `DELETE FROM cop_collaborators WHERE id = ? AND cop_session_id = ?`
     ).bind(body.collaborator_id, sessionId).run()
+
+    const removedBy = getUserId(request)
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: COLLABORATOR_REMOVED,
+      entityType: 'collaborator',
+      entityId: body.collaborator_id,
+      payload: {},
+      createdBy: removedBy,
+    })
 
     return new Response(JSON.stringify({ success: true }), {
       headers: corsHeaders,

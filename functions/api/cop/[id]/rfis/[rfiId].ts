@@ -4,6 +4,9 @@
  * PUT /api/cop/:id/rfis/:rfiId - Update RFI (status, priority)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+import { emitCopEvent } from '../../../_shared/cop-events'
+import { RFI_ANSWERED, RFI_ACCEPTED, RFI_CLOSED } from '../../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -18,11 +21,17 @@ const corsHeaders = {
 
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
+  const sessionId = params.id as string
   const rfiId = params.rfiId as string
 
   try {
     const body = await request.json() as any
     const now = new Date().toISOString()
+
+    // Fetch existing RFI for status comparison
+    const existing = await env.DB.prepare(
+      'SELECT status, question FROM cop_rfis WHERE id = ?'
+    ).bind(rfiId).first() as any
 
     const updates: string[] = ['updated_at = ?']
     const values: any[] = [now]
@@ -50,6 +59,27 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     await env.DB.prepare(`
       UPDATE cop_rfis SET ${updates.join(', ')} WHERE id = ?
     `).bind(...values).run()
+
+    // Emit event for status transitions
+    if (body.status && existing && body.status !== existing.status) {
+      const userId = await getUserIdOrDefault(request, env)
+      const statusEventMap: Record<string, string> = {
+        'answered': RFI_ANSWERED,
+        'accepted': RFI_ACCEPTED,
+        'closed': RFI_CLOSED,
+      }
+      const eventType = statusEventMap[body.status]
+      if (eventType) {
+        await emitCopEvent(env.DB, {
+          copSessionId: sessionId,
+          eventType: eventType as any,
+          entityType: 'rfi',
+          entityId: rfiId,
+          payload: { question: existing.question, previous_status: existing.status, new_status: body.status },
+          createdBy: userId,
+        })
+      }
+    }
 
     return new Response(JSON.stringify({ message: 'RFI updated' }), { headers: corsHeaders })
   } catch (error) {

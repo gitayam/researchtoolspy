@@ -7,6 +7,8 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { HYPOTHESIS_CREATED, HYPOTHESIS_UPDATED, HYPOTHESIS_EVIDENCE_LINKED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -93,6 +95,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         VALUES (?, ?, ?, ?, ?)
       `).bind(id, body.hypothesis_id, body.evidence_id ?? null, body.title.trim(), evType).run()
 
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId,
+        eventType: HYPOTHESIS_EVIDENCE_LINKED,
+        entityType: 'hypothesis',
+        entityId: body.hypothesis_id,
+        payload: { evidence_link_id: id, evidence_id: body.evidence_id, title: body.title, type: evType },
+        createdBy: userId,
+      })
+
       return new Response(JSON.stringify({ id, message: 'Evidence linked to hypothesis' }), {
         status: 201, headers: corsHeaders,
       })
@@ -120,6 +131,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?)
     `).bind(id, sessionId, body.statement.trim(), confidence, userId, workspaceId, now, now).run()
 
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: HYPOTHESIS_CREATED,
+      entityType: 'hypothesis',
+      entityId: id,
+      payload: { statement: body.statement, status: 'active', confidence },
+      createdBy: userId,
+    })
+
     return new Response(JSON.stringify({ id, message: 'Hypothesis created' }), {
       status: 201, headers: corsHeaders,
     })
@@ -132,7 +152,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 }
 
 export const onRequestPut: PagesFunction<Env> = async (context) => {
-  const { request, env } = context
+  const { request, env, params } = context
+  const sessionId = params.id as string
 
   try {
     const body = await request.json() as any
@@ -169,6 +190,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     await env.DB.prepare(`
       UPDATE cop_hypotheses SET ${updates.join(', ')} WHERE id = ?
     `).bind(...values).run()
+
+    const userId = await getUserIdOrDefault(request, env)
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: HYPOTHESIS_UPDATED,
+      entityType: 'hypothesis',
+      entityId: body.id,
+      payload: { status: body.status, confidence: body.confidence },
+      createdBy: userId,
+    })
 
     return new Response(JSON.stringify({ message: 'Hypothesis updated' }), { headers: corsHeaders })
   } catch (error) {

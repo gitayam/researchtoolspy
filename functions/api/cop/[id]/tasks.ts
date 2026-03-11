@@ -8,6 +8,8 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_DELETED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -116,6 +118,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       userId, workspaceId, now, now,
     ).run()
 
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: TASK_CREATED,
+      entityType: 'task',
+      entityId: id,
+      payload: { title: body.title, task_type: taskType, priority, assigned_to: body.assigned_to || null },
+      createdBy: userId,
+    })
+
     return new Response(JSON.stringify({ id, message: 'Task created' }), {
       status: 201, headers: corsHeaders,
     })
@@ -221,6 +232,27 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_tasks SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...bindings).run()
 
+    // Emit event for status transitions
+    if (body.status && body.status !== existing.status) {
+      const userId = await getUserIdOrDefault(request, env)
+      const statusEventMap: Record<string, string> = {
+        'in_progress': TASK_STARTED,
+        'done': TASK_COMPLETED,
+        'blocked': TASK_BLOCKED,
+      }
+      const eventType = statusEventMap[body.status]
+      if (eventType) {
+        await emitCopEvent(env.DB, {
+          copSessionId: sessionId,
+          eventType: eventType as any,
+          entityType: 'task',
+          entityId: body.id,
+          payload: { title: existing.title, previous_status: existing.status, new_status: body.status, assigned_to: existing.assigned_to },
+          createdBy: userId,
+        })
+      }
+    }
+
     return new Response(JSON.stringify({ id: body.id, message: 'Task updated' }), { headers: corsHeaders })
   } catch (error) {
     console.error('[COP Tasks] Update error:', error)
@@ -244,6 +276,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Fetch task before deleting for event payload
+    const existing = await env.DB.prepare(
+      'SELECT title FROM cop_tasks WHERE id = ? AND cop_session_id = ?'
+    ).bind(taskId, sessionId).first() as any
+
     const result = await env.DB.prepare(
       'DELETE FROM cop_tasks WHERE id = ? AND cop_session_id = ?'
     ).bind(taskId, sessionId).run()
@@ -253,6 +290,16 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 404, headers: corsHeaders,
       })
     }
+
+    const userId = await getUserIdOrDefault(request, env)
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: TASK_DELETED,
+      entityType: 'task',
+      entityId: taskId,
+      payload: { title: existing?.title },
+      createdBy: userId,
+    })
 
     return new Response(JSON.stringify({ message: 'Task deleted' }), { headers: corsHeaders })
   } catch (error) {

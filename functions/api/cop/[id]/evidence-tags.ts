@@ -7,6 +7,8 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { EVIDENCE_TAGGED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -49,7 +51,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const { request, env } = context
+  const { request, env, params } = context
 
   try {
     const userId = await getUserIdOrDefault(request, env)
@@ -81,6 +83,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       INSERT INTO cop_evidence_tags (id, evidence_id, tag_category, tag_value, confidence, created_by, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).bind(id, body.evidence_id.trim(), body.tag_category.trim(), body.tag_value.trim(), confidence, userId, now).run()
+
+    const sessionId = params.id as string
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: EVIDENCE_TAGGED,
+      entityType: 'evidence',
+      entityId: body.evidence_id,
+      payload: { tag_category: body.tag_category, tag_value: body.tag_value, confidence },
+      createdBy: userId,
+    })
 
     return new Response(JSON.stringify({ id, message: 'Evidence tag created' }), {
       status: 201, headers: corsHeaders,

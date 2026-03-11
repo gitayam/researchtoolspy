@@ -14,6 +14,8 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { MARKER_CREATED, MARKER_UPDATED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -134,6 +136,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       now,
     ).run()
 
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: MARKER_CREATED,
+      entityType: 'marker',
+      entityId: id,
+      payload: { label: body.label || null, lat: body.lat, lon: body.lon, cot_type: body.cot_type || 'a-u-G', source_type: body.source_type || 'MANUAL' },
+      createdBy: userId,
+    })
+
     return new Response(JSON.stringify({ id, uid, message: 'Marker created' }), {
       status: 201, headers: corsHeaders,
     })
@@ -202,6 +213,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       body.updated_by_name || null,
       now,
     ).run()
+
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: MARKER_UPDATED,
+      entityType: 'marker',
+      entityId: body.id,
+      payload: allowed,
+      createdBy: userId,
+    })
 
     return new Response(JSON.stringify({ id: body.id, message: 'Marker updated' }), {
       headers: corsHeaders,
