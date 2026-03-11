@@ -143,6 +143,30 @@ export const COP_LAYERS: CopLayerDef[] = [
     filterable: false,
   },
 
+  // ── Operational Layers ─────────────────────────────────
+  {
+    id: 'assets',
+    name: 'Assets & Resources',
+    description: 'People, sources, infrastructure, and digital resources tracked in this COP',
+    category: 'tactical',
+    icon: 'Briefcase',
+    source: { type: 'api', endpoint: '/layers/assets' },
+    render: {
+      type: 'cluster',
+      color: '#14b8a6',
+      clusterRadius: 50,
+      iconMapping: {
+        human: 'user',
+        source: 'radio',
+        infrastructure: 'server',
+        digital: 'hard-drive',
+      },
+    },
+    defaultFor: ['crisis_response', 'area_study', 'event_monitor'],
+    filterable: true,
+    filterFields: ['asset_type', 'status', 'sensitivity'],
+  },
+
   // ── Tactical Layers ──────────────────────────────────────
   {
     id: 'cop-markers',
