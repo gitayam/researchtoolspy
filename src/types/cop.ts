@@ -626,6 +626,82 @@ export interface CopSubmission {
   created_at: string
 }
 
+// -- COP Playbooks (Phase 6: Playbook Engine) --
+
+export type PlaybookStatus = 'active' | 'paused' | 'draft'
+export type PlaybookLogStatus = 'success' | 'partial' | 'failed'
+
+export type ConditionOp = 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'in' | 'not_in' | 'contains' | 'exists'
+
+export interface PlaybookCondition {
+  field: string   // dot-path: payload.priority, session.open_rfi_count, time.hours_since_created
+  op: ConditionOp
+  value: unknown
+}
+
+export type PlaybookActionType =
+  | 'create_task' | 'update_status' | 'assign_task'
+  | 'create_evidence' | 'send_notification' | 'update_priority'
+  | 'add_tag' | 'create_rfi' | 'reserve_asset' | 'run_pipeline'
+
+export interface PlaybookAction {
+  action: PlaybookActionType
+  params: Record<string, unknown>
+}
+
+export interface PipelineStage {
+  name: string
+  action: PlaybookActionType
+  params: Record<string, unknown>
+}
+
+export interface CopPlaybook {
+  id: string
+  cop_session_id: string
+  name: string
+  description: string | null
+  status: PlaybookStatus
+  source: 'custom' | 'template'
+  template_id: string | null
+  execution_count: number
+  last_triggered_at: string | null
+  last_processed_event_id: string | null
+  created_by: number
+  workspace_id: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CopPlaybookRule {
+  id: string
+  playbook_id: string
+  name: string
+  position: number
+  enabled: boolean
+  trigger_event: string
+  trigger_filter: Record<string, unknown>
+  conditions: PlaybookCondition[]
+  actions: PlaybookAction[]
+  cooldown_seconds: number
+  last_fired_at: string | null
+  fire_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface CopPlaybookLogEntry {
+  id: string
+  rule_id: string
+  playbook_id: string
+  cop_session_id: string
+  trigger_event_id: string | null
+  actions_taken: PlaybookAction[]
+  status: PlaybookLogStatus
+  error_message: string | null
+  duration_ms: number | null
+  created_at: string
+}
+
 // -- COP Events (Phase 1: Event System Foundation) --
 
 export interface CopEvent {
