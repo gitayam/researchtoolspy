@@ -20,7 +20,7 @@ interface Env {
 const corsHeaders = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
 }
 
@@ -116,6 +116,69 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[COP Collaborators] POST error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to invite collaborator',
+    }), {
+      status: 500, headers: corsHeaders,
+    })
+  }
+}
+
+// PUT - Update collaborator skills/availability
+export const onRequestPut: PagesFunction<Env> = async (context) => {
+  const { request, env, params } = context
+  const sessionId = params.id as string
+
+  try {
+    const body = await request.json() as {
+      collaborator_id: string
+      skills?: string
+      max_concurrent?: number
+      timezone?: string | null
+      availability?: string
+    }
+
+    if (!body.collaborator_id) {
+      return new Response(JSON.stringify({ error: 'collaborator_id is required' }), {
+        status: 400, headers: corsHeaders,
+      })
+    }
+
+    const updates: string[] = []
+    const bindings: any[] = []
+
+    if (body.skills !== undefined) {
+      updates.push('skills = ?')
+      bindings.push(body.skills)
+    }
+    if (body.max_concurrent !== undefined) {
+      updates.push('max_concurrent = ?')
+      bindings.push(body.max_concurrent)
+    }
+    if (body.timezone !== undefined) {
+      updates.push('timezone = ?')
+      bindings.push(body.timezone)
+    }
+    if (body.availability !== undefined) {
+      updates.push('availability = ?')
+      bindings.push(body.availability)
+    }
+
+    if (updates.length === 0) {
+      return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
+        status: 400, headers: corsHeaders,
+      })
+    }
+
+    bindings.push(body.collaborator_id, sessionId)
+
+    await env.DB.prepare(
+      `UPDATE cop_collaborators SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
+    ).bind(...bindings).run()
+
+    return new Response(JSON.stringify({ success: true }), { headers: corsHeaders })
+  } catch (error) {
+    console.error('[COP Collaborators] PUT error:', error)
+    return new Response(JSON.stringify({
+      error: 'Failed to update collaborator',
     }), {
       status: 500, headers: corsHeaders,
     })
