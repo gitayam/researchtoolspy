@@ -9,7 +9,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_DELETED } from '../../_shared/cop-event-types'
+import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_UNBLOCKED, TASK_DELETED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -100,12 +100,37 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const priority = VALID_PRIORITIES.includes(body.priority) ? body.priority : 'medium'
     const taskType = VALID_TASK_TYPES.includes(body.task_type) ? body.task_type : 'general'
 
+    // Subtask support: validate parent and depth
+    const parentTaskId = body.parent_task_id || null
+    let depth = 0
+    const position = typeof body.position === 'number' ? body.position : 0
+
+    if (parentTaskId) {
+      const parent = await env.DB.prepare(
+        'SELECT id, depth FROM cop_tasks WHERE id = ? AND cop_session_id = ?'
+      ).bind(parentTaskId, sessionId).first() as any
+
+      if (!parent) {
+        return new Response(JSON.stringify({ error: 'Parent task not found in this session' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
+
+      depth = (parent.depth || 0) + 1
+      if (depth > 2) {
+        return new Response(JSON.stringify({ error: 'Maximum subtask depth is 2' }), {
+          status: 400, headers: corsHeaders,
+        })
+      }
+    }
+
     await env.DB.prepare(`
       INSERT INTO cop_tasks (
         id, cop_session_id, title, description, status, priority, task_type,
         assigned_to, linked_persona_id, linked_marker_id, linked_hypothesis_id,
-        due_date, completed_at, created_by, workspace_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        due_date, completed_at, parent_task_id, depth, position,
+        created_by, workspace_id, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id, sessionId, body.title.trim(), body.description || null,
       status, priority, taskType,
@@ -115,6 +140,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.linked_hypothesis_id || null,
       body.due_date || null,
       status === 'done' ? now : null,
+      parentTaskId, depth, position,
       userId, workspaceId, now, now,
     ).run()
 
@@ -163,7 +189,26 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       })
     }
 
+    const userId = await getUserIdOrDefault(request, env)
     const now = new Date().toISOString()
+
+    // Block transition to in_progress if dependencies unmet
+    if (body.status === 'in_progress' && existing.status !== 'in_progress') {
+      const unmetDeps = await env.DB.prepare(`
+        SELECT d.depends_on_task_id, t.title, t.status
+        FROM cop_task_dependencies d
+        JOIN cop_tasks t ON t.id = d.depends_on_task_id
+        WHERE d.task_id = ? AND t.status != 'done'
+      `).bind(body.id).all()
+
+      if ((unmetDeps.results || []).length > 0) {
+        const blocking = (unmetDeps.results as any[]).map(r => r.title).join(', ')
+        return new Response(JSON.stringify({
+          error: `Cannot start: blocked by unfinished dependencies: ${blocking}`,
+        }), { status: 400, headers: corsHeaders })
+      }
+    }
+
     const updates: string[] = []
     const bindings: any[] = []
 
@@ -217,6 +262,14 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       updates.push('due_date = ?')
       bindings.push(body.due_date || null)
     }
+    if (body.sla_hours !== undefined) {
+      updates.push('sla_hours = ?')
+      bindings.push(body.sla_hours || null)
+    }
+    if (body.sla_started_at !== undefined) {
+      updates.push('sla_started_at = ?')
+      bindings.push(body.sla_started_at || null)
+    }
 
     if (updates.length === 0) {
       return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
@@ -234,7 +287,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     // Emit event for status transitions
     if (body.status && body.status !== existing.status) {
-      const userId = await getUserIdOrDefault(request, env)
       const statusEventMap: Record<string, string> = {
         'in_progress': TASK_STARTED,
         'done': TASK_COMPLETED,
@@ -250,6 +302,55 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
           payload: { title: existing.title, previous_status: existing.status, new_status: body.status, assigned_to: existing.assigned_to },
           createdBy: userId,
         })
+      }
+
+      // After status change to 'done', check parent subtask rollup
+      if (body.status === 'done' && existing.parent_task_id) {
+        const siblings = await env.DB.prepare(
+          'SELECT status FROM cop_tasks WHERE parent_task_id = ? AND id != ?'
+        ).bind(existing.parent_task_id, body.id).all()
+
+        const allDone = (siblings.results || []).every((s: any) => s.status === 'done')
+        if (allDone) {
+          await env.DB.prepare(
+            'UPDATE cop_tasks SET status = ?, completed_at = ?, updated_at = ? WHERE id = ?'
+          ).bind('done', now, now, existing.parent_task_id).run()
+
+          await emitCopEvent(env.DB, {
+            copSessionId: sessionId,
+            eventType: TASK_COMPLETED,
+            entityType: 'task',
+            entityId: existing.parent_task_id,
+            payload: { reason: 'all_subtasks_completed' },
+            createdBy: userId,
+          })
+        }
+      }
+
+      // Check if completing this task unblocks others
+      if (body.status === 'done') {
+        const dependents = await env.DB.prepare(
+          'SELECT DISTINCT task_id FROM cop_task_dependencies WHERE depends_on_task_id = ? AND cop_session_id = ?'
+        ).bind(body.id, sessionId).all()
+
+        for (const dep of (dependents.results || []) as any[]) {
+          const remaining = await env.DB.prepare(`
+            SELECT COUNT(*) as cnt FROM cop_task_dependencies d
+            JOIN cop_tasks t ON t.id = d.depends_on_task_id
+            WHERE d.task_id = ? AND t.status != 'done'
+          `).bind(dep.task_id).first() as any
+
+          if (remaining?.cnt === 0) {
+            await emitCopEvent(env.DB, {
+              copSessionId: sessionId,
+              eventType: TASK_UNBLOCKED,
+              entityType: 'task',
+              entityId: dep.task_id,
+              payload: { unblocked_by: body.id },
+              createdBy: userId,
+            })
+          }
+        }
       }
     }
 
@@ -280,6 +381,16 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const existing = await env.DB.prepare(
       'SELECT title FROM cop_tasks WHERE id = ? AND cop_session_id = ?'
     ).bind(taskId, sessionId).first() as any
+
+    // Clean up dependencies referencing this task
+    await env.DB.prepare(
+      'DELETE FROM cop_task_dependencies WHERE (task_id = ? OR depends_on_task_id = ?) AND cop_session_id = ?'
+    ).bind(taskId, taskId, sessionId).run()
+
+    // Delete subtasks
+    await env.DB.prepare(
+      'DELETE FROM cop_tasks WHERE parent_task_id = ? AND cop_session_id = ?'
+    ).bind(taskId, sessionId).run()
 
     const result = await env.DB.prepare(
       'DELETE FROM cop_tasks WHERE id = ? AND cop_session_id = ?'
