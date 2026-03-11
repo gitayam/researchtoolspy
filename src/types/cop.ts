@@ -411,6 +411,95 @@ export const CLUE_TAXONOMY: Record<string, string[]> = {
   people_culture: ['Clothing style', 'Religious symbol', 'Flag', 'Currency'],
 }
 
+// -- COP Assets (Phase 4: Asset & Resource Tracking) --
+
+export type AssetType = 'human' | 'source' | 'infrastructure' | 'digital'
+export type AssetStatus = 'available' | 'deployed' | 'degraded' | 'offline' | 'compromised' | 'exhausted'
+export type AssetSensitivity = 'unclassified' | 'internal' | 'restricted'
+
+export interface HumanAssetDetails {
+  skills: string[]
+  timezone: string
+  languages: string[]
+  hours_available_per_week: number
+  current_load: number
+}
+
+export interface SourceAssetDetails {
+  source_type: 'humint' | 'sigint' | 'osint' | 'geoint'
+  reliability_rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
+  access_status: 'active' | 'intermittent' | 'denied' | 'unknown'
+  coverage_area: string
+  last_contact: string
+  linked_source_id: string
+}
+
+export interface InfraAssetDetails {
+  infra_type: 'server' | 'vpn' | 'account' | 'device' | 'platform'
+  provider: string
+  expiry_date: string
+  opsec_notes: string
+  shared_by: string[]
+}
+
+export interface DigitalAssetDetails {
+  resource_type: 'api_quota' | 'license' | 'dataset' | 'document'
+  total_units: number
+  used_units: number
+  reset_date: string
+  cost_per_unit: number
+  currency: string
+}
+
+export type AssetDetails = HumanAssetDetails | SourceAssetDetails | InfraAssetDetails | DigitalAssetDetails
+
+export interface CopAsset {
+  id: string
+  cop_session_id: string
+  asset_type: AssetType
+  name: string
+  status: AssetStatus
+  details: AssetDetails
+  assigned_to_task_id: string | null
+  location: string | null
+  lat: number | null
+  lon: number | null
+  sensitivity: AssetSensitivity
+  last_checked_at: string | null
+  notes: string | null
+  created_by: number
+  workspace_id: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CopAssetLog {
+  id: string
+  asset_id: string
+  cop_session_id: string
+  previous_status: string | null
+  new_status: string
+  changed_by: number
+  reason: string | null
+  created_at: string
+}
+
+export const ASSET_TYPE_CONFIG: Record<AssetType, { label: string; color: string }> = {
+  human: { label: 'People', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  source: { label: 'Sources', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+  infrastructure: { label: 'Infrastructure', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+  digital: { label: 'Digital', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+}
+
+export const ASSET_STATUS_CONFIG: Record<AssetStatus, { label: string; color: string }> = {
+  available: { label: 'Available', color: 'bg-green-500' },
+  deployed: { label: 'Deployed', color: 'bg-blue-500' },
+  degraded: { label: 'Degraded', color: 'bg-yellow-500' },
+  offline: { label: 'Offline', color: 'bg-gray-500' },
+  compromised: { label: 'Compromised', color: 'bg-red-500' },
+  exhausted: { label: 'Exhausted', color: 'bg-red-800' },
+}
+
 // -- COP Events (Phase 1: Event System Foundation) --
 
 export interface CopEvent {
