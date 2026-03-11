@@ -410,3 +410,16 @@ export const CLUE_TAXONOMY: Record<string, string[]> = {
   transport: ['Vehicle type', 'Road surface', 'Rail type', 'Port infrastructure'],
   people_culture: ['Clothing style', 'Religious symbol', 'Flag', 'Currency'],
 }
+
+// -- COP Events (Phase 1: Event System Foundation) --
+
+export interface CopEvent {
+  id: string
+  cop_session_id: string
+  event_type: string
+  entity_type: string
+  entity_id: string | null
+  payload: Record<string, unknown>
+  created_by: number
+  created_at: string
+}
