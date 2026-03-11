@@ -500,6 +500,34 @@ export const ASSET_STATUS_CONFIG: Record<AssetStatus, { label: string; color: st
   exhausted: { label: 'Exhausted', color: 'bg-red-800' },
 }
 
+// -- COP Exports (Phase 5: Standard Export Formats) --
+
+export type ExportFormat = 'geojson' | 'kml' | 'cot' | 'stix' | 'csv'
+export type ExportScope = 'full' | 'layers' | 'entities' | 'evidence' | 'tasks'
+export type ExportStatus = 'pending' | 'generating' | 'completed' | 'failed'
+
+export interface CopExport {
+  id: string
+  cop_session_id: string
+  format: ExportFormat
+  scope: ExportScope
+  filters_json: Record<string, unknown>
+  file_url: string | null
+  file_size_bytes: number | null
+  status: ExportStatus
+  error_message: string | null
+  created_by: number
+  created_at: string
+}
+
+export const EXPORT_FORMAT_CONFIG: Record<ExportFormat, { label: string; ext: string; mime: string; description: string }> = {
+  geojson: { label: 'GeoJSON Bundle', ext: '.geojson', mime: 'application/geo+json', description: 'Machine-readable map data' },
+  kml: { label: 'KML', ext: '.kml', mime: 'application/vnd.google-earth.kml+xml', description: 'Google Earth compatible' },
+  cot: { label: 'CoT XML', ext: '.xml', mime: 'application/xml', description: 'Cursor on Target (TAK)' },
+  stix: { label: 'STIX 2.1', ext: '.stix.json', mime: 'application/json', description: 'Cyber threat intel standard' },
+  csv: { label: 'CSV', ext: '.csv', mime: 'text/csv', description: 'Spreadsheet-friendly tables' },
+}
+
 // -- COP Events (Phase 1: Event System Foundation) --
 
 export interface CopEvent {
