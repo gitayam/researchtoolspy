@@ -28,6 +28,7 @@ import {
   Inbox,
   Package,
   Zap,
+  FileWarning,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
@@ -59,6 +60,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'submissions', label: 'Inbox',      icon: Inbox,         color: 'text-cyan-500 dark:text-cyan-400',     modes: ['progress'] },
   { id: 'assets',   label: 'Assets',        icon: Package,       color: 'text-teal-500 dark:text-teal-400',     modes: ['progress', 'monitor'] },
   { id: 'playbooks', label: 'Playbooks',    icon: Zap,           color: 'text-yellow-500 dark:text-yellow-400', modes: ['progress'] },
+  { id: 'claims',    label: 'Claims',       icon: FileWarning,   color: 'text-indigo-500 dark:text-indigo-400', modes: ['progress'] },
   { id: 'evidence', label: 'Evidence',      icon: FileText,      color: 'text-blue-500 dark:text-blue-400',     modes: ['progress', 'monitor'], statKey: 'evidence_count' },
   { id: 'activity', label: 'Activity',      icon: Activity,      color: 'text-slate-500 dark:text-slate-400',   modes: ['progress'] },
 ]

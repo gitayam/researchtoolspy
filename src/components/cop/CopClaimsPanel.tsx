@@ -1,0 +1,300 @@
+/**
+ * CopClaimsPanel — Extract and analyze claims from URLs within a COP session
+ *
+ * Allows users to submit URLs, extracts factual claims via AI analysis,
+ * and displays risk scores with deception detection results.
+ */
+
+import { useState, useCallback } from 'react'
+import {
+  Loader2,
+  LinkIcon,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  FileWarning,
+  Trash2,
+  ExternalLink,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
+
+// ── Types ────────────────────────────────────────────────────────
+
+interface ExtractedClaim {
+  claim: string
+  category?: string
+  confidence?: number
+  suggested_market?: string
+}
+
+interface ClaimAnalysisResult {
+  url: string
+  title?: string
+  domain?: string
+  claims: ExtractedClaim[]
+  summary?: string
+  entity_count?: number
+  analyzed_at: string
+}
+
+interface CopClaimsPanelProps {
+  sessionId: string
+  expanded: boolean
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
+
+function getRiskBadge(confidence: number | undefined) {
+  const score = confidence ?? 50
+  if (score >= 80) return { label: 'High confidence', color: 'bg-emerald-600 text-white', icon: CheckCircle2 }
+  if (score >= 50) return { label: 'Medium', color: 'bg-amber-600 text-white', icon: AlertTriangle }
+  return { label: 'Low confidence', color: 'bg-red-600 text-white', icon: XCircle }
+}
+
+function getCategoryColor(category: string | undefined) {
+  switch (category?.toLowerCase()) {
+    case 'statement': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+    case 'quote': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+    case 'statistic': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+    case 'event': return 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
+    case 'relationship': return 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'
+    default: return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+  }
+}
+
+// ── Component ────────────────────────────────────────────────────
+
+export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelProps) {
+  const [url, setUrl] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [results, setResults] = useState<ClaimAnalysisResult[]>([])
+  const [expandedClaims, setExpandedClaims] = useState<Record<number, boolean>>({})
+
+  const handleExtractClaims = useCallback(async () => {
+    const trimmed = url.trim()
+    if (!trimmed) return
+
+    // Basic URL validation
+    try {
+      new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`)
+    } catch {
+      setError('Please enter a valid URL')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch('/api/tools/extract-claims', {
+        method: 'POST',
+        headers: { ...getCopHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: trimmed.startsWith('http') ? trimmed : `https://${trimmed}`,
+          include_entities: true,
+          include_summary: true,
+        }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+        throw new Error(errData.error || `Failed to extract claims (${res.status})`)
+      }
+
+      const data = await res.json()
+
+      const result: ClaimAnalysisResult = {
+        url: trimmed,
+        title: data.metadata?.title || data.title,
+        domain: data.metadata?.domain || data.domain,
+        claims: data.claims ?? [],
+        summary: data.summary,
+        entity_count: data.entities?.length ?? 0,
+        analyzed_at: new Date().toISOString(),
+      }
+
+      setResults(prev => [result, ...prev])
+      setUrl('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to extract claims')
+    } finally {
+      setLoading(false)
+    }
+  }, [url])
+
+  const removeResult = (index: number) => {
+    setResults(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const toggleResultExpand = (index: number) => {
+    setExpandedClaims(prev => ({ ...prev, [index]: !prev[index] }))
+  }
+
+  const totalClaims = results.reduce((sum, r) => sum + r.claims.length, 0)
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* URL Input */}
+      <div className="px-3 py-3 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <LinkIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !loading && handleExtractClaims()}
+              placeholder="Paste URL to analyze claims..."
+              className="w-full h-8 pl-8 pr-3 text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              disabled={loading}
+            />
+          </div>
+          <Button
+            size="sm"
+            onClick={handleExtractClaims}
+            disabled={loading || !url.trim()}
+            className="h-8 text-xs px-3 cursor-pointer"
+          >
+            {loading ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              'Analyze'
+            )}
+          </Button>
+        </div>
+        {error && (
+          <p className="text-[10px] text-red-500 dark:text-red-400 mt-1.5">{error}</p>
+        )}
+      </div>
+
+      {/* Results */}
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
+        {results.length === 0 ? (
+          <div className="text-center py-6 space-y-2">
+            <FileWarning className="h-6 w-6 text-slate-400 dark:text-slate-600 mx-auto" />
+            <p className="text-xs text-slate-500">No claims analyzed yet</p>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 max-w-[220px] mx-auto">
+              Paste a URL above to extract and analyze factual claims from articles and reports.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Summary bar */}
+            <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+              <span>{results.length} source{results.length !== 1 ? 's' : ''} analyzed</span>
+              <span>{totalClaims} claim{totalClaims !== 1 ? 's' : ''} extracted</span>
+            </div>
+
+            {/* Results list */}
+            {results.map((result, ri) => {
+              const isOpen = expandedClaims[ri] ?? (ri === 0)
+              const visibleClaims = expanded || isOpen
+                ? result.claims
+                : result.claims.slice(0, 3)
+
+              return (
+                <div
+                  key={`${result.url}-${ri}`}
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+                >
+                  {/* Source header */}
+                  <button
+                    type="button"
+                    onClick={() => toggleResultExpand(ri)}
+                    className="w-full flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left cursor-pointer"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
+                        {result.title || result.url}
+                      </p>
+                      {result.domain && (
+                        <p className="text-[10px] text-slate-400 truncate">{result.domain}</p>
+                      )}
+                    </div>
+                    <Badge variant="outline" className="text-[9px] shrink-0">
+                      {result.claims.length} claim{result.claims.length !== 1 ? 's' : ''}
+                    </Badge>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removeResult(ri) }}
+                      className="p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors cursor-pointer"
+                      title="Remove"
+                    >
+                      <Trash2 className="h-3 w-3 text-slate-400 hover:text-red-500" />
+                    </button>
+                  </button>
+
+                  {/* Summary */}
+                  {isOpen && result.summary && (
+                    <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800">
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                        {result.summary}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Claims list */}
+                  {isOpen && (
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {visibleClaims.map((claim, ci) => {
+                        const risk = getRiskBadge(claim.confidence)
+                        const RiskIcon = risk.icon
+                        return (
+                          <div key={ci} className="px-3 py-2 space-y-1">
+                            <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
+                              {claim.claim}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-1">
+                              {claim.category && (
+                                <Badge className={cn('text-[9px] px-1.5 py-0 leading-4 border-transparent', getCategoryColor(claim.category))}>
+                                  {claim.category}
+                                </Badge>
+                              )}
+                              {claim.confidence != null && (
+                                <Badge className={cn('text-[9px] px-1.5 py-0 leading-4 border-transparent flex items-center gap-0.5', risk.color)}>
+                                  <RiskIcon className="h-2.5 w-2.5" />
+                                  {claim.confidence}%
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+
+                      {!expanded && !isOpen && result.claims.length > 3 && (
+                        <div className="px-3 py-1.5">
+                          <p className="text-[10px] text-slate-400 italic">
+                            +{result.claims.length - 3} more claims (expand to view)
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Source link */}
+                  {isOpen && (
+                    <div className="px-3 py-1.5 border-t border-slate-100 dark:border-slate-800">
+                      <a
+                        href={result.url.startsWith('http') ? result.url : `https://${result.url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+                      >
+                        <ExternalLink className="h-2.5 w-2.5" />
+                        View source
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}

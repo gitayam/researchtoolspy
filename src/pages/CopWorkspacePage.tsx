@@ -36,6 +36,7 @@ import {
   Inbox,
   Package,
   Zap,
+  FileWarning,
   Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -66,6 +67,7 @@ import CopSubmissionInbox from '@/components/cop/CopSubmissionInbox'
 import CopAssetPanel from '@/components/cop/CopAssetPanel'
 import CopExportDialog from '@/components/cop/CopExportDialog'
 import CopPlaybookPanel from '@/components/cop/CopPlaybookPanel'
+import CopClaimsPanel from '@/components/cop/CopClaimsPanel'
 import CopSidebar from '@/components/cop/CopSidebar'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
 import { usePanelLayout } from '@/hooks/usePanelLayout'
@@ -956,6 +958,15 @@ function ProgressLayout({
       height: 'standard',
       render: () => (
         <CopPlaybookPanel sessionId={sessionId} />
+      ),
+    },
+    claims: {
+      id: 'claims',
+      title: 'Claims Analysis',
+      icon: <FileWarning className="h-4 w-4 text-indigo-400" />,
+      height: 'tall',
+      render: (expanded) => (
+        <CopClaimsPanel sessionId={sessionId} expanded={expanded} />
       ),
     },
     evidence: {

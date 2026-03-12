@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ChevronDown, ChevronRight, Star, ExternalLink, Sparkles, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Star, ExternalLink, Sparkles, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { CopSession } from '@/types/cop'
 import { getCopHeaders } from '@/lib/cop-auth'
@@ -21,21 +21,35 @@ const CATEGORIES: Category[] = [
   { key: 'how', label: 'How', color: '#06b6d4' },
 ]
 
-// Build 5W1H questions — use session's key_questions as seeds, then fill
-// gaps with defaults so every category has at least one question.
+// ── Context-aware question builder ───────────────────────────────
+
+interface EvidenceContext {
+  titles: string[]
+  summaries: string[]
+  people: string[]
+  organizations: string[]
+  locations: string[]
+  domains: string[]
+}
+
+/**
+ * Build 5W1H questions from COP session context — key_questions,
+ * evidence data (article titles, entities), and actors.
+ * Only falls back to generic defaults when no context is available.
+ */
 function buildQuestions(
   keyQuestions: string[],
+  context: EvidenceContext,
   missionBrief?: string | null,
 ): Array<{ id: string; category: string; question: string; answer: string | null }> {
   const result: Array<{ id: string; category: string; question: string; answer: string | null }> = []
-
-  // Classify each user question into a 5W1H category by keyword
   const lowerCats = ['who', 'what', 'when', 'where', 'why', 'how']
   const usedCategories = new Set<string>()
 
+  // 1. Classify user's key_questions into 5W1H categories
   keyQuestions.forEach((q, i) => {
     const lower = q.toLowerCase().trim()
-    let cat = 'what' // default bucket
+    let cat = 'what'
     for (const c of lowerCats) {
       if (lower.startsWith(c + ' ') || lower.startsWith(c + "'")) {
         cat = c
@@ -46,21 +60,96 @@ function buildQuestions(
     result.push({ id: `q-user-${i}`, category: cat, question: q, answer: null })
   })
 
-  // Fill empty categories with defaults
-  const defaults: Record<string, string[]> = {
-    who: ['Who are the key actors involved?', 'Who are the target audiences?', 'Who benefits from this?'],
-    what: ['What methods or tactics are being used?', 'What patterns indicate coordination?', 'What evidence exists?'],
-    when: ['When did this activity begin?', 'When are the actors most active?'],
-    where: ['Where is the activity concentrated?', 'Where are the operators located?', 'Where does funding flow?'],
-    why: ['Why was this activity initiated?', 'Why these specific targets or methods?'],
-    how: ['How is the operation structured?', 'How do they avoid detection?', 'How are resources acquired?'],
-  }
+  // 2. Build contextual questions from evidence data
+  const hasContext = context.titles.length > 0 || context.people.length > 0 || context.locations.length > 0
 
-  for (const cat of lowerCats) {
-    if (!usedCategories.has(cat)) {
-      defaults[cat].forEach((q, i) => {
-        result.push({ id: `q-${cat}-${i}`, category: cat, question: q, answer: null })
-      })
+  if (hasContext) {
+    let qi = 0
+    const add = (cat: string, q: string) => {
+      if (!usedCategories.has(cat)) usedCategories.add(cat)
+      result.push({ id: `q-ctx-${qi++}`, category: cat, question: q, answer: null })
+    }
+
+    // WHO — from people and organizations found in evidence
+    if (!usedCategories.has('who')) {
+      if (context.people.length > 0) {
+        const names = context.people.slice(0, 3).join(', ')
+        add('who', `Who are ${names} and what are their roles in this situation?`)
+      }
+      if (context.organizations.length > 0) {
+        const orgs = context.organizations.slice(0, 3).join(', ')
+        add('who', `Who within ${orgs} is responsible for decision-making here?`)
+      }
+      if (context.people.length === 0 && context.organizations.length === 0) {
+        add('who', 'Who are the key actors and decision-makers involved?')
+      }
+    }
+
+    // WHAT — from article titles and summaries
+    if (!usedCategories.has('what')) {
+      if (context.titles.length > 0) {
+        const primaryTitle = context.titles[0]
+        add('what', `What are the key facts reported in "${primaryTitle.slice(0, 80)}"?`)
+        add('what', 'What evidence corroborates or contradicts the reported claims?')
+      } else {
+        add('what', 'What are the primary events and their verified details?')
+      }
+    }
+
+    // WHEN — from evidence
+    if (!usedCategories.has('when')) {
+      add('when', 'When did the reported events occur and what is the established timeline?')
+      if (context.titles.length > 1) {
+        add('when', 'When were the different source reports published relative to the events?')
+      }
+    }
+
+    // WHERE — from locations found in evidence
+    if (!usedCategories.has('where')) {
+      if (context.locations.length > 0) {
+        const locs = context.locations.slice(0, 3).join(', ')
+        add('where', `Where exactly in ${locs} did the events take place?`)
+        add('where', `Where are the nearest supporting resources or response capabilities to ${context.locations[0]}?`)
+      } else {
+        add('where', 'Where did the reported events take place and what is the geographic context?')
+      }
+    }
+
+    // WHY — contextual
+    if (!usedCategories.has('why')) {
+      if (context.titles.length > 0) {
+        add('why', 'Why did this situation develop and what were the contributing factors?')
+        add('why', 'Why is this event significant for the broader investigation?')
+      } else {
+        add('why', 'Why did this activity occur and what motivated the key actors?')
+      }
+    }
+
+    // HOW — contextual
+    if (!usedCategories.has('how')) {
+      add('how', 'How did the events unfold based on available evidence?')
+      if (context.domains.length > 0) {
+        add('how', `How reliable are the sources (${context.domains.slice(0, 3).join(', ')})?`)
+      }
+      add('how', 'How should the investigation proceed based on current evidence gaps?')
+    }
+  } else {
+    // 3. Generic fallback only when no evidence context exists
+    const defaults: Record<string, string[]> = {
+      who: ['Who are the key actors involved?', 'Who are the target audiences?', 'Who benefits from this?'],
+      what: ['What methods or tactics are being used?', 'What patterns indicate coordination?', 'What evidence exists?'],
+      when: ['When did this activity begin?', 'When are the actors most active?'],
+      where: ['Where is the activity concentrated?', 'Where are the operators located?', 'Where does funding flow?'],
+      why: ['Why was this activity initiated?', 'Why these specific targets or methods?'],
+      how: ['How is the operation structured?', 'How do they avoid detection?', 'How are resources acquired?'],
+    }
+
+    for (const cat of lowerCats) {
+      if (!usedCategories.has(cat)) {
+        defaults[cat].forEach((q, i) => {
+          result.push({ id: `q-${cat}-${i}`, category: cat, question: q, answer: null })
+        })
+      }
     }
   }
 
@@ -109,9 +198,39 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
       })
       if (!res.ok) return
       const data = await res.json()
+
+      // Parse questions from framework data — supports both flat entries
+      // and categorized (who/what/when/where/why/how) formats
+      let questions: StarburstQuestion[] = []
+      const fwData = data.data ?? {}
+
+      if (Array.isArray(fwData.entries)) {
+        questions = fwData.entries
+      } else if (Array.isArray(data.questions)) {
+        questions = data.questions
+      } else if (Array.isArray(data.entries)) {
+        questions = data.entries
+      } else {
+        // Categorized format: { who: [...], what: [...], ... }
+        const cats = ['who', 'what', 'when', 'where', 'why', 'how']
+        for (const cat of cats) {
+          const catData = fwData[cat]
+          if (Array.isArray(catData)) {
+            for (const q of catData) {
+              questions.push({
+                id: q.id ?? `${cat}-${questions.length}`,
+                category: cat,
+                question: q.question ?? q.text ?? String(q),
+                answer: q.answer ?? null,
+              })
+            }
+          }
+        }
+      }
+
       setStarburst({
         id: String(data.id ?? id),
-        questions: data.questions ?? data.entries ?? data.data?.entries ?? [],
+        questions,
       })
     } catch {
       // ignore — will fall through to key_questions view
@@ -129,20 +248,89 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
-  // Generate a new starbursting framework and link it
+  /**
+   * Gather evidence context from the COP session, then generate
+   * contextual 5W1H questions and create a linked framework.
+   */
   const handleGenerateQuestions = async () => {
     setGenerating(true)
     setError(null)
     try {
-      // Build questions from session's key_questions (or defaults)
+      const headers = getCopHeaders()
+
+      // 1. Fetch evidence items to get article context
+      const evidenceContext: EvidenceContext = {
+        titles: [], summaries: [], people: [],
+        organizations: [], locations: [], domains: [],
+      }
+
+      try {
+        const evRes = await fetch(`/api/cop/${session.id}/evidence`, { headers })
+        if (evRes.ok) {
+          const evData = await evRes.json()
+          const items = evData.evidence ?? []
+          for (const item of items) {
+            if (item.title) evidenceContext.titles.push(item.title)
+            if (item.description) evidenceContext.summaries.push(item.description)
+            if (item.url) {
+              try {
+                evidenceContext.domains.push(new URL(item.url).hostname)
+              } catch { /* skip */ }
+            }
+          }
+        }
+      } catch { /* evidence fetch optional */ }
+
+      // 2. Fetch actors for entity context
+      try {
+        const actRes = await fetch(`/api/cop/${session.id}/personas`, { headers })
+        if (actRes.ok) {
+          const actData = await actRes.json()
+          const personas = actData.personas ?? []
+          for (const p of personas) {
+            const name = p.name || p.handle
+            if (!name) continue
+            if (p.type === 'ORGANIZATION' || p.entity_type === 'organization') {
+              evidenceContext.organizations.push(name)
+            } else {
+              evidenceContext.people.push(name)
+            }
+          }
+        }
+      } catch { /* actor fetch optional */ }
+
+      // 3. Fetch content analysis entities if we have evidence IDs
+      // (content_analysis table has richer entity data than evidence_items)
+      try {
+        const evRes = await fetch(`/api/cop/${session.id}/activity?limit=100`, { headers })
+        if (evRes.ok) {
+          const actData = await evRes.json()
+          const activities = actData.activity ?? []
+          // Extract location mentions from activity payload
+          for (const act of activities) {
+            try {
+              const payload = typeof act.payload === 'string' ? JSON.parse(act.payload) : act.payload
+              if (payload?.locations) {
+                for (const loc of payload.locations) {
+                  const name = typeof loc === 'string' ? loc : loc.name
+                  if (name && !evidenceContext.locations.includes(name)) {
+                    evidenceContext.locations.push(name)
+                  }
+                }
+              }
+            } catch { /* skip */ }
+          }
+        }
+      } catch { /* activity fetch optional */ }
+
+      // 4. Build contextual questions
       const questions = buildQuestions(
         session.key_questions ?? [],
+        evidenceContext,
         session.mission_brief,
       )
 
-      const headers = getCopHeaders()
-
-      // 1. Create framework session
+      // 5. Create framework session
       const createRes = await fetch('/api/frameworks', {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
@@ -151,7 +339,12 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
           description: `Starbursting analysis for COP session ${session.id}`,
           framework_type: 'starbursting',
           workspace_id: session.workspace_id,
-          data: { entries: questions },
+          data: {
+            entries: questions,
+            central_topic: session.name || session.mission_brief || 'Investigation',
+            source_titles: evidenceContext.titles.slice(0, 5),
+            source_domains: evidenceContext.domains.slice(0, 5),
+          },
         }),
       })
 
@@ -163,7 +356,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
       const { id: newFrameworkId } = await createRes.json()
       if (!newFrameworkId) throw new Error('No framework ID returned')
 
-      // 2. Link framework to COP session
+      // 6. Link framework to COP session
       const existing = session.linked_frameworks ?? []
       const updated = [...existing, String(newFrameworkId)]
 
@@ -181,13 +374,11 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
         throw new Error(`Failed to link framework to session (${linkRes.status})`)
       }
 
-      // 3. Update local state — show the questions immediately
+      // 7. Update local state
       setStarburst({
         id: String(newFrameworkId),
         questions,
       })
-
-      // Also update session.linked_frameworks in-place so re-renders work
       session.linked_frameworks = updated
 
     } catch (err) {
@@ -195,6 +386,23 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
     } finally {
       setGenerating(false)
     }
+  }
+
+  // Regenerate — unlinks old framework, creates new one with fresh context
+  const handleRegenerateQuestions = async () => {
+    // Clear current starburst so we can regenerate
+    setStarburst(null)
+    // Remove linked frameworks so handleGenerateQuestions creates fresh
+    session.linked_frameworks = []
+    const headers = getCopHeaders()
+    try {
+      await fetch(`/api/cop/sessions/${session.id}`, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json', 'X-Workspace-ID': session.workspace_id || '' },
+        body: JSON.stringify({ linked_frameworks: [] }),
+      })
+    } catch { /* best effort */ }
+    handleGenerateQuestions()
   }
 
   // Calculate completion per category
@@ -301,8 +509,8 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
               )
             })}
 
-            {/* Open full view link */}
-            <div className="pt-3">
+            {/* Actions */}
+            <div className="pt-3 flex items-center gap-2">
               <a
                 href={`/dashboard/analysis-frameworks/starbursting/${starburst.id}/view`}
                 className="flex items-center gap-1.5 text-xs text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
@@ -310,6 +518,16 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
                 <ExternalLink className="h-3 w-3" />
                 Open full starbursting view
               </a>
+              <button
+                type="button"
+                onClick={handleRegenerateQuestions}
+                disabled={generating}
+                className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors ml-auto cursor-pointer"
+                title="Regenerate questions from current evidence"
+              >
+                <RefreshCw className={`h-3 w-3 ${generating ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
             </div>
           </>
         ) : session.key_questions?.length > 0 ? (
@@ -339,7 +557,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
                 {generating ? (
                   <>
                     <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
-                    Generating 5W1H...
+                    Generating 5W1H from evidence...
                   </>
                 ) : (
                   <>
@@ -357,7 +575,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
               No analysis framework linked yet.
             </p>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 max-w-[250px] sm:max-w-[200px] mx-auto">
-              Generate 5W1H questions to guide the investigation systematically.
+              Generate 5W1H questions from your evidence and key questions.
             </p>
             {error && (
               <p className="text-[10px] text-red-500 dark:text-red-400">{error}</p>
