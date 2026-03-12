@@ -71,6 +71,7 @@ import CopClaimsPanel from '@/components/cop/CopClaimsPanel'
 import CopSidebar from '@/components/cop/CopSidebar'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
 import { usePanelLayout } from '@/hooks/usePanelLayout'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
 import { getCopHeaders } from '@/lib/cop-auth'
 
@@ -855,6 +856,7 @@ function ProgressLayout({
   panelLayout,
 }: ProgressLayoutProps) {
   const { visiblePanels, hiddenPanels, movePanel, toggleWidth, toggleVisible, resetLayout } = panelLayout
+  const is2xl = useMediaQuery('(min-width: 1536px)')
 
   // ── Panel definitions (render functions keyed by id) ──────────
 
@@ -1095,10 +1097,11 @@ function ProgressLayout({
               <div key={`row-${row[0]?.id ?? rowIdx}-${row[1]?.id ?? `${rowIdx}b`}`} className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {row.map((def) => {
                   if (!def?.id) return null
+                  if (def.hideOn2xl && is2xl) return null
                   const panelCfg = visiblePanels.find((p) => p.id === def.id)
                   const idx = visiblePanels.findIndex((p) => p.id === def.id)
                   return (
-                    <div key={def.id} className={def.hideOn2xl ? '2xl:hidden' : undefined} data-panel={def.id}>
+                    <div key={def.id} data-panel={def.id}>
                       <CopPanelExpander
                         id={def.id}
                         title={def.title}
@@ -1126,10 +1129,11 @@ function ProgressLayout({
           // Single panel (full-width or lone half)
           const def = row[0]
           if (!def?.id) return null
+          if (def.hideOn2xl && is2xl) return null
           const panelCfg = visiblePanels.find((p) => p.id === def.id)
           const idx = visiblePanels.findIndex((p) => p.id === def.id)
           return (
-            <div key={def.id} className={def.hideOn2xl ? '2xl:hidden' : undefined} data-panel={def.id}>
+            <div key={def.id} data-panel={def.id}>
               <CopPanelExpander
                 id={def.id}
                 title={def.title}
@@ -1153,40 +1157,42 @@ function ProgressLayout({
       </div>
 
       {/* ── Right column: Evidence + Activity sidebar (2xl+ only) ── */}
-      <div className="hidden 2xl:flex 2xl:flex-col 2xl:w-[400px] 2xl:shrink-0 2xl:sticky 2xl:top-0 2xl:h-[calc(100vh-200px)] gap-4">
-        {/* Evidence & Intel Feed — scrollable, takes remaining space */}
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <CopPanelExpander
-            id="evidence-sidebar"
-            title="Evidence & Intel Feed"
-            icon={<FileText className="h-4 w-4 text-blue-400" />}
-            height="tall"
-          >
-            {(expanded) => (
-              <CopEvidenceFeed
-                sessionId={sessionId}
-                expanded={expanded}
-                onPinToMap={onPinToMapFromFeed}
-                onLinkPersona={onLinkPersona}
-              />
-            )}
-          </CopPanelExpander>
-        </div>
+      {is2xl && (
+        <div className="flex flex-col w-[400px] shrink-0 sticky top-0 h-[calc(100vh-200px)] gap-4">
+          {/* Evidence & Intel Feed — scrollable, takes remaining space */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <CopPanelExpander
+              id="evidence-sidebar"
+              title="Evidence & Intel Feed"
+              icon={<FileText className="h-4 w-4 text-blue-400" />}
+              height="tall"
+            >
+              {(expanded) => (
+                <CopEvidenceFeed
+                  sessionId={sessionId}
+                  expanded={expanded}
+                  onPinToMap={onPinToMapFromFeed}
+                  onLinkPersona={onLinkPersona}
+                />
+              )}
+            </CopPanelExpander>
+          </div>
 
-        {/* Activity Log — compact at bottom */}
-        <div className="shrink-0">
-          <CopPanelExpander
-            id="activity-sidebar"
-            title="Activity Log"
-            icon={<Activity className="h-4 w-4 text-slate-400" />}
-            height="compact"
-          >
-            {(expanded) => (
-              <CopActivityPanel sessionId={sessionId} expanded={expanded} />
-            )}
-          </CopPanelExpander>
+          {/* Activity Log — compact at bottom */}
+          <div className="shrink-0">
+            <CopPanelExpander
+              id="activity-sidebar"
+              title="Activity Log"
+              icon={<Activity className="h-4 w-4 text-slate-400" />}
+              height="compact"
+            >
+              {(expanded) => (
+                <CopActivityPanel sessionId={sessionId} expanded={expanded} />
+              )}
+            </CopPanelExpander>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

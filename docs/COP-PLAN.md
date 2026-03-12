@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-12 (session 9)
+**Last Updated**: 2026-03-12 (session 10)
 
 ## Completed
 
@@ -48,7 +48,7 @@
 
 ### P2 — Medium Priority (UX Improvements)
 
-- [ ] **Two-render pattern for responsive panels** — Causes double API calls for dual-rendered components; lift data fetch to parent
+- [x] **Two-render pattern for responsive panels** — Replaced CSS `2xl:hidden` dual-render with `useMediaQuery` conditional rendering. Evidence and Activity panels now mount only once: in the main grid on <2xl screens, in the sidebar on 2xl+ screens. Eliminates double API calls.
 - [ ] **Panel overflow UX** — Some collapsed panels use overflow-hidden with no visual cue (need fade gradient pattern)
 - [ ] **Evidence seeding from RFI answers** — When RFIs are answered, auto-create evidence items so Evidence Feed reflects progress
 - [ ] **Platform field defaults** — Batch-created personas default to 'other'; need audit/fix UI
