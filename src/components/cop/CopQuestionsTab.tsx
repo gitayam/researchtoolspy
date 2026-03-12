@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ChevronDown, ChevronRight, Star, ExternalLink, Sparkles, Loader2, RefreshCw } from 'lucide-react'
+import { ChevronDown, ChevronRight, Star, ExternalLink, Sparkles, Loader2, RefreshCw, HelpCircle, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { CopSession } from '@/types/cop'
 import { getCopHeaders } from '@/lib/cop-auth'
@@ -184,6 +184,8 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [createdRfis, setCreatedRfis] = useState<Set<string>>(new Set())
+  const [creatingRfi, setCreatingRfi] = useState<string | null>(null)
 
   // Find linked starbursting framework session
   const starburstId = (session.linked_frameworks ?? []).find(id =>
@@ -420,6 +422,31 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
     }
   }
 
+  /** Convert a 5W1H question into an RFI that can be assigned, tracked, and answered */
+  const handleCreateRfi = async (questionId: string, questionText: string, category: string) => {
+    setCreatingRfi(questionId)
+    try {
+      const res = await fetch(`/api/cop/${session.id}/rfis`, {
+        method: 'POST',
+        headers: getCopHeaders(),
+        body: JSON.stringify({
+          question: questionText,
+          priority: 'medium',
+          requester_name: `5W1H ${category.toUpperCase()}`,
+        }),
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null)
+        throw new Error(errData?.error ?? 'Failed to create RFI')
+      }
+      setCreatedRfis(prev => new Set(prev).add(questionId))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create RFI')
+    } finally {
+      setCreatingRfi(null)
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -485,15 +512,39 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
                       {catQuestions.map(q => (
                         <div
                           key={q.id}
-                          className="text-xs text-slate-500 dark:text-slate-400 py-0.5 pl-2 border-l border-slate-200 dark:border-slate-700"
+                          className="group flex items-start gap-1 text-xs text-slate-500 dark:text-slate-400 py-0.5 pl-2 border-l border-slate-200 dark:border-slate-700"
                         >
-                          <span className={q.answer ? 'text-slate-500 dark:text-slate-400' : 'text-amber-600 dark:text-amber-400'}>
-                            {q.question}
-                          </span>
-                          {q.answer && (
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
-                              {q.answer}
-                            </p>
+                          <div className="flex-1 min-w-0">
+                            <span className={q.answer ? 'text-slate-500 dark:text-slate-400' : 'text-amber-600 dark:text-amber-400'}>
+                              {q.question}
+                            </span>
+                            {q.answer && (
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                                {q.answer}
+                              </p>
+                            )}
+                          </div>
+                          {/* Convert to RFI button — show for unanswered questions */}
+                          {!q.answer && (
+                            createdRfis.has(q.id) ? (
+                              <span className="shrink-0 p-0.5 text-emerald-500" title="RFI created">
+                                <Check className="h-3 w-3" />
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleCreateRfi(q.id, q.question, cat.key)}
+                                disabled={creatingRfi === q.id}
+                                className="shrink-0 p-0.5 text-slate-400 hover:text-amber-500 opacity-0 group-hover:opacity-100 transition-all cursor-pointer disabled:opacity-50"
+                                title="Create RFI from this question"
+                              >
+                                {creatingRfi === q.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <HelpCircle className="h-3 w-3" />
+                                )}
+                              </button>
+                            )
                           )}
                         </div>
                       ))}

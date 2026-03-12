@@ -202,7 +202,7 @@ export default function CopEvidenceFeed({
         const headers = getCopHeaders()
         if (sessionId) headers['X-Workspace-ID'] = sessionId
 
-        const res = await fetch(`/api/evidence?workspace_id=${sessionId}`, { headers })
+        const res = await fetch(`/api/cop/${sessionId}/evidence`, { headers })
         if (!res.ok) throw new Error(`Failed to fetch evidence (${res.status})`)
 
         const data = await res.json()
@@ -260,7 +260,7 @@ export default function CopEvidenceFeed({
         const headers = getCopHeaders()
         if (sessionId) headers['X-Workspace-ID'] = sessionId
 
-        const res = await fetch(`/api/evidence?workspace_id=${sessionId}&limit=50`, { headers })
+        const res = await fetch(`/api/cop/${sessionId}/evidence`, { headers })
         if (!res.ok) return
         const data = await res.json()
         const evidenceData = data.evidence ?? data.items ?? []
@@ -354,8 +354,31 @@ export default function CopEvidenceFeed({
       }
 
       const data = await res.json()
+
+      // Persist the URL analysis to COP evidence_items so it's available to other panels
+      let persistedId: string | number | undefined
+      try {
+        const persistRes = await fetch(`/api/cop/${sessionId}/evidence`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            title: data.title ?? trimmed,
+            content: data.summary ?? data.description ?? '',
+            url: trimmed,
+            source_type: 'url_analysis',
+            confidence: 'medium',
+          }),
+        })
+        if (persistRes.ok) {
+          const persistData = await persistRes.json()
+          persistedId = persistData.id
+        }
+      } catch {
+        // Non-fatal — URL was analyzed even if persistence fails
+      }
+
       const newItem: FeedItem = {
-        id: data.id ?? data.analysis_id ?? tempId,
+        id: String(persistedId ?? data.id ?? data.analysis_id ?? tempId),
         type: 'url',
         title: data.title ?? trimmed,
         description: data.summary ?? data.description ?? undefined,

@@ -165,10 +165,28 @@ export default function CopGlobalCapture({
 
       switch (type) {
         case 'url': {
-          res = await fetch('/api/content-intelligence/analyze-url', {
+          // First analyze the URL
+          const analyzeRes = await fetch('/api/content-intelligence/analyze-url', {
             method: 'POST',
             headers: getCopHeaders(),
             body: JSON.stringify({ url: trimmed, workspace_id: sessionId }),
+          })
+          if (!analyzeRes.ok) {
+            const errData = await analyzeRes.json().catch(() => null)
+            throw new Error(errData?.error ?? `Analysis failed (${analyzeRes.status})`)
+          }
+          const analysisData = await analyzeRes.json()
+          // Persist to COP evidence_items so it appears in the feed
+          res = await fetch(`/api/cop/${sessionId}/evidence`, {
+            method: 'POST',
+            headers: getCopHeaders(),
+            body: JSON.stringify({
+              title: analysisData.title ?? trimmed,
+              content: analysisData.summary ?? analysisData.description ?? '',
+              url: trimmed,
+              source_type: 'url_analysis',
+              confidence: 'medium',
+            }),
           })
           break
         }
@@ -201,15 +219,14 @@ export default function CopGlobalCapture({
         }
         case 'note':
         default: {
-          res = await fetch('/api/evidence', {
+          res = await fetch(`/api/cop/${sessionId}/evidence`, {
             method: 'POST',
             headers: getCopHeaders(),
             body: JSON.stringify({
               title: trimmed.slice(0, 100),
-              description: trimmed,
-              type: 'evidence',
-              evidence_type: 'digital',
-              workspace_id: sessionId,
+              content: trimmed,
+              source_type: 'observation',
+              confidence: 'medium',
             }),
           })
           break
