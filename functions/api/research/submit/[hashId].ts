@@ -169,8 +169,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[get-form] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to retrieve form',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to retrieve form'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -387,8 +387,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[submit-form] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to submit data',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to submit data'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

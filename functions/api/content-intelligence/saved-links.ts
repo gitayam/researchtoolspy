@@ -104,8 +104,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Saved Links] List error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to retrieve saved links',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to retrieve saved links'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -232,8 +232,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Saved Links] Create error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to save link',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to save link'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -326,8 +326,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Saved Links] Update error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to update link',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to update link'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -370,8 +370,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Saved Links] Delete error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to delete link',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to delete link'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -420,8 +420,8 @@ async function getSingleLink(db: D1Database, id: number) {
   } catch (error) {
     console.error('[Saved Links] Get error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to retrieve link',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to retrieve link'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

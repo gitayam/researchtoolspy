@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-12 (session 7)
+**Last Updated**: 2026-03-12 (session 8)
 
 ## Completed
 
@@ -40,7 +40,7 @@
 
 ### P1 — High Priority (Functional Gaps)
 
-- [ ] **Error messages leak internals (remaining 190+)** — Systematic audit found 200+ instances across codebase. 8 critical (stack traces) fixed. Remaining use `details: error.message` pattern. Need a shared error response utility.
+- [x] **Error messages leak internals (remaining 190+)** — Fixed 108 files: removed `details: error.message` from 90 endpoints, replaced `error: error.message` with generic messages in 14 endpoints, removed `technicalDetails` leak from scrape-url.ts. All API errors now return generic messages while logging details server-side.
 - [ ] **Framework create missing auth headers** — `POST /api/frameworks` may create under wrong user when called from COP (uses `getUserIdOrDefault`)
 - [ ] **Old /api/evidence endpoint has no workspace_id filter** — Returns ALL evidence globally; unused by COP now but still a data leak risk for dashboard views
 - [ ] **Test data in production** — "Test Person 3" actor with generic description polluting workspace "1"

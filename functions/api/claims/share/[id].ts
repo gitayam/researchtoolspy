@@ -99,8 +99,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Share Claim] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to create share link',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to create share link'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -204,8 +204,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Get Shared Claim] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to load shared claim',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to load shared claim'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

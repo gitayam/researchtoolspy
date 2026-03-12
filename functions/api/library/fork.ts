@@ -133,7 +133,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   } catch (error: any) {
     if (error instanceof Response) return error
     console.error('[Library Fork API] Error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: CORS_HEADERS
     })

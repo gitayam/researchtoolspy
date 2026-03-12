@@ -174,8 +174,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Generate More Questions] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to generate more questions',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to generate more questions'
+
     }), {
       status: 500,
       headers: corsHeaders

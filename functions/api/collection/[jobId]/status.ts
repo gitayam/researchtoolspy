@@ -94,8 +94,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Collection Status] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to get status',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to get status'
+
     }), {
       status: 500,
       headers: corsHeaders

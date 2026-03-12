@@ -144,8 +144,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Migration] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Migration failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Migration failed'
+
     }), {
       status: 500,
       headers: {

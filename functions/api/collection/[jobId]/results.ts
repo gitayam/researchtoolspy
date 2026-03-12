@@ -131,8 +131,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Collection Results] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to get results',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to get results'
+
     }), {
       status: 500,
       headers: corsHeaders

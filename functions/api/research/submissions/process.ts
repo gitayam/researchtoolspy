@@ -200,8 +200,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[process-submission] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to process submission',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to process submission'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

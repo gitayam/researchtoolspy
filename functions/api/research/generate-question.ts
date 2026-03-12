@@ -287,8 +287,8 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
   } catch (error) {
     console.error('[generate-question] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to generate research questions',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to generate research questions'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

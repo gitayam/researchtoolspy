@@ -174,7 +174,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[Domain Country] Error:', error)
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to lookup country'
+      error: 'Failed to lookup country'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

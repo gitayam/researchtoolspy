@@ -73,8 +73,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Remove Entity Mention] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to remove entity mention',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to remove entity mention'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

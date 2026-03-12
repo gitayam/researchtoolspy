@@ -95,7 +95,7 @@ export async function scrapeUrl(url: string): Promise<ScrapedContent> {
     return { 
       title: 'Error', 
       content: '', 
-      error: error instanceof Error ? error.message : 'Unknown scraping error' 
+      error: 'Scraping failed' 
     }
   }
 }

@@ -74,8 +74,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[investigations] Error fetching:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to fetch investigation',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to fetch investigation'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -229,8 +229,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[investigations] Error updating:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to update investigation',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to update investigation'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -311,8 +311,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[investigations] Error deleting:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to delete investigation',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to delete investigation'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

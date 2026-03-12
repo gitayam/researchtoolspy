@@ -182,7 +182,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     logger.error('Git extraction failed:', error)
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Internal server error'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -416,7 +416,7 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
     return {
       success: false,
       platform: 'github',
-      error: error instanceof Error ? error.message : 'GitHub extraction failed'
+      error: 'GitHub extraction failed'
     }
   }
 }
@@ -565,7 +565,7 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
     return {
       success: false,
       platform: 'gitlab',
-      error: error instanceof Error ? error.message : 'GitLab extraction failed'
+      error: 'GitLab extraction failed'
     }
   }
 }
@@ -683,7 +683,7 @@ async function extractBitbucket(url: string): Promise<RepositoryInfo> {
     return {
       success: false,
       platform: 'bitbucket',
-      error: error instanceof Error ? error.message : 'Bitbucket extraction failed'
+      error: 'Bitbucket extraction failed'
     }
   }
 }

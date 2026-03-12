@@ -139,8 +139,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Create Packet] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to create investigation packet',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to create investigation packet'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

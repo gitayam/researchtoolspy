@@ -49,8 +49,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[forms/get] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to get form',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to get form'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -127,8 +127,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[forms/delete] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to delete form',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to delete form'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

@@ -233,8 +233,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[workspaces] Create error:', error)
     return new Response(
       JSON.stringify({
-        error: 'Failed to create workspace',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Failed to create workspace'
+,
       }),
       { status: 500, headers: corsHeaders }
     )

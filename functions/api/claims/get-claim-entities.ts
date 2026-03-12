@@ -98,8 +98,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Get Claim Entities] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to load claim entities',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to load claim entities'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

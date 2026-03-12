@@ -56,8 +56,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Hamilton Rule API] Get error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to get analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to get analysis'
+
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -142,8 +142,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Hamilton Rule API] Update error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to update analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to update analysis'
+
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -162,8 +162,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Hamilton Rule API] Delete error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to delete analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to delete analysis'
+
     }), { status: 500, headers: corsHeaders })
   }
 }

@@ -112,8 +112,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[List Packets] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to list investigation packets',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to list investigation packets'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

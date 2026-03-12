@@ -242,7 +242,7 @@ export async function onRequest(context: any) {
         headers: corsHeaders,
       })
     }
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: corsHeaders,
     })

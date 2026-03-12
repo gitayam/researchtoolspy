@@ -98,8 +98,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('ACH GET error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to fetch ACH analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to fetch ACH analysis'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -164,8 +164,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('ACH POST error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to create ACH analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to create ACH analysis'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -244,8 +244,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('ACH PUT error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to update ACH analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to update ACH analysis'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -300,8 +300,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('ACH DELETE error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to delete ACH analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to delete ACH analysis'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

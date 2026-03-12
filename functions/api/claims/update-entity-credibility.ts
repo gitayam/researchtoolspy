@@ -95,8 +95,8 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Update Entity Credibility] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to update entity credibility impact',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to update entity credibility impact'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

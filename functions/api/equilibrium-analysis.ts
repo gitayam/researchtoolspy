@@ -58,8 +58,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Equilibrium API] List error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to list analyses',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to list analyses'
+
     }), { status: 500, headers: corsHeaders })
   }
 }
@@ -114,8 +114,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Equilibrium API] Create error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to create analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to create analysis'
+
     }), { status: 500, headers: corsHeaders })
   }
 }

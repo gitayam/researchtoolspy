@@ -139,8 +139,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Collection Approve] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to approve results',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to approve results'
+
     }), {
       status: 500,
       headers: corsHeaders
@@ -199,8 +199,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Collection Reject] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to reject results',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to reject results'
+
     }), {
       status: 500,
       headers: corsHeaders

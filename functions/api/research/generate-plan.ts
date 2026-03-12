@@ -361,8 +361,8 @@ Make the plan specific to THIS research question and research type, not generic 
   } catch (error) {
     console.error('[generate-plan] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to generate research plan',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to generate research plan'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

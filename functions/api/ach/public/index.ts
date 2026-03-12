@@ -96,8 +96,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('Public ACH discovery error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to fetch public analyses',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to fetch public analyses'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

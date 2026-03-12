@@ -300,8 +300,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     console.error('Entity generation error:', error)
     return new Response(
       JSON.stringify({
-        error: 'Entity generation failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Entity generation failed'
+
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

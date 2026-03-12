@@ -96,8 +96,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[Actor Search] Error:', error)
     console.error('[Actor Search] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     return new Response(JSON.stringify({
-      error: 'Failed to search actors',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to search actors'
+
     }), {
       status: 500,
       headers: corsHeaders

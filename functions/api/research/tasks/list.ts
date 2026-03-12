@@ -76,8 +76,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[list-tasks] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to list tasks',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to list tasks'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

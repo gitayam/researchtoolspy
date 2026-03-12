@@ -136,8 +136,8 @@ Provide a concise, informative summary in 2-3 sentences.`
   } catch (error) {
     console.error('[Entity Summary] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to generate entity summary',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to generate entity summary'
+
     }), {
       status: 500,
       headers: CORS_HEADERS

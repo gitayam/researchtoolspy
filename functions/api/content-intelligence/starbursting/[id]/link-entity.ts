@@ -108,8 +108,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Link Entity] Error:', error)
     return new Response(JSON.stringify({ 
-      error: 'Failed to link entity',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to link entity'
+
     }), {
       status: 500,
       headers: corsHeaders

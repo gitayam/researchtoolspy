@@ -82,8 +82,8 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[forms/toggle] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to toggle form status',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to toggle form status'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

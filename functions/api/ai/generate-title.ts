@@ -120,7 +120,7 @@ Return ONLY the title, nothing else.`
   } catch (error: any) {
     console.error('Title generation error:', error)
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: corsHeaders }
     )
   }

@@ -120,8 +120,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[VirusTotal] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to fetch VirusTotal data',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to fetch VirusTotal data'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

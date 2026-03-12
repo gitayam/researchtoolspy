@@ -232,8 +232,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (error instanceof Response) return error
     console.error('[Starbursting] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to create Starbursting session',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to create Starbursting session'
+
     }), {
       status: 500,
       headers: corsHeaders
@@ -299,8 +299,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error: any) {
     console.error('[Starbursting] Get sessions error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to retrieve Starbursting sessions',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to retrieve Starbursting sessions'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

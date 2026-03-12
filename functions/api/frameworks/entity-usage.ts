@@ -99,8 +99,8 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
   } catch (error) {
     console.error('Entity usage lookup error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to look up entity usage',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to look up entity usage'
+
     }), {
       status: 500,
       headers: corsHeaders,

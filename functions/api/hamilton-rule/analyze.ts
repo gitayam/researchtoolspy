@@ -177,8 +177,8 @@ Return ONLY valid JSON with this exact structure:
   } catch (error) {
     console.error('[Hamilton AI] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Analysis failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Analysis failed'
+
     }), { status: 500, headers: corsHeaders })
   }
 }

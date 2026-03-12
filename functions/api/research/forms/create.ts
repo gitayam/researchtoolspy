@@ -175,8 +175,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[create-form] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to create form',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to create form'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

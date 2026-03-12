@@ -171,8 +171,8 @@ Return the response as a JSON object with a "questions" array:
   } catch (error) {
     console.error('[recommend-questions] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to generate research question recommendations',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to generate research question recommendations'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

@@ -143,8 +143,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Get Actor Claims] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to load actor claims',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to load actor claims'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

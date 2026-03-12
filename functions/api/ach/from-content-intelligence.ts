@@ -192,8 +192,8 @@ Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2",
   } catch (error) {
     console.error('[ACH] Auto-population error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to create ACH from content intelligence',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to create ACH from content intelligence'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

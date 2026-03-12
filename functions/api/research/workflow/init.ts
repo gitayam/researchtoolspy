@@ -125,8 +125,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[init-workflow] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to initialize workflow',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to initialize workflow'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

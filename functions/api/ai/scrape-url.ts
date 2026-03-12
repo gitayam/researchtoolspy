@@ -894,8 +894,7 @@ Return ONLY JSON:
     return new Response(JSON.stringify({
       error: userMessage,
       errorType,
-      suggestions,
-      technicalDetails: error instanceof Error ? error.message : 'Unknown error'
+      suggestions
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

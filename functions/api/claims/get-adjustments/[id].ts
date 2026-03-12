@@ -106,8 +106,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Get Claim Adjustments] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to load claim adjustments',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to load claim adjustments'
+
     }), {
       status: 500,
       headers: corsHeaders

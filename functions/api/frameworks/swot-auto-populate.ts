@@ -242,7 +242,7 @@ Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
     console.error('[SWOT Auto-Populate] Error:', error)
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Internal server error'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

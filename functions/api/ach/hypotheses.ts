@@ -87,8 +87,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('Hypothesis POST error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to create hypothesis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to create hypothesis'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -151,8 +151,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('Hypothesis PUT error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to update hypothesis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to update hypothesis'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -203,8 +203,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('Hypothesis DELETE error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to delete hypothesis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to delete hypothesis'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

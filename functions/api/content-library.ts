@@ -73,8 +73,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (error instanceof Response) return error
     console.error('[Content Library] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to fetch content library',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to fetch content library'
+
     }), {
       status: 500,
       headers: {

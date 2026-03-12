@@ -114,8 +114,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[status/id] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to fetch analysis status',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to fetch analysis status'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

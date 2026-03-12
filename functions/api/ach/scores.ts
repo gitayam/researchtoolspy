@@ -149,8 +149,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('Score POST error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to save score',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to save score'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -200,8 +200,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('Score DELETE error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to delete score',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to delete score'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

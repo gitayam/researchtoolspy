@@ -110,8 +110,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[investigations] Error listing:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to list investigations',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to list investigations'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -338,8 +338,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[investigations] Error creating:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to create investigation',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to create investigation'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

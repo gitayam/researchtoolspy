@@ -174,8 +174,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Get Packet] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to retrieve investigation packet',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to retrieve investigation packet'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

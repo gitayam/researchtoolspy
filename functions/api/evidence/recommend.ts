@@ -227,8 +227,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   } catch (error) {
     console.error('Evidence recommendation error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to generate evidence recommendations',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to generate evidence recommendations'
+
     }), {
       status: 500,
       headers: corsHeaders,

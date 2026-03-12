@@ -98,8 +98,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Social Extract] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Social media extraction failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Social media extraction failed'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -203,7 +203,7 @@ async function extractYouTube(url: string, mode: string, options: any): Promise<
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'YouTube extraction failed',
+      error: 'YouTube extraction failed',
       platform: 'youtube'
     }
   }
@@ -411,7 +411,7 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Instagram extraction failed',
+      error: 'Instagram extraction failed',
       platform: 'instagram',
       attempts: attemptCount,
       errors,
@@ -615,7 +615,7 @@ async function extractTwitter(url: string, mode: string, options: any): Promise<
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Twitter extraction failed',
+      error: 'Twitter extraction failed',
       platform: 'twitter'
     }
   }
@@ -653,7 +653,7 @@ async function extractTikTok(url: string, mode: string, options: any): Promise<a
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'TikTok extraction failed',
+      error: 'TikTok extraction failed',
       platform: 'tiktok'
     }
   }
@@ -684,7 +684,7 @@ async function extractFacebook(url: string, mode: string, options: any): Promise
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Facebook extraction failed',
+      error: 'Facebook extraction failed',
       platform: 'facebook'
     }
   }

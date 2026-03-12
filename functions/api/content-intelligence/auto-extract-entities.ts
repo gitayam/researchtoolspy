@@ -186,8 +186,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   } catch (error) {
     console.error('Auto-extract entities error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to auto-extract entities',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to auto-extract entities'
+
     }), {
       status: 500,
       headers: corsHeaders,

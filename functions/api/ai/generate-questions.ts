@@ -325,8 +325,8 @@ ${jsonFormat}`
   } catch (error) {
     console.error('Question generation error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to generate questions',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to generate questions'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

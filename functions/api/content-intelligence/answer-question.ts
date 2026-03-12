@@ -127,8 +127,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Q&A] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to answer question',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to answer question'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -452,8 +452,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Q&A] Get history error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to retrieve Q&A history',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to retrieve Q&A history'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

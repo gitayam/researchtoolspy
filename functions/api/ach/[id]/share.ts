@@ -119,8 +119,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('ACH share error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to update sharing settings',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to update sharing settings'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

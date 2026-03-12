@@ -114,8 +114,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       } catch (error) {
         console.error('[DEBUG] Failed to load existing analysis:', error)
         return new Response(JSON.stringify({
-          error: 'Failed to load analysis',
-          details: error instanceof Error ? error.message : 'Unknown error'
+          error: 'Failed to load analysis'
+
         }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
@@ -1227,7 +1227,7 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: 'Internal server error',
       text: ''
     }
   }

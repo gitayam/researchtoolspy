@@ -89,8 +89,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Search Actors] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to search actors',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to search actors'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

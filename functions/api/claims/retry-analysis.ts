@@ -112,8 +112,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Retry Claim Analysis] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to retry claim analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to retry claim analysis'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

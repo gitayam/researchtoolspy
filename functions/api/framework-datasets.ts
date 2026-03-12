@@ -157,7 +157,7 @@ export async function onRequest(context: any) {
 
   } catch (error: any) {
     console.error('Framework-Dataset API error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: corsHeaders,
     })

@@ -73,8 +73,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Remove Evidence Link] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to remove evidence link',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to remove evidence link'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

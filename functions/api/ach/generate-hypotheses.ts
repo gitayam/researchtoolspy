@@ -128,8 +128,8 @@ Return format: ["hypothesis 1", "hypothesis 2", ...]`
   } catch (error) {
     console.error('[ACH] Hypothesis generation error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to generate hypotheses',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to generate hypotheses'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

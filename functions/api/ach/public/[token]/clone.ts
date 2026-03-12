@@ -119,8 +119,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('ACH clone error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to clone analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to clone analysis'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
