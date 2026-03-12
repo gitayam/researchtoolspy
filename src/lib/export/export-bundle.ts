@@ -8,8 +8,8 @@
  * for fetching data and storing results.
  */
 
-import type { ExportFormat } from '@/types/cop'
-import { EXPORT_FORMAT_CONFIG } from '@/types/cop'
+import type { ExportFormat } from '../../types/cop'
+import { EXPORT_FORMAT_CONFIG } from '../../types/cop'
 import { serializeGeoJsonBundle } from './geojson-serializer'
 import { serializeKml } from './kml-serializer'
 import { serializeStixBundle } from './stix-serializer'

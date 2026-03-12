@@ -7,7 +7,7 @@
  *   - Monitor: evidence feed, optional map, key questions
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { type ReactNode, useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -33,6 +33,10 @@ import {
   BookOpen,
   Eye,
   ClipboardList,
+  Inbox,
+  Package,
+  Zap,
+  Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -58,8 +62,13 @@ import CopPersonaPanel from '@/components/cop/CopPersonaPanel'
 import CopEvidencePersonaLinkDialog from '@/components/cop/CopEvidencePersonaLinkDialog'
 import CopEntityDrawer from '@/components/cop/CopEntityDrawer'
 import CopTaskBoard from '@/components/cop/CopTaskBoard'
+import CopSubmissionInbox from '@/components/cop/CopSubmissionInbox'
+import CopAssetPanel from '@/components/cop/CopAssetPanel'
+import CopExportDialog from '@/components/cop/CopExportDialog'
+import CopPlaybookPanel from '@/components/cop/CopPlaybookPanel'
 import CopSidebar from '@/components/cop/CopSidebar'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
+import { usePanelLayout } from '@/hooks/usePanelLayout'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
 import { getCopHeaders } from '@/lib/cop-auth'
 
@@ -192,6 +201,12 @@ export default function CopWorkspacePage() {
 
   // ── Invite dialog state ───────────────────────────────────────
   const [inviteOpen, setInviteOpen] = useState(false)
+
+  // ── Export dialog state ──────────────────────────────────────
+  const [exportOpen, setExportOpen] = useState(false)
+
+  // ── Panel layout (shared between sidebar + ProgressLayout) ──
+  const panelLayout = usePanelLayout(id!)
 
   // ── Entity Drawer state ────────────────────────────────────
   const [entityDrawerOpen, setEntityDrawerOpen] = useState(false)
@@ -540,7 +555,7 @@ export default function CopWorkspacePage() {
   // ── Main layout ────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col bg-background min-h-dvh lg:min-h-[calc(100dvh_-_4.5rem)]">
+    <div className="flex flex-col bg-background min-h-dvh">
       {/* ── Header bar ──────────────────────────────────────────── */}
       <header className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 px-2 sm:px-3 md:px-4 py-2 bg-background border-b shrink-0">
         {/* Back button */}
@@ -622,6 +637,16 @@ export default function CopWorkspacePage() {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => setExportOpen(true)}
+            title="Export data"
+            className="cursor-pointer h-7 w-7 sm:h-auto sm:w-auto p-0 sm:p-2"
+            aria-label="Export data"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => window.open(`/api/cop/${id}/cot`, '_blank')}
             title="Export as Cursor-on-Target (ATAK compatible)"
             className="cursor-pointer hidden sm:inline-flex"
@@ -629,10 +654,7 @@ export default function CopWorkspacePage() {
           >
             <Radio className="h-4 w-4" />
           </Button>
-          {/* Theme toggle — visible on mobile since DashboardHeader is hidden */}
-          <span className="lg:hidden">
-            <ThemeToggle />
-          </span>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -656,11 +678,16 @@ export default function CopWorkspacePage() {
       {/* ── Sidebar + Panel grid ────────────────────────────────── */}
       <div className="flex flex-1 min-h-0">
         {/* Persistent sidebar (hidden on mobile, icon rail on md, full on lg+) */}
-        <CopSidebar mode={mode} stats={workspaceStats} />
+        <CopSidebar
+          mode={mode}
+          stats={workspaceStats}
+          panelOrder={panelLayout.visiblePanels.map((p) => p.id)}
+          onResetLayout={panelLayout.resetLayout}
+        />
 
         {/* Panel grid (scrollable main area) */}
-        <main className="overflow-y-auto p-2 sm:p-3 md:p-4 lg:p-5 flex-1 min-w-0" role="main" aria-label="COP workspace panels">
-          <div className="max-w-7xl mx-auto space-y-4">
+        <main className="overflow-y-auto p-2 sm:p-3 md:p-3 flex-1 min-w-0" role="main" aria-label="COP workspace panels">
+          <div className="space-y-3">
             {mode === 'progress' ? (
               <ProgressLayout
                 sessionId={id!}
@@ -683,6 +710,7 @@ export default function CopWorkspacePage() {
                   if (prefill) setEntityDrawerPrefill(prefill)
                   setEntityDrawerOpen(true)
                 }}
+                panelLayout={panelLayout}
               />
             ) : (
               <MonitorLayout
@@ -726,6 +754,14 @@ export default function CopWorkspacePage() {
         sessionName={session.name}
         open={inviteOpen}
         onOpenChange={setInviteOpen}
+      />
+
+      {/* Export dialog */}
+      <CopExportDialog
+        sessionId={id!}
+        sessionName={session.name}
+        open={exportOpen}
+        onOpenChange={setExportOpen}
       />
 
       {/* Entity Drawer */}
@@ -781,6 +817,20 @@ interface ProgressLayoutProps {
   onLinkPersona?: (handle: string, platform: string, itemId: string) => void
   onOpenEntityDrawer?: (tab?: string, prefill?: any) => void
   onMarkerOpenInFeed?: (sourceType: string, sourceId: string) => void
+  panelLayout: ReturnType<typeof usePanelLayout>
+}
+
+/** Panel metadata — icon, title, height, render function */
+interface PanelDef {
+  id: string
+  title: string
+  icon: ReactNode
+  height: string
+  badge?: string | number
+  badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline'
+  render: (expanded: boolean) => ReactNode
+  /** If true, hide on 2xl (shown in sidebar instead) */
+  hideOn2xl?: boolean
 }
 
 function ProgressLayout({
@@ -800,15 +850,177 @@ function ProgressLayout({
   onLinkPersona,
   onOpenEntityDrawer,
   onMarkerOpenInFeed,
+  panelLayout,
 }: ProgressLayoutProps) {
+  const { visiblePanels, hiddenPanels, movePanel, toggleWidth, toggleVisible, resetLayout } = panelLayout
+
+  // ── Panel definitions (render functions keyed by id) ──────────
+
+  const panelDefs: Record<string, PanelDef> = {
+    graph: {
+      id: 'graph',
+      title: 'Entity Relationships',
+      icon: <Network className="h-4 w-4 text-purple-400" />,
+      height: 'standard',
+      render: (expanded) => (
+        <CopMiniGraph sessionId={sessionId} workspaceId={session.workspace_id} expanded={expanded} />
+      ),
+    },
+    timeline: {
+      id: 'timeline',
+      title: 'Timeline',
+      icon: <Clock className="h-4 w-4 text-blue-400" />,
+      height: 'standard',
+      render: (expanded) => (
+        <CopTimelinePanel sessionId={sessionId} expanded={expanded} />
+      ),
+    },
+    actors: {
+      id: 'actors',
+      title: 'Actors',
+      icon: <Users className="h-4 w-4 text-purple-400" />,
+      height: 'standard',
+      render: (expanded) => (
+        <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
+      ),
+    },
+    rfi: {
+      id: 'rfi',
+      title: 'Key Questions & RFIs',
+      icon: <HelpCircle className="h-4 w-4 text-amber-400" />,
+      height: 'tall',
+      badge: rfiCount > 0 ? rfiCount : undefined,
+      badgeVariant: 'destructive' as const,
+      render: (expanded) => (
+        <div className="flex flex-col h-full gap-4">
+          <CopQuestionsTab session={session} />
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+            <h3 className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+              Requests for Information
+            </h3>
+            <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} />
+          </div>
+          {expanded && (
+            <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+              <CopGapAnalysis sessionId={sessionId} />
+            </div>
+          )}
+        </div>
+      ),
+    },
+    analysis: {
+      id: 'analysis',
+      title: 'Analysis & Hypotheses',
+      icon: <Brain className="h-4 w-4 text-emerald-400" />,
+      height: 'tall',
+      render: (expanded) => (
+        <div className="flex flex-col h-full gap-4">
+          <CopAnalysisSummary sessionId={sessionId} expanded={expanded} />
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
+            <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
+          </div>
+        </div>
+      ),
+    },
+    tasks: {
+      id: 'tasks',
+      title: 'Task Board',
+      icon: <ClipboardList className="h-4 w-4 text-orange-400" />,
+      height: 'standard',
+      render: (expanded) => (
+        <CopTaskBoard sessionId={sessionId} expanded={expanded} />
+      ),
+    },
+    submissions: {
+      id: 'submissions',
+      title: 'Submission Inbox',
+      icon: <Inbox className="h-4 w-4 text-cyan-400" />,
+      height: 'standard',
+      render: (expanded) => (
+        <CopSubmissionInbox sessionId={sessionId} expanded={expanded} />
+      ),
+    },
+    assets: {
+      id: 'assets',
+      title: 'Assets & Resources',
+      icon: <Package className="h-4 w-4 text-teal-400" />,
+      height: 'standard',
+      render: (expanded) => (
+        <CopAssetPanel sessionId={sessionId} expanded={expanded} />
+      ),
+    },
+    playbooks: {
+      id: 'playbooks',
+      title: 'Playbook Automation',
+      icon: <Zap className="h-4 w-4 text-yellow-400" />,
+      height: 'standard',
+      render: () => (
+        <CopPlaybookPanel sessionId={sessionId} />
+      ),
+    },
+    evidence: {
+      id: 'evidence',
+      title: 'Evidence & Intel Feed',
+      icon: <FileText className="h-4 w-4 text-blue-400" />,
+      height: 'standard',
+      hideOn2xl: true,
+      render: (expanded) => (
+        <CopEvidenceFeed
+          sessionId={sessionId}
+          expanded={expanded}
+          onPinToMap={onPinToMapFromFeed}
+          onLinkPersona={onLinkPersona}
+        />
+      ),
+    },
+    activity: {
+      id: 'activity',
+      title: 'Activity Log',
+      icon: <Activity className="h-4 w-4 text-slate-400" />,
+      height: 'compact',
+      hideOn2xl: true,
+      render: (expanded) => (
+        <CopActivityPanel sessionId={sessionId} expanded={expanded} />
+      ),
+    },
+  }
+
+  // ── Build rows from visible panels ──────────────────────────
+
+  // Group consecutive half-width panels into grid rows, full-width panels get their own row
+  const rows: PanelDef[][] = []
+  let halfBuf: PanelDef[] = []
+
+  for (const cfg of visiblePanels) {
+    const def = panelDefs[cfg.id]
+    if (!def) continue
+
+    if (cfg.width === 'half') {
+      halfBuf.push(def)
+      if (halfBuf.length === 2) {
+        rows.push(halfBuf)
+        halfBuf = []
+      }
+    } else {
+      if (halfBuf.length > 0) {
+        rows.push(halfBuf)
+        halfBuf = []
+      }
+      rows.push([def])
+    }
+  }
+  if (halfBuf.length > 0) rows.push(halfBuf)
+
   return (
     <div className="2xl:flex 2xl:gap-4">
       {/* ── Left column: main content panels ── */}
-      <div className="2xl:flex-1 2xl:min-w-0 space-y-4">
-        {/* Row 0: Entities Quick-Access Panel */}
-        <CopEntitiesPanel stats={stats} onOpenEntityDrawer={onOpenEntityDrawer} />
+      <div className="2xl:flex-1 2xl:min-w-0 space-y-3">
+        {/* Pinned: Entities Quick-Access Panel */}
+        <div data-panel="entities">
+          <CopEntitiesPanel stats={stats} onOpenEntityDrawer={onOpenEntityDrawer} />
+        </div>
 
-        {/* Row 0.5: Map (always visible, mini-map when collapsed) */}
+        {/* Pinned: Map */}
         <CopPanelExpander
           id="map"
           title="Map"
@@ -834,138 +1046,97 @@ function ProgressLayout({
           )}
         </CopPanelExpander>
 
-        {/* Row 1: Entity Relationships + Timeline */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <CopPanelExpander
-            id="graph"
-            title="Entity Relationships"
-            icon={<Network className="h-4 w-4 text-purple-400" />}
-            height="standard"
-          >
-            {(expanded) => (
-              <CopMiniGraph sessionId={sessionId} workspaceId={session.workspace_id} expanded={expanded} />
-            )}
-          </CopPanelExpander>
-
-          <CopPanelExpander
-            id="timeline"
-            title="Timeline"
-            icon={<Clock className="h-4 w-4 text-blue-400" />}
-            height="standard"
-          >
-            {(expanded) => (
-              <CopTimelinePanel sessionId={sessionId} expanded={expanded} />
-            )}
-          </CopPanelExpander>
-        </div>
-
-        {/* Row 1.5: Actors (research targets) — full width for card grid */}
-        <CopPanelExpander
-          id="actors"
-          title="Actors"
-          icon={<Users className="h-4 w-4 text-purple-400" />}
-          height="standard"
-        >
-          {(expanded) => (
-            <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
-          )}
-        </CopPanelExpander>
-
-        {/* Row 2: Key Questions & RFIs + Analysis Summary */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div data-panel="rfi" className="scroll-mt-4">
-          <CopPanelExpander
-            id="rfi"
-            title="Key Questions & RFIs"
-            icon={<HelpCircle className="h-4 w-4 text-amber-400" />}
-            badge={rfiCount > 0 ? rfiCount : undefined}
-            badgeVariant="destructive"
-            height="tall"
-          >
-            {(expanded) => (
-              <div className="flex flex-col h-full gap-4">
-                <div className={expanded ? '' : ''}>
-                  <CopQuestionsTab session={session} />
-                </div>
-                <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
-                  <h3 className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-                    Requests for Information
-                  </h3>
-                  <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} />
-                </div>
-                {expanded && (
-                  <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
-                    <CopGapAnalysis sessionId={sessionId} />
-                  </div>
-                )}
-              </div>
-            )}
-          </CopPanelExpander>
+        {/* Hidden panels restore bar */}
+        {hiddenPanels.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap px-1">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-medium">Hidden:</span>
+            {hiddenPanels.map((p) => {
+              const def = panelDefs[p.id]
+              return def ? (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => toggleVisible(p.id)}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  title={`Show ${def.title}`}
+                >
+                  {def.icon}
+                  <span>{def.title}</span>
+                </button>
+              ) : null
+            })}
+            <button
+              type="button"
+              onClick={resetLayout}
+              className="text-[10px] text-blue-500 hover:text-blue-400 ml-auto cursor-pointer"
+              title="Reset panel layout to defaults"
+            >
+              Reset layout
+            </button>
           </div>
+        )}
 
-          <CopPanelExpander
-            id="analysis"
-            title="Analysis & Hypotheses"
-            icon={<Brain className="h-4 w-4 text-emerald-400" />}
-            height="tall"
-          >
-            {(expanded) => (
-              <div className="flex flex-col h-full gap-4">
-                <div className={expanded ? '' : ''}>
-                  <CopAnalysisSummary sessionId={sessionId} expanded={expanded} />
-                </div>
-                <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
-                  <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
-                </div>
+        {/* Dynamic panel rows */}
+        {rows.map((row, rowIdx) => {
+          if (row.length === 2) {
+            // Two half-width panels in a grid
+            return (
+              <div key={`row-${row[0].id}-${row[1].id}`} className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {row.map((def) => {
+                  const panelCfg = visiblePanels.find((p) => p.id === def.id)!
+                  const idx = visiblePanels.findIndex((p) => p.id === def.id)
+                  return (
+                    <div key={def.id} className={def.hideOn2xl ? '2xl:hidden' : undefined} data-panel={def.id}>
+                      <CopPanelExpander
+                        id={def.id}
+                        title={def.title}
+                        icon={def.icon}
+                        height={def.height}
+                        badge={def.badge}
+                        badgeVariant={def.badgeVariant}
+                        panelWidth={panelCfg.width}
+                        onMoveUp={() => movePanel(def.id, 'up')}
+                        onMoveDown={() => movePanel(def.id, 'down')}
+                        onToggleWidth={() => toggleWidth(def.id)}
+                        onHide={() => toggleVisible(def.id)}
+                        canMoveUp={idx > 0}
+                        canMoveDown={idx < visiblePanels.length - 1}
+                      >
+                        {def.render}
+                      </CopPanelExpander>
+                    </div>
+                  )
+                })}
               </div>
-            )}
-          </CopPanelExpander>
-        </div>
+            )
+          }
 
-        {/* Row 2.5: Task Board */}
-        <CopPanelExpander
-          id="tasks"
-          title="Task Board"
-          icon={<ClipboardList className="h-4 w-4 text-orange-400" />}
-          height="standard"
-        >
-          {(expanded) => (
-            <CopTaskBoard sessionId={sessionId} expanded={expanded} />
-          )}
-        </CopPanelExpander>
-
-        {/* Row 3: Evidence & Intel Feed — inline for screens below 2xl */}
-        <div className="2xl:hidden">
-          <CopPanelExpander
-            id="evidence"
-            title="Evidence & Intel Feed"
-            icon={<FileText className="h-4 w-4 text-blue-400" />}
-            height="standard"
-          >
-            {(expanded) => (
-              <CopEvidenceFeed
-                sessionId={sessionId}
-                expanded={expanded}
-                onPinToMap={onPinToMapFromFeed}
-                onLinkPersona={onLinkPersona}
-              />
-            )}
-          </CopPanelExpander>
-        </div>
-
-        {/* Activity Log — inline for screens below 2xl */}
-        <div className="2xl:hidden">
-          <CopPanelExpander
-            id="activity"
-            title="Activity Log"
-            icon={<Activity className="h-4 w-4 text-slate-400" />}
-            height="compact"
-          >
-            {(expanded) => (
-              <CopActivityPanel sessionId={sessionId} expanded={expanded} />
-            )}
-          </CopPanelExpander>
-        </div>
+          // Single panel (full-width or lone half)
+          const def = row[0]
+          const panelCfg = visiblePanels.find((p) => p.id === def.id)!
+          const idx = visiblePanels.findIndex((p) => p.id === def.id)
+          return (
+            <div key={def.id} className={def.hideOn2xl ? '2xl:hidden' : undefined} data-panel={def.id}>
+              <CopPanelExpander
+                id={def.id}
+                title={def.title}
+                icon={def.icon}
+                height={def.height}
+                badge={def.badge}
+                badgeVariant={def.badgeVariant}
+                panelWidth={panelCfg.width}
+                onMoveUp={() => movePanel(def.id, 'up')}
+                onMoveDown={() => movePanel(def.id, 'down')}
+                onToggleWidth={() => toggleWidth(def.id)}
+                onHide={() => toggleVisible(def.id)}
+                canMoveUp={idx > 0}
+                canMoveDown={idx < visiblePanels.length - 1}
+              >
+                {def.render}
+              </CopPanelExpander>
+            </div>
+          )
+        })}
       </div>
 
       {/* ── Right column: Evidence + Activity sidebar (2xl+ only) ── */}
@@ -1127,6 +1298,18 @@ function MonitorLayout({
       >
         {(expanded) => (
           <CopTaskBoard sessionId={sessionId} expanded={expanded} />
+        )}
+      </CopPanelExpander>
+
+      {/* Assets (compact in monitor mode) */}
+      <CopPanelExpander
+        id="assets"
+        title="Assets & Resources"
+        icon={<Package className="h-4 w-4 text-teal-400" />}
+        height="compact"
+      >
+        {(expanded) => (
+          <CopAssetPanel sessionId={sessionId} expanded={expanded} />
         )}
       </CopPanelExpander>
 

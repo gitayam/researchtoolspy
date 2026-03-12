@@ -72,7 +72,7 @@ export default function CopTimelinePanel({ sessionId, expanded }: CopTimelinePan
       setError(null)
 
       try {
-        const res = await fetch('/api/intelligence/timeline', {
+        const res = await fetch(`/api/cop/${sessionId}/activity?limit=200`, {
           headers: getCopHeaders(),
         })
 
@@ -82,12 +82,31 @@ export default function CopTimelinePanel({ sessionId, expanded }: CopTimelinePan
 
         const json = await res.json()
 
-        // Normalize from whichever shape the API returns
-        const rawArray: RawActivity[] =
-          json.timeline ?? json.daily_activity ?? json.activity ?? []
+        // Aggregate activity entries by date
+        const activityList: Array<{ created_at: string; entity_type?: string; action?: string }> =
+          json.activity ?? []
+
+        const byDate: Record<string, { events: number; evidence: number; analyses: number }> = {}
+        for (const entry of activityList) {
+          const date = (entry.created_at ?? '').slice(0, 10)
+          if (!date) continue
+          if (!byDate[date]) byDate[date] = { events: 0, evidence: 0, analyses: 0 }
+          const etype = (entry.entity_type ?? '').toLowerCase()
+          if (etype === 'evidence' || entry.action === 'evidence_added') {
+            byDate[date].evidence++
+          } else if (etype === 'framework' || etype === 'hypothesis' || entry.action === 'framework_run') {
+            byDate[date].analyses++
+          } else {
+            byDate[date].events++
+          }
+        }
+
+        const rawArray: TimelineEntry[] = Object.entries(byDate)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, counts]) => ({ date, ...counts }))
 
         if (!cancelled) {
-          setData(rawArray.map(normalizeEntry))
+          setData(rawArray)
         }
       } catch (err) {
         if (!cancelled) {

@@ -27,20 +27,12 @@ export function DashboardLayout() {
 }
 
 export function DashboardFullBleedLayout() {
+  // COP workspace has its own sidebar + header — no dashboard chrome needed
   return (
     <div className="min-h-screen bg-background">
       <SkipToContent />
       <ScrollToTop />
-      {/* Hide sidebar + header on mobile — COP workspace has its own header/nav */}
-      <div className="hidden lg:block">
-        <DashboardSidebar />
-      </div>
-      <div className="lg:pl-64">
-        <div className="hidden lg:block">
-          <DashboardHeader />
-        </div>
-        <Outlet />
-      </div>
+      <Outlet />
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { type ReactNode, useState, useCallback, useEffect, useRef } from 'react'
-import { Maximize2, Minimize2, X } from 'lucide-react'
+import { Maximize2, Minimize2, X, ChevronUp, ChevronDown, Columns2, Square, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +18,14 @@ interface CopPanelExpanderProps {
   className?: string
   height?: PanelHeight
   defaultHidden?: boolean
+  // Layout controls (optional — passed when rendered via dynamic layout)
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  onToggleWidth?: () => void
+  onHide?: () => void
+  panelWidth?: 'full' | 'half'
+  canMoveUp?: boolean
+  canMoveDown?: boolean
 }
 
 const HEIGHT_MAP: Record<string, string> = {
@@ -38,6 +46,13 @@ export default function CopPanelExpander({
   className,
   height = 'standard',
   defaultHidden = false,
+  onMoveUp,
+  onMoveDown,
+  onToggleWidth,
+  onHide,
+  panelWidth,
+  canMoveUp = true,
+  canMoveDown = true,
 }: CopPanelExpanderProps) {
   const storageKey = `cop_panel_${id}_expanded`
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -91,6 +106,73 @@ export default function CopPanelExpander({
   }, [storageKey])
 
   if (hidden) return null
+
+  const hasLayoutControls = onMoveUp || onMoveDown || onToggleWidth || onHide
+
+  // ── Layout control buttons (shared between collapsed & expanded headers) ──
+
+  const layoutControls = hasLayoutControls ? (
+    <div className="flex items-center gap-0.5 mr-1 border-r border-slate-200 dark:border-slate-700 pr-1">
+      {onMoveUp && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            'h-6 w-6 cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity motion-reduce:transition-none hover:bg-slate-200 dark:hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:opacity-100',
+            !canMoveUp && 'opacity-0! pointer-events-none'
+          )}
+          onClick={(e) => { e.stopPropagation(); onMoveUp() }}
+          aria-label={`Move ${title} up`}
+          disabled={!canMoveUp}
+        >
+          <ChevronUp className="h-3 w-3" />
+        </Button>
+      )}
+      {onMoveDown && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            'h-6 w-6 cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity motion-reduce:transition-none hover:bg-slate-200 dark:hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:opacity-100',
+            !canMoveDown && 'opacity-0! pointer-events-none'
+          )}
+          onClick={(e) => { e.stopPropagation(); onMoveDown() }}
+          aria-label={`Move ${title} down`}
+          disabled={!canMoveDown}
+        >
+          <ChevronDown className="h-3 w-3" />
+        </Button>
+      )}
+      {onToggleWidth && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity motion-reduce:transition-none hover:bg-slate-200 dark:hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:opacity-100"
+          onClick={(e) => { e.stopPropagation(); onToggleWidth() }}
+          aria-label={panelWidth === 'full' ? `Make ${title} half-width` : `Make ${title} full-width`}
+          title={panelWidth === 'full' ? 'Half width' : 'Full width'}
+        >
+          {panelWidth === 'full' ? (
+            <Columns2 className="h-3 w-3" />
+          ) : (
+            <Square className="h-3 w-3" />
+          )}
+        </Button>
+      )}
+      {onHide && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity motion-reduce:transition-none hover:bg-slate-200 dark:hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:opacity-100"
+          onClick={(e) => { e.stopPropagation(); onHide() }}
+          aria-label={`Hide ${title} panel`}
+          title="Hide panel"
+        >
+          <EyeOff className="h-3 w-3" />
+        </Button>
+      )}
+    </div>
+  ) : null
 
   // ── Expanded: full-screen overlay ────────────────────────────
 
@@ -178,7 +260,8 @@ export default function CopPanelExpander({
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
+          {layoutControls}
           <Button
             ref={triggerRef}
             variant="ghost"

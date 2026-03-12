@@ -172,6 +172,13 @@ if [ $? -ne 0 ]; then
 fi
 FUNC_COUNT=$(find dist/functions -name "*.ts" | wc -l | tr -d ' ')
 echo "${GREEN}Functions copied ($FUNC_COUNT TypeScript files)${NC}"
+
+# Copy shared src/ modules referenced by functions (export serializers, types)
+echo "${YELLOW}  Copying src/lib/export/ and src/types/ for function bundling...${NC}"
+mkdir -p dist/src/lib/export dist/src/types
+rsync -av src/lib/export/ dist/src/lib/export/
+rsync -av src/types/cop.ts dist/src/types/cop.ts
+echo "${GREEN}  Shared modules copied${NC}"
 echo ""
 
 # =============================================================================

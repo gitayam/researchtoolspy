@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { ChevronDown, ChevronRight, Star, ExternalLink, Sparkles, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { CopSession } from '@/types/cop'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── 5W1H Categories ──────────────────────────────────────────────
 
@@ -20,27 +21,50 @@ const CATEGORIES: Category[] = [
   { key: 'how', label: 'How', color: '#06b6d4' },
 ]
 
-// Default 5W1H questions for persona farm investigation
-function generateDefaultQuestions(missionBrief?: string | null): Array<{ id: string; category: string; question: string; answer: string | null }> {
-  const context = missionBrief || 'this investigation'
-  return [
-    { id: 'q-who-1', category: 'who', question: `Who is operating the persona network?`, answer: null },
-    { id: 'q-who-2', category: 'who', question: `Who are the target audiences?`, answer: null },
-    { id: 'q-who-3', category: 'who', question: `Who benefits financially from the operation?`, answer: null },
-    { id: 'q-what-1', category: 'what', question: `What platforms are being used?`, answer: null },
-    { id: 'q-what-2', category: 'what', question: `What content patterns indicate coordination?`, answer: null },
-    { id: 'q-what-3', category: 'what', question: `What TTPs (tactics, techniques, procedures) are employed?`, answer: null },
-    { id: 'q-when-1', category: 'when', question: `When did the operation begin?`, answer: null },
-    { id: 'q-when-2', category: 'when', question: `When are accounts most active (timezone patterns)?`, answer: null },
-    { id: 'q-where-1', category: 'where', question: `Where are the operators physically located?`, answer: null },
-    { id: 'q-where-2', category: 'where', question: `Where do the personas claim to be located?`, answer: null },
-    { id: 'q-where-3', category: 'where', question: `Where does the money flow (payment platforms)?`, answer: null },
-    { id: 'q-why-1', category: 'why', question: `Why was this specific persona network created?`, answer: null },
-    { id: 'q-why-2', category: 'why', question: `Why these particular platforms and not others?`, answer: null },
-    { id: 'q-how-1', category: 'how', question: `How are the personas created and maintained?`, answer: null },
-    { id: 'q-how-2', category: 'how', question: `How do they evade platform detection?`, answer: null },
-    { id: 'q-how-3', category: 'how', question: `How are stolen images sourced and modified?`, answer: null },
-  ]
+// Build 5W1H questions — use session's key_questions as seeds, then fill
+// gaps with defaults so every category has at least one question.
+function buildQuestions(
+  keyQuestions: string[],
+  missionBrief?: string | null,
+): Array<{ id: string; category: string; question: string; answer: string | null }> {
+  const result: Array<{ id: string; category: string; question: string; answer: string | null }> = []
+
+  // Classify each user question into a 5W1H category by keyword
+  const lowerCats = ['who', 'what', 'when', 'where', 'why', 'how']
+  const usedCategories = new Set<string>()
+
+  keyQuestions.forEach((q, i) => {
+    const lower = q.toLowerCase().trim()
+    let cat = 'what' // default bucket
+    for (const c of lowerCats) {
+      if (lower.startsWith(c + ' ') || lower.startsWith(c + "'")) {
+        cat = c
+        break
+      }
+    }
+    usedCategories.add(cat)
+    result.push({ id: `q-user-${i}`, category: cat, question: q, answer: null })
+  })
+
+  // Fill empty categories with defaults
+  const defaults: Record<string, string[]> = {
+    who: ['Who are the key actors involved?', 'Who are the target audiences?', 'Who benefits from this?'],
+    what: ['What methods or tactics are being used?', 'What patterns indicate coordination?', 'What evidence exists?'],
+    when: ['When did this activity begin?', 'When are the actors most active?'],
+    where: ['Where is the activity concentrated?', 'Where are the operators located?', 'Where does funding flow?'],
+    why: ['Why was this activity initiated?', 'Why these specific targets or methods?'],
+    how: ['How is the operation structured?', 'How do they avoid detection?', 'How are resources acquired?'],
+  }
+
+  for (const cat of lowerCats) {
+    if (!usedCategories.has(cat)) {
+      defaults[cat].forEach((q, i) => {
+        result.push({ id: `q-${cat}-${i}`, category: cat, question: q, answer: null })
+      })
+    }
+  }
+
+  return result
 }
 
 // ── Types ────────────────────────────────────────────────────────
@@ -80,7 +104,9 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
   const fetchStarburst = useCallback(async (id: string | number) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/frameworks/${id}`)
+      const res = await fetch(`/api/frameworks/${id}`, {
+        headers: getCopHeaders(),
+      })
       if (!res.ok) return
       const data = await res.json()
       setStarburst({
@@ -88,7 +114,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
         questions: data.questions ?? data.entries ?? data.data?.entries ?? [],
       })
     } catch {
-      // ignore
+      // ignore — will fall through to key_questions view
     } finally {
       setLoading(false)
     }
@@ -108,11 +134,18 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
     setGenerating(true)
     setError(null)
     try {
+      // Build questions from session's key_questions (or defaults)
+      const questions = buildQuestions(
+        session.key_questions ?? [],
+        session.mission_brief,
+      )
+
+      const headers = getCopHeaders()
+
       // 1. Create framework session
-      const questions = generateDefaultQuestions(session.mission_brief)
       const createRes = await fetch('/api/frameworks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: `5W1H: ${session.name || 'Investigation'}`,
           description: `Starbursting analysis for COP session ${session.id}`,
@@ -137,6 +170,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
       const linkRes = await fetch(`/api/cop/sessions/${session.id}`, {
         method: 'PUT',
         headers: {
+          ...headers,
           'Content-Type': 'application/json',
           'X-Workspace-ID': session.workspace_id || '',
         },
@@ -270,7 +304,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
             {/* Open full view link */}
             <div className="pt-3">
               <a
-                href={`/dashboard/frameworks/${starburst.id}`}
+                href={`/dashboard/analysis-frameworks/starbursting/${starburst.id}/view`}
                 className="flex items-center gap-1.5 text-xs text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
               >
                 <ExternalLink className="h-3 w-3" />
@@ -278,6 +312,44 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
               </a>
             </div>
           </>
+        ) : session.key_questions?.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium px-1">
+              Key Questions ({session.key_questions.length})
+            </p>
+            {session.key_questions.map((q, i) => (
+              <div
+                key={i}
+                className="text-xs text-slate-600 dark:text-slate-300 py-1.5 px-2 border-l-2 border-blue-400 dark:border-blue-500 bg-slate-50 dark:bg-slate-800/50 rounded-r"
+              >
+                {q}
+              </div>
+            ))}
+            <div className="pt-2">
+              {error && (
+                <p className="text-[10px] text-red-500 dark:text-red-400 mb-2">{error}</p>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs cursor-pointer w-full"
+                onClick={handleGenerateQuestions}
+                disabled={generating}
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                    Generating 5W1H...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3 w-3 mr-1.5" />
+                    Expand into 5W1H Framework
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         ) : (
           <div className="text-center py-6 space-y-3">
             <Star className="h-6 w-6 text-slate-400 dark:text-slate-600 mx-auto" />

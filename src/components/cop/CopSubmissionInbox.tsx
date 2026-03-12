@@ -20,7 +20,7 @@ export default function CopSubmissionInbox({ sessionId, expanded }: CopSubmissio
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('pending')
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
 
   const fetchSubmissions = useCallback(async (signal?: AbortSignal) => {
     try {

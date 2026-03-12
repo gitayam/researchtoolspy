@@ -186,9 +186,10 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     updates.push('updated_at = ?')
     values.push(new Date().toISOString())
     values.push(body.id)
+    values.push(sessionId)
 
     await env.DB.prepare(`
-      UPDATE cop_hypotheses SET ${updates.join(', ')} WHERE id = ?
+      UPDATE cop_hypotheses SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?
     `).bind(...values).run()
 
     const userId = await getUserIdOrDefault(request, env)
