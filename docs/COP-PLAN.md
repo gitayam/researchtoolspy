@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-12 (session 6)
+**Last Updated**: 2026-03-12 (session 7)
 
 ## Completed
 
@@ -25,6 +25,8 @@
 - [x] **P0: COP sessions share workspace_id "1"** — Auto-create dedicated workspace per COP session on creation. Migrated existing Iran sessions to own workspaces (`cop-0b2c7e49-cf9`, `cop-2b1e9887-34c`). Entities now properly scoped per session.
 - [x] **P0: Session list empty after workspace fix** — GET `/api/cop/sessions` defaulted to `workspace_id = '1'` filter. After sessions got dedicated workspaces, no sessions matched. Fixed to query by `created_by` when no workspace header provided.
 - [x] **P0: Session updates silently failing (mission_brief, etc.)** — PUT/DELETE `/api/cop/sessions/:id` had `WHERE workspace_id = ?` defaulting to `'1'`. After workspace isolation, no rows matched so all updates were no-ops. Fixed by removing redundant workspace_id from WHERE clause (session ID is already unique PK).
+- [x] **P0: 4 sessions sharing workspace f5478f35** — Migrated cop-acccd999-110, cop-a76d9b77-980, cop-77893f12-485, cop-5b827fff-15d to dedicated workspaces via migration 080. Evidence items also migrated. All 6 sessions now have own workspaces.
+- [x] **P3: Lessons learned doc outdated** — Added 2026-03-12 session with workspace isolation, WHERE clause, and optimistic UI lessons.
 
 ## In Progress
 
@@ -52,18 +54,21 @@
 ### P3 — Low Priority (Tech Debt)
 
 - [ ] **Bundle size** — CopWorkspacePage chunk is 249KB (57KB gzipped). Consider further code splitting
-- [ ] **Lessons learned doc outdated** — Last updated 2026-03-09, needs today's session findings added
 - [ ] **D1 migration verification** — Should verify all migrations applied to production with `SELECT sql FROM sqlite_master`
 - [ ] **Retire old /api/evidence endpoint** — Once dashboard views are migrated to workspace-scoped evidence, remove the unscoped endpoint
 
-## Production State (2026-03-12 session 5)
+## Production State (2026-03-12 session 6)
 
-| Session | ID | Workspace | Evidence | Actors | Events | Places | RFIs |
-|---------|-----|-----------|----------|--------|--------|--------|------|
-| Quick Brief - Iran | cop-2b1e9887-34c | cop-2b1e9887-34c | 0 | 0 | 0 | 0 | 0 |
-| Event Monitor - Iran | cop-0b2c7e49-cf9 | cop-0b2c7e49-cf9 | 0 | 0 | 0 | 0 | 0 |
+| Session | ID | Workspace | Evidence | Entities | Frameworks |
+|---------|-----|-----------|----------|----------|------------|
+| Loss of U.S. KC-135 | cop-acccd999-110 | cop-acccd999-110 | 2 | 0 | 1 |
+| Iran Attacks | cop-77893f12-485 | cop-77893f12-485 | 0 | 0 | 0 |
+| Quick Brief - iran | cop-2b1e9887-34c | cop-2b1e9887-34c | 0 | 0 | 0 |
+| Event Monitor - Iran | cop-0b2c7e49-cf9 | cop-0b2c7e49-cf9 | 0 | 0 | 0 |
+| debug test | cop-a76d9b77-980 | cop-a76d9b77-980 | 0 | 0 | 0 |
+| test workspace | cop-5b827fff-15d | cop-5b827fff-15d | 0 | 0 | 0 |
 
-Sessions now have dedicated workspaces — clean entity namespace per session. The 17 unrelated actors remain in workspace "1" (only used by archived test session).
+All 6 sessions now have dedicated workspaces. Session updates (mission_brief, etc.) now persist correctly.
 
 ## Architecture Notes
 

@@ -1,5 +1,24 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-12 - COP Workspace Isolation & Persistence Fixes
+
+### Workspace Isolation is Retroactive, Not Just Prospective
+Fixing session creation to auto-create dedicated workspaces only prevents NEW sessions from sharing. **Existing sessions must be migrated retroactively.** We found two waves of shared workspaces: first workspace "1" (Iran sessions), then workspace `f5478f35-...` (4 newer sessions). Each required a separate migration (079, 080).
+
+**Rule:** When changing a default that affects data scoping, always audit existing records for the old default. Auto-fix new records is only half the fix.
+
+### WHERE Clauses with Redundant Scope Filters Break on Scope Changes
+PUT/DELETE handlers used `WHERE id = ? AND workspace_id = ?` where `id` is already a unique primary key. When workspace_id changed (from shared to dedicated), these queries silently matched 0 rows. All session updates (mission_brief, event_facts, etc.) became no-ops.
+
+**Rule:** If `id` is a unique PK, don't add `AND workspace_id = ?` to the WHERE clause — it creates fragile coupling. Use separate authorization checks instead.
+
+### Optimistic UI Masks Silent Backend Failures
+The mission_brief field used optimistic updates: `setSession(prev => ({...prev, mission_brief: brief}))` before the PUT. The UI showed the value immediately, but the PUT failed silently (0 rows updated). On page refresh, the field reverted to null. Users perceived this as "data not persisting after refresh."
+
+**Rule:** For critical PUT/PATCH operations, verify the response indicates actual changes (e.g., check `meta.changes > 0` in D1 responses) and show an error toast if the update was a no-op.
+
+---
+
 ## Session: 2026-03-09 - COP Workspace Cycle 15
 
 ### Agent Import Insertion Breaks Multi-Line Imports
@@ -996,5 +1015,5 @@ Tests that timeout (30s) almost always mean a selector doesn't match the current
 
 ---
 
-**Last Updated**: 2026-03-09
-**Major Features**: COP workspace dark/light mode, panel UX, API documentation, E2E test audit
+**Last Updated**: 2026-03-12
+**Major Features**: COP workspace isolation, session persistence fixes, workspace migration
