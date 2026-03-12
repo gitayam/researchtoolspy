@@ -1092,9 +1092,10 @@ function ProgressLayout({
           if (row.length === 2) {
             // Two half-width panels in a grid
             return (
-              <div key={`row-${row[0].id}-${row[1].id}`} className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div key={`row-${row[0]?.id ?? rowIdx}-${row[1]?.id ?? `${rowIdx}b`}`} className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {row.map((def) => {
-                  const panelCfg = visiblePanels.find((p) => p.id === def.id)!
+                  if (!def?.id) return null
+                  const panelCfg = visiblePanels.find((p) => p.id === def.id)
                   const idx = visiblePanels.findIndex((p) => p.id === def.id)
                   return (
                     <div key={def.id} className={def.hideOn2xl ? '2xl:hidden' : undefined} data-panel={def.id}>
@@ -1105,7 +1106,7 @@ function ProgressLayout({
                         height={def.height}
                         badge={def.badge}
                         badgeVariant={def.badgeVariant}
-                        panelWidth={panelCfg.width}
+                        panelWidth={panelCfg?.width}
                         onMoveUp={() => movePanel(def.id, 'up')}
                         onMoveDown={() => movePanel(def.id, 'down')}
                         onToggleWidth={() => toggleWidth(def.id)}
@@ -1124,7 +1125,8 @@ function ProgressLayout({
 
           // Single panel (full-width or lone half)
           const def = row[0]
-          const panelCfg = visiblePanels.find((p) => p.id === def.id)!
+          if (!def?.id) return null
+          const panelCfg = visiblePanels.find((p) => p.id === def.id)
           const idx = visiblePanels.findIndex((p) => p.id === def.id)
           return (
             <div key={def.id} className={def.hideOn2xl ? '2xl:hidden' : undefined} data-panel={def.id}>
@@ -1135,7 +1137,7 @@ function ProgressLayout({
                 height={def.height}
                 badge={def.badge}
                 badgeVariant={def.badgeVariant}
-                panelWidth={panelCfg.width}
+                panelWidth={panelCfg?.width}
                 onMoveUp={() => movePanel(def.id, 'up')}
                 onMoveDown={() => movePanel(def.id, 'down')}
                 onToggleWidth={() => toggleWidth(def.id)}
