@@ -141,8 +141,8 @@ Focus on aspects that are actually present in the content. If a dimension has no
   } catch (error) {
     console.error('[DIME] Error:', error)
     return new Response(JSON.stringify({
-      error: 'DIME analysis failed',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'DIME analysis failed'
+
     }), {
       status: 500,
       headers: {

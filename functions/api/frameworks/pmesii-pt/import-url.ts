@@ -67,8 +67,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[PMESII-PT Import] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to import URL',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Failed to import URL'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }

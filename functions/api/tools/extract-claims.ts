@@ -508,8 +508,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[ExtractClaims] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to extract claims',
-      details: error instanceof Error ? error.message : String(error),
+      error: 'Failed to extract claims'
+,
       processing_ms: Date.now() - startTime
     }), {
       status: 500,

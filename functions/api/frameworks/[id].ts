@@ -79,8 +79,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Frameworks GET by ID] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to retrieve framework session',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Failed to retrieve framework session'
+
     }), {
       status: 500,
       headers: corsHeaders,
@@ -167,8 +167,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Frameworks PUT] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to update framework session',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Failed to update framework session'
+
     }), {
       status: 500,
       headers: corsHeaders,
@@ -213,8 +213,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Frameworks DELETE] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to delete framework session',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Failed to delete framework session'
+
     }), {
       status: 500,
       headers: corsHeaders,

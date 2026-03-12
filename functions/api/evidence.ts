@@ -2,10 +2,6 @@
 export async function onRequest(context: any) {
   const { request, env } = context
 
-  console.log('🔵 [EVIDENCE API] ========== REQUEST START ==========')
-  console.log('🔵 [EVIDENCE API] Method:', request.method)
-  console.log('🔵 [EVIDENCE API] URL:', request.url)
-  console.log('🔵 [EVIDENCE API] Headers:', Object.fromEntries(request.headers))
 
   // CORS headers
   const corsHeaders = {
@@ -17,25 +13,20 @@ export async function onRequest(context: any) {
 
   // Handle preflight
   if (request.method === 'OPTIONS') {
-    console.log('🔵 [EVIDENCE API] OPTIONS preflight - returning 204')
     return new Response(null, { status: 204, headers: corsHeaders })
   }
 
   try {
     const url = new URL(request.url)
     const evidenceId = url.searchParams.get('id')
-    console.log('🔵 [EVIDENCE API] Evidence ID from params:', evidenceId)
 
     // GET - List evidence or get single evidence
     if (request.method === 'GET') {
-      console.log('🔵 [EVIDENCE API] GET request handler')
       if (evidenceId) {
-        console.log('🔵 [EVIDENCE API] Fetching single evidence, ID:', evidenceId)
         // Get single evidence from D1
         const evidence = await env.DB.prepare(
           'SELECT * FROM evidence WHERE id = ?'
         ).bind(evidenceId).first()
-        console.log('🔵 [EVIDENCE API] Single evidence result:', evidence ? 'Found' : 'Not found')
 
         if (!evidence) {
           return new Response(JSON.stringify({ error: 'Evidence not found' }), {
@@ -67,15 +58,12 @@ export async function onRequest(context: any) {
       }
 
       // List all evidence with optional filters
-      console.log('🔵 [EVIDENCE API] Listing all evidence')
       const type = url.searchParams.get('type')
       const status = url.searchParams.get('status')
       const limit = parseInt(url.searchParams.get('limit') || '50')
-      console.log('🔵 [EVIDENCE API] Filters - type:', type, 'status:', status, 'limit:', limit)
 
       let query = 'SELECT * FROM evidence WHERE 1=1'
       const params: any[] = []
-      console.log('🔵 [EVIDENCE API] Base query:', query)
 
       if (type) {
         query += ' AND type = ?'
@@ -94,9 +82,7 @@ export async function onRequest(context: any) {
         stmt = stmt.bind(params[i])
       }
 
-      console.log('🔵 [EVIDENCE API] Executing query with', params.length, 'params')
       const results = await stmt.all()
-      console.log('🔵 [EVIDENCE API] Query returned', results.results?.length || 0, 'results')
 
       // Parse JSON fields for all results
       const parsedResults = results.results.map((evidence: any) => ({
@@ -114,7 +100,6 @@ export async function onRequest(context: any) {
         previous_versions: JSON.parse(evidence.previous_versions || '[]'),
       }))
 
-      console.log('🔵 [EVIDENCE API] Returning', parsedResults.length, 'evidence items')
       return new Response(JSON.stringify({ evidence: parsedResults }), {
         status: 200,
         headers: corsHeaders,
@@ -123,9 +108,7 @@ export async function onRequest(context: any) {
 
     // POST - Create new evidence
     if (request.method === 'POST') {
-      console.log('🔵 [EVIDENCE API] POST request - creating evidence')
       const body = await request.json()
-      console.log('🔵 [EVIDENCE API] POST body:', JSON.stringify(body, null, 2))
 
       // Build source object from separate fields or existing source object
       const source = body.source || {
@@ -241,13 +224,7 @@ export async function onRequest(context: any) {
     })
 
   } catch (error: any) {
-    console.error('🔴 [EVIDENCE API] ========== ERROR ==========')
-    console.error('🔴 [EVIDENCE API] Error:', error)
-    console.error('🔴 [EVIDENCE API] Error message:', error.message)
-    console.error('🔴 [EVIDENCE API] Error stack:', error.stack)
-    console.error('🔴 [EVIDENCE API] Request method:', request.method)
-    console.error('🔴 [EVIDENCE API] Request URL:', request.url)
-    console.error('🔴 [EVIDENCE API] ========== ERROR END ==========')
+    console.error('[EVIDENCE API] Error:', error)
 
     // If table doesn't exist, return empty array for GET requests
     if (request.method === 'GET' && error.message?.includes('no such table')) {

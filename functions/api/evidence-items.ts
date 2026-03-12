@@ -431,7 +431,7 @@ export async function onRequest(context: any) {
 
     return new Response(JSON.stringify({
       error: 'Evidence API error',
-      details: error.message,
+
       url: request.url,
       method: request.method
     }), {

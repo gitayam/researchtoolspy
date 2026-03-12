@@ -40,7 +40,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const workspaceId = body.workspace_id || '1'
+    const workspaceId = body.workspace_id
+      || context.request.headers.get('X-Workspace-ID')
+      || '1'
 
     // Insert framework session
     const result = await context.env.DB.prepare(`
@@ -77,8 +79,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Frameworks POST] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to save framework session',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Failed to save framework session'
+
     }), {
       status: 500,
       headers: {
@@ -145,8 +147,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Frameworks GET] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to retrieve framework sessions',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Failed to retrieve framework sessions'
+
     }), {
       status: 500,
       headers: {

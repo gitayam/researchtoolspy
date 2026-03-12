@@ -368,8 +368,7 @@ export async function onRequest(context: any) {
       success: false,
       error: userMessage,
       errorType,
-      suggestions,
-      technicalDetails: error.message || 'Unknown error'
+      suggestions
     }), {
       status: 500,
       headers: corsHeaders,

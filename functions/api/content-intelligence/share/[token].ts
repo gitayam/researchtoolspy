@@ -78,8 +78,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Share] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to load shared analysis',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Failed to load shared analysis'
+
     }), {
       status: 500,
       headers: {

@@ -133,8 +133,8 @@ Score each candidate's relevance to the claim and its broader topic.`
   } catch (error) {
     console.error('[ClaimMatch] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to perform claim matching',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Failed to perform claim matching'
+
     }), {
       status: 500,
       headers: {

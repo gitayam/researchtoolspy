@@ -104,9 +104,8 @@ Return ONLY valid JSON in this structure:
 
   } catch (error) {
     console.error('RageCheck error:', error)
-    return new Response(JSON.stringify({ 
-      error: 'Failed to perform RageCheck', 
-      details: error instanceof Error ? error.message : String(error)
+    return new Response(JSON.stringify({
+      error: 'Failed to perform RageCheck'
     }), { status: 500 })
   }
 }

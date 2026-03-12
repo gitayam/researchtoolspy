@@ -462,8 +462,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Deception Aggregate] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to aggregate deception data',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Failed to aggregate deception data'
+
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

@@ -38,8 +38,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Cleanup] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Cleanup failed',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Cleanup failed'
+
     }), {
       status: 500,
       headers: {

@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-12 (session 8)
+**Last Updated**: 2026-03-12 (session 9)
 
 ## Completed
 
@@ -40,8 +40,9 @@
 
 ### P1 — High Priority (Functional Gaps)
 
-- [x] **Error messages leak internals (remaining 190+)** — Fixed 108 files: removed `details: error.message` from 90 endpoints, replaced `error: error.message` with generic messages in 14 endpoints, removed `technicalDetails` leak from scrape-url.ts. All API errors now return generic messages while logging details server-side.
-- [ ] **Framework create missing auth headers** — `POST /api/frameworks` may create under wrong user when called from COP (uses `getUserIdOrDefault`)
+- [x] **Error messages leak internals (remaining 190+)** — Fixed 108+ files: removed `details: error.message` from all endpoints, including `String(error)` and `technicalDetails` variants. All API errors now return generic messages while logging details server-side.
+- [x] **Framework create missing auth headers** — `getUserFromRequest` now checks `X-User-Hash` header before `Authorization: Bearer`. Framework POST also reads `X-Workspace-ID` header for workspace scoping. COP sessions now properly resolve to the correct user when creating frameworks.
+- [x] **Old /api/evidence verbose debug logging** — Removed 15+ excessive `console.log` lines that were logging full request headers and query details to production logs. Cleaned up error handler to single `console.error` line.
 - [ ] **Old /api/evidence endpoint has no workspace_id filter** — Returns ALL evidence globally; unused by COP now but still a data leak risk for dashboard views
 - [ ] **Test data in production** — "Test Person 3" actor with generic description polluting workspace "1"
 

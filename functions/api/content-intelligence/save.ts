@@ -124,8 +124,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     console.error('[Save] Error:', error)
     return new Response(JSON.stringify({
-      error: 'Failed to save analysis',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Failed to save analysis'
+
     }), {
       status: 500,
       headers: {

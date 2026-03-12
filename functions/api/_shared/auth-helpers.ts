@@ -30,6 +30,21 @@ export async function getUserFromRequest(
   request: Request,
   env: Env
 ): Promise<number | null> {
+  // Check X-User-Hash header first (COP pattern)
+  const userHash = request.headers.get('X-User-Hash')
+  if (userHash && userHash !== 'default' && userHash.length >= 16 && env.DB) {
+    try {
+      const existingUser = await env.DB.prepare(
+        'SELECT id FROM users WHERE user_hash = ?'
+      ).bind(userHash).first()
+      if (existingUser) {
+        return Number(existingUser.id)
+      }
+    } catch (err) {
+      console.error('[Auth] Failed to resolve X-User-Hash:', err)
+    }
+  }
+
   const authHeader = request.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
     return null
