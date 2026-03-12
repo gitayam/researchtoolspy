@@ -75,7 +75,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserIdOrDefault(request, env)
-    const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || '1'
+    const explicitWorkspace = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id')
     const body = await request.json() as any
 
     if (!body.name) {
@@ -87,6 +87,31 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const id = generateId()
     const now = new Date().toISOString()
+
+    // Auto-create a dedicated workspace for this COP session unless one was explicitly provided.
+    // This ensures each session has its own entity namespace (actors, events, places, etc.)
+    // instead of sharing workspace "1" with all other sessions.
+    let workspaceId = explicitWorkspace
+    if (!workspaceId) {
+      workspaceId = id // Use the COP session ID as the workspace ID
+      try {
+        await env.DB.prepare(`
+          INSERT INTO workspaces (id, name, description, type, owner_id, is_public, created_at, updated_at)
+          VALUES (?, ?, ?, 'PERSONAL', ?, 0, ?, ?)
+        `).bind(
+          workspaceId,
+          `COP: ${body.name}`,
+          body.description || `Workspace for COP session ${id}`,
+          userId,
+          now,
+          now
+        ).run()
+        console.log(`[COP Sessions API] Auto-created workspace ${workspaceId} for session ${id}`)
+      } catch (wsErr) {
+        // Workspace may already exist (e.g., retry) — log and continue
+        console.warn('[COP Sessions API] Workspace creation skipped (may exist):', wsErr)
+      }
+    }
 
     await env.DB.prepare(`
       INSERT INTO cop_sessions (
@@ -130,7 +155,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       now
     ).run()
 
-    return new Response(JSON.stringify({ id, message: 'COP session created' }), {
+    return new Response(JSON.stringify({ id, workspace_id: workspaceId, message: 'COP session created' }), {
       status: 201,
       headers: corsHeaders
     })

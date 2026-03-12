@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-12 (session 4)
+**Last Updated**: 2026-03-12 (session 5)
 
 ## Completed
 
@@ -22,6 +22,7 @@
 - [x] **P0: URL analyses not persisted** — Both CopEvidenceFeed and CopGlobalCapture now persist URL analysis results to evidence_items via `/api/cop/{sessionId}/evidence`
 - [x] **P1: 5W1H questions to RFI conversion** — Each unanswered question now has a "Create RFI" button that converts it into a trackable RFI
 - [x] **P1: Error messages leak internals (critical)** — Fixed 8 endpoints that exposed stack traces: evidence.ts, ach/evidence.ts, social-media-extract.ts, analyze-url.ts, claims/analyze/[id].ts, acled.ts, gdelt.ts, actors.ts. Also fixed activity.ts error leak.
+- [x] **P0: COP sessions share workspace_id "1"** — Auto-create dedicated workspace per COP session on creation. Migrated existing Iran sessions to own workspaces (`cop-0b2c7e49-cf9`, `cop-2b1e9887-34c`). Entities now properly scoped per session.
 
 ## In Progress
 
@@ -29,10 +30,6 @@
 - [ ] **P1: E2E tests outdated** — 33 of 65 tests failing (timeouts from component restructuring). Need to update selectors for cop-event-sidebar, cop-wizard specs
 
 ## Backlog — Priority Order
-
-### P0 — Critical (Data Integrity)
-
-- [ ] **COP sessions share workspace_id "1"** — Both COP sessions default to `workspace_id: "1"`, so ALL entity tables (actors, events, places, sources, behaviors) are shared across sessions. The 17 actors in workspace "1" are from unrelated VC/tech research, not Iran. Fix: auto-create a dedicated workspace per COP session on creation, or scope entity queries to also filter by cop_session_id.
 
 ### P1 — High Priority (Functional Gaps)
 
@@ -57,14 +54,14 @@
 - [ ] **D1 migration verification** — Should verify all migrations applied to production with `SELECT sql FROM sqlite_master`
 - [ ] **Retire old /api/evidence endpoint** — Once dashboard views are migrated to workspace-scoped evidence, remove the unscoped endpoint
 
-## Production State (2026-03-12 session 4)
+## Production State (2026-03-12 session 5)
 
-| Session | ID | Evidence | Actors | Events | Places | RFIs | Hypotheses |
-|---------|-----|----------|--------|--------|--------|------|------------|
-| Quick Brief - Iran | cop-2b1e9887-34c | 0 | 17* | 0 | 0 | 0 | 0 |
-| Event Monitor - Iran | cop-0b2c7e49-cf9 | 0 | 17* | 0 | 0 | 0 | 0 |
+| Session | ID | Workspace | Evidence | Actors | Events | Places | RFIs |
+|---------|-----|-----------|----------|--------|--------|--------|------|
+| Quick Brief - Iran | cop-2b1e9887-34c | cop-2b1e9887-34c | 0 | 0 | 0 | 0 | 0 |
+| Event Monitor - Iran | cop-0b2c7e49-cf9 | cop-0b2c7e49-cf9 | 0 | 0 | 0 | 0 | 0 |
 
-\* Both sessions show 17 actors because they share workspace_id "1". These actors are from unrelated VC/tech research (Eric Schmidt, NVIDIA, Sequoia, etc.), not Iran-related.
+Sessions now have dedicated workspaces — clean entity namespace per session. The 17 unrelated actors remain in workspace "1" (only used by archived test session).
 
 ## Architecture Notes
 
@@ -72,4 +69,4 @@
 - **Auth patterns**: COP uses `X-User-Hash` header; framework endpoints use `Authorization: Bearer`. Both now supported via `resolveUserId()`.
 - **Data scoping**: COP-specific tables filter by `cop_session_id`; shared entity tables filter by `workspace_id`
 - **Two evidence tables**: `evidence` (old, global, no workspace filter) vs `evidence_items` (COP-scoped, filtered by workspace_id). COP components now use `evidence_items` exclusively via `/api/cop/{sessionId}/evidence`.
-- **Workspace "1" problem**: COP session creation defaults `workspace_id` to "1" when no X-Workspace-ID header is provided. This shared workspace means all COP sessions see the same entities. Fix requires either: (a) auto-create workspace per session, or (b) add cop_session_id to entity tables.
+- **Workspace isolation (FIXED)**: COP session creation now auto-creates a dedicated workspace using the session ID. Existing sessions migrated via 079-cop-session-workspaces.sql. The `checkWorkspaceAccess()` in entity endpoints grants owner full access automatically.
