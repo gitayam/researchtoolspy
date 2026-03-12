@@ -14,6 +14,7 @@
 - [x] **P1: Hypotheses PUT missing session filter** — Added `AND cop_session_id = ?` to UPDATE WHERE clause (security fix)
 - [x] **P1: Framework 71 bad data** — Updated DB with questions derived from actual session key_questions
 - [x] **P1: Claims panel for COP workspace** — CopClaimsPanel extracts claims from URLs via `/api/tools/extract-claims`
+- [x] **P1: Claims persistence** — Claims now persist to `cop_claims` table (migration 081). Full CRUD API at `/api/cop/:id/claims`. Verify/dispute workflow with promote-to-evidence. Stats endpoint includes claim_count/verified_claim_count.
 - [x] **P1: Context-aware 5W1H questions** — `buildQuestions()` now fetches evidence, actors, activity to generate contextual questions instead of generic defaults
 - [x] **P0: Panel grid crash** — Added null-safety guards for `row[0]?.id` and `panelCfg?.width` in panel row rendering
 - [x] **P1: Starburst data parsing** — `fetchStarburst` now handles both flat `entries` and categorized `who/what/when/...` formats

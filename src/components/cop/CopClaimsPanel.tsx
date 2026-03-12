@@ -5,7 +5,7 @@
  * and displays risk scores with deception detection results.
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   Loader2,
   LinkIcon,
@@ -15,6 +15,9 @@ import {
   FileWarning,
   Trash2,
   ExternalLink,
+  ShieldCheck,
+  ShieldX,
+  ShieldQuestion,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,10 +27,13 @@ import { getCopHeaders } from '@/lib/cop-auth'
 // ── Types ────────────────────────────────────────────────────────
 
 interface ExtractedClaim {
+  id?: string
   claim: string
   category?: string
   confidence?: number
   suggested_market?: string
+  status?: 'unverified' | 'verified' | 'disputed' | 'false'
+  evidence_item_id?: number | null
 }
 
 interface ClaimAnalysisResult {
@@ -74,6 +80,61 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
   const [results, setResults] = useState<ClaimAnalysisResult[]>([])
   const [expandedClaims, setExpandedClaims] = useState<Record<number, boolean>>({})
 
+  // Load persisted claims from DB on mount
+  useEffect(() => {
+    if (!sessionId) return
+    fetch(`/api/cop/${sessionId}/claims`, { headers: getCopHeaders() })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.claims?.length) return
+        // Group by URL
+        const grouped = new Map<string, ClaimAnalysisResult>()
+        for (const c of data.claims) {
+          const key = c.url || 'unknown'
+          if (!grouped.has(key)) {
+            grouped.set(key, {
+              url: c.url,
+              title: c.url_title,
+              domain: c.url_domain,
+              claims: [],
+              summary: c.summary,
+              analyzed_at: c.created_at,
+            })
+          }
+          grouped.get(key)!.claims.push({
+            id: c.id,
+            claim: c.claim_text,
+            category: c.category,
+            confidence: c.confidence,
+            status: c.status,
+            evidence_item_id: c.evidence_item_id,
+          })
+        }
+        setResults(Array.from(grouped.values()))
+      })
+      .catch(() => {})
+  }, [sessionId])
+
+  // Helper to update a single claim's status via API
+  const handleUpdateClaimStatus = useCallback(async (claimId: string, status: string, promoteToEvidence = false) => {
+    try {
+      const res = await fetch(`/api/cop/${sessionId}/claims`, {
+        method: 'PUT',
+        headers: getCopHeaders(),
+        body: JSON.stringify({ claim_id: claimId, status, promote_to_evidence: promoteToEvidence }),
+      })
+      if (!res.ok) return
+
+      // Update local state
+      setResults(prev => prev.map(r => ({
+        ...r,
+        claims: r.claims.map(c => c.id === claimId ? { ...c, status: status as any } : c),
+      })))
+    } catch {
+      // Non-fatal
+    }
+  }, [sessionId])
+
   const handleExtractClaims = useCallback(async () => {
     const trimmed = url.trim()
     if (!trimmed) return
@@ -117,6 +178,36 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
         analyzed_at: new Date().toISOString(),
       }
 
+      // Persist claims to DB so they survive page refresh
+      if (result.claims.length > 0) {
+        try {
+          const persistRes = await fetch(`/api/cop/${sessionId}/claims`, {
+            method: 'POST',
+            headers: getCopHeaders(),
+            body: JSON.stringify({
+              url: result.url,
+              title: result.title,
+              domain: result.domain,
+              summary: result.summary,
+              claims: result.claims,
+            }),
+          })
+          if (persistRes.ok) {
+            const persistData = await persistRes.json()
+            // Attach DB IDs to the claims for status updates
+            if (persistData.ids) {
+              result.claims = result.claims.map((c, i) => ({
+                ...c,
+                id: persistData.ids[i],
+                status: 'unverified' as const,
+              }))
+            }
+          }
+        } catch {
+          // Non-fatal — claims still visible in UI
+        }
+      }
+
       setResults(prev => [result, ...prev])
       setUrl('')
     } catch (err) {
@@ -124,7 +215,7 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
     } finally {
       setLoading(false)
     }
-  }, [url])
+  }, [url, sessionId])
 
   const removeResult = (index: number) => {
     setResults(prev => prev.filter((_, i) => i !== index))
@@ -243,8 +334,10 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
                       {visibleClaims.map((claim, ci) => {
                         const risk = getRiskBadge(claim.confidence)
                         const RiskIcon = risk.icon
+                        const isVerified = claim.status === 'verified'
+                        const isDisputed = claim.status === 'disputed' || claim.status === 'false'
                         return (
-                          <div key={ci} className="px-3 py-2 space-y-1">
+                          <div key={ci} className={cn('px-3 py-2 space-y-1', isVerified && 'bg-emerald-50/50 dark:bg-emerald-950/20', isDisputed && 'bg-red-50/50 dark:bg-red-950/20')}>
                             <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
                               {claim.claim}
                             </p>
@@ -259,6 +352,37 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
                                   <RiskIcon className="h-2.5 w-2.5" />
                                   {claim.confidence}%
                                 </Badge>
+                              )}
+                              {claim.status && claim.status !== 'unverified' && (
+                                <Badge className={cn('text-[9px] px-1.5 py-0 leading-4 border-transparent flex items-center gap-0.5',
+                                  isVerified ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+                                )}>
+                                  {isVerified ? <ShieldCheck className="h-2.5 w-2.5" /> : <ShieldX className="h-2.5 w-2.5" />}
+                                  {claim.status}
+                                </Badge>
+                              )}
+                              {/* Action buttons for claims with DB IDs */}
+                              {claim.id && claim.status !== 'verified' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateClaimStatus(claim.id!, 'verified', true)}
+                                  className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer flex items-center gap-0.5"
+                                  title="Verify and promote to evidence"
+                                >
+                                  <ShieldCheck className="h-2.5 w-2.5" />
+                                  Verify
+                                </button>
+                              )}
+                              {claim.id && claim.status !== 'disputed' && claim.status !== 'false' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateClaimStatus(claim.id!, 'disputed')}
+                                  className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer flex items-center gap-0.5"
+                                  title="Mark as disputed"
+                                >
+                                  <ShieldX className="h-2.5 w-2.5" />
+                                  Dispute
+                                </button>
                               )}
                             </div>
                           </div>
