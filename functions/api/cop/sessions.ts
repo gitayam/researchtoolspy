@@ -48,14 +48,26 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
 
   try {
-    const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || '1'
+    const userId = await getUserIdOrDefault(request, env)
+    const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id')
     const status = url.searchParams.get('status') || 'ACTIVE'
 
-    const results = await env.DB.prepare(`
-      SELECT * FROM cop_sessions
-      WHERE workspace_id = ? AND status = ?
-      ORDER BY updated_at DESC
-    `).bind(workspaceId, status).all()
+    // If a specific workspace is requested, filter by it. Otherwise show
+    // all sessions the user created (supports per-session workspaces).
+    let results
+    if (workspaceId) {
+      results = await env.DB.prepare(`
+        SELECT * FROM cop_sessions
+        WHERE workspace_id = ? AND status = ?
+        ORDER BY updated_at DESC
+      `).bind(workspaceId, status).all()
+    } else {
+      results = await env.DB.prepare(`
+        SELECT * FROM cop_sessions
+        WHERE created_by = ? AND status = ?
+        ORDER BY updated_at DESC
+      `).bind(userId, status).all()
+    }
 
     const sessions = results.results.map((row: any) => parseJsonFields(row))
 

@@ -77,8 +77,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
-  const workspaceId = request.headers.get('X-Workspace-ID') || '1'
-
   try {
     const body = await request.json() as any
     const now = new Date().toISOString()
@@ -117,12 +115,14 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       values.push(body.is_public ? 1 : 0)
     }
 
-    values.push(id, workspaceId)
+    // Session ID is the primary key — no need to also match workspace_id
+    // (which broke after sessions got dedicated workspaces instead of sharing "1")
+    values.push(id)
 
     await env.DB.prepare(`
       UPDATE cop_sessions
       SET ${updates.join(', ')}
-      WHERE id = ? AND workspace_id = ?
+      WHERE id = ?
     `).bind(...values).run()
 
     // --- Auto-sync event_facts to events table (append-only) ---
@@ -185,16 +185,14 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
-  const workspaceId = request.headers.get('X-Workspace-ID') || '1'
-
   try {
     const now = new Date().toISOString()
 
     await env.DB.prepare(`
       UPDATE cop_sessions
       SET status = 'ARCHIVED', updated_at = ?
-      WHERE id = ? AND workspace_id = ?
-    `).bind(now, id, workspaceId).run()
+      WHERE id = ?
+    `).bind(now, id).run()
 
     return new Response(JSON.stringify({ message: 'COP session archived' }), { headers: corsHeaders })
   } catch (error) {

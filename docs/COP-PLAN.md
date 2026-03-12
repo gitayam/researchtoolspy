@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-12 (session 5)
+**Last Updated**: 2026-03-12 (session 6)
 
 ## Completed
 
@@ -23,6 +23,8 @@
 - [x] **P1: 5W1H questions to RFI conversion** — Each unanswered question now has a "Create RFI" button that converts it into a trackable RFI
 - [x] **P1: Error messages leak internals (critical)** — Fixed 8 endpoints that exposed stack traces: evidence.ts, ach/evidence.ts, social-media-extract.ts, analyze-url.ts, claims/analyze/[id].ts, acled.ts, gdelt.ts, actors.ts. Also fixed activity.ts error leak.
 - [x] **P0: COP sessions share workspace_id "1"** — Auto-create dedicated workspace per COP session on creation. Migrated existing Iran sessions to own workspaces (`cop-0b2c7e49-cf9`, `cop-2b1e9887-34c`). Entities now properly scoped per session.
+- [x] **P0: Session list empty after workspace fix** — GET `/api/cop/sessions` defaulted to `workspace_id = '1'` filter. After sessions got dedicated workspaces, no sessions matched. Fixed to query by `created_by` when no workspace header provided.
+- [x] **P0: Session updates silently failing (mission_brief, etc.)** — PUT/DELETE `/api/cop/sessions/:id` had `WHERE workspace_id = ?` defaulting to `'1'`. After workspace isolation, no rows matched so all updates were no-ops. Fixed by removing redundant workspace_id from WHERE clause (session ID is already unique PK).
 
 ## In Progress
 
