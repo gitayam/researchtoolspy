@@ -27,6 +27,8 @@
 - [x] **P0: Session updates silently failing (mission_brief, etc.)** — PUT/DELETE `/api/cop/sessions/:id` had `WHERE workspace_id = ?` defaulting to `'1'`. After workspace isolation, no rows matched so all updates were no-ops. Fixed by removing redundant workspace_id from WHERE clause (session ID is already unique PK).
 - [x] **P0: 4 sessions sharing workspace f5478f35** — Migrated cop-acccd999-110, cop-a76d9b77-980, cop-77893f12-485, cop-5b827fff-15d to dedicated workspaces via migration 080. Evidence items also migrated. All 6 sessions now have own workspaces.
 - [x] **P3: Lessons learned doc outdated** — Added 2026-03-12 session with workspace isolation, WHERE clause, and optimistic UI lessons.
+- [x] **P0: Map console errors (Can't find variable: Ne)** — esbuild's class property helper (`Ne`) was inaccessible inside maplibre-gl's Web Worker Blob. Fixed by upgrading build target from `es2020` to `es2022` (native class fields, no helper needed).
+- [x] **P1: Personas link missing session filter** — `POST /api/cop/[id]/personas?action=link` now verifies both persona IDs belong to the current session before creating link. Also fixed persona creation using hardcoded `workspace_id: '1'` — now looks up session's actual workspace.
 
 ## In Progress
 
@@ -38,7 +40,6 @@
 ### P1 — High Priority (Functional Gaps)
 
 - [ ] **Error messages leak internals (remaining 190+)** — Systematic audit found 200+ instances across codebase. 8 critical (stack traces) fixed. Remaining use `details: error.message` pattern. Need a shared error response utility.
-- [ ] **Personas link missing session filter** — `POST /api/cop/[id]/personas` (link action) doesn't verify persona IDs belong to current session
 - [ ] **Framework create missing auth headers** — `POST /api/frameworks` may create under wrong user when called from COP (uses `getUserIdOrDefault`)
 - [ ] **Old /api/evidence endpoint has no workspace_id filter** — Returns ALL evidence globally; unused by COP now but still a data leak risk for dashboard views
 - [ ] **Test data in production** — "Test Person 3" actor with generic description polluting workspace "1"

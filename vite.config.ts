@@ -36,8 +36,10 @@ export default defineConfig({
     },
   },
   build: {
-    // Target modern browsers
-    target: 'es2020',
+    // Target modern browsers — es2022 has native class fields, avoiding
+    // esbuild's __publicField helper (Ne) which breaks maplibre-gl's
+    // internal Web Worker Blob (worker can't access chunk-scoped helpers)
+    target: 'es2022',
 
     // Reduce chunk size warning limit
     chunkSizeWarningLimit: 500,
@@ -83,6 +85,7 @@ export default defineConfig({
 
           // Heavy visualization libraries (dynamically imported via lazy routes)
           'viz-libs': ['html2canvas', 'react-force-graph-2d'],
+
 
           // Note: Export libraries (docx, jspdf, pptxgenjs, exceljs) are now
           // dynamically imported only when needed via ExportButton component

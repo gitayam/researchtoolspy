@@ -88,7 +88,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserIdOrDefault(request, env)
-    const workspaceId = request.headers.get('X-Workspace-ID') || '1'
+    // Look up the session's actual workspace_id (don't rely on header default '1')
+    const sessionRow = await env.DB.prepare(
+      `SELECT workspace_id FROM cop_sessions WHERE id = ?`
+    ).bind(sessionId).first<{ workspace_id: string }>()
+    const workspaceId = sessionRow?.workspace_id ?? sessionId
     const body = await request.json() as any
 
     // Handle persona link creation
@@ -96,6 +100,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (!body.persona_a_id || !body.persona_b_id) {
         return new Response(JSON.stringify({ error: 'persona_a_id and persona_b_id are required' }), {
           status: 400, headers: corsHeaders,
+        })
+      }
+
+      // Verify both personas belong to this session
+      const check = await env.DB.prepare(`
+        SELECT id FROM cop_personas WHERE id IN (?, ?) AND cop_session_id = ?
+      `).bind(body.persona_a_id, body.persona_b_id, sessionId).all()
+      if ((check.results?.length ?? 0) < 2) {
+        return new Response(JSON.stringify({ error: 'One or both personas do not belong to this session' }), {
+          status: 403, headers: corsHeaders,
         })
       }
 
