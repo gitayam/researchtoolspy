@@ -9,6 +9,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Loader2, Check, X } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
+import PlaceSearch, { type PlaceResult } from './PlaceSearch'
 import type {
   ActorType,
   EventType,
@@ -274,6 +275,24 @@ export default function EntityCreateForm({
       case 'places':
         return (
           <>
+            {/* Geocoding search — auto-fills name, type, lat, lng, country, region */}
+            <PlaceSearch
+              onSelect={(result: PlaceResult) => {
+                const shortName = result.displayName.split(',')[0].trim()
+                if (!name.trim()) setName(shortName)
+                setLat(String(result.lat))
+                setLng(String(result.lng))
+                if (result.country) setCountry(result.country)
+                if (result.region) setRegion(result.region)
+                // Map inferred type to our PlaceType enum
+                const typeMap: Record<string, PlaceType> = {
+                  COUNTRY: 'COUNTRY', CITY: 'CITY', REGION: 'REGION',
+                  INSTALLATION: 'INSTALLATION', FACILITY: 'FACILITY',
+                }
+                const mapped = typeMap[result.placeType]
+                if (mapped) setPlaceType(mapped)
+              }}
+            />
             {renderSelect('Place Type', placeType, setPlaceType, PLACE_TYPES)}
             <div className="grid grid-cols-2 gap-2">
               {renderInput('Latitude', String(lat), (v) => setLat(v), { type: 'number', placeholder: 'e.g. 51.5074' })}

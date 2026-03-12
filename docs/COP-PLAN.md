@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-12
+**Last Updated**: 2026-03-12 (session 2)
 
 ## Completed
 
@@ -13,10 +13,14 @@
 - [x] **P0: Default questions instead of user's** — `buildQuestions()` now seeds from `session.key_questions`, fills empty 5W1H categories with defaults
 - [x] **P1: Hypotheses PUT missing session filter** — Added `AND cop_session_id = ?` to UPDATE WHERE clause (security fix)
 - [x] **P1: Framework 71 bad data** — Updated DB with questions derived from actual session key_questions
+- [x] **P1: Claims panel for COP workspace** — CopClaimsPanel extracts claims from URLs via `/api/tools/extract-claims`
+- [x] **P1: Context-aware 5W1H questions** — `buildQuestions()` now fetches evidence, actors, activity to generate contextual questions instead of generic defaults
+- [x] **P0: Panel grid crash** — Added null-safety guards for `row[0]?.id` and `panelCfg?.width` in panel row rendering
+- [x] **P1: Starburst data parsing** — `fetchStarburst` now handles both flat `entries` and categorized `who/what/when/...` formats
 
 ## In Progress
 
-- [ ] **P1: Claims section for COP workspace** — Add ability to run URLs/evidence through claim analysis from within COP
+- [ ] **P1: Place/country autocomplete** — Allow adding any country/city with English name lookup and coordinate resolution
 - [ ] **P1: E2E tests outdated** — 33 of 65 tests failing (timeouts from component restructuring). Need to update selectors for cop-event-sidebar, cop-wizard specs
 
 ## Backlog — Priority Order
@@ -38,7 +42,6 @@
 ### P3 — Low Priority (Tech Debt)
 
 - [ ] **Bundle size** — CopWorkspacePage chunk is 234KB gzipped (53KB). Consider further code splitting
-- [ ] **Untracked files** — `src/hooks/usePanelLayout.ts` and `.superpowers/` not committed
 - [ ] **Lessons learned doc outdated** — Last updated 2026-03-09, needs today's session findings added
 - [ ] **D1 migration verification** — Should verify all migrations applied to production with `SELECT sql FROM sqlite_master`
 
