@@ -229,8 +229,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[Social Extract] Error:', error)
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      details: error instanceof Error ? error.stack : undefined
+      error: 'Failed to extract social media content'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

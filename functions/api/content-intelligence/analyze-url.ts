@@ -656,10 +656,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[DEBUG] Error message:', error instanceof Error ? error.message : String(error))
 
     return new Response(JSON.stringify({
-      error: 'Analysis failed',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      errorName: error instanceof Error ? error.name : 'Unknown',
-      stack: error instanceof Error ? error.stack : undefined
+      error: 'Analysis failed'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

@@ -155,10 +155,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[Claims Analysis] Error stack:', error instanceof Error ? error.stack : 'No stack')
 
     return new Response(JSON.stringify({
-      error: 'Failed to run claims analysis',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      errorName: error instanceof Error ? error.name : typeof error,
-      stack: error instanceof Error ? error.stack : undefined
+      error: 'Failed to run claims analysis'
     }), {
       status: 500,
       headers: corsHeaders

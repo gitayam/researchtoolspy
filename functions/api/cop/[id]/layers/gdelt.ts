@@ -247,7 +247,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         source: 'gdelt',
         count: 0,
         fetched_at: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Failed to fetch GDELT data',
       },
     }), { headers: corsHeaders })
   }
