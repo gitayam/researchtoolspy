@@ -70,7 +70,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserIdOrDefault(request, env)
-    const workspaceId = request.headers.get('X-Workspace-ID') || '1'
+    const session = await env.DB.prepare(
+      'SELECT workspace_id FROM cop_sessions WHERE id = ?'
+    ).bind(sessionId).first() as any
+    const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || sessionId
     const body = await request.json() as any
 
     if (body.lat == null || body.lon == null) {

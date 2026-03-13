@@ -1,5 +1,17 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-13 - Workspace Fallback Audit
+
+### Hardcoded Fallback IDs Persist Across Refactors
+After fixing session creation to use dedicated workspaces (session 6), 7 COP endpoints still had `|| '1'` workspace fallbacks. The isolation fix only changed session creation — it didn't audit every endpoint that resolves workspace_id. When the session lookup returns null, these endpoints silently wrote data to workspace `'1'` instead of the correct session workspace.
+
+**Rule:** After any workspace/scoping refactor, grep the entire API directory for the old default value and replace every occurrence. Don't assume the fix propagated everywhere.
+
+### Global Entity Endpoints Are Workspace-Scoped by Query Param
+The global endpoints (`/api/actors`, `/api/relationships`, `/api/places`, etc.) accept `workspace_id` as a query parameter and filter correctly. COP frontend components using these with `workspace_id=${workspaceId}` are NOT cross-session data leaks — they're correctly scoped. Only endpoints that _don't_ accept workspace_id filtering need COP-specific alternatives (like `/api/cop/{sessionId}/evidence`).
+
+---
+
 ## Session: 2026-03-12 - COP Workspace Isolation & Persistence Fixes
 
 ### Workspace Isolation is Retroactive, Not Just Prospective

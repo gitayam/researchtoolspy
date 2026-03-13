@@ -121,7 +121,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       SELECT workspace_id FROM cop_sessions WHERE id = ?
     `).bind(sessionId).first() as any
 
-    const workspaceId = session?.workspace_id ?? '1'
+    const workspaceId = session?.workspace_id ?? sessionId
     const id = generateHypId()
     const now = new Date().toISOString()
     const confidence = typeof body.confidence === 'number' ? Math.max(0, Math.min(100, body.confidence)) : 50

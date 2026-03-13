@@ -74,7 +74,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       'SELECT workspace_id FROM cop_sessions WHERE id = ?'
     ).bind(sessionId).first() as any
 
-    const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || sessionId
 
     const results = await env.DB.prepare(
       'SELECT * FROM cop_task_templates WHERE workspace_id = ? ORDER BY updated_at DESC'
@@ -127,7 +127,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       'SELECT workspace_id FROM cop_sessions WHERE id = ?'
     ).bind(sessionId).first() as any
 
-    const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || sessionId
 
     const id = generateId()
     const now = new Date().toISOString()

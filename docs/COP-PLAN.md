@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-13 (session 15)
+**Last Updated**: 2026-03-13 (session 16)
 
 ## Completed
 
@@ -32,6 +32,7 @@
 - [x] **P1: Personas link missing session filter** — `POST /api/cop/[id]/personas?action=link` now verifies both persona IDs belong to the current session before creating link. Also fixed persona creation using hardcoded `workspace_id: '1'` — now looks up session's actual workspace.
 - [x] **P1: E2E tests outdated** — Fixed 20 failing tests (was 33/65, then 20/232 after playbook additions). Fixes: added page navigation for relative fetch URLs in cop-assets tests, fixed route glob patterns for query string URLs, resolved strict mode violations in cop-event-sidebar and cop-intake. Now 215/232 passing, 17 skipped, 0 failing.
 - [x] **P1: Place/country autocomplete** — PlaceSearch component built with Nominatim geocoding, integrated into EntityCreateForm. Deployed and functional in production. Auto-fills name, type, lat/lng, country, region from search.
+- [x] **P1: Workspace '1' fallback in 7 COP endpoints** — tasks.ts, playbooks.ts, hypotheses.ts, assets.ts, task-templates.ts (x2), markers.ts all fell back to workspace_id `'1'` if session lookup failed. Changed to fall back to `sessionId` (which equals workspace_id post-isolation). Prevents silent cross-workspace data leaks.
 
 ## In Progress
 
@@ -61,7 +62,7 @@ _No active items — all P0 and P1 tasks complete._
 - [x] **D1 migration verification** — Verified all tables present in production including latest (cop_claims, cop_playbooks, cop_playbook_rules, cop_playbook_log). Migration 082 confirmed (test data removed). No d1_migrations tracking table — migrations applied via direct SQL.
 - [x] **Retire old /api/evidence endpoint** — Last COP reference (EntityEvidenceLinks) migrated to `/api/cop/{sessionId}/evidence`. Old endpoint only referenced by non-COP dashboard pages (`EvidencePage`, `ACHWizard`, etc.) which use `/api/evidence-items` (different endpoint). Safe to remove `/api/evidence` when ready.
 
-## Production State (2026-03-13 session 14)
+## Production State (2026-03-13 session 16)
 
 | Session | ID | Workspace | Evidence | Entities | Frameworks |
 |---------|-----|-----------|----------|----------|------------|

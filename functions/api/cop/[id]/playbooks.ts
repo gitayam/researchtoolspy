@@ -63,7 +63,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       'SELECT workspace_id FROM cop_sessions WHERE id = ?'
     ).bind(sessionId).first() as any
 
-    const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || sessionId
 
     const id = generateId()
     const now = new Date().toISOString()
