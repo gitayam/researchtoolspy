@@ -186,9 +186,13 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
   const [error, setError] = useState<string | null>(null)
   const [createdRfis, setCreatedRfis] = useState<Set<string>>(new Set())
   const [creatingRfi, setCreatingRfi] = useState<string | null>(null)
+  // Local copy of linked_frameworks to avoid direct prop mutation
+  const [localLinkedFrameworks, setLocalLinkedFrameworks] = useState<(string | number)[]>(
+    session.linked_frameworks ?? []
+  )
 
   // Find linked starbursting framework session
-  const starburstId = (session.linked_frameworks ?? []).find(id =>
+  const starburstId = localLinkedFrameworks.find(id =>
     typeof id === 'string' || typeof id === 'number'
   ) ?? null
 
@@ -359,7 +363,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
       if (!newFrameworkId) throw new Error('No framework ID returned')
 
       // 6. Link framework to COP session
-      const existing = session.linked_frameworks ?? []
+      const existing = localLinkedFrameworks
       const updated = [...existing, String(newFrameworkId)]
 
       const linkRes = await fetch(`/api/cop/sessions/${session.id}`, {
@@ -377,11 +381,11 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
       }
 
       // 7. Update local state
+      setLocalLinkedFrameworks(updated)
       setStarburst({
         id: String(newFrameworkId),
         questions,
       })
-      session.linked_frameworks = updated
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate questions')
@@ -394,8 +398,8 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
   const handleRegenerateQuestions = async () => {
     // Clear current starburst so we can regenerate
     setStarburst(null)
-    // Remove linked frameworks so handleGenerateQuestions creates fresh
-    session.linked_frameworks = []
+    setLocalLinkedFrameworks([])
+    // Remove linked frameworks on server so handleGenerateQuestions creates fresh
     const headers = getCopHeaders()
     try {
       await fetch(`/api/cop/sessions/${session.id}`, {
