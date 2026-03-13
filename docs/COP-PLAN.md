@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-13 (session 27)
+**Last Updated**: 2026-03-13 (session 28)
 
 ## Completed
 
@@ -69,6 +69,7 @@ _No active items — all P0 and P1 tasks complete._
 - [x] **Deploy-template and public RFI cross-session access (security)** — `deploy-template.ts` fetched templates by ID without workspace check. `public/[token]/rfis/[rfiId]/answers.ts` allowed answering RFIs from any session via a valid share token. Both now session/workspace-scoped.
 - [x] **Playbook rules GET cross-session data leak (security)** — `onRequestGet` in `playbooks/[pbId]/rules.ts` listed rules by `playbook_id` without verifying the playbook belonged to the current session. Added `verifyPlaybookSession()` guard (already used by POST/PUT/DELETE). Completes the read-path audit.
 - [x] **COP API console.log noise** — Removed last 2 `console.log` calls in COP endpoints: workspace auto-creation in `sessions.ts` and event_facts sync in `sessions/[id].ts`. All COP endpoints now use error-only logging (console.error/warn).
+- [x] **Playbook engine workspace '1' fallback** — `action-executor.ts` `createEvidence` fell back to workspace `'1'` if session lookup failed. Changed to `sessionId` (matching post-isolation convention). Last remaining `|| '1'` in COP-related shared code.
 
 ## Production State (2026-03-13 session 23)
 

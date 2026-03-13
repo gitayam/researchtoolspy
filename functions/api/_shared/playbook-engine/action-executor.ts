@@ -102,7 +102,7 @@ const createEvidence: ActionHandler = async (db, sessionId, params, userId) => {
   const session = await db.prepare(
     'SELECT workspace_id FROM cop_sessions WHERE id = ?'
   ).bind(sessionId).first() as any
-  const workspaceId = session?.workspace_id || '1'
+  const workspaceId = session?.workspace_id || sessionId
 
   await db.prepare(`
     INSERT INTO evidence_items (
