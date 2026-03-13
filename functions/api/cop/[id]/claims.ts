@@ -7,6 +7,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { createTimelineEntry } from '../../_shared/timeline-helper'
 
 interface Env {
   DB: D1Database
@@ -61,8 +62,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserIdOrDefault(request, env)
     const body = await request.json() as any
 
-    if (!body.url || !Array.isArray(body.claims) || body.claims.length === 0) {
-      return new Response(JSON.stringify({ error: 'url and claims[] are required' }), {
+    if (!Array.isArray(body.claims) || body.claims.length === 0) {
+      return new Response(JSON.stringify({ error: 'claims[] is required' }), {
         status: 400, headers: corsHeaders,
       })
     }
@@ -95,6 +96,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     await env.DB.batch(stmts)
 
+    try {
+      const domain = body.url ? new URL(body.url).hostname.replace(/^www\./, '') : 'unknown'
+      await createTimelineEntry(env.DB, sessionId, workspaceId, userId, {
+        title: `Extracted ${ids.length} claims from ${body.domain || domain}`,
+        category: 'publication',
+        importance: 'normal',
+        source_type: 'system',
+        entity_type: 'claim',
+        entity_id: body.domain || domain,
+        action: 'extracted',
+      })
+    } catch { /* non-fatal */ }
+
     return new Response(JSON.stringify({
       message: `${ids.length} claims saved`,
       ids,
@@ -122,6 +136,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 400, headers: corsHeaders,
       })
     }
+
+    const session = await env.DB.prepare(
+      `SELECT workspace_id FROM cop_sessions WHERE id = ?`
+    ).bind(sessionId).first<{ workspace_id: string }>()
+    const workspaceId = session?.workspace_id ?? sessionId
 
     const now = new Date().toISOString()
 
@@ -157,6 +176,18 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         WHERE id = ? AND cop_session_id = ?
       `).bind(evidenceId, now, claimId, sessionId).run()
 
+      try {
+        await createTimelineEntry(env.DB, sessionId, workspaceId, userId, {
+          title: `Claim verified: ${claim.claim_text.substring(0, 160)}`,
+          category: 'legal',
+          importance: 'high',
+          source_type: 'system',
+          entity_type: 'claim',
+          entity_id: claimId,
+          action: 'verified',
+        })
+      } catch { /* non-fatal */ }
+
       return new Response(JSON.stringify({
         message: 'Claim verified and promoted to evidence',
         evidence_item_id: evidenceId,
@@ -175,6 +206,25 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       UPDATE cop_claims SET status = ?, updated_at = ?
       WHERE id = ? AND cop_session_id = ?
     `).bind(body.status, now, claimId, sessionId).run()
+
+    if (body.status === 'verified' || body.status === 'disputed') {
+      try {
+        const claim = await env.DB.prepare(
+          `SELECT claim_text FROM cop_claims WHERE id = ? AND cop_session_id = ?`
+        ).bind(claimId, sessionId).first<{ claim_text: string }>()
+        if (claim) {
+          await createTimelineEntry(env.DB, sessionId, workspaceId, userId, {
+            title: `Claim ${body.status}: ${claim.claim_text.substring(0, 160)}`,
+            category: body.status === 'verified' ? 'legal' : 'event',
+            importance: body.status === 'verified' ? 'high' : 'normal',
+            source_type: 'system',
+            entity_type: 'claim',
+            entity_id: claimId,
+            action: body.status,
+          })
+        }
+      } catch { /* non-fatal */ }
+    }
 
     return new Response(JSON.stringify({ message: 'Claim updated' }), { headers: corsHeaders })
   } catch (error) {
