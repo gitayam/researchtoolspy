@@ -72,7 +72,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   try {
     const userId = await getUserIdOrDefault(request, env)
 
-    // GET /api/relationships?workspace_id=xxx
+    // GET /api/relationships?workspace_id=xxx[&cop_session_id=yyy]
     if (method === 'GET' && url.pathname === '/api/relationships') {
       const workspaceId = url.searchParams.get('workspace_id')
       if (!workspaceId) {
@@ -82,7 +82,21 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
-      if (!(await checkWorkspaceAccess(workspaceId, userId, env))) {
+      // COP session bypass: if caller provides a valid cop_session_id whose
+      // workspace_id matches, skip the workspace membership check (COP
+      // sessions are designed to be accessible without strict ACLs).
+      const copSessionId = url.searchParams.get('cop_session_id')
+      let copBypass = false
+      if (copSessionId) {
+        const session = await env.DB.prepare(
+          'SELECT workspace_id FROM cop_sessions WHERE id = ?'
+        ).bind(copSessionId).first()
+        if (session && session.workspace_id === workspaceId) {
+          copBypass = true
+        }
+      }
+
+      if (!copBypass && !(await checkWorkspaceAccess(workspaceId, userId, env))) {
         return new Response(
           JSON.stringify({ error: 'Access denied to workspace' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

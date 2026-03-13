@@ -439,6 +439,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Early detection: x.com/twitter.com blocks all server-side scraping
+    try {
+      const parsedUrl = new URL(url)
+      const host = parsedUrl.hostname.replace(/^www\./, '')
+      if (host === 'x.com' || host === 'twitter.com') {
+        return new Response(JSON.stringify({
+          error: 'Twitter/X posts cannot be scraped',
+          details: 'X.com blocks server-side requests. Paste the tweet text directly into the claims panel instead.',
+          url,
+          paywalled: false
+        }), {
+          status: 422,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        })
+      }
+    } catch {
+      // Invalid URL — will be caught by fetch below
+    }
+
     // 1. Fetch content with fallback chain
     console.log(`[ExtractClaims] Fetching ${url}...`)
     const fetched = await fetchWithFallback(url)

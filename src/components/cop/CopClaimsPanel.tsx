@@ -163,7 +163,7 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
-        throw new Error(errData.error || `Failed to extract claims (${res.status})`)
+        throw new Error(errData.details || errData.error || `Failed to extract claims (${res.status})`)
       }
 
       const data = await res.json()
