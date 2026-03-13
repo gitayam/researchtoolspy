@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, Save, Sparkles, AlertTriangle, Search, User, Shield, TrendingUp, History, Loader2, X, Building2, MapPin, Users as UsersIcon } from 'lucide-react'
+import { ArrowLeft, Save, Sparkles, AlertTriangle, Search, User, Shield, TrendingUp, History, Loader2, X, Building2, MapPin, Users as UsersIcon, Plus } from 'lucide-react'
 import { AIFieldAssistant, AIUrlScraper } from '@/components/ai'
 import { DeceptionScoringForm } from './DeceptionScoringForm'
 import { DeceptionDashboard } from './DeceptionDashboard'
@@ -211,6 +211,28 @@ export function DeceptionForm({
     setSelectedActor(null)
     setActorCredibility(null)
     setCredibilityError(null)
+  }
+
+  const handleQuickCreateActor = async (name: string) => {
+    try {
+      const res = await fetch('/api/actors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: name.trim(),
+          type: 'PERSON',
+          workspace_id: currentWorkspaceId,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to create actor')
+      const data = await res.json()
+      const newActor = data.actor || data
+      handleSelectActor({ id: newActor.id, name: newActor.name, type: newActor.type })
+    } catch (err) {
+      console.error('Quick create actor error:', err)
+      setError('Failed to create actor')
+    }
   }
 
   const handlePreFillScores = () => {
@@ -535,6 +557,16 @@ export function DeceptionForm({
                                 </div>
                               </button>
                             ))}
+                            {/* Create new option at bottom of results */}
+                            <button
+                              onClick={() => handleQuickCreateActor(actorSearchQuery)}
+                              className="w-full text-left p-3 hover:bg-accent rounded-lg transition-colors min-h-[44px] border-t border-border mt-1 pt-3"
+                            >
+                              <div className="flex items-center gap-3 text-muted-foreground">
+                                <Plus className="h-4 w-4" />
+                                <span className="text-sm">Create "{actorSearchQuery}" as new actor</span>
+                              </div>
+                            </button>
                           </div>
                         </CardContent>
                       </Card>
@@ -543,8 +575,19 @@ export function DeceptionForm({
                     {/* No Results */}
                     {showActorResults && actorSearchResults.length === 0 && !actorSearchLoading && actorSearchQuery.length >= 2 && (
                       <Card className="absolute z-50 w-full mt-1">
-                        <CardContent className="p-4 text-center text-muted-foreground">
-                          No actors found. Try a different search term.
+                        <CardContent className="p-4 space-y-3">
+                          <p className="text-sm text-muted-foreground text-center">
+                            No actors found matching "{actorSearchQuery}"
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full min-h-[44px]"
+                            onClick={() => handleQuickCreateActor(actorSearchQuery)}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create "{actorSearchQuery}" as new actor
+                          </Button>
                         </CardContent>
                       </Card>
                     )}
