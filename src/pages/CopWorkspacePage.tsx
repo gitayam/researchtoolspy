@@ -1066,7 +1066,7 @@ function ProgressLayout({
           id="map"
           title="Map"
           icon={<MapIcon className="h-4 w-4 text-green-400" />}
-          height="h-[280px] sm:h-[200px]"
+          height="h-[320px] sm:h-[400px]"
         >
           {(expanded) => (
             <CopMapWithLayers

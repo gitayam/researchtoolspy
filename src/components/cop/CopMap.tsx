@@ -166,12 +166,16 @@ export default function CopMap({
   }, [pinPlacementMode])
 
   // ── Sync layers with the map ────────────────────────────────
+  const hasFittedRef = useRef(false)
+
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
 
     // Wait for the style to be loaded before touching sources/layers
     const applyLayers = () => {
+      let newSourceAdded = false
+
       for (const [layerId, fc] of Object.entries(layers)) {
         const sourceId = `cop-${layerId}`
 
@@ -195,11 +199,38 @@ export default function CopMap({
         })
 
         addedSourcesRef.current.add(sourceId)
+        newSourceAdded = true
 
         if (isLine) {
           addLineLayer(map, sourceId, layerId, color)
         } else {
           addPointLayers(map, sourceId, layerId, color, popupRef, onMarkerOpenInFeedRef)
+        }
+      }
+
+      // Auto-zoom to fit all features on first data load
+      if (newSourceAdded && !hasFittedRef.current) {
+        const bounds = new maplibregl.LngLatBounds()
+        let hasCoords = false
+
+        for (const fc of Object.values(layers)) {
+          for (const f of fc.features ?? []) {
+            const geom = f.geometry
+            if (geom.type === 'Point') {
+              bounds.extend(geom.coordinates as [number, number])
+              hasCoords = true
+            } else if (geom.type === 'LineString') {
+              for (const c of geom.coordinates) {
+                bounds.extend(c as [number, number])
+                hasCoords = true
+              }
+            }
+          }
+        }
+
+        if (hasCoords) {
+          hasFittedRef.current = true
+          map.fitBounds(bounds, { padding: 50, maxZoom: 12 })
         }
       }
     }
