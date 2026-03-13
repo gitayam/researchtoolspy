@@ -2,10 +2,10 @@
  * CopGlobalCapture -- Command palette overlay for quick evidence/RFI/hypothesis capture.
  *
  * Triggered by Cmd/Ctrl+K or a FAB button. Auto-detects input type:
- *   - URL (http/https) -> submits to POST /api/evidence
+ *   - URL (http/https) -> analyzes URL then persists to COP evidence feed
  *   - ?prefix -> creates RFI
  *   - !prefix -> creates hypothesis
- *   - @handle -> persona creation suggestion
+ *   - @handle or @platform:handle -> creates persona
  *   - Free text -> submits as text evidence note
  */
 
@@ -52,7 +52,7 @@ function detectInputType(input: string): InputType {
   if (/^https?:\/\//i.test(trimmed)) return 'url'
   if (trimmed.startsWith('?')) return 'rfi'
   if (trimmed.startsWith('!')) return 'hypothesis'
-  if (/^@[\w.]{1,30}$/.test(trimmed)) return 'persona'
+  if (/^@([\w]+:)?[\w.]{1,30}$/.test(trimmed)) return 'persona'
   if (/^\+(actor|event|place|source|behavior)\s/i.test(trimmed)) return 'entity'
   return 'note'
 }
@@ -211,11 +211,30 @@ export default function CopGlobalCapture({
           break
         }
         case 'persona': {
-          // For persona, just show success -- the parent will handle actual creation
-          // We could trigger a persona creation flow here
-          setSuccess(true)
-          setSubmitting(false)
-          return
+          // Parse @platform:handle or @handle (defaults to twitter)
+          const personaInput = trimmed.slice(1) // remove @
+          const colonIdx = personaInput.indexOf(':')
+          let platform = 'twitter'
+          let handle = personaInput
+          if (colonIdx > 0) {
+            const p = personaInput.slice(0, colonIdx).toLowerCase()
+            const validPlatforms = ['twitter', 'telegram', 'reddit', 'onlyfans', 'instagram', 'tiktok', 'other']
+            if (validPlatforms.includes(p)) {
+              platform = p
+              handle = personaInput.slice(colonIdx + 1)
+            }
+          }
+          if (!handle) throw new Error('Handle cannot be empty')
+          res = await fetch(`/api/cop/${sessionId}/personas`, {
+            method: 'POST',
+            headers: getCopHeaders(),
+            body: JSON.stringify({
+              display_name: handle,
+              platform,
+              handle,
+            }),
+          })
+          break
         }
         case 'note':
         default: {
@@ -332,7 +351,7 @@ export default function CopGlobalCapture({
               {detectedType === 'url' && 'Will analyze URL and add to evidence feed'}
               {detectedType === 'rfi' && 'Will create a Request for Information'}
               {detectedType === 'hypothesis' && 'Will propose a new hypothesis'}
-              {detectedType === 'persona' && 'Will suggest creating a persona'}
+              {detectedType === 'persona' && 'Will create a persona (@handle or @platform:handle)'}
               {detectedType === 'entity' && `Will open the entity drawer to create a new ${entityLabel?.toLowerCase() ?? 'entity'}`}
               {detectedType === 'note' && 'Will add as a text evidence note'}
             </span>

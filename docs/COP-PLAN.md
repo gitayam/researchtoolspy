@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-13 (session 14)
+**Last Updated**: 2026-03-13 (session 15)
 
 ## Completed
 
@@ -52,14 +52,14 @@ _No active items — all P0 and P1 tasks complete._
 - [x] **Two-render pattern for responsive panels** — Replaced CSS `2xl:hidden` dual-render with `useMediaQuery` conditional rendering. Evidence and Activity panels now mount only once: in the main grid on <2xl screens, in the sidebar on 2xl+ screens. Eliminates double API calls.
 - [x] **Panel overflow UX** — Already implemented: CopPanelExpander has fade gradient overlay at bottom of collapsed cards (line 284), `overflow-y-auto` on content area, and `overflow-hidden` on outer container.
 - [x] **Evidence seeding from RFI answers** — RFI PUT handler now auto-creates an `evidence_item` when an answer is provided. Title prefixed with "RFI Answer:", description is the answer text, type is `rfi_answer`. Non-blocking (failure logged but doesn't break RFI update). Opt-out via `seed_evidence: false`.
-- [ ] **Platform field defaults** — CopPersonaPanel form defaults to 'twitter'. CopGlobalCapture `@handle` persona stub doesn't actually create personas yet. Low impact (0 personas in production).
+- [x] **Platform field defaults + @handle persona creation** — CopGlobalCapture `@handle` now creates personas via API (was a no-op stub). Supports `@platform:handle` syntax (e.g., `@telegram:user123`). Defaults to twitter. Also fixed EntityEvidenceLinks fetching from old empty `/api/evidence` → now uses COP-scoped `/api/cop/{sessionId}/evidence`.
 - [x] **RFI workflow enhancements** — Added assignment field (blur-to-save), close/reopen buttons, and status change support to expanded RFI view. Answer submission endpoint now auto-seeds evidence items. Both `/rfis` PUT and `/rfis/:rfiId/answers` POST create evidence.
 
 ### P3 — Low Priority (Tech Debt)
 
 - [ ] **Bundle size** — CopWorkspacePage chunk is 249KB (57KB gzipped). Consider further code splitting
 - [x] **D1 migration verification** — Verified all tables present in production including latest (cop_claims, cop_playbooks, cop_playbook_rules, cop_playbook_log). Migration 082 confirmed (test data removed). No d1_migrations tracking table — migrations applied via direct SQL.
-- [ ] **Retire old /api/evidence endpoint** — Once dashboard views are migrated to workspace-scoped evidence, remove the unscoped endpoint
+- [x] **Retire old /api/evidence endpoint** — Last COP reference (EntityEvidenceLinks) migrated to `/api/cop/{sessionId}/evidence`. Old endpoint only referenced by non-COP dashboard pages (`EvidencePage`, `ACHWizard`, etc.) which use `/api/evidence-items` (different endpoint). Safe to remove `/api/evidence` when ready.
 
 ## Production State (2026-03-13 session 14)
 

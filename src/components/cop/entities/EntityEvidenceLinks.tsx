@@ -106,7 +106,7 @@ export default function EntityEvidenceLinks({
     try {
       setLoadingEvidence(true)
       const res = await fetch(
-        `/api/evidence?workspace_id=${encodeURIComponent(workspaceId || sessionId)}`,
+        `/api/cop/${sessionId}/evidence`,
         { headers: getCopHeaders() },
       )
       if (!res.ok) throw new Error('Failed to fetch evidence')
