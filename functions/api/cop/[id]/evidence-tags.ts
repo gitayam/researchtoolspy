@@ -106,7 +106,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 }
 
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
-  const { request, env } = context
+  const { request, env, params } = context
+  const sessionId = params.id as string
   const url = new URL(request.url)
   const tagId = url.searchParams.get('tag_id')
 
@@ -117,9 +118,18 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Look up workspace from session for scoped delete
+    const session = await env.DB.prepare(
+      'SELECT workspace_id FROM cop_sessions WHERE id = ?'
+    ).bind(sessionId).first() as any
+    const workspaceId = session?.workspace_id || sessionId
+
+    // Only delete if the tag belongs to evidence in this session's workspace
     await env.DB.prepare(`
-      DELETE FROM cop_evidence_tags WHERE id = ?
-    `).bind(tagId).run()
+      DELETE FROM cop_evidence_tags WHERE id = ? AND evidence_id IN (
+        SELECT id FROM evidence_items WHERE workspace_id = ?
+      )
+    `).bind(tagId, workspaceId).run()
 
     return new Response(JSON.stringify({ message: 'Evidence tag deleted' }), { headers: corsHeaders })
   } catch (error) {

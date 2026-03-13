@@ -213,8 +213,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     bindings.push(new Date().toISOString())
     bindings.push(body.id)
 
+    // Look up workspace from session for scoped update
+    const session = await env.DB.prepare(
+      'SELECT workspace_id FROM cop_sessions WHERE id = ?'
+    ).bind(sessionId).first() as any
+    const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || sessionId
+    bindings.push(workspaceId)
+
     await env.DB.prepare(
-      `UPDATE cop_task_templates SET ${updates.join(', ')} WHERE id = ?`
+      `UPDATE cop_task_templates SET ${updates.join(', ')} WHERE id = ? AND workspace_id = ?`
     ).bind(...bindings).run()
 
     return new Response(JSON.stringify({ id: body.id, message: 'Template updated' }), { headers: corsHeaders })
@@ -228,7 +235,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
 // DELETE - Delete template
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
-  const { request, env } = context
+  const { request, env, params } = context
+  const sessionId = params.id as string
 
   try {
     const body = await request.json() as any
@@ -239,9 +247,15 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Look up workspace from session for scoped delete
+    const session = await env.DB.prepare(
+      'SELECT workspace_id FROM cop_sessions WHERE id = ?'
+    ).bind(sessionId).first() as any
+    const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || sessionId
+
     const result = await env.DB.prepare(
-      'DELETE FROM cop_task_templates WHERE id = ?'
-    ).bind(body.id).run()
+      'DELETE FROM cop_task_templates WHERE id = ? AND workspace_id = ?'
+    ).bind(body.id, workspaceId).run()
 
     if (!result.meta.changes || result.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Template not found' }), {
