@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-13 (session 13)
+**Last Updated**: 2026-03-13 (session 14)
 
 ## Completed
 
@@ -30,11 +30,12 @@
 - [x] **P3: Lessons learned doc outdated** — Added 2026-03-12 session with workspace isolation, WHERE clause, and optimistic UI lessons.
 - [x] **P0: Map console errors (Can't find variable: Ne)** — esbuild's class property helper (`Ne`) was inaccessible inside maplibre-gl's Web Worker Blob. Fixed by upgrading build target from `es2020` to `es2022` (native class fields, no helper needed).
 - [x] **P1: Personas link missing session filter** — `POST /api/cop/[id]/personas?action=link` now verifies both persona IDs belong to the current session before creating link. Also fixed persona creation using hardcoded `workspace_id: '1'` — now looks up session's actual workspace.
+- [x] **P1: E2E tests outdated** — Fixed 20 failing tests (was 33/65, then 20/232 after playbook additions). Fixes: added page navigation for relative fetch URLs in cop-assets tests, fixed route glob patterns for query string URLs, resolved strict mode violations in cop-event-sidebar and cop-intake. Now 215/232 passing, 17 skipped, 0 failing.
+- [x] **P1: Place/country autocomplete** — PlaceSearch component built with Nominatim geocoding, integrated into EntityCreateForm. Deployed and functional in production. Auto-fills name, type, lat/lng, country, region from search.
 
 ## In Progress
 
-- [ ] **P1: Place/country autocomplete** — PlaceSearch component built with Nominatim geocoding, integrated into EntityCreateForm. Needs testing on production.
-- [x] **P1: E2E tests outdated** — Fixed 20 failing tests (was 33/65, then 20/232 after playbook additions). Fixes: added page navigation for relative fetch URLs in cop-assets tests, fixed route glob patterns for query string URLs, resolved strict mode violations in cop-event-sidebar and cop-intake. Now 215/232 passing, 17 skipped, 0 failing.
+_No active items — all P0 and P1 tasks complete._
 
 ## Backlog — Priority Order
 
@@ -51,16 +52,16 @@
 - [x] **Two-render pattern for responsive panels** — Replaced CSS `2xl:hidden` dual-render with `useMediaQuery` conditional rendering. Evidence and Activity panels now mount only once: in the main grid on <2xl screens, in the sidebar on 2xl+ screens. Eliminates double API calls.
 - [x] **Panel overflow UX** — Already implemented: CopPanelExpander has fade gradient overlay at bottom of collapsed cards (line 284), `overflow-y-auto` on content area, and `overflow-hidden` on outer container.
 - [x] **Evidence seeding from RFI answers** — RFI PUT handler now auto-creates an `evidence_item` when an answer is provided. Title prefixed with "RFI Answer:", description is the answer text, type is `rfi_answer`. Non-blocking (failure logged but doesn't break RFI update). Opt-out via `seed_evidence: false`.
-- [ ] **Platform field defaults** — Batch-created personas default to 'other'; need audit/fix UI
+- [ ] **Platform field defaults** — CopPersonaPanel form defaults to 'twitter'. CopGlobalCapture `@handle` persona stub doesn't actually create personas yet. Low impact (0 personas in production).
 - [x] **RFI workflow enhancements** — Added assignment field (blur-to-save), close/reopen buttons, and status change support to expanded RFI view. Answer submission endpoint now auto-seeds evidence items. Both `/rfis` PUT and `/rfis/:rfiId/answers` POST create evidence.
 
 ### P3 — Low Priority (Tech Debt)
 
 - [ ] **Bundle size** — CopWorkspacePage chunk is 249KB (57KB gzipped). Consider further code splitting
-- [ ] **D1 migration verification** — Should verify all migrations applied to production with `SELECT sql FROM sqlite_master`
+- [x] **D1 migration verification** — Verified all tables present in production including latest (cop_claims, cop_playbooks, cop_playbook_rules, cop_playbook_log). Migration 082 confirmed (test data removed). No d1_migrations tracking table — migrations applied via direct SQL.
 - [ ] **Retire old /api/evidence endpoint** — Once dashboard views are migrated to workspace-scoped evidence, remove the unscoped endpoint
 
-## Production State (2026-03-12 session 6)
+## Production State (2026-03-13 session 14)
 
 | Session | ID | Workspace | Evidence | Entities | Frameworks |
 |---------|-----|-----------|----------|----------|------------|
