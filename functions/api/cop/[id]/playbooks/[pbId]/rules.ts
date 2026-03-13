@@ -58,9 +58,16 @@ async function verifyPlaybookSession(env: Env, pbId: string, sessionId: string):
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params } = context
+  const sessionId = params.id as string
   const pbId = params.pbId as string
 
   try {
+    if (!await verifyPlaybookSession(env, pbId, sessionId)) {
+      return new Response(JSON.stringify({ error: 'Playbook not found' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
+
     const rows = await env.DB.prepare(
       'SELECT * FROM cop_playbook_rules WHERE playbook_id = ? ORDER BY position ASC'
     ).bind(pbId).all()
