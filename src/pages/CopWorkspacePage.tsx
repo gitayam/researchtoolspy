@@ -7,7 +7,7 @@
  *   - Monitor: evidence feed, optional map, key questions
  */
 
-import { type ReactNode, useState, useEffect, useCallback, useRef } from 'react'
+import { type ReactNode, useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -55,19 +55,31 @@ import CopHypothesisTab from '@/components/cop/CopHypothesisTab'
 import CopRfiTab from '@/components/cop/CopRfiTab'
 import CopMapWithLayers from '@/components/cop/CopMapWithLayers'
 import CopActivityPanel from '@/components/cop/CopActivityPanel'
-import CopInviteDialog from '@/components/cop/CopInviteDialog'
-import CopGapAnalysis from '@/components/cop/CopGapAnalysis'
 import CopGlobalCaptureBar from '@/components/cop/CopGlobalCaptureBar'
 import CopBlockerStrip from '@/components/cop/CopBlockerStrip'
-import CopPersonaPanel from '@/components/cop/CopPersonaPanel'
-import CopEvidencePersonaLinkDialog from '@/components/cop/CopEvidencePersonaLinkDialog'
-import CopEntityDrawer from '@/components/cop/CopEntityDrawer'
-import CopTaskBoard from '@/components/cop/CopTaskBoard'
-import CopSubmissionInbox from '@/components/cop/CopSubmissionInbox'
-import CopAssetPanel from '@/components/cop/CopAssetPanel'
-import CopExportDialog from '@/components/cop/CopExportDialog'
-import CopPlaybookPanel from '@/components/cop/CopPlaybookPanel'
-import CopClaimsPanel from '@/components/cop/CopClaimsPanel'
+
+// Lazy-loaded panels and dialogs (not needed on initial render)
+const CopInviteDialog = lazy(() => import('@/components/cop/CopInviteDialog'))
+const CopGapAnalysis = lazy(() => import('@/components/cop/CopGapAnalysis'))
+const CopPersonaPanel = lazy(() => import('@/components/cop/CopPersonaPanel'))
+const CopEvidencePersonaLinkDialog = lazy(() => import('@/components/cop/CopEvidencePersonaLinkDialog'))
+const CopEntityDrawer = lazy(() => import('@/components/cop/CopEntityDrawer'))
+const CopTaskBoard = lazy(() => import('@/components/cop/CopTaskBoard'))
+const CopSubmissionInbox = lazy(() => import('@/components/cop/CopSubmissionInbox'))
+const CopAssetPanel = lazy(() => import('@/components/cop/CopAssetPanel'))
+const CopExportDialog = lazy(() => import('@/components/cop/CopExportDialog'))
+const CopPlaybookPanel = lazy(() => import('@/components/cop/CopPlaybookPanel'))
+const CopClaimsPanel = lazy(() => import('@/components/cop/CopClaimsPanel'))
+
+/** Suspense wrapper for lazy-loaded panels — shows a subtle loading indicator */
+function LazyPanel({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-8 text-xs text-gray-400"><Loader2 className="h-4 w-4 animate-spin mr-2" />Loading...</div>}>
+      {children}
+    </Suspense>
+  )
+}
+
 import CopSidebar from '@/components/cop/CopSidebar'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
 import { usePanelLayout } from '@/hooks/usePanelLayout'
@@ -742,61 +754,77 @@ export default function CopWorkspacePage() {
       </div>
 
       {/* Persona Link dialog */}
-      <CopEvidencePersonaLinkDialog
-        sessionId={id!}
-        open={!!personaLinkData}
-        onOpenChange={(open) => { if (!open) setPersonaLinkData(null) }}
-        handle={personaLinkData?.handle ?? ''}
-        platform={personaLinkData?.platform ?? ''}
-        evidenceId={personaLinkData?.itemId ?? ''}
-      />
+      {personaLinkData && (
+        <LazyPanel>
+          <CopEvidencePersonaLinkDialog
+            sessionId={id!}
+            open={!!personaLinkData}
+            onOpenChange={(open) => { if (!open) setPersonaLinkData(null) }}
+            handle={personaLinkData?.handle ?? ''}
+            platform={personaLinkData?.platform ?? ''}
+            evidenceId={personaLinkData?.itemId ?? ''}
+          />
+        </LazyPanel>
+      )}
 
       {/* Invite dialog */}
-      <CopInviteDialog
-        sessionId={id!}
-        sessionName={session.name}
-        open={inviteOpen}
-        onOpenChange={setInviteOpen}
-      />
+      {inviteOpen && (
+        <LazyPanel>
+          <CopInviteDialog
+            sessionId={id!}
+            sessionName={session.name}
+            open={inviteOpen}
+            onOpenChange={setInviteOpen}
+          />
+        </LazyPanel>
+      )}
 
       {/* Export dialog */}
-      <CopExportDialog
-        sessionId={id!}
-        sessionName={session.name}
-        open={exportOpen}
-        onOpenChange={setExportOpen}
-      />
+      {exportOpen && (
+        <LazyPanel>
+          <CopExportDialog
+            sessionId={id!}
+            sessionName={session.name}
+            open={exportOpen}
+            onOpenChange={setExportOpen}
+          />
+        </LazyPanel>
+      )}
 
       {/* Entity Drawer */}
-      <CopEntityDrawer
-        sessionId={id!}
-        workspaceId={session?.workspace_id}
-        open={entityDrawerOpen}
-        onOpenChange={(open) => {
-          setEntityDrawerOpen(open)
-          if (!open) {
-            setEntityDrawerTab(undefined)
-            setEntityDrawerPrefill(undefined)
-          }
-        }}
-        initialTab={entityDrawerTab as any}
-        prefill={entityDrawerPrefill}
-        onPinToMap={(lat, lon, label) => {
-          setShowMap(true)
-          fetch(`/api/cop/${id}/markers`, {
-            method: 'POST',
-            headers: getCopHeaders(),
-            body: JSON.stringify({
-              lat, lon,
-              label,
-              callsign: label,
-              cot_type: 'a-f-G',
-              source_type: 'ENTITY',
-              description: `Pinned from Entity Drawer: ${label}`,
-            }),
-          }).catch((err) => { console.error('Failed to create entity pin marker:', err) })
-        }}
-      />
+      {entityDrawerOpen && (
+        <LazyPanel>
+          <CopEntityDrawer
+            sessionId={id!}
+            workspaceId={session?.workspace_id}
+            open={entityDrawerOpen}
+            onOpenChange={(open) => {
+              setEntityDrawerOpen(open)
+              if (!open) {
+                setEntityDrawerTab(undefined)
+                setEntityDrawerPrefill(undefined)
+              }
+            }}
+            initialTab={entityDrawerTab as any}
+            prefill={entityDrawerPrefill}
+            onPinToMap={(lat, lon, label) => {
+              setShowMap(true)
+              fetch(`/api/cop/${id}/markers`, {
+                method: 'POST',
+                headers: getCopHeaders(),
+                body: JSON.stringify({
+                  lat, lon,
+                  label,
+                  callsign: label,
+                  cot_type: 'a-f-G',
+                  source_type: 'ENTITY',
+                  description: `Pinned from Entity Drawer: ${label}`,
+                }),
+              }).catch((err) => { console.error('Failed to create entity pin marker:', err) })
+            }}
+          />
+        </LazyPanel>
+      )}
     </div>
   )
 }
@@ -885,7 +913,7 @@ function ProgressLayout({
       icon: <Users className="h-4 w-4 text-purple-400" />,
       height: 'standard',
       render: (expanded) => (
-        <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
+        <LazyPanel><CopPersonaPanel sessionId={sessionId} expanded={expanded} /></LazyPanel>
       ),
     },
     rfi: {
@@ -906,7 +934,7 @@ function ProgressLayout({
           </div>
           {expanded && (
             <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
-              <CopGapAnalysis sessionId={sessionId} />
+              <LazyPanel><CopGapAnalysis sessionId={sessionId} /></LazyPanel>
             </div>
           )}
         </div>
@@ -932,7 +960,7 @@ function ProgressLayout({
       icon: <ClipboardList className="h-4 w-4 text-orange-400" />,
       height: 'standard',
       render: (expanded) => (
-        <CopTaskBoard sessionId={sessionId} expanded={expanded} />
+        <LazyPanel><CopTaskBoard sessionId={sessionId} expanded={expanded} /></LazyPanel>
       ),
     },
     submissions: {
@@ -941,7 +969,7 @@ function ProgressLayout({
       icon: <Inbox className="h-4 w-4 text-cyan-400" />,
       height: 'standard',
       render: (expanded) => (
-        <CopSubmissionInbox sessionId={sessionId} expanded={expanded} />
+        <LazyPanel><CopSubmissionInbox sessionId={sessionId} expanded={expanded} /></LazyPanel>
       ),
     },
     assets: {
@@ -950,7 +978,7 @@ function ProgressLayout({
       icon: <Package className="h-4 w-4 text-teal-400" />,
       height: 'standard',
       render: (expanded) => (
-        <CopAssetPanel sessionId={sessionId} expanded={expanded} />
+        <LazyPanel><CopAssetPanel sessionId={sessionId} expanded={expanded} /></LazyPanel>
       ),
     },
     playbooks: {
@@ -959,7 +987,7 @@ function ProgressLayout({
       icon: <Zap className="h-4 w-4 text-yellow-400" />,
       height: 'standard',
       render: () => (
-        <CopPlaybookPanel sessionId={sessionId} />
+        <LazyPanel><CopPlaybookPanel sessionId={sessionId} /></LazyPanel>
       ),
     },
     claims: {
@@ -968,7 +996,7 @@ function ProgressLayout({
       icon: <FileWarning className="h-4 w-4 text-indigo-400" />,
       height: 'tall',
       render: (expanded) => (
-        <CopClaimsPanel sessionId={sessionId} expanded={expanded} />
+        <LazyPanel><CopClaimsPanel sessionId={sessionId} expanded={expanded} /></LazyPanel>
       ),
     },
     evidence: {
@@ -1316,7 +1344,7 @@ function MonitorLayout({
         height="compact"
       >
         {(expanded) => (
-          <CopTaskBoard sessionId={sessionId} expanded={expanded} />
+          <LazyPanel><CopTaskBoard sessionId={sessionId} expanded={expanded} /></LazyPanel>
         )}
       </CopPanelExpander>
 
@@ -1328,7 +1356,7 @@ function MonitorLayout({
         height="compact"
       >
         {(expanded) => (
-          <CopAssetPanel sessionId={sessionId} expanded={expanded} />
+          <LazyPanel><CopAssetPanel sessionId={sessionId} expanded={expanded} /></LazyPanel>
         )}
       </CopPanelExpander>
 
@@ -1340,7 +1368,7 @@ function MonitorLayout({
         height="standard"
       >
         {(expanded) => (
-          <CopPersonaPanel sessionId={sessionId} expanded={expanded} />
+          <LazyPanel><CopPersonaPanel sessionId={sessionId} expanded={expanded} /></LazyPanel>
         )}
       </CopPanelExpander>
 
