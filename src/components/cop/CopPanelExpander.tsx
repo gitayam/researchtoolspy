@@ -26,6 +26,7 @@ interface CopPanelExpanderProps {
   panelWidth?: 'full' | 'half'
   canMoveUp?: boolean
   canMoveDown?: boolean
+  forceOpen?: boolean
 }
 
 const HEIGHT_MAP: Record<string, string> = {
@@ -53,6 +54,7 @@ export default function CopPanelExpander({
   panelWidth,
   canMoveUp = true,
   canMoveDown = true,
+  forceOpen = false,
 }: CopPanelExpanderProps) {
   const storageKey = `cop_panel_${id}_expanded`
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -64,6 +66,10 @@ export default function CopPanelExpander({
     return saved === 'true'
   })
   const [hidden] = useState(defaultHidden)
+
+  useEffect(() => {
+    if (forceOpen) setExpanded(true)
+  }, [forceOpen])
 
   const handleExpand = useCallback(() => {
     setExpanded(true)

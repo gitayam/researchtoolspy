@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   ShieldX,
   ShieldQuestion,
+  MessageSquareText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -49,6 +50,7 @@ interface ClaimAnalysisResult {
 interface CopClaimsPanelProps {
   sessionId: string
   expanded: boolean
+  highlightEntityId?: string
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -71,14 +73,38 @@ function getCategoryColor(category: string | undefined) {
   }
 }
 
+/** Detect if input looks like a URL (has a dot-separated domain pattern) */
+function looksLikeUrl(input: string): boolean {
+  const trimmed = input.trim()
+  // Starts with http(s):// or has domain-like pattern (e.g., "example.com/path")
+  if (/^https?:\/\//i.test(trimmed)) return true
+  if (/^[a-z0-9]([a-z0-9-]*[a-z0-9])?\.[a-z]{2,}/i.test(trimmed)) return true
+  return false
+}
+
 // ── Component ────────────────────────────────────────────────────
 
-export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelProps) {
-  const [url, setUrl] = useState('')
+export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId }: CopClaimsPanelProps) {
+  const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<ClaimAnalysisResult[]>([])
   const [expandedClaims, setExpandedClaims] = useState<Record<number, boolean>>({})
+
+  // Scroll to and highlight a specific claim when requested
+  useEffect(() => {
+    if (!highlightEntityId) return
+    const timer = setTimeout(() => {
+      const el = Array.from(document.querySelectorAll(`[data-claim-id="${highlightEntityId}"]`))
+        .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement | undefined
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.classList.add('ring-2', 'ring-yellow-400', 'transition-all')
+        setTimeout(() => el.classList.remove('ring-2', 'ring-yellow-400'), 2000)
+      }
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [highlightEntityId])
 
   // Load persisted claims from DB on mount
   useEffect(() => {
@@ -90,11 +116,12 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
         // Group by URL
         const grouped = new Map<string, ClaimAnalysisResult>()
         for (const c of data.claims) {
-          const key = c.url || 'unknown'
+          // Manual claims (no URL) each get their own group by ID
+          const key = c.url || `manual-${c.id}`
           if (!grouped.has(key)) {
             grouped.set(key, {
-              url: c.url,
-              title: c.url_title,
+              url: c.url || '',
+              title: c.url_title || (c.url ? undefined : 'Manual claim'),
               domain: c.url_domain,
               claims: [],
               summary: c.summary,
@@ -135,13 +162,51 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
     }
   }, [sessionId])
 
-  const handleExtractClaims = useCallback(async () => {
-    const trimmed = url.trim()
-    if (!trimmed) return
+  const isUrl = looksLikeUrl(input)
 
-    // Basic URL validation
+  /** Submit a manual text claim directly to DB */
+  const handleManualClaim = useCallback(async (text: string) => {
+    setLoading(true)
+    setError(null)
+
     try {
-      new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`)
+      const claim = { claim: text, category: 'statement', confidence: 50 }
+      const persistRes = await fetch(`/api/cop/${sessionId}/claims`, {
+        method: 'POST',
+        headers: getCopHeaders(),
+        body: JSON.stringify({ claims: [claim] }),
+      })
+
+      if (!persistRes.ok) throw new Error('Failed to save claim')
+
+      const persistData = await persistRes.json()
+      const result: ClaimAnalysisResult = {
+        url: '',
+        title: 'Manual claim',
+        claims: [{
+          ...claim,
+          id: persistData.ids?.[0],
+          status: 'unverified' as const,
+        }],
+        analyzed_at: new Date().toISOString(),
+      }
+
+      setResults(prev => [result, ...prev])
+      setInput('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save claim')
+    } finally {
+      setLoading(false)
+    }
+  }, [sessionId])
+
+  /** Extract claims from a URL via AI */
+  const handleExtractFromUrl = useCallback(async (rawUrl: string) => {
+    const fullUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
+
+    // Validate URL
+    try {
+      new URL(fullUrl)
     } catch {
       setError('Please enter a valid URL')
       return
@@ -155,7 +220,7 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
         method: 'POST',
         headers: { ...getCopHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: trimmed.startsWith('http') ? trimmed : `https://${trimmed}`,
+          url: fullUrl,
           include_entities: true,
           include_summary: true,
         }),
@@ -169,7 +234,7 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
       const data = await res.json()
 
       const result: ClaimAnalysisResult = {
-        url: trimmed,
+        url: rawUrl,
         title: data.metadata?.title || data.title,
         domain: data.metadata?.domain || data.domain,
         claims: data.claims ?? [],
@@ -194,7 +259,6 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
           })
           if (persistRes.ok) {
             const persistData = await persistRes.json()
-            // Attach DB IDs to the claims for status updates
             if (persistData.ids) {
               result.claims = result.claims.map((c, i) => ({
                 ...c,
@@ -209,13 +273,24 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
       }
 
       setResults(prev => [result, ...prev])
-      setUrl('')
+      setInput('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to extract claims')
     } finally {
       setLoading(false)
     }
-  }, [url, sessionId])
+  }, [sessionId])
+
+  const handleSubmit = useCallback(() => {
+    const trimmed = input.trim()
+    if (!trimmed) return
+
+    if (isUrl) {
+      handleExtractFromUrl(trimmed)
+    } else {
+      handleManualClaim(trimmed)
+    }
+  }, [input, isUrl, handleExtractFromUrl, handleManualClaim])
 
   const removeResult = (index: number) => {
     setResults(prev => prev.filter((_, i) => i !== index))
@@ -229,31 +304,37 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
 
   return (
     <div className="flex flex-col h-full">
-      {/* URL Input */}
+      {/* Claim / URL Input */}
       <div className="px-3 py-3 border-b border-slate-200 dark:border-slate-700">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <LinkIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            {isUrl ? (
+              <LinkIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            ) : (
+              <MessageSquareText className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            )}
             <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !loading && handleExtractClaims()}
-              placeholder="Paste URL to analyze claims..."
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !loading && handleSubmit()}
+              placeholder="Enter a claim or paste a URL..."
               className="w-full h-8 pl-8 pr-3 text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               disabled={loading}
             />
           </div>
           <Button
             size="sm"
-            onClick={handleExtractClaims}
-            disabled={loading || !url.trim()}
+            onClick={handleSubmit}
+            disabled={loading || !input.trim()}
             className="h-8 text-xs px-3 cursor-pointer"
           >
             {loading ? (
               <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
+            ) : isUrl ? (
               'Analyze'
+            ) : (
+              'Add'
             )}
           </Button>
         </div>
@@ -269,7 +350,7 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
             <FileWarning className="h-6 w-6 text-slate-400 dark:text-slate-600 mx-auto" />
             <p className="text-xs text-slate-500">No claims analyzed yet</p>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 max-w-[220px] mx-auto">
-              Paste a URL above to extract and analyze factual claims from articles and reports.
+              Enter a claim directly or paste a URL to extract claims from articles and reports.
             </p>
           </div>
         ) : (
@@ -300,7 +381,7 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
-                        {result.title || result.url}
+                        {result.title || result.url || 'Manual claim'}
                       </p>
                       {result.domain && (
                         <p className="text-[10px] text-slate-400 truncate">{result.domain}</p>
@@ -337,7 +418,7 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
                         const isVerified = claim.status === 'verified'
                         const isDisputed = claim.status === 'disputed' || claim.status === 'false'
                         return (
-                          <div key={ci} className={cn('px-3 py-2 space-y-1', isVerified && 'bg-emerald-50/50 dark:bg-emerald-950/20', isDisputed && 'bg-red-50/50 dark:bg-red-950/20')}>
+                          <div key={ci} data-claim-id={claim.id} className={cn('px-3 py-2 space-y-1', isVerified && 'bg-emerald-50/50 dark:bg-emerald-950/20', isDisputed && 'bg-red-50/50 dark:bg-red-950/20')}>
                             <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
                               {claim.claim}
                             </p>
@@ -400,7 +481,7 @@ export default function CopClaimsPanel({ sessionId, expanded }: CopClaimsPanelPr
                   )}
 
                   {/* Source link */}
-                  {isOpen && (
+                  {isOpen && result.url && (
                     <div className="px-3 py-1.5 border-t border-slate-100 dark:border-slate-800">
                       <a
                         href={result.url.startsWith('http') ? result.url : `https://${result.url}`}

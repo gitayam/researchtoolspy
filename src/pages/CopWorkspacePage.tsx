@@ -885,6 +885,16 @@ function ProgressLayout({
 }: ProgressLayoutProps) {
   const { visiblePanels, hiddenPanels, movePanel, toggleWidth, toggleVisible, resetLayout } = panelLayout
   const is2xl = useMediaQuery('(min-width: 1536px)')
+  const [forceOpenPanel, setForceOpenPanel] = useState<{ panelId: string; entityId: string } | null>(null)
+
+  const handleScrollToPanel = useCallback((panelId: string, entityId: string) => {
+    setForceOpenPanel({ panelId, entityId })
+    setTimeout(() => {
+      const el = document.querySelector(`[data-panel="${panelId}"]`)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+    setTimeout(() => setForceOpenPanel(null), 3000)
+  }, [])
 
   // ── Panel definitions (render functions keyed by id) ──────────
 
@@ -904,7 +914,7 @@ function ProgressLayout({
       icon: <Clock className="h-4 w-4 text-blue-400" />,
       height: 'standard',
       render: (expanded) => (
-        <CopTimelinePanel sessionId={sessionId} expanded={expanded} />
+        <CopTimelinePanel sessionId={sessionId} expanded={expanded} onScrollToPanel={handleScrollToPanel} />
       ),
     },
     actors: {
@@ -996,7 +1006,7 @@ function ProgressLayout({
       icon: <FileWarning className="h-4 w-4 text-indigo-400" />,
       height: 'tall',
       render: (expanded) => (
-        <LazyPanel><CopClaimsPanel sessionId={sessionId} expanded={expanded} /></LazyPanel>
+        <LazyPanel><CopClaimsPanel sessionId={sessionId} expanded={expanded} highlightEntityId={forceOpenPanel?.panelId === 'claims' ? forceOpenPanel.entityId : undefined} /></LazyPanel>
       ),
     },
     evidence: {
@@ -1144,6 +1154,7 @@ function ProgressLayout({
                         onHide={() => toggleVisible(def.id)}
                         canMoveUp={idx > 0}
                         canMoveDown={idx < visiblePanels.length - 1}
+                        forceOpen={forceOpenPanel?.panelId === def.id}
                       >
                         {def.render}
                       </CopPanelExpander>
@@ -1176,6 +1187,7 @@ function ProgressLayout({
                 onHide={() => toggleVisible(def.id)}
                 canMoveUp={idx > 0}
                 canMoveDown={idx < visiblePanels.length - 1}
+                forceOpen={forceOpenPanel?.panelId === def.id}
               >
                 {def.render}
               </CopPanelExpander>
