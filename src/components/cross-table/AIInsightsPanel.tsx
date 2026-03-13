@@ -34,23 +34,22 @@ function getHeaders(): Record<string, string> {
 
 interface AIInsights {
   summary?: string
-  challenge?: string
+  challenges?: string[]
   sensitivity_narrative?: string
   blind_spots?: string[]
-  recommendations?: string[]
 }
 
 interface CriteriaSuggestion {
   label: string
   description: string
-  rationale: string
 }
 
 interface ScoreSuggestion {
   row_id: string
   col_id: string
-  suggested_score: number
-  reasoning: string
+  score: number | string
+  rationale: string
+  confidence?: number
 }
 
 // ── Component ───────────────────────────────────────────────────
@@ -85,7 +84,7 @@ export function AIInsightsPanel() {
       })
       if (!res.ok) throw new Error(`Failed (${res.status})`)
       const data = await res.json()
-      setInsights(data)
+      setInsights(data.insights ?? data)
     } catch (err: unknown) {
       setInsightsError(err instanceof Error ? err.message : 'Failed to load insights')
     } finally {
@@ -105,33 +104,45 @@ export function AIInsightsPanel() {
       })
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()
-      setCriteria(data.suggestions ?? [])
+      setCriteria(data.criteria ?? [])
     } catch {
       // silent
     } finally {
       setCriteriaLoading(false)
     }
-  }, [tableId])
+  }, [tableId, state.table.title])
 
   // ── Fetch score suggestions ─────────────────────────────────
 
   const fetchScoreSuggestions = useCallback(async () => {
     setScoreLoading(true)
     try {
-      const res = await fetch(`/api/cross-table/${tableId}/ai/score-suggest`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ all: true }),
-      })
-      if (!res.ok) throw new Error('Failed')
-      const data = await res.json()
-      setScoreSuggestions(data.suggestions ?? [])
+      // Request scores for each row individually, collect all results
+      const rows = state.table.config.rows
+      const allSuggestions: ScoreSuggestion[] = []
+
+      for (const row of rows) {
+        const res = await fetch(`/api/cross-table/${tableId}/ai/score-suggest`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ row_id: row.id }),
+        })
+        if (!res.ok) continue
+        const data = await res.json()
+        const rowSuggestions = (data.suggestions ?? []).map((s: any) => ({
+          ...s,
+          row_id: data.row_id ?? row.id,
+        }))
+        allSuggestions.push(...rowSuggestions)
+      }
+
+      setScoreSuggestions(allSuggestions)
     } catch {
       // silent
     } finally {
       setScoreLoading(false)
     }
-  }, [tableId])
+  }, [tableId, state.table.config.rows])
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -213,14 +224,26 @@ export function AIInsightsPanel() {
             />
           )}
 
-          {/* Challenge mode */}
-          {insights.challenge && (
-            <InsightCard
-              icon={AlertTriangle}
-              title="Devil's Advocate"
-              content={insights.challenge}
-              variant="warning"
-            />
+          {/* Challenges / Devil's Advocate */}
+          {insights.challenges && insights.challenges.length > 0 && (
+            <Card className="border border-amber-200 bg-amber-50/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  Devil's Advocate
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-1.5">
+                  {insights.challenges.map((c, i) => (
+                    <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
+                      <span className="text-amber-500 mt-0.5 shrink-0">&#x2022;</span>
+                      {c}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
           )}
 
           {/* Sensitivity narrative */}
@@ -253,28 +276,6 @@ export function AIInsightsPanel() {
               </CardContent>
             </Card>
           )}
-
-          {/* Recommendations */}
-          {insights.recommendations && insights.recommendations.length > 0 && (
-            <Card className="border border-slate-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4 text-[#4F5BFF]" />
-                  Recommendations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-1.5">
-                  {insights.recommendations.map((rec, i) => (
-                    <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                      <span className="text-[#4F5BFF] mt-0.5 shrink-0">{i + 1}.</span>
-                      {rec}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
 
@@ -293,7 +294,6 @@ export function AIInsightsPanel() {
                 <div key={i} className="border border-slate-100 rounded-lg p-3">
                   <p className="text-sm font-medium">{c.label}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1 italic">{c.rationale}</p>
                 </div>
               ))}
             </div>
@@ -315,19 +315,19 @@ export function AIInsightsPanel() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {scoreSuggestions.slice(0, 10).map((s, i) => {
+              {scoreSuggestions.slice(0, 20).map((s, i) => {
                 const row = state.table.config.rows.find((r) => r.id === s.row_id)
                 const col = state.table.config.columns.find((c) => c.id === s.col_id)
                 return (
                   <div key={i} className="flex items-center gap-3 text-xs border-b border-slate-100 pb-2">
                     <Badge variant="secondary" className="text-[10px] shrink-0">
-                      {s.suggested_score}
+                      {String(s.score)}
                     </Badge>
                     <span className="font-medium truncate">{row?.label ?? s.row_id}</span>
                     <span className="text-muted-foreground">x</span>
                     <span className="font-medium truncate">{col?.label ?? s.col_id}</span>
                     <span className="text-muted-foreground ml-auto shrink-0 max-w-[200px] truncate">
-                      {s.reasoning}
+                      {s.rationale}
                     </span>
                   </div>
                 )

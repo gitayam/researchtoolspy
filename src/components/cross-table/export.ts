@@ -55,37 +55,69 @@ export async function exportPDF(
 
   doc.setFontSize(7)
 
-  // Column headers
+  // Column headers — re-set fill color before each rect (doc.text resets fill to black)
+  const totalW = labelW + (sortedCols.length + 1) * cellW
+
+  // Draw header background as single rect, then draw text on top
   doc.setFillColor(240, 240, 240)
-  doc.rect(14, y, labelW, headerH, 'F')
+  doc.rect(14, y, totalW, headerH, 'F')
+
+  // Draw header text (after fill, so text color is black on gray)
+  doc.setTextColor(0, 0, 0)
   sortedCols.forEach((col, i) => {
     const x = 14 + labelW + i * cellW
-    doc.rect(x, y, cellW, headerH, 'F')
-    doc.text(col.label.slice(0, 12), x + 1, y + 6)
+    doc.text(col.label.slice(0, 12), x + 2, y + 7)
   })
-  // Weight header
-  doc.rect(14 + labelW + sortedCols.length * cellW, y, cellW, headerH, 'F')
-  doc.text('Score', 14 + labelW + sortedCols.length * cellW + 1, y + 6)
+  // Score header
+  const scoreX = 14 + labelW + sortedCols.length * cellW
+  doc.text('Score', scoreX + 2, y + 7)
+
+  // Draw header cell borders
+  doc.setDrawColor(200, 200, 200)
+  for (let i = 0; i <= sortedCols.length + 1; i++) {
+    const x = 14 + labelW + i * cellW
+    doc.line(x, y, x, y + headerH)
+  }
+  doc.line(14, y, 14 + totalW, y)
+  doc.line(14, y + headerH, 14 + totalW, y + headerH)
   y += headerH
 
   // Data rows
-  sortedRows.forEach((row) => {
+  sortedRows.forEach((row, rowIdx) => {
     if (y > 180) {
       doc.addPage()
       y = 20
     }
+
+    // Alternating row background
+    if (rowIdx % 2 === 1) {
+      doc.setFillColor(248, 248, 248)
+      doc.rect(14, y, totalW, rowH, 'F')
+    }
+
+    // Row label
+    doc.setTextColor(0, 0, 0)
     doc.text(row.label.slice(0, 20), 15, y + 5)
+
+    // Score cells
     sortedCols.forEach((col, i) => {
       const val = getScoreValue(scores, row.id, col.id)
       const x = 14 + labelW + i * cellW
+      doc.setDrawColor(220, 220, 220)
       doc.rect(x, y, cellW, rowH)
+      doc.setTextColor(60, 60, 60)
       doc.text(val !== null ? String(val) : '--', x + 2, y + 5)
     })
+
     // Weighted total
     const result = results.find((r) => r.row_id === row.id)
     const totalX = 14 + labelW + sortedCols.length * cellW
+    doc.setDrawColor(220, 220, 220)
     doc.rect(totalX, y, cellW, rowH)
-    doc.text(result ? result.weighted_score.toFixed(3) : '--', totalX + 2, y + 5)
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'bold')
+    doc.text(result ? result.weighted_score.toFixed(2) : '--', totalX + 2, y + 5)
+    doc.setFont('helvetica', 'normal')
     y += rowH
   })
 
@@ -289,43 +321,83 @@ export async function exportPPTX(
     border: { type: 'solid', pt: 0.5, color: 'CCCCCC' },
   })
 
-  // Slide 3: Results chart (horizontal bar)
+  // Slide 3: Results chart (horizontal bar) or table fallback
   const slide3 = pptx.addSlide()
   slide3.addText('Ranked Results', { x: 0.5, y: 0.3, w: 12, h: 0.5, fontSize: 24, bold: true })
-  slide3.addChart(pptx.ChartType.bar, [
-    {
-      name: 'Weighted Score',
-      labels: results.map((r) => rowLabel(table, r.row_id)),
-      values: results.map((r) => parseFloat(r.weighted_score.toFixed(4))),
-    },
-  ], {
-    x: 0.5, y: 1, w: 12, h: 5.5,
-    barDir: 'bar',
-    showValue: true,
-    chartColors: ['4F5BFF'],
-  })
+  if (results.length > 0) {
+    slide3.addChart(pptx.ChartType.bar, [
+      {
+        name: 'Weighted Score',
+        labels: results.map((r) => rowLabel(table, r.row_id)),
+        values: results.map((r) => parseFloat(r.weighted_score.toFixed(4))),
+      },
+    ], {
+      x: 0.5, y: 1, w: 12, h: 5.5,
+      barDir: 'bar',
+      showValue: true,
+      chartColors: ['4F5BFF'],
+    })
+  } else {
+    // Fallback: show results as a table when chart data is empty
+    const resultTableData = [
+      [{ text: 'Alternative', options: { bold: true } }, { text: 'Score', options: { bold: true } }],
+      ...sortedRows.map((row) => {
+        const totalScore = sortedCols.reduce((sum, col) => {
+          const val = getScoreValue(scores, row.id, col.id)
+          return sum + (typeof val === 'number' ? val : 0)
+        }, 0)
+        return [
+          { text: row.label, options: { fontSize: 10 } },
+          { text: String(totalScore), options: { fontSize: 10 } },
+        ]
+      }),
+    ]
+    slide3.addTable(resultTableData as any, {
+      x: 1, y: 1.5, w: 11, fontSize: 10,
+      border: { type: 'solid', pt: 0.5, color: 'CCCCCC' },
+    })
+  }
 
   // Slide 4: Weights
   const slide4 = pptx.addSlide()
   slide4.addText('Criterion Weights', { x: 0.5, y: 0.3, w: 12, h: 0.5, fontSize: 24, bold: true })
-  slide4.addChart(pptx.ChartType.bar, [
-    {
-      name: 'Weight (%)',
-      labels: sortedCols.map((c) => c.label),
-      values: weights.map((w) => parseFloat((w * 100).toFixed(1))),
-    },
-  ], {
-    x: 0.5, y: 1, w: 12, h: 5.5,
-    barDir: 'bar',
-    showValue: true,
-    chartColors: ['D4673A'],
-  })
+  const hasValidWeights = weights.length > 0 && weights.some((w) => !isNaN(w) && w > 0)
+  if (hasValidWeights) {
+    slide4.addChart(pptx.ChartType.bar, [
+      {
+        name: 'Weight (%)',
+        labels: sortedCols.map((c) => c.label),
+        values: weights.map((w) => parseFloat((w * 100).toFixed(1))),
+      },
+    ], {
+      x: 0.5, y: 1, w: 12, h: 5.5,
+      barDir: 'bar',
+      showValue: true,
+      chartColors: ['D4673A'],
+    })
+  } else {
+    // Fallback: show weights as a table
+    const weightTableData = [
+      [{ text: 'Criterion', options: { bold: true } }, { text: 'Weight', options: { bold: true } }],
+      ...sortedCols.map((col) => [
+        { text: col.label, options: { fontSize: 10 } },
+        { text: String(col.weight), options: { fontSize: 10 } },
+      ]),
+    ]
+    slide4.addTable(weightTableData as any, {
+      x: 1, y: 1.5, w: 11, fontSize: 10,
+      border: { type: 'solid', pt: 0.5, color: 'CCCCCC' },
+    })
+  }
 
   // Slide 5: Findings
   const slide5 = pptx.addSlide()
   slide5.addText('Key Findings', { x: 0.5, y: 0.3, w: 12, h: 0.5, fontSize: 24, bold: true })
+  const topRanked = results.length > 0
+    ? `Top-ranked: ${rowLabel(table, results[0].row_id)} (score: ${results[0].weighted_score.toFixed(4)})`
+    : `Top-ranked: N/A (no results computed)`
   const findings = [
-    `Top-ranked: ${results.length > 0 ? rowLabel(table, results[0].row_id) : 'N/A'} (score: ${results[0]?.weighted_score.toFixed(4) ?? 'N/A'})`,
+    topRanked,
     `${sortedRows.length} alternatives evaluated against ${sortedCols.length} criteria`,
     `Weighting method: ${weighting.method}${weighting.ahp_cr !== undefined ? ` (CR: ${(weighting.ahp_cr * 100).toFixed(1)}%)` : ''}`,
     `Scoring method: ${table.config.scoring.method}`,

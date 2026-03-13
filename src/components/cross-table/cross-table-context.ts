@@ -20,6 +20,7 @@ export type EditorAction =
   | { type: 'SET_TABLE'; table: CrossTable }
   | { type: 'SET_SCORES'; scores: Score[] }
   | { type: 'UPDATE_CONFIG'; config: Partial<CrossTableConfig> }
+  | { type: 'UPDATE_TITLE'; title: string }
   | { type: 'UPDATE_SCORE'; rowId: string; colId: string; score: number | string | null; confidence?: number; notes?: string }
   | { type: 'MARK_SCORES_CLEAN' }
   | { type: 'SET_TAB'; tab: string }
@@ -39,6 +40,13 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           ...state.table,
           config: { ...state.table.config, ...action.config },
         },
+        configVersion: state.configVersion + 1,
+      }
+
+    case 'UPDATE_TITLE':
+      return {
+        ...state,
+        table: { ...state.table, title: action.title },
         configVersion: state.configVersion + 1,
       }
 

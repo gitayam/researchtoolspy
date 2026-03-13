@@ -248,7 +248,8 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
   const results: RowResult[] = useMemo(() => {
     try {
       return computeRankings(state.table.config, state.scores)
-    } catch {
+    } catch (err) {
+      console.warn('[CrossTable] computeRankings failed:', err)
       return []
     }
   }, [state.table.config, state.scores])
