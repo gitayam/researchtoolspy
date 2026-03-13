@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-13 (session 22)
+**Last Updated**: 2026-03-13 (session 23)
 
 ## Completed
 
@@ -66,8 +66,9 @@ _No active items — all P0 and P1 tasks complete._
 - [x] **CopQuestionsTab direct prop mutation** — `session.linked_frameworks = []` and `session.linked_frameworks = updated` mutated the parent prop directly (React anti-pattern). Replaced with `localLinkedFrameworks` useState. Prevents parent/child state divergence on regenerate.
 - [x] **Task-template and evidence-tag DELETE/PUT missing session scoping (security)** — `task-templates` PUT/DELETE had no workspace filter (any user could modify/delete any template by ID). `evidence-tags` DELETE had no session check. Added `AND workspace_id = ?` to task-template mutations and subquery workspace check to evidence-tag delete.
 - [x] **RFI and playbook-rules cross-session mutation (security)** — `rfis/[rfiId].ts` SELECT/UPDATE had no `cop_session_id` check. `rfis/[rfiId]/answers.ts` POST/PUT could submit/accept answers for any RFI. `playbooks/[pbId]/rules.ts` POST/PUT/DELETE never verified playbook belonged to session. All now session-scoped.
+- [x] **Deploy-template and public RFI cross-session access (security)** — `deploy-template.ts` fetched templates by ID without workspace check. `public/[token]/rfis/[rfiId]/answers.ts` allowed answering RFIs from any session via a valid share token. Both now session/workspace-scoped.
 
-## Production State (2026-03-13 session 22)
+## Production State (2026-03-13 session 23)
 
 | Session | ID | Workspace | Evidence | Entities | Frameworks |
 |---------|-----|-----------|----------|----------|------------|

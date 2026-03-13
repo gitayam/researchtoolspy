@@ -1,5 +1,19 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-13 - Session Scoping Audit (Sessions 21-23)
+
+### Every Mutation Endpoint Needs Session Boundary Enforcement
+Over 3 sessions, found 8+ COP API endpoints where UPDATE/DELETE queries lacked session scoping (`AND cop_session_id = ?` or `AND workspace_id = ?`). The URL route includes `[id]` (session ID) but the parameter was decorative — never used in the SQL WHERE clause. Affected: task-templates, evidence-tags, rfis/[rfiId], rfis/[rfiId]/answers, playbook rules, deploy-template, and public RFI answers.
+
+**Rule:** For every COP mutation endpoint, grep the handler for the session/workspace ID from the URL params. If it's not in the WHERE clause of every UPDATE/DELETE, it's a cross-session vulnerability. Route params are not access control — they must be enforced in the query.
+
+### Public Endpoints Need the Same Scoping as Authenticated Ones
+The `public/[token]/rfis/[rfiId]/answers.ts` endpoint validated the share token but didn't verify the RFI belonged to the share's session. A valid share token from one session could be used to answer RFIs in another session. Public endpoints with token auth need the same session scoping as authenticated endpoints.
+
+**Rule:** When an endpoint authenticates via token/share, extract the session ID from the token record and use it to scope all subsequent queries — don't trust the RFI/entity ID alone.
+
+---
+
 ## Session: 2026-03-13 - Workspace Fallback Audit
 
 ### Hardcoded Fallback IDs Persist Across Refactors
