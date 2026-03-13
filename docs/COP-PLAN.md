@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-13 (session 18)
+**Last Updated**: 2026-03-13 (session 19)
 
 ## Completed
 
@@ -62,8 +62,9 @@ _No active items — all P0 and P1 tasks complete._
 - [x] **D1 migration verification** — Verified all tables present in production including latest (cop_claims, cop_playbooks, cop_playbook_rules, cop_playbook_log). Migration 082 confirmed (test data removed). No d1_migrations tracking table — migrations applied via direct SQL.
 - [x] **Retire old /api/evidence endpoint** — Last COP reference (EntityEvidenceLinks) migrated to `/api/cop/{sessionId}/evidence`. Old endpoint only referenced by non-COP dashboard pages (`EvidencePage`, `ACHWizard`, etc.) which use `/api/evidence-items` (different endpoint). Safe to remove `/api/evidence` when ready.
 - [x] **ACLED/GDELT cache log noise** — Removed 4 `console.log` calls from ACLED and GDELT layer endpoints that fired on every map pan/zoom (cache hit + cache write). Error/warn logs retained for actual failures.
+- [x] **Error leaks in export/ACLED/GDELT** — export.ts returned raw `serializeError.message` in response `detail` field. ACLED used fragile regex sanitization on `e.message`. GDELT returned raw `e.message`. All three now return generic error strings; full errors logged server-side only.
 
-## Production State (2026-03-13 session 18)
+## Production State (2026-03-13 session 19)
 
 | Session | ID | Workspace | Evidence | Entities | Frameworks |
 |---------|-----|-----------|----------|----------|------------|
