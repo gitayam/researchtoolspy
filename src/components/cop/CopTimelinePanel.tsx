@@ -142,7 +142,7 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.entries?.length) {
-          setEntries(data.entries.map((e: any) => ({
+          const mapped = data.entries.map((e: any) => ({
             id: e.id,
             event_date: e.event_date,
             title: e.title,
@@ -155,7 +155,12 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
             entity_type: e.entity_type,
             entity_id: e.entity_id,
             action: e.action,
-          })))
+          }))
+          setEntries(mapped)
+          // Default to "all" if no manual events exist (only system entries)
+          if (mapped.every((e: TimelineEvent) => e.source_type === 'system')) {
+            setActiveTab('all')
+          }
         }
       })
       .catch(() => {})
