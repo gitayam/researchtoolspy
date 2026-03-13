@@ -9,6 +9,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { PERSONA_CREATED, PERSONA_LINKED } from '../../_shared/cop-event-types'
+import { createTimelineEntry } from '../../_shared/timeline-helper'
 
 interface Env {
   DB: D1Database
@@ -135,6 +136,77 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ id, message: 'Persona link created' }), {
         status: 201, headers: corsHeaders,
       })
+    }
+
+    // Handle batch creation from entity extraction
+    if (Array.isArray(body.personas) && body.personas.length > 0) {
+      // Fetch existing persona names for dedup
+      const existing = await env.DB.prepare(
+        `SELECT LOWER(display_name) as name FROM cop_personas WHERE cop_session_id = ?`
+      ).bind(sessionId).all()
+      const existingNames = new Set(existing.results.map((r: any) => r.name))
+
+      const now = new Date().toISOString()
+      const created: string[] = []
+      const skipped: string[] = []
+
+      for (const p of body.personas) {
+        const name = (p.display_name || p.name || '').trim()
+        if (!name) continue
+
+        // Dedup by lowercase name
+        if (existingNames.has(name.toLowerCase())) {
+          skipped.push(name)
+          continue
+        }
+
+        const platform = VALID_PLATFORMS.includes(p.platform) ? p.platform : 'other'
+        const id = generateId()
+        existingNames.add(name.toLowerCase())
+
+        await env.DB.prepare(`
+          INSERT INTO cop_personas (id, cop_session_id, display_name, platform, handle, profile_url, status, linked_actor_id, notes, created_by, workspace_id, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, 'active', NULL, ?, ?, ?, ?, ?)
+        `).bind(
+          id, sessionId, name, platform,
+          p.handle ?? null, p.profile_url ?? null,
+          p.role || p.notes || null,
+          userId, workspaceId, now, now,
+        ).run()
+
+        created.push(id)
+      }
+
+      if (created.length > 0) {
+        try {
+          await emitCopEvent(env.DB, {
+            copSessionId: sessionId,
+            eventType: PERSONA_CREATED,
+            entityType: 'persona',
+            entityId: created[0],
+            payload: { batch_count: created.length, source: body.source || 'entity_extraction' },
+            createdBy: userId,
+          })
+        } catch { /* non-fatal */ }
+
+        try {
+          await createTimelineEntry(env.DB, sessionId, workspaceId, userId, {
+            title: `Extracted ${created.length} actors from content analysis`,
+            category: 'event',
+            importance: 'normal',
+            source_type: 'system',
+            entity_type: 'persona',
+            entity_id: body.source || 'entity_extraction',
+            action: 'extracted',
+          })
+        } catch { /* non-fatal */ }
+      }
+
+      return new Response(JSON.stringify({
+        message: `${created.length} personas created, ${skipped.length} duplicates skipped`,
+        ids: created,
+        skipped,
+      }), { status: 201, headers: corsHeaders })
     }
 
     // Handle persona update

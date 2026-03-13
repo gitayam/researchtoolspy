@@ -90,6 +90,15 @@ export function GenericFrameworkView({
   const { t } = useTranslation('frameworks')
   const { currentWorkspaceId } = useWorkspace()
 
+  // Guard against undefined data (e.g. analysis deleted or not yet loaded)
+  if (!data || !data.id) {
+    return (
+      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
+        Analysis not found or still loading...
+      </div>
+    )
+  }
+
   // Determine framework type
   const frameworkType = frameworkTitle.toLowerCase().includes('cog') ? 'cog' :
                         frameworkTitle.toLowerCase().includes('pmesii') ? 'pmesii-pt' :
@@ -632,7 +641,7 @@ export function GenericFrameworkView({
             frameworkType={frameworkType}
             frameworkTitle={frameworkTitle}
             data={data}
-            analysisId={data.id.toString()}
+            analysisId={String(data.id)}
           />
           <Button variant="outline" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />

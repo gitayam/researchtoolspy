@@ -126,6 +126,13 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
     fetchPersonas()
   }, [fetchPersonas])
 
+  // Auto-refresh when entities are extracted in Claims panel
+  useEffect(() => {
+    const handler = () => fetchPersonas()
+    window.addEventListener('cop:personas-updated', handler)
+    return () => window.removeEventListener('cop:personas-updated', handler)
+  }, [fetchPersonas])
+
   // ── Create persona ──────────────────────────────────────────
 
   const handleCreate = useCallback(async () => {

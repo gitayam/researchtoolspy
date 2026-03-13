@@ -27,8 +27,10 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatRelativeTime } from '@/lib/utils'
 import { TemplateSelector } from '@/components/cross-table/TemplateSelector'
+import { SetupWizard } from '@/components/cross-table/SetupWizard'
 import { CrossTableEditor } from '@/components/cross-table/CrossTableEditor'
 import { ScorerView } from '@/components/cross-table/ScorerView'
+import { getTemplates } from '@/lib/cross-table/engine/templates'
 import type { CrossTable, Score, TemplateType } from '@/lib/cross-table/types'
 
 // ── Template labels for list view ──────────────────────────────
@@ -80,28 +82,71 @@ export default function CrossTablePage() {
 function NewCrossTableView() {
   const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType | null>(null)
 
-  const handleSelect = async (templateType: TemplateType) => {
+  const templates = getTemplates()
+  const templateLabel = templates.find((t) => t.type === selectedTemplate)?.label ?? ''
+
+  // Step 1: Pick template → go to wizard
+  const handleTemplateSelect = (templateType: TemplateType) => {
+    setSelectedTemplate(templateType)
+  }
+
+  // Step 2: Wizard creates table with optional AI suggestions
+  const handleCreate = async (
+    title: string,
+    aiCriteria: { label: string; description: string }[],
+    aiRows: { label: string; description: string }[]
+  ) => {
     setCreating(true)
     try {
+      const body: Record<string, any> = {
+        title,
+        template_type: selectedTemplate,
+      }
+
+      // Merge AI suggestions if any were selected
+      if (aiCriteria.length > 0 || aiRows.length > 0) {
+        body.ai_criteria = aiCriteria.map((c, i) => ({
+          label: c.label,
+          description: c.description,
+          order: i,
+          weight: 1,
+        }))
+        body.ai_rows = aiRows.map((r, i) => ({
+          label: r.label,
+          description: r.description,
+          order: i,
+        }))
+      }
+
       const res = await fetch('/api/cross-table', {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({
-          title: 'Untitled Cross Table',
-          template_type: templateType,
-        }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error('Failed to create cross table')
       const data = await res.json()
       navigate(`/dashboard/tools/cross-table/${data.table.id}`, { replace: true })
     } catch {
       setCreating(false)
-      // TODO: show toast error
     }
   }
 
-  return <TemplateSelector onSelect={handleSelect} loading={creating} />
+  // Show wizard if template selected, otherwise show template grid
+  if (selectedTemplate) {
+    return (
+      <SetupWizard
+        templateType={selectedTemplate}
+        templateLabel={templateLabel}
+        onBack={() => setSelectedTemplate(null)}
+        onCreate={handleCreate}
+        loading={creating}
+      />
+    )
+  }
+
+  return <TemplateSelector onSelect={handleTemplateSelect} loading={creating} />
 }
 
 // ── Edit: Fetch table + scores → Editor ────────────────────────

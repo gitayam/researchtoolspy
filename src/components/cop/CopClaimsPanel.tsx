@@ -275,6 +275,35 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
         }
       }
 
+      // Fire-and-forget: auto-create personas from extracted entities
+      if (data.entities) {
+        try {
+          const personas: { display_name: string; role?: string }[] = []
+          if (Array.isArray(data.entities.people)) {
+            for (const p of data.entities.people) {
+              const name = typeof p === 'string' ? p : p.name
+              if (name) personas.push({ display_name: name, role: typeof p === 'object' ? p.role : undefined })
+            }
+          }
+          if (Array.isArray(data.entities.organizations)) {
+            for (const org of data.entities.organizations) {
+              const name = typeof org === 'string' ? org : org.name
+              if (name) personas.push({ display_name: name, role: 'Organization' })
+            }
+          }
+          if (personas.length > 0) {
+            fetch(`/api/cop/${sessionId}/personas`, {
+              method: 'POST',
+              headers: getCopHeaders(),
+              body: JSON.stringify({ personas, source: 'entity_extraction' }),
+            }).then(() => {
+              // Notify Actors panel to refresh
+              window.dispatchEvent(new CustomEvent('cop:personas-updated'))
+            }).catch(() => {})
+          }
+        } catch { /* non-fatal */ }
+      }
+
       setResults(prev => [result, ...prev])
       setInput('')
     } catch (err) {

@@ -1,7 +1,7 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-09 (cycle 13)
-> Source: Live production data audit against `cop-b0f96023-cdf` / workspace `6fde45ce-ae4b-4ff0-97c6-d2773a6ff108`
+> Last updated: 2026-03-13 (cycle 14)
+> Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
 - 🔴 Critical — blocks core workflow
@@ -155,6 +155,28 @@
 - Activity POST now returns 500 (not 201) when DB insert fails
 - No internal error details exposed to clients (OWASP A01)
 
+### F27. GenericFrameworkView Crash — `data.id.toString()` on undefined
+**Error:** `Unexpected Application Error! undefined is not an object (evaluating 't.id.toString')`
+**Root cause:** `GenericFrameworkView` rendered with undefined `data` prop (deleted analysis or race condition). No null guard before accessing `data.id.toString()`.
+**Fix:** Added early return guard `if (!data || !data.id)` + changed `data.id.toString()` → `String(data.id)`.
+
+### F28. Entity Extraction → COP Actors Auto-Population
+**Feature:** When claims are extracted from a URL, extracted people and organizations now auto-create as COP personas.
+- **Backend:** Added batch persona creation to `POST /api/cop/:id/personas` — accepts `personas[]` array with dedup by `LOWER(display_name)` within session
+- **Frontend:** `CopClaimsPanel.tsx` fires-and-forgets entity→persona POST after URL extraction
+- **Frontend:** `CopPersonaPanel.tsx` listens for `cop:personas-updated` CustomEvent to auto-refresh
+- **Timeline:** Batch persona creation emits system timeline entry ("Extracted N actors from content analysis")
+- Roles stored in `notes` field, platform defaults to `'other'`
+
+### F29. Timeline Hub System (Chunks 1-5)
+**Feature:** Full "Timeline as Hub" implementation — 14 tasks across 5 chunks.
+- `cop_timeline_entries` table with manual, URL-extracted, and system-generated events
+- Server-side dedup (5-minute window on entity_type + entity_id + action)
+- AI classification via GPT-4o-mini (category, importance, event_date_hint)
+- Filter tabs (Events/Activity/All), inline editing, cross-panel scrolling
+- Fire-and-forget `createTimelineEntry()` side effects on claims, evidence, markers, hypotheses
+- Migration 084 (table), 085 (entity columns), 086 (claims url nullable)
+
 ---
 
 ## 🔴 Critical Issues
@@ -251,3 +273,6 @@
 26. ~~**New** — error.message leaks in API responses~~ DONE — removed from 44 error responses across 23 endpoints
 27. **New** — UI/UX Phase 4: Mobile Bottom Tab Navigation
 28. **New** — COP responsive layout (dvh, mobile sidebar toggle, error boundaries)
+29. ~~**New** — GenericFrameworkView crash on undefined data~~ DONE (F27) — null guard added
+30. ~~**New** — Entity extraction → COP Actors auto-population~~ DONE (F28) — batch creation with dedup
+31. ~~**New** — Timeline Hub system~~ DONE (F29) — full implementation across 14 tasks

@@ -64,12 +64,42 @@ async function handleCreate(env: any, userId: number, request: Request) {
   const now = new Date().toISOString()
 
   // Build config from template defaults (nested structure per spec)
+  const templateRows = template.default_rows.map((r) => ({ ...r, id: crypto.randomUUID() }))
+  const templateCols = template.default_columns.map((c) => ({ ...c, id: crypto.randomUUID() }))
+
+  // Merge AI suggestions if provided
+  const aiCriteria = Array.isArray(body.ai_criteria) ? body.ai_criteria : []
+  const aiRows = Array.isArray(body.ai_rows) ? body.ai_rows : []
+
+  let finalRows = templateRows
+  let finalCols = templateCols
+
+  if (aiCriteria.length > 0) {
+    // Replace template defaults with AI suggestions (they're more contextual)
+    finalCols = aiCriteria.map((c: any, i: number) => ({
+      id: crypto.randomUUID(),
+      label: String(c.label || '').slice(0, 100),
+      description: typeof c.description === 'string' ? c.description.slice(0, 500) : '',
+      order: i,
+      weight: typeof c.weight === 'number' ? c.weight : 1,
+    }))
+  }
+
+  if (aiRows.length > 0) {
+    finalRows = aiRows.map((r: any, i: number) => ({
+      id: crypto.randomUUID(),
+      label: String(r.label || '').slice(0, 100),
+      description: typeof r.description === 'string' ? r.description.slice(0, 500) : '',
+      order: i,
+    }))
+  }
+
   const config = {
     scoring: { ...template.scoring },
     display: { ...template.display },
     delphi: { ...template.delphi },
-    rows: template.default_rows.map((r) => ({ ...r, id: crypto.randomUUID() })),
-    columns: template.default_columns.map((c) => ({ ...c, id: crypto.randomUUID() })),
+    rows: finalRows,
+    columns: finalCols,
     weighting: template.weighting,
   }
 

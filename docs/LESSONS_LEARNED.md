@@ -1,5 +1,24 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-13 - Timeline Hub + Entity Extraction + Framework Crash (Sessions 24-29)
+
+### Null Guards on Shared View Components Prevent Full-Page Crashes
+`GenericFrameworkView` crashed with `undefined is not an object (evaluating 't.id.toString')` because it rendered before data loaded or after the analysis was deleted. React Router's error boundary showed a blank "Unexpected Application Error" page — no recovery possible. Adding `if (!data || !data.id) return <fallback>` at the top of the component prevents the cascade.
+
+**Rule:** Any shared view component that receives data as a prop should guard against undefined/null before accessing nested properties. Use `String(x)` instead of `x.toString()` for extra safety — `String(undefined)` returns `"undefined"` while `undefined.toString()` throws.
+
+### Batch API Endpoints Need Name-Based Dedup
+When auto-creating personas from entity extraction, the same person (e.g., "Vladimir Putin") may appear across multiple URL extractions. Without dedup, users accumulate duplicate actors. The fix: query existing `LOWER(display_name)` at batch-creation time and skip matches.
+
+**Rule:** Any batch-create endpoint that auto-generates records from AI extraction should dedup by a human-readable key (name, title) scoped to the session. Case-insensitive comparison prevents "John Smith" vs "john smith" duplicates.
+
+### Fan-Out Pattern: One Action → Multiple Panel Updates
+When the Claims panel extracts from a URL, it now triggers three downstream effects: (1) claims to DB, (2) entities as personas, (3) personas-updated event. Using `window.dispatchEvent(new CustomEvent('cop:personas-updated'))` lets the Actors panel refresh without polling or prop drilling.
+
+**Rule:** For cross-panel side effects, use CustomEvents on window. The producer dispatches after its fire-and-forget fetch succeeds; consumers add/remove listeners in useEffect. This decouples panels without lifting state.
+
+---
+
 ## Session: 2026-03-13 - Session Scoping Audit (Sessions 21-23)
 
 ### Every Mutation Endpoint Needs Session Boundary Enforcement
