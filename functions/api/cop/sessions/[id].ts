@@ -162,7 +162,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
               })
 
               await env.DB.batch(stmts)
-              console.log(`[COP Sessions API] Synced ${newFacts.length} event_facts to events table for workspace ${session.workspace_id}`)
+              // event_facts synced to events table
             }
           }
         }

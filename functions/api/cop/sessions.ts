@@ -118,7 +118,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           now,
           now
         ).run()
-        console.log(`[COP Sessions API] Auto-created workspace ${workspaceId} for session ${id}`)
+        // Workspace auto-created for session
       } catch (wsErr) {
         // Workspace may already exist (e.g., retry) — log and continue
         console.warn('[COP Sessions API] Workspace creation skipped (may exist):', wsErr)
