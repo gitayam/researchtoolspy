@@ -193,7 +193,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       try {
         const cached = await env.CACHE.get(cacheKey, 'text')
         if (cached) {
-          console.log(`[COP ACLED Layer] Cache hit for ${cacheKey}`)
           const parsed = JSON.parse(cached)
           parsed._meta = {
             ...parsed._meta,
@@ -278,7 +277,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         await env.CACHE.put(cacheKey, JSON.stringify(result), {
           expirationTtl: CACHE_TTL,
         })
-        console.log(`[COP ACLED Layer] Cached ${features.length} features at ${cacheKey}`)
       } catch (e) {
         console.warn('[COP ACLED Layer] KV write error:', e)
       }
