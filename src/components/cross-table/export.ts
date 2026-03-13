@@ -302,7 +302,6 @@ export async function exportPPTX(
     x: 0.5, y: 1, w: 12, h: 5.5,
     barDir: 'bar',
     showValue: true,
-    valueFontSize: 9,
     chartColors: ['4F5BFF'],
   })
 
@@ -319,7 +318,6 @@ export async function exportPPTX(
     x: 0.5, y: 1, w: 12, h: 5.5,
     barDir: 'bar',
     showValue: true,
-    valueFontSize: 9,
     chartColors: ['D4673A'],
   })
 
