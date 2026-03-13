@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3, Sparkles } from 'lucide-react'
+import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3, Sparkles, TableProperties } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,6 +25,23 @@ export function ToolsPage() {
         'Null/alternative hypothesis formulation'
       ],
       path: '/dashboard/tools/research-question-generator',
+      available: true
+    },
+    {
+      id: 'cross-table',
+      name: 'Cross Table',
+      description: 'Customizable comparison matrix with 8 templates (CARVAR, COA, Pugh, Risk, etc.), AHP weighting, sensitivity analysis, collaborative Delphi scoring, and AI insights',
+      icon: TableProperties,
+      features: [
+        '8 built-in templates + blank custom',
+        '6 scoring methods (numeric, traffic light, ternary, binary, Likert, ACH)',
+        'AHP pairwise weighting with consistency check',
+        'Sensitivity analysis with tornado diagrams',
+        'Collaborative Delphi scoring with consensus metrics',
+        'AI-assisted criteria suggestions and score analysis',
+        'Export to PDF, Excel, DOCX, PPTX'
+      ],
+      path: '/dashboard/tools/cross-table',
       available: true
     },
     {
