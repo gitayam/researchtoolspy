@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { useCrossTable } from './CrossTableEditor'
+import { useCrossTable } from './cross-table-context'
 
 // ── Auth header helper ──────────────────────────────────────────
 
@@ -80,6 +80,7 @@ export function AIInsightsPanel() {
     setInsightsError(null)
     try {
       const res = await fetch(`/api/cross-table/${tableId}/ai/insights`, {
+        method: 'POST',
         headers: getHeaders(),
       })
       if (!res.ok) throw new Error(`Failed (${res.status})`)
@@ -98,7 +99,9 @@ export function AIInsightsPanel() {
     setCriteriaLoading(true)
     try {
       const res = await fetch(`/api/cross-table/${tableId}/ai/suggest-criteria`, {
+        method: 'POST',
         headers: getHeaders(),
+        body: JSON.stringify({ topic: state.table.title }),
       })
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()
@@ -116,7 +119,9 @@ export function AIInsightsPanel() {
     setScoreLoading(true)
     try {
       const res = await fetch(`/api/cross-table/${tableId}/ai/score-suggest`, {
+        method: 'POST',
         headers: getHeaders(),
+        body: JSON.stringify({ all: true }),
       })
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()

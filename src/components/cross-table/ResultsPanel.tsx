@@ -23,7 +23,7 @@ import { Trophy, AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { useCrossTable } from './CrossTableEditor'
+import { useCrossTable } from './cross-table-context'
 import { computeRankings, findDominatedRows } from '@/lib/cross-table/engine/ranking'
 
 const RANK_COLORS = ['#4F5BFF', '#D4673A', '#3B2A23', '#6B7280', '#9CA3AF']

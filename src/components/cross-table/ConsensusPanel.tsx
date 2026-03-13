@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { useCrossTable } from './CrossTableEditor'
+import { useCrossTable } from './cross-table-context'
 import type { DelphiConsensus, DelphiCellStats } from '@/lib/cross-table/types'
 
 // ── Fetch helpers ──────────────────────────────────────────────

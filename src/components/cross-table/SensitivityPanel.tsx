@@ -19,7 +19,7 @@ import {
 import { Activity } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useCrossTable } from './CrossTableEditor'
+import { useCrossTable } from './cross-table-context'
 import { computeRankings } from '@/lib/cross-table/engine/ranking'
 import { tornadoData, breakEvenWeight } from '@/lib/cross-table/engine/sensitivity'
 
