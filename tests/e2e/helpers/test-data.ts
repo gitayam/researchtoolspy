@@ -7,6 +7,7 @@ export const URLS = {
   copViewer: (id: string) => `/dashboard/cop/${id}`,
   copWorkspace: (id: string) => `/dashboard/cop/${id}`,
   publicCop: (token: string) => `/public/cop/${token}`,
+  deceptionCreate: '/dashboard/analysis-frameworks/deception/create',
 }
 
 export const TEMPLATES = {

@@ -10,6 +10,7 @@ import { CopWizardPage } from '../page-objects/cop-wizard.page'
 import { CopViewerPage } from '../page-objects/cop-viewer.page'
 import { CopWorkspacePage } from '../page-objects/cop-workspace.page'
 import { PublicCopPage } from '../page-objects/public-cop.page'
+import { DeceptionFormPage } from '../page-objects/deception-form.page'
 
 export interface Fixtures {
   copListPage: CopListPage
@@ -17,6 +18,7 @@ export interface Fixtures {
   copViewerPage: CopViewerPage
   copWorkspacePage: CopWorkspacePage
   publicCopPage: PublicCopPage
+  deceptionFormPage: DeceptionFormPage
 }
 
 export const test = base.extend<Fixtures>({
@@ -34,6 +36,9 @@ export const test = base.extend<Fixtures>({
   },
   publicCopPage: async ({ page }, use) => {
     await use(new PublicCopPage(page))
+  },
+  deceptionFormPage: async ({ page }, use) => {
+    await use(new DeceptionFormPage(page))
   },
 })
 
