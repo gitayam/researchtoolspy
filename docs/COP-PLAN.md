@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-12 (session 10)
+**Last Updated**: 2026-03-13 (session 11)
 
 ## Completed
 
@@ -43,14 +43,14 @@
 - [x] **Error messages leak internals (remaining 190+)** — Fixed 108+ files: removed `details: error.message` from all endpoints, including `String(error)` and `technicalDetails` variants. All API errors now return generic messages while logging details server-side.
 - [x] **Framework create missing auth headers** — `getUserFromRequest` now checks `X-User-Hash` header before `Authorization: Bearer`. Framework POST also reads `X-Workspace-ID` header for workspace scoping. COP sessions now properly resolve to the correct user when creating frameworks.
 - [x] **Old /api/evidence verbose debug logging** — Removed 15+ excessive `console.log` lines that were logging full request headers and query details to production logs. Cleaned up error handler to single `console.error` line.
-- [ ] **Old /api/evidence endpoint has no workspace_id filter** — Returns ALL evidence globally; unused by COP now but still a data leak risk for dashboard views
+- [x] **Old /api/evidence endpoint data leak** — Confirmed the `evidence` table is empty (all data in `evidence_items` now). No active data leak. Endpoint kept for backward compatibility but contains no records.
 - [ ] **Test data in production** — "Test Person 3" actor with generic description polluting workspace "1"
 
 ### P2 — Medium Priority (UX Improvements)
 
 - [x] **Two-render pattern for responsive panels** — Replaced CSS `2xl:hidden` dual-render with `useMediaQuery` conditional rendering. Evidence and Activity panels now mount only once: in the main grid on <2xl screens, in the sidebar on 2xl+ screens. Eliminates double API calls.
-- [ ] **Panel overflow UX** — Some collapsed panels use overflow-hidden with no visual cue (need fade gradient pattern)
-- [ ] **Evidence seeding from RFI answers** — When RFIs are answered, auto-create evidence items so Evidence Feed reflects progress
+- [x] **Panel overflow UX** — Already implemented: CopPanelExpander has fade gradient overlay at bottom of collapsed cards (line 284), `overflow-y-auto` on content area, and `overflow-hidden` on outer container.
+- [x] **Evidence seeding from RFI answers** — RFI PUT handler now auto-creates an `evidence_item` when an answer is provided. Title prefixed with "RFI Answer:", description is the answer text, type is `rfi_answer`. Non-blocking (failure logged but doesn't break RFI update). Opt-out via `seed_evidence: false`.
 - [ ] **Platform field defaults** — Batch-created personas default to 'other'; need audit/fix UI
 - [ ] **RFI workflow enhancements** — Assignment, answer submission, and integration with frameworks from the RFI tab
 

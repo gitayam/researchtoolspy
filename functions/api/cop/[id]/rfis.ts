@@ -162,7 +162,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_rfis SET ${sets.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...vals, body.id, sessionId).run()
 
-    // If an answer is provided, insert into cop_rfi_answers
+    // If an answer is provided, insert into cop_rfi_answers and seed evidence
     if (body.answer?.trim()) {
       const userId = await getUserIdOrDefault(request, env)
       const answerId = `rfa-${crypto.randomUUID().slice(0, 12)}`
@@ -170,6 +170,31 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, source_description, created_by, responder_name, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).bind(answerId, body.id, body.answer.trim(), body.source_description || null, userId, body.responder_name || null, now).run()
+
+      // Auto-seed evidence item from RFI answer so Evidence Feed reflects progress
+      if (body.seed_evidence !== false) {
+        try {
+          const rfi = await env.DB.prepare(
+            `SELECT question FROM cop_rfis WHERE id = ? AND cop_session_id = ?`
+          ).bind(body.id, sessionId).first<{ question: string }>()
+          const session = await env.DB.prepare(
+            `SELECT workspace_id FROM cop_sessions WHERE id = ?`
+          ).bind(sessionId).first<{ workspace_id: string }>()
+          const workspaceId = session?.workspace_id ?? sessionId
+
+          await env.DB.prepare(`
+            INSERT INTO evidence_items (title, description, evidence_type, credibility, confidence_level, workspace_id, created_by, created_at, updated_at)
+            VALUES (?, ?, 'rfi_answer', 'unverified', 'medium', ?, ?, ?, ?)
+          `).bind(
+            `RFI Answer: ${(rfi?.question ?? 'Unknown question').substring(0, 80)}`,
+            body.answer.trim(),
+            workspaceId,
+            userId, now, now,
+          ).run()
+        } catch (err) {
+          console.error('[COP RFI] Evidence seed failed (non-blocking):', err)
+        }
+      }
     }
 
     // Emit event for status transitions
