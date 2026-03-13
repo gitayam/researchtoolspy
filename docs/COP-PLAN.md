@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-13 (session 11)
+**Last Updated**: 2026-03-13 (session 12)
 
 ## Completed
 
@@ -44,7 +44,7 @@
 - [x] **Framework create missing auth headers** — `getUserFromRequest` now checks `X-User-Hash` header before `Authorization: Bearer`. Framework POST also reads `X-Workspace-ID` header for workspace scoping. COP sessions now properly resolve to the correct user when creating frameworks.
 - [x] **Old /api/evidence verbose debug logging** — Removed 15+ excessive `console.log` lines that were logging full request headers and query details to production logs. Cleaned up error handler to single `console.error` line.
 - [x] **Old /api/evidence endpoint data leak** — Confirmed the `evidence` table is empty (all data in `evidence_items` now). No active data leak. Endpoint kept for backward compatibility but contains no records.
-- [ ] **Test data in production** — "Test Person 3" actor with generic description polluting workspace "1"
+- [x] **Test data in production** — Removed "Test Person 3" actor from workspace "1" via migration 082.
 
 ### P2 — Medium Priority (UX Improvements)
 
@@ -52,7 +52,7 @@
 - [x] **Panel overflow UX** — Already implemented: CopPanelExpander has fade gradient overlay at bottom of collapsed cards (line 284), `overflow-y-auto` on content area, and `overflow-hidden` on outer container.
 - [x] **Evidence seeding from RFI answers** — RFI PUT handler now auto-creates an `evidence_item` when an answer is provided. Title prefixed with "RFI Answer:", description is the answer text, type is `rfi_answer`. Non-blocking (failure logged but doesn't break RFI update). Opt-out via `seed_evidence: false`.
 - [ ] **Platform field defaults** — Batch-created personas default to 'other'; need audit/fix UI
-- [ ] **RFI workflow enhancements** — Assignment, answer submission, and integration with frameworks from the RFI tab
+- [x] **RFI workflow enhancements** — Added assignment field (blur-to-save), close/reopen buttons, and status change support to expanded RFI view. Answer submission endpoint now auto-seeds evidence items. Both `/rfis` PUT and `/rfis/:rfiId/answers` POST create evidence.
 
 ### P3 — Low Priority (Tech Debt)
 

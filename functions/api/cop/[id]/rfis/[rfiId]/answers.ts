@@ -53,6 +53,29 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       UPDATE cop_rfis SET status = 'answered', updated_at = ? WHERE id = ? AND status = 'open'
     `).bind(now, rfiId).run()
 
+    // Auto-seed evidence item from RFI answer
+    try {
+      const sessionId = params.id as string
+      const rfi = await env.DB.prepare(
+        `SELECT question FROM cop_rfis WHERE id = ?`
+      ).bind(rfiId).first<{ question: string }>()
+      const session = await env.DB.prepare(
+        `SELECT workspace_id FROM cop_sessions WHERE id = ?`
+      ).bind(sessionId).first<{ workspace_id: string }>()
+      const workspaceId = session?.workspace_id ?? sessionId
+
+      await env.DB.prepare(`
+        INSERT INTO evidence_items (title, description, evidence_type, credibility, confidence_level, workspace_id, created_by, created_at, updated_at)
+        VALUES (?, ?, 'rfi_answer', 'unverified', 'medium', ?, ?, ?, ?)
+      `).bind(
+        `RFI Answer: ${(rfi?.question ?? 'Unknown').substring(0, 80)}`,
+        body.answer_text.trim(),
+        workspaceId, userId, now, now,
+      ).run()
+    } catch (err) {
+      console.error('[COP RFI Answers] Evidence seed failed (non-blocking):', err)
+    }
+
     return new Response(JSON.stringify({ id, message: 'Answer submitted' }), {
       status: 201, headers: corsHeaders,
     })

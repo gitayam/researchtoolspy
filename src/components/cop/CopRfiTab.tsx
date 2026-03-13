@@ -200,7 +200,6 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
   const handleToggleBlocker = useCallback(
     async (rfiId: string, currentValue: number) => {
       const newValue = currentValue === 1 ? 0 : 1
-      // Optimistic update
       setRfis((prev) =>
         prev.map((r) =>
           r.id === rfiId ? { ...r, is_blocker: newValue } as any : r,
@@ -210,10 +209,9 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
         await fetch(`/api/cop/${sessionId}/rfis`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rfi_id: rfiId, is_blocker: newValue }),
+          body: JSON.stringify({ id: rfiId, is_blocker: newValue }),
         })
       } catch {
-        // Revert on failure
         setRfis((prev) =>
           prev.map((r) =>
             r.id === rfiId ? { ...r, is_blocker: currentValue } as any : r,
@@ -222,6 +220,45 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       }
     },
     [sessionId],
+  )
+
+  // ── Update RFI status ────────────────────────────────────────
+
+  const handleStatusChange = useCallback(
+    async (rfiId: string, newStatus: string) => {
+      setRfis((prev) =>
+        prev.map((r) => r.id === rfiId ? { ...r, status: newStatus } as any : r),
+      )
+      try {
+        await fetch(`/api/cop/${sessionId}/rfis`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: rfiId, status: newStatus }),
+        })
+        await fetchRfis()
+      } catch {
+        await fetchRfis()
+      }
+    },
+    [sessionId, fetchRfis],
+  )
+
+  // ── Assign RFI ───────────────────────────────────────────────
+
+  const handleAssign = useCallback(
+    async (rfiId: string, assignedTo: string) => {
+      try {
+        await fetch(`/api/cop/${sessionId}/rfis`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: rfiId, assigned_to: assignedTo || null }),
+        })
+        await fetchRfis()
+      } catch {
+        // ignore
+      }
+    },
+    [sessionId, fetchRfis],
   )
 
   // ── Toggle expand ───────────────────────────────────────────
@@ -395,19 +432,47 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
                 {/* Expanded answers */}
                 {isExpanded && (
                   <div className="border-t border-gray-200 dark:border-gray-700 px-2.5 py-2 space-y-2">
-                    {/* Blocker toggle */}
-                    <label className="flex items-center gap-2 cursor-pointer py-1">
+                    {/* Controls row: blocker, assign, status */}
+                    <div className="flex flex-wrap items-center gap-2 py-1">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={(rfi as any).is_blocker === 1}
+                          onChange={() => handleToggleBlocker(rfi.id, (rfi as any).is_blocker ?? 0)}
+                          className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-red-500 focus:ring-red-500 h-3.5 w-3.5 cursor-pointer"
+                        />
+                        <span className="text-[10px] text-gray-600 dark:text-gray-400">Blocker</span>
+                      </label>
+                      <div className="h-3 w-px bg-gray-300 dark:bg-gray-600" />
                       <input
-                        type="checkbox"
-                        checked={(rfi as any).is_blocker === 1}
-                        onChange={() => handleToggleBlocker(rfi.id, (rfi as any).is_blocker ?? 0)}
-                        className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-red-500 focus:ring-red-500 h-3.5 w-3.5 cursor-pointer"
+                        type="text"
+                        defaultValue={(rfi as any).assigned_to ?? ''}
+                        placeholder="Assign to..."
+                        onBlur={(e) => handleAssign(rfi.id, e.target.value.trim())}
+                        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                        className="w-28 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-900 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
-                      <span className="text-[10px] text-gray-600 dark:text-gray-400">
-                        Mark as blocker
-                      </span>
-                      <AlertTriangle className="h-3 w-3 text-red-400 opacity-50" />
-                    </label>
+                      <div className="flex-1" />
+                      {rfi.status !== 'closed' ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleStatusChange(rfi.id, 'closed')}
+                          className="h-5 text-[10px] px-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        >
+                          Close
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleStatusChange(rfi.id, 'open')}
+                          className="h-5 text-[10px] px-1.5 text-blue-500 hover:text-blue-700"
+                        >
+                          Reopen
+                        </Button>
+                      )}
+                    </div>
 
                     {answers.length > 0 ? (
                       answers.map(answer => (
