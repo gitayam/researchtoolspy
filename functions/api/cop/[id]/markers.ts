@@ -16,6 +16,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { MARKER_CREATED, MARKER_UPDATED } from '../../_shared/cop-event-types'
+import { createTimelineEntry } from '../../_shared/timeline-helper'
 
 interface Env {
   DB: D1Database
@@ -147,6 +148,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       payload: { label: body.label || null, lat: body.lat, lon: body.lon, cot_type: body.cot_type || 'a-u-G', source_type: body.source_type || 'MANUAL' },
       createdBy: userId,
     })
+
+    try {
+      await createTimelineEntry(env.DB, sessionId, workspaceId, userId, {
+        title: `Location marked: ${body.label?.substring(0, 160) || body.title?.substring(0, 160) || 'Unnamed pin'}`,
+        category: 'event',
+        importance: 'low',
+        source_type: 'system',
+        entity_type: 'marker',
+        entity_id: id,
+        action: 'created',
+      })
+    } catch { /* non-fatal */ }
 
     return new Response(JSON.stringify({ id, uid, message: 'Marker created' }), {
       status: 201, headers: corsHeaders,

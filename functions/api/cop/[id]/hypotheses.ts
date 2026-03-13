@@ -9,6 +9,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { HYPOTHESIS_CREATED, HYPOTHESIS_UPDATED, HYPOTHESIS_EVIDENCE_LINKED } from '../../_shared/cop-event-types'
+import { createTimelineEntry } from '../../_shared/timeline-helper'
 
 interface Env {
   DB: D1Database
@@ -139,6 +140,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       payload: { statement: body.statement, status: 'active', confidence },
       createdBy: userId,
     })
+
+    try {
+      await createTimelineEntry(env.DB, sessionId, workspaceId, userId, {
+        title: `Hypothesis: ${body.statement?.substring(0, 160) || body.title?.substring(0, 160) || 'Untitled'}`,
+        category: 'event',
+        importance: 'high',
+        source_type: 'system',
+        entity_type: 'hypothesis',
+        entity_id: id,
+        action: 'created',
+      })
+    } catch { /* non-fatal */ }
 
     return new Response(JSON.stringify({ id, message: 'Hypothesis created' }), {
       status: 201, headers: corsHeaders,

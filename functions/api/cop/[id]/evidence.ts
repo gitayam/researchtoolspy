@@ -8,6 +8,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { EVIDENCE_CREATED } from '../../_shared/cop-event-types'
+import { createTimelineEntry } from '../../_shared/timeline-helper'
 
 interface Env {
   DB: D1Database
@@ -105,6 +106,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       payload: { title: body.title, evidence_type: body.source_type ?? 'observation' },
       createdBy: userId,
     })
+
+    try {
+      await createTimelineEntry(env.DB, sessionId, workspaceId, userId, {
+        title: `Evidence added: ${body.title?.substring(0, 160) || 'Untitled'}`,
+        category: 'event',
+        importance: 'normal',
+        source_type: 'system',
+        entity_type: 'evidence',
+        entity_id: String(id),
+        action: 'created',
+      })
+    } catch { /* non-fatal */ }
 
     return new Response(JSON.stringify({ id, message: 'Evidence created' }), {
       status: 201, headers: corsHeaders,
