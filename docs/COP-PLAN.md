@@ -1,7 +1,7 @@
 # COP Workspace Improvement Plan
 
 **Created**: 2026-03-12
-**Last Updated**: 2026-03-13 (session 12)
+**Last Updated**: 2026-03-13 (session 13)
 
 ## Completed
 
@@ -34,7 +34,7 @@
 ## In Progress
 
 - [ ] **P1: Place/country autocomplete** — PlaceSearch component built with Nominatim geocoding, integrated into EntityCreateForm. Needs testing on production.
-- [ ] **P1: E2E tests outdated** — 33 of 65 tests failing (timeouts from component restructuring). Need to update selectors for cop-event-sidebar, cop-wizard specs
+- [x] **P1: E2E tests outdated** — Fixed 20 failing tests (was 33/65, then 20/232 after playbook additions). Fixes: added page navigation for relative fetch URLs in cop-assets tests, fixed route glob patterns for query string URLs, resolved strict mode violations in cop-event-sidebar and cop-intake. Now 215/232 passing, 17 skipped, 0 failing.
 
 ## Backlog — Priority Order
 

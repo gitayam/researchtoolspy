@@ -117,8 +117,8 @@ const mockGeoJson = {
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-function setupAssetMocks(page: any) {
-  return page.route('**/api/cop/*/assets', (route: any) => {
+async function setupAssetMocks(page: any) {
+  const handler = (route: any) => {
     const req = route.request()
     if (req.method() === 'GET') {
       // Parse details for response
@@ -138,12 +138,20 @@ function setupAssetMocks(page: any) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ message: 'Asset set to offline' }) })
     }
     return route.continue()
-  })
+  }
+  // Register for both with and without query strings
+  await page.route('**/api/cop/*/assets', handler)
+  await page.route('**/api/cop/*/assets?*', handler)
 }
 
 // ── Tests ────────────────────────────────────────────────────────────
 
 test.describe('COP Asset Tracking', () => {
+  // Navigate to app so page.evaluate fetch() has a valid base URL for relative fetches
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/', { waitUntil: 'commit' })
+  })
+
   test('GET /api/cop/:id/assets returns assets list', async ({ page }) => {
     await setupAssetMocks(page)
 

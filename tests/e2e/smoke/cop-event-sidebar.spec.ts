@@ -331,7 +331,7 @@ test.describe('COP Workspace Panels @smoke', () => {
     await page.waitForLoadState('domcontentloaded')
     await page.getByText('Event Analysis - Test Earthquake').waitFor({ timeout: 10000 }).catch(() => {})
 
-    await expect(page.getByText('Entity Relationships')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Entity Relationships' })).toBeVisible()
   })
 
   test('shows Analysis & Hypotheses panel', async ({ page }) => {

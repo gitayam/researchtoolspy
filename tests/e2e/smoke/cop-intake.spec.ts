@@ -107,7 +107,7 @@ test.describe('COP Public Intake Form @smoke', () => {
     await expect(page.getByText('When did it happen?')).toBeVisible()
 
     // Checkbox
-    await expect(page.getByText('Is this urgent?')).toBeVisible()
+    await expect(page.getByText('Is this urgent?').first()).toBeVisible()
   })
 
   test('shows required field indicators', async ({ page }) => {
