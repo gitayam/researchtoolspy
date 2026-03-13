@@ -89,6 +89,15 @@ button:active, .active\:scale-95:active {
   transition: transform 0.1s ease-in-out;
 }
 
+/* Hide scrollbar for tab bars and horizontal scroll areas */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Mobile-optimized scrollbar */
 @media (max-width: 768px) {
   ::-webkit-scrollbar {

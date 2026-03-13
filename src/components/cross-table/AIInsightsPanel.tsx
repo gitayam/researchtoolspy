@@ -149,32 +149,33 @@ export function AIInsightsPanel() {
       {/* Action buttons */}
       <div className="flex flex-wrap gap-2">
         <Button
+          size="sm"
           onClick={fetchInsights}
           disabled={insightsLoading || !hasScores}
-          className="bg-[#4F5BFF] hover:bg-[#4F5BFF]/90"
+          className="bg-[#4F5BFF] hover:bg-[#4F5BFF]/90 text-xs sm:text-sm"
         >
           {insightsLoading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
           ) : (
-            <Sparkles className="h-4 w-4 mr-2" />
+            <Sparkles className="h-4 w-4 mr-1.5" />
           )}
-          {insights ? 'Refresh Analysis' : 'Generate Analysis'}
+          {insights ? 'Refresh' : 'Analyze'}
         </Button>
-        <Button variant="outline" onClick={fetchCriteria} disabled={criteriaLoading}>
+        <Button variant="outline" size="sm" onClick={fetchCriteria} disabled={criteriaLoading} className="text-xs sm:text-sm">
           {criteriaLoading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
           ) : (
-            <Lightbulb className="h-4 w-4 mr-2" />
+            <Lightbulb className="h-4 w-4 mr-1.5" />
           )}
-          Suggest Criteria
+          <span className="hidden sm:inline">Suggest </span>Criteria
         </Button>
-        <Button variant="outline" onClick={fetchScoreSuggestions} disabled={scoreLoading || !hasScores}>
+        <Button variant="outline" size="sm" onClick={fetchScoreSuggestions} disabled={scoreLoading || !hasScores} className="text-xs sm:text-sm">
           {scoreLoading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
           ) : (
-            <Target className="h-4 w-4 mr-2" />
+            <Target className="h-4 w-4 mr-1.5" />
           )}
-          Suggest Scores
+          <span className="hidden sm:inline">Suggest </span>Scores
         </Button>
       </div>
 
@@ -319,14 +320,16 @@ export function AIInsightsPanel() {
                 const row = state.table.config.rows.find((r) => r.id === s.row_id)
                 const col = state.table.config.columns.find((c) => c.id === s.col_id)
                 return (
-                  <div key={i} className="flex items-center gap-3 text-xs border-b border-slate-100 pb-2">
-                    <Badge variant="secondary" className="text-[10px] shrink-0">
-                      {String(s.score)}
-                    </Badge>
-                    <span className="font-medium truncate">{row?.label ?? s.row_id}</span>
-                    <span className="text-muted-foreground">x</span>
-                    <span className="font-medium truncate">{col?.label ?? s.col_id}</span>
-                    <span className="text-muted-foreground ml-auto shrink-0 max-w-[200px] truncate">
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs border-b border-slate-100 pb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Badge variant="secondary" className="text-[10px] shrink-0">
+                        {String(s.score)}
+                      </Badge>
+                      <span className="font-medium truncate">{row?.label ?? s.row_id}</span>
+                      <span className="text-muted-foreground shrink-0">x</span>
+                      <span className="font-medium truncate">{col?.label ?? s.col_id}</span>
+                    </div>
+                    <span className="text-muted-foreground sm:ml-auto shrink-0 max-w-full sm:max-w-[200px] truncate pl-6 sm:pl-0">
                       {s.rationale}
                     </span>
                   </div>

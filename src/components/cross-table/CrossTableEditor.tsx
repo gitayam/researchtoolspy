@@ -277,9 +277,9 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
           onValueChange={(tab) => dispatch({ type: 'SET_TAB', tab })}
           className="flex flex-col flex-1 min-h-0"
         >
-          {/* Tab bar — horizontally scrollable on mobile */}
-          <div className="border-b border-slate-200 px-4 md:px-6 overflow-x-auto">
-            <TabsList className="h-11 bg-transparent p-0 gap-0">
+          {/* Tab bar — horizontally scrollable on mobile with snap */}
+          <div className="border-b border-slate-200 px-2 sm:px-4 md:px-6 overflow-x-auto scrollbar-none">
+            <TabsList className="h-11 bg-transparent p-0 gap-0 w-max sm:w-auto">
               {visibleTabs.map((t) => {
                 const Icon = t.icon
                 return (
@@ -287,7 +287,7 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
                     key={t.id}
                     value={t.id}
                     className={cn(
-                      'gap-1.5 rounded-none border-b-2 border-transparent px-3 py-2.5 text-sm',
+                      'gap-1 sm:gap-1.5 rounded-none border-b-2 border-transparent px-2.5 sm:px-3 py-2.5 text-xs sm:text-sm shrink-0',
                       'data-[state=active]:border-[#4F5BFF] data-[state=active]:bg-transparent data-[state=active]:text-[#4F5BFF] data-[state=active]:shadow-none'
                     )}
                   >
@@ -301,22 +301,22 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
 
           {/* Tab content area */}
           <div className="flex-1 min-h-0 overflow-auto">
-            <TabsContent value="matrix" className="m-0 p-4 md:p-6">
+            <TabsContent value="matrix" className="m-0 p-2 sm:p-4 md:p-6">
               <MatrixGrid />
             </TabsContent>
-            <TabsContent value="weights" className="m-0 p-4 md:p-6">
+            <TabsContent value="weights" className="m-0 p-2 sm:p-4 md:p-6">
               <WeightsPanel />
             </TabsContent>
-            <TabsContent value="results" className="m-0 p-4 md:p-6">
+            <TabsContent value="results" className="m-0 p-2 sm:p-4 md:p-6">
               <ResultsPanel />
             </TabsContent>
-            <TabsContent value="sensitivity" className="m-0 p-4 md:p-6">
+            <TabsContent value="sensitivity" className="m-0 p-2 sm:p-4 md:p-6">
               <SensitivityPanel />
             </TabsContent>
-            <TabsContent value="consensus" className="m-0 p-4 md:p-6">
+            <TabsContent value="consensus" className="m-0 p-2 sm:p-4 md:p-6">
               <ConsensusPanel />
             </TabsContent>
-            <TabsContent value="ai-insights" className="m-0 p-4 md:p-6">
+            <TabsContent value="ai-insights" className="m-0 p-2 sm:p-4 md:p-6">
               <AIInsightsPanel />
             </TabsContent>
           </div>

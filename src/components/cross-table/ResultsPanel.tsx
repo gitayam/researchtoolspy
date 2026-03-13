@@ -106,10 +106,10 @@ export function ResultsPanel() {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={Math.max(200, results.length * 40 + 40)}>
-            <BarChart data={barData} layout="vertical" margin={{ left: 80, right: 20, top: 5, bottom: 5 }}>
+            <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 10, top: 5, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis type="number" domain={[0, 'auto']} tickFormatter={(v: number) => v.toFixed(2)} />
-              <YAxis type="category" dataKey="name" width={75} tick={{ fontSize: 12 }} />
+              <XAxis type="number" domain={[0, 'auto']} tickFormatter={(v: number) => v.toFixed(2)} tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="name" width={70} tick={{ fontSize: 11 }} />
               <Tooltip
                 formatter={(value: number, name: string) => [value.toFixed(4), 'Weighted Score']}
                 contentStyle={{ fontSize: 12 }}
@@ -130,20 +130,20 @@ export function ResultsPanel() {
           <CardTitle className="text-sm font-semibold">Score Breakdown</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+          <div className="overflow-x-auto -mx-2 sm:mx-0">
+            <table className="w-full text-xs min-w-[300px]">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left p-2 font-medium">Rank</th>
-                  <th className="text-left p-2 font-medium">Alternative</th>
-                  <th className="text-right p-2 font-medium">Score</th>
-                  <th className="text-center p-2 font-medium">Status</th>
+                  <th className="text-left p-1.5 sm:p-2 font-medium">Rank</th>
+                  <th className="text-left p-1.5 sm:p-2 font-medium">Alternative</th>
+                  <th className="text-right p-1.5 sm:p-2 font-medium">Score</th>
+                  <th className="text-center p-1.5 sm:p-2 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {results.map((r) => (
                   <tr key={r.row_id} className="border-b border-slate-100">
-                    <td className="p-2">
+                    <td className="p-1.5 sm:p-2">
                       <Badge
                         variant={r.rank === 1 ? 'default' : 'outline'}
                         className="text-[10px] tabular-nums"
@@ -151,9 +151,9 @@ export function ResultsPanel() {
                         #{r.rank}
                       </Badge>
                     </td>
-                    <td className="p-2 font-medium">{rowLabelMap[r.row_id] ?? r.row_id}</td>
-                    <td className="p-2 text-right tabular-nums">{r.weighted_score.toFixed(4)}</td>
-                    <td className="p-2 text-center">
+                    <td className="p-1.5 sm:p-2 font-medium max-w-[120px] sm:max-w-none truncate">{rowLabelMap[r.row_id] ?? r.row_id}</td>
+                    <td className="p-1.5 sm:p-2 text-right tabular-nums">{r.weighted_score.toFixed(4)}</td>
+                    <td className="p-1.5 sm:p-2 text-center">
                       {dominated.has(r.row_id) && (
                         <Badge variant="destructive" className="text-[9px]">
                           <AlertTriangle className="h-3 w-3 mr-0.5" />
@@ -178,11 +178,11 @@ export function ResultsPanel() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={260}>
               <RadarChart data={radarData}>
                 <PolarGrid />
-                <PolarAngleAxis dataKey="criterion" tick={{ fontSize: 10 }} />
-                <PolarRadiusAxis domain={[0, 1]} tick={{ fontSize: 9 }} />
+                <PolarAngleAxis dataKey="criterion" tick={{ fontSize: 9 }} />
+                <PolarRadiusAxis domain={[0, 1]} tick={{ fontSize: 8 }} />
                 {top3.map((r, i) => (
                   <Radar
                     key={r.row_id}

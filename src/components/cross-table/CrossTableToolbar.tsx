@@ -173,18 +173,18 @@ export function CrossTableToolbar({
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 md:px-6 md:py-4 border-b border-slate-200 bg-white/90 backdrop-blur-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 p-3 sm:p-4 md:px-6 md:py-4 border-b border-slate-200 bg-white/90 backdrop-blur-sm">
         {/* Left: back + title + badges */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/dashboard/tools/cross-table')}
-            className="shrink-0"
+            className="shrink-0 h-8 w-8 p-0 sm:h-auto sm:w-auto sm:p-2"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             {isEditingTitle ? (
               <div className="flex items-center gap-1">
                 <Input
@@ -196,12 +196,12 @@ export function CrossTableToolbar({
                     if (e.key === 'Enter') commitTitle()
                     if (e.key === 'Escape') cancelTitle()
                   }}
-                  className="h-8 text-lg font-bold px-2 py-0 max-w-[300px]"
+                  className="h-8 text-base sm:text-lg font-bold px-2 py-0 w-full max-w-[300px]"
                 />
               </div>
             ) : (
               <h1
-                className="text-lg font-bold truncate cursor-pointer hover:text-[#4F5BFF] transition-colors"
+                className="text-base sm:text-lg font-bold truncate cursor-pointer hover:text-[#4F5BFF] transition-colors"
                 onClick={() => {
                   setEditTitle(table.title)
                   setIsEditingTitle(true)
@@ -222,8 +222,8 @@ export function CrossTableToolbar({
           </div>
         </div>
 
-        {/* Right: action buttons */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Right: action buttons — horizontal scroll on mobile */}
+        <div className="flex items-center gap-2 shrink-0 overflow-x-auto pb-1 sm:pb-0">
           {scoresDirty && (
             <Button
               size="sm"

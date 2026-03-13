@@ -152,7 +152,7 @@ export function WeightsPanel() {
           return (
             <div key={col.id} className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium truncate max-w-[200px]">{col.label}</span>
+                <span className="text-xs sm:text-sm font-medium truncate max-w-[140px] sm:max-w-[200px]">{col.label}</span>
                 <span className="text-xs text-muted-foreground tabular-nums">{pct}%</span>
               </div>
 

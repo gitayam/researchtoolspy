@@ -143,12 +143,12 @@ export function MatrixGrid() {
               <thead>
                 <tr>
                   {/* Corner cell */}
-                  <th className="sticky left-0 z-10 bg-white min-w-[160px] p-2 border border-slate-200" />
+                  <th className="sticky left-0 z-10 bg-white min-w-[100px] sm:min-w-[160px] p-1.5 sm:p-2 border border-slate-200" />
 
                   {sortedCols.map((col, colIdx) => (
                     <th
                       key={col.id}
-                      className="min-w-[100px] max-w-[160px] p-2 border border-slate-200 bg-slate-50"
+                      className="min-w-[80px] sm:min-w-[100px] max-w-[160px] p-1.5 sm:p-2 border border-slate-200 bg-slate-50"
                     >
                       <div className="space-y-1">
                         <EditableLabel
@@ -235,10 +235,10 @@ export function MatrixGrid() {
                 {sortedRows.map((row, rowIdx) => (
                   <tr key={row.id}>
                     {/* Row header (sticky left) */}
-                    <td className="sticky left-0 z-10 bg-white p-2 border border-slate-200">
+                    <td className="sticky left-0 z-10 bg-white p-1.5 sm:p-2 border border-slate-200">
                       <div className="flex items-center gap-1">
                         {!delphiActive && (
-                          <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0 opacity-40" />
+                          <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0 opacity-40 hidden sm:block" />
                         )}
                         <EditableLabel
                           value={row.label}
@@ -250,14 +250,14 @@ export function MatrixGrid() {
                             <button
                               onClick={() => moveRow(row.id, -1)}
                               disabled={rowIdx === 0}
-                              className="p-0.5 rounded hover:bg-slate-200 disabled:opacity-30"
+                              className="p-0.5 rounded hover:bg-slate-200 disabled:opacity-30 hidden sm:block"
                             >
                               <ChevronUp className="h-3 w-3" />
                             </button>
                             <button
                               onClick={() => moveRow(row.id, 1)}
                               disabled={rowIdx === sortedRows.length - 1}
-                              className="p-0.5 rounded hover:bg-slate-200 disabled:opacity-30"
+                              className="p-0.5 rounded hover:bg-slate-200 disabled:opacity-30 hidden sm:block"
                             >
                               <ChevronDown className="h-3 w-3" />
                             </button>
@@ -323,7 +323,7 @@ export function MatrixGrid() {
                 {/* Add row button */}
                 {!delphiActive && (
                   <tr>
-                    <td className="sticky left-0 z-10 bg-white p-2 border border-slate-200" colSpan={sortedCols.length + 2}>
+                    <td className="sticky left-0 z-10 bg-white p-1.5 sm:p-2 border border-slate-200" colSpan={sortedCols.length + 2}>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -392,6 +392,11 @@ function EditableLabel({
   return (
     <span
       onDoubleClick={startEdit}
+      onTouchEnd={(e) => {
+        // Single tap to edit on touch devices (doubleClick doesn't work well)
+        e.preventDefault()
+        startEdit()
+      }}
       className={cn('cursor-text truncate block', className)}
       title="Double-click to rename"
     >
