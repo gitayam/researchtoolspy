@@ -48,6 +48,14 @@ function parseRule(row: any): any {
   }
 }
 
+/** Verify playbook belongs to this session. Returns false if not found. */
+async function verifyPlaybookSession(env: Env, pbId: string, sessionId: string): Promise<boolean> {
+  const row = await env.DB.prepare(
+    'SELECT id FROM cop_playbooks WHERE id = ? AND cop_session_id = ?'
+  ).bind(pbId, sessionId).first()
+  return !!row
+}
+
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params } = context
   const pbId = params.pbId as string
@@ -69,9 +77,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
+  const sessionId = params.id as string
   const pbId = params.pbId as string
 
   try {
+    if (!await verifyPlaybookSession(env, pbId, sessionId)) {
+      return new Response(JSON.stringify({ error: 'Playbook not found' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
+
     const body = await request.json() as any
 
     if (!body.name?.trim()) {
@@ -137,9 +152,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
+  const sessionId = params.id as string
   const pbId = params.pbId as string
 
   try {
+    if (!await verifyPlaybookSession(env, pbId, sessionId)) {
+      return new Response(JSON.stringify({ error: 'Playbook not found' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
+
     const body = await request.json() as any
 
     if (!body.rule_id) {
@@ -228,11 +250,18 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
+  const sessionId = params.id as string
   const pbId = params.pbId as string
   const url = new URL(request.url)
   const ruleId = url.searchParams.get('rule_id')
 
   try {
+    if (!await verifyPlaybookSession(env, pbId, sessionId)) {
+      return new Response(JSON.stringify({ error: 'Playbook not found' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
+
     if (!ruleId) {
       return new Response(JSON.stringify({ error: 'rule_id query param is required' }), {
         status: 400, headers: corsHeaders,

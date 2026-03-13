@@ -28,10 +28,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const body = await request.json() as any
     const now = new Date().toISOString()
 
-    // Fetch existing RFI for status comparison
+    // Fetch existing RFI — scoped to this session
     const existing = await env.DB.prepare(
-      'SELECT status, question FROM cop_rfis WHERE id = ?'
-    ).bind(rfiId).first() as any
+      'SELECT status, question FROM cop_rfis WHERE id = ? AND cop_session_id = ?'
+    ).bind(rfiId, sessionId).first() as any
+
+    if (!existing) {
+      return new Response(JSON.stringify({ error: 'RFI not found' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
 
     const updates: string[] = ['updated_at = ?']
     const values: any[] = [now]
@@ -57,8 +63,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     values.push(rfiId)
 
     await env.DB.prepare(`
-      UPDATE cop_rfis SET ${updates.join(', ')} WHERE id = ?
-    `).bind(...values).run()
+      UPDATE cop_rfis SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?
+    `).bind(...values, sessionId).run()
 
     // Emit event for status transitions
     if (body.status && existing && body.status !== existing.status) {

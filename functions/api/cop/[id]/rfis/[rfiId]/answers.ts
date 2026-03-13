@@ -24,6 +24,7 @@ function generateId(): string {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
+  const sessionId = params.id as string
   const rfiId = params.rfiId as string
 
   try {
@@ -33,6 +34,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.answer_text?.trim()) {
       return new Response(JSON.stringify({ error: 'Answer text is required' }), {
         status: 400, headers: corsHeaders,
+      })
+    }
+
+    // Verify RFI belongs to this session
+    const rfiCheck = await env.DB.prepare(
+      'SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ?'
+    ).bind(rfiId, sessionId).first()
+    if (!rfiCheck) {
+      return new Response(JSON.stringify({ error: 'RFI not found' }), {
+        status: 404, headers: corsHeaders,
       })
     }
 
@@ -50,12 +61,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Update RFI status to 'answered' if currently 'open'
     await env.DB.prepare(`
-      UPDATE cop_rfis SET status = 'answered', updated_at = ? WHERE id = ? AND status = 'open'
-    `).bind(now, rfiId).run()
+      UPDATE cop_rfis SET status = 'answered', updated_at = ? WHERE id = ? AND cop_session_id = ? AND status = 'open'
+    `).bind(now, rfiId, sessionId).run()
 
     // Auto-seed evidence item from RFI answer
     try {
-      const sessionId = params.id as string
       const rfi = await env.DB.prepare(
         `SELECT question FROM cop_rfis WHERE id = ?`
       ).bind(rfiId).first<{ question: string }>()
@@ -89,6 +99,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
+  const sessionId = params.id as string
   const rfiId = params.rfiId as string
 
   try {
@@ -98,6 +109,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (!body.answer_id) {
       return new Response(JSON.stringify({ error: 'answer_id is required' }), {
         status: 400, headers: corsHeaders,
+      })
+    }
+
+    // Verify RFI belongs to this session
+    const rfiCheck = await env.DB.prepare(
+      'SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ?'
+    ).bind(rfiId, sessionId).first()
+    if (!rfiCheck) {
+      return new Response(JSON.stringify({ error: 'RFI not found' }), {
+        status: 404, headers: corsHeaders,
       })
     }
 
@@ -115,11 +136,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       UPDATE cop_rfi_answers SET is_accepted = ? WHERE id = ? AND rfi_id = ?
     `).bind(isAccepted, body.answer_id, rfiId).run()
 
-    // Update RFI status
+    // Update RFI status — scoped to session
     const newStatus = isAccepted ? 'accepted' : 'answered'
     await env.DB.prepare(`
-      UPDATE cop_rfis SET status = ?, updated_at = ? WHERE id = ?
-    `).bind(newStatus, now, rfiId).run()
+      UPDATE cop_rfis SET status = ?, updated_at = ? WHERE id = ? AND cop_session_id = ?
+    `).bind(newStatus, now, rfiId, sessionId).run()
 
     return new Response(JSON.stringify({ message: 'Answer updated' }), { headers: corsHeaders })
   } catch (error) {
