@@ -184,7 +184,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         }
       }
     } catch (e) {
-      fetchError = e instanceof Error ? e.message : 'GDELT API request failed'
+      fetchError = 'GDELT API request failed'
       console.error('[COP GDELT Layer] Fetch error:', e)
     }
 

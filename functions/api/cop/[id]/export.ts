@@ -360,7 +360,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       console.error('[COP Export] Serialization error:', serializeError)
       return new Response(
-        JSON.stringify({ error: 'Export failed', detail: errMsg, export_id: exportId }),
+        JSON.stringify({ error: 'Export serialization failed', export_id: exportId }),
         { status: 500, headers: corsHeaders }
       )
     }

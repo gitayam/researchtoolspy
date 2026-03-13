@@ -251,8 +251,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         }
       }
     } catch (e) {
-      fetchError = e instanceof Error ? e.message.replace(/key=[^&]+/g, 'key=***').replace(/email=[^&]+/g, 'email=***') : 'ACLED API request failed'
-      console.error('[COP ACLED Layer] Fetch error:', fetchError)
+      fetchError = 'ACLED API request failed'
+      console.error('[COP ACLED Layer] Fetch error:', e)
     }
 
     // 7. Convert to GeoJSON features
