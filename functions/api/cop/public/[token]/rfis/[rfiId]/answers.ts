@@ -37,6 +37,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    const shareSessionId = (share as any).cop_session_id
+
+    // Verify the RFI belongs to the share's session
+    const rfiCheck = await env.DB.prepare(
+      'SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ?'
+    ).bind(rfiId, shareSessionId).first()
+    if (!rfiCheck) {
+      return new Response(JSON.stringify({ error: 'RFI not found' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
+
     const body = await request.json() as any
 
     if (!body.answer_text?.trim()) {
@@ -57,10 +69,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.responder_name || 'Anonymous', now
     ).run()
 
-    // Update RFI status to 'answered' if currently 'open'
+    // Update RFI status to 'answered' if currently 'open' — scoped to session
     await env.DB.prepare(`
-      UPDATE cop_rfis SET status = 'answered', updated_at = ? WHERE id = ? AND status = 'open'
-    `).bind(now, rfiId).run()
+      UPDATE cop_rfis SET status = 'answered', updated_at = ? WHERE id = ? AND cop_session_id = ? AND status = 'open'
+    `).bind(now, rfiId, shareSessionId).run()
 
     return new Response(JSON.stringify({ id, message: 'Answer submitted' }), {
       status: 201, headers: corsHeaders,

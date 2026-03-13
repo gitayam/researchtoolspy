@@ -55,9 +55,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    const workspaceId = session.workspace_id || sessionId
     const template = await env.DB.prepare(
-      'SELECT * FROM cop_task_templates WHERE id = ?'
-    ).bind(body.template_id).first() as any
+      'SELECT * FROM cop_task_templates WHERE id = ? AND workspace_id = ?'
+    ).bind(body.template_id, workspaceId).first() as any
 
     if (!template) {
       return new Response(JSON.stringify({ error: 'Template not found' }), {
