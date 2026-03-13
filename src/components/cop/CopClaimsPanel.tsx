@@ -254,7 +254,10 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
               title: result.title,
               domain: result.domain,
               summary: result.summary,
-              claims: result.claims,
+              claims: result.claims.map(c => ({
+                ...c,
+                confidence: c.confidence != null && c.confidence <= 1 ? Math.round(c.confidence * 100) : (c.confidence ?? 50),
+              })),
             }),
           })
           if (persistRes.ok) {
@@ -316,7 +319,7 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
             <input
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => { setInput(e.target.value); setError(null) }}
               onKeyDown={(e) => e.key === 'Enter' && !loading && handleSubmit()}
               placeholder="Enter a claim or paste a URL..."
               className="w-full h-8 pl-8 pr-3 text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"

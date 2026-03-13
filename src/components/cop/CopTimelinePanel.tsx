@@ -397,7 +397,7 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
             <input
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => { setInput(e.target.value); setError(null); if (pendingClassification) setPendingClassification(null) }}
               onKeyDown={(e) => e.key === 'Enter' && !loading && handleSubmit()}
               placeholder="Add event or paste URL to extract timeline..."
               className="w-full h-8 pl-8 pr-3 text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -422,7 +422,7 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
           <Button
             size="sm"
             onClick={handleSubmit}
-            disabled={loading || classifying || !input.trim()}
+            disabled={loading || classifying || (!input.trim() && !pendingClassification)}
             className="h-8 text-xs px-3 cursor-pointer"
           >
             {loading || classifying ? (

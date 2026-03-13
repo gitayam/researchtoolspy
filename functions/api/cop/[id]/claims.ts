@@ -85,7 +85,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         id, sessionId, workspaceId,
-        body.url ?? '', body.title ?? null, body.domain ?? null,
+        body.url || null, body.title ?? null, body.domain ?? null,
         claim.claim ?? claim.text ?? '',
         claim.category ?? null,
         claim.confidence ?? 50,
