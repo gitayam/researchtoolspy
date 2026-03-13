@@ -213,7 +213,15 @@ export function DeceptionForm({
     setCredibilityError(null)
   }
 
-  const handleQuickCreateActor = async (name: string) => {
+  const actorTypes = [
+    { value: 'PERSON', label: 'Person', icon: <User className="h-3.5 w-3.5" /> },
+    { value: 'ORGANIZATION', label: 'Org', icon: <Building2 className="h-3.5 w-3.5" /> },
+    { value: 'GOVERNMENT', label: 'Gov', icon: <Building2 className="h-3.5 w-3.5" /> },
+    { value: 'GROUP', label: 'Group', icon: <UsersIcon className="h-3.5 w-3.5" /> },
+    { value: 'UNIT', label: 'Unit', icon: <UsersIcon className="h-3.5 w-3.5" /> },
+  ] as const
+
+  const handleQuickCreateActor = async (name: string, type: string = 'PERSON') => {
     try {
       const res = await fetch('/api/actors', {
         method: 'POST',
@@ -221,7 +229,7 @@ export function DeceptionForm({
         credentials: 'include',
         body: JSON.stringify({
           name: name.trim(),
-          type: 'PERSON',
+          type,
           workspace_id: currentWorkspaceId,
         }),
       })
@@ -558,15 +566,23 @@ export function DeceptionForm({
                               </button>
                             ))}
                             {/* Create new option at bottom of results */}
-                            <button
-                              onClick={() => handleQuickCreateActor(actorSearchQuery)}
-                              className="w-full text-left p-3 hover:bg-accent rounded-lg transition-colors min-h-[44px] border-t border-border mt-1 pt-3"
-                            >
-                              <div className="flex items-center gap-3 text-muted-foreground">
-                                <Plus className="h-4 w-4" />
-                                <span className="text-sm">Create "{actorSearchQuery}" as new actor</span>
+                            <div className="border-t border-border mt-1 pt-2 px-3 pb-1">
+                              <p className="text-xs text-muted-foreground mb-2">Not found? Create "{actorSearchQuery}" as:</p>
+                              <div className="flex flex-wrap gap-1.5 mb-1">
+                                {actorTypes.map((at) => (
+                                  <Button
+                                    key={at.value}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 text-xs"
+                                    onClick={() => handleQuickCreateActor(actorSearchQuery, at.value)}
+                                  >
+                                    {at.icon}
+                                    <span className="ml-1">{at.label}</span>
+                                  </Button>
+                                ))}
                               </div>
-                            </button>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -579,15 +595,21 @@ export function DeceptionForm({
                           <p className="text-sm text-muted-foreground text-center">
                             No actors found matching "{actorSearchQuery}"
                           </p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full min-h-[44px]"
-                            onClick={() => handleQuickCreateActor(actorSearchQuery)}
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create "{actorSearchQuery}" as new actor
-                          </Button>
+                          <p className="text-xs text-muted-foreground text-center">Create "{actorSearchQuery}" as:</p>
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            {actorTypes.map((at) => (
+                              <Button
+                                key={at.value}
+                                variant="outline"
+                                size="sm"
+                                className="min-h-[44px]"
+                                onClick={() => handleQuickCreateActor(actorSearchQuery, at.value)}
+                              >
+                                {at.icon}
+                                <span className="ml-1.5">{at.label}</span>
+                              </Button>
+                            ))}
+                          </div>
                         </CardContent>
                       </Card>
                     )}
