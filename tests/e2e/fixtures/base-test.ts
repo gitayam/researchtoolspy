@@ -11,6 +11,7 @@ import { CopViewerPage } from '../page-objects/cop-viewer.page'
 import { CopWorkspacePage } from '../page-objects/cop-workspace.page'
 import { PublicCopPage } from '../page-objects/public-cop.page'
 import { DeceptionFormPage } from '../page-objects/deception-form.page'
+import { CrossTablePage } from '../page-objects/cross-table.page'
 
 export interface Fixtures {
   copListPage: CopListPage
@@ -19,6 +20,7 @@ export interface Fixtures {
   copWorkspacePage: CopWorkspacePage
   publicCopPage: PublicCopPage
   deceptionFormPage: DeceptionFormPage
+  crossTablePage: CrossTablePage
 }
 
 export const test = base.extend<Fixtures>({
@@ -39,6 +41,9 @@ export const test = base.extend<Fixtures>({
   },
   deceptionFormPage: async ({ page }, use) => {
     await use(new DeceptionFormPage(page))
+  },
+  crossTablePage: async ({ page }, use) => {
+    await use(new CrossTablePage(page))
   },
 })
 

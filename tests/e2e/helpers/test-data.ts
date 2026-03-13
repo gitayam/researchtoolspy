@@ -8,6 +8,10 @@ export const URLS = {
   copWorkspace: (id: string) => `/dashboard/cop/${id}`,
   publicCop: (token: string) => `/public/cop/${token}`,
   deceptionCreate: '/dashboard/analysis-frameworks/deception/create',
+  crossTableList: '/dashboard/tools/cross-table',
+  crossTableNew: '/dashboard/tools/cross-table/new',
+  crossTableEditor: (id: string) => `/dashboard/tools/cross-table/${id}`,
+  crossTableScorer: (id: string) => `/dashboard/tools/cross-table/${id}/score`,
 }
 
 export const TEMPLATES = {
@@ -72,3 +76,23 @@ export const SAMPLE_ANSWER = {
   sourceUrl: 'https://example.com/report',
   sourceDescription: 'Official government press release',
 }
+
+export const CROSS_TABLE_TEMPLATES = [
+  'carvar',
+  'coa',
+  'weighted',
+  'pugh',
+  'risk',
+  'kepner-tregoe',
+  'prioritization',
+  'blank',
+] as const
+
+export const CROSS_TABLE_SCORING_METHODS = [
+  'numeric',
+  'traffic_light',
+  'ternary',
+  'binary',
+  'ach',
+  'likert',
+] as const

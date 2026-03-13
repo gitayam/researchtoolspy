@@ -74,6 +74,7 @@ const CreateSubmissionFormPage = lazy(() => import('@/pages/CreateSubmissionForm
 const EquilibriumAnalysisPage = lazy(() => import('@/pages/tools/EquilibriumAnalysisPage'))
 const HamiltonRulePage = lazy(() => import('@/pages/tools/HamiltonRulePage'))
 const CollectionPage = lazy(() => import('@/pages/tools/CollectionPage'))
+const CrossTablePage = lazy(() => import('@/pages/tools/CrossTablePage'))
 const IntelligenceSynthesisPage = lazy(() => import('@/pages/IntelligenceSynthesisPage'))
 
 // COP pages (lazy loaded)
@@ -112,6 +113,7 @@ const PublicACHPage = lazy(() => import('@/pages/PublicACHPage').then(m => ({ de
 const PublicACHLibraryPage = lazy(() => import('@/pages/PublicACHLibraryPage').then(m => ({ default: m.PublicACHLibraryPage })))
 const PublicContentAnalysisPage = lazy(() => import('@/pages/PublicContentAnalysisPage').then(m => ({ default: m.PublicContentAnalysisPage })))
 const PublicCopPage = lazy(() => import('@/pages/PublicCopPage'))
+const PublicCrossTablePage = lazy(() => import('@/pages/tools/PublicCrossTablePage'))
 const PublicIntakePage = lazy(() => import('@/pages/PublicIntakePage'))
 const SubmitEvidencePage = lazy(() => import('@/pages/SubmitEvidencePage'))
 
@@ -162,6 +164,10 @@ export const router = createBrowserRouter([
   {
     path: '/public/cop/:token',
     element: <LazyPage Component={PublicCopPage} />,
+  },
+  {
+    path: '/public/cross-table/:token',
+    element: <LazyPage Component={PublicCrossTablePage} />,
   },
   {
     path: '/public/intake/:token',
@@ -424,6 +430,23 @@ export const router = createBrowserRouter([
       {
         path: 'tools/collection',
         element: <LazyPage Component={CollectionPage} />,
+      },
+      // Cross Table Routes
+      {
+        path: 'tools/cross-table',
+        element: <LazyPage Component={CrossTablePage} />,
+      },
+      {
+        path: 'tools/cross-table/new',
+        element: <LazyPage Component={CrossTablePage} />,
+      },
+      {
+        path: 'tools/cross-table/:id',
+        element: <LazyPage Component={CrossTablePage} />,
+      },
+      {
+        path: 'tools/cross-table/:id/score',
+        element: <LazyPage Component={CrossTablePage} />,
       },
       {
         path: 'tools/social-media',
