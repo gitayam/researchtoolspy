@@ -139,7 +139,7 @@ export async function matchClaimEntitiesToActors(
           SET entity_id = ?
           WHERE id = ?
         `).bind(matchedActorId, entityMentionId).run()
-
+      }
 
       results.push({
         entityMentionId,

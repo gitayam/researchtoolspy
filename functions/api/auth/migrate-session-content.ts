@@ -111,6 +111,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         `).bind(userId, bookmark_hash, workspaceId).run()
 
         migrationResults.framework_sessions = frameworkResult.meta.changes || 0
+      }
     } catch (error) {
       console.error('[Migration] Error migrating framework_sessions:', error)
     }

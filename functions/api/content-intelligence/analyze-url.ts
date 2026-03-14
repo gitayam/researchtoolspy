@@ -136,7 +136,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Detect social media
     const socialMediaInfo = detectSocialMedia(url)
-    if (socialMediaInfo) {
 
     // Generate bypass/archive links immediately (no API calls needed)
     const bypassUrls = generateBypassUrls(normalizedUrl)
@@ -1218,12 +1217,6 @@ function extractSpotifyContent(html: string, url: string): {
 
   const text = contentParts.join('\n')
 
-    title: ogTitle,
-    type: spotifyType,
-    hasDescription: !!ogDescription,
-    hasAudio: !!ogAudio
-  })
-
   return {
     success: true,
     text,
@@ -1331,14 +1324,6 @@ function extractFacebookContent(html: string, url: string): {
   }
 
   const text = contentParts.join('\n')
-
-    title: ogTitle,
-    contentType,
-    hasDescription: !!ogDescription,
-    hasAuthor: !!(articleAuthor || profileFirstName || profileLastName),
-    hasPublishDate: !!articlePublishedTime,
-    hasVideo: !!ogVideo
-  })
 
   return {
     success: true,

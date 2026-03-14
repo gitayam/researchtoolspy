@@ -339,16 +339,10 @@ export function getUserIdentifier(request: Request, env: any): string {
  * Log AI Gateway metrics for monitoring
  */
 export function logAIGatewayMetrics(
-  operation: string,
-  cached: boolean,
-  tokenUsage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number },
-  latencyMs?: number
+  _operation: string,
+  _cached: boolean,
+  _tokenUsage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number },
+  _latencyMs?: number
 ) {
-    cached,
-    tokens: tokenUsage?.total_tokens || 0,
-    prompt_tokens: tokenUsage?.prompt_tokens || 0,
-    completion_tokens: tokenUsage?.completion_tokens || 0,
-    latency_ms: latencyMs || 0,
-    cache_hit: cached
-  })
+  // Metrics logging removed from production — callers may still invoke this
 }

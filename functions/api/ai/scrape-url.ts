@@ -668,6 +668,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           _framework: framework
         }
       }
+    }
 
     // Generate unanswered questions for Q&A frameworks (starbursting, dime)
     // Using reduced count (1-2 per category instead of 2-3) to keep it fast

@@ -65,16 +65,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Parse existing data
     const existingData = JSON.parse(session.data as string || '{}')
-      hasWho: !!existingData.who,
-      hasWhat: !!existingData.what,
-      hasWhere: !!existingData.where,
-      hasWhen: !!existingData.when,
-      hasWhy: !!existingData.why,
-      hasHow: !!existingData.how,
-      totalQuestions: (existingData.who?.length || 0) + (existingData.what?.length || 0) +
-                      (existingData.where?.length || 0) + (existingData.when?.length || 0) +
-                      (existingData.why?.length || 0) + (existingData.how?.length || 0)
-    })
 
     // Get content analysis to extract more context
     const contentAnalysisId = existingData.content_analysis_id || existingData.analysis_ids?.[0]
@@ -107,14 +97,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const entities = JSON.parse(analysis.entities as string || '{}')
     const title = analysis.title as string || session.title
 
-      hasText: !!fullText,
-      textLength: fullText.length,
-      hasEntities: !!entities,
-      peopleCount: entities.people?.length || 0,
-      orgsCount: entities.organizations?.length || 0,
-      locationsCount: entities.locations?.length || 0
-    })
-
     // Generate new questions using AI
     const newQuestions = await generateAdditionalQuestions(
       existingData,
@@ -142,14 +124,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       SET data = ?, updated_at = datetime('now')
       WHERE id = ?
     `).bind(JSON.stringify(mergedData), sessionId).run()
-
-      newWho: newQuestions.who?.length || 0,
-      newWhat: newQuestions.what?.length || 0,
-      newWhere: newQuestions.where?.length || 0,
-      newWhen: newQuestions.when?.length || 0,
-      newWhy: newQuestions.why?.length || 0,
-      newHow: newQuestions.how?.length || 0
-    })
 
     return new Response(JSON.stringify({
       success: true,

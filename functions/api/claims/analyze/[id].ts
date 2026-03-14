@@ -66,13 +66,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const fullText = analysis.extracted_text as string || ''
     const title = analysis.title as string || ''
 
-      id: contentAnalysisId,
-      hasTitle: !!title,
-      hasExtractedText: !!fullText,
-      textLength: fullText.length,
-      url: analysis.url
-    })
-
     if (!fullText) {
       console.error('[Claims Analysis] No extracted_text for analysis:', contentAnalysisId)
       return new Response(JSON.stringify({
