@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-14 (cycle 18)
+> Last updated: 2026-03-14 (cycle 19)
 > Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
@@ -216,6 +216,14 @@
 **Remaining:** 10 files retain `omnicore_user_hash` for auth guard checks (UI conditionals like `if (!userHash) return`) — these are legitimate uses, not header construction
 **Impact:** Single auth change point, consistent header format, -200+ LOC of duplicated logic
 
+### F35. COP Responsive Layout — dvh Fix, Mobile Sidebar, Error Boundaries
+**Was:** Right-column sidebar used `100vh` (broken on iOS Safari), sidebar hidden on mobile with no toggle, no ErrorBoundary around COP panels
+**Fix:**
+- Changed `h-[calc(100vh-200px)]` → `h-[calc(100dvh-200px)]` for dynamic viewport height
+- Added mobile sidebar drawer (floating hamburger button → slide-out panel navigation with backdrop)
+- CopSidebar now accepts `className` and `onNavClick` props for mobile drawer override
+- Wrapped ProgressLayout/MonitorLayout in `<ErrorBoundary>` to prevent single-panel crashes from taking down the entire workspace
+
 ### F33. Dependency Security — jspdf Critical, axios High, react-router High
 **Packages upgraded:**
 - `jspdf` 3.0.3 → 4.2.0 (critical: path traversal, PDF injection, DoS via BMP/GIF, XMP injection, race condition)
@@ -309,7 +317,7 @@
 16. ~~**New** — CopPanelExpander hidden state crash~~ DONE (F15)
 17. ~~**New** — UI/UX Phase 6 (Accessibility Polish)~~ DONE — ARIA, reduced motion, focus, Escape
 18. ~~**New** — Batch evidence endpoint~~ DONE (F19) — POST /api/cop/:id/evidence/batch
-19. **New** — COP responsive layout (dvh, mobile sidebar toggle, error boundaries)
+19. ~~**New** — COP responsive layout (dvh, mobile sidebar toggle, error boundaries)~~ DONE (F35)
 20. **New** — Link framework sessions to COP `linked_frameworks` array
 21. ~~**New** — Desktop Sidebar (UI/UX Phase 2)~~ DONE (F22) — CopSidebar with scroll-spy
 22. ~~**New** — N+1 entity count fetch~~ DONE (F23) — stats endpoint now serves all counts

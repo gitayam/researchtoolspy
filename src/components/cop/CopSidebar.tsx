@@ -76,11 +76,15 @@ interface CopSidebarProps {
   /** Panel order from usePanelLayout — sidebar mirrors this order */
   panelOrder?: string[]
   onResetLayout?: () => void
+  /** Override container classes (e.g. for mobile drawer where hidden md:flex is unwanted) */
+  className?: string
+  /** Called when a nav item is clicked — useful for closing mobile drawer */
+  onNavClick?: () => void
 }
 
 // ── Component ────────────────────────────────────────────────────
 
-export default function CopSidebar({ mode, stats, panelOrder, onResetLayout }: CopSidebarProps) {
+export default function CopSidebar({ mode, stats, panelOrder, onResetLayout, className, onNavClick }: CopSidebarProps) {
   const [activePanel, setActivePanel] = useState<string>('')
   const [collapsed, setCollapsed] = useState(() => {
     const saved = localStorage.getItem('cop_sidebar_collapsed')
@@ -144,7 +148,8 @@ export default function CopSidebar({ mode, stats, panelOrder, onResetLayout }: C
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
       setActivePanel(panelId)
     }
-  }, [])
+    onNavClick?.()
+  }, [onNavClick])
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed(prev => {
@@ -162,7 +167,7 @@ export default function CopSidebar({ mode, stats, panelOrder, onResetLayout }: C
 
   return (
     <aside
-      className={cn(
+      className={className ?? cn(
         'hidden md:flex flex-col shrink-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 transition-all duration-200 motion-reduce:transition-none',
         collapsed ? 'w-11' : 'w-[180px]',
       )}

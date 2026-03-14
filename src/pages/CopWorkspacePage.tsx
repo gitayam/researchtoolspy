@@ -38,9 +38,12 @@ import {
   Zap,
   FileWarning,
   Download,
+  Menu,
+  X as XIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
@@ -213,6 +216,9 @@ export default function CopWorkspacePage() {
     blocker_count?: number
     hypothesis_count?: number
   }>({})
+
+  // ── Mobile sidebar toggle ───────────────────────────────────
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   // ── Invite dialog state ───────────────────────────────────────
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -690,6 +696,40 @@ export default function CopWorkspacePage() {
 
       <CopBlockerStrip sessionId={id!} onGoToBlocker={handleGoToBlocker} />
 
+      {/* ── Mobile sidebar toggle (visible < md only) ────────── */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="fixed bottom-4 left-4 z-50 md:hidden h-10 w-10 rounded-full shadow-lg bg-white dark:bg-slate-900 p-0"
+        onClick={() => setMobileSidebarOpen(true)}
+        aria-label="Open panel navigation"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
+      {/* ── Mobile sidebar drawer overlay ─────────────────────── */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-[220px] bg-white dark:bg-slate-900 shadow-xl animate-in slide-in-from-left duration-200">
+            <div className="flex items-center justify-between p-2 border-b border-slate-200 dark:border-slate-700">
+              <span className="text-xs font-semibold text-slate-500">Panels</span>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setMobileSidebarOpen(false)}>
+                <XIcon className="h-4 w-4" />
+              </Button>
+            </div>
+            <CopSidebar
+              mode={mode}
+              stats={workspaceStats}
+              panelOrder={panelLayout.visiblePanels.map((p) => p.id)}
+              onResetLayout={panelLayout.resetLayout}
+              className="flex flex-col flex-1 w-full"
+              onNavClick={() => setMobileSidebarOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Sidebar + Panel grid ────────────────────────────────── */}
       <div className="flex flex-1 min-h-0">
         {/* Persistent sidebar (hidden on mobile, icon rail on md, full on lg+) */}
@@ -702,6 +742,7 @@ export default function CopWorkspacePage() {
 
         {/* Panel grid (scrollable main area) */}
         <main className="overflow-y-auto p-2 sm:p-3 md:p-3 flex-1 min-w-0" role="main" aria-label="COP workspace panels">
+          <ErrorBoundary>
           <div className="space-y-3">
             {mode === 'progress' ? (
               <ProgressLayout
@@ -750,6 +791,7 @@ export default function CopWorkspacePage() {
               />
             )}
           </div>
+          </ErrorBoundary>
         </main>
       </div>
 
@@ -1198,7 +1240,7 @@ function ProgressLayout({
 
       {/* ── Right column: Evidence + Activity sidebar (2xl+ only) ── */}
       {is2xl && (
-        <div className="flex flex-col w-[400px] shrink-0 sticky top-0 h-[calc(100vh-200px)] gap-4">
+        <div className="flex flex-col w-[400px] shrink-0 sticky top-0 h-[calc(100dvh-200px)] gap-4">
           {/* Evidence & Intel Feed — scrollable, takes remaining space */}
           <div className="flex-1 min-h-0 overflow-hidden">
             <CopPanelExpander
