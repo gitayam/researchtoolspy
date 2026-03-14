@@ -1,5 +1,19 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-14 - Error Hardening Complete Sweep (Session 32)
+
+### Security Fixes Require Full-Codebase Sweeps, Not Targeted Patches
+The `error.message` leak pattern (OWASP A01) took 3 cycles to fully eliminate: F26 fixed COP endpoints (44), F37 fixed cross-table/settings/tools (21), F39 fixed the remaining ai/content-intelligence/frameworks/claims/playbook (30+). Each cycle found new files because endpoints were added independently and copied the same insecure pattern. The lesson: when fixing a security anti-pattern, grep the ENTIRE `functions/api/` directory in one pass, not just the area you're working in.
+
+**Rule:** `grep -rn "error.message\|err.message" functions/api/ --include="*.ts" | grep -v "console\."` — run this after any security fix and fix ALL results, not just the files in your current focus area.
+
+### Mobile Bottom Tab Routes Must Point to Existing Pages
+The bottom tab "Analysis" linked to `/dashboard/analysis-frameworks` which has no index route (only sub-routes like `/swot-dashboard`). The sidebar handles this fine because clicking "Analysis Frameworks" just expands the submenu — it's not a link navigation. But a bottom tab IS a direct navigation, so it must point to a page that actually renders content.
+
+**Rule:** Before adding a navigation link to a new component, verify the route exists with a rendered component: `grep "path: 'target-path'" src/routes/index.tsx`. Sidebar expandable parents are not navigable routes.
+
+---
+
 ## Session: 2026-03-14 - Collaboration Page Fix (Session 31)
 
 ### Cloudflare Pages Functions: File Path IS the Route, Not Internal Regex
