@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { Star } from 'lucide-react'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface RatingDialogProps {
   open: boolean
@@ -62,10 +63,7 @@ export function RatingDialog({
     try {
       const response = await fetch('/api/library/rate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Hash': userHash,
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           library_framework_id: libraryFrameworkId,
           rating,

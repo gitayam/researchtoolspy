@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface Notification {
   id: string
@@ -46,7 +47,7 @@ export function NotificationBell() {
 
     try {
       const response = await fetch('/api/notifications?limit=10', {
-        headers: { 'X-User-Hash': userHash },
+        headers: getCopHeaders(),
       })
       if (response.ok) {
         const data = await response.json()
@@ -65,10 +66,7 @@ export function NotificationBell() {
     try {
       const response = await fetch('/api/notifications', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Hash': userHash,
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           notification_ids: [notificationId],
           is_read: true,
@@ -90,10 +88,7 @@ export function NotificationBell() {
     try {
       const response = await fetch('/api/notifications', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Hash': userHash,
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({ mark_all_read: true }),
       })
       if (response.ok) {
@@ -113,7 +108,7 @@ export function NotificationBell() {
     try {
       const response = await fetch(`/api/notifications?ids=${notificationId}`, {
         method: 'DELETE',
-        headers: { 'X-User-Hash': userHash },
+        headers: getCopHeaders(),
       })
       if (response.ok) {
         await fetchNotifications()

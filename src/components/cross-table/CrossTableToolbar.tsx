@@ -3,6 +3,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import {
   ArrowLeft,
   Save,
@@ -113,13 +114,9 @@ export function CrossTableToolbar({
     setShareLoading(true)
     setShareOpen(true)
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      const userHash = localStorage.getItem('omnicore_user_hash')
-      if (userHash) headers['X-User-Hash'] = userHash
-
       const res = await fetch(`/api/cross-table/${table.id}/share`, {
         method: 'POST',
-        headers,
+        headers: { ...getCopHeaders(), 'Content-Type': 'application/json' },
       })
       if (!res.ok) throw new Error('Failed to generate share link')
       const data = await res.json()

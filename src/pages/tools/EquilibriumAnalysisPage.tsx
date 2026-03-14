@@ -10,14 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import Papa from 'papaparse'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { EquilibriumAnalysis, TimeSeriesDataPoint, EquilibriumResult } from '@/types/equilibrium-analysis'
-
-const getAuthHeaders = () => {
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  return {
-    ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-  }
-}
 
 export function EquilibriumAnalysisPage() {
   const [analyses, setAnalyses] = useState<EquilibriumAnalysis[]>([])
@@ -43,7 +37,7 @@ export function EquilibriumAnalysisPage() {
   const loadAnalyses = async () => {
     try {
       const response = await fetch('/api/equilibrium-analysis?workspace_id=1', {
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       const data = await response.json()
       setAnalyses(data.analyses || [])
@@ -95,7 +89,7 @@ export function EquilibriumAnalysisPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders()
+          ...getCopHeaders()
         },
         body: JSON.stringify({
           title,
@@ -142,7 +136,7 @@ export function EquilibriumAnalysisPage() {
 
   const fetchAnalysis = async (id: string): Promise<EquilibriumAnalysis> => {
     const response = await fetch(`/api/equilibrium-analysis/${id}`, {
-      headers: getAuthHeaders()
+      headers: getCopHeaders()
     })
     const data = await response.json()
     return data.analysis
@@ -162,7 +156,7 @@ export function EquilibriumAnalysisPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders()
+          ...getCopHeaders()
         },
         body: JSON.stringify({
           analysis_id: selectedAnalysis.id,
@@ -191,7 +185,7 @@ export function EquilibriumAnalysisPage() {
     try {
       await fetch(`/api/equilibrium-analysis/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       await loadAnalyses()
       if (selectedAnalysis?.id === id) {

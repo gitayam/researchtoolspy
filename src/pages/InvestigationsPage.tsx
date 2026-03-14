@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface Investigation {
   id: string
@@ -43,11 +44,8 @@ export default function InvestigationsPage() {
     setIsLoading(true)
     setError(null)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch(`/api/investigations?status=${statusFilter}`, {
-        headers: {
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        }
+        headers: getCopHeaders(),
       })
 
       if (response.ok) {

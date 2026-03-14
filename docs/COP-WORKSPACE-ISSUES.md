@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-14 (cycle 17)
+> Last updated: 2026-03-14 (cycle 18)
 > Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
@@ -209,6 +209,13 @@
 2. `SetupWizard.tsx` used inline `getHeaders()` with direct `omnicore_user_hash` access instead of shared `getCopHeaders()`
 **Fix:** Hardened error response to generic message, replaced inline auth with `getCopHeaders()` import
 
+### F34. Inline Auth Header Consolidation — 36 Files Refactored
+**Scope:** 36 files across pages, components, and cross-table modules used inline `localStorage.getItem('omnicore_user_hash')` to construct auth headers
+**Pattern eliminated:** `const userHash = localStorage.getItem('omnicore_user_hash'); headers['X-User-Hash'] = userHash`
+**Replaced with:** `getCopHeaders()` from `@/lib/cop-auth` (73 files now use it)
+**Remaining:** 10 files retain `omnicore_user_hash` for auth guard checks (UI conditionals like `if (!userHash) return`) — these are legitimate uses, not header construction
+**Impact:** Single auth change point, consistent header format, -200+ LOC of duplicated logic
+
 ### F33. Dependency Security — jspdf Critical, axios High, react-router High
 **Packages upgraded:**
 - `jspdf` 3.0.3 → 4.2.0 (critical: path traversal, PDF injection, DoS via BMP/GIF, XMP injection, race condition)
@@ -319,4 +326,4 @@
 33. ~~**New** — Collaboration page broken (CORS + routing)~~ DONE (F31) — directory-based routing, dead files removed
 34. ~~**New** — Cross-table AI error leak + inline auth~~ DONE (F32) — hardened error, getCopHeaders()
 35. ~~**New** — Dependency security (jspdf critical, axios/react-router high)~~ DONE (F33) — upgraded 3 packages
-36. **New** — Remaining inline `omnicore_user_hash` in ~35 files (should use getCopHeaders())
+36. ~~**New** — Remaining inline `omnicore_user_hash` in ~35 files~~ DONE (F34) — 36 files refactored, 73 now use getCopHeaders()

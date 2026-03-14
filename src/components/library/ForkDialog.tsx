@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
 import { GitFork } from 'lucide-react'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface ForkDialogProps {
   open: boolean
@@ -48,10 +49,7 @@ export function ForkDialog({
     try {
       const response = await fetch('/api/library/fork', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Hash': userHash,
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           library_framework_id: libraryFrameworkId,
         }),

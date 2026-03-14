@@ -14,19 +14,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { MatrixGrid } from './MatrixGrid'
 import type { CrossTable, Score } from '@/lib/cross-table/types'
+import { getCopHeaders } from '@/lib/cop-auth'
 import {
   CrossTableContext,
   editorReducer,
 } from './cross-table-context'
-
-// ── Fetch helpers ──────────────────────────────────────────────
-
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 // ── Main Component ─────────────────────────────────────────────
 
@@ -49,7 +41,7 @@ export function ScorerView() {
       try {
         await fetch(`/api/cross-table/${id}/scorers/accept`, {
           method: 'POST',
-          headers: getHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify({ invite_token: inviteToken }),
         })
       } catch {
@@ -66,7 +58,7 @@ export function ScorerView() {
     setError(null)
     try {
       const res = await fetch(`/api/cross-table/${id}`, {
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         signal,
       })
       if (res.status === 404) {
@@ -96,7 +88,7 @@ export function ScorerView() {
     try {
       const res = await fetch(`/api/cross-table/${id}/scores`, {
         method: 'PUT',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           scores: scoresToSubmit.map((s) => ({
             row_id: s.row_id,

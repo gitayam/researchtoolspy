@@ -29,6 +29,7 @@ import {
   Map as MapIcon
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface Investigation {
   id: string
@@ -71,11 +72,8 @@ export function InvestigationDetailPage() {
     try {
       setLoading(true)
       setError(null)
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch(`/api/investigations/${id}`, {
-        headers: {
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        }
+        headers: getCopHeaders(),
       })
 
       if (!response.ok) {
@@ -109,12 +107,8 @@ export function InvestigationDetailPage() {
     if (!id) return
     const checkLinkedCop = async () => {
       try {
-        const userHash = localStorage.getItem('omnicore_user_hash')
-        const headers: Record<string, string> = {}
-        if (userHash) headers['Authorization'] = `Bearer ${userHash}`
-
         // Check if a COP session is linked to this investigation
-        const res = await fetch(`/api/cop/sessions?investigation_id=${id}`, { headers })
+        const res = await fetch(`/api/cop/sessions?investigation_id=${id}`, { headers: getCopHeaders() })
         if (res.ok) {
           const data = await res.json()
           const sessions = data.sessions ?? data ?? []
@@ -230,13 +224,9 @@ export function InvestigationDetailPage() {
               onClick={async () => {
                 if (!investigation) return
                 try {
-                  const userHash = localStorage.getItem('omnicore_user_hash')
-                  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-                  if (userHash) headers['X-User-Hash'] = userHash
-
                   const res = await fetch('/api/cop/sessions', {
                     method: 'POST',
-                    headers,
+                    headers: getCopHeaders(),
                     body: JSON.stringify({
                       name: investigation.title,
                       description: investigation.description,

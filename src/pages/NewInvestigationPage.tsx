@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface InvestigationType {
   id: 'structured_research' | 'general_topic' | 'rapid_analysis'
@@ -87,13 +88,9 @@ export default function NewInvestigationPage() {
 
     setIsCreating(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/investigations', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           title,
           description,

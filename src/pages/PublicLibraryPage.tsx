@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface LibraryFramework {
   id: string
@@ -65,15 +66,7 @@ export function PublicLibraryPage() {
       if (frameworkType) params.append('type', frameworkType)
       if (category) params.append('category', category)
 
-      const userHash = localStorage.getItem('omnicore_user_hash')
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      }
-      if (userHash) {
-        headers['X-User-Hash'] = userHash
-      }
-
-      const response = await fetch(`/api/library?${params}`, { headers })
+      const response = await fetch(`/api/library?${params}`, { headers: getCopHeaders() })
       if (response.ok) {
         const data = await response.json()
         setFrameworks(data.frameworks || [])
@@ -96,10 +89,7 @@ export function PublicLibraryPage() {
     try {
       const response = await fetch('/api/library/vote', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Hash': userHash,
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({ library_framework_id: libraryFrameworkId, vote_type: voteType }),
       })
 

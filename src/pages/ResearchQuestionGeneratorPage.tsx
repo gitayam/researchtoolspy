@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useNavigate } from 'react-router-dom'
 import ResearchPlanDisplay from '@/components/research/ResearchPlanDisplay'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface FormData {
   // Step 1: Research Context & Team
@@ -196,13 +197,9 @@ export default function ResearchQuestionGeneratorPage() {
   const handleGenerate = async () => {
     setIsGenerating(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/research/generate-question', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           ...formData,
           saveToDatabase: true
@@ -229,15 +226,11 @@ export default function ResearchQuestionGeneratorPage() {
 
     setIsGeneratingPlan(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const selectedQuestion = generatedQuestions[selectedQuestionIndex]
 
       const response = await fetch('/api/research/generate-plan', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           researchQuestionId,
           researchQuestion: selectedQuestion.question,
@@ -281,14 +274,9 @@ export default function ResearchQuestionGeneratorPage() {
     // Skip question generation and go straight to plan generation
     setIsGeneratingPlan(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
-
       const response = await fetch('/api/research/generate-plan', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           researchQuestion: importedQuestion,
           duration: '3-6 months', // Default values for imported questions
@@ -345,13 +333,9 @@ export default function ResearchQuestionGeneratorPage() {
 
     setIsLoadingRecommendations(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/research/recommend-questions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           topic: aiRecommendTopic,
           count: 3

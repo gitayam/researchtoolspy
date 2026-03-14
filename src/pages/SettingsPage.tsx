@@ -15,6 +15,7 @@ import { DisplayPreferences } from '@/components/settings/DisplayPreferences'
 import { WorkspaceManagement } from '@/components/settings/WorkspaceManagement'
 import { AIPreferences } from '@/components/settings/AIPreferences'
 import { DataManagement } from '@/components/settings/DataManagement'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { WorkspaceType } from '@/types/settings'
 
 export function SettingsPage() {
@@ -39,10 +40,7 @@ export function SettingsPage() {
       try {
         const response = await fetch('/api/settings/workspaces', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-Hash': userHash,
-          },
+          headers: getCopHeaders(),
           body: JSON.stringify({ name, type, description }),
         })
 

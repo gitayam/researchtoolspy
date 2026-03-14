@@ -33,6 +33,7 @@ import { ConsensusPanel } from './ConsensusPanel'
 import { ResultsPanel } from './ResultsPanel'
 import { SensitivityPanel } from './SensitivityPanel'
 import { AIInsightsPanel } from './AIInsightsPanel'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { CrossTable, Score, RowResult } from '@/lib/cross-table/types'
 import { computeRankings } from '@/lib/cross-table/engine/ranking'
 import {
@@ -148,13 +149,9 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
 
     const timeout = setTimeout(async () => {
       try {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-        const userHash = localStorage.getItem('omnicore_user_hash')
-        if (userHash) headers['X-User-Hash'] = userHash
-
         await fetch(`/api/cross-table/${state.table.id}`, {
           method: 'PUT',
-          headers,
+          headers: getCopHeaders(),
           body: JSON.stringify({
             title: state.table.title,
             description: state.table.description,
@@ -174,13 +171,9 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
   const handleSaveScores = useCallback(async () => {
     setSaving(true)
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      const userHash = localStorage.getItem('omnicore_user_hash')
-      if (userHash) headers['X-User-Hash'] = userHash
-
       const res = await fetch(`/api/cross-table/${state.table.id}/scores`, {
         method: 'PUT',
-        headers,
+        headers: getCopHeaders(),
         body: JSON.stringify({
           scores: state.scores.map((s) => ({
             row_id: s.row_id,
@@ -207,13 +200,9 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
 
   const handleShare = useCallback(async () => {
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      const userHash = localStorage.getItem('omnicore_user_hash')
-      if (userHash) headers['X-User-Hash'] = userHash
-
       const res = await fetch(`/api/cross-table/${state.table.id}/share`, {
         method: 'POST',
-        headers,
+        headers: getCopHeaders(),
       })
       if (!res.ok) throw new Error('Failed to generate share link')
       const data = await res.json()
@@ -229,13 +218,9 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
   const handleDelete = useCallback(async () => {
     if (!confirm('Delete this cross table? This cannot be undone.')) return
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      const userHash = localStorage.getItem('omnicore_user_hash')
-      if (userHash) headers['X-User-Hash'] = userHash
-
       await fetch(`/api/cross-table/${state.table.id}`, {
         method: 'DELETE',
-        headers,
+        headers: getCopHeaders(),
       })
       navigate('/dashboard/tools/cross-table')
     } catch {

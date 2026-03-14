@@ -64,18 +64,12 @@ import type {
   WatchItem,
   CollectionGap,
 } from '@/types/intelligence-synthesis'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getAuthHeaders(): HeadersInit {
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  return {
-    ...(userHash && { 'Authorization': `Bearer ${userHash}` }),
-  }
-}
-
 async function fetchSection<T>(url: string): Promise<T> {
-  const response = await fetch(url, { headers: getAuthHeaders() })
+  const response = await fetch(url, { headers: getCopHeaders() })
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status}`)
   }

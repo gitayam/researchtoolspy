@@ -19,16 +19,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { useCrossTable } from './cross-table-context'
-
-// ── Auth header helper ──────────────────────────────────────────
-
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -80,7 +72,7 @@ export function AIInsightsPanel() {
     try {
       const res = await fetch(`/api/cross-table/${tableId}/ai/insights`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
       })
       if (!res.ok) throw new Error(`Failed (${res.status})`)
       const data = await res.json()
@@ -99,7 +91,7 @@ export function AIInsightsPanel() {
     try {
       const res = await fetch(`/api/cross-table/${tableId}/ai/suggest-criteria`, {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({ topic: state.table.title }),
       })
       if (!res.ok) throw new Error('Failed')
@@ -124,7 +116,7 @@ export function AIInsightsPanel() {
       for (const row of rows) {
         const res = await fetch(`/api/cross-table/${tableId}/ai/score-suggest`, {
           method: 'POST',
-          headers: getHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify({ row_id: row.id }),
         })
         if (!res.ok) continue

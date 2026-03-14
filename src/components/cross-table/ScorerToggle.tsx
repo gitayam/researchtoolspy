@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -34,15 +35,6 @@ interface ScorerToggleProps {
   onViewChange: (mode: ViewMode, scorerUserId: number | null) => void
 }
 
-// ── Fetch helper ───────────────────────────────────────────────
-
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
-
 // ── Component ──────────────────────────────────────────────────
 
 export function ScorerToggle({ tableId, currentUserId, onViewChange }: ScorerToggleProps) {
@@ -53,7 +45,7 @@ export function ScorerToggle({ tableId, currentUserId, onViewChange }: ScorerTog
   const fetchScorers = useCallback(async () => {
     try {
       const res = await fetch(`/api/cross-table/${tableId}/scorers`, {
-        headers: getHeaders(),
+        headers: getCopHeaders(),
       })
       if (!res.ok) return
       const data = await res.json()

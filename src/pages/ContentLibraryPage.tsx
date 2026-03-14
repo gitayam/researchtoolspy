@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface ContentItem {
   id: number
@@ -44,18 +45,14 @@ export function ContentLibraryPage() {
   const loadContent = async () => {
     setLoading(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const workspaceId = localStorage.getItem('omnicore_workspace_id') || '1'
 
-      const headers: HeadersInit = {
-        'X-Workspace-ID': workspaceId
-      }
-
-      if (userHash && userHash !== 'guest') {
-        headers['X-User-Hash'] = userHash
-      }
-
-      const response = await fetch('/api/content-library', { headers })
+      const response = await fetch('/api/content-library', {
+        headers: {
+          ...getCopHeaders(),
+          'X-Workspace-ID': workspaceId,
+        },
+      })
 
       if (response.ok) {
         const data = await response.json()

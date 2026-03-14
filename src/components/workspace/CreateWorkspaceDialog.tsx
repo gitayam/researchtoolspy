@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
 import { generateAccountHash } from '@/lib/hash-auth'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface CreateWorkspaceDialogProps {
   onWorkspaceCreated?: () => void
@@ -64,14 +65,11 @@ export function CreateWorkspaceDialog({ onWorkspaceCreated }: CreateWorkspaceDia
 
     try {
       // Ensure user has a hash
-      const userHash = ensureUserHash()
+      ensureUserHash()
 
       const response = await fetch('/api/workspaces', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Hash': userHash,
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           name: formData.name,
           type: formData.type,

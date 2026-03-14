@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { EvidenceEntityType } from '@/types/framework-evidence'
 import type { EvidenceType } from '@/types/evidence'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { ActorType } from '@/types/entities'
 
 interface EntityQuickCreateProps {
@@ -90,10 +91,7 @@ export function EntityQuickCreate({
     try {
       const response = await fetch('/api/evidence-items', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('omnicore_user_hash') || ''}`
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           title: dataForm.title,
           description: dataForm.what,
@@ -135,10 +133,7 @@ export function EntityQuickCreate({
     try {
       const response = await fetch('/api/actors', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('omnicore_user_hash') || ''}`
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           ...actorForm,
           workspace_id: 1
@@ -171,10 +166,7 @@ export function EntityQuickCreate({
     try {
       const response = await fetch('/api/sources', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('omnicore_user_hash') || ''}`
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           ...sourceForm,
           workspace_id: 1
@@ -207,10 +199,7 @@ export function EntityQuickCreate({
     try {
       const response = await fetch('/api/events', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('omnicore_user_hash') || ''}`
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           ...eventForm,
           workspace_id: 1

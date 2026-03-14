@@ -15,17 +15,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { useCrossTable } from './cross-table-context'
 import type { DelphiConsensus, DelphiCellStats } from '@/lib/cross-table/types'
-
-// ── Fetch helpers ──────────────────────────────────────────────
-
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
-}
 
 interface ScorerInfo {
   id: string
@@ -71,11 +63,11 @@ export function ConsensusPanel() {
     try {
       const [consensusRes, scorersRes] = await Promise.all([
         fetch(`/api/cross-table/${table.id}/consensus?round=${round}`, {
-          headers: getHeaders(),
+          headers: getCopHeaders(),
           signal,
         }),
         fetch(`/api/cross-table/${table.id}/scorers`, {
-          headers: getHeaders(),
+          headers: getCopHeaders(),
           signal,
         }),
       ])

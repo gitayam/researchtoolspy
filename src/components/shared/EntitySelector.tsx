@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export type EntityType = 'ACTOR' | 'SOURCE' | 'EVENT' | 'PLACE'
 
@@ -62,13 +63,10 @@ export function EntitySelector({
   const loadEntities = async () => {
     setLoading(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const endpoint = getEndpoint(entityType)
 
       const response = await fetch(endpoint, {
-        headers: {
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        }
+        headers: getCopHeaders(),
       })
 
       if (!response.ok) {

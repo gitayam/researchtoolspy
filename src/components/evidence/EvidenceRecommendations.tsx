@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AlertCircle, CheckCircle2, Sparkles, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface EvidenceRecommendation {
   id: number
@@ -68,13 +69,9 @@ export function EvidenceRecommendations({
     setError(null)
 
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/evidence/recommend', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           framework_type: frameworkType,
           context,

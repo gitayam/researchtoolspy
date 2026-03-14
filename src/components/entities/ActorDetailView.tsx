@@ -12,6 +12,7 @@ import { MOMAssessmentList } from './MOMAssessmentList'
 import { MOMAssessmentModal } from './MOMAssessmentModal'
 import { RelationshipList, RelationshipForm } from '@/components/network'
 import { FrameworkUsagePanel } from '@/components/shared/FrameworkUsagePanel'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { Actor, MOMAssessment, POPVariation, Relationship, CreateRelationshipRequest, UpdateRelationshipRequest } from '@/types/entities'
 
 interface ActorDetailViewProps {
@@ -42,11 +43,8 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
     const loadMomAssessments = async () => {
       setLoadingMom(true)
       try {
-        const userHash = localStorage.getItem('omnicore_user_hash')
         const response = await fetch(`/api/mom-assessments?actor_id=${actor.id}`, {
-          headers: {
-            ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-          }
+          headers: getCopHeaders(),
         })
         if (response.ok) {
           const data = await response.json()
@@ -69,11 +67,8 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
     const loadRelationships = async () => {
       setLoadingRelationships(true)
       try {
-        const userHash = localStorage.getItem('omnicore_user_hash')
         const response = await fetch(`/api/relationships?entity_id=${actor.id}&workspace_id=${actor.workspace_id}`, {
-          headers: {
-            ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-          }
+          headers: getCopHeaders(),
         })
         if (response.ok) {
           const data = await response.json()
@@ -111,11 +106,8 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
     const loadClaims = async () => {
       setLoadingClaims(true)
       try {
-        const userHash = localStorage.getItem('omnicore_user_hash')
         const response = await fetch(`/api/actors/${actor.id}/claims`, {
-          headers: {
-            ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-          }
+          headers: getCopHeaders(),
         })
         if (response.ok) {
           const data = await response.json()
@@ -489,12 +481,9 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
                   onDelete={async (assessment) => {
                     if (!confirm(`Delete MOM assessment "${assessment.scenario_description}"?`)) return
                     try {
-                      const userHash = localStorage.getItem('omnicore_user_hash')
                       await fetch(`/api/mom-assessments/${assessment.id}`, {
                         method: 'DELETE',
-                        headers: {
-                          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-                        }
+                        headers: getCopHeaders(),
                       })
                       setMomAssessments(prev => prev.filter(a => a.id !== assessment.id))
                     } catch (error) {
@@ -567,12 +556,9 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
                   onDelete={async (relationship) => {
                     if (!confirm(`Delete relationship to ${entityNames[relationship.target_entity_id] || relationship.target_entity_id}?`)) return
                     try {
-                      const userHash = localStorage.getItem('omnicore_user_hash')
                       await fetch(`/api/relationships/${relationship.id}`, {
                         method: 'DELETE',
-                        headers: {
-                          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-                        }
+                        headers: getCopHeaders(),
                       })
                       setRelationships(prev => prev.filter(r => r.id !== relationship.id))
                     } catch (error) {
@@ -612,14 +598,10 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
               workspaceId={actor.workspace_id}
               onSubmit={async (data) => {
                 try {
-                  const userHash = localStorage.getItem('omnicore_user_hash')
                   if (editingRelationship) {
                     const response = await fetch(`/api/relationships/${editingRelationship.id}`, {
                       method: 'PUT',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-                      },
+                      headers: getCopHeaders(),
                       body: JSON.stringify(data)
                     })
                     if (response.ok) {
@@ -630,10 +612,7 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
                   } else {
                     const response = await fetch('/api/relationships', {
                       method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-                      },
+                      headers: getCopHeaders(),
                       body: JSON.stringify(data)
                     })
                     if (response.ok) {

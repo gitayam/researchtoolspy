@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface Comment {
   id: string
@@ -92,14 +93,9 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
 
     setLoading(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
-
       const response = await fetch('/api/comments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           entity_type: entityType,
           entity_id: entityId,
@@ -126,14 +122,9 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
   const handleEdit = async (commentId: string) => {
     setLoading(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
-
       const response = await fetch(`/api/comments/${commentId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({ content: editContent })
       })
 
@@ -154,13 +145,9 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
 
     setLoading(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
-
       const response = await fetch(`/api/comments/${commentId}`, {
         method: 'DELETE',
-        headers: {
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        }
+        headers: getCopHeaders(),
       })
 
       if (response.ok) {
@@ -176,14 +163,9 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
   const handleResolve = async (commentId: string, resolved: boolean) => {
     setLoading(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
-
       const response = await fetch(`/api/comments/${commentId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({ action: resolved ? 'unresolve' : 'resolve' })
       })
 

@@ -31,6 +31,7 @@ import { SetupWizard } from '@/components/cross-table/SetupWizard'
 import { CrossTableEditor } from '@/components/cross-table/CrossTableEditor'
 import { ScorerView } from '@/components/cross-table/ScorerView'
 import { getTemplates } from '@/lib/cross-table/engine/templates'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { CrossTable, Score, TemplateType } from '@/lib/cross-table/types'
 
 // ── Template labels for list view ──────────────────────────────
@@ -52,15 +53,6 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'dest
   draft: 'secondary',
   scoring: 'default',
   complete: 'outline',
-}
-
-// ── Auth header helper ─────────────────────────────────────────
-
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
 }
 
 // ── Main Router Component ──────────────────────────────────────
@@ -122,7 +114,7 @@ function NewCrossTableView() {
 
       const res = await fetch('/api/cross-table', {
         method: 'POST',
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error('Failed to create cross table')
@@ -163,7 +155,7 @@ function EditCrossTableView({ id }: { id: string }) {
     setError(null)
     try {
       const res = await fetch(`/api/cross-table/${id}`, {
-        headers: getHeaders(),
+        headers: getCopHeaders(),
         signal,
       })
       if (res.status === 404) {
@@ -229,7 +221,7 @@ function CrossTableListView() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/cross-table', { headers: getHeaders(), signal })
+      const res = await fetch('/api/cross-table', { headers: getCopHeaders(), signal })
       if (!res.ok) throw new Error(`Server responded with ${res.status}`)
 
       const data = await res.json()

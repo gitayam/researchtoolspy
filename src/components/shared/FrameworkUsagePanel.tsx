@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Brain, Target, TrendingUp, BarChart3, FileText, ExternalLink } from 'lucide-react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { EntityType } from './EntitySelector'
 
 interface FrameworkUsage {
@@ -58,13 +59,10 @@ export function FrameworkUsagePanel({ entityId, entityType, entityName }: Framew
   const loadFrameworkUsage = async () => {
     setLoading(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch(
         `/api/frameworks/entity-usage?entity_id=${entityId}&entity_type=${entityType}`,
         {
-          headers: {
-            ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-          }
+          headers: getCopHeaders(),
         }
       )
 

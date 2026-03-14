@@ -15,6 +15,7 @@ import {
   Shield, AlertTriangle, TrendingUp, Eye, Target, CheckCircle2,
   XCircle, Clock, BarChart3, Activity, ExternalLink, RefreshCw, FolderKanban
 } from 'lucide-react'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface RiskStats {
   high: number
@@ -113,11 +114,8 @@ export default function DeceptionRiskDashboard() {
   const loadWorkspaces = async () => {
     try {
       setLoadingWorkspaces(true)
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/workspaces', {
-        headers: {
-          ...(userHash && { 'Authorization': `Bearer ${userHash}`, 'X-User-Hash': userHash })
-        }
+        headers: getCopHeaders(),
       })
 
       if (response.ok) {
@@ -142,11 +140,8 @@ export default function DeceptionRiskDashboard() {
       setLoading(true)
       setError(null)
 
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch(`/api/deception/aggregate?workspace_id=${selectedWorkspaceId}`, {
-        headers: {
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        }
+        headers: getCopHeaders(),
       })
 
       if (!response.ok) {

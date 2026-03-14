@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type {
   HamiltonRuleAnalysis,
   HamiltonActor,
@@ -16,13 +17,6 @@ import type {
   HamiltonMode,
   RELATEDNESS_PRESETS
 } from '@/types/hamilton-rule'
-
-const getAuthHeaders = () => {
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  return {
-    ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-  }
-}
 
 const RELATEDNESS_OPTIONS = [
   { label: 'Identical Twin', value: 1.0 },
@@ -72,7 +66,7 @@ export function HamiltonRulePage() {
   const loadAnalyses = async () => {
     try {
       const response = await fetch('/api/hamilton-rule?workspace_id=1', {
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       const data = await response.json()
       setAnalyses(data.analyses || [])
@@ -83,7 +77,7 @@ export function HamiltonRulePage() {
 
   const fetchAnalysis = async (id: string): Promise<HamiltonRuleAnalysis> => {
     const response = await fetch(`/api/hamilton-rule/${id}`, {
-      headers: getAuthHeaders()
+      headers: getCopHeaders()
     })
     const data = await response.json()
     return data.analysis
@@ -144,7 +138,7 @@ export function HamiltonRulePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders()
+          ...getCopHeaders()
         },
         body: JSON.stringify({
           title,
@@ -189,7 +183,7 @@ export function HamiltonRulePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders()
+          ...getCopHeaders()
         },
         body: JSON.stringify({
           analysis_id: selectedAnalysis.id,
@@ -217,7 +211,7 @@ export function HamiltonRulePage() {
     try {
       await fetch(`/api/hamilton-rule/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       await loadAnalyses()
       if (selectedAnalysis?.id === id) {

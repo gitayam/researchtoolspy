@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Slider } from '@/components/ui/slider'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { EvidenceItem, EvidenceFormData, EvidenceType, EvidenceLevel, ConfidenceLevel, PriorityLevel, SourceClassification } from '@/types/evidence'
 import {
   EvidenceType as EvidenceTypeEnum,
@@ -80,11 +81,8 @@ export function EvidenceItemForm({
     const loadActors = async () => {
       setLoadingActors(true)
       try {
-        const userHash = localStorage.getItem('omnicore_user_hash')
         const response = await fetch('/api/actors', {
-          headers: {
-            ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-          }
+          headers: getCopHeaders(),
         })
         if (response.ok) {
           const data = await response.json()

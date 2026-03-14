@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { formatRelativeTime } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface Investigation {
   id: string
@@ -66,11 +67,8 @@ export function DashboardPage() {
   const loadInvestigations = async () => {
     try {
       setIsLoadingInvestigations(true)
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/investigations?status=active', {
-        headers: {
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        }
+        headers: getCopHeaders(),
       })
 
       if (response.ok) {

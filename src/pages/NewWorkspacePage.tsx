@@ -38,6 +38,7 @@ import { WORKSPACE_TYPES } from '@/types/workspace'
 import type { UnifiedWorkspaceType, WorkspaceTypeDefinition } from '@/types/workspace'
 import type { CopEventType } from '@/types/cop'
 import { EVENT_TYPE_LABELS } from '@/types/cop'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ── Icon mapping ─────────────────────────────────────────────────
 
@@ -275,16 +276,9 @@ export default function NewWorkspacePage() {
         }
       }
 
-      const userHash = localStorage.getItem('omnicore_user_hash')
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (userHash) {
-        headers['Authorization'] = `Bearer ${userHash}`
-        headers['X-User-Hash'] = userHash
-      }
-
       const res = await fetch('/api/workspaces', {
         method: 'POST',
-        headers,
+        headers: getCopHeaders(),
         body: JSON.stringify(body),
       })
 

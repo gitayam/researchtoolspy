@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface PublishDialogProps {
   open: boolean
@@ -72,10 +73,7 @@ export function PublishDialog({
     try {
       const response = await fetch('/api/library', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Hash': userHash,
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           framework_id: frameworkId,
           framework_type: frameworkType,

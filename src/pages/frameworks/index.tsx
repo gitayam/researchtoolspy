@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { safeJSONParse } from '@/utils/safe-json'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { createLogger } from '@/lib/logger'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 const logger = createLogger('Frameworks')
 import { Button } from '@/components/ui/button'
@@ -33,34 +34,6 @@ import { frameworkConfigs } from '@/config/framework-configs'
 import { COG_TEMPLATES, createAnalysisFromTemplate, type COGTemplate } from '@/data/cog-templates'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
-// Helper to get authentication headers
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  }
-
-  // Try bearer token first (authenticated users)
-  const token = localStorage.getItem('omnicore_token')
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-    return headers
-  }
-
-  // Fall back to user hash (guest mode)
-  let userHash = localStorage.getItem('omnicore_user_hash')
-
-  // Generate a user hash for guest users if one doesn't exist
-  if (!userHash) {
-    userHash = crypto.randomUUID().substring(0, 16)
-    localStorage.setItem('omnicore_user_hash', userHash)
-    logger.info('Generated new guest user hash:', userHash)
-  }
-
-  // Send hash as Bearer token (backend expects it in Authorization header)
-  headers['Authorization'] = `Bearer ${userHash}`
-
-  return headers
-}
 
 export const SwotPage = () => {
   const { t } = useTranslation(['common', 'frameworks'])
@@ -97,7 +70,7 @@ export const SwotPage = () => {
   const loadAnalyses = async () => {
     try {
       const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         const data = await response.json()
@@ -116,7 +89,7 @@ export const SwotPage = () => {
     setLoading(true)
     try {
       const response = await fetch(`/api/frameworks?id=${analysisId}&workspace_id=${currentWorkspaceId}`, {
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         const data = await response.json()
@@ -156,7 +129,7 @@ export const SwotPage = () => {
       // Update existing
       const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify(payload)
       })
       if (!response.ok) {
@@ -167,7 +140,7 @@ export const SwotPage = () => {
       // Create new
       const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify(payload)
       })
       if (!response.ok) {
@@ -186,7 +159,7 @@ export const SwotPage = () => {
     try {
       const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
         method: 'DELETE',
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         if (deleteId) {
@@ -680,7 +653,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   const loadAnalyses = async () => {
     try {
       const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         const data = await response.json()
@@ -696,7 +669,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     setLoading(true)
     try {
       const response = await fetch(`/api/frameworks?id=${analysisId}&workspace_id=${currentWorkspaceId}`, {
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         const data = await response.json()
@@ -733,14 +706,14 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     if (isEditMode && id) {
       const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify(payload)
       })
       if (!response.ok) throw new Error('Failed to update')
     } else {
       const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify(payload)
       })
       if (!response.ok) throw new Error('Failed to create')
@@ -755,7 +728,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     try {
       const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
         method: 'DELETE',
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         if (deleteId) {
@@ -1121,7 +1094,7 @@ export const CogPage = () => {
   const loadAnalyses = async () => {
     try {
       const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         const data = await response.json()
@@ -1143,7 +1116,7 @@ export const CogPage = () => {
     setLoading(true)
     try {
       const response = await fetch(`/api/frameworks?id=${analysisId}&workspace_id=${currentWorkspaceId}`, {
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         const data = await response.json()
@@ -1183,14 +1156,14 @@ export const CogPage = () => {
       if (isEditMode && id) {
         const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
           method: 'PUT',
-          headers: getAuthHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify(payload)
         })
         if (!response.ok) throw new Error('API not available')
       } else {
         const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
           method: 'POST',
-          headers: getAuthHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify(payload)
         })
         if (!response.ok) throw new Error('API not available')
@@ -1222,7 +1195,7 @@ export const CogPage = () => {
     try {
       const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
         method: 'DELETE',
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         if (deleteId) {
@@ -1625,7 +1598,7 @@ export const DeceptionPage = () => {
   const loadAnalyses = async () => {
     try {
       const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         const data = await response.json()
@@ -1641,7 +1614,7 @@ export const DeceptionPage = () => {
     setLoading(true)
     try {
       const response = await fetch(`/api/frameworks?id=${analysisId}&workspace_id=${currentWorkspaceId}`, {
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         const data = await response.json()
@@ -1678,14 +1651,14 @@ export const DeceptionPage = () => {
     if (isEditMode && id) {
       const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify(payload)
       })
       if (!response.ok) throw new Error('Failed to update')
     } else {
       const response = await fetch(`/api/frameworks?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify(payload)
       })
       if (!response.ok) throw new Error('Failed to create')
@@ -1700,7 +1673,7 @@ export const DeceptionPage = () => {
     try {
       const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
         method: 'DELETE',
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         if (deleteId) {

@@ -23,6 +23,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { CopSession, CopTemplateType, CopStatus } from '@/types/cop'
 
 // ── Template icon mapping ────────────────────────────────────────
@@ -79,11 +80,7 @@ export default function CopListPage() {
     setLoading(true)
     setError(null)
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      const userHash = localStorage.getItem('omnicore_user_hash')
-      if (userHash) headers['X-User-Hash'] = userHash
-
-      const res = await fetch('/api/cop/sessions', { headers, signal })
+      const res = await fetch('/api/cop/sessions', { headers: getCopHeaders(), signal })
       if (!res.ok) throw new Error(`Server responded with ${res.status}`)
 
       const data = await res.json()

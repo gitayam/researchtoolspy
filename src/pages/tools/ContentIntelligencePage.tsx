@@ -27,6 +27,7 @@ import { generateCitation } from '@/utils/citation-formatters'
 import { ClaimAnalysisDisplay } from '@/components/content-intelligence/ClaimAnalysisDisplay'
 import { AnalysisLayout } from '@/components/content-intelligence/AnalysisLayout'
 import { createLogger } from '@/lib/logger'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
 // New extracted components from refactor
 import {
@@ -1021,11 +1022,8 @@ ${shortSummary}`
   const loadSavedLinks = async () => {
     setLoadingSavedLinks(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/content-intelligence/saved-links?limit=5', {
-        headers: {
-          ...(userHash ? { 'Authorization': `Bearer ${userHash}` } : {})
-        }
+        headers: getCopHeaders(),
       })
       if (response.ok) {
         const data = await response.json()
@@ -1047,13 +1045,9 @@ ${shortSummary}`
 
     setDimeLoading(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/content-intelligence/dime-analyze', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash ? { 'Authorization': `Bearer ${userHash}` } : {})
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           analysis_id: analysis.id.toString(),
           content_text: analysis.extracted_text,
@@ -1100,13 +1094,9 @@ ${shortSummary}`
 
     setClaimsLoading(true)
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch(`/api/claims/analyze/${analysis.id}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userHash}`
-        }
+        headers: getCopHeaders(),
       })
 
       if (!response.ok) {
@@ -1190,11 +1180,7 @@ ${shortSummary}`
     try {
       const response = await fetch('/api/content-intelligence/save', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userHash}`,
-          'X-User-Hash': userHash
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           analysis_id: analysis.id.toString(),
           generate_share_link: true,
@@ -1239,13 +1225,9 @@ ${shortSummary}`
       // First, do a quick analysis to fetch the title
       toast({ title: 'Fetching page title...', description: 'Please wait', variant: 'default' })
 
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const analyzeResponse = await fetch('/api/content-intelligence/analyze-url', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash ? { 'Authorization': `Bearer ${userHash}` } : {})
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           url,
           mode: 'quick',
@@ -1369,13 +1351,9 @@ ${shortSummary}`
         }
       }, 2000) // Update every 2 seconds
 
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/content-intelligence/analyze-url', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash ? { 'Authorization': `Bearer ${userHash}` } : {})
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           url: targetUrl,
           mode,
@@ -1553,13 +1531,9 @@ ${shortSummary}`
       if (!analysisId) {
         setCurrentStep('Saving analysis first...')
 
-        const userHash = localStorage.getItem('omnicore_user_hash')
         const saveResponse = await fetch('/api/content-intelligence/save', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(userHash ? { 'Authorization': `Bearer ${userHash}` } : {})
-          },
+          headers: getCopHeaders(),
           body: JSON.stringify({
             analysis_id: analysisData.id?.toString() || 'temp',
             generate_share_link: false
@@ -1713,7 +1687,7 @@ ${shortSummary}`
       const checkResponse = await fetch(
         `/api/actors/search?workspace_id=1&name=${encodeURIComponent(entityName)}&type=${actorType}`,
         {
-          headers: { 'Authorization': `Bearer ${userHash}` }
+          headers: getCopHeaders(),
         }
       )
 
@@ -1760,10 +1734,7 @@ ${shortSummary}`
 
       const response = await fetch('/api/actors', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userHash}`
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           name: entityName,
           type: actorType,
@@ -1828,15 +1799,11 @@ ${shortSummary}`
     if (!analysis?.id) return
 
     setProcessing(true)
-    const userHash = localStorage.getItem('omnicore_user_hash')
 
     try {
       const response = await fetch('/api/content-intelligence/auto-extract-entities', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           analysis_id: analysis.id,
           workspace_id: '1',
@@ -1894,9 +1861,7 @@ ${shortSummary}`
         const response = await fetch(
           `/api/actors/search?workspace_id=1&name=${encodeURIComponent(entity.name)}&type=${entity.type}`,
           {
-            headers: {
-              'Authorization': `Bearer ${userHash}`
-            }
+            headers: getCopHeaders(),
           }
         )
 
@@ -1931,13 +1896,9 @@ ${shortSummary}`
     setStarburstingError(null)
 
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch('/api/content-intelligence/starbursting', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           analysis_ids: [analysisId],
           use_ai_questions: true
@@ -1998,13 +1959,9 @@ ${shortSummary}`
     setGeneratingMoreQuestions(true)
 
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
       const response = await fetch(`/api/content-intelligence/starbursting/${sessionId}/generate-questions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHash && { 'Authorization': `Bearer ${userHash}` })
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           existing_questions: starburstingSession?.framework_data?.data || {}
         })
