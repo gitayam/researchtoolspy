@@ -16,7 +16,6 @@ import {
   Link2,
   ChevronDown,
   ChevronRight,
-  AlertTriangle,
   Clock,
   MapPin,
   Shield,

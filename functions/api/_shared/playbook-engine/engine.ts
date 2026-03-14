@@ -78,7 +78,7 @@ async function processPlaybook(
     result.events_processed++
 
     let payload: Record<string, unknown> = {}
-    try { payload = JSON.parse(event.payload || '{}') } catch { payload = {} }
+    try { payload = JSON.parse(event.payload || '{}') } catch (e) { console.warn('[Playbook] Malformed event payload:', event.id); payload = {} }
 
     for (const rule of ruleRows) {
       await processRule(db, playbook, rule, event, payload, result)
@@ -106,7 +106,7 @@ async function processRule(
 
   // Check trigger filter (simple key-value match against payload)
   let triggerFilter: Record<string, unknown> = {}
-  try { triggerFilter = JSON.parse(rule.trigger_filter || '{}') } catch { triggerFilter = {} }
+  try { triggerFilter = JSON.parse(rule.trigger_filter || '{}') } catch (e) { console.warn('[Playbook] Malformed trigger_filter on rule:', rule.id); triggerFilter = {} }
 
   for (const [key, value] of Object.entries(triggerFilter)) {
     if (payload[key] !== value) return
@@ -121,7 +121,7 @@ async function processRule(
 
   // Evaluate conditions
   let conditions: any[] = []
-  try { conditions = JSON.parse(rule.conditions || '[]') } catch { conditions = [] }
+  try { conditions = JSON.parse(rule.conditions || '[]') } catch (e) { console.warn('[Playbook] Malformed conditions on rule:', rule.id); conditions = [] }
 
   const context = {
     payload,
@@ -135,7 +135,7 @@ async function processRule(
   // Execute actions
   const startTime = Date.now()
   let actions: any[] = []
-  try { actions = JSON.parse(rule.actions || '[]') } catch { actions = [] }
+  try { actions = JSON.parse(rule.actions || '[]') } catch (e) { console.warn('[Playbook] Malformed actions on rule:', rule.id); actions = [] }
 
   const templateContext: TemplateContext = {
     trigger: {

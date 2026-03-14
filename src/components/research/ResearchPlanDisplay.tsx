@@ -91,7 +91,7 @@ export default function ResearchPlanDisplay({ plan, onEdit, onExport }: Research
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-2xl flex items-center gap-2">
-                <BookOpen className="h-6 w-6 text-purple-600" />
+                <BookOpen className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 Your Research Plan
               </CardTitle>
               <CardDescription>
@@ -116,29 +116,29 @@ export default function ResearchPlanDisplay({ plan, onEdit, onExport }: Research
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">{plan.methodology.approach}</div>
-                <div className="text-sm text-gray-500 mt-1">Research Approach</div>
-                <div className="text-xs text-gray-400 mt-2">{plan.methodology.design}</div>
+                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{plan.methodology.approach}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">Research Approach</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500 mt-2">{plan.methodology.design}</div>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">{plan.timeline.totalDuration}</div>
-                <div className="text-sm text-gray-500 mt-1">Total Duration</div>
-                <div className="text-xs text-gray-400 mt-2">{plan.timeline.milestones.length} milestones</div>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{plan.timeline.totalDuration}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">Total Duration</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500 mt-2">{plan.timeline.milestones.length} milestones</div>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                   {plan.ethicalConsiderations.riskLevel}
                 </div>
-                <div className="text-sm text-gray-500 mt-1">Risk Level</div>
-                <div className="text-xs text-gray-400 mt-2">
+                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">Risk Level</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                   {plan.ethicalConsiderations.irbRequired ? 'IRB Required' : 'No IRB Required'}
                 </div>
               </div>
@@ -267,14 +267,14 @@ export default function ResearchPlanDisplay({ plan, onEdit, onExport }: Research
             <CardContent className="space-y-6">
               <div>
                 <label className="text-sm font-semibold">Total Duration</label>
-                <p className="text-2xl font-bold text-purple-600 mt-1">{plan.timeline.totalDuration}</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{plan.timeline.totalDuration}</p>
               </div>
 
               <div>
                 <label className="text-sm font-semibold mb-3 block">Milestones</label>
                 <div className="space-y-4">
                   {plan.timeline.milestones.map((milestone, i) => (
-                    <Card key={i} className="border-l-4 border-l-purple-600">
+                    <Card key={i} className="border-l-4 border-l-purple-600 dark:border-l-purple-400">
                       <CardContent className="pt-4">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-semibold">{milestone.phase}</h4>
@@ -282,7 +282,7 @@ export default function ResearchPlanDisplay({ plan, onEdit, onExport }: Research
                         </div>
                         <div className="space-y-2 mt-3">
                           <div>
-                            <p className="text-xs font-semibold text-gray-500 mb-1">TASKS</p>
+                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">TASKS</p>
                             <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
                               {milestone.tasks.map((task, j) => (
                                 <li key={j}>{task}</li>
@@ -290,7 +290,7 @@ export default function ResearchPlanDisplay({ plan, onEdit, onExport }: Research
                             </ul>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-gray-500 mb-1">DELIVERABLES</p>
+                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">DELIVERABLES</p>
                             <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
                               {milestone.deliverables.map((deliverable, j) => (
                                 <li key={j}>{deliverable}</li>
@@ -441,7 +441,7 @@ export default function ResearchPlanDisplay({ plan, onEdit, onExport }: Research
               </div>
               <div>
                 <label className="text-sm font-semibold">Expected Number of Sources</label>
-                <p className="text-2xl font-bold text-purple-600 mt-1">{plan.literatureReview.expectedSources}</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{plan.literatureReview.expectedSources}</p>
               </div>
             </CardContent>
           </Card>
@@ -531,17 +531,17 @@ export default function ResearchPlanDisplay({ plan, onEdit, onExport }: Research
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-sm text-gray-500">IRB Required</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">IRB Required</p>
                   <p className="text-xl font-bold mt-1">
                     {plan.ethicalConsiderations.irbRequired ? 'Yes' : 'No'}
                   </p>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-sm text-gray-500">Risk Level</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Risk Level</p>
                   <p className="text-xl font-bold mt-1">{plan.ethicalConsiderations.riskLevel}</p>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-sm text-gray-500">Consent Required</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Consent Required</p>
                   <p className="text-xl font-bold mt-1">
                     {plan.ethicalConsiderations.consentRequired ? 'Yes' : 'No'}
                   </p>

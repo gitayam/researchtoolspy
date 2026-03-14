@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-38)
+**Last updated:** 2026-03-14 (Sessions 34-39)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -95,6 +95,21 @@
 
 ---
 
+## Fixed — v0.13.5 (Session 39)
+
+### UX
+| # | Issue | Status |
+|---|-------|--------|
+| 38 | **ResearchPlanDisplay missing dark mode** — 15 instances of unreadable text in dark mode across overview cards, timeline, literature, and ethics tabs. Fixed: added `dark:` variants for `text-purple-600`, `text-blue-600`, `text-green-600`, `text-gray-500`, and `border-l-purple-600` | FIXED |
+
+### CODE QUALITY
+| # | Issue | Status |
+|---|-------|--------|
+| 29 | **Empty catch blocks in playbook-engine** — 4 silent JSON parse failures in `engine.ts` now log `console.warn` with rule/event IDs for debugging | FIXED |
+| 39 | **Dead import in CopGlobalAlertPanel** — unused `AlertTriangle` import from lucide-react removed | FIXED |
+
+---
+
 ## Remaining Tech Debt
 
 ### Architecture (MEDIUM)
@@ -109,10 +124,10 @@
 |---|-------|-------|
 | 20 | CreateWorkspaceDialog not internationalized | Hardcoded English strings |
 | 22 | 112 `as any` casts in frontend | GenericFrameworkForm: 35 instances |
-| 29 | Empty catch blocks in playbook-engine | `engine.ts` lines 81, 109, 124 — JSON parse failures default silently |
 | 35 | ~129 dead `onRequestOptions` handlers across API files | Middleware handles CORS. LOW priority, risky to batch-remove (console.log incident) |
 | 36 | ~120 duplicate `corsHeaders` definitions | Redundant with middleware. Same batch-removal risk |
 | 37 | ~22 instances of internal `url.pathname.match()` routing | Dead code per Cloudflare Pages routing model |
+| 40 | Dark mode gaps in COP components | CopPersonaLinkDialog, CopAssetDetailDrawer, CopEventSidebar, CopArtifactLightbox, CopStatusStrip — mostly hover states |
 
 ### Performance (LOW)
 | # | Issue | Notes |
