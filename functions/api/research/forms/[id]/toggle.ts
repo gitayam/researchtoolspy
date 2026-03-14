@@ -19,7 +19,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       userId = await requireAuth(context.request, context.env)
     } catch (error) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -31,7 +31,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
         error: 'Invalid is_active value. Must be 0 or 1'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -45,7 +45,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
         error: 'Form not found'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -77,7 +77,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       success: true,
       is_active: body.is_active
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[forms/toggle] Error:', error)
@@ -86,7 +86,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

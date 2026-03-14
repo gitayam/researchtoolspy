@@ -25,7 +25,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -37,7 +37,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Missing required field: submissionId'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -59,7 +59,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Submission not found'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -69,7 +69,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         evidenceId: submission.evidence_id
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -208,7 +208,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         processedAt: now
       }
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {
@@ -218,7 +218,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

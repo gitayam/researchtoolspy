@@ -173,7 +173,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -184,7 +184,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Missing required fields: researchQuestion, duration'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -374,7 +374,7 @@ Make the plan specific to THIS research question and research type, not generic 
       success: true,
       plan
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[generate-plan] Error:', error)
@@ -383,7 +383,7 @@ Make the plan specific to THIS research question and research type, not generic 
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

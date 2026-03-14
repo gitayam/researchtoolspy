@@ -41,7 +41,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Topic is required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -162,7 +162,7 @@ Return the response as a JSON object with a "questions" array:
       questions,
       count: questions.length
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {
@@ -172,7 +172,7 @@ Return the response as a JSON object with a "questions" array:
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

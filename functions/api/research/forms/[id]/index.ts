@@ -30,7 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'Form not found'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -50,7 +50,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       success: true,
       form: parsed
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[forms/get] Error:', error)
@@ -59,7 +59,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }
@@ -72,7 +72,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       userId = await requireAuth(context.request, context.env)
     } catch (error) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -88,7 +88,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         error: 'Form not found'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -128,7 +128,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       success: true,
       deleted_submissions: submissionCount?.count || 0
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[forms/delete] Error:', error)
@@ -137,7 +137,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

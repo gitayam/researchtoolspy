@@ -69,7 +69,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       submissions,
       count: submissions.length
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {
@@ -79,7 +79,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

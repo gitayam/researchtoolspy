@@ -253,7 +253,7 @@ export function DeceptionView({
       entity_data: entityData,
       linked_at: new Date().toISOString()
     }
-    setLinkedEvidence([...linkedEvidence, newLink])
+    setLinkedEvidence(prev => [...prev, newLink])
     setShowEvidencePanel(true) // Show panel to see the newly linked entity
   }
 
@@ -345,11 +345,11 @@ export function DeceptionView({
       const allSucceeded = results.every(r => r.success)
 
       if (allSucceeded) {
-        setLinkedEvidence([...linkedEvidence, ...selected])
+        setLinkedEvidence(prev => [...prev, ...selected])
       } else {
         console.error('Some links failed:', results)
         // Still update UI with what we have
-        setLinkedEvidence([...linkedEvidence, ...selected])
+        setLinkedEvidence(prev => [...prev, ...selected])
         alert('Some items may not have been linked properly.')
       }
     } catch (error) {
@@ -379,8 +379,8 @@ export function DeceptionView({
       }
 
       if (response.ok) {
-        setLinkedEvidence(
-          linkedEvidence.filter(e => !(e.entity_type === entity_type && String(e.entity_id) === String(entity_id)))
+        setLinkedEvidence(prev =>
+          prev.filter(e => !(e.entity_type === entity_type && String(e.entity_id) === String(entity_id)))
         )
       } else {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))

@@ -22,7 +22,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'Must provide researchQuestionId or investigationPacketId'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -76,7 +76,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       evidence,
       count: evidence.length
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {
@@ -86,7 +86,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

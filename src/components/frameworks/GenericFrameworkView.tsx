@@ -229,7 +229,7 @@ export function GenericFrameworkView({
       })
 
       if (response.ok) {
-        setLinkedEvidence([...linkedEvidence, ...selected])
+        setLinkedEvidence(prev => [...prev, ...selected])
         logger.info('Evidence linked successfully')
       } else {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -255,8 +255,8 @@ export function GenericFrameworkView({
       )
 
       if (response.ok) {
-        setLinkedEvidence(
-          linkedEvidence.filter(e => !(e.entity_type === entity_type && e.entity_id === entity_id))
+        setLinkedEvidence(prev =>
+          prev.filter(e => !(e.entity_type === entity_type && e.entity_id === entity_id))
         )
         logger.info('Evidence unlinked successfully')
       } else {
@@ -278,7 +278,7 @@ export function GenericFrameworkView({
       entity_data: entityData,
       linked_at: new Date().toISOString()
     }
-    setLinkedEvidence([...linkedEvidence, newLink])
+    setLinkedEvidence(prev => [...prev, newLink])
     setShowEvidencePanel(true) // Show panel to see the newly linked entity
   }
 

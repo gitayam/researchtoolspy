@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-65)
+**Last updated:** 2026-03-14 (Sessions 34-66)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -628,6 +628,34 @@
 
 ---
 
+## Fixed — v0.17.1 (Session 66)
+
+### CORS (14 research API endpoints missing Access-Control-Allow-Origin)
+| # | Issue | Status |
+|---|-------|--------|
+| 279 | **research/tasks/list.ts** — 3 response instances missing CORS header | FIXED |
+| 280 | **research/forms/create.ts** — 6 response instances missing CORS header | FIXED |
+| 281 | **research/forms/list.ts** — 2 response instances missing CORS header | FIXED |
+| 282 | **research/forms/[id]/index.ts** — 7 response instances missing CORS header | FIXED |
+| 283 | **research/forms/[id]/toggle.ts** — 5 response instances missing CORS header | FIXED |
+| 284 | **research/generate-question.ts** — 4 response instances missing CORS header | FIXED |
+| 285 | **research/evidence/add.ts** — 5 response instances missing CORS header | FIXED |
+| 286 | **research/evidence/list.ts** — 3 response instances missing CORS header | FIXED |
+| 287 | **research/submit/[hashId].ts** — 15 response instances missing CORS header | FIXED |
+| 288 | **research/workflow/init.ts** — 5 response instances missing CORS header | FIXED |
+| 289 | **research/recommend-questions.ts** — 3 response instances missing CORS header | FIXED |
+| 290 | **research/submissions/process.ts** — 6 response instances missing CORS header | FIXED |
+| 291 | **research/submissions/list.ts** — 2 response instances missing CORS header | FIXED |
+| 292 | **research/generate-plan.ts** — 4 response instances missing CORS header | FIXED |
+
+### RACE CONDITION (stale state closures in evidence linking)
+| # | Issue | Status |
+|---|-------|--------|
+| 293 | **GenericFrameworkView.tsx** — 3 instances of `setLinkedEvidence([...linkedEvidence, ...])` using stale closure. Fixed: functional updater `prev => [...prev, ...]` | FIXED |
+| 294 | **DeceptionView.tsx** — 3 instances of `setLinkedEvidence([...linkedEvidence, ...])` using stale closure. Fixed: functional updater `prev => [...prev, ...]` | FIXED |
+
+---
+
 ## Remaining Tech Debt
 
 ### Architecture (MEDIUM)
@@ -643,7 +671,7 @@
 | 20 | CreateWorkspaceDialog not internationalized | Hardcoded English strings |
 | 22 | 112 `as any` casts in frontend | GenericFrameworkForm: 35 instances |
 | 35 | ~129 dead `onRequestOptions` handlers across API files | Middleware handles CORS. LOW priority, risky to batch-remove (console.log incident) |
-| 36 | ~120 duplicate `corsHeaders` definitions | Redundant with middleware. Same batch-removal risk |
+| 36 | ~120 duplicate `corsHeaders` definitions | **NOT redundant** — CF middleware cannot reliably inject CORS into pre-set Response headers. Per-endpoint CORS is REQUIRED. Do not remove. |
 | 37 | ~22 instances of internal `url.pathname.match()` routing | Dead code per Cloudflare Pages routing model |
 | 40 | Dark mode gaps in COP components | CopPersonaLinkDialog, CopAssetDetailDrawer, CopEventSidebar, CopArtifactLightbox, CopStatusStrip, CopRfiTab, CopTagSelector — 60+ instances of `text-gray-500/600` without `dark:` variants |
 | 41 | Dark mode gaps in CopAnalysisSummary | ~14 color classes missing `dark:` variants — icons, badges, section headings, empty state text |

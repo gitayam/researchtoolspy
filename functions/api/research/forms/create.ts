@@ -57,7 +57,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -69,7 +69,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Missing required fields: formName, enabledFields'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -93,7 +93,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         validFields
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -119,7 +119,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Failed to generate unique hash ID'
       }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -177,7 +177,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         createdAt: now
       }
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {
@@ -187,7 +187,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

@@ -96,7 +96,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Missing required fields: topic, who, what, where, when, why'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -238,7 +238,7 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
           error: 'No workspace found for user'
         }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       }
 
@@ -290,7 +290,7 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
         why: body.why.importance
       }
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[generate-question] Error:', error)
@@ -299,7 +299,7 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }
