@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-14 (cycle 19)
+> Last updated: 2026-03-14 (cycle 20)
 > Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
@@ -216,6 +216,17 @@
 **Remaining:** 10 files retain `omnicore_user_hash` for auth guard checks (UI conditionals like `if (!userHash) return`) — these are legitimate uses, not header construction
 **Impact:** Single auth change point, consistent header format, -200+ LOC of duplicated logic
 
+### F36. Mobile Bottom Tab Navigation (UI/UX Phase 4)
+**Was:** Mobile users had to open the hamburger sidebar drawer to navigate between dashboard sections — no persistent navigation visible on mobile/tablet.
+**Fix:**
+- Created `MobileBottomTabs` component with 5 tabs: Home, Tools, Workspaces, Analysis, More
+- Bottom bar uses iOS safe-area insets for notch phones
+- "More" button opens the full sidebar drawer for all other sections
+- Added `pb-20 lg:pb-8` to main content to prevent overlap with bottom tabs
+- `DashboardSidebar` now accepts controlled `mobileMenuOpen`/`onMobileMenuChange` props
+- Hidden on desktop (lg+) where sidebar is always visible
+- Only appears in `DashboardLayout`, not COP full-bleed workspace pages
+
 ### F35. COP Responsive Layout — dvh Fix, Mobile Sidebar, Error Boundaries
 **Was:** Right-column sidebar used `100vh` (broken on iOS Safari), sidebar hidden on mobile with no toggle, no ErrorBoundary around COP panels
 **Fix:**
@@ -325,7 +336,7 @@
 24. ~~**New** — Activity POST silent data loss~~ DONE — now returns 500 on DB failure
 25. ~~**New** — getHeaders() duplicated 19x~~ DONE — extracted to src/lib/cop-auth.ts getCopHeaders()
 26. ~~**New** — error.message leaks in API responses~~ DONE — removed from 44 error responses across 23 endpoints
-27. **New** — UI/UX Phase 4: Mobile Bottom Tab Navigation
+27. ~~**New** — UI/UX Phase 4: Mobile Bottom Tab Navigation~~ DONE (F36)
 28. ~~**New** — COP responsive layout (dvh, mobile sidebar toggle, error boundaries)~~ MERGED with #19
 29. ~~**New** — GenericFrameworkView crash on undefined data~~ DONE (F27) — null guard added
 30. ~~**New** — Entity extraction → COP Actors auto-population~~ DONE (F28) — batch creation with dedup

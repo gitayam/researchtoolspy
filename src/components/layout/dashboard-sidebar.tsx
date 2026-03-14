@@ -142,11 +142,20 @@ const getNavigation = (t: (key: string) => string) => [
   },
 ]
 
-export function DashboardSidebar() {
+interface DashboardSidebarProps {
+  mobileMenuOpen?: boolean
+  onMobileMenuChange?: (open: boolean) => void
+}
+
+export function DashboardSidebar({ mobileMenuOpen: controlledOpen, onMobileMenuChange }: DashboardSidebarProps = {}) {
   const location = useLocation()
   const pathname = location.pathname
   const { t } = useTranslation()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+
+  // Support both controlled and uncontrolled modes
+  const mobileMenuOpen = controlledOpen ?? internalOpen
+  const setMobileMenuOpen = onMobileMenuChange ?? setInternalOpen
   const [expandedItems, setExpandedItems] = useState<string[]>([
     t('navigation.analysisFrameworks'),
     t('navigation.researchTools'),
