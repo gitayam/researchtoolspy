@@ -1019,7 +1019,7 @@ export function DeceptionView({
         defaultTab={entityCreateTab}
         frameworkContext={{
           frameworkType: 'deception',
-          frameworkId: data.id?.toString()
+          frameworkId: data?.id ? String(data.id) : undefined
         }}
       />
 

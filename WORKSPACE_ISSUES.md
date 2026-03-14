@@ -124,6 +124,11 @@
 | 48 | **COP task-dependencies POST/DELETE uses `getUserIdOrDefault`** — Fixed: `cop/[id]/task-dependencies.ts` uses `getUserFromRequest` + 401 | FIXED |
 | 49 | **COP timeline POST/PUT/DELETE uses `getUserIdOrDefault`** — Fixed: all 3 handlers in `cop/[id]/timeline.ts` use `getUserFromRequest` + 401 | FIXED |
 | 50 | **COP task-templates POST/PUT/DELETE uses `getUserIdOrDefault`** — Fixed: all 3 handlers in `cop/[id]/task-templates.ts` use `getUserFromRequest` + 401 | FIXED |
+| 51 | **evidence-items DELETE unscoped to owner** — any user could delete any evidence item by ID. Fixed: added `AND created_by = ?` + 404 on no match. Citations DELETE also scoped. | FIXED |
+| 52 | **evidence-items error response leaks `url` and `method`** — internal routing info exposed to clients. Fixed: removed from error response body | FIXED |
+| 53 | **DeceptionView `.toString()` crash** — `data.id?.toString()` throws if `data` is null. Fixed: `data?.id ? String(data.id) : undefined` | FIXED |
+| 54 | **ContentIntelligencePage `.toString()` crash** — `analysisData.id?.toString()` throws on null. Fixed: `analysisData?.id ? String(analysisData.id) : 'temp'` | FIXED |
+| 55 | **Dead `getUserIdOrDefault` imports** in export.ts and submissions.ts — removed unused imports left from previous auth fixes | FIXED |
 
 ---
 

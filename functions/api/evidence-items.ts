@@ -403,15 +403,22 @@ export async function onRequest(context: any) {
         })
       }
 
-      // Delete citations first
-      await env.DB.prepare('DELETE FROM evidence_citations WHERE evidence_id = ?')
-        .bind(evidenceId)
+      // Delete citations first (scoped to owner's evidence)
+      await env.DB.prepare('DELETE FROM evidence_citations WHERE evidence_id = ? AND evidence_id IN (SELECT id FROM evidence_items WHERE created_by = ?)')
+        .bind(evidenceId, userId)
         .run()
 
-      // Delete evidence
-      await env.DB.prepare('DELETE FROM evidence_items WHERE id = ?')
-        .bind(evidenceId)
+      // Delete evidence (scoped to owner)
+      const delResult = await env.DB.prepare('DELETE FROM evidence_items WHERE id = ? AND created_by = ?')
+        .bind(evidenceId, userId)
         .run()
+
+      if (!delResult.meta.changes || delResult.meta.changes === 0) {
+        return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
+          status: 404,
+          headers: corsHeaders,
+        })
+      }
 
       return new Response(JSON.stringify({ message: 'Evidence deleted successfully' }), {
         status: 200,
@@ -433,9 +440,6 @@ export async function onRequest(context: any) {
 
     return new Response(JSON.stringify({
       error: 'Evidence API error',
-
-      url: request.url,
-      method: request.method
     }), {
       status: 500,
       headers: corsHeaders,

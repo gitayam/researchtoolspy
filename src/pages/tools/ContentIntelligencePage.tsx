@@ -1535,7 +1535,7 @@ ${shortSummary}`
           method: 'POST',
           headers: getCopHeaders(),
           body: JSON.stringify({
-            analysis_id: analysisData.id?.toString() || 'temp',
+            analysis_id: analysisData?.id ? String(analysisData.id) : 'temp',
             generate_share_link: false
           })
         })
