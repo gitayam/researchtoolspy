@@ -76,7 +76,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('Share framework error:', error)
     return Response.json({
       error: 'Failed to update sharing settings',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Internal server error'
     }, { status: 500 })
   }
 }

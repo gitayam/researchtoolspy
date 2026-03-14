@@ -242,7 +242,7 @@ export async function executeAction(
   try {
     return await handler(db, sessionId, params, userId)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
+    const message = 'Action execution failed'
     console.error(`[Playbook Action] ${actionType} failed:`, message)
     return { error: message }
   }

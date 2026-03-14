@@ -123,7 +123,7 @@ No explanations, just the JSON array.`
     console.error('Question generation error:', error)
     return Response.json({
       error: 'Question generation failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'AI request failed'
     }, { status: 500 })
   }
 }

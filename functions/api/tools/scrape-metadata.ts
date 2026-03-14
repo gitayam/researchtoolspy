@@ -293,7 +293,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     } catch (fetchError: any) {
       return new Response(JSON.stringify({
-        error: `Failed to fetch URL: ${fetchError.message}`,
+        error: 'Failed to fetch URL',
         suggestion: 'Unable to access the URL. It may be down, blocked, or require authentication.'
       }), {
         status: 400,
@@ -324,7 +324,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('Scrape metadata error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to scrape metadata',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Internal server error'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

@@ -106,7 +106,7 @@ ${mode === 'comprehensive' ? 'Use markdown headings (##) to organize sections.' 
     console.error('Summarization error:', error)
     return Response.json({
       error: 'Summarization failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'AI request failed'
     }, { status: 500 })
   }
 }

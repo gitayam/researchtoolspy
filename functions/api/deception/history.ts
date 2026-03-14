@@ -116,7 +116,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('Deception history error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to fetch history',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Internal server error'
     }), {
       status: 500,
       headers: corsHeaders,

@@ -136,7 +136,7 @@ function createUserFriendlyError(
     platform,
     error: userMessage,
     metadata: {
-      technicalDetails: technicalError,
+      technicalDetails: 'Extraction failed',
       timestamp: new Date().toISOString()
     }
   }
@@ -421,7 +421,7 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
     console.error('[YouTube] Extraction failed:', error)
     return createUserFriendlyError(
       'youtube',
-      error instanceof Error ? error.message : 'Unknown error',
+      'Extraction failed',
       'YouTube video could not be extracted. The video may be private, age-restricted, or unavailable in your region.'
     )
   }
@@ -619,9 +619,8 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
     const result = await extractInstagramViaCobalt(url, shortcode, mode)
     return await cacheAndReturn(result)
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-    console.warn('[Instagram] Cobalt.tools failed:', errorMsg)
-    errors.push(`cobalt.tools: ${errorMsg}`)
+    console.warn('[Instagram] Cobalt.tools failed:', error)
+    errors.push(`cobalt.tools: extraction failed`)
   }
 
   // Strategy 2: Try SnapInsta API (fallback)
@@ -630,9 +629,8 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
     const result = await extractInstagramViaSnapInsta(url, shortcode)
     return await cacheAndReturn(result)
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-    console.warn('[Instagram] SnapInsta failed:', errorMsg)
-    errors.push(`SnapInsta: ${errorMsg}`)
+    console.warn('[Instagram] SnapInsta failed:', error)
+    errors.push(`SnapInsta: extraction failed`)
   }
 
   // Strategy 3: Try InstaDP API (fallback)
@@ -641,9 +639,8 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
     const result = await extractInstagramViaInstaDP(url, shortcode)
     return await cacheAndReturn(result)
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-    console.warn('[Instagram] InstaDP failed:', errorMsg)
-    errors.push(`InstaDP: ${errorMsg}`)
+    console.warn('[Instagram] InstaDP failed:', error)
+    errors.push(`InstaDP: extraction failed`)
   }
 
   // Strategy 4: Try SaveInsta API (fallback)
@@ -652,9 +649,8 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
     const result = await extractInstagramViaSaveInsta(url, shortcode)
     return await cacheAndReturn(result)
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-    console.warn('[Instagram] SaveInsta failed:', errorMsg)
-    errors.push(`SaveInsta: ${errorMsg}`)
+    console.warn('[Instagram] SaveInsta failed:', error)
+    errors.push(`SaveInsta: extraction failed`)
   }
 
   // Strategy 5: Try oEmbed API (metadata only)
@@ -663,9 +659,8 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
     const result = await extractInstagramViaOEmbed(url, shortcode)
     return await cacheAndReturn(result)
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-    console.warn('[Instagram] oEmbed failed:', errorMsg)
-    errors.push(`oEmbed: ${errorMsg}`)
+    console.warn('[Instagram] oEmbed failed:', error)
+    errors.push(`oEmbed: extraction failed`)
   }
 
   // All strategies failed - return comprehensive error with specific diagnostics
@@ -1108,7 +1103,7 @@ async function extractTikTok(url: string, mode: string): Promise<SocialMediaExtr
     console.error('[TikTok] Extraction failed:', error)
     return createUserFriendlyError(
       'tiktok',
-      error instanceof Error ? error.message : 'Unknown error',
+      'Extraction failed',
       'TikTok video could not be extracted. The video may be private, deleted, or temporarily unavailable. Please try again later.'
     )
   }
@@ -1378,7 +1373,7 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
     console.error('[Twitter] Extraction failed:', error)
     return createUserFriendlyError(
       'twitter',
-      error instanceof Error ? error.message : 'Unknown error',
+      'Extraction failed',
       'Tweet could not be extracted. The tweet may be from a protected account, deleted, or temporarily unavailable. Try copying the tweet URL again or check if the account is public.'
     )
   }
@@ -1603,7 +1598,7 @@ async function extractBluesky(url: string, mode: string): Promise<SocialMediaExt
     console.error('[Bluesky] Extraction failed:', error)
     return createUserFriendlyError(
       'bluesky',
-      error instanceof Error ? error.message : 'Unknown error',
+      'Extraction failed',
       'Bluesky post could not be extracted. The post may be from a private account, deleted, or the Bluesky API may be temporarily unavailable. Please verify the URL is correct and try again.'
     )
   }

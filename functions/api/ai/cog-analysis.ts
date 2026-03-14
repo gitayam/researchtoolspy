@@ -381,7 +381,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch (error) {
       return Response.json({
         error: 'Invalid request',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: 'AI request failed'
       }, { status: 400 })
     }
 
@@ -435,7 +435,7 @@ Always provide specific, targetable recommendations that support operational pla
       console.error('[COG AI] OpenAI API error:', error)
       return Response.json({
         error: 'AI generation failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: 'AI request failed'
       }, { status: 500 })
     }
 
@@ -510,7 +510,7 @@ Always provide specific, targetable recommendations that support operational pla
 
     return Response.json({
       error: 'Analysis failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'AI analysis failed'
     }, { status: 500 })
   }
 }

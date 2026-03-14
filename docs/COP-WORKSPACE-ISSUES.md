@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-14 (cycle 21)
+> Last updated: 2026-03-14 (cycle 22)
 > Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
@@ -216,6 +216,15 @@
 **Remaining:** 10 files retain `omnicore_user_hash` for auth guard checks (UI conditionals like `if (!userHash) return`) — these are legitimate uses, not header construction
 **Impact:** Single auth change point, consistent header format, -200+ LOC of duplicated logic
 
+### F39. Error Message Leak Hardening Round 3 — Complete API Sweep
+**Was:** ~40 additional endpoints across `ai/` (8), `content-intelligence/` (3), `tools/` (3), `frameworks/` (3), `deception/` (1), `feedback/` (1), `claims/` (2), `_shared/playbook-engine/` (2), and batch endpoints (4) still returning `err.message`/`error.message` in responses.
+**Fix:** Replaced all with generic messages. Zero `error.message` patterns remain in any API Response body across the entire `functions/api/` directory.
+**Files:** 30+ files, completing the hardening started in F26 and continued in F37.
+
+### F40. Mobile Bottom Tab — Broken Analysis Route Fix
+**Was:** Bottom tab "Analysis" linked to `/dashboard/analysis-frameworks` which has no route definition — showed blank page. No base route exists; the sidebar expands sub-routes.
+**Fix:** Changed tab to "Intel" pointing to `/dashboard/intelligence` (Intelligence Synthesis Dashboard), which exists and provides high-value mobile quick-access.
+
 ### F37. Error Message Leak Hardening Round 2 — Cross-Table, Settings, Tools
 **Was:** 21 additional API endpoints (cross-table, settings, tools) still returning `err.message` or `error.message` in 500 responses — missed by the initial F26 hardening pass.
 **Fix:** Replaced all leaked error messages with generic strings (`'Internal server error'`, `'AI request failed'`). console.error preserved for server-side logging.
@@ -357,3 +366,5 @@
 36. ~~**New** — Remaining inline `omnicore_user_hash` in ~35 files~~ DONE (F34) — 36 files refactored, 73 now use getCopHeaders()
 37. ~~**New** — Error message leak hardening round 2~~ DONE (F37) — 21 endpoints across cross-table, settings, tools
 38. ~~**New** — Redundant Content-Type spread cleanup~~ DONE (F38) — 5 frontend files simplified
+39. ~~**New** — Error message leak hardening round 3 — complete API sweep~~ DONE (F39) — 30+ files, zero leaks remain
+40. ~~**New** — Mobile bottom tab broken Analysis route~~ DONE (F40) — changed to Intel tab

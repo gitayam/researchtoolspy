@@ -156,7 +156,7 @@ export async function onRequest(context: any) {
 
           results.push({ entity_type: entity.entity_type, entity_id: entity.entity_id, success: true })
         } catch (error: any) {
-          results.push({ entity_type: entity.entity_type, entity_id: entity.entity_id, success: false, error: error.message })
+          results.push({ entity_type: entity.entity_type, entity_id: entity.entity_id, success: false, error: 'Processing failed' })
         }
       }
 

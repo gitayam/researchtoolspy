@@ -120,7 +120,7 @@ export async function onRequest(context: any) {
 
           results.push({ dataset_id: datasetId, success: true })
         } catch (error: any) {
-          results.push({ dataset_id: datasetId, success: false, error: error.message })
+          results.push({ dataset_id: datasetId, success: false, error: 'Processing failed' })
         }
       }
 

@@ -10,7 +10,7 @@ import {
   Home,
   Search,
   Map,
-  Brain,
+  Lightbulb,
   MoreHorizontal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -19,7 +19,7 @@ const TABS = [
   { id: 'home', label: 'Home', href: '/dashboard', icon: Home, exact: true },
   { id: 'tools', label: 'Tools', href: '/dashboard/tools', icon: Search },
   { id: 'cop', label: 'Workspaces', href: '/dashboard/cop', icon: Map },
-  { id: 'frameworks', label: 'Analysis', href: '/dashboard/analysis-frameworks', icon: Brain },
+  { id: 'intel', label: 'Intel', href: '/dashboard/intelligence', icon: Lightbulb },
 ] as const
 
 interface MobileBottomTabsProps {

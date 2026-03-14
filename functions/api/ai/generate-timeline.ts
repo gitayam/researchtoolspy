@@ -229,7 +229,7 @@ Keep it brief.`
     console.error('Timeline generation error:', error)
     return Response.json({
       error: 'Timeline generation failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'AI request failed'
     }, { status: 500 })
   }
 }

@@ -175,7 +175,7 @@ async function processRule(
         }
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
+      const msg = 'Action execution failed'
       actionResults.push({ action: action.action, error: msg })
       logStatus = 'partial'
       if (!errorMessage) errorMessage = msg

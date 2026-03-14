@@ -267,14 +267,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         url: body.url,
         normalizedUrl,
-        error: `Failed to fetch URL: ${fetchError.message}`,
+        error: 'Failed to fetch URL',
         status: {
           code: 0,
           ok: false,
           responseTime: Date.now() - startTime,
           redirects: [],
           finalUrl: normalizedUrl,
-          error: fetchError.message
+          error: 'Request failed'
         }
       }), {
         status: 200,
@@ -427,7 +427,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('URL analysis error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to analyze URL',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Internal server error'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }

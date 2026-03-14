@@ -258,7 +258,7 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
       }
       errors.push(`Method 1 failed: ${graphqlResponse.status}`)
     } catch (err) {
-      errors.push(`Method 1 error: ${err instanceof Error ? err.message : 'Unknown'}`)
+      errors.push(`Method 1 error: extraction failed`)
     }
 
     // Method 2: Instagram Public JSON Endpoint (Legacy)
@@ -283,7 +283,7 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
       }
       errors.push(`Method 2 failed: ${jsonResponse.status}`)
     } catch (err) {
-      errors.push(`Method 2 error: ${err instanceof Error ? err.message : 'Unknown'}`)
+      errors.push(`Method 2 error: extraction failed`)
     }
 
     // Method 3: Scrape HTML and extract JSON
@@ -322,7 +322,7 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
       }
       errors.push(`Method 3 failed: No JSON data found in HTML`)
     } catch (err) {
-      errors.push(`Method 3 error: ${err instanceof Error ? err.message : 'Unknown'}`)
+      errors.push(`Method 3 error: extraction failed`)
     }
 
     // Method 4: Instagram oEmbed API
@@ -368,7 +368,7 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
       }
       errors.push(`Method 4 failed: ${oembedResponse.status}`)
     } catch (err) {
-      errors.push(`Method 4 error: ${err instanceof Error ? err.message : 'Unknown'}`)
+      errors.push(`Method 4 error: extraction failed`)
     }
 
     // Method 5: Fallback to basic metadata only

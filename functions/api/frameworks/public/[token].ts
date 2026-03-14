@@ -63,7 +63,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('Get public framework error:', error)
     return Response.json({
       error: 'Failed to load public framework',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Internal server error'
     }, { status: 500 })
   }
 }

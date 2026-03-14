@@ -69,7 +69,7 @@ async function processSingleURL(url: string, operation: string, origin: string):
   } catch (error: any) {
     return {
       success: false,
-      error: error.message || 'Processing failed',
+      error: 'Processing failed',
       duration: Date.now() - startTime
     }
   }
@@ -116,7 +116,7 @@ async function processInBatches(items: BatchItem[], operation: string, maxWorker
         }
       } catch (error: any) {
         itemResult.status = 'error'
-        itemResult.error = error.message || 'Unknown error'
+        itemResult.error = 'Processing failed'
         itemResult.completedAt = new Date().toISOString()
         failed++
       }
@@ -244,7 +244,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('Batch processing error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to process batch',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Internal server error'
     }), {
       status: 500,
       headers: {

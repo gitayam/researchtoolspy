@@ -317,7 +317,7 @@ Return ONLY valid JSON:
           red_flags: [
             '⚠️ Automated analysis unavailable',
             'Manual assessment required',
-            'Error: ' + (error instanceof Error ? error.message : 'Unknown error')
+            'Analysis processing error'
           ],
           confidence_assessment: 'AI analysis failed - manual review strongly recommended. Edit scores below to provide your assessment.'
         }

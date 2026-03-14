@@ -105,7 +105,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('Config retrieval error:', error)
     return Response.json({
       error: 'Failed to retrieve configuration',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'AI request failed'
     }, { status: 500 })
   }
 }
@@ -150,7 +150,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     console.error('Config update error:', error)
     return Response.json({
       error: 'Failed to update configuration',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'AI request failed'
     }, { status: 500 })
   }
 }
@@ -174,7 +174,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('Config reset error:', error)
     return Response.json({
       error: 'Failed to reset configuration',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'AI request failed'
     }, { status: 500 })
   }
 }

@@ -679,7 +679,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       } catch (extractError) {
         console.error(`OpenAI extraction API error for ${framework}:`, extractError)
         extractedData = {
-          _error: `Failed to extract ${framework} data: ${extractError instanceof Error ? extractError.message : String(extractError)}`,
+          _error: `Failed to extract ${framework} data`,
           _model: 'gpt-4o-mini',
           _framework: framework
         }

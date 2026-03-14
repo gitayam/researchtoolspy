@@ -164,7 +164,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('Generation error:', error)
     return Response.json({
       error: 'Generation failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'AI request failed'
     }, { status: 500 })
   }
 }

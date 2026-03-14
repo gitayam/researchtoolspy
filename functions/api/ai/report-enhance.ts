@@ -737,7 +737,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('Report enhancement error:', error)
     return Response.json({
       error: 'Report enhancement failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'AI request failed'
     }, { status: 500 })
   }
 }

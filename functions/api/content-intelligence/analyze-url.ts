@@ -1130,7 +1130,7 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
       console.error('[Content Extract] PDF extraction failed:', pdfError)
       return {
         success: false,
-        error: pdfError instanceof Error ? pdfError.message : 'PDF extraction failed',
+        error: 'PDF extraction failed',
         text: '',
         isPDF: true
       }
@@ -2851,7 +2851,7 @@ Return ONLY valid JSON:
           red_flags: [
             '⚠️ Automated analysis unavailable',
             'Manual assessment required',
-            'Error: ' + (error instanceof Error ? error.message : 'Unknown error')
+            'Error: AI analysis unavailable'
           ],
           confidence_assessment: 'AI analysis failed - manual review strongly recommended. Edit scores below to provide your assessment.'
         }

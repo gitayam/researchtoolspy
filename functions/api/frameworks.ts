@@ -298,7 +298,7 @@ export async function onRequest(context: any) {
     console.error('Framework API error:', error)
     return new Response(JSON.stringify({
       error: 'Framework operation failed',
-      message: error.message || 'Unknown error occurred'
+      message: 'Internal server error'
     }), {
       status: 500,
       headers: corsHeaders,

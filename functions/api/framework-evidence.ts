@@ -114,7 +114,7 @@ export async function onRequest(context: any) {
 
           results.push({ evidence_id: evidenceId, success: true })
         } catch (error: any) {
-          results.push({ evidence_id: evidenceId, success: false, error: error.message })
+          results.push({ evidence_id: evidenceId, success: false, error: 'Processing failed' })
         }
       }
 
