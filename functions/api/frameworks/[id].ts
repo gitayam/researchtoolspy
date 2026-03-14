@@ -1,6 +1,6 @@
 /**
  * Individual Framework Session API
- * Get and update specific framework sessions with hash-based auth support
+ * Get and update specific framework sessions with auth + ownership checks
  */
 
 import { getUserFromRequest, getUserIdOrDefault } from '../_shared/auth-helpers'
@@ -18,33 +18,11 @@ const corsHeaders = {
 }
 
 /**
- * OPTIONS - CORS preflight
- */
-export const onRequestOptions: PagesFunction<Env> = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
-}
-
-/**
- * Get user ID supporting both Bearer token and X-User-Hash header
- */
-function resolveUserId(request: Request): number {
-  // Check Authorization: Bearer <hash>
-  const auth = request.headers.get('Authorization')
-  if (auth?.startsWith('Bearer ')) {
-    try { return JSON.parse(atob(auth.split('.')[1])).sub ?? 1 } catch { /* not JWT */ }
-  }
-  // Check X-User-Hash header (COP-style auth)
-  const hash = request.headers.get('X-User-Hash')
-  if (hash) return parseInt(hash, 10) || 1
-  return 1
-}
-
-/**
  * GET - Retrieve specific framework session
  */
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const userId = resolveUserId(context.request)
+    const userId = await getUserIdOrDefault(context.request, context.env)
     const sessionId = context.params.id as string
 
     // Get framework session
@@ -66,9 +44,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     // Parse data JSON
+    let parsedData = {}
+    if (result.data) {
+      try { parsedData = JSON.parse(result.data as string) } catch { /* corrupted data */ }
+    }
+
     const session = {
       ...result,
-      data: result.data ? JSON.parse(result.data as string) : {}
+      data: parsedData
     }
 
     return new Response(JSON.stringify(session), {
@@ -80,7 +63,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[Frameworks GET by ID] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to retrieve framework session'
-
     }), {
       status: 500,
       headers: corsHeaders,
@@ -89,16 +71,22 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 }
 
 /**
- * PUT - Update framework session
+ * PUT - Update framework session (auth + ownership required)
  */
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   try {
-    const userId = resolveUserId(context.request)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
+
     const sessionId = context.params.id as string
 
-    // Check existence
+    // Check existence and ownership
     const existing = await context.env.DB.prepare(
-      'SELECT user_id FROM framework_sessions WHERE id = ?'
+      'SELECT user_id, workspace_id FROM framework_sessions WHERE id = ?'
     ).bind(sessionId).first()
 
     if (!existing) {
@@ -107,6 +95,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       }), {
         status: 404,
         headers: corsHeaders,
+      })
+    }
+
+    // Verify ownership — user_id must match or workspace must match
+    const workspaceId = context.request.headers.get('X-Workspace-ID')
+    const isOwner = existing.user_id === userId
+    const inWorkspace = workspaceId && existing.workspace_id === workspaceId
+    if (!isOwner && !inWorkspace) {
+      return new Response(JSON.stringify({ error: 'Not authorized to update this session' }), {
+        status: 403, headers: corsHeaders,
       })
     }
 
@@ -149,12 +147,19 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     updates.push('updated_at = datetime("now")')
     params.push(sessionId)
+    params.push(userId)
 
-    await context.env.DB.prepare(`
+    const result = await context.env.DB.prepare(`
       UPDATE framework_sessions
       SET ${updates.join(', ')}
-      WHERE id = ?
+      WHERE id = ? AND user_id = ?
     `).bind(...params).run()
+
+    if (!result.meta.changes) {
+      return new Response(JSON.stringify({ error: 'Session not found or not owned by you' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
 
     return new Response(JSON.stringify({
       success: true,
@@ -168,7 +173,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     console.error('[Frameworks PUT] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update framework session'
-
     }), {
       status: 500,
       headers: corsHeaders,
@@ -177,30 +181,32 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 }
 
 /**
- * DELETE - Delete framework session
+ * DELETE - Delete framework session (auth + ownership required)
  */
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
-    const userId = resolveUserId(context.request)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
+
     const sessionId = context.params.id as string
 
-    // Check existence
-    const existing = await context.env.DB.prepare(
-      'SELECT user_id FROM framework_sessions WHERE id = ?'
-    ).bind(sessionId).first()
+    // Delete with ownership check
+    const result = await context.env.DB.prepare(
+      'DELETE FROM framework_sessions WHERE id = ? AND user_id = ?'
+    ).bind(sessionId, userId).run()
 
-    if (!existing) {
+    if (!result.meta.changes) {
       return new Response(JSON.stringify({
-        error: 'Framework session not found'
+        error: 'Framework session not found or not owned by you'
       }), {
         status: 404,
         headers: corsHeaders,
       })
     }
-
-    await context.env.DB.prepare(
-      'DELETE FROM framework_sessions WHERE id = ?'
-    ).bind(sessionId).run()
 
     return new Response(JSON.stringify({
       success: true,
@@ -214,7 +220,6 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     console.error('[Frameworks DELETE] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to delete framework session'
-
     }), {
       status: 500,
       headers: corsHeaders,

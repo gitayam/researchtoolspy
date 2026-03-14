@@ -16,15 +16,12 @@ interface Env {
  */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const authUserId = await getUserFromRequest(context.request, context.env)
-    if (!authUserId) {
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: { 'Content-Type': 'application/json' },
       })
     }
-
-    // Get user ID - defaults to 1 if not authenticated (backward compatibility)
-    const userId = await getUserIdOrDefault(context.request, context.env)
 
 
     const body = await context.request.json() as {

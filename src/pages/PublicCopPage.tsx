@@ -218,8 +218,8 @@ export default function PublicCopPage() {
     )
   }
 
-  const { session, visible_panels, allow_rfi_answers, rfis } = data
-  const hasSidePanels = visible_panels.some(p => p !== 'map')
+  const { session, visible_panels = [], allow_rfi_answers, rfis } = data
+  const hasSidePanels = visible_panels?.some(p => p !== 'map') ?? false
   const eventType = session.event_type as keyof typeof EVENT_TYPE_LABELS | null
 
   // ── Render panels ──────────────────────────────────────────────

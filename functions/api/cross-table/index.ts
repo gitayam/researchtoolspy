@@ -126,7 +126,7 @@ async function handleCreate(env: any, userId: number, request: Request) {
 function parseTableRow(row: any) {
   return {
     ...row,
-    config: typeof row.config === 'string' ? JSON.parse(row.config) : row.config,
+    config: typeof row.config === 'string' ? (() => { try { return JSON.parse(row.config) } catch { return {} } })() : (row.config || {}),
     is_public: Boolean(row.is_public),
   }
 }

@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-49)
+**Last updated:** 2026-03-14 (Sessions 34-50)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -254,6 +254,30 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 119 | **ResearchPlanDisplay.tsx 25+ unguarded .map() calls on AI-generated nested data** — `plan.methodology.dataCollection.map()`, `plan.timeline.milestones.map()`, etc. If AI omits any nested field, component crashes with TypeError. Fixed: added `normalizePlan()` function that ensures all nested arrays/objects have safe defaults before rendering | FIXED |
+
+---
+
+## Fixed — v0.15.5 (Session 50)
+
+### SECURITY (privilege escalation)
+| # | Issue | Status |
+|---|-------|--------|
+| 124 | **frameworks/[id].ts PUT/DELETE no auth + no ownership check** — Custom `resolveUserId()` bypassed shared auth helpers, fell back to user 1 silently. Any user (even unauthenticated) could update/delete ANY framework session by ID. Fixed: replaced with `getUserFromRequest` + 401, added `AND user_id = ?` defense-in-depth, workspace-level access as secondary check | FIXED |
+| 125 | **frameworks/[id].ts custom `resolveUserId()` auth bypass** — Private function parsed JWT/hash manually with `|| 1` fallback, never validated token. Exact same pattern as COP Session 44 (`getUserId()` bypass). Removed entirely, using shared auth helpers | FIXED |
+| 126 | **frameworks/index.ts POST redundant `getUserIdOrDefault` after auth** — Line 27 called `getUserIdOrDefault` after `getUserFromRequest` already validated auth on line 19, creating confusion about which userId was authoritative. Fixed: single `getUserFromRequest` call | FIXED |
+
+### FRONTEND CRASH
+| # | Issue | Status |
+|---|-------|--------|
+| 127 | **PublicCopPage.tsx `visible_panels.some()` without null guard** — `visible_panels` destructured from API response with no default. If backend returns null/undefined, page crashes with TypeError. Fixed: default to `[]` + optional chaining | FIXED |
+| 128 | **AnalysisSummaryExport.tsx `claim.deception_analysis.red_flags.length` without guard** — Direct property access on AI-generated nested data. If `deception_analysis` or `red_flags` missing, export crashes. Fixed: added optional chaining `?.` on all nested accesses | FIXED |
+
+### ERROR HANDLING
+| # | Issue | Status |
+|---|-------|--------|
+| 129 | **cross-table/index.ts `JSON.parse(row.config)` without try-catch** — `parseTableRow()` crashes on corrupted config JSON in D1. Fixed: wrapped in try-catch with `{}` fallback | FIXED |
+| 130 | **frameworks/index.tsx 4x `JSON.parse(localStorage...)` without try-catch** — Corrupted localStorage crashes framework page load. Fixed: wrapped all 4 instances in try-catch with `[]` fallback | FIXED |
+| 131 | **frameworks/[id].ts GET `JSON.parse(result.data)` without try-catch** — Corrupted framework data JSON crashes GET endpoint. Fixed: wrapped in try-catch with `{}` fallback | FIXED |
 
 ---
 
