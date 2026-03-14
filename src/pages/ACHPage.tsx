@@ -26,23 +26,25 @@ export function ACHPage() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editingAnalysis, setEditingAnalysis] = useState<ACHAnalysis | undefined>(undefined)
 
-  const loadAnalyses = async () => {
+  const loadAnalyses = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const response = await fetch('/api/ach')
+      const response = await fetch('/api/ach', { signal })
       if (response.ok) {
         const data = await response.json()
         setAnalyses(data.analyses || [])
       }
-    } catch (error) {
-      console.error('Failed to load ACH analyses:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to load ACH analyses:', error)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadAnalyses()
+    const controller = new AbortController()
+    loadAnalyses(controller.signal)
+    return () => controller.abort()
   }, [])
 
   const handleDeleteAnalysis = async (id: string) => {

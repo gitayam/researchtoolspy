@@ -21,23 +21,27 @@ export function PublicContentAnalysisPage() {
   const { toast } = useToast()
 
   useEffect(() => {
-    loadAnalysis()
+    const controller = new AbortController()
+    loadAnalysis(controller.signal)
+    return () => controller.abort()
   }, [token])
 
-  const loadAnalysis = async () => {
+  const loadAnalysis = async (signal?: AbortSignal) => {
     if (!token) return
 
     try {
       setLoading(true)
-      const response = await fetch(`/api/content-intelligence/public/${token}`)
+      const response = await fetch(`/api/content-intelligence/public/${token}`, { signal })
       if (!response.ok) {
         throw new Error(t('publicContentAnalysis:notFound.description'))
       }
       const data = await response.json()
       setAnalysis(data)
-    } catch (error) {
-      console.error('Failed to load analysis:', error)
-      setError(error instanceof Error ? error.message : t('publicContentAnalysis:notFound.description'))
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Failed to load analysis:', error)
+        setError(error instanceof Error ? error.message : t('publicContentAnalysis:notFound.description'))
+      }
     } finally {
       setLoading(false)
     }

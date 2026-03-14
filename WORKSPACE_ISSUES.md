@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-63)
+**Last updated:** 2026-03-14 (Sessions 34-64)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -564,6 +564,37 @@
 | 243 | **DatasetPage.tsx no AbortController** — Fetch not cancelled on unmount. Fixed: AbortController + signal | FIXED |
 | 244 | **NetworkGraphPage.tsx no AbortController** — 7 sequential fetches (relationships + 6 entity types) not cancelled on unmount. Fixed: AbortController + signal | FIXED |
 | 245 | **EvidenceSubmissionsPage.tsx no AbortController** — 2 useEffects (forms + submissions) not cancelled on unmount. Fixed: AbortController + signal on both | FIXED |
+
+---
+
+## Fixed — v0.16.9 (Session 64)
+
+### PERFORMANCE (missing LIMIT on 4 secondary queries)
+| # | Issue | Status |
+|---|-------|--------|
+| 246 | **framework-evidence.ts secondary query no LIMIT** — GET by evidence_id returns all framework links. Fixed: `LIMIT 500` | FIXED |
+| 247 | **framework-datasets.ts secondary query no LIMIT** — GET by dataset_id returns all framework links. Fixed: `LIMIT 500` | FIXED |
+| 248 | **evidence-citations.ts GET by evidence_id no LIMIT** — Returns all citations for evidence. Fixed: `LIMIT 500` | FIXED |
+| 249 | **evidence-citations.ts GET by dataset_id no LIMIT** — Returns all evidence citing a dataset. Fixed: `LIMIT 500` | FIXED |
+
+### STABILITY (missing AbortController on 13 frontend files)
+| # | Issue | Status |
+|---|-------|--------|
+| 250 | **WorkspaceContext.tsx no AbortController** — Context provider fetch not cancelled on unmount. Fixed | FIXED |
+| 251 | **PublicFrameworkPage.tsx no AbortController** — Promise chain fetch without signal. Fixed | FIXED |
+| 252 | **PublicContentAnalysisPage.tsx no AbortController** — Public page fetch not cancelled. Fixed | FIXED |
+| 253 | **PublicACHLibraryPage.tsx no AbortController** — Library listing fetch not cancelled. Fixed | FIXED |
+| 254 | **PublicACHPage.tsx no AbortController** — Public analysis page fetch not cancelled. Fixed | FIXED |
+| 255 | **SocialMediaPage.tsx no AbortController** — 4 fetch functions (stats, profiles, posts, jobs) not cancelled. Fixed with 2 controllers | FIXED |
+| 256 | **IntelligenceSynthesisPage.tsx no AbortController** — 7 parallel fetchSection calls not cancelled. Fixed: signal param + 7 controllers | FIXED |
+| 257 | **HamiltonRulePage.tsx no AbortController** — Analysis list fetch not cancelled. Fixed | FIXED |
+| 258 | **EquilibriumAnalysisPage.tsx no AbortController** — Analysis list fetch not cancelled. Fixed | FIXED |
+| 259 | **DeceptionRiskDashboard.tsx no AbortController** — 2 useEffects (workspaces + aggregate data) not cancelled. Fixed | FIXED |
+| 260 | **SubmissionFormsPage.tsx no AbortController** — Forms list fetch not cancelled. Fixed | FIXED |
+| 261 | **CollaborationPage.tsx no AbortController** — Workspace fetch not cancelled. Fixed | FIXED |
+| 262 | **ACHPage.tsx no AbortController** — Analysis list fetch not cancelled. Fixed | FIXED |
+| 263 | **InvestigationPacketsPage.tsx no AbortController** — Packets list fetch not cancelled. Fixed | FIXED |
+| 264 | **SubmissionsReviewPage.tsx no AbortController** — Submissions fetch (dep on formId+statusFilter) not cancelled. Fixed | FIXED |
 
 ---
 

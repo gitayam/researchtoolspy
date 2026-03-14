@@ -39,6 +39,7 @@ export async function onRequest(context: any) {
           JOIN datasets d ON ec.dataset_id = d.id
           WHERE ec.evidence_id = ?
           ORDER BY ec.relevance_score DESC
+          LIMIT 500
         `).bind(evidenceId).all()
 
         const parsedCitations = citations.results.map((c: any) => ({
@@ -70,6 +71,7 @@ export async function onRequest(context: any) {
           JOIN evidence_items e ON ec.evidence_id = e.id
           WHERE ec.dataset_id = ?
           ORDER BY ec.created_at DESC
+          LIMIT 500
         `).bind(datasetId).all()
 
         return new Response(JSON.stringify({ citations: citations.results }), {

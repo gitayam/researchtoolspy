@@ -44,7 +44,9 @@ export function CollaborationPage() {
 
   useEffect(() => {
     ensureUserHash()
-    fetchWorkspaces()
+    const controller = new AbortController()
+    fetchWorkspaces(controller.signal)
+    return () => controller.abort()
   }, [])
 
   const ensureUserHash = () => {
@@ -68,10 +70,10 @@ export function CollaborationPage() {
     return headers
   }
 
-  const fetchWorkspaces = async () => {
+  const fetchWorkspaces = async (signal?: AbortSignal) => {
     try {
       setError(null)
-      const response = await fetch('/api/workspaces', { headers: getAuthHeaders() })
+      const response = await fetch('/api/workspaces', { headers: getAuthHeaders(), signal })
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}))
         setError(errData.error || `Failed to load workspaces (${response.status})`)
@@ -87,9 +89,11 @@ export function CollaborationPage() {
       } else if (allWorkspaces.length > 0) {
         setSelectedWorkspace(allWorkspaces[0])
       }
-    } catch (err) {
-      console.error('Failed to fetch workspaces:', err)
-      setError('Network error \u2014 could not reach the server')
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Failed to fetch workspaces:', err)
+        setError('Network error \u2014 could not reach the server')
+      }
     } finally {
       setLoading(false)
     }
@@ -114,7 +118,7 @@ export function CollaborationPage() {
             <Users className="h-16 w-16 text-red-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Could not load workspaces</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
-            <button onClick={fetchWorkspaces} className="px-4 py-2 rounded border text-sm">Retry</button>
+            <button onClick={() => fetchWorkspaces()} className="px-4 py-2 rounded border text-sm">Retry</button>
           </CardContent>
         </Card>
       </div>

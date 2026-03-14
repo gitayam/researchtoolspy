@@ -111,11 +111,12 @@ export default function DeceptionRiskDashboard() {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('1')
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(true)
 
-  const loadWorkspaces = async () => {
+  const loadWorkspaces = async (signal?: AbortSignal) => {
     try {
       setLoadingWorkspaces(true)
       const response = await fetch('/api/workspaces', {
         headers: getCopHeaders(),
+        signal,
       })
 
       if (response.ok) {
@@ -128,20 +129,21 @@ export default function DeceptionRiskDashboard() {
           setSelectedWorkspaceId(allWorkspaces[0].id)
         }
       }
-    } catch (err) {
-      console.error('Failed to load workspaces:', err)
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') console.error('Failed to load workspaces:', err)
     } finally {
       setLoadingWorkspaces(false)
     }
   }
 
-  const loadData = async () => {
+  const loadData = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       setError(null)
 
       const response = await fetch(`/api/deception/aggregate?workspace_id=${selectedWorkspaceId}`, {
         headers: getCopHeaders(),
+        signal,
       })
 
       if (!response.ok) {
@@ -151,21 +153,27 @@ export default function DeceptionRiskDashboard() {
       const result = await response.json()
       setData(result)
       setLastUpdated(new Date())
-    } catch (err) {
-      console.error('Failed to load deception dashboard:', err)
-      setError(err instanceof Error ? err.message : 'Unknown error')
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Failed to load deception dashboard:', err)
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      }
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadWorkspaces()
+    const controller = new AbortController()
+    loadWorkspaces(controller.signal)
+    return () => controller.abort()
   }, [])
 
   useEffect(() => {
     if (!loadingWorkspaces) {
-      loadData()
+      const controller = new AbortController()
+      loadData(controller.signal)
+      return () => controller.abort()
     }
   }, [selectedWorkspaceId, loadingWorkspaces])
 
@@ -194,7 +202,7 @@ export default function DeceptionRiskDashboard() {
             <p className="text-sm text-muted-foreground mb-4">
               {error || t('pages.deceptionRisk.errorMessage')}
             </p>
-            <Button onClick={loadData}>
+            <Button onClick={() => loadData()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               {t('pages.deceptionRisk.retry')}
             </Button>
@@ -274,7 +282,7 @@ export default function DeceptionRiskDashboard() {
           </div>
         </div>
         <div className="text-right">
-          <Button onClick={loadData} variant="outline" size="sm">
+          <Button onClick={() => loadData()} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             {t('pages.deceptionRisk.refresh')}
           </Button>

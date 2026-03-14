@@ -19,15 +19,18 @@ export function PublicFrameworkPage() {
 
   useEffect(() => {
     if (!token) return
+    const controller = new AbortController()
 
-    fetch(`/api/frameworks/public/${token}`)
+    fetch(`/api/frameworks/public/${token}`, { signal: controller.signal })
       .then(res => {
         if (!res.ok) throw new Error(t('publicFramework:notFound'))
         return res.json()
       })
       .then(setFramework)
-      .catch(err => setError(err.message))
+      .catch(err => { if (err?.name !== 'AbortError') setError(err.message) })
       .finally(() => setLoading(false))
+
+    return () => controller.abort()
   }, [token, t])
 
   const handleClone = async () => {

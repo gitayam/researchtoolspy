@@ -64,14 +64,17 @@ export function InvestigationPacketsPage() {
   const [tags, setTags] = useState('')
 
   useEffect(() => {
-    loadPackets()
+    const controller = new AbortController()
+    loadPackets(controller.signal)
+    return () => controller.abort()
   }, [])
 
-  const loadPackets = async () => {
+  const loadPackets = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const response = await fetch('/api/investigation-packets/list', {
-        credentials: 'include'
+        credentials: 'include',
+        signal,
       })
 
       if (!response.ok) throw new Error(t('investigationPackets:alerts.loadFailed'))
@@ -80,8 +83,8 @@ export function InvestigationPacketsPage() {
       if (data.success) {
         setPackets(data.packets || [])
       }
-    } catch (error) {
-      console.error('Error loading packets:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Error loading packets:', error)
     } finally {
       setLoading(false)
     }

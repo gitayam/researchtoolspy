@@ -68,8 +68,8 @@ import { getCopHeaders } from '@/lib/cop-auth'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function fetchSection<T>(url: string): Promise<T> {
-  const response = await fetch(url, { headers: getCopHeaders() })
+async function fetchSection<T>(url: string, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(url, { headers: getCopHeaders(), signal })
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status}`)
   }
@@ -325,52 +325,66 @@ export default function IntelligenceSynthesisPage() {
   // ─── Parallel fetches (all independent) ────────────────────────────────────
 
   useEffect(() => {
-    fetchSection<IntelligenceKpi>('/api/intelligence/kpi')
+    const c = new AbortController()
+    fetchSection<IntelligenceKpi>('/api/intelligence/kpi', c.signal)
       .then(setKpiData)
-      .catch(err => setKpiError(err instanceof Error ? err.message : 'Unknown error'))
+      .catch(err => { if (err?.name !== 'AbortError') setKpiError(err instanceof Error ? err.message : 'Unknown error') })
       .finally(() => setKpiLoading(false))
+    return () => c.abort()
   }, [])
 
   useEffect(() => {
-    fetchSection<SynthesisResponse>('/api/intelligence/synthesis')
+    const c = new AbortController()
+    fetchSection<SynthesisResponse>('/api/intelligence/synthesis', c.signal)
       .then(setSynthesisData)
-      .catch(err => setSynthesisError(err instanceof Error ? err.message : 'Unknown error'))
+      .catch(err => { if (err?.name !== 'AbortError') setSynthesisError(err instanceof Error ? err.message : 'Unknown error') })
       .finally(() => setSynthesisLoading(false))
+    return () => c.abort()
   }, [])
 
   useEffect(() => {
-    fetchSection<EntityConvergenceResponse>('/api/intelligence/entities')
+    const c = new AbortController()
+    fetchSection<EntityConvergenceResponse>('/api/intelligence/entities', c.signal)
       .then(setEntityData)
-      .catch(err => setEntityError(err instanceof Error ? err.message : 'Unknown error'))
+      .catch(err => { if (err?.name !== 'AbortError') setEntityError(err instanceof Error ? err.message : 'Unknown error') })
       .finally(() => setEntityLoading(false))
+    return () => c.abort()
   }, [])
 
   useEffect(() => {
-    fetchSection<TimelineResponse>('/api/intelligence/timeline')
+    const c = new AbortController()
+    fetchSection<TimelineResponse>('/api/intelligence/timeline', c.signal)
       .then(setTimelineData)
-      .catch(err => setTimelineError(err instanceof Error ? err.message : 'Unknown error'))
+      .catch(err => { if (err?.name !== 'AbortError') setTimelineError(err instanceof Error ? err.message : 'Unknown error') })
       .finally(() => setTimelineLoading(false))
+    return () => c.abort()
   }, [])
 
   useEffect(() => {
-    fetchSection<NetworkIntelligenceResponse>('/api/intelligence/network')
+    const c = new AbortController()
+    fetchSection<NetworkIntelligenceResponse>('/api/intelligence/network', c.signal)
       .then(setNetworkData)
-      .catch(err => setNetworkError(err instanceof Error ? err.message : 'Unknown error'))
+      .catch(err => { if (err?.name !== 'AbortError') setNetworkError(err instanceof Error ? err.message : 'Unknown error') })
       .finally(() => setNetworkLoading(false))
+    return () => c.abort()
   }, [])
 
   useEffect(() => {
-    fetchSection<ContradictionsResponse>('/api/intelligence/contradictions')
+    const c = new AbortController()
+    fetchSection<ContradictionsResponse>('/api/intelligence/contradictions', c.signal)
       .then(setContradictionsData)
-      .catch(err => setContradictionsError(err instanceof Error ? err.message : 'Unknown error'))
+      .catch(err => { if (err?.name !== 'AbortError') setContradictionsError(err instanceof Error ? err.message : 'Unknown error') })
       .finally(() => setContradictionsLoading(false))
+    return () => c.abort()
   }, [])
 
   useEffect(() => {
-    fetchSection<PredictionsResponse>('/api/intelligence/predictions')
+    const c = new AbortController()
+    fetchSection<PredictionsResponse>('/api/intelligence/predictions', c.signal)
       .then(setPredictionsData)
-      .catch(err => setPredictionsError(err instanceof Error ? err.message : 'Unknown error'))
+      .catch(err => { if (err?.name !== 'AbortError') setPredictionsError(err instanceof Error ? err.message : 'Unknown error') })
       .finally(() => setPredictionsLoading(false))
+    return () => c.abort()
   }, [])
 
   // ─── Entity Sort Logic ─────────────────────────────────────────────────────

@@ -19,23 +19,27 @@ export function PublicACHLibraryPage() {
   const [sortBy, setSortBy] = useState<'recent' | 'popular'>('recent')
 
   useEffect(() => {
-    loadPublicAnalyses()
+    const controller = new AbortController()
+    loadPublicAnalyses(controller.signal)
+    return () => controller.abort()
   }, [domainFilter, sortBy])
 
-  const loadPublicAnalyses = async () => {
+  const loadPublicAnalyses = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
       if (domainFilter !== 'all') params.append('domain', domainFilter)
       params.append('sort', sortBy)
 
-      const response = await fetch(`/api/ach/public?${params}`)
+      const response = await fetch(`/api/ach/public?${params}`, { signal })
       if (!response.ok) throw new Error('Failed to load analyses')
 
       const data = await response.json()
       setAnalyses(data.analyses || [])
-    } catch (error) {
-      console.error('Failed to load public analyses:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Failed to load public analyses:', error)
+      }
     } finally {
       setLoading(false)
     }

@@ -39,15 +39,17 @@ export default function SubmissionFormsPage() {
   const [copied, setCopied] = useState<string | null>(null)
 
   useEffect(() => {
-    loadForms()
+    const controller = new AbortController()
+    loadForms(controller.signal)
+    return () => controller.abort()
   }, [])
 
-  const loadForms = async () => {
+  const loadForms = async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
 
     try {
-      const response = await fetch('/api/research/forms/list?workspaceId=1')
+      const response = await fetch('/api/research/forms/list?workspaceId=1', { signal })
       const data = await response.json()
 
       if (!response.ok) {
@@ -55,9 +57,11 @@ export default function SubmissionFormsPage() {
       }
 
       setForms(data.forms || [])
-    } catch (err) {
-      console.error('Failed to load forms:', err)
-      setError(err instanceof Error ? err.message : t('submissionForms:alerts.loadFailed'))
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Failed to load forms:', err)
+        setError(err instanceof Error ? err.message : t('submissionForms:alerts.loadFailed'))
+      }
     } finally {
       setIsLoading(false)
     }

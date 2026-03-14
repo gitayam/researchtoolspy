@@ -60,18 +60,21 @@ export function HamiltonRulePage() {
   const [newRelCost, setNewRelCost] = useState(3)
 
   useEffect(() => {
-    loadAnalyses()
+    const controller = new AbortController()
+    loadAnalyses(controller.signal)
+    return () => controller.abort()
   }, [])
 
-  const loadAnalyses = async () => {
+  const loadAnalyses = async (signal?: AbortSignal) => {
     try {
       const response = await fetch('/api/hamilton-rule?workspace_id=1', {
-        headers: getCopHeaders()
+        headers: getCopHeaders(),
+        signal,
       })
       const data = await response.json()
       setAnalyses(data.analyses || [])
-    } catch (err) {
-      console.error('Failed to load analyses:', err)
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') console.error('Failed to load analyses:', err)
     }
   }
 

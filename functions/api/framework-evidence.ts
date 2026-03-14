@@ -71,6 +71,7 @@ export async function onRequest(context: any) {
           JOIN framework_sessions f ON fe.framework_id = f.id
           WHERE fe.evidence_id = ?
           ORDER BY fe.created_at DESC
+          LIMIT 500
         `).bind(evidenceId).all()
 
         return new Response(JSON.stringify({ links: links.results }), {

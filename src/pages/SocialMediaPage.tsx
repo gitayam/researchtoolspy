@@ -133,35 +133,40 @@ export function SocialMediaPage() {
   })
 
   useEffect(() => {
-    loadStats()
-    loadProfiles()
-    loadJobs()
+    const controller = new AbortController()
+    loadStats(controller.signal)
+    loadProfiles(controller.signal)
+    loadJobs(controller.signal)
+    return () => controller.abort()
   }, [])
 
   useEffect(() => {
     if (selectedProfile) {
-      loadPosts(selectedProfile.id)
+      const controller = new AbortController()
+      loadPosts(selectedProfile.id, controller.signal)
+      return () => controller.abort()
     }
   }, [selectedProfile])
 
-  const loadStats = async () => {
+  const loadStats = async (signal?: AbortSignal) => {
     try {
       const token = localStorage.getItem('auth_token')
       const response = await fetch('/api/social-media/stats', {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal,
       })
       if (response.ok) {
         const data = await response.json()
         setStats(data)
       }
-    } catch (error) {
-      console.error('Failed to load stats:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to load stats:', error)
     }
   }
 
-  const loadProfiles = async () => {
+  const loadProfiles = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const token = localStorage.getItem('auth_token')
@@ -173,50 +178,53 @@ export function SocialMediaPage() {
       const response = await fetch(`/api/social-media/profiles?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal,
       })
       if (response.ok) {
         const data = await response.json()
         setProfiles(data)
       }
-    } catch (error) {
-      console.error('Failed to load profiles:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to load profiles:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const loadPosts = async (profileId: string) => {
+  const loadPosts = async (profileId: string, signal?: AbortSignal) => {
     try {
       const token = localStorage.getItem('auth_token')
       const response = await fetch(`/api/social-media/posts?profile_id=${profileId}&limit=50`, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal,
       })
       if (response.ok) {
         const data = await response.json()
         setPosts(data)
       }
-    } catch (error) {
-      console.error('Failed to load posts:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to load posts:', error)
     }
   }
 
-  const loadJobs = async () => {
+  const loadJobs = async (signal?: AbortSignal) => {
     try {
       const token = localStorage.getItem('auth_token')
       const response = await fetch('/api/social-media/jobs', {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal,
       })
       if (response.ok) {
         const data = await response.json()
         setJobs(data)
       }
-    } catch (error) {
-      console.error('Failed to load jobs:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to load jobs:', error)
     }
   }
 
@@ -573,7 +581,7 @@ export function SocialMediaPage() {
                 <SelectItem value="LINKEDIN">{t('socialMedia:platforms.LINKEDIN')}</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={loadProfiles}>
+            <Button variant="outline" onClick={() => loadProfiles()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               {t('socialMedia:profiles.refresh')}
             </Button>
@@ -799,7 +807,7 @@ export function SocialMediaPage() {
         {/* Jobs Tab */}
         <TabsContent value="jobs" className="space-y-4">
           <div className="flex gap-2">
-            <Button variant="outline" onClick={loadJobs}>
+            <Button variant="outline" onClick={() => loadJobs()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               {t('socialMedia:jobs.refresh')}
             </Button>

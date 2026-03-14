@@ -62,10 +62,12 @@ export default function SubmissionsReviewPage() {
   const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
-    loadSubmissions()
+    const controller = new AbortController()
+    loadSubmissions(controller.signal)
+    return () => controller.abort()
   }, [formId, statusFilter])
 
-  const loadSubmissions = async () => {
+  const loadSubmissions = async (signal?: AbortSignal) => {
     setIsLoading(true)
     setError(null)
 
@@ -74,7 +76,7 @@ export default function SubmissionsReviewPage() {
       if (formId) params.append('formId', formId)
       if (statusFilter) params.append('status', statusFilter)
 
-      const response = await fetch(`/api/research/submissions/list?${params}`)
+      const response = await fetch(`/api/research/submissions/list?${params}`, { signal })
       const data = await response.json()
 
       if (!response.ok) {
@@ -82,9 +84,11 @@ export default function SubmissionsReviewPage() {
       }
 
       setSubmissions(data.submissions || [])
-    } catch (err) {
-      console.error('Failed to load submissions:', err)
-      setError(err instanceof Error ? err.message : t('submissionsReview:alerts.loadFailed'))
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Failed to load submissions:', err)
+        setError(err instanceof Error ? err.message : t('submissionsReview:alerts.loadFailed'))
+      }
     } finally {
       setIsLoading(false)
     }

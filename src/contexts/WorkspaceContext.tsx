@@ -35,6 +35,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    const controller = new AbortController()
     // Fetch available workspaces on mount
     const fetchWorkspaces = async () => {
       try {
@@ -55,7 +56,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         const response = await fetch('/api/workspaces', {
           headers: {
             'Authorization': `Bearer ${token}`
-          }
+          },
+          signal: controller.signal,
         })
 
         if (response.ok) {
@@ -87,22 +89,25 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             is_public: false
           }])
         }
-      } catch (error) {
-        console.error('Failed to fetch workspaces:', error)
-        // Fallback to default workspace
-        setWorkspaces([{
-          id: '1',
-          name: 'My Workspace',
-          type: 'PERSONAL',
-          owner_id: 1,
-          is_public: false
-        }])
+      } catch (error: any) {
+        if (error?.name !== 'AbortError') {
+          console.error('Failed to fetch workspaces:', error)
+          // Fallback to default workspace
+          setWorkspaces([{
+            id: '1',
+            name: 'My Workspace',
+            type: 'PERSONAL',
+            owner_id: 1,
+            is_public: false
+          }])
+        }
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchWorkspaces()
+    return () => controller.abort()
   }, [])
 
   return (
