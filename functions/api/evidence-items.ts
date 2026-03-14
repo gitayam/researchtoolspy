@@ -450,11 +450,7 @@ export async function onRequest(context: any) {
     })
 
   } catch (error: any) {
-    console.error('🔴 [EVIDENCE-ITEMS] Critical error:', error)
-    console.error('🔴 [EVIDENCE-ITEMS] Error message:', error.message)
-    console.error('🔴 [EVIDENCE-ITEMS] Error stack:', error.stack)
-    console.error('🔴 [EVIDENCE-ITEMS] Request URL:', request.url)
-    console.error('🔴 [EVIDENCE-ITEMS] Request method:', request.method)
+    console.error('[Evidence Items] Error:', error)
 
     return new Response(JSON.stringify({
       error: 'Evidence API error',

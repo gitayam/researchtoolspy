@@ -3,7 +3,7 @@
  * Create and retrieve framework analyses with hash-based auth support
  */
 
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -16,6 +16,13 @@ interface Env {
  */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const authUserId = await getUserFromRequest(context.request, context.env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     // Get user ID - defaults to 1 if not authenticated (backward compatibility)
     const userId = await getUserIdOrDefault(context.request, context.env)
 

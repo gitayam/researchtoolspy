@@ -1,5 +1,5 @@
 // POST /api/cross-table/:id/share — Generate share token
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../../_shared/auth-helpers'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +25,13 @@ export async function onRequest(context: any) {
   }
 
   const userId = await getUserIdOrDefault(request, env)
+
+  const authUserId = await getUserFromRequest(request, env)
+  if (!authUserId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: corsHeaders,
+    })
+  }
 
   try {
     const table = await env.DB.prepare(

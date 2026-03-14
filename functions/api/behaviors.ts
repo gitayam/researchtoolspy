@@ -4,7 +4,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from './_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -140,6 +140,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // POST /api/behaviors
     if (method === 'POST' && url.pathname === '/api/behaviors') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       const body = await request.json() as any
 
       if (!body.name || !body.behavior_type || !body.workspace_id) {
@@ -281,6 +288,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // PUT /api/behaviors/:id
     if (method === 'PUT' && behaviorMatch) {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       const behaviorId = behaviorMatch[1]
       const body = await request.json() as any
 
@@ -369,6 +383,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // DELETE /api/behaviors/:id
     if (method === 'DELETE' && behaviorMatch) {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       const behaviorId = behaviorMatch[1]
 
       const behavior = await env.DB.prepare(`

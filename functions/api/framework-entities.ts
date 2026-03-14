@@ -1,6 +1,6 @@
 // Cloudflare Pages Function for Framework-Entity Linking API
 // Supports linking actors, sources, events to frameworks
-import { getUserIdOrDefault } from './_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -99,6 +99,12 @@ export async function onRequest(context: any) {
 
     // POST - Link entities to framework
     if (request.method === 'POST') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       const body = await request.json()
 
       if (!body.framework_id) {
@@ -174,6 +180,12 @@ export async function onRequest(context: any) {
 
     // DELETE - Unlink entity from framework
     if (request.method === 'DELETE') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       if (!frameworkId || !entityType || !entityId) {
         return new Response(JSON.stringify({
           error: 'framework_id, entity_type, and entity_id are required'

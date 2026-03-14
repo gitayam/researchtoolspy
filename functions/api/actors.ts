@@ -4,7 +4,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from './_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -228,6 +228,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // POST /api/actors - Create actor
     if (method === 'POST' && url.pathname === '/api/actors') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       const body = await request.json() as any
 
       if (!body.name || !body.type || !body.workspace_id) {
@@ -372,6 +379,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // PUT /api/actors/:id - Update actor
     if (method === 'PUT' && actorMatch) {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       const actorId = actorMatch[1]
       const body = await request.json() as any
 
@@ -443,6 +457,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // DELETE /api/actors/:id
     if (method === 'DELETE' && actorMatch) {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       const actorId = actorMatch[1]
 
       const actor = await env.DB.prepare(`
@@ -525,6 +546,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // PUT /api/actors/:id/deception - Update deception assessment
     if (method === 'PUT' && deceptionMatch) {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       const actorId = deceptionMatch[1]
       const body = await request.json() as any
 

@@ -1,5 +1,5 @@
 // Cloudflare Pages Function for Dataset API
-import { getUserIdOrDefault } from './_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -116,6 +116,12 @@ export async function onRequest(context: any) {
 
     // POST - Create new dataset
     if (request.method === 'POST') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       const body = await request.json()
 
       // Build source object from separate fields or existing source object
@@ -169,6 +175,12 @@ export async function onRequest(context: any) {
 
     // PUT - Update dataset
     if (request.method === 'PUT') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       const body = await request.json()
 
       // Build source object from separate fields or existing source object
@@ -221,6 +233,12 @@ export async function onRequest(context: any) {
 
     // DELETE - Delete dataset
     if (request.method === 'DELETE') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       await env.DB.prepare(
         'DELETE FROM datasets WHERE id = ?'
       ).bind(datasetId).run()

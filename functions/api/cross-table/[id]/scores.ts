@@ -1,6 +1,6 @@
 // GET /api/cross-table/:id/scores — Get scores for a table
 // PUT /api/cross-table/:id/scores — Batch upsert scores
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../../_shared/auth-helpers'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,7 +34,15 @@ export async function onRequest(context: any) {
     }
 
     if (request.method === 'GET') return await handleGet(env, tableId)
-    if (request.method === 'PUT') return await handleUpsert(env, tableId, userId, request, table)
+    if (request.method === 'PUT') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
+      return await handleUpsert(env, tableId, userId, request, table)
+    }
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
   } catch (err: any) {
     console.error('[CrossTable Scores] Error:', err)

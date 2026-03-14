@@ -1,6 +1,6 @@
 // GET /api/cross-table — List user's cross tables
 // POST /api/cross-table — Create a new cross table
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
 import { TEMPLATES } from '../../../src/lib/cross-table/engine/templates'
 
 const corsHeaders = {
@@ -28,6 +28,12 @@ export async function onRequest(context: any) {
       return await handleList(env, userId)
     }
     if (request.method === 'POST') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       return await handleCreate(env, userId, request)
     }
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })

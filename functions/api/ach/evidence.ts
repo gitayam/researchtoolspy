@@ -108,11 +108,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       headers: { 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    console.error('🔴 [ACH EVIDENCE POST] ========== ERROR ==========')
-    console.error('🔴 [ACH EVIDENCE POST] Error:', error)
-    console.error('🔴 [ACH EVIDENCE POST] Error message:', error instanceof Error ? error.message : 'Unknown')
-    console.error('🔴 [ACH EVIDENCE POST] Error stack:', error instanceof Error ? error.stack : 'N/A')
-    console.error('🔴 [ACH EVIDENCE POST] ========== ERROR END ==========')
+    console.error('[ACH Evidence] Link error:', error)
 
     return new Response(JSON.stringify({
       error: 'Failed to link evidence'
@@ -171,11 +167,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       headers: { 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    console.error('🔴 [ACH EVIDENCE DELETE] ========== ERROR ==========')
-    console.error('🔴 [ACH EVIDENCE DELETE] Error:', error)
-    console.error('🔴 [ACH EVIDENCE DELETE] Error message:', error instanceof Error ? error.message : 'Unknown')
-    console.error('🔴 [ACH EVIDENCE DELETE] Error stack:', error instanceof Error ? error.stack : 'N/A')
-    console.error('🔴 [ACH EVIDENCE DELETE] ========== ERROR END ==========')
+    console.error('[ACH Evidence] Unlink error:', error)
 
     return new Response(JSON.stringify({
       error: 'Failed to unlink evidence'

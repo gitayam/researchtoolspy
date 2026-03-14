@@ -1,7 +1,7 @@
 // GET /api/cross-table/:id — Get single table with scores
 // PUT /api/cross-table/:id — Update table
 // DELETE /api/cross-table/:id — Delete table
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,8 +26,24 @@ export async function onRequest(context: any) {
 
   try {
     if (request.method === 'GET') return await handleGet(env, userId, id)
-    if (request.method === 'PUT') return await handleUpdate(env, userId, id, request)
-    if (request.method === 'DELETE') return await handleDelete(env, userId, id)
+    if (request.method === 'PUT') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
+      return await handleUpdate(env, userId, id, request)
+    }
+    if (request.method === 'DELETE') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
+      return await handleDelete(env, userId, id)
+    }
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
   } catch (err: any) {
     console.error('[CrossTable] Error:', err)

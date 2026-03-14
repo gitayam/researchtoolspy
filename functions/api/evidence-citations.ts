@@ -1,5 +1,5 @@
 // Cloudflare Pages Function for Evidence Citations API
-import { getUserIdOrDefault } from './_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -86,6 +86,12 @@ export async function onRequest(context: any) {
 
     // POST - Create citation(s)
     if (request.method === 'POST') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       const body = await request.json()
 
       if (!body.evidence_id || !body.dataset_ids || !Array.isArray(body.dataset_ids)) {
@@ -138,6 +144,12 @@ export async function onRequest(context: any) {
 
     // DELETE - Remove citation
     if (request.method === 'DELETE') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       if (!evidenceId || !datasetId) {
         return new Response(JSON.stringify({
           error: 'evidence_id and dataset_id are required'

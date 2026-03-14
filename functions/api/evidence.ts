@@ -1,5 +1,5 @@
 // Cloudflare Pages Function for Evidence API
-import { getUserIdOrDefault } from './_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -111,6 +111,12 @@ export async function onRequest(context: any) {
 
     // POST - Create new evidence
     if (request.method === 'POST') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       const body = await request.json()
 
       // Build source object from separate fields or existing source object
@@ -162,6 +168,12 @@ export async function onRequest(context: any) {
 
     // PUT - Update evidence
     if (request.method === 'PUT') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       const body = await request.json()
 
       // Build source object from separate fields or existing source object
@@ -211,6 +223,12 @@ export async function onRequest(context: any) {
 
     // DELETE - Delete evidence (scoped to owner)
     if (request.method === 'DELETE') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       const result = await env.DB.prepare(
         'DELETE FROM evidence WHERE id = ? AND created_by = ?'
       ).bind(evidenceId, userId).run()
