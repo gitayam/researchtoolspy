@@ -30,6 +30,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const body = await context.request.json() as ProcessSubmissionRequest
+    const workspaceId = context.request.headers.get('X-Workspace-ID') || '1'
 
     if (!body.submissionId) {
       return new Response(JSON.stringify({
@@ -151,7 +152,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       evidenceId,
       primaryQuestionId,
       null, // investigation_packet_id
-      '1', // workspace_id
+      workspaceId, // workspace_id from header
       evidenceType,
       title,
       content || null,
@@ -184,7 +185,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       `).bind(
         activityId,
         questionId,
-        '1',
+        workspaceId,
         'evidence_processed',
         'system',
         `Submission processed into evidence: ${title}`,

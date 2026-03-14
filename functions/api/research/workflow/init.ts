@@ -65,6 +65,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Create default tasks from template
     const tasks: any[] = []
     const now = new Date().toISOString()
+    const workspaceId = context.request.headers.get('X-Workspace-ID') || '1'
 
     for (const defaultTask of template.default_tasks) {
       const taskId = crypto.randomUUID()
@@ -78,7 +79,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       `).bind(
         taskId,
         body.researchQuestionId,
-        '1',
+        workspaceId,
         defaultTask.stage,
         defaultTask.title,
         defaultTask.description || null,
@@ -108,7 +109,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(
       activityId,
       body.researchQuestionId,
-      '1',
+      workspaceId,
       'workflow_initialized',
       'system',
       `Initialized ${template.template_name} workflow with ${tasks.length} tasks`,

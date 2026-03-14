@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-46)
+**Last updated:** 2026-03-14 (Sessions 34-46b)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -211,6 +211,9 @@
 | 101 | **research/workflow/init.ts POST with zero auth** — anyone could initialize research workflows. Fixed: `getUserFromRequest` + 401 | FIXED |
 | 102 | **research/generate-plan.ts POST with zero auth** — anyone could trigger AI-powered research plan generation (costs money). Fixed: `getUserFromRequest` + 401 | FIXED |
 | 103 | **research/submissions/process.ts POST with zero auth** — anyone could convert submissions into evidence entries. Fixed: `getUserFromRequest` + 401 | FIXED |
+| 104 | **content-intelligence/cleanup.ts POST+GET with zero auth** — anyone could DELETE all expired content analyses. GET delegated to POST (violating HTTP safety). Fixed: POST uses `getUserFromRequest` + 401, GET now returns status info only | FIXED |
+| 105 | **research/workflow/init.ts hardcoded workspace_id='1'** — all research tasks/activity written to default workspace. Fixed: reads `X-Workspace-ID` header | FIXED |
+| 106 | **research/submissions/process.ts hardcoded workspace_id='1'** — processed evidence always stored in default workspace. Fixed: reads `X-Workspace-ID` header | FIXED |
 
 ---
 
@@ -233,6 +236,11 @@
 | 37 | ~22 instances of internal `url.pathname.match()` routing | Dead code per Cloudflare Pages routing model |
 | 40 | Dark mode gaps in COP components | CopPersonaLinkDialog, CopAssetDetailDrawer, CopEventSidebar, CopArtifactLightbox, CopStatusStrip, CopRfiTab, CopTagSelector — 60+ instances of `text-gray-500/600` without `dark:` variants |
 | 41 | Dark mode gaps in CopAnalysisSummary | ~14 color classes missing `dark:` variants — icons, badges, section headings, empty state text |
+
+### Data Isolation (MEDIUM)
+| # | Issue | Notes |
+|---|-------|-------|
+| 107 | `feedback/submit.ts` POST has no auth | Intentionally public (contact form pattern). Consider rate limiting by IP to prevent spam. R2 screenshot uploads also unprotected. |
 
 ### Feature Gaps (LOW)
 | # | Issue | Notes |
