@@ -52,7 +52,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       try { return JSON.parse(val) } catch { return fallback }
     }
 
-    const analyses = results.results.map((row: any) => ({
+    const analyses = (results.results || []).map((row: any) => ({
       ...row,
       actors: safeJSON(row.actors, []),
       relationships: safeJSON(row.relationships, []),

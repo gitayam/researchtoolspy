@@ -95,7 +95,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       .all()
 
     // Parse JSON fields
-    const parsed = investigations.results.map((inv: any) => ({
+    const parsed = (investigations.results || []).map((inv: any) => ({
       ...inv,
       tags: inv.tags ? JSON.parse(inv.tags) : [],
       metadata: inv.metadata ? JSON.parse(inv.metadata) : {}

@@ -63,9 +63,9 @@ export async function onRequest(context: any) {
         const parsedEvidence = {
           ...evidence,
           tags: JSON.parse(evidence.tags || '[]'),
-          linked_actors: linkedActors.results.map((la: any) => la.actor_id),
+          linked_actors: (linkedActors.results || []).map((la: any) => la.actor_id),
           linked_actors_details: linkedActors.results,
-          citations: citations.results.map((c: any) => ({
+          citations: (citations.results || []).map((c: any) => ({
             ...c,
             dataset: {
               id: c.dataset_id,
@@ -131,7 +131,7 @@ export async function onRequest(context: any) {
       const result = await env.DB.prepare(query).bind(...params).all()
 
       // Parse JSON fields
-      const evidence = result.results.map((item: any) => ({
+      const evidence = (result.results || []).map((item: any) => ({
         ...item,
         tags: JSON.parse(item.tags || '[]')
       }))

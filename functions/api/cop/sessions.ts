@@ -71,7 +71,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       `).bind(userId, status).all()
     }
 
-    const sessions = results.results.map((row: any) => parseJsonFields(row))
+    const sessions = (results.results || []).map((row: any) => parseJsonFields(row))
 
     return new Response(JSON.stringify({ sessions }), { headers: corsHeaders })
   } catch (error) {

@@ -92,7 +92,7 @@ export async function onRequest(context: any) {
       const results = await stmt.all()
 
       // Parse JSON fields for all results
-      const parsedResults = results.results.map((evidence: any) => ({
+      const parsedResults = (results.results || []).map((evidence: any) => ({
         ...evidence,
         tags: JSON.parse(evidence.tags || '[]'),
         source: JSON.parse(evidence.source || '{}'),

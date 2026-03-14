@@ -53,7 +53,7 @@ export async function onRequest(context: any) {
 
       // Fetch full entity data for each linked entity
       const enrichedLinks = await Promise.all(
-        links.results.map(async (link: any) => {
+        (links.results || []).map(async (link: any) => {
           let entityData = null
 
           try {

@@ -42,13 +42,14 @@ export async function onRequest(context: any) {
           JOIN datasets e ON fe.dataset_id = e.id
           WHERE fe.framework_id = ? AND e.workspace_id = ?
           ORDER BY fe.created_at DESC
+          LIMIT 500
         `).bind(frameworkId, workspaceId).all()
 
         const safeJSON = (val: any, fallback: any = []) => {
           if (!val) return fallback
           try { return JSON.parse(val) } catch { return fallback }
         }
-        const parsedLinks = links.results.map((link: any) => ({
+        const parsedLinks = (links.results || []).map((link: any) => ({
           ...link,
           source: safeJSON(link.source, {}),
           tags: safeJSON(link.tags, [])

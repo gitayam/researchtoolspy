@@ -40,7 +40,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       try { return JSON.parse(val) } catch { return fallback }
     }
 
-    const forms = result.results.map((row: any) => ({
+    const forms = (result.results || []).map((row: any) => ({
       ...row,
       targetInvestigationIds: safeJSON(row.target_investigation_ids, []),
       targetResearchQuestionIds: safeJSON(row.target_research_question_ids, []),

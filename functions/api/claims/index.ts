@@ -67,7 +67,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       .all()
 
     // Parse JSON fields
-    const parsed = claims.results.map((claim: any) => ({
+    const parsed = (claims.results || []).map((claim: any) => ({
       ...claim,
       original_methods: claim.original_methods ? JSON.parse(claim.original_methods) : null,
       adjusted_methods: claim.adjusted_methods ? JSON.parse(claim.adjusted_methods) : null

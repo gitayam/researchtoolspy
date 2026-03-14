@@ -44,7 +44,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     `).bind(sessionId).all()
 
     // Fetch all links involving these personas
-    const personaIds = personas.results.map((p: any) => p.id)
+    const personaIds = (personas.results || []).map((p: any) => p.id)
     let links: any[] = []
     if (personaIds.length > 0) {
       const placeholders = personaIds.map(() => '?').join(',')
@@ -67,7 +67,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       if (aId !== bId) linksByPersona[bId].push(link)
     }
 
-    const enriched = personas.results.map((p: any) => ({
+    const enriched = (personas.results || []).map((p: any) => ({
       ...p,
       links: linksByPersona[p.id] || [],
     }))
@@ -149,7 +149,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const existing = await env.DB.prepare(
         `SELECT LOWER(display_name) as name FROM cop_personas WHERE cop_session_id = ?`
       ).bind(sessionId).all()
-      const existingNames = new Set(existing.results.map((r: any) => r.name))
+      const existingNames = new Set((existing.results || []).map((r: any) => r.name))
 
       const now = new Date().toISOString()
       const created: string[] = []

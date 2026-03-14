@@ -43,7 +43,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     `).bind(sessionId).all()
 
     // Fetch answers for each RFI
-    const rfiIds = rfis.results.map((r: any) => r.id)
+    const rfiIds = (rfis.results || []).map((r: any) => r.id)
     let answers: any[] = []
     if (rfiIds.length > 0) {
       const placeholders = rfiIds.map(() => '?').join(',')
@@ -61,7 +61,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       answersByRfi[rfiId].push(a)
     }
 
-    const enriched = rfis.results.map((r: any) => ({
+    const enriched = (rfis.results || []).map((r: any) => ({
       ...r,
       answers: answersByRfi[r.id] || [],
     }))

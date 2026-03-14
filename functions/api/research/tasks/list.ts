@@ -62,7 +62,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       try { return JSON.parse(val) } catch { return fallback }
     }
 
-    const tasks = result.results.map((row: any) => ({
+    const tasks = (result.results || []).map((row: any) => ({
       ...row,
       depends_on: safeParseJSON(row.depends_on, []),
       blocks: safeParseJSON(row.blocks, []),

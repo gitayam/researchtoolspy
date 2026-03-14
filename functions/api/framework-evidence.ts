@@ -49,7 +49,7 @@ export async function onRequest(context: any) {
           LIMIT 500
         `).bind(frameworkId).all()
 
-        const parsedLinks = links.results.map((link: any) => ({
+        const parsedLinks = (links.results || []).map((link: any) => ({
           ...link,
           tags: JSON.parse(link.tags || '[]')
         }))

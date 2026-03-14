@@ -40,7 +40,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     `).bind(sessionId).all()
 
     // Fetch evidence links for all hypotheses
-    const hypIds = hypotheses.results.map((h: any) => h.id)
+    const hypIds = (hypotheses.results || []).map((h: any) => h.id)
     let evidenceLinks: any[] = []
     if (hypIds.length > 0) {
       const placeholders = hypIds.map(() => '?').join(',')
@@ -58,7 +58,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       evidenceByHyp[hypId].push(ev)
     }
 
-    const enriched = hypotheses.results.map((h: any) => ({
+    const enriched = (hypotheses.results || []).map((h: any) => ({
       ...h,
       evidence: evidenceByHyp[h.id] || [],
     }))

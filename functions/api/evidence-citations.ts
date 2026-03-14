@@ -42,7 +42,7 @@ export async function onRequest(context: any) {
           LIMIT 500
         `).bind(evidenceId).all()
 
-        const parsedCitations = citations.results.map((c: any) => ({
+        const parsedCitations = (citations.results || []).map((c: any) => ({
           ...c,
           dataset: {
             id: c.dataset_id,

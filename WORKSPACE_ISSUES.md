@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-67)
+**Last updated:** 2026-03-14 (Sessions 34-67b)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -670,6 +670,27 @@
 | 297 | **actors.ts** — GET query had optional LIMIT, no default. Fixed: default `LIMIT 500` | FIXED |
 | 298 | **deception/aggregate.ts** — MOM actors query (line 51) unbounded. Fixed: `LIMIT 500` | FIXED |
 | 299 | **deception/aggregate.ts** — MOSES sources query (line 187) unbounded. Fixed: `LIMIT 500` | FIXED |
+
+---
+
+## Fixed — v0.17.3 (Session 67b)
+
+### CRASH PREVENTION (38 null guard fixes on D1 .results.map/.forEach)
+| # | Issue | Status |
+|---|-------|--------|
+| 300 | **Codebase-wide null guard sweep** — 38 instances of `result.results.map()` / `.forEach()` across API endpoints could crash with TypeError if D1 returns undefined results. Applied global fix: `(result.results \|\| []).map()`. Files: research/tasks/list, research/forms/list, research/evidence/list, research/submissions/list, framework-datasets, hamilton-rule, evidence, investigations/index, evidence/recommend (6), evidence-citations, equilibrium-analysis, framework-evidence, normalize-claims, extract-claim-entities, datasets, evidence-items (3), framework-entities, entity-usage (2), cop/public/[token] (2), cop/[id]/shares, cop/[id]/rfis (2), cop/[id]/hypotheses (2), cop/[id]/personas (3), cop/sessions, claims/index | FIXED |
+
+### MEMORY LEAK (3 evidence components missing AbortController)
+| # | Issue | Status |
+|---|-------|--------|
+| 301 | **EvidenceSelector.tsx** — useEffect fetch without AbortController. Fixed: signal + cleanup | FIXED |
+| 302 | **EvidenceItemForm.tsx** — actors fetch without AbortController. Fixed: signal + cleanup | FIXED |
+| 303 | **EvidenceRecommendations.tsx** — POST fetch without AbortController. Fixed: signal + cleanup | FIXED |
+
+### PERFORMANCE (1 additional unbounded query)
+| # | Issue | Status |
+|---|-------|--------|
+| 304 | **framework-datasets.ts** — First GET query (by framework_id) missing LIMIT. Fixed: `LIMIT 500` | FIXED |
 
 ---
 

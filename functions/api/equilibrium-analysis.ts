@@ -44,7 +44,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       LIMIT 200
     `).bind(workspaceId).all()
 
-    const analyses = results.results.map((row: any) => ({
+    const analyses = (results.results || []).map((row: any) => ({
       ...row,
       data_source: row.data_source ? JSON.parse(row.data_source) : null,
       variables: row.variables ? JSON.parse(row.variables) : null,

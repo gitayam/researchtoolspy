@@ -80,7 +80,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           created_at DESC
       `).bind(share.cop_session_id).all()
 
-      const rfiIds = rfis.results.map((r: any) => r.id)
+      const rfiIds = (rfis.results || []).map((r: any) => r.id)
       let answers: any[] = []
       if (rfiIds.length > 0) {
         const placeholders = rfiIds.map(() => '?').join(',')
@@ -97,7 +97,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         answersByRfi[rfiId].push(a)
       }
 
-      response.rfis = rfis.results.map((r: any) => ({
+      response.rfis = (rfis.results || []).map((r: any) => ({
         ...r,
         answers: answersByRfi[r.id] || [],
       }))

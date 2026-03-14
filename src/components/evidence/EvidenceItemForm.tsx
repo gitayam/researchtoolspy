@@ -78,23 +78,26 @@ export function EvidenceItemForm({
 
   // Load actors for selection
   useEffect(() => {
+    const controller = new AbortController()
     const loadActors = async () => {
       setLoadingActors(true)
       try {
         const response = await fetch('/api/actors', {
           headers: getCopHeaders(),
+          signal: controller.signal,
         })
         if (response.ok) {
           const data = await response.json()
           setActors((data?.actors || []).map((a: any) => ({ id: a.id, name: a.name })))
         }
-      } catch (error) {
-        console.error('Failed to load actors:', error)
+      } catch (error: any) {
+        if (error?.name !== 'AbortError') console.error('Failed to load actors:', error)
       } finally {
         setLoadingActors(false)
       }
     }
     loadActors()
+    return () => controller.abort()
   }, [])
 
   useEffect(() => {

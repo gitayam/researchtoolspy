@@ -54,7 +54,7 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
         ORDER BY fs.created_at DESC
       `).bind(`%"actor_id":"${entityId}"%`, `%"actor_name":"${entityId}"%`).all()
 
-      frameworks.push(...cogActors.results.map((f: any) => ({
+      frameworks.push(...(cogActors.results || []).map((f: any) => ({
         id: f.id,
         type: 'cog',
         title: f.title || 'Untitled COG Analysis',
@@ -79,7 +79,7 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
       LIMIT 20
     `).bind(`%${entityId}%`, `%${entityId}%`).all()
 
-    frameworks.push(...achAnalyses.results.map((f: any) => ({
+    frameworks.push(...(achAnalyses.results || []).map((f: any) => ({
       id: f.id,
       type: 'ach',
       title: f.title || 'Untitled ACH Analysis',

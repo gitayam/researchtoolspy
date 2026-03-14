@@ -74,7 +74,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
         allEvidence.push(...entityEvidence.results)
 
-        entityEvidence.results.forEach((ev: any) => {
+        (entityEvidence.results || []).forEach((ev: any) => {
           if (!matchReasons.has(ev.id)) matchReasons.set(ev.id, [])
           matchReasons.get(ev.id)!.push('Mentions related actor')
         })
@@ -89,7 +89,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           LIMIT 20
         `).bind(`%${entityId}%`, `%${entityId}%`, `%${entityId}%`).all()
 
-        textEvidence.results.forEach((ev: any) => {
+        (textEvidence.results || []).forEach((ev: any) => {
           if (!allEvidence.find(e => e.id === ev.id)) {
             allEvidence.push(ev)
           }
@@ -108,7 +108,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           LIMIT 15
         `).bind(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`).all()
 
-        keywordEvidence.results.forEach((ev: any) => {
+        (keywordEvidence.results || []).forEach((ev: any) => {
           if (!allEvidence.find(e => e.id === ev.id)) {
             allEvidence.push(ev)
           }
@@ -127,7 +127,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           LIMIT 20
         `).bind(ctx.timeframe.start, ctx.timeframe.end).all()
 
-        timeframeEvidence.results.forEach((ev: any) => {
+        (timeframeEvidence.results || []).forEach((ev: any) => {
           if (!allEvidence.find(e => e.id === ev.id)) {
             allEvidence.push(ev)
           }
@@ -150,7 +150,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           LIMIT 10
         `).bind(`%${word}%`, `%${word}%`, `%${word}%`).all()
 
-        textEvidence.results.forEach((ev: any) => {
+        (textEvidence.results || []).forEach((ev: any) => {
           if (!allEvidence.find(e => e.id === ev.id)) {
             allEvidence.push(ev)
           }
@@ -173,7 +173,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
       allEvidence.push(...recentEvidence.results)
 
-      recentEvidence.results.forEach((ev: any) => {
+      (recentEvidence.results || []).forEach((ev: any) => {
         if (!matchReasons.has(ev.id)) matchReasons.set(ev.id, [])
         matchReasons.get(ev.id)!.push('Recent verified evidence')
       })

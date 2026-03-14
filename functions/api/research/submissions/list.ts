@@ -57,7 +57,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       try { return JSON.parse(val) } catch { return fallback }
     }
 
-    const submissions = result.results.map((row: any) => ({
+    const submissions = (result.results || []).map((row: any) => ({
       ...row,
       keywords: safeJSON(row.keywords, []),
       metadata: safeJSON(row.metadata, null),

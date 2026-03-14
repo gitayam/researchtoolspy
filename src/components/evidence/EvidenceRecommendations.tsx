@@ -61,10 +61,12 @@ export function EvidenceRecommendations({
   const [breakdown, setBreakdown] = useState<any>(null)
 
   useEffect(() => {
-    loadRecommendations()
+    const controller = new AbortController()
+    loadRecommendations(controller.signal)
+    return () => controller.abort()
   }, [frameworkType, JSON.stringify(context)])
 
-  const loadRecommendations = async () => {
+  const loadRecommendations = async (signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
 
@@ -72,6 +74,7 @@ export function EvidenceRecommendations({
       const response = await fetch('/api/evidence/recommend', {
         method: 'POST',
         headers: getCopHeaders(),
+        signal,
         body: JSON.stringify({
           framework_type: frameworkType,
           context,
@@ -86,9 +89,11 @@ export function EvidenceRecommendations({
       const data = await response.json()
       setRecommendations(data.recommendations || [])
       setBreakdown(data.breakdown || {})
-    } catch (error) {
-      console.error('Error loading evidence recommendations:', error)
-      setError(error instanceof Error ? error.message : 'Unknown error')
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error loading evidence recommendations:', error)
+        setError(error instanceof Error ? error.message : 'Unknown error')
+      }
     } finally {
       setLoading(false)
     }

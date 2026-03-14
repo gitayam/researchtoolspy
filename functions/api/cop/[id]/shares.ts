@@ -91,7 +91,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       SELECT * FROM cop_shares WHERE cop_session_id = ? ORDER BY created_at DESC
     `).bind(sessionId).all()
 
-    const shares = results.results.map((r: any) => ({
+    const shares = (results.results || []).map((r: any) => ({
       ...r,
       visible_panels: JSON.parse(r.visible_panels || '["map"]'),
     }))

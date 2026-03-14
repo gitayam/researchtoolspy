@@ -300,7 +300,7 @@ export async function getClaimEntities(
       credibility_impact DESC
   `).bind(claimId).all()
 
-  return result.results.map(row => ({
+  return (result.results || []).map(row => ({
     name: row.name as string,
     type: row.type as ClaimEntity['type'],
     role: row.role as ClaimEntity['role'],

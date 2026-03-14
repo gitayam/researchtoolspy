@@ -134,7 +134,7 @@ export async function loadNormalizedClaims(
     ORDER BY claim_index ASC
   `).bind(contentAnalysisId).all()
 
-  return result.results.map(row => ({
+  return (result.results || []).map(row => ({
     ...row,
     original_methods: row.original_methods ? JSON.parse(row.original_methods as string) : {}
   }))
