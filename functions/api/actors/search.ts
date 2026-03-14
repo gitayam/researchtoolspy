@@ -24,7 +24,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserIdOrDefault(context.request, context.env)
     const url = new URL(context.request.url)
 
-    const workspaceId = url.searchParams.get('workspace_id') || '1'
+    const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || '1'
     const name = url.searchParams.get('name')
     const type = url.searchParams.get('type')
 

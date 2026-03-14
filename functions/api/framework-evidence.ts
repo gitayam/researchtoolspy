@@ -46,6 +46,7 @@ export async function onRequest(context: any) {
           JOIN evidence_items e ON fe.evidence_id = e.id
           WHERE fe.framework_id = ?
           ORDER BY fe.created_at DESC
+          LIMIT 500
         `).bind(frameworkId).all()
 
         const parsedLinks = links.results.map((link: any) => ({

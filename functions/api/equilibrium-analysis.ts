@@ -41,6 +41,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       LEFT JOIN behaviors b ON ea.linked_behavior_id = b.id
       WHERE ea.workspace_id = ?
       ORDER BY ea.updated_at DESC
+      LIMIT 200
     `).bind(workspaceId).all()
 
     const analyses = results.results.map((row: any) => ({

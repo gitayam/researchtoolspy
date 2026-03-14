@@ -25,7 +25,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         headers: { 'Content-Type': 'application/json' },
       })
     }
-    const workspaceId = data.workspace_id || '1'
+    const workspaceId = data.workspace_id || context.request.headers.get('X-Workspace-ID') || '1'
 
     if (!data.analysis_id) {
       return new Response(JSON.stringify({

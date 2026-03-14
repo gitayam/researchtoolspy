@@ -47,7 +47,7 @@ export async function onRequest(context: any) {
         params.push(entityType)
       }
 
-      query += ' ORDER BY fe.created_at DESC'
+      query += ' ORDER BY fe.created_at DESC LIMIT 500'
 
       const links = await env.DB.prepare(query).bind(...params).all()
 

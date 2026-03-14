@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-61)
+**Last updated:** 2026-03-14 (Sessions 34-62)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -517,6 +517,25 @@
 | 220 | **research/submissions/list.ts no LIMIT** — Returns all form submissions. Fixed: `LIMIT 500` | FIXED |
 | 221 | **hamilton-rule.ts no LIMIT** — Returns all Hamilton Rule analyses. Fixed: `LIMIT 200` | FIXED |
 | 222 | **comments.ts GET no LIMIT** — Returns all comments for an entity. Fixed: `LIMIT 500` | FIXED |
+
+---
+
+## Fixed — v0.16.7 (Session 62)
+
+### DATA ISOLATION (workspace_id sourcing)
+| # | Issue | Status |
+|---|-------|--------|
+| 223 | **ach/from-content-intelligence.ts workspace_id from body only** — Read `data.workspace_id` without header fallback. Cross-workspace ACH creation possible. Fixed: chain `body \|\| header \|\| '1'` | FIXED |
+| 224 | **actors/search.ts workspace_id ignores header** — Actor search only read query params. Fixed: chain includes header | FIXED |
+
+### PERFORMANCE (missing LIMIT on 5 more endpoints)
+| # | Issue | Status |
+|---|-------|--------|
+| 225 | **investigations/index.ts no LIMIT** — Returns all investigations. Fixed: `LIMIT 200` | FIXED |
+| 226 | **equilibrium-analysis.ts no LIMIT** — Returns all equilibrium analyses. Fixed: `LIMIT 200` | FIXED |
+| 227 | **social-media.ts profiles GET no LIMIT** — Returns all social media profiles. Fixed: `LIMIT 200` | FIXED |
+| 228 | **framework-evidence.ts no LIMIT** — Returns all framework-evidence links. Fixed: `LIMIT 500` | FIXED |
+| 229 | **framework-entities.ts no LIMIT** — Returns all framework-entity links. Fixed: `LIMIT 500` | FIXED |
 
 ---
 

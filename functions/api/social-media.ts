@@ -81,7 +81,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         params.push(workspaceId)
       }
 
-      query += ` ORDER BY last_scraped_at DESC, created_at DESC`
+      query += ` ORDER BY last_scraped_at DESC, created_at DESC LIMIT 200`
 
       const { results } = await env.DB.prepare(query).bind(...params).all()
 
