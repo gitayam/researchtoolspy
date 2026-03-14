@@ -1,4 +1,6 @@
 // Cloudflare Pages Function for Evidence Items API
+import { getUserIdOrDefault } from './_shared/auth-helpers'
+
 export async function onRequest(context: any) {
   const { request, env } = context
 
@@ -18,6 +20,7 @@ export async function onRequest(context: any) {
   try {
     const url = new URL(request.url)
     const evidenceId = url.searchParams.get('id')
+    const userId = await getUserIdOrDefault(request, env)
 
     // GET - Get evidence item(s)
     if (request.method === 'GET') {
@@ -185,8 +188,8 @@ export async function onRequest(context: any) {
         JSON.stringify(body.tags || []),
         body.status || 'pending',
         body.priority || 'normal',
-        body.created_by || 1,
-        body.updated_by || 1,
+        body.created_by || userId,
+        body.updated_by || userId,
         body.is_public ? 1 : 0,
         body.shared_by_user_id || null
       ).run()
@@ -240,7 +243,7 @@ export async function onRequest(context: any) {
             citation.citation_style || 'apa',
             citation.relevance_score || 5,
             citation.notes || null,
-            body.created_by || 1
+            body.created_by || userId
           ).run()
         }
       }
@@ -326,7 +329,7 @@ export async function onRequest(context: any) {
         JSON.stringify(body.tags || []),
         body.status,
         body.priority,
-        body.updated_by || 1,
+        body.updated_by || userId,
         body.is_public ? 1 : 0,
         body.shared_by_user_id || null,
         evidenceId

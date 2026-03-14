@@ -1,67 +1,86 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-13 (Session 34-35)
+**Last updated:** 2026-03-13 (Sessions 34-36)
 
 ## Fixed — v0.13.0 (Session 34)
 
 ### CRITICAL
-| # | Issue | File(s) | Status |
-|---|-------|---------|--------|
-| 1 | **CreateWorkspaceDialog sends wrong POST body** — sends `{name,type}` but backend expects `{title, investigation_type, cop_template}`, always returns 400 | `src/components/workspace/CreateWorkspaceDialog.tsx` | FIXED |
-| 2 | **settings/workspaces.ts queries nonexistent `user_hash` column** — `workspaces` table has no `user_hash`, all queries fail with D1 error | `functions/api/settings/workspaces.ts`, `settings/workspaces/[id].ts` | FIXED |
-| 3 | **workspace_members INSERT missing `id` field** — TEXT PRIMARY KEY omitted, D1 constraint violation on first workspace creation | `functions/api/workspaces/index.ts` | FIXED |
+| # | Issue | Status |
+|---|-------|--------|
+| 1 | **CreateWorkspaceDialog sends wrong POST body** — always returns 400 | FIXED |
+| 2 | **settings/workspaces.ts queries nonexistent `user_hash` column** | FIXED |
+| 3 | **workspace_members INSERT missing `id` field** — D1 constraint violation | FIXED |
 
 ### SECURITY
-| # | Issue | File(s) | Status |
-|---|-------|---------|--------|
-| 4 | **Workspace members/invites used `getUserIdOrDefault`** — guest user could mutate workspace data | members.ts, invites/*.ts | FIXED |
-| 5 | **No error state on workspace fetch failure** — misleading "No Workspaces" empty state | `CollaborationPage.tsx` | FIXED |
+| # | Issue | Status |
+|---|-------|--------|
+| 4 | **Workspace members/invites used `getUserIdOrDefault`** on mutations | FIXED |
+| 5 | **No error state on workspace fetch failure** | FIXED |
 
 ### UX
-| # | Issue | File(s) | Status |
-|---|-------|---------|--------|
-| 6 | Dark mode missing on role badges | `CollaborationPage.tsx` | FIXED |
-| 7 | Invalid Tailwind class `bg-gray-750` | `CollaborationPage.tsx` | FIXED |
-| 8 | Build error: `exact` on TABS union (TS2339) | `mobile-bottom-tabs.tsx` | FIXED |
+| # | Issue | Status |
+|---|-------|--------|
+| 6 | Dark mode missing on role badges | FIXED |
+| 7 | Invalid Tailwind class `bg-gray-750` | FIXED |
+| 8 | Build error: `exact` on TABS union (TS2339) | FIXED |
 
 ---
 
 ## Fixed — v0.13.1 (Session 35)
 
-### SECURITY (OWASP A01 — Information Disclosure)
-| # | Issue | File(s) | Status |
-|---|-------|---------|--------|
-| 9 | **error.message leaked to clients** in 7 endpoints — exposes internal stack traces | collection/start, research/generate-question, research/recommend-questions, ach/share, content-intelligence/analyze-url, ai/generate-timeline, ai/generate-questions | FIXED |
-| 10 | **`getUserIdOrDefault` on mutation endpoints** — unauthenticated users could create relationships, run hamilton-rule, start collections | relationships.ts, hamilton-rule.ts, collection/start.ts | FIXED |
-
-### CLEANUP
-| # | Issue | File(s) | Status |
-|---|-------|---------|--------|
-| 11 | **391 `console.log` statements removed** across 58 API files — production code should not leak debug info to Worker logs | All `functions/api/` | FIXED |
+### SECURITY
+| # | Issue | Status |
+|---|-------|--------|
+| 9 | **error.message leaked to clients** in 7 endpoints (OWASP A01) | FIXED |
+| 10 | **`getUserIdOrDefault` on 3 mutation endpoints** (relationships, hamilton-rule, collection/start) | FIXED |
+| 11 | **391 `console.log` statements removed** across 58 API files | FIXED |
 
 ---
 
-## Remaining Tech Debt (lower priority)
+## Fixed — v0.13.2 (Session 36)
 
-### Architecture
-| # | Issue | Notes | Priority |
-|---|-------|-------|----------|
-| 12 | Dual auth systems (`omnicore_user_hash` vs `omnicore_token`) | CollaborationPage vs WorkspaceContext use different auth mechanisms | MEDIUM |
-| 13 | `ensureUserHash()` creates hash locally but never registers in DB | Guest users will never have workspace ownership | MEDIUM |
-| 14 | 30+ mutation endpoints have NO auth at all | Many are intentionally public (tools, research forms) — needs per-endpoint audit to determine which should require auth | MEDIUM |
-| 15 | 11 hardcoded `user_id = 1` / `created_by || 1` fallbacks | evidence.ts, datasets.ts, evidence-items.ts, framework-*.ts, etc. | MEDIUM |
+### DATA ISOLATION
+| # | Issue | Status |
+|---|-------|--------|
+| 12 | **13 endpoints with hardcoded user_id=1 fallbacks** — all guest data attributed to user 1 instead of actual user. Fixed: saved-links (7), answer-question, social-extract, auto-extract-entities, research/forms/create, migrate-session-content, evidence, datasets, evidence-items, framework-datasets, framework-evidence, framework-entities, evidence-citations | FIXED |
 
-### Code Quality
-| # | Issue | Notes | Priority |
-|---|-------|-------|----------|
-| 16 | Duplicated CORS headers — middleware already sets them | Handler-level corsHeaders are dead code | LOW |
-| 17 | Duplicated `canManageInvites` in invites/*.ts | Should extract to shared util | LOW |
-| 18 | CreateWorkspaceDialog not internationalized | Hardcoded English strings | LOW |
-| 19 | `formatExpiry()` uses hardcoded English | Should use `t()` | LOW |
-| 20 | 112 `as any` casts in frontend (GenericFrameworkForm: 35) | Hide type bugs | LOW |
+### FRONTEND CRASH PREVENTION
+| # | Issue | Status |
+|---|-------|--------|
+| 13 | **Null guard on API response arrays** — 5 files with unsafe `.map()` on potentially undefined data. Fixed: EvidenceItemForm (actors), ACHWizard (hypotheses), SwotForm (4 arrays), IntelligenceSynthesisPage (14 guards), DeceptionRiskDashboard (5 guards) | FIXED |
 
-### Performance
-| # | Issue | Notes | Priority |
-|---|-------|-------|----------|
-| 21 | CopMap chunk 1.0MB (Mapbox GL) | Legitimate dependency, consider lazy loading | LOW |
-| 22 | 5 chunks > 300KB (exceljs, jspdf, pptxgen, viz-libs, index) | Export libraries — could lazy-load on demand | LOW |
+### DEPENDENCY SECURITY
+| # | Issue | Status |
+|---|-------|--------|
+| 14 | **9 high/moderate npm vulnerabilities fixed** — flatted, minimatch (x3), preact, rollup, tar, ajv, js-yaml, lodash-es, vite. Updated browserslist DB. | FIXED |
+
+---
+
+## Remaining Tech Debt
+
+### Architecture (MEDIUM)
+| # | Issue | Notes |
+|---|-------|-------|
+| 15 | Dual auth systems (`omnicore_user_hash` vs `omnicore_token`) | CollaborationPage vs WorkspaceContext use different mechanisms |
+| 16 | `ensureUserHash()` creates hash locally but never registers in DB | Guest users can't own workspaces |
+| 17 | 30+ mutation endpoints with no auth | Many intentionally public (tools, research) — needs per-endpoint audit |
+
+### Code Quality (LOW)
+| # | Issue | Notes |
+|---|-------|-------|
+| 18 | Duplicated CORS headers — middleware already sets them | Handler-level corsHeaders are dead code |
+| 19 | Duplicated `canManageInvites` in invites/*.ts | Should extract to shared util |
+| 20 | CreateWorkspaceDialog not internationalized | Hardcoded English strings |
+| 21 | `formatExpiry()` uses hardcoded English | Should use `t()` |
+| 22 | 112 `as any` casts in frontend | GenericFrameworkForm: 35 instances |
+
+### Performance (LOW)
+| # | Issue | Notes |
+|---|-------|-------|
+| 23 | CopMap chunk 1.0MB (Mapbox GL) | Consider lazy loading |
+| 24 | 5 chunks > 300KB (exceljs, jspdf, pptxgen, viz-libs) | Lazy-load export libraries on demand |
+
+### Dependencies (LOW — dev only)
+| # | Issue | Notes |
+|---|-------|-------|
+| 25 | undici vulnerabilities via wrangler/miniflare | Dev-only, not in production bundle. Awaiting upstream fix. |

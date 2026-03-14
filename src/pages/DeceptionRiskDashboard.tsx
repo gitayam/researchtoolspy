@@ -319,19 +319,19 @@ export default function DeceptionRiskDashboard() {
       </Card>
 
       {/* Critical Alerts */}
-      {(data.critical_alerts.length > 0 || data.high_alerts.length > 0) && (
+      {((data.critical_alerts?.length ?? 0) > 0 || (data.high_alerts?.length ?? 0) > 0) && (
         <Card className="border-2 border-red-500">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
               <AlertTriangle className="h-5 w-5" />
-              {t('pages.deceptionRisk.criticalAlerts')} ({data.critical_alerts.length + data.high_alerts.length})
+              {t('pages.deceptionRisk.criticalAlerts')} ({(data.critical_alerts?.length ?? 0) + (data.high_alerts?.length ?? 0)})
             </CardTitle>
             <CardDescription>
               {t('pages.deceptionRisk.immediateAttention')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {[...data.critical_alerts, ...data.high_alerts].map((alert, idx) => (
+            {[...(data.critical_alerts || []), ...(data.high_alerts || [])].map((alert, idx) => (
               <div
                 key={idx}
                 className={`p-4 rounded-lg border-2 ${getRiskColor(alert.severity)} flex items-start justify-between gap-4`}
@@ -467,7 +467,7 @@ export default function DeceptionRiskDashboard() {
       </div>
 
       {/* Recommended Actions */}
-      {data.recommended_actions.length > 0 && (
+      {(data.recommended_actions?.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -479,7 +479,7 @@ export default function DeceptionRiskDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {data.recommended_actions.map((action, idx) => (
+            {(data.recommended_actions || []).map((action, idx) => (
               <div
                 key={idx}
                 className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"

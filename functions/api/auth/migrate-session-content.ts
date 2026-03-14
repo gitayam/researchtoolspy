@@ -4,9 +4,11 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
 }
 
 const corsHeaders = {
@@ -37,10 +39,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // TODO: Get user_id from session token
-    // For now, using placeholder logic
-    // In production, you would validate the authToken and get the actual user_id
-    const userId = 1 // Placeholder - should come from session lookup
+    // Resolve user from auth token
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({
+        error: 'Could not resolve user from auth token'
+      }), {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      })
+    }
 
     // Get request body
     const body = await request.json() as { bookmark_hash: string }

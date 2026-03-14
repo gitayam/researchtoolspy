@@ -4,9 +4,11 @@
  */
 
 import { nanoid } from 'nanoid'
+import { getUserIdOrDefault } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
 }
 
 export async function onRequestPost(context: { request: Request; env: Env }) {
@@ -25,7 +27,9 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
   try {
     const body = await request.json()
-    const { analysis_id, workspace_id = '1', user_id = 1 } = body
+    const userId = await getUserIdOrDefault(request, env)
+    const { analysis_id, workspace_id = '1' } = body
+    const user_id = body.user_id || userId
 
     if (!analysis_id) {
       return new Response(JSON.stringify({ error: 'analysis_id required' }), {

@@ -136,7 +136,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(
       formId,
       hashId,
-      '1', // TODO: Get from auth context
+      context.request.headers.get('X-Workspace-ID') || '1',
       body.formName,
       body.formDescription || null,
       JSON.stringify(body.targetInvestigationIds || []),

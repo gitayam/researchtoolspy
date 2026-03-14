@@ -24,10 +24,11 @@ interface Env {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const url = new URL(request.url)
+  const userId = await getUserIdOrDefault(request, env)
 
   // If ID provided, get single link
   if (params.id) {
-    return getSingleLink(env.DB, Number(params.id))
+    return getSingleLink(env.DB, Number(params.id), userId)
   }
 
   // Otherwise list with filters
@@ -50,7 +51,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       LEFT JOIN content_analysis ca ON sl.analysis_id = ca.id
       WHERE sl.user_id = ?
     `
-    const bindings: any[] = [1] // TODO: Get actual user_id from auth
+    const bindings: any[] = [userId]
 
     // Search filter
     if (search) {
@@ -118,6 +119,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 // ========================================
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
+  const userId = await getUserIdOrDefault(request, env)
 
   try {
     const body = await request.json() as {
@@ -158,7 +160,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Check if link already saved
     const existing = await env.DB.prepare(`
       SELECT id FROM saved_links WHERE user_id = ? AND url = ?
-    `).bind(1, url).first() // TODO: Get actual user_id
+    `).bind(userId, url).first()
 
     if (existing) {
       return new Response(JSON.stringify({
@@ -177,7 +179,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         is_social_media, social_platform, is_processed, analysis_id
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
-      1, // TODO: Get actual user_id
+      userId,
       url,
       finalTitle || null,
       note || null,
@@ -246,6 +248,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 // ========================================
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
+  const userId = await getUserIdOrDefault(request, env)
 
   if (!params.id) {
     return new Response(JSON.stringify({ error: 'Link ID required' }), {
@@ -293,7 +296,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       })
     }
 
-    bindings.push(linkId, 1) // TODO: Add actual user_id
+    bindings.push(linkId, userId)
 
     await env.DB.prepare(`
       UPDATE saved_links
@@ -304,7 +307,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     // Fetch updated link
     const updated = await env.DB.prepare(`
       SELECT * FROM saved_links WHERE id = ? AND user_id = ?
-    `).bind(linkId, 1).first() // TODO: actual user_id
+    `).bind(linkId, userId).first()
 
     if (!updated) {
       return new Response(JSON.stringify({ error: 'Link not found' }), {
@@ -339,7 +342,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 // DELETE - Remove saved link
 // ========================================
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { request, env, params } = context
+  const userId = await getUserIdOrDefault(request, env)
 
   if (!params.id) {
     return new Response(JSON.stringify({ error: 'Link ID required' }), {
@@ -353,7 +357,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     const result = await env.DB.prepare(`
       DELETE FROM saved_links WHERE id = ? AND user_id = ?
-    `).bind(linkId, 1).run() // TODO: actual user_id
+    `).bind(linkId, userId).run()
 
     if (result.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Link not found' }), {
@@ -382,7 +386,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 // ========================================
 // Helper: Get single link
 // ========================================
-async function getSingleLink(db: D1Database, id: number) {
+async function getSingleLink(db: D1Database, id: number, userId: number) {
   try {
     const link = await db.prepare(`
       SELECT
@@ -396,7 +400,7 @@ async function getSingleLink(db: D1Database, id: number) {
       FROM saved_links sl
       LEFT JOIN content_analysis ca ON sl.analysis_id = ca.id
       WHERE sl.id = ? AND sl.user_id = ?
-    `).bind(id, 1).first() // TODO: actual user_id
+    `).bind(id, userId).first()
 
     if (!link) {
       return new Response(JSON.stringify({ error: 'Link not found' }), {

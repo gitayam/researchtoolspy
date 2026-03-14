@@ -827,22 +827,22 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
       logger.info('Received', data.metadata.totalItems, 'items for auto-population')
 
       // Add auto-populated items to existing items
-      const newStrengths = data.strengths.map((item: any) => ({
+      const newStrengths = (data?.strengths || []).map((item: any) => ({
         id: crypto.randomUUID(),
         text: `${item.text}${item.source ? ` (Source: ${new URL(item.source).hostname})` : ''}`
       }))
 
-      const newWeaknesses = data.weaknesses.map((item: any) => ({
+      const newWeaknesses = (data?.weaknesses || []).map((item: any) => ({
         id: crypto.randomUUID(),
         text: `${item.text}${item.source ? ` (Source: ${new URL(item.source).hostname})` : ''}`
       }))
 
-      const newOpportunities = data.opportunities.map((item: any) => ({
+      const newOpportunities = (data?.opportunities || []).map((item: any) => ({
         id: crypto.randomUUID(),
         text: `${item.text}${item.source ? ` (Source: ${new URL(item.source).hostname})` : ''}`
       }))
 
-      const newThreats = data.threats.map((item: any) => ({
+      const newThreats = (data?.threats || []).map((item: any) => ({
         id: crypto.randomUUID(),
         text: `${item.text}${item.source ? ` (Source: ${new URL(item.source).hostname})` : ''}`
       }))

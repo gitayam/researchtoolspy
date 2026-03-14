@@ -1,4 +1,6 @@
 // Cloudflare Pages Function for Evidence Citations API
+import { getUserIdOrDefault } from './_shared/auth-helpers'
+
 export async function onRequest(context: any) {
   const { request, env } = context
 
@@ -19,6 +21,7 @@ export async function onRequest(context: any) {
     const url = new URL(request.url)
     const evidenceId = url.searchParams.get('evidence_id')
     const datasetId = url.searchParams.get('dataset_id')
+    const userId = await getUserIdOrDefault(request, env)
 
     // GET - Get citations for evidence or dataset
     if (request.method === 'GET') {
@@ -115,7 +118,7 @@ export async function onRequest(context: any) {
             body.citation_style || 'apa',
             body.relevance_score || 5,
             body.notes || null,
-            body.created_by || 1
+            body.created_by || userId
           ).run()
 
           results.push({ dataset_id: datasetId, success: true })

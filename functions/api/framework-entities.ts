@@ -1,5 +1,7 @@
 // Cloudflare Pages Function for Framework-Entity Linking API
 // Supports linking actors, sources, events to frameworks
+import { getUserIdOrDefault } from './_shared/auth-helpers'
+
 export async function onRequest(context: any) {
   const { request, env } = context
 
@@ -21,6 +23,7 @@ export async function onRequest(context: any) {
     const frameworkId = url.searchParams.get('framework_id')
     const entityType = url.searchParams.get('entity_type')
     const entityId = url.searchParams.get('entity_id')
+    const userId = await getUserIdOrDefault(request, env)
 
     // GET - Get linked entities for a framework
     if (request.method === 'GET') {
@@ -151,7 +154,7 @@ export async function onRequest(context: any) {
             entity.relevance_note || null,
             entity.role || null,
             entity.confidence || 1.0,
-            body.created_by || 1
+            body.created_by || userId
           ).run()
 
           results.push({ entity_type: entity.entity_type, entity_id: entity.entity_id, success: true })

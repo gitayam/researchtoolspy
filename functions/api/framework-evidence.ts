@@ -1,4 +1,6 @@
 // Cloudflare Pages Function for Framework-Evidence Linking API
+import { getUserIdOrDefault } from './_shared/auth-helpers'
+
 export async function onRequest(context: any) {
   const { request, env } = context
 
@@ -19,6 +21,7 @@ export async function onRequest(context: any) {
     const url = new URL(request.url)
     const frameworkId = url.searchParams.get('framework_id')
     const evidenceId = url.searchParams.get('evidence_id')
+    const userId = await getUserIdOrDefault(request, env)
 
     // GET - Get linked evidence for a framework or frameworks for an evidence item
     if (request.method === 'GET') {
@@ -109,7 +112,7 @@ export async function onRequest(context: any) {
             body.relevance_note || null,
             body.weight || 1.0,
             body.supports !== undefined ? body.supports : 1,
-            body.created_by || 1
+            body.created_by || userId
           ).run()
 
           results.push({ evidence_id: evidenceId, success: true })

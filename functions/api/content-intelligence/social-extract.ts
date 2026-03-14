@@ -38,6 +38,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const body = await request.json() as SocialExtractRequest
     const { url, platform, extract_mode = 'metadata', options = {} } = body
+    const userId = await getUserIdOrDefault(request, env)
 
     if (!url || !platform) {
       return new Response(JSON.stringify({ error: 'URL and platform are required' }), {
@@ -86,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         metadata: extractionResult.metadata,
         content: extractionResult.content,
         media: extractionResult.media
-      })
+      }, userId)
     }
 
     return new Response(JSON.stringify(extractionResult), {
@@ -802,14 +803,14 @@ async function fetchYouTubeTranscript(videoId: string): Promise<string | undefin
 /**
  * Save extraction to database for caching
  */
-async function saveExtraction(db: D1Database, data: any): Promise<void> {
+async function saveExtraction(db: D1Database, data: any, userId: number): Promise<void> {
   try {
     await db.prepare(`
       INSERT INTO social_media_extractions (
         user_id, url, platform, post_type, metadata, content, media, extraction_mode, extracted_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `).bind(
-      1, // TODO: Get actual user_id from auth
+      userId,
       data.url,
       data.platform,
       data.metadata?.post_type || 'unknown',

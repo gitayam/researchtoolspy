@@ -29,6 +29,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const body = await request.json() as QuestionRequest
     const { analysis_id, question } = body
+    const userId = await getUserIdOrDefault(request, env)
 
     if (!analysis_id || !question) {
       return new Response(JSON.stringify({
@@ -92,7 +93,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       analysis_id,
-      1, // TODO: Get actual user_id from auth
+      userId,
       question,
       combinedAnswer.answer,
       combinedAnswer.confidence,
@@ -107,7 +108,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       id: qaId,
       content_analysis_id: analysis_id,
-      user_id: await getUserIdOrDefault(context.request, context.env),
+      user_id: userId,
       question,
       answer: combinedAnswer.answer,
       confidence_score: combinedAnswer.confidence,

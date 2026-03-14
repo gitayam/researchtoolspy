@@ -86,7 +86,7 @@ export function EvidenceItemForm({
         })
         if (response.ok) {
           const data = await response.json()
-          setActors(data.actors.map((a: any) => ({ id: a.id, name: a.name })))
+          setActors((data?.actors || []).map((a: any) => ({ id: a.id, name: a.name })))
         }
       } catch (error) {
         console.error('Failed to load actors:', error)

@@ -544,7 +544,7 @@ export default function IntelligenceSynthesisPage() {
               </div>
             ) : synthesisError ? (
               <SectionError message={synthesisError} />
-            ) : !synthesisData || synthesisData.key_findings.length === 0 ? (
+            ) : !synthesisData || !synthesisData.key_findings?.length ? (
               <EmptyState message="No synthesis data available yet. Run analyses across multiple frameworks to generate cross-framework insights." />
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -599,7 +599,7 @@ export default function IntelligenceSynthesisPage() {
                   </div>
 
                   {/* Convergence Points */}
-                  {synthesisData.convergence_points.length > 0 && (
+                  {(synthesisData.convergence_points?.length ?? 0) > 0 && (
                     <div className="mt-6 space-y-3">
                       <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                         Convergence Points
@@ -636,7 +636,7 @@ export default function IntelligenceSynthesisPage() {
                   <ConfidenceGauge value={synthesisData.overall_confidence} />
 
                   {/* Confidence Breakdown */}
-                  {synthesisData.confidence_breakdown.length > 0 && (
+                  {(synthesisData.confidence_breakdown?.length ?? 0) > 0 && (
                     <div className="w-full space-y-2">
                       <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-center">
                         By Framework
@@ -891,7 +891,7 @@ export default function IntelligenceSynthesisPage() {
                 )}
 
                 {/* Milestones */}
-                {timelineData.milestones.length > 0 && (
+                {(timelineData.milestones?.length ?? 0) > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                       Milestones
@@ -968,7 +968,7 @@ export default function IntelligenceSynthesisPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Key Influencers */}
-                  {networkData.key_influencers.length > 0 && (
+                  {(networkData.key_influencers?.length ?? 0) > 0 && (
                     <div>
                       <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
                         Key Influencers
@@ -1003,7 +1003,7 @@ export default function IntelligenceSynthesisPage() {
                   )}
 
                   {/* Bridge Nodes */}
-                  {networkData.bridge_nodes.length > 0 && (
+                  {(networkData.bridge_nodes?.length ?? 0) > 0 && (
                     <div>
                       <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
                         Bridge Nodes
@@ -1013,7 +1013,7 @@ export default function IntelligenceSynthesisPage() {
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {networkData.bridge_nodes.map((nodeId) => {
-                          const nodeName = networkData.nodes.find(n => n.id === nodeId)?.name || nodeId
+                          const nodeName = (networkData.nodes || []).find(n => n.id === nodeId)?.name || nodeId
                           return (
                             <Badge
                               key={nodeId}
@@ -1027,7 +1027,7 @@ export default function IntelligenceSynthesisPage() {
                       </div>
 
                       {/* Community Summary */}
-                      {networkData.communities.length > 0 && (
+                      {(networkData.communities?.length ?? 0) > 0 && (
                         <div className="mt-4">
                           <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                             Communities
@@ -1085,17 +1085,17 @@ export default function IntelligenceSynthesisPage() {
                     {contradictionsData.total_count} contradiction{contradictionsData.total_count !== 1 ? 's' : ''}
                   </span>
                   <div className="flex items-center gap-2">
-                    {contradictionsData.by_severity.CRITICAL > 0 && (
+                    {(contradictionsData.by_severity?.CRITICAL ?? 0) > 0 && (
                       <Badge className="text-xs bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
                         {contradictionsData.by_severity.CRITICAL} critical
                       </Badge>
                     )}
-                    {contradictionsData.by_severity.WARNING > 0 && (
+                    {(contradictionsData.by_severity?.WARNING ?? 0) > 0 && (
                       <Badge className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                         {contradictionsData.by_severity.WARNING} warning
                       </Badge>
                     )}
-                    {contradictionsData.by_severity.INFO > 0 && (
+                    {(contradictionsData.by_severity?.INFO ?? 0) > 0 && (
                       <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                         {contradictionsData.by_severity.INFO} info
                       </Badge>
@@ -1105,7 +1105,7 @@ export default function IntelligenceSynthesisPage() {
 
                 {/* Contradiction Cards */}
                 <div className="space-y-3">
-                  {contradictionsData.contradictions.map((c: Contradiction, idx: number) => (
+                  {(contradictionsData.contradictions || []).map((c: Contradiction, idx: number) => (
                     <div
                       key={idx}
                       className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${severityCardBorder(c.severity)}`}
@@ -1203,7 +1203,7 @@ export default function IntelligenceSynthesisPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Watch List */}
-                  {predictionsData.watch_list.length > 0 && (
+                  {(predictionsData.watch_list?.length ?? 0) > 0 && (
                     <div>
                       <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
                         Watch List
@@ -1244,7 +1244,7 @@ export default function IntelligenceSynthesisPage() {
                   )}
 
                   {/* Collection Gaps */}
-                  {predictionsData.collection_gaps.length > 0 && (
+                  {(predictionsData.collection_gaps?.length ?? 0) > 0 && (
                     <div>
                       <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
                         Collection Gaps
@@ -1278,7 +1278,7 @@ export default function IntelligenceSynthesisPage() {
                 </div>
 
                 {/* Emerging Patterns */}
-                {predictionsData.emerging_patterns.length > 0 && (
+                {(predictionsData.emerging_patterns?.length ?? 0) > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
                       Emerging Patterns

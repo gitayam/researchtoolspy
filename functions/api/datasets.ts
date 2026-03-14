@@ -1,4 +1,6 @@
 // Cloudflare Pages Function for Dataset API
+import { getUserIdOrDefault } from './_shared/auth-helpers'
+
 export async function onRequest(context: any) {
   const { request, env } = context
 
@@ -18,6 +20,7 @@ export async function onRequest(context: any) {
   try {
     const url = new URL(request.url)
     const datasetId = url.searchParams.get('id')
+    const userId = await getUserIdOrDefault(request, env)
 
     // GET - List dataset or get single dataset
     if (request.method === 'GET') {
@@ -144,7 +147,7 @@ export async function onRequest(context: any) {
         body.sats_evaluation ? JSON.stringify(body.sats_evaluation) : null,
         JSON.stringify(body.frameworks || []),
         JSON.stringify(body.attachments || []),
-        body.created_by || 1,
+        body.created_by || userId,
         JSON.stringify(body.key_points || []),
         JSON.stringify(body.contradictions || []),
         JSON.stringify(body.corroborations || []),
@@ -198,7 +201,7 @@ export async function onRequest(context: any) {
         body.sats_evaluation ? JSON.stringify(body.sats_evaluation) : null,
         JSON.stringify(body.frameworks || []),
         JSON.stringify(body.attachments || []),
-        body.updated_by || 1,
+        body.updated_by || userId,
         JSON.stringify(body.key_points || []),
         JSON.stringify(body.contradictions || []),
         JSON.stringify(body.corroborations || []),

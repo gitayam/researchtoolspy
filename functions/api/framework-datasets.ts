@@ -1,4 +1,6 @@
 // Cloudflare Pages Function for Framework-Dataset Linking API
+import { getUserIdOrDefault } from './_shared/auth-helpers'
+
 export async function onRequest(context: any) {
   const { request, env } = context
 
@@ -19,6 +21,7 @@ export async function onRequest(context: any) {
     const url = new URL(request.url)
     const frameworkId = url.searchParams.get('framework_id')
     const datasetId = url.searchParams.get('dataset_id')
+    const userId = await getUserIdOrDefault(request, env)
 
     // GET - Get linked dataset for a framework or frameworks for an dataset
     if (request.method === 'GET') {
@@ -103,7 +106,7 @@ export async function onRequest(context: any) {
             datasetId,
             body.section_key || null,
             body.relevance_note || null,
-            body.created_by || 1
+            body.created_by || userId
           ).run()
 
           results.push({ dataset_id: datasetId, success: true })
