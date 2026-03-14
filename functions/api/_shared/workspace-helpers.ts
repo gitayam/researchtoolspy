@@ -26,3 +26,25 @@ export async function canManageWorkspace(
   ).bind(workspaceId, userId).first()
   return member?.role === 'ADMIN'
 }
+
+/**
+ * Get user's role in a workspace, or null if not a member.
+ *
+ * Returns 'OWNER' for workspace owners, or the role from workspace_members.
+ */
+export async function getWorkspaceMemberRole(
+  db: D1Database,
+  workspaceId: string,
+  userId: number
+): Promise<string | null> {
+  const workspace = await db.prepare(
+    `SELECT owner_id FROM workspaces WHERE id = ?`
+  ).bind(workspaceId).first()
+  if (!workspace) return null
+  if (workspace.owner_id === userId) return 'OWNER'
+
+  const member = await db.prepare(
+    `SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ?`
+  ).bind(workspaceId, userId).first()
+  return (member?.role as string) || null
+}
