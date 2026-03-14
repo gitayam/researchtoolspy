@@ -7,7 +7,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault, getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database

@@ -91,7 +91,6 @@ ${mode === 'comprehensive' ? 'Use markdown headings (##) to organize sections.' 
       const error = await response.json().catch(() => ({ error: { message: 'Unknown error' } }))
       return Response.json({
         error: 'Summarization failed',
-        message: error.error?.message || response.statusText
       }, { status: response.status })
     }
 

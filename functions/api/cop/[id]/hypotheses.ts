@@ -6,7 +6,7 @@
  * PUT  /api/cop/:id/hypotheses - Update hypothesis status/confidence
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { HYPOTHESIS_CREATED, HYPOTHESIS_UPDATED, HYPOTHESIS_EVIDENCE_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
@@ -77,7 +77,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     // If hypothesis_id is present, this is an "add evidence link" request
@@ -169,6 +174,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     if (!body.id) {
@@ -205,7 +216,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       UPDATE cop_hypotheses SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?
     `).bind(...values).run()
 
-    const userId = await getUserIdOrDefault(request, env)
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: HYPOTHESIS_UPDATED,

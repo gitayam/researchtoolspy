@@ -6,7 +6,7 @@
  * PUT    /api/cop/:id/claims/:claimId - Update claim status (verify/dispute/promote)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 
 interface Env {
@@ -59,7 +59,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     if (!Array.isArray(body.claims) || body.claims.length === 0) {
@@ -127,7 +132,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
     const claimId = body.claim_id
 

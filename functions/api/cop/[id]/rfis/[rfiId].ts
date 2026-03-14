@@ -4,7 +4,7 @@
  * PUT /api/cop/:id/rfis/:rfiId - Update RFI (status, priority)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../../_shared/auth-helpers'
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { RFI_ANSWERED, RFI_ACCEPTED, RFI_CLOSED } from '../../../_shared/cop-event-types'
 
@@ -25,6 +25,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const rfiId = params.rfiId as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
     const now = new Date().toISOString()
 
@@ -68,7 +74,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     // Emit event for status transitions
     if (body.status && existing && body.status !== existing.status) {
-      const userId = await getUserIdOrDefault(request, env)
       const statusEventMap: Record<string, string> = {
         'answered': RFI_ANSWERED,
         'accepted': RFI_ACCEPTED,

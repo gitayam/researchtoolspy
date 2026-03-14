@@ -7,7 +7,7 @@
  * DELETE /api/cop/:id/assets?asset_id=x - Delete asset (hard delete or soft offline)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault, getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { ASSET_CREATED, ASSET_UPDATED, ASSET_STATUS_CHANGED, ASSET_QUOTA_LOW } from '../../_shared/cop-event-types'
 

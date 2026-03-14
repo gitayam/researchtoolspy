@@ -7,7 +7,7 @@
  * DELETE /api/cop/:id/tasks?task_id=x - Delete task
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault, getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_UNBLOCKED, TASK_DELETED } from '../../_shared/cop-event-types'
 

@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-40)
+**Last updated:** 2026-03-14 (Sessions 34-41)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -132,6 +132,36 @@
 
 ---
 
+## Fixed — v0.14.2 (Session 41)
+
+### SECURITY
+| # | Issue | Status |
+|---|-------|--------|
+| 56 | **COP RFIs POST/PUT uses `getUserIdOrDefault`** — guest users could create/update RFIs. Fixed: `cop/[id]/rfis.ts` and `cop/[id]/rfis/[rfiId].ts` use `getUserFromRequest` + 401. Removed redundant inner auth call in PUT event emission. | FIXED |
+| 57 | **COP hypotheses POST/PUT uses `getUserIdOrDefault`** — Fixed: `cop/[id]/hypotheses.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 58 | **COP claims POST/PUT uses `getUserIdOrDefault`** — Fixed: `cop/[id]/claims.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 59 | **COP markers POST/PUT uses `getUserIdOrDefault`** — Fixed: `cop/[id]/markers.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 60 | **COP personas POST uses `getUserIdOrDefault`** — Fixed: `cop/[id]/personas.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 61 | **COP intake-forms POST uses `getUserIdOrDefault`** — Fixed: `cop/[id]/intake-forms.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 62 | **COP intake-forms PUT uses `getUserIdOrDefault`** — PUT handler had import but no auth check at all. Fixed: `cop/[id]/intake-forms/[formId].ts` uses `getUserFromRequest` + 401 | FIXED |
+| 63 | **COP playbooks POST uses `getUserIdOrDefault`** — Fixed: `cop/[id]/playbooks.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 64 | **COP marker-changelog POST uses `getUserIdOrDefault`** — Fixed: `cop/[id]/marker-changelog.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 65 | **COP evidence POST uses `getUserIdOrDefault`** — Fixed: `cop/[id]/evidence.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 66 | **COP evidence batch POST uses `getUserIdOrDefault`** — Fixed: `cop/[id]/evidence/batch.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 67 | **COP asset check-in POST uses `getUserIdOrDefault`** — Fixed: `cop/[id]/assets/[assetId]/check-in.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 68 | **COP task reassign POST uses `getUserIdOrDefault`** — Fixed: `cop/[id]/tasks/[taskId]/reassign.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 69 | **COP deploy-template POST uses `getUserIdOrDefault`** — Fixed: `cop/[id]/tasks/deploy-template.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 70 | **COP RFI answers POST/PUT uses `getUserIdOrDefault`** — Fixed: `cop/[id]/rfis/[rfiId]/answers.ts` uses `getUserFromRequest` + 401 on both handlers | FIXED |
+| 71 | **COP sessions POST uses `getUserIdOrDefault`** — guest users could create new COP sessions. Fixed: `cop/sessions.ts` POST uses `getUserFromRequest` + 401 (GET intentionally kept for guest listing) | FIXED |
+| 72 | **5 error.message leaks in AI/tools endpoints** — `geoconfirmed.ts`, `ai/summarize.ts`, `ai/questions.ts`, `ai/generate.ts`, `ai/scrape-url.ts` exposed internal error details to clients. Fixed: generic error messages returned | FIXED |
+
+### CODE QUALITY
+| # | Issue | Status |
+|---|-------|--------|
+| 73 | **Dead `getUserIdOrDefault` imports** in sessions/[id].ts, assets.ts, tasks.ts — removed unused imports left from v0.14.0 auth fixes | FIXED |
+
+---
+
 ## Remaining Tech Debt
 
 ### Architecture (MEDIUM)
@@ -139,7 +169,7 @@
 |---|-------|-------|
 | 15 | Dual auth systems (`omnicore_user_hash` vs `omnicore_token`) | Consolidated to `getCopHeaders()` per F34 lesson, but two localStorage keys remain |
 | 16 | `ensureUserHash()` creates hash locally but never registers in DB | Guest users can't own workspaces |
-| 17 | ~22 COP mutation endpoints still use `getUserIdOrDefault` | All DELETE/session/share handlers hardened (S40). Remaining: markers, RFIs, hypotheses, claims, personas, intake-forms, evidence, sessions-list — lower risk (POST/PUT only, no destructive ops) |
+| 17 | ~~COP mutation endpoints use `getUserIdOrDefault`~~ | **RESOLVED (S41)** — All COP mutation endpoints now use `getUserFromRequest` + 401. Only `sessions.ts` GET intentionally keeps `getUserIdOrDefault` for guest listing. |
 
 ### Code Quality (LOW)
 | # | Issue | Notes |

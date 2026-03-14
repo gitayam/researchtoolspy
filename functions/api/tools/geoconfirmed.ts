@@ -551,7 +551,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[GeoConfirmed Crawler] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to fetch GeoConfirmed data',
-      detail: error?.message || String(error),
     }), { status: 500, headers: corsHeaders })
   }
 }

@@ -8,7 +8,7 @@
  * If assigned_to is provided, assigns directly.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../../../_shared/auth-helpers'
 import { emitCopEvent } from '../../../../_shared/cop-events'
 import { TASK_ASSIGNED } from '../../../../_shared/cop-event-types'
 import { autoAssignTask } from '../../../../_shared/auto-assign'
@@ -28,9 +28,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { env, params, request } = context
   const sessionId = params.id as string
   const taskId = params.taskId as string
-  const userId = await getUserIdOrDefault(request, env)
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     // Verify task exists

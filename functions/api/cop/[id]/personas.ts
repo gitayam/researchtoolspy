@@ -6,7 +6,7 @@
  * POST /api/cop/:id/personas/link  - Create a persona link (handled via ?action=link query param)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { PERSONA_CREATED, PERSONA_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
@@ -88,7 +88,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const action = url.searchParams.get('action')
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     // Look up the session's actual workspace_id (don't rely on header default '1')
     const sessionRow = await env.DB.prepare(
       `SELECT workspace_id FROM cop_sessions WHERE id = ?`

@@ -654,7 +654,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             console.error('Raw extracted text:', extractedText)
             extractedData = {
               _raw: extractedText || '(empty response)',
-              _parseError: (e as Error).message,
+              _parseError: 'JSON parse failed',
               _framework: framework,
               _model: 'gpt-4o-mini'
             }

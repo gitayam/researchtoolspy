@@ -133,7 +133,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.error('OpenAI API error:', error)
       return Response.json({
         error: 'AI generation failed',
-        message: error.error?.message || response.statusText
       }, { status: response.status })
     }
 

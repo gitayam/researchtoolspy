@@ -7,7 +7,7 @@
  * maps ref IDs to real IDs, creates subtasks and dependency rows.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../../_shared/auth-helpers'
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { TASK_CREATED } from '../../../_shared/cop-event-types'
 
@@ -33,9 +33,14 @@ function generateDepId(): string {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { env, params, request } = context
   const sessionId = params.id as string
-  const userId = await getUserIdOrDefault(request, env)
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     if (!body.template_id) {

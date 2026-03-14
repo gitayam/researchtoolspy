@@ -96,7 +96,6 @@ No explanations, just the JSON array.`
       const error = await response.json().catch(() => ({ error: { message: 'Unknown error' } }))
       return Response.json({
         error: 'Question generation failed',
-        message: error.error?.message || response.statusText
       }, { status: response.status })
     }
 

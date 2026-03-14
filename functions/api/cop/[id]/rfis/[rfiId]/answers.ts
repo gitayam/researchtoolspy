@@ -5,7 +5,7 @@
  * PUT  /api/cop/:id/rfis/:rfiId/answers - Accept/reject answer (body: { answer_id, is_accepted })
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -28,7 +28,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const rfiId = params.rfiId as string
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     if (!body.answer_text?.trim()) {
@@ -103,6 +108,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const rfiId = params.rfiId as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
     const now = new Date().toISOString()
 

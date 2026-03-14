@@ -6,7 +6,7 @@
  * PUT  /api/cop/:id/rfis - Update RFI (status, priority, answer)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { RFI_CREATED, RFI_ANSWERED, RFI_CLOSED } from '../../_shared/cop-event-types'
 
@@ -79,7 +79,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     if (!body.question?.trim()) {
@@ -124,6 +129,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     if (!body.id) {
@@ -164,7 +175,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     // If an answer is provided, insert into cop_rfi_answers and seed evidence
     if (body.answer?.trim()) {
-      const userId = await getUserIdOrDefault(request, env)
+
       const answerId = `rfa-${crypto.randomUUID().slice(0, 12)}`
       await env.DB.prepare(`
         INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, source_description, created_by, responder_name, created_at)
@@ -199,7 +210,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     // Emit event for status transitions
     if (body.status) {
-      const userId = await getUserIdOrDefault(request, env)
+
       const statusEventMap: Record<string, string> = {
         'answered': RFI_ANSWERED,
         'closed': RFI_CLOSED,
