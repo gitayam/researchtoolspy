@@ -21,22 +21,24 @@ export function WorkspaceStatsBar({ workspaceId, onTabClick }: WorkspaceStatsBar
   const [stats, setStats] = useState<Stats | null>(null)
 
   useEffect(() => {
-    fetchStats()
+    const controller = new AbortController()
+    fetchStats(controller.signal)
+    return () => controller.abort()
   }, [workspaceId])
 
-  const fetchStats = async () => {
+  const fetchStats = async (signal?: AbortSignal) => {
     setStats(null) // Reset on workspace change to avoid showing stale data
     try {
       const headers: HeadersInit = { ...getCopHeaders() }
       const authToken = localStorage.getItem('auth_token')
       if (authToken) headers['Authorization'] = `Bearer ${authToken}`
 
-      const response = await fetch(`/api/workspaces/${workspaceId}/stats`, { headers })
+      const response = await fetch(`/api/workspaces/${workspaceId}/stats`, { headers, signal })
       if (response.ok) {
         setStats(await response.json())
       }
-    } catch (error) {
-      console.error('Failed to fetch workspace stats:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to fetch workspace stats:', error)
     }
   }
 

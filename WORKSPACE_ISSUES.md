@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-53)
+**Last updated:** 2026-03-14 (Sessions 34-54)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -329,6 +329,38 @@
 | 148 | **social-media.ts posts POST/PUT unguarded `.first()`** — `...post` spread + `post.media_urls`, `post.platform_data`, etc. Fixed: null guard | FIXED |
 | 149 | **social-media.ts jobs POST unguarded `.first()`** — `...job` spread + `job.config`. Fixed: null guard | FIXED |
 | 150 | **cop/[id]/timeline.ts PUT unguarded `.first()`** — `entry: updated` passed directly without null check. Fixed: fallback `updated \|\| { id: entryId }` | FIXED |
+
+---
+
+## Fixed — v0.15.9 (Session 54)
+
+### NULL DEREFERENCE
+| # | Issue | Status |
+|---|-------|--------|
+| 151 | **cross-table/[id].ts PUT unguarded `.first()` result** — `parseTableRow(updated)` where `updated` can be null from `.first()`. Fixed: null guard with `{ success: true, id }` fallback | FIXED |
+| 152 | **settings/workspaces/[id].ts PUT unguarded `.first()` result** — `Response.json(updated)` where `updated` can be null. Fixed: null guard | FIXED |
+
+### JSON.PARSE SAFETY
+| # | Issue | Status |
+|---|-------|--------|
+| 153 | **research/tasks/list.ts 4x bare `JSON.parse` on D1 fields** — `depends_on`, `blocks`, `related_evidence`, `related_analysis` parsed without try-catch. Corrupted data crashes entire task list. Fixed: `safeParseJSON()` helper with `[]` fallback | FIXED |
+| 154 | **research/workflow/init.ts 4x bare `JSON.parse` on template fields** — `stages`, `default_tasks`, `evidence_types`, `analysis_types` parsed without try-catch. Corrupted template data crashes workflow init. Fixed: `safeParseJSON()` helper | FIXED |
+| 155 | **research/forms/[id]/index.ts bare `JSON.parse` on `form_fields`** — Corrupted form field JSON crashes form detail endpoint. Fixed: try-catch with `[]` fallback | FIXED |
+
+### FRONTEND CRASH
+| # | Issue | Status |
+|---|-------|--------|
+| 156 | **ClaimAnalysisDisplay.tsx 30+ unguarded `deception_analysis` accesses** — Deep property access (`claim.deception_analysis.methods.internal_consistency.score`) without optional chaining. If AI returns incomplete deception_analysis, entire page crashes. Fixed: optional chaining on all nested accesses (`?.methods?.`, `?.red_flags?.`, etc.) | FIXED |
+
+### MEMORY LEAK
+| # | Issue | Status |
+|---|-------|--------|
+| 157 | **CopSessionsTab.tsx useEffect fetch without AbortController** — setState on unmounted component. Fixed: AbortController with cleanup | FIXED |
+| 158 | **ToolsTab.tsx useEffect fetch without AbortController** — Same pattern. Fixed | FIXED |
+| 159 | **EntitiesTab.tsx useEffect fetch without AbortController** — Same pattern. Fixed | FIXED |
+| 160 | **FrameworksTab.tsx useEffect fetch without AbortController** — Same pattern. Fixed | FIXED |
+| 161 | **WorkspaceStatsBar.tsx useEffect fetch without AbortController** — Same pattern. Fixed | FIXED |
+| 162 | **TeamTab.tsx 2x useEffect fetch without AbortController** — Members + invites fetch both unguarded. Fixed: shared controller for both | FIXED |
 
 ---
 

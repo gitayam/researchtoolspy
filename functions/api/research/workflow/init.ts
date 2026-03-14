@@ -54,12 +54,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    const safeParseJSON = (val: any, fallback: any = []) => {
+      if (!val) return fallback
+      try { return JSON.parse(val as string) } catch { return fallback }
+    }
+
     const template = {
       ...templateResult,
-      stages: JSON.parse(templateResult.stages as string),
-      default_tasks: JSON.parse(templateResult.default_tasks as string),
-      evidence_types: JSON.parse(templateResult.evidence_types as string),
-      analysis_types: JSON.parse(templateResult.analysis_types as string)
+      stages: safeParseJSON(templateResult.stages, []),
+      default_tasks: safeParseJSON(templateResult.default_tasks, []),
+      evidence_types: safeParseJSON(templateResult.evidence_types, []),
+      analysis_types: safeParseJSON(templateResult.analysis_types, [])
     }
 
     // Create default tasks from template

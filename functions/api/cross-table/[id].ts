@@ -95,6 +95,10 @@ async function handleUpdate(env: any, userId: number, id: string, request: Reque
     'SELECT * FROM cross_tables WHERE id = ?'
   ).bind(id).first()
 
+  if (!updated) {
+    return new Response(JSON.stringify({ success: true, id }), { headers: corsHeaders })
+  }
+
   return new Response(JSON.stringify({ table: parseTableRow(updated) }), { headers: corsHeaders })
 }
 

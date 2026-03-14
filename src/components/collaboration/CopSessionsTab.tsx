@@ -37,23 +37,25 @@ export function CopSessionsTab({ workspaceId, userRole }: CopSessionsTabProps) {
   const canCreate = userRole !== 'VIEWER'
 
   useEffect(() => {
-    fetchSessions()
+    const controller = new AbortController()
+    fetchSessions(controller.signal)
+    return () => controller.abort()
   }, [workspaceId])
 
-  const fetchSessions = async () => {
+  const fetchSessions = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const headers: HeadersInit = { ...getCopHeaders() }
       const authToken = localStorage.getItem('auth_token')
       if (authToken) headers['Authorization'] = `Bearer ${authToken}`
 
-      const response = await fetch(`/api/workspaces/${workspaceId}/cop-sessions?limit=50`, { headers })
+      const response = await fetch(`/api/workspaces/${workspaceId}/cop-sessions?limit=50`, { headers, signal })
       if (response.ok) {
         const data = await response.json()
         setSessions(data.sessions)
       }
-    } catch (error) {
-      console.error('Failed to fetch COP sessions:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to fetch COP sessions:', error)
     } finally {
       setLoading(false)
     }

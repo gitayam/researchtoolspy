@@ -77,6 +77,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       .bind(workspaceId)
       .first()
 
+    if (!updated) {
+      return Response.json({ success: true, id: workspaceId })
+    }
     return Response.json(updated)
   } catch (error: any) {
     if (error instanceof Response) return error

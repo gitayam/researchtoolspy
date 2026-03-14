@@ -58,10 +58,12 @@ export function EntitiesTab({ workspaceId, userRole }: EntitiesTabProps) {
   }, [searchInput])
 
   useEffect(() => {
-    fetchEntities()
+    const controller = new AbortController()
+    fetchEntities(controller.signal)
+    return () => controller.abort()
   }, [workspaceId, typeFilter, search])
 
-  const fetchEntities = async () => {
+  const fetchEntities = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const headers: HeadersInit = { ...getCopHeaders() }
@@ -73,14 +75,14 @@ export function EntitiesTab({ workspaceId, userRole }: EntitiesTabProps) {
       if (search) params.set('search', search)
       params.set('limit', '50')
 
-      const response = await fetch(`/api/workspaces/${workspaceId}/entities?${params}`, { headers })
+      const response = await fetch(`/api/workspaces/${workspaceId}/entities?${params}`, { headers, signal })
       if (response.ok) {
         const data = await response.json()
         setEntities(data.entities)
         setTotal(data.total)
       }
-    } catch (error) {
-      console.error('Failed to fetch entities:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to fetch entities:', error)
     } finally {
       setLoading(false)
     }

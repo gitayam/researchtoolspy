@@ -39,25 +39,27 @@ export function ToolsTab({ workspaceId, userRole }: ToolsTabProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchTools()
+    const controller = new AbortController()
+    fetchTools(controller.signal)
+    return () => controller.abort()
   }, [workspaceId])
 
-  const fetchTools = async () => {
+  const fetchTools = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const headers: HeadersInit = { ...getCopHeaders() }
       const authToken = localStorage.getItem('auth_token')
       if (authToken) headers['Authorization'] = `Bearer ${authToken}`
 
-      const response = await fetch(`/api/workspaces/${workspaceId}/tools`, { headers })
+      const response = await fetch(`/api/workspaces/${workspaceId}/tools`, { headers, signal })
       if (response.ok) {
         const data = await response.json()
         setPlaybooks(data.playbooks || [])
         setTaskTemplates(data.task_templates || [])
         setIntakeForms(data.intake_forms || [])
       }
-    } catch (error) {
-      console.error('Failed to fetch tools:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to fetch tools:', error)
     } finally {
       setLoading(false)
     }

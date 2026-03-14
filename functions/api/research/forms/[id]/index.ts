@@ -35,9 +35,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     // Parse JSON fields
+    let parsedFields: any[] = []
+    try {
+      parsedFields = form.form_fields ? JSON.parse(form.form_fields as string) : []
+    } catch {
+      parsedFields = []
+    }
     const parsed = {
       ...form,
-      form_fields: form.form_fields ? JSON.parse(form.form_fields as string) : []
+      form_fields: parsedFields
     }
 
     return new Response(JSON.stringify({

@@ -39,10 +39,12 @@ export function FrameworksTab({ workspaceId, userRole }: FrameworksTabProps) {
   const canCreate = userRole !== 'VIEWER'
 
   useEffect(() => {
-    fetchFrameworks()
+    const controller = new AbortController()
+    fetchFrameworks(controller.signal)
+    return () => controller.abort()
   }, [workspaceId, typeFilter])
 
-  const fetchFrameworks = async () => {
+  const fetchFrameworks = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const headers: HeadersInit = { ...getCopHeaders() }
@@ -52,13 +54,13 @@ export function FrameworksTab({ workspaceId, userRole }: FrameworksTabProps) {
       const params = new URLSearchParams({ limit: '50' })
       if (typeFilter) params.set('type', typeFilter)
 
-      const response = await fetch(`/api/workspaces/${workspaceId}/frameworks?${params}`, { headers })
+      const response = await fetch(`/api/workspaces/${workspaceId}/frameworks?${params}`, { headers, signal })
       if (response.ok) {
         const data = await response.json()
         setFrameworks(data.frameworks)
       }
-    } catch (error) {
-      console.error('Failed to fetch frameworks:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to fetch frameworks:', error)
     } finally {
       setLoading(false)
     }

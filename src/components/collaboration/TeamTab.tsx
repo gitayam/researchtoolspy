@@ -44,35 +44,39 @@ export function TeamTab({ workspaceId, userRole }: TeamTabProps) {
   }
 
   useEffect(() => {
-    fetchMembers()
-    fetchInvites()
+    const controller = new AbortController()
+    fetchMembers(controller.signal)
+    fetchInvites(controller.signal)
+    return () => controller.abort()
   }, [workspaceId])
 
-  const fetchMembers = async () => {
+  const fetchMembers = async (signal?: AbortSignal) => {
     try {
       const response = await fetch(`/api/workspaces/${workspaceId}/members`, {
         headers: getAuthHeaders(),
+        signal,
       })
       if (response.ok) {
         const data = await response.json()
         setMembers(data)
       }
-    } catch (error) {
-      console.error('Failed to fetch members:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to fetch members:', error)
     }
   }
 
-  const fetchInvites = async () => {
+  const fetchInvites = async (signal?: AbortSignal) => {
     try {
       const response = await fetch(`/api/workspaces/${workspaceId}/invites`, {
         headers: getAuthHeaders(),
+        signal,
       })
       if (response.ok) {
         const data = await response.json()
         setInvites(data.invites || [])
       }
-    } catch (error) {
-      console.error('Failed to fetch invites:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to fetch invites:', error)
     }
   }
 
