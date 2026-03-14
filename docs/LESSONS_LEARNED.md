@@ -1,5 +1,24 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-14 - GeoConfirmed Crawler (Session 30)
+
+### Third-Party Site Data Often Has a Public Export Path Hidden Behind the SPA
+GeoConfirmed.org is a Blazor WebAssembly app — all `/api/*` routes return SPA HTML when hit from a server. The breakthrough came from discovering existing OSINT tools (osint-geo-extractor, QGIS plugin) that documented the real API. The key endpoints were `/api/Placemark/{conflict}/{page}/{size}` (lightweight JSON) and `/api/map/ExportAsKml/{region}` (full KMZ with descriptions). Always search for existing third-party tools that parse a target site before attempting to reverse-engineer it.
+
+**Rule:** Before building a scraper for a JS-heavy site, search PyPI/npm/GitHub for existing extraction tools. They've already done the reverse engineering and documented the endpoints. The QGIS plugin's `API_EXPLORATION.md` saved hours of Blazor WASM investigation.
+
+### Dual-API Enrichment: Fast Listing + Heavy Export Merge
+The GeoConfirmed JSON API only returns minimal map pin data (id, date, lat/lon, icon). Full descriptions and source URLs live only in the KML export (4.8MB KMZ). The solution: use the fast JSON API for pagination/counting, then merge with parsed KML data by coordinate matching. Cache the parsed KML in KV (1 hour TTL) so enrichment is fast after first load.
+
+**Rule:** When a data source has a lightweight list API and a heavyweight export, build both paths. Default to enriched for small result sets (≤50), fall back to lightweight for large pages. Let the caller choose via an `enriched` flag.
+
+### Server-Side Search May Be Blocked — Always Have a Fallback
+GeoConfirmed's `?search=` query parameter returns 403 from server-side requests (needs a browser session/referrer). Rather than failing the whole request, the crawler falls back to unfiltered results. The client can then filter locally.
+
+**Rule:** When proxying third-party APIs, always handle auth-gated features gracefully. Try the enriched path, fall back to the basic path, never hard-fail on optional features.
+
+---
+
 ## Session: 2026-03-13 - Timeline Hub + Entity Extraction + Framework Crash (Sessions 24-29)
 
 ### Null Guards on Shared View Components Prevent Full-Page Crashes

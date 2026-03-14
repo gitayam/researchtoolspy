@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-13 (cycle 14)
+> Last updated: 2026-03-14 (cycle 15)
 > Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
@@ -177,6 +177,18 @@
 - Fire-and-forget `createTimelineEntry()` side effects on claims, evidence, markers, hypotheses
 - Migration 084 (table), 085 (entity columns), 086 (claims url nullable)
 
+### F30. GeoConfirmed Crawler — Purpose-Built GEOINT Extractor
+**Feature:** `/api/tools/geoconfirmed` — structured data extraction from geoconfirmed.org
+- **Dual API strategy:** Fast JSON API for listing (id, date, lat/lon, icon), KML export for enrichment (descriptions, source URLs)
+- **Modes:** URL extraction (single event), search/list (paginated), conflicts list
+- **Icon decoding:** Faction color → name, equipment type from icon number ranges, destroyed flag
+- **KMZ parsing:** Manual zip header parsing + `DecompressionStream('deflate-raw')` in Workers (no npm deps)
+- **Coordinate join:** JSON placemarks matched to KML entries by lat/lon within 0.001° tolerance
+- **KV caching:** Parsed KML cached 1 hour to avoid re-downloading 4.8MB KMZ
+- **COP integration:** GeoConfirmed URLs auto-detected in Claims panel, events converted to claims + actors
+- **Coverage:** All 20 conflicts (Iran, Ukraine, Israel, etc.), 53k+ Ukraine events, 1,671 Iran events
+- **Search fallback:** Server-side search returns 403 (needs browser session), gracefully falls back to unfiltered
+
 ---
 
 ## 🔴 Critical Issues
@@ -272,7 +284,8 @@
 25. ~~**New** — getHeaders() duplicated 19x~~ DONE — extracted to src/lib/cop-auth.ts getCopHeaders()
 26. ~~**New** — error.message leaks in API responses~~ DONE — removed from 44 error responses across 23 endpoints
 27. **New** — UI/UX Phase 4: Mobile Bottom Tab Navigation
-28. **New** — COP responsive layout (dvh, mobile sidebar toggle, error boundaries)
+28. ~~**New** — COP responsive layout (dvh, mobile sidebar toggle, error boundaries)~~ MERGED with #19
 29. ~~**New** — GenericFrameworkView crash on undefined data~~ DONE (F27) — null guard added
 30. ~~**New** — Entity extraction → COP Actors auto-population~~ DONE (F28) — batch creation with dedup
 31. ~~**New** — Timeline Hub system~~ DONE (F29) — full implementation across 14 tasks
+32. ~~**New** — GeoConfirmed crawler~~ DONE (F30) — purpose-built GEOINT extractor with COP integration

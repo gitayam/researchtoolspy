@@ -200,6 +200,11 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
     }
   }, [sessionId])
 
+  /** Detect GeoConfirmed URLs for specialized crawling */
+  const isGeoconfirmedUrl = (url: string) => {
+    try { return new URL(url).hostname.includes('geoconfirmed.org') } catch { return false }
+  }
+
   /** Extract claims from a URL via AI */
   const handleExtractFromUrl = useCallback(async (rawUrl: string) => {
     const fullUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
@@ -216,6 +221,106 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
     setError(null)
 
     try {
+      // Route GeoConfirmed URLs to specialized crawler
+      if (isGeoconfirmedUrl(fullUrl)) {
+        const gcRes = await fetch('/api/tools/geoconfirmed', {
+          method: 'POST',
+          headers: { ...getCopHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: fullUrl, enriched: true }),
+        })
+
+        if (!gcRes.ok) {
+          const errData = await gcRes.json().catch(() => ({ error: `HTTP ${gcRes.status}` }))
+          throw new Error(errData.detail || errData.error || `GeoConfirmed crawler failed (${gcRes.status})`)
+        }
+
+        const gcData = await gcRes.json()
+
+        // Convert GeoConfirmed data to claims format
+        const claims: ExtractedClaim[] = []
+        const personas: { display_name: string; role?: string; platform?: string }[] = []
+
+        if (gcData.event) {
+          // Single event mode
+          const e = gcData.event
+          claims.push({
+            claim: e.description || `Event at ${e.latitude}, ${e.longitude}`,
+            category: e.equipment_type || 'geolocation',
+            confidence: 90,
+          })
+          if (e.faction) {
+            personas.push({ display_name: e.faction, role: e.destroyed ? 'Target (destroyed)' : 'Faction' })
+          }
+        } else if (gcData.events) {
+          // List/search mode — convert each event to a claim
+          for (const e of gcData.events.slice(0, 50)) {
+            const desc = e.description || `${e.equipment_type || 'Event'} at ${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}`
+            claims.push({
+              claim: `[${e.date}] ${desc}${e.destroyed ? ' (DESTROYED)' : ''}`,
+              category: e.equipment_type || 'geolocation',
+              confidence: 90,
+            })
+            if (e.faction && !personas.some(p => p.display_name === e.faction)) {
+              personas.push({ display_name: e.faction, role: 'Faction' })
+            }
+          }
+        }
+
+        const result: ClaimAnalysisResult = {
+          url: rawUrl,
+          title: gcData.conflict?.name ? `GeoConfirmed: ${gcData.conflict.name}` : 'GeoConfirmed Event',
+          domain: 'geoconfirmed.org',
+          claims,
+          summary: gcData.event
+            ? `${gcData.event.description || 'Event'} — ${gcData.event.faction || 'Unknown'} — ${gcData.event.date}`
+            : `${gcData.total || gcData.events?.length || 0} geolocated events from ${gcData.conflict?.name || 'GeoConfirmed'}`,
+          entity_count: personas.length,
+          analyzed_at: new Date().toISOString(),
+        }
+
+        // Persist claims
+        if (result.claims.length > 0) {
+          try {
+            const persistRes = await fetch(`/api/cop/${sessionId}/claims`, {
+              method: 'POST',
+              headers: getCopHeaders(),
+              body: JSON.stringify({
+                url: result.url,
+                title: result.title,
+                domain: result.domain,
+                summary: result.summary,
+                claims: result.claims,
+              }),
+            })
+            if (persistRes.ok) {
+              const persistData = await persistRes.json()
+              if (persistData.ids) {
+                result.claims = result.claims.map((c, i) => ({
+                  ...c,
+                  id: persistData.ids[i],
+                  status: 'unverified' as const,
+                }))
+              }
+            }
+          } catch { /* non-fatal */ }
+        }
+
+        // Auto-create personas from factions
+        if (personas.length > 0) {
+          fetch(`/api/cop/${sessionId}/personas`, {
+            method: 'POST',
+            headers: getCopHeaders(),
+            body: JSON.stringify({ personas: personas.map(p => ({ ...p, platform: 'other' })), source: 'geoconfirmed' }),
+          }).then(() => {
+            window.dispatchEvent(new CustomEvent('cop:personas-updated'))
+          }).catch(() => {})
+        }
+
+        setResults(prev => [result, ...prev])
+        setInput('')
+        return
+      }
+
       const res = await fetch('/api/tools/extract-claims', {
         method: 'POST',
         headers: { ...getCopHeaders(), 'Content-Type': 'application/json' },
