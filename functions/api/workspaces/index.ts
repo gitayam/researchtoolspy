@@ -6,6 +6,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { getWorkspaceMemberRole } from '../_shared/workspace-helpers'
 import { logActivity } from '../_shared/activity-logger'
 import { notifyWorkspaceMembers } from '../_shared/notification-logger'
 
@@ -51,25 +52,26 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     const { results: ownedWorkspaces } = await env.DB.prepare(`
-      SELECT * FROM workspaces WHERE owner_id = ? ORDER BY created_at DESC
+      SELECT * FROM workspaces WHERE owner_id = ? AND id NOT LIKE 'cop-%' ORDER BY created_at DESC
     `).bind(userId).all()
 
     const { results: memberWorkspaces } = await env.DB.prepare(`
       SELECT w.*, wm.role FROM workspaces w
       JOIN workspace_members wm ON w.id = wm.workspace_id
-      WHERE wm.user_id = ? AND w.owner_id != ?
+      WHERE wm.user_id = ? AND w.owner_id != ? AND w.id NOT LIKE 'cop-%'
       ORDER BY w.created_at DESC
     `).bind(userId, userId).all()
 
-    const parseWorkspace = (w: any) => ({
+    const parseWorkspace = (w: any, defaultRole: string) => ({
       ...w,
       is_public: Boolean(w.is_public),
       allow_cloning: Boolean(w.allow_cloning),
+      current_user_role: defaultRole,
     })
 
     return new Response(JSON.stringify({
-      owned: ownedWorkspaces.map(parseWorkspace),
-      member: memberWorkspaces.map(parseWorkspace),
+      owned: ownedWorkspaces.map(w => parseWorkspace(w, 'OWNER')),
+      member: memberWorkspaces.map(w => parseWorkspace(w, (w as any).role || 'VIEWER')),
     }), { headers: jsonHeaders })
   } catch (error) {
     console.error('[workspaces] List error:', error)
