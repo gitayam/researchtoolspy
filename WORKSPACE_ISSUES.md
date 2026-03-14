@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-47)
+**Last updated:** 2026-03-14 (Sessions 34-49)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -245,6 +245,15 @@
 | 116 | **equilibrium-analysis/[id].ts PUT/DELETE no ownership check** — any authenticated user could update/delete any analysis by ID. Fixed: added `AND created_by = ?` to both queries + check `result.meta.changes` | FIXED |
 | 117 | **hamilton-rule/[id].ts PUT/DELETE no ownership check** — same issue. Fixed: `AND created_by = ?` on both queries | FIXED |
 | 118 | **collection/[jobId]/approve.ts POST/DELETE no workspace scoping** — job lookup `WHERE id = ?` without workspace check. Any authenticated user could approve/reject any job by ID. Fixed: adds `AND workspace_id = ?` when X-Workspace-ID header present | FIXED |
+
+---
+
+## Fixed — v0.15.3 (Session 49)
+
+### FRONTEND CRASH
+| # | Issue | Status |
+|---|-------|--------|
+| 119 | **ResearchPlanDisplay.tsx 25+ unguarded .map() calls on AI-generated nested data** — `plan.methodology.dataCollection.map()`, `plan.timeline.milestones.map()`, etc. If AI omits any nested field, component crashes with TypeError. Fixed: added `normalizePlan()` function that ensures all nested arrays/objects have safe defaults before rendering | FIXED |
 
 ---
 
