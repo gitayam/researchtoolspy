@@ -100,7 +100,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log('[generate-question] Generating questions for topic:', body.topic)
 
     // Build AI prompt
     const systemPrompt = `You are an expert research methodologist specializing in formulating high-quality research questions. Your task is to generate research questions that follow SMART and FINER criteria, are measurable/observable, and include appropriate null and alternative hypotheses.
@@ -202,7 +201,7 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
       )
     } catch (aiError) {
       console.error('[generate-question] AI Gateway Error:', aiError)
-      throw new Error(`AI Generation failed: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`)
+      throw new Error('AI generation failed')
     }
 
     if (!response?.choices?.[0]?.message?.content) {
@@ -212,7 +211,6 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
     const aiResponse = JSON.parse(response.choices[0].message.content)
     const generatedQuestions: GeneratedQuestion[] = aiResponse.questions || []
 
-    console.log('[generate-question] Generated', generatedQuestions.length, 'questions')
 
     // Optionally save to database
     let savedId: string | null = null
@@ -266,7 +264,6 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
         'draft'
       ).run()
 
-      console.log('[generate-question] Saved to database with ID:', savedId)
     }
 
     return new Response(JSON.stringify({

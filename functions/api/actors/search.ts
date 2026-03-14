@@ -28,7 +28,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const name = url.searchParams.get('name')
     const type = url.searchParams.get('type')
 
-    console.log('[Actor Search] Request:', { workspaceId, name, type, userId })
 
     if (!name) {
       return new Response(JSON.stringify({
@@ -62,11 +61,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     query += ` LIMIT 1`
 
-    console.log('[Actor Search] Executing query with params:', params)
 
     const result = await context.env.DB.prepare(query).bind(...params).first()
 
-    console.log('[Actor Search] Result:', result ? 'Found' : 'Not found')
 
     if (result) {
       // Exact match found

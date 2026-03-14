@@ -67,7 +67,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[SWOT Auto-Populate] Fetching ${body.contentIds.length} content sources`)
 
     // Fetch content from database
     const placeholders = body.contentIds.map(() => '?').join(',')
@@ -99,7 +98,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[SWOT Auto-Populate] Found ${results.length} content sources, analyzing...`)
 
     // Prepare content for GPT analysis
     const contentSummaries = results.map((content: any) => ({
@@ -192,7 +190,6 @@ Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
     const gptData = await gptResponse.json() as any
     const gptContent = gptData.choices[0].message.content
 
-    console.log('[SWOT Auto-Populate] GPT response length:', gptContent.length)
 
     // Parse JSON from GPT response (handle markdown code blocks if present)
     let swotData
@@ -231,7 +228,6 @@ Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
       }
     }
 
-    console.log(`[SWOT Auto-Populate] Generated ${response.metadata.totalItems} items in ${response.metadata.processingTime}ms`)
 
     return new Response(JSON.stringify(response), {
       status: 200,

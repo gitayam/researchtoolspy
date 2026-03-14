@@ -51,7 +51,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[Starbursting] Creating session from ${analysis_ids.length} content analysis(es)`)
 
     // Fetch content analyses
     const placeholders = analysis_ids.map(() => '?').join(',')

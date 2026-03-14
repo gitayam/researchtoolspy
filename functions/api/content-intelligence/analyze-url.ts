@@ -40,7 +40,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    console.log('[DEBUG] Starting analyze-url endpoint')
 
     if (!env.DB) {
       console.error('[DEBUG] CRITICAL: Database binding not available!')
@@ -82,7 +81,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // If load_existing is true, fetch and return existing analysis
     if (load_existing && analysis_id) {
-      console.log(`[DEBUG] Loading existing analysis ID: ${analysis_id}`)
       try {
         const result = await env.DB.prepare(`
           SELECT * FROM content_analysis WHERE id = ?
@@ -106,7 +104,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           claim_analysis: result.claim_analysis ? JSON.parse(result.claim_analysis as string) : null
         }
 
-        console.log(`[DEBUG] Loaded existing analysis for URL: ${result.url}`)
         return new Response(JSON.stringify({ analysis }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
@@ -131,37 +128,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[DEBUG] Analyzing URL: ${url} (mode: ${mode}, save_link: ${save_link})`)
 
     const startTime = Date.now()
 
     // Normalize URL
-    console.log('[DEBUG] Normalizing URL...')
     const normalizedUrl = normalizeUrl(url)
-    console.log(`[DEBUG] Normalized URL: ${normalizedUrl}`)
 
     // Detect social media
-    console.log('[DEBUG] Detecting social media...')
-    console.log(`[DEBUG] Input URL for detection: ${url}`)
-    console.log(`[DEBUG] Normalized URL: ${normalizedUrl}`)
     const socialMediaInfo = detectSocialMedia(url)
-    console.log(`[DEBUG] Social media detected: ${JSON.stringify(socialMediaInfo)}`)
     if (socialMediaInfo) {
-      console.log(`[DEBUG] Platform identified as: ${socialMediaInfo.platform}`)
-    } else {
-      console.log(`[DEBUG] No social media platform detected - treating as regular web content`)
-    }
 
     // Generate bypass/archive links immediately (no API calls needed)
-    console.log('[DEBUG] Generating bypass/archive URLs...')
     const bypassUrls = generateBypassUrls(normalizedUrl)
     const archiveUrls = generateArchiveUrls(normalizedUrl)
-    console.log('[DEBUG] Bypass/archive URLs generated')
 
     // Extract content with automatic fallback to archives if blocked
-    console.log('[DEBUG] Extracting URL content with fallback support...')
     const contentData = await extractUrlContentWithFallback(normalizedUrl, env.OPENAI_API_KEY)
-    console.log(`[DEBUG] Content extraction result: success=${contentData.success}, source=${contentData.source}, isPDF=${contentData.isPDF}`)
 
     if (!contentData.success) {
       console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
@@ -190,14 +172,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[DEBUG] Content extracted: ${contentData.text.length} characters`)
 
     // Calculate content hash
     const contentHash = await calculateHash(contentData.text)
-    console.log(`[DEBUG] Content hash: ${contentHash}`)
 
     // Check for duplicate content in this workspace
-    console.log('[DEBUG] Checking for duplicate content...')
     const dedupCheck = await env.DB.prepare(`
       SELECT canonical_content_id, duplicate_count
       FROM content_deduplication
@@ -205,7 +184,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(contentHash).first()
 
     if (dedupCheck) {
-      console.log(`[DEBUG] Duplicate content found! canonical_id=${dedupCheck.canonical_content_id}`)
 
       // Update access stats
       await env.DB.prepare(`
@@ -229,7 +207,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       `).bind(dedupCheck.canonical_content_id).first()
 
       if (existingAnalysis) {
-        console.log('[DEBUG] Returning cached analysis (deduped)')
         return new Response(JSON.stringify({
           ...existingAnalysis,
           entities: JSON.parse(existingAnalysis.entities as string || '{}'),
@@ -256,14 +233,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // For quick mode, return only summary (skip wordcloud, entities, claims, etc.)
     if (mode === 'quick') {
-      console.log('[DEBUG] Quick mode - generating summary only...')
 
       // Generate summary with GPT
       let summary = ''
       try {
-        console.log('[DEBUG] Quick mode: Calling generateSummary with GPT...')
         summary = await generateSummary(contentData.text, env)
-        console.log(`[DEBUG] Quick mode: Summary generated`)
       } catch (error) {
         console.error('[DEBUG] Quick mode: Summary generation failed:', error)
         summary = 'Summary generation failed in quick mode.'
@@ -273,7 +247,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       let savedLinkId: number | undefined
       if (save_link) {
         try {
-          console.log('[DEBUG] Saving link with title:', contentData.title)
           savedLinkId = await saveLinkToLibrary(env.DB, {
             user_id: userId,
             workspace_id: workspaceId,
@@ -288,7 +261,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             is_processed: false, // Quick mode doesn't do full processing
             analysis_id: undefined
           })
-          console.log(`[DEBUG] Quick mode link saved with ID: ${savedLinkId}`)
         } catch (error) {
           console.error('[DEBUG] Quick mode link save failed (non-fatal):', error)
           // Don't fail the whole request if link save fails
@@ -316,7 +288,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         fallback_attempts: contentData.fallback_attempts || []
       }
 
-      console.log('[DEBUG] Quick mode complete (summary only), returning result')
       return new Response(JSON.stringify(quickResult), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -337,12 +308,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let summary = ''
 
     try {
-      console.log('[DEBUG] Calling extractEntities with GPT...')
-      console.log(`[DEBUG] API Key available: ${!!env.OPENAI_API_KEY}`)
-      console.log(`[DEBUG] Text length: ${contentData.text.length}`)
 
       entitiesData = await extractEntities(contentData.text, env, contentData.author)
-      console.log(`[DEBUG] Entities extracted: ${JSON.stringify(entitiesData)}`)
     } catch (error) {
       console.error('[DEBUG] Entity extraction failed:', error)
       console.error('[DEBUG] Continuing with empty entities...')
@@ -350,12 +317,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     try {
-      console.log('[DEBUG] Calling generateSummary with GPT...')
 
       // For large PDFs (>2000 words), use intelligent chunking
       const textWordCount = countWords(contentData.text)
       if (contentData.isPDF && textWordCount > 2000) {
-        console.log('[DEBUG] Large PDF detected, using intelligent summarization')
         const intelligentResult = await intelligentPDFSummary(
           contentData.text,
           textWordCount,
@@ -372,12 +337,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           }
         }
 
-        console.log(`[DEBUG] Intelligent summary generated with ${intelligentResult.chapters?.length || 0} chapters`)
       } else {
         summary = await generateSummary(contentData.text, env)
       }
 
-      console.log(`[DEBUG] Summary generated: ${summary?.substring(0, 100)}...`)
     } catch (error) {
       console.error('[DEBUG] Summary generation failed:', error)
       console.error('[DEBUG] Continuing without summary...')
@@ -394,9 +357,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       keyInsights: ['Sentiment analysis unavailable']
     }
     try {
-      console.log('[DEBUG] Calling analyzeSentiment with GPT...')
       sentimentData = await analyzeSentiment(contentData.text, env)
-      console.log(`[DEBUG] Sentiment analyzed: ${sentimentData.overall} (score: ${sentimentData.score})`)
     } catch (error) {
       console.error('[DEBUG] Sentiment analysis failed:', error)
       console.error('[DEBUG] Using fallback neutral sentiment')
@@ -406,9 +367,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Keyphrase extraction
     let keyphrases
     try {
-      console.log('[DEBUG] Calling extractKeyphrases with GPT...')
       keyphrases = await extractKeyphrases(contentData.text, env)
-      console.log(`[DEBUG] Keyphrases extracted: ${keyphrases.length} phrases`)
     } catch (error) {
       console.error('[DEBUG] Keyphrase extraction failed:', error)
       console.error('[DEBUG] Continuing without keyphrases...')
@@ -418,9 +377,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Topic modeling
     let topics
     try {
-      console.log('[DEBUG] Calling extractTopics with GPT...')
       topics = await extractTopics(contentData.text, env)
-      console.log(`[DEBUG] Topics extracted: ${topics.length} topics`)
     } catch (error) {
       console.error('[DEBUG] Topic extraction failed:', error)
       console.error('[DEBUG] Continuing without topics...')
@@ -431,10 +388,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Claims analysis is now a manual tool (like DIME/Starbursting) to improve initial analysis speed
     // Users can run claims analysis separately via the Claims tab
     let claimAnalysis = null
-    console.log('[DEBUG] Claims analysis disabled in automatic mode - run manually via Claims tab')
 
     // Save to database
-    console.log('[DEBUG] Saving to database...')
     let analysisId: number
     try {
       analysisId = await saveAnalysis(env.DB, {
@@ -466,7 +421,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       processing_duration_ms: Date.now() - startTime,
       gpt_model_used: 'gpt-4o-mini'
     })
-      console.log(`[DEBUG] Saved to database with ID: ${analysisId}`)
 
       // Create deduplication entry for new content (use INSERT OR IGNORE to handle race conditions)
       try {
@@ -477,7 +431,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           ) VALUES (?, ?, 1, 1, datetime('now'), datetime('now'))
         `).bind(contentHash, analysisId).run()
 
-        console.log('[DEBUG] Deduplication entry created (or already exists)')
       } catch (dedupError) {
         // Non-fatal: deduplication is an optimization, not critical
         console.error('[DEBUG] Deduplication insert failed (non-fatal):', dedupError)
@@ -490,7 +443,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (error instanceof Error && error.message.includes('UNIQUE constraint failed: content_deduplication.content_hash')) {
         // This is a race condition - content was analyzed simultaneously
         // Find and return the existing analysis
-        console.log('[DEBUG] Duplicate content detected via race condition, finding existing analysis...')
         const existingDedup = await env.DB.prepare(`
           SELECT canonical_content_id FROM content_deduplication WHERE content_hash = ?
         `).bind(contentHash).first()
@@ -501,7 +453,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           `).bind(existingDedup.canonical_content_id).first()
 
           if (existingAnalysis) {
-            console.log('[DEBUG] Returning existing analysis from race condition')
             return new Response(JSON.stringify({
               ...existingAnalysis,
               entities: JSON.parse(existingAnalysis.entities as string || '{}'),
@@ -523,14 +474,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
       }
 
-      throw new Error(`Database save failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error('Database save failed')
     }
 
     // Optionally save link
     let savedLinkId: number | undefined
     if (save_link) {
       try {
-        console.log('[DEBUG] Saving link to library...')
         savedLinkId = await saveLinkToLibrary(env.DB, {
           user_id: userId,
           workspace_id: workspaceId,
@@ -545,7 +495,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           is_processed: true,
           analysis_id: analysisId
         })
-        console.log(`[DEBUG] Link saved with ID: ${savedLinkId}`)
       } catch (error) {
         console.error('[DEBUG] Link save failed (non-fatal):', error)
         // Don't fail the whole request if link save fails
@@ -556,19 +505,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let claimIds: string[] = []
     if (claimAnalysis && claimAnalysis.claims && claimAnalysis.claims.length > 0) {
       try {
-        console.log('[DEBUG] Normalizing claims to database...')
         claimIds = await normalizeClaims(env.DB, {
           content_analysis_id: analysisId,
           claims: claimAnalysis.claims,
           user_id: userId,
           workspace_id: workspaceId
         })
-        console.log(`[DEBUG] Successfully normalized ${claimIds.length} claims`)
 
         // Phase 2: Extract entities from claims
         if (claimIds.length > 0) {
           try {
-            console.log('[DEBUG] Extracting entities from claims...')
             const claimsWithIds = claimAnalysis.claims.map((claim, idx) => ({
               claimId: claimIds[idx],
               claimText: claim.claim
@@ -580,19 +526,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               env
             )
 
-            console.log(`[DEBUG] Entity extraction complete: ${entityStats.totalEntities} entities from ${entityStats.claimsWithEntities} claims`)
 
             // Phase 3: Match extracted entities to existing actors/places/events
             if (entityStats.totalEntities > 0) {
               try {
-                console.log('[DEBUG] Matching entities to existing actors...')
                 const matchStats = await matchMultipleClaimsEntities(
                   env.DB,
                   claimIds,
                   workspaceId
                 )
 
-                console.log(`[DEBUG] Entity matching complete: ${matchStats.exactMatches} exact + ${matchStats.fuzzyMatches} fuzzy matches (${matchStats.noMatches} unmatched)`)
               } catch (error) {
                 console.error('[DEBUG] Entity matching failed (non-fatal):', error)
                 // Don't fail if matching fails
@@ -698,7 +641,6 @@ function detectSocialMedia(url: string): { platform: string } | null {
 
   for (const domain of newsDomainsToExclude) {
     if (urlLower.includes(domain)) {
-      console.log(`[Social Detection] Excluded ${domain} from social media detection`)
       return null
     }
   }
@@ -761,7 +703,6 @@ async function resolveSpotifyRedirect(url: string): Promise<string> {
     return url
   }
 
-  console.log('[Spotify Redirect] Resolving spotify.link URL:', url)
 
   try {
     const response = await fetch(url, {
@@ -773,7 +714,6 @@ async function resolveSpotifyRedirect(url: string): Promise<string> {
     })
 
     const finalUrl = response.url
-    console.log('[Spotify Redirect] Resolved to:', finalUrl)
     return finalUrl
   } catch (error) {
     console.error('[Spotify Redirect] Failed to resolve:', error)
@@ -793,7 +733,6 @@ async function resolveFacebookRedirect(url: string): Promise<string> {
     return url
   }
 
-  console.log('[Facebook Redirect] Resolving shortened Facebook URL:', url)
 
   try {
     const response = await fetch(url, {
@@ -805,7 +744,6 @@ async function resolveFacebookRedirect(url: string): Promise<string> {
     })
 
     const finalUrl = response.url
-    console.log('[Facebook Redirect] Resolved to:', finalUrl)
     return finalUrl
   } catch (error) {
     console.error('[Facebook Redirect] Failed to resolve:', error)
@@ -822,7 +760,6 @@ async function checkArchivePh(url: string): Promise<string | null> {
   try {
     // Check archive.ph for newest snapshot
     const archiveUrl = `https://archive.ph/newest/${url}`
-    console.log('[Archive.ph] Checking for archived version:', archiveUrl)
 
     const response = await fetch(archiveUrl, {
       method: 'HEAD',
@@ -834,7 +771,6 @@ async function checkArchivePh(url: string): Promise<string | null> {
 
     // If we got redirected to an archive snapshot, return it
     if (response.ok && response.url !== archiveUrl && response.url.includes('archive.ph/')) {
-      console.log('[Archive.ph] Found archived version:', response.url)
       return response.url
     }
 
@@ -853,7 +789,6 @@ async function checkWaybackMachine(url: string): Promise<string | null> {
   try {
     // Use Wayback CDX API to get the most recent snapshot
     const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(url)}&limit=1&sort=reverse`
-    console.log('[Wayback] Checking for archived version via CDX API')
 
     const response = await fetch(cdxUrl, {
       headers: {
@@ -881,7 +816,6 @@ async function checkWaybackMachine(url: string): Promise<string | null> {
 
     const timestamp = parts[1]
     const waybackUrl = `https://web.archive.org/web/${timestamp}/${url}`
-    console.log('[Wayback] Found archived version:', waybackUrl)
     return waybackUrl
   } catch (error) {
     console.error('[Wayback] Check failed:', error)
@@ -954,13 +888,11 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string): Prom
   const fallbackAttempts: string[] = []
 
   // Try original URL first
-  console.log('[Fallback] Attempting original URL:', url)
   fallbackAttempts.push('original')
   const originalResult = await extractUrlContent(url, apiKey)
 
   // If successful and not blocked, return immediately
   if (originalResult.success && !isContentBlocked(originalResult)) {
-    console.log('[Fallback] Original URL succeeded')
     return {
       ...originalResult,
       source: 'original',
@@ -968,18 +900,15 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string): Prom
     }
   }
 
-  console.log('[Fallback] Original URL blocked or failed, trying fallbacks...')
 
   // Try Archive.ph
   try {
     const archivePhUrl = await checkArchivePh(url)
     if (archivePhUrl) {
-      console.log('[Fallback] Attempting Archive.ph:', archivePhUrl)
       fallbackAttempts.push('archive.ph')
       const archivePhResult = await extractUrlContent(archivePhUrl, apiKey)
 
       if (archivePhResult.success && !isContentBlocked(archivePhResult)) {
-        console.log('[Fallback] Archive.ph succeeded')
         return {
           ...archivePhResult,
           source: 'archive.ph',
@@ -995,12 +924,10 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string): Prom
   try {
     const waybackUrl = await checkWaybackMachine(url)
     if (waybackUrl) {
-      console.log('[Fallback] Attempting Wayback Machine:', waybackUrl)
       fallbackAttempts.push('wayback')
       const waybackResult = await extractUrlContent(waybackUrl, apiKey)
 
       if (waybackResult.success && !isContentBlocked(waybackResult)) {
-        console.log('[Fallback] Wayback Machine succeeded')
         return {
           ...waybackResult,
           source: 'wayback',
@@ -1015,12 +942,10 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string): Prom
   // Try SMRY.ai as last resort
   try {
     const smryUrl = `https://smry.ai/${encodeURIComponent(url)}`
-    console.log('[Fallback] Attempting SMRY.ai:', smryUrl)
     fallbackAttempts.push('smry.ai')
     const smryResult = await extractUrlContent(smryUrl, apiKey)
 
     if (smryResult.success && !isContentBlocked(smryResult)) {
-      console.log('[Fallback] SMRY.ai succeeded')
       return {
         ...smryResult,
         source: 'smry.ai',
@@ -1032,7 +957,6 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string): Prom
   }
 
   // All fallbacks failed, return original result with fallback info
-  console.log('[Fallback] All fallback methods failed')
   return {
     ...originalResult,
     source: 'original',
@@ -1100,18 +1024,15 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
   let resolvedUrl = url
   if (url.toLowerCase().includes('spotify.link')) {
     resolvedUrl = await resolveSpotifyRedirect(url)
-    console.log('[Content Extract] Spotify URL resolved from', url, 'to', resolvedUrl)
   }
 
   // Resolve Facebook redirect links (fb.me, fb.watch)
   if (url.toLowerCase().includes('fb.me') || url.toLowerCase().includes('fb.watch')) {
     resolvedUrl = await resolveFacebookRedirect(url)
-    console.log('[Content Extract] Facebook URL resolved from', url, 'to', resolvedUrl)
   }
 
   // Check if URL is a PDF
   if (isPDFUrl(resolvedUrl)) {
-    console.log('[Content Extract] Detected PDF URL, using PDF extractor')
     try {
       const pdfResult = await extractPDFText(resolvedUrl)
 
@@ -1180,7 +1101,6 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
     const isSpotify = resolvedUrl.toLowerCase().includes('spotify.com')
 
     if (isSpotify) {
-      console.log('[Content Extract] Detected Spotify content, using specialized extraction')
       return extractSpotifyContent(html, resolvedUrl)
     }
 
@@ -1189,7 +1109,6 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
                        resolvedUrl.toLowerCase().includes('m.facebook.com')
 
     if (isFacebook) {
-      console.log('[Content Extract] Detected Facebook content, using specialized extraction')
       return extractFacebookContent(html, resolvedUrl)
     }
 
@@ -1243,7 +1162,6 @@ function extractSpotifyContent(html: string, url: string): {
   author?: string
   publishDate?: string
 } {
-  console.log('[Spotify Extract] Extracting Spotify metadata from Open Graph tags')
 
   // Extract Open Graph metadata specific to Spotify
   const ogTitle = extractMetaTag(html, 'og:title') || extractMetaTag(html, 'title')
@@ -1300,7 +1218,6 @@ function extractSpotifyContent(html: string, url: string): {
 
   const text = contentParts.join('\n')
 
-  console.log('[Spotify Extract] Extracted metadata:', {
     title: ogTitle,
     type: spotifyType,
     hasDescription: !!ogDescription,
@@ -1326,7 +1243,6 @@ function extractFacebookContent(html: string, url: string): {
   author?: string
   publishDate?: string
 } {
-  console.log('[Facebook Extract] Extracting Facebook metadata from Open Graph tags')
 
   // Classify content type
   const contentType = classifyFacebookContentType(url)
@@ -1416,7 +1332,6 @@ function extractFacebookContent(html: string, url: string): {
 
   const text = contentParts.join('\n')
 
-  console.log('[Facebook Extract] Extracted metadata:', {
     title: ogTitle,
     contentType,
     hasDescription: !!ogDescription,
@@ -1496,7 +1411,6 @@ interface LinkInfo {
 }
 
 function extractBodyLinks(html: string, sourceUrl: string): LinkInfo[] {
-  console.log('[Link Extraction] Starting body link extraction')
 
   // Remove non-body content (nav, header, footer, sidebar, aside)
   let bodyHtml = html
@@ -1597,8 +1511,6 @@ function extractBodyLinks(html: string, sourceUrl: string): LinkInfo[] {
   // Sort by count (most linked first)
   links.sort((a, b) => b.count - a.count)
 
-  console.log(`[Link Extraction] Found ${totalLinksFound} total anchor tags, ${links.length} unique valid links`)
-  console.log(`[Link Extraction] External links: ${links.filter(l => l.is_external).length}`)
 
   return links
 }
@@ -1622,7 +1534,6 @@ function extractEmails(text: string): Array<{ email: string; count: number }> {
   const result = Array.from(emailMap.entries()).map(([email, count]) => ({ email, count }))
   result.sort((a, b) => b.count - a.count)
 
-  console.log(`[Email Extraction] Found ${result.length} unique email addresses`)
   return result
 }
 
@@ -1844,8 +1755,6 @@ Return ONLY valid JSON in this exact format:
 }`
 
   try {
-    console.log('[DEBUG] extractEntities called, API key present:', !!env.OPENAI_API_KEY)
-    console.log('[DEBUG] Calling OpenAI API for entity extraction via AI Gateway...')
 
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
@@ -1864,7 +1773,6 @@ Return ONLY valid JSON in this exact format:
       timeout: 15000
     })
 
-    console.log('[DEBUG] OpenAI response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       console.error('[DEBUG] Invalid API response structure:', JSON.stringify(data))
@@ -1876,10 +1784,7 @@ Return ONLY valid JSON in this exact format:
       .replace(/```\n?/g, '')
       .trim()
 
-    console.log('[DEBUG] Parsing entities JSON...')
     const result = JSON.parse(jsonText)
-    console.log('[DEBUG] Entities parsed successfully')
-    console.log('[DEBUG] Emails extracted:', emails.length)
     return {
       ...result,
       emails: emails
@@ -1986,7 +1891,6 @@ Return ONLY valid JSON in this exact format:
 ]`
 
   try {
-    console.log('[DEBUG] Calling OpenAI API for topic extraction via AI Gateway...')
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-4o-mini',
       messages: [
@@ -2004,7 +1908,6 @@ Return ONLY valid JSON in this exact format:
       timeout: 20000
     })
 
-    console.log('[DEBUG] Topic extraction response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid API response for topics')
@@ -2015,9 +1918,7 @@ Return ONLY valid JSON in this exact format:
       .replace(/```\n?/g, '')
       .trim()
 
-    console.log('[DEBUG] Parsing topics JSON...')
     const result = JSON.parse(jsonText)
-    console.log('[DEBUG] Topics parsed:', result.length, 'topics')
     return result
 
   } catch (error) {
@@ -2074,7 +1975,6 @@ Return ONLY valid JSON in this exact format:
 ]`
 
   try {
-    console.log('[DEBUG] Calling OpenAI API for keyphrase extraction via AI Gateway...')
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-4o-mini',
       messages: [
@@ -2092,7 +1992,6 @@ Return ONLY valid JSON in this exact format:
       timeout: 15000
     })
 
-    console.log('[DEBUG] Keyphrase extraction response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid API response for keyphrases')
@@ -2103,9 +2002,7 @@ Return ONLY valid JSON in this exact format:
       .replace(/```\n?/g, '')
       .trim()
 
-    console.log('[DEBUG] Parsing keyphrases JSON...')
     const result = JSON.parse(jsonText)
-    console.log('[DEBUG] Keyphrases parsed:', result.length, 'phrases')
     return result
 
   } catch (error) {
@@ -2215,7 +2112,6 @@ Return ONLY valid JSON in this exact format:
 }`
 
   try {
-    console.log('[DEBUG] Calling OpenAI API for sentiment+rage+claims analysis via AI Gateway...')
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-4o-mini',
       messages: [
@@ -2233,7 +2129,6 @@ Return ONLY valid JSON in this exact format:
       timeout: 20000
     })
 
-    console.log('[DEBUG] Sentiment+rage+claims analysis response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid API response for sentiment')
@@ -2244,9 +2139,7 @@ Return ONLY valid JSON in this exact format:
       .replace(/```\n?/g, '')
       .trim()
 
-    console.log('[DEBUG] Parsing sentiment+rage+claims JSON...')
     const result = JSON.parse(jsonText)
-    console.log('[DEBUG] Sentiment parsed:', result.overall, result.score, '| Rage:', result.rage_check?.score, result.rage_check?.label, '| Claims:', result.claims?.length || 0)
 
     // Ensure backwards compatibility: if rage_check missing, provide defaults
     if (!result.rage_check) {
@@ -2297,7 +2190,6 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
   let truncatedText = data.extracted_text
   let wasTextTruncated = false
   if (data.extracted_text && data.extracted_text.length > MAX_TEXT_SIZE) {
-    console.log(`[DEBUG] Truncating extracted_text from ${data.extracted_text.length} to ${MAX_TEXT_SIZE} bytes`)
     truncatedText = data.extracted_text.substring(0, MAX_TEXT_SIZE) + '\n\n[Content truncated - see content_chunks table for full text]'
     wasTextTruncated = true
   }
@@ -2307,7 +2199,6 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
   if (wordFrequency && typeof wordFrequency === 'object') {
     const originalCount = Object.keys(wordFrequency).length
     if (originalCount > MAX_WORD_FREQ_ENTRIES) {
-      console.log(`[DEBUG] Limiting word_frequency from ${originalCount} to ${MAX_WORD_FREQ_ENTRIES} entries`)
       // Sort by frequency and keep only top N
       const sortedEntries = Object.entries(wordFrequency)
         .sort(([, a], [, b]) => (b as number) - (a as number))
@@ -2319,7 +2210,6 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
   // Limit links_analysis
   let linksAnalysis = data.links_analysis
   if (linksAnalysis && Array.isArray(linksAnalysis) && linksAnalysis.length > MAX_LINKS) {
-    console.log(`[DEBUG] Limiting links_analysis from ${linksAnalysis.length} to ${MAX_LINKS}`)
     linksAnalysis = linksAnalysis.slice(0, MAX_LINKS)
   }
 
@@ -2328,7 +2218,6 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
   if (claimAnalysis && claimAnalysis.claims && Array.isArray(claimAnalysis.claims)) {
     const originalClaimCount = claimAnalysis.claims.length
     if (originalClaimCount > MAX_CLAIMS) {
-      console.log(`[DEBUG] Limiting claims from ${originalClaimCount} to ${MAX_CLAIMS}`)
       claimAnalysis = {
         ...claimAnalysis,
         claims: claimAnalysis.claims.slice(0, MAX_CLAIMS),
@@ -2350,7 +2239,6 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
     JSON.stringify(data.keyphrases || null).length +
     JSON.stringify(data.topics || null).length
 
-  console.log(`[DEBUG] Estimated INSERT size: ${estimatedSize} bytes`)
   if (estimatedSize > 200 * 1024) {
     console.warn(`[WARNING] Large INSERT detected: ${estimatedSize} bytes - may cause performance issues`)
   }
@@ -2399,7 +2287,6 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
 
   // If text was truncated, save full text to content_chunks table
   if (wasTextTruncated && fullText.length > 0) {
-    console.log(`[DEBUG] Saving full text (${originalTextSize} bytes) to content_chunks table`)
     await saveContentChunks(db, analysisId, fullText, CHUNK_SIZE)
   }
 
@@ -2419,7 +2306,6 @@ async function saveContentChunks(
       chunks.push(fullText.substring(i, i + chunkSize))
     }
 
-    console.log(`[DEBUG] Splitting content into ${chunks.length} chunks of ~${chunkSize} bytes each`)
 
     // Save each chunk
     for (let i = 0; i < chunks.length; i++) {
@@ -2439,7 +2325,6 @@ async function saveContentChunks(
       ).run()
     }
 
-    console.log(`[DEBUG] Successfully saved ${chunks.length} chunks`)
   } catch (error) {
     console.error('[ERROR] Failed to save content chunks:', error)
     // Non-fatal: main analysis is already saved
@@ -2581,7 +2466,6 @@ Return ONLY valid JSON array:
 ]`
 
   try {
-    console.log('[DEBUG] Calling OpenAI API for claim extraction via AI Gateway...')
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-4o-mini',
       messages: [
@@ -2602,7 +2486,6 @@ Return ONLY valid JSON array:
       timeout: 20000
     })
 
-    console.log('[DEBUG] Claim extraction response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid API response for claim extraction')
@@ -2613,9 +2496,7 @@ Return ONLY valid JSON array:
       .replace(/```\n?/g, '')
       .trim()
 
-    console.log('[DEBUG] Parsing claims JSON...')
     const result = JSON.parse(jsonText)
-    console.log('[DEBUG] Claims parsed:', result.length, 'claims')
     return result
 
   } catch (error) {
@@ -2772,10 +2653,7 @@ Return ONLY valid JSON:
 }`
 
   try {
-    console.log('[DEBUG] Starting deception analysis for', claims.length, 'claims')
-    console.log('[DEBUG] First claim:', claims[0]?.claim || 'N/A')
 
-    console.log('[DEBUG] Calling OpenAI API for deception analysis via AI Gateway...')
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-4o-mini',
       messages: [
@@ -2796,7 +2674,6 @@ Return ONLY valid JSON:
       timeout: 30000
     })
 
-    console.log('[DEBUG] Deception analysis response received via AI Gateway')
 
     if (!data.choices?.[0]?.message?.content) {
       console.error('[DEBUG] Invalid API response structure:', JSON.stringify(data))
@@ -2804,25 +2681,21 @@ Return ONLY valid JSON:
     }
 
     const rawContent = data.choices[0].message.content
-    console.log('[DEBUG] GPT raw response length:', rawContent.length, 'chars')
-    console.log('[DEBUG] GPT response preview:', rawContent.substring(0, 200))
 
     const jsonText = rawContent
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
       .trim()
 
-    console.log('[DEBUG] Parsing deception analysis JSON...')
     let result
     try {
       result = JSON.parse(jsonText)
     } catch (parseError) {
       console.error('[DEBUG] JSON parse error:', parseError)
       console.error('[DEBUG] Failed to parse text:', jsonText.substring(0, 500))
-      throw new Error(`Failed to parse deception analysis JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}`)
+      throw new Error('Failed to parse deception analysis JSON')
     }
 
-    console.log('[DEBUG] Deception analysis complete:', result.summary?.total_claims, 'claims analyzed')
     return result
 
   } catch (error) {

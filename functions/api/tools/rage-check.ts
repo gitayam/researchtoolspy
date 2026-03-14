@@ -15,7 +15,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'URL is required' }), { status: 400 })
     }
 
-    console.log(`[RageCheck] Fetching ${url}...`)
     
     // Use shared scraper
     const scraped = await scrapeUrl(url)

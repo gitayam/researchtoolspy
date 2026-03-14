@@ -33,7 +33,6 @@ export async function extractClaimEntities(
   claimText: string,
   env: Env
 ): Promise<ClaimEntity[]> {
-  console.log(`[extract-claim-entities] Extracting entities from claim: "${claimText.substring(0, 100)}..."`)
 
   const prompt = `Analyze this claim and extract ALL entities mentioned:
 
@@ -105,7 +104,6 @@ Return ONLY valid JSON with this exact structure:
     )
 
     const content = response.choices[0].message.content
-    console.log(`[extract-claim-entities] GPT response: ${content.substring(0, 200)}...`)
 
     const result = JSON.parse(content)
     const entities = result.entities || []
@@ -123,7 +121,6 @@ Return ONLY valid JSON with this exact structure:
       return true
     })
 
-    console.log(`[extract-claim-entities] Extracted ${validatedEntities.length} valid entities`)
 
     // Ensure we have at least a claim_maker
     const hasClaimMaker = validatedEntities.some((e: ClaimEntity) => e.role === 'claim_maker')
@@ -169,7 +166,6 @@ export async function saveClaimEntities(
 ): Promise<number> {
   let savedCount = 0
 
-  console.log(`[save-claim-entities] Saving ${entities.length} entities for claim ${claimId}`)
 
   for (const entity of entities) {
     try {
@@ -205,7 +201,6 @@ export async function saveClaimEntities(
     }
   }
 
-  console.log(`[save-claim-entities] Successfully saved ${savedCount}/${entities.length} entities`)
 
   return savedCount
 }
@@ -235,7 +230,6 @@ export async function extractAndSaveClaimEntities(
     errors: 0
   }
 
-  console.log(`[extract-and-save] Processing ${stats.totalClaims} claims for entity extraction`)
 
   for (const { claimId, claimText } of claimsWithIds) {
     try {
@@ -249,7 +243,6 @@ export async function extractAndSaveClaimEntities(
         stats.totalEntities += savedCount
         stats.claimsWithEntities++
 
-        console.log(`[extract-and-save] Claim ${claimId}: ${savedCount} entities saved`)
       } else {
         console.warn(`[extract-and-save] Claim ${claimId}: No entities extracted`)
       }
@@ -260,7 +253,6 @@ export async function extractAndSaveClaimEntities(
     }
   }
 
-  console.log(`[extract-and-save] Complete: ${stats.totalEntities} entities from ${stats.claimsWithEntities}/${stats.totalClaims} claims (${stats.errors} errors)`)
 
   return stats
 }

@@ -415,7 +415,6 @@ Always provide specific, targetable recommendations that support operational pla
     }
 
     // Call OpenAI via AI Gateway (same approach as content-intelligence)
-    console.log('[COG AI] Calling OpenAI via gateway for mode:', request.mode)
 
     let data
     try {
@@ -479,7 +478,6 @@ Always provide specific, targetable recommendations that support operational pla
       ]
       for (const key of wrapperKeys) {
         if (Array.isArray(result[key])) {
-          console.log(`[COG AI] Unwrapping array from "${key}" key`)
           result = result[key]
           break
         }

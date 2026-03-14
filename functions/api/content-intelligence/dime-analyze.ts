@@ -37,7 +37,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[DIME] Analyzing content for analysis_id: ${body.analysis_id}`)
 
     // Generate DIME analysis using GPT
     const dimePrompt = `Analyze the following content through the DIME framework (Diplomatic, Information, Military, Economic).
@@ -84,7 +83,6 @@ Generate a JSON response with this structure:
 
 Focus on aspects that are actually present in the content. If a dimension has no relevant information, include 1-2 questions about why it might be absent or what related aspects to consider.`
 
-    console.log('[DIME] Calling OpenAI via AI Gateway...')
     const gptData = await callOpenAIViaGateway(context.env, {
       model: 'gpt-4o-mini',
       messages: [
@@ -110,7 +108,6 @@ Focus on aspects that are actually present in the content. If a dimension has no
       timeout: 20000
     })
 
-    console.log('[DIME] Response received from AI Gateway')
     const dimeAnalysis = JSON.parse(gptData.choices[0].message.content)
 
     // Update content_analysis with DIME results
@@ -124,7 +121,6 @@ Focus on aspects that are actually present in the content. If a dimension has no
       body.analysis_id
     ).run()
 
-    console.log(`[DIME] Analysis completed for ${body.analysis_id}`)
 
     return new Response(JSON.stringify({
       success: true,

@@ -218,7 +218,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       metadata: updated.metadata ? JSON.parse(updated.metadata) : {}
     }
 
-    console.log('[investigations] Updated:', investigationId)
 
     return new Response(JSON.stringify({
       success: true,
@@ -300,7 +299,6 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       DELETE FROM investigations WHERE id = ?
     `).bind(investigationId).run()
 
-    console.log('[investigations] Deleted:', investigationId)
 
     return new Response(JSON.stringify({
       success: true,

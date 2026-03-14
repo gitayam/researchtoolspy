@@ -158,7 +158,6 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           })
         } catch (error) {
           // Relationship might already exist, skip
-          console.log('Relationship already exists or error:', error)
         }
       }
     }

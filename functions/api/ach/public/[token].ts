@@ -38,7 +38,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       ).bind(analysis.id).run()
     } catch (err) {
       // Column might not exist yet - skip view count increment
-      console.log('Could not increment view_count (column may not exist):', err)
     }
 
     // Get hypotheses
@@ -64,7 +63,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         WHERE ael.ach_analysis_id = ?
       `).bind(analysis.id).all()
     } catch (err) {
-      console.log('Trying fallback to old evidence table:', err)
       try {
         evidenceLinks = await context.env.DB.prepare(`
           SELECT

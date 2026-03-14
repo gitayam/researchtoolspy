@@ -304,7 +304,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const request = await context.request.json() as ScrapeRequest
     const { url, framework, language } = request
 
-    console.log(`[Scrape] Starting scrape for URL: ${url}, framework: ${framework}, language: ${language || 'en'}`)
 
     if (!url || !framework) {
       return new Response(JSON.stringify({ error: 'URL and framework are required' }), {
@@ -332,7 +331,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const cacheKey = `scrape:${url}:${framework}:${language || 'en'}`
     const cached = await context.env.CACHE.get(cacheKey, 'json')
     if (cached) {
-      console.log(`[Scrape] Cache HIT for ${cacheKey}`)
       return new Response(JSON.stringify(cached), {
         status: 200,
         headers: {
@@ -341,9 +339,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
       })
     }
-    console.log(`[Scrape] Cache MISS for ${cacheKey}`)
 
-    console.log(`[Scrape] Fetching URL: ${url}`)
 
     let content = ''
     let title = ''
@@ -354,7 +350,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     
     if (isTwitter) {
       try {
-        console.log('[Scrape] Detected Twitter URL, attempting oEmbed extraction...')
         const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
         const twitterResponse = await fetch(oembedUrl)
         
@@ -376,7 +371,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               .trim()
           }
           title = `Tweet by ${data.author_name}`
-          console.log(`[Scrape] Successfully extracted tweet: "${title}"`)
         }
       } catch (e) {
         console.error('[Scrape] Twitter oEmbed failed:', e)
@@ -464,14 +458,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
 
       html = await response.text()
-      console.log(`[Scrape] Fetched ${html.length} characters from URL`)
 
       const extracted = extractTextFromHTML(html)
       title = extracted.title
       content = extracted.content
     }
     
-    console.log(`[Scrape] Extracted title: "${title}", content length: ${content.length} chars`)
 
     // Generate citation from URL metadata
     const citationId = `cit-${Date.now()}-${Math.random().toString(36).substring(7)}`
@@ -535,7 +527,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // First, get summary
-    console.log('[AI Scrape] Generating summary via AI Gateway...')
     const summarySystemPrompt = language && language !== 'en'
       ? `You are a concise summarization assistant. Summarize articles in 2-3 sentences. ${languageInstruction}`
       : 'You are a concise summarization assistant. Summarize articles in 2-3 sentences.'
@@ -570,7 +561,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const summary = summaryData.choices[0].message.content || 'No summary available'
-    console.log('[AI Scrape] Summary generated via AI Gateway')
 
     // Extract framework-specific data if prompt exists
     let extractedData: Record<string, any> = {}
@@ -581,8 +571,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         .replace('{url}', url)
         .replace('{content}', content.substring(0, 15000))
 
-      console.log(`Extracting ${framework} data from URL: ${url}`)
-      console.log(`[AI Scrape] Extracting framework data via AI Gateway...`)
 
       // Build system prompt with language instruction if needed
       const extractSystemPrompt = language && language !== 'en'
@@ -615,7 +603,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           timeout: 20000
         })
 
-        console.log(`[AI Scrape] Framework extraction completed via AI Gateway`)
 
         // Validate response structure
         if (!extractData.choices || !extractData.choices[0] || !extractData.choices[0].message) {
@@ -629,7 +616,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         } else {
           const extractedText = extractData.choices[0].message.content || ''
 
-          console.log(`Extracted ${framework} response (first 200 chars):`, extractedText.substring(0, 200))
 
           // Try to parse JSON
           try {
@@ -642,7 +628,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             }
 
             extractedData = JSON.parse(jsonText)
-            console.log(`Successfully parsed ${framework} JSON with ${Object.keys(extractedData).length} keys`)
 
             // Attach citation info to each Q&A item
             if (framework === 'starbursting' || framework === 'dime') {
@@ -663,7 +648,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
                   })
                 }
               })
-              console.log(`Attached citation ${citationId} to all Q&A items`)
             }
           } catch (e) {
             console.error(`Failed to parse extracted JSON for ${framework}:`, e)
@@ -684,9 +668,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           _framework: framework
         }
       }
-    } else {
-      console.log(`No extraction prompt found for framework: ${framework}`)
-    }
 
     // Generate unanswered questions for Q&A frameworks (starbursting, dime)
     // Using reduced count (1-2 per category instead of 2-3) to keep it fast
@@ -694,7 +675,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         !extractedData._error &&
         !extractedData._parseError) {
 
-      console.log(`[Scrape] Generating unanswered questions for ${framework} (fast mode)`)
 
       const unansweredPrompt = framework === 'starbursting'
         ? `Based on this article, generate 1-2 important follow-up questions for each category that CANNOT be answered from the article content.
@@ -734,7 +714,6 @@ Example BAD question: "What sanctions were imposed?" (vague, no context)
 Return ONLY JSON:
 {"diplomatic": ["Specific Q1 with article title?", "Specific Q2 with article title?"], "information": ["Specific Q1?", "Specific Q2?"], "military": ["Specific Q1?", "Specific Q2?"], "economic": ["Specific Q1?", "Specific Q2?"]}`
 
-      console.log(`[AI Scrape] Generating unanswered questions via AI Gateway...`)
 
       // Build system prompt with language instruction if needed
       const unansweredSystemPrompt = language && language !== 'en'
@@ -766,7 +745,6 @@ Return ONLY JSON:
           timeout: 15000
         })
 
-        console.log(`[AI Scrape] Unanswered questions generated via AI Gateway`)
 
         // Validate response structure
         if (!unansweredData.choices || !unansweredData.choices[0] || !unansweredData.choices[0].message) {
@@ -784,7 +762,6 @@ Return ONLY JSON:
 
             const unansweredQuestions = JSON.parse(jsonText)
             extractedData._unansweredQuestions = unansweredQuestions
-            console.log(`Generated ${Object.keys(unansweredQuestions).length} categories of unanswered questions`)
           } catch (e) {
             console.error('Failed to parse unanswered questions JSON:', e)
             console.error('Raw unanswered questions text:', unansweredText)
@@ -808,7 +785,6 @@ Return ONLY JSON:
       citation: generatedCitation
     }
 
-    console.log(`[Scrape] Complete - returning response`)
 
     // Cache the result in KV for 1 hour (3600 seconds)
     // This saves significant AI API costs on repeated requests
@@ -816,7 +792,6 @@ Return ONLY JSON:
       await context.env.CACHE.put(cacheKey, JSON.stringify(result), {
         expirationTtl: 3600 // 1 hour TTL
       })
-      console.log(`[Scrape] Cached result with key: ${cacheKey}`)
     } catch (cacheError) {
       console.error('[Scrape] Failed to cache result:', cacheError)
       // Continue anyway - caching is optional

@@ -193,11 +193,9 @@ async function fetchWithFallback(url: string): Promise<{
 
       if (isPaywalledContent(text, html)) {
         paywalled = true
-        console.log(`[ExtractClaims] Paywall detected on original, trying fallbacks... (OG: "${ogMetadata.title}")`)
       }
     }
   } catch (e) {
-    console.log('[ExtractClaims] Original fetch failed, trying fallbacks...')
   }
 
   // 2. Try Google AMP cache (works for many news sites)
@@ -221,7 +219,6 @@ async function fetchWithFallback(url: string): Promise<{
       }
     }
   } catch (e) {
-    console.log('[ExtractClaims] AMP cache failed')
   }
 
   // 3. Try Google webcache
@@ -245,7 +242,6 @@ async function fetchWithFallback(url: string): Promise<{
       }
     }
   } catch (e) {
-    console.log('[ExtractClaims] Google cache failed')
   }
 
   // 4. Try archive.ph
@@ -268,7 +264,6 @@ async function fetchWithFallback(url: string): Promise<{
       }
     }
   } catch (e) {
-    console.log('[ExtractClaims] archive.ph failed')
   }
 
   // 5. Try Wayback Machine
@@ -299,7 +294,6 @@ async function fetchWithFallback(url: string): Promise<{
       }
     }
   } catch (e) {
-    console.log('[ExtractClaims] Wayback failed')
   }
 
   // 6. All real sources failed — return OG metadata if we have it
@@ -459,7 +453,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // 1. Fetch content with fallback chain
-    console.log(`[ExtractClaims] Fetching ${url}...`)
     const fetched = await fetchWithFallback(url)
 
     if (fetched.error && !fetched.text) {
@@ -491,7 +484,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const title = fetched.ogMetadata.title || fetched.text.substring(0, 100)
-    console.log(`[ExtractClaims] Extracted ${wordCount} words from ${fetched.source} (paywalled: ${fetched.paywalled})`)
 
     // 3. Run GPT analysis (claims + entities + summary)
     const analysis = await analyzeContent(fetched.text, title, context.env, {

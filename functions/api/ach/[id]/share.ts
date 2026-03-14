@@ -31,7 +31,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ).bind(id, userId).first()
     } catch (err) {
       // Columns might not exist yet, try basic query
-      console.log('Falling back to basic SELECT:', err)
       existing = await context.env.DB.prepare(
         'SELECT id FROM ach_analyses WHERE id = ? AND user_id = ?'
       ).bind(id, userId).first()
@@ -98,7 +97,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         updateSuccess = true
       } catch (fallbackError) {
         console.error('Even basic update failed:', fallbackError)
-        throw new Error(`Failed to update analysis sharing: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`)
+        throw new Error('Failed to update analysis sharing')
       }
     }
 

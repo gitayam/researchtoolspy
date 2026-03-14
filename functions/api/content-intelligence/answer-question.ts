@@ -39,7 +39,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[Q&A] Processing question for analysis ${analysis_id}: ${question}`)
 
     // Fetch content analysis
     const analysis = await env.DB.prepare(`

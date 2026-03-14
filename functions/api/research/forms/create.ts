@@ -87,7 +87,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log('[create-form] Creating new form:', body.formName)
 
     // Generate unique hash ID
     let hashId = generateHashId()
@@ -157,7 +156,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.expiresAt || null
     ).run()
 
-    console.log('[create-form] Form created:', formId, 'with hash:', hashId)
 
     return new Response(JSON.stringify({
       success: true,

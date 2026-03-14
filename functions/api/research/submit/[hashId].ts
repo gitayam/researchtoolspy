@@ -184,7 +184,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const hashId = context.params.hashId as string
     const body = await context.request.json() as SubmitDataRequest
 
-    console.log('[submit-form] Received submission for:', hashId)
 
     // Get form configuration
     const form = await context.env.DB.prepare(`
@@ -311,12 +310,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             // Auto-archive if enabled and not already provided
             let autoArchivedUrl = null
             if (form.auto_archive && !body.archivedUrl) {
-              console.log('[submit-form] Background: Auto-archiving URL:', body.sourceUrl)
               autoArchivedUrl = await autoArchiveUrl(body.sourceUrl!)
             }
 
             // Extract metadata
-            console.log('[submit-form] Background: Extracting metadata from:', body.sourceUrl)
             const metadata = await extractMetadata(body.sourceUrl!)
 
             // Update submission with extracted data
@@ -331,7 +328,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               submissionId
             ).run()
 
-            console.log('[submit-form] Background: Updated submission', submissionId, 'with metadata')
           } catch (error) {
             console.error('[submit-form] Background processing failed:', error)
             // Don't fail the submission - just log the error
@@ -369,7 +365,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ).run()
     }
 
-    console.log('[submit-form] Submission created:', submissionId)
 
     return new Response(JSON.stringify({
       success: true,

@@ -50,7 +50,6 @@ export async function normalizeClaims(
 ): Promise<string[]> {
   const claimIds: string[] = []
 
-  console.log(`[normalize-claims] Normalizing ${params.claims.length} claims for content_analysis_id=${params.content_analysis_id}`)
 
   for (let i = 0; i < params.claims.length; i++) {
     const claim = params.claims[i]
@@ -94,14 +93,12 @@ export async function normalizeClaims(
 
       claimIds.push(claimId)
 
-      console.log(`[normalize-claims] Saved claim ${i}: ${claimId} (risk: ${claim.deception_analysis.overall_risk})`)
     } catch (error) {
       console.error(`[normalize-claims] Failed to save claim ${i}:`, error)
       // Continue with other claims even if one fails
     }
   }
 
-  console.log(`[normalize-claims] Successfully normalized ${claimIds.length}/${params.claims.length} claims`)
 
   return claimIds
 }

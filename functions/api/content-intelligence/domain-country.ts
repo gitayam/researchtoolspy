@@ -125,7 +125,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[Domain Country] Looking up: ${domain}`)
 
     // Use ip-api.com free API (no key required, 45 requests/min)
     // Alternative: ipapi.co (1000 requests/day free)
@@ -163,7 +162,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       success: true
     }
 
-    console.log(`[Domain Country] ${domain} -> ${country} (${countryCode})`)
 
     return new Response(JSON.stringify(countryInfo), {
       status: 200,

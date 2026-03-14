@@ -116,7 +116,6 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log('[forms/delete] Deleted form and submissions:', formId, submissionCount?.count || 0)
 
     return new Response(JSON.stringify({
       success: true,

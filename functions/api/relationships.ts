@@ -4,7 +4,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from './_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -70,10 +70,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
-
     // GET /api/relationships?workspace_id=xxx[&cop_session_id=yyy]
     if (method === 'GET' && url.pathname === '/api/relationships') {
+      const userId = await getUserIdOrDefault(request, env)
       const workspaceId = url.searchParams.get('workspace_id')
       if (!workspaceId) {
         return new Response(
@@ -164,6 +163,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // POST /api/relationships
     if (method === 'POST' && url.pathname === '/api/relationships') {
+      const userId = await getUserFromRequest(request, env)
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders
+        })
+      }
+
       const body = await request.json() as any
 
       if (!body.source_entity_id || !body.source_entity_type ||
@@ -234,6 +240,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // GET /api/relationships/:id
     if (method === 'GET' && relationshipMatch) {
+      const userId = await getUserIdOrDefault(request, env)
       const relationshipId = relationshipMatch[1]
 
       const relationship = await env.DB.prepare(`
@@ -297,6 +304,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // PUT /api/relationships/:id
     if (method === 'PUT' && relationshipMatch) {
+      const userId = await getUserFromRequest(request, env)
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders
+        })
+      }
+
       const relationshipId = relationshipMatch[1]
       const body = await request.json() as any
 
@@ -358,6 +372,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // DELETE /api/relationships/:id
     if (method === 'DELETE' && relationshipMatch) {
+      const userId = await getUserFromRequest(request, env)
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders
+        })
+      }
+
       const relationshipId = relationshipMatch[1]
 
       const relationship = await env.DB.prepare(`

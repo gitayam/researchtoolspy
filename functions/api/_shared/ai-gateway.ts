@@ -88,7 +88,6 @@ export async function callOpenAIViaGateway(
 
   if (useGateway) {
     try {
-      console.log('[AI Gateway] Routing request via gateway')
       return await callViaGateway(env, openaiRequest, cacheTTL, metadata, timeout)
     } catch (error) {
       console.warn('[AI Gateway] Gateway failed, falling back to direct OpenAI:', error)
@@ -96,7 +95,6 @@ export async function callOpenAIViaGateway(
       return await callDirectOpenAI(env, openaiRequest, timeout)
     }
   } else {
-    console.log('[AI Gateway] Using direct OpenAI (gateway not configured or forced)')
     return await callDirectOpenAI(env, openaiRequest, timeout)
   }
 }
@@ -143,9 +141,6 @@ async function callViaGateway(
 
     // Log cache status if available
     const cacheStatus = response.headers.get('cf-cache-status')
-    if (cacheStatus) {
-      console.log(`[AI Gateway] Cache status: ${cacheStatus}`)
-    }
 
     return data
   } catch (error) {
@@ -269,7 +264,6 @@ export async function checkRateLimit(
 
   // Add rate limit headers to response (will be set by caller)
   // This is just for logging
-  console.log(`[Rate Limit] User ${userId}: ${userRequests + 1}/20, Global: ${globalRequests + 1}/1000`)
 
   return null // Allowed
 }
@@ -350,7 +344,6 @@ export function logAIGatewayMetrics(
   tokenUsage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number },
   latencyMs?: number
 ) {
-  console.log(`[AI Gateway Metrics] ${operation}`, {
     cached,
     tokens: tokenUsage?.total_tokens || 0,
     prompt_tokens: tokenUsage?.prompt_tokens || 0,

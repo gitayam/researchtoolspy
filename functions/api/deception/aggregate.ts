@@ -38,7 +38,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const url = new URL(context.request.url)
     const workspaceId = url.searchParams.get('workspace_id') || '1'
 
-    console.log('[Deception Aggregate] Fetching risk data for workspace:', workspaceId)
 
     // ===== 1. ACTOR MOM SCORES =====
     const momActors = await context.env.DB.prepare(`

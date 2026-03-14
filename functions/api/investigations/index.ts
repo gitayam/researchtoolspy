@@ -175,7 +175,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         `).bind(workspace_id, userId).run()
 
         user_id = userId
-        console.log('[investigations] Created personal workspace:', workspace_id)
       }
     } else {
       // Guest user - create guest workspace
@@ -186,7 +185,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         VALUES (?, 'Guest Workspace', 'Temporary workspace for guest user', 'GUEST', 1, 0, datetime('now'), datetime('now'))
       `).bind(workspace_id).run()
 
-      console.log('[investigations] Created guest workspace:', workspace_id)
     }
 
     // Generate ID
@@ -246,7 +244,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         user_id ?? 1,
         id
       ).run()
-      console.log('[investigations] Auto-created COP session:', copSessionId, 'for investigation:', id)
     } catch (copError) {
       // Non-fatal: investigation was created, COP creation is optional
       console.error('[investigations] Failed to auto-create COP session:', copError)
@@ -326,7 +323,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Include linked COP session ID in response
     parsed.cop_session_id = copSessionId
 
-    console.log('[investigations] Created:', id)
 
     return new Response(JSON.stringify({
       success: true,

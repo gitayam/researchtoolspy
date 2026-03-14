@@ -44,7 +44,6 @@ export async function logActivity(
       params.details ? JSON.stringify(params.details) : null
     ).run()
 
-    console.log(`[activity] Logged ${params.actionType} for ${params.entityType}:${params.entityId}`)
   } catch (error) {
     // Don't fail the main operation if activity logging fails
     console.error('[activity] Failed to log activity:', error)

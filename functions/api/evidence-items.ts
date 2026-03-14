@@ -213,11 +213,9 @@ export async function onRequest(context: any) {
               `).bind(evidenceId, actor.id, 'Auto-detected').run()
             } catch (e) {
               // Ignore duplicate errors
-              console.log('Duplicate or error auto-linking actor:', e)
             }
           }
         } catch (error) {
-          console.log('Error auto-linking actors:', error)
           // Don't fail the whole request if auto-linking fails
         }
       }
@@ -359,11 +357,9 @@ export async function onRequest(context: any) {
                 VALUES (?, ?, ?, 1)
               `).bind(evidenceId, actor.id, 'Auto-detected').run()
             } catch (e) {
-              console.log('Duplicate or error auto-linking actor:', e)
             }
           }
         } catch (error) {
-          console.log('Error auto-linking actors during update:', error)
         }
       }
 

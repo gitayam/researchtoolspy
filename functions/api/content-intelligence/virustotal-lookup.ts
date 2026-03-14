@@ -55,7 +55,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Extract domain from URL
     const domain = new URL(url).hostname
 
-    console.log(`[VirusTotal] Looking up domain: ${domain}`)
 
     if (!env.VIRUSTOTAL_API_KEY) {
       console.error('[VirusTotal] API key not configured')

@@ -39,7 +39,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[Entity Summary] Generating summary for ${entity_type}: ${entity_name}`)
 
     // Truncate content for GPT (max 10000 chars)
     const truncatedContent = content.substring(0, 10000)
@@ -100,7 +99,6 @@ Provide a concise, informative summary in 2-3 sentences.`
 
       const summary = data.choices[0].message.content.trim()
 
-      console.log(`[Entity Summary] Generated summary for ${entity_name}: ${summary.substring(0, 100)}...`)
 
       return new Response(JSON.stringify({
         entity_name,

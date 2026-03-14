@@ -102,9 +102,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const request = await context.request.json() as QuestionRequest
     const { framework, existingData, context: analysisContext } = request
 
-    console.log(`[Generate Questions] Starting - Framework: ${framework}`)
-    console.log(`[Generate Questions] Has context description:`, !!analysisContext)
-    console.log(`[Generate Questions] Context length:`, analysisContext?.length || 0)
 
     const apiKey = context.env.OPENAI_API_KEY
     if (!apiKey) {
@@ -121,7 +118,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const cached = await context.env.CACHE.get(cacheKey, 'json')
     if (cached) {
-      console.log(`[Generate Questions] Cache HIT for ${cacheKey}`)
       return new Response(JSON.stringify(cached), {
         status: 200,
         headers: {
@@ -130,7 +126,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
       })
     }
-    console.log(`[Generate Questions] Cache MISS for ${cacheKey}`)
 
     // Build context from existing data
     const existingQuestions = Object.entries(existingData)
@@ -147,8 +142,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Check if there are any existing questions
     const hasExistingQuestions = existingQuestions.trim().length > 0
-    console.log(`[Generate Questions] Has existing questions:`, hasExistingQuestions)
-    console.log(`[Generate Questions] Generation mode:`, hasExistingQuestions ? 'follow-up' : 'initial')
 
 
     // Get framework configuration
@@ -225,10 +218,6 @@ ${jsonFormat}`
       : baseTokens  // Initial: 3 questions per category
 
     // Log API call details
-    console.log(`[Generate Questions] Calling OpenAI API`)
-    console.log(`[Generate Questions] Model: gpt-4o-mini`)
-    console.log(`[Generate Questions] Max tokens:`, maxTokens)
-    console.log(`[Generate Questions] Prompt preview:`, prompt.substring(0, 200))
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -263,8 +252,6 @@ ${jsonFormat}`
     const data = await response.json()
 
     // Log full response for debugging
-    console.log('[Generate Questions] OpenAI API response received')
-    console.log('[Generate Questions] Choices count:', data.choices?.length || 0)
 
     // Validate response structure
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
@@ -273,7 +260,6 @@ ${jsonFormat}`
     }
 
     const generatedText = data.choices[0].message.content || ''
-    console.log('[Generate Questions] Raw response length:', generatedText.length)
 
     // Validate content exists BEFORE cleaning
     if (!generatedText.trim()) {
@@ -283,7 +269,6 @@ ${jsonFormat}`
     }
 
     const jsonText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    console.log('[Generate Questions] Cleaned JSON length:', jsonText.length)
 
     if (!jsonText) {
       console.error('[Generate Questions] Empty response after cleaning markdown')
@@ -294,11 +279,10 @@ ${jsonFormat}`
     let questions
     try {
       questions = JSON.parse(jsonText)
-      console.log(`[Generate Questions] Successfully parsed ${Object.keys(questions).length} categories`)
     } catch (parseError) {
       console.error('[Generate Questions] JSON parse error:', parseError)
       console.error('[Generate Questions] Failed to parse:', jsonText.substring(0, 500))
-      throw new Error(`Failed to parse AI response as JSON. Error: ${parseError instanceof Error ? parseError.message : 'Unknown'}. Response preview: ${jsonText.substring(0, 200)}`)
+      throw new Error('Failed to parse AI response as JSON')
     }
 
     const result = { questions }
@@ -308,7 +292,6 @@ ${jsonFormat}`
       await context.env.CACHE.put(cacheKey, JSON.stringify(result), {
         expirationTtl: 1800 // 30 minutes TTL
       })
-      console.log(`[Generate Questions] Cached result with key: ${cacheKey}`)
     } catch (cacheError) {
       console.error('[Generate Questions] Failed to cache result:', cacheError)
       // Continue anyway

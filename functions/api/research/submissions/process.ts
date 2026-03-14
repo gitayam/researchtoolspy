@@ -30,7 +30,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log('[process-submission] Processing:', body.submissionId)
 
     // Get submission with form details
     const submission = await context.env.DB.prepare(`
@@ -183,7 +182,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ).run()
     }
 
-    console.log('[process-submission] Created evidence:', evidenceId)
 
     return new Response(JSON.stringify({
       success: true,

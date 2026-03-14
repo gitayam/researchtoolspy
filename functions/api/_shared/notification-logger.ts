@@ -57,7 +57,6 @@ export async function createNotification(
       now
     ).run()
 
-    console.log(`[notification] Created ${params.notificationType} for ${params.targetUserHash}`)
   } catch (error) {
     // Don't fail the main operation if notification creation fails
     console.error('[notification] Failed to create notification:', error)
@@ -84,7 +83,6 @@ export async function notifyWorkspaceMembers(
     `).bind(workspaceId, excludeUserHash).all()
 
     if (!members.results || members.results.length === 0) {
-      console.log(`[notification] No workspace members to notify for ${workspaceId}`)
       return
     }
 
@@ -100,7 +98,6 @@ export async function notifyWorkspaceMembers(
       }
     }
 
-    console.log(`[notification] Notified ${members.results.length} workspace members`)
   } catch (error) {
     console.error('[notification] Failed to notify workspace members:', error)
   }

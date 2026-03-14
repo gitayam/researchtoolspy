@@ -17,7 +17,6 @@ export async function scrapeUrl(url: string): Promise<ScrapedContent> {
   
   if (isTwitter) {
     try {
-      console.log('[Scrape] Detected Twitter URL, attempting oEmbed extraction...')
       const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
       const twitterResponse = await fetch(oembedUrl)
       

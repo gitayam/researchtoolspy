@@ -35,7 +35,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log('[Get Claim Adjustments] Fetching adjustments for analysis:', contentAnalysisId)
 
     // Verify ownership of content analysis
     const analysis = await context.env.DB.prepare(
@@ -94,7 +93,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     })
 
-    console.log('[Get Claim Adjustments] Found', adjustmentsWithParsedData.length, 'adjustments')
 
     return new Response(JSON.stringify({
       success: true,

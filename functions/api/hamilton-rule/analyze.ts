@@ -124,7 +124,6 @@ Return ONLY valid JSON with this exact structure:
   "summary": "<2-3 sentence analysis summary>"
 }`
 
-    console.log('[Hamilton AI] Calling OpenAI for analysis...')
 
     const aiResponse = await callOpenAIViaGateway(env, {
       model: 'gpt-4o-mini',

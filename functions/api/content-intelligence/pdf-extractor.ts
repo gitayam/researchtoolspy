@@ -20,7 +20,6 @@ export async function extractPDFText(url: string): Promise<{
     keywords?: string[]
   }
 }> {
-  console.log('[PDF Extractor] Downloading PDF from:', url)
 
   // Download PDF
   const response = await fetch(url, {
@@ -34,7 +33,6 @@ export async function extractPDFText(url: string): Promise<{
   }
 
   const pdfBuffer = await response.arrayBuffer()
-  console.log('[PDF Extractor] Downloaded PDF, size:', (pdfBuffer.byteLength / 1024).toFixed(2), 'KB')
 
   // For Cloudflare Workers, we'll use a simpler approach:
   // 1. Try pdf-parse package if available
@@ -46,8 +44,6 @@ export async function extractPDFText(url: string): Promise<{
     const pdfParse = require('pdf-parse')
     const pdfData = await pdfParse(Buffer.from(pdfBuffer))
 
-    console.log('[PDF Extractor] Extracted text length:', pdfData.text.length)
-    console.log('[PDF Extractor] Page count:', pdfData.numpages)
 
     return {
       text: pdfData.text,
@@ -75,7 +71,6 @@ async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer): Promise<{
 }> {
   // Option 1: Use pdf.co API (has free tier)
   try {
-    console.log('[PDF Extractor] Using pdf.co API for extraction')
 
     // Upload PDF to pdf.co
     const uploadResponse = await fetch('https://api.pdf.co/v1/file/upload', {
@@ -168,11 +163,9 @@ export async function intelligentPDFSummary(
     }
   }
 
-  console.log('[PDF Intelligent Summary] Large document detected:', wordCount, 'words')
 
   // Step 1: Detect chapters/sections
   const chapters = detectChapters(fullText)
-  console.log('[PDF Intelligent Summary] Detected chapters:', chapters.length)
 
   // Step 2: Extract chapter summaries (first + last 200 words)
   const chapterSummaries = chapters.map(chapter => {
@@ -188,7 +181,6 @@ export async function intelligentPDFSummary(
 
   // Step 3: Generate questions using GPT-4o
   const questions = await generateQuestions(chapterSummaries, openaiApiKey)
-  console.log('[PDF Intelligent Summary] Generated questions:', questions.length)
 
   // Step 4: Search full text for answers
   const qa = await answerQuestions(questions, fullText, openaiApiKey)

@@ -79,7 +79,6 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           matchReasons.get(ev.id)!.push('Mentions related actor')
         })
       } catch (error) {
-        console.log('No evidence_actors table or error:', error)
       }
 
       // Also search in who/what/description fields
@@ -136,7 +135,6 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           matchReasons.get(ev.id)!.push('Matching timeframe')
         })
       } catch (error) {
-        console.log('Timeframe search error:', error)
       }
     }
 

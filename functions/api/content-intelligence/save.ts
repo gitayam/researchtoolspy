@@ -105,7 +105,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ).run()
     }
 
-    console.log(`[Save] Permanently saved analysis ${body.analysis_id}`)
 
     return new Response(JSON.stringify({
       success: true,

@@ -30,7 +30,6 @@ export async function matchClaimEntitiesToActors(
   claimId: string,
   workspaceId: string
 ): Promise<MatchResult[]> {
-  console.log(`[match-entities] Matching entities for claim ${claimId} in workspace ${workspaceId}`)
 
   // Get all entities for this claim that have temp IDs
   const entities = await db.prepare(`
@@ -66,7 +65,6 @@ export async function matchClaimEntitiesToActors(
           matchedActorId = exactMatch.id as string
           matchedActorName = exactMatch.name as string
           matchConfidence = 'exact'
-          console.log(`[match-entities] EXACT match: "${entityName}" → Actor ${matchedActorId}`)
         }
       }
 
@@ -98,7 +96,6 @@ export async function matchClaimEntitiesToActors(
             matchedActorId = fuzzyMatch.id as string
             matchedActorName = fuzzyMatch.name as string
             matchConfidence = 'fuzzy'
-            console.log(`[match-entities] FUZZY match: "${entityName}" → Actor ${matchedActorId} ("${matchedActorName}")`)
           }
         }
       }
@@ -116,7 +113,6 @@ export async function matchClaimEntitiesToActors(
           matchedActorId = placeMatch.id as string
           matchedActorName = placeMatch.name as string
           matchConfidence = 'exact'
-          console.log(`[match-entities] EXACT match: "${entityName}" → Place ${matchedActorId}`)
         }
       }
 
@@ -133,7 +129,6 @@ export async function matchClaimEntitiesToActors(
           matchedActorId = eventMatch.id as string
           matchedActorName = eventMatch.name as string
           matchConfidence = 'exact'
-          console.log(`[match-entities] EXACT match: "${entityName}" → Event ${matchedActorId}`)
         }
       }
 
@@ -145,10 +140,6 @@ export async function matchClaimEntitiesToActors(
           WHERE id = ?
         `).bind(matchedActorId, entityMentionId).run()
 
-        console.log(`[match-entities] Updated entity mention ${entityMentionId} with actor ID ${matchedActorId}`)
-      } else {
-        console.log(`[match-entities] NO match found for "${entityName}" (${entityType})`)
-      }
 
       results.push({
         entityMentionId,
@@ -174,7 +165,6 @@ export async function matchClaimEntitiesToActors(
   }
 
   const matchCount = results.filter(r => r.matchedActorId !== null).length
-  console.log(`[match-entities] Matched ${matchCount}/${results.length} entities for claim ${claimId}`)
 
   return results
 }
@@ -206,7 +196,6 @@ export async function matchMultipleClaimsEntities(
     claimsProcessed: 0
   }
 
-  console.log(`[match-multiple] Processing ${claimIds.length} claims for entity matching`)
 
   for (const claimId of claimIds) {
     try {
@@ -223,7 +212,6 @@ export async function matchMultipleClaimsEntities(
     }
   }
 
-  console.log(`[match-multiple] Complete: ${stats.exactMatches} exact + ${stats.fuzzyMatches} fuzzy matches out of ${stats.totalEntities} entities`)
 
   return stats
 }
@@ -255,7 +243,6 @@ export async function createActorFromUnmatchedEntity(
     `).bind(entityMentionId).first()
 
     if (!entity) {
-      console.log(`[create-actor] Entity mention ${entityMentionId} not found or already matched`)
       return null
     }
 
@@ -284,7 +271,6 @@ export async function createActorFromUnmatchedEntity(
       WHERE id = ?
     `).bind(actorId, entityMentionId).run()
 
-    console.log(`[create-actor] Created new actor ${actorId} for "${entityName}"`)
 
     return actorId
   } catch (error) {

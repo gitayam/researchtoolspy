@@ -29,7 +29,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const pathParts = url.pathname.split('/')
     const contentAnalysisId = pathParts[pathParts.length - 1]
 
-    console.log('[Claims Analysis] POST request for content ID:', contentAnalysisId, 'by user:', userId)
 
     if (!contentAnalysisId || contentAnalysisId === 'analyze') {
       return new Response(JSON.stringify({
@@ -67,7 +66,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const fullText = analysis.extracted_text as string || ''
     const title = analysis.title as string || ''
 
-    console.log('[Claims Analysis] Analysis data:', {
       id: contentAnalysisId,
       hasTitle: !!title,
       hasExtractedText: !!fullText,
@@ -105,17 +103,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log('[Claims Analysis] Starting manual claims analysis for content ID:', contentAnalysisId)
 
     // Extract claims
     const claims = await extractClaims(fullText, context.env, title)
-    console.log(`[Claims Analysis] Extracted ${claims.length} claims`)
 
     let claimAnalysis
     if (claims.length > 0) {
       // Run deception analysis
       claimAnalysis = await analyzeClaimsForDeception(claims, fullText, context.env)
-      console.log('[Claims Analysis] Deception analysis complete')
     } else {
       claimAnalysis = {
         claims: [],
@@ -140,7 +135,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       contentAnalysisId
     ).run()
 
-    console.log('[Claims Analysis] Successfully completed for content ID:', contentAnalysisId)
 
     return new Response(JSON.stringify({
       success: true,
@@ -392,7 +386,6 @@ Return ONLY valid JSON:
 }`
 
   try {
-    console.log('[DEBUG] Starting deception analysis for', claims.length, 'claims')
 
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-4o-mini',
@@ -424,7 +417,6 @@ Return ONLY valid JSON:
       .trim()
 
     const result = JSON.parse(jsonText)
-    console.log('[DEBUG] Deception analysis complete:', result.summary?.total_claims, 'claims analyzed')
     return result
 
   } catch (error) {

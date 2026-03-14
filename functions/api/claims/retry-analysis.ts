@@ -82,7 +82,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       supporting_text: c.supporting_text
     }))
 
-    console.log('[Retry Claim Analysis] Re-running deception analysis for', claims.length, 'claims')
 
     // Re-run deception analysis
     const newAnalysis = await analyzeClaimsForDeception(
@@ -261,7 +260,6 @@ Return ONLY valid JSON:
 }`
 
   try {
-    console.log('[DEBUG] Starting deception analysis for', claims.length, 'claims')
 
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-4o-mini',
@@ -293,7 +291,6 @@ Return ONLY valid JSON:
       .trim()
 
     const result = JSON.parse(jsonText)
-    console.log('[DEBUG] Deception analysis complete:', result.summary?.total_claims, 'claims analyzed')
     return result
 
   } catch (error) {

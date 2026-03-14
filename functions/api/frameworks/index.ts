@@ -19,7 +19,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Get user ID - defaults to 1 if not authenticated (backward compatibility)
     const userId = await getUserIdOrDefault(context.request, context.env)
 
-    console.log('[Frameworks POST /index] Creating framework for user:', userId)
 
     const body = await context.request.json() as {
       title: string

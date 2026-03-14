@@ -61,7 +61,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Get workspace (default to '1' for now)
     const workspaceId = request.headers.get('X-Workspace-ID') || '1'
 
-    console.log(`[Migration] Starting migration for bookmark_hash=${bookmark_hash} to user_id=${userId}`)
 
     // Begin transaction-like operations
     const migrationResults = {
@@ -79,7 +78,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       `).bind(userId, bookmark_hash, workspaceId).run()
 
       migrationResults.content_analysis = contentResult.meta.changes || 0
-      console.log(`[Migration] Migrated ${migrationResults.content_analysis} content_analysis records`)
     } catch (error) {
       console.error('[Migration] Error migrating content_analysis:', error)
     }
@@ -93,7 +91,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       `).bind(userId, bookmark_hash, workspaceId).run()
 
       migrationResults.saved_links = linksResult.meta.changes || 0
-      console.log(`[Migration] Migrated ${migrationResults.saved_links} saved_links records`)
     } catch (error) {
       console.error('[Migration] Error migrating saved_links:', error)
     }
@@ -114,10 +111,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         `).bind(userId, bookmark_hash, workspaceId).run()
 
         migrationResults.framework_sessions = frameworkResult.meta.changes || 0
-        console.log(`[Migration] Migrated ${migrationResults.framework_sessions} framework_sessions records`)
-      } else {
-        console.log('[Migration] framework_sessions does not have bookmark_hash column, skipping')
-      }
     } catch (error) {
       console.error('[Migration] Error migrating framework_sessions:', error)
     }
@@ -126,7 +119,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
                          migrationResults.saved_links +
                          migrationResults.framework_sessions
 
-    console.log(`[Migration] Completed! Total records migrated: ${totalMigrated}`)
 
     return new Response(JSON.stringify({
       success: true,

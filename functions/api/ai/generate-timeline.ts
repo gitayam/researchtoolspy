@@ -202,7 +202,7 @@ Keep it brief.`
         parsed = JSON.parse(content) as TimelineGenerationResponse
       } catch (parseError) {
         console.error('Failed to parse AI response:', content)
-        throw new Error('Invalid JSON response from AI: ' + (parseError instanceof Error ? parseError.message : 'Unknown error'))
+        throw new Error('Invalid JSON response from AI')
       }
 
       const timeline: TimelineEvent[] = parsed.events || []

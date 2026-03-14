@@ -11,7 +11,6 @@ interface Env {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    console.log('[Cleanup] Starting content analysis cleanup...')
 
     // Delete expired, unsaved analyses
     const result = await context.env.DB.prepare(`
@@ -21,7 +20,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         AND (is_saved = FALSE OR is_saved IS NULL)
     `).run()
 
-    console.log(`[Cleanup] Deleted ${result.meta.changes || 0} expired analyses`)
 
     return new Response(JSON.stringify({
       success: true,

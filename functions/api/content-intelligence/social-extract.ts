@@ -46,7 +46,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log(`[Social Extract] Platform: ${platform}, Mode: ${extract_mode}, URL: ${url}`)
 
     // Route to platform-specific extractor
     let extractionResult: any
@@ -234,12 +233,10 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
     const shortcode = shortcodeMatch[2]
     const postType = shortcodeMatch[1] === 'reel' ? 'reel' : shortcodeMatch[1] === 'tv' ? 'igtv' : 'post'
 
-    console.log(`[Instagram] Attempting extraction for ${postType}: ${shortcode}`)
 
     // Method 1: Instagram GraphQL Public API
     attemptCount++
     try {
-      console.log(`[Instagram] Method 1: GraphQL Public API`)
       const graphqlUrl = `https://www.instagram.com/graphql/query/?query_hash=b3055c01b4b222b8a47dc12b090e4e64&variables=${encodeURIComponent(JSON.stringify({ shortcode }))}`
 
       const graphqlResponse = await fetch(graphqlUrl, {
@@ -264,7 +261,6 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
     // Method 2: Instagram Public JSON Endpoint (Legacy)
     attemptCount++
     try {
-      console.log(`[Instagram] Method 2: Public JSON endpoint`)
       const jsonUrl = `https://www.instagram.com/p/${shortcode}/?__a=1&__d=dis`
 
       const jsonResponse = await fetch(jsonUrl, {
@@ -289,7 +285,6 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
     // Method 3: Scrape HTML and extract JSON
     attemptCount++
     try {
-      console.log(`[Instagram] Method 3: HTML scraping`)
       const htmlResponse = await fetch(`https://www.instagram.com/p/${shortcode}/`, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -328,7 +323,6 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
     // Method 4: Instagram oEmbed API
     attemptCount++
     try {
-      console.log(`[Instagram] Method 4: oEmbed API`)
       const oembedResponse = await fetch(
         `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=&fields=author_name,author_url,media_id,thumbnail_url,title`
       )
@@ -373,7 +367,6 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
 
     // Method 5: Fallback to basic metadata only
     attemptCount++
-    console.log(`[Instagram] Method 5: Basic metadata fallback`)
     return {
       success: false,
       error: 'Instagram extraction failed after trying 5 different methods. Instagram is blocking automated access.',
@@ -797,7 +790,6 @@ async function fetchYouTubeTranscript(videoId: string): Promise<string | undefin
     }
 
     const fullTranscript = transcriptParts.join(' ')
-    console.log(`[YouTube Transcript] Successfully extracted ${fullTranscript.length} characters`)
 
     return fullTranscript
 

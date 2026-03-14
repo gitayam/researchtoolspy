@@ -6,7 +6,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import type { CollectionCategory, TimeRange, CollectionJobRequest, CollectionJobResponse, AgentCollectionRequest } from '../../../src/types/collection'
 
 interface Env {
@@ -31,7 +31,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders
+      })
+    }
+
     const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || '1'
 
     const body = await request.json() as CollectionJobRequest
@@ -104,7 +110,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         console.error(`[Collection Start] Agent connection failed for job ${jobId}:`, error)
         await env.DB.prepare(`
           UPDATE collection_jobs SET status = 'error', error_message = ? WHERE id = ?
-        `).bind(`Agent connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`, jobId).run()
+        `).bind('Agent connection failed', jobId).run()
       })
     )
 

@@ -45,7 +45,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     })
   }
 
-  console.log('[Twitter Proxy] Proxying image:', imageUrl)
 
   // Check Cloudflare Cache API first
   const cache = caches.default
@@ -53,7 +52,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   let cachedResponse = await cache.match(cacheKey)
 
   if (cachedResponse) {
-    console.log('[Twitter Proxy] Cache hit')
     // Clone and add CORS headers
     const headers = new Headers(cachedResponse.headers)
     headers.set('Access-Control-Allow-Origin', '*')
@@ -67,7 +65,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   // Fetch from Twitter CDN
   try {
-    console.log('[Twitter Proxy] Fetching from Twitter CDN...')
     const twitterResponse = await fetch(imageUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)',
@@ -119,7 +116,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
                   contentType: twitterResponse.headers.get('content-type') || 'image/jpeg'
                 }
               })
-              console.log('[Twitter Proxy] Uploaded to R2:', r2Key)
             }
           } catch (r2Error) {
             console.warn('[Twitter Proxy] R2 upload failed:', r2Error)
@@ -128,7 +124,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       )
     }
 
-    console.log('[Twitter Proxy] Successfully proxied image')
     return proxiedResponse
 
   } catch (error) {

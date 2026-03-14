@@ -119,7 +119,6 @@ Return a JSON object with this structure:
 
 For dimensions where the content provides no relevant information, return an empty array [].`
 
-  console.log('[PMESII-PT] Calling OpenAI via AI Gateway...')
   const gptData = await callOpenAIViaGateway(env, {
     model: 'gpt-4o-mini',
     messages: [
@@ -145,10 +144,8 @@ For dimensions where the content provides no relevant information, return an emp
     timeout: 20000
   })
 
-  console.log('[PMESII-PT] Response received from AI Gateway')
   const dimensions = JSON.parse(gptData.choices[0].message.content)
 
-  console.log('[PMESII-PT] Generated dimensions:', Object.keys(dimensions).map(k => `${k}: ${dimensions[k].length} items`))
 
   return dimensions
 }

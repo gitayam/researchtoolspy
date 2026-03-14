@@ -71,7 +71,6 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log('[forms/toggle] Updated form status:', formId, body.is_active)
 
     return new Response(JSON.stringify({
       success: true,

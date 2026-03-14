@@ -74,7 +74,6 @@ function normalizeCallback(body: AgentCallback): AgentCallbackOriginal {
   // Check if it's the OSINT Agent format (has expandedQueries)
   if ('expandedQueries' in body) {
     const osintPayload = body as AgentCallbackFromOSINTAgent
-    console.log(`[Callback] Processing OSINT Agent format with ${osintPayload.results?.length || 0} results`)
 
     const normalizedResults = osintPayload.results?.filter(r => r.url && r.url.startsWith('http')).map(r => ({
       url: r.url,
@@ -87,7 +86,6 @@ function normalizeCallback(body: AgentCallback): AgentCallbackOriginal {
       engine: r.source || 'unknown'
     }))
 
-    console.log(`[Callback] After filtering: ${normalizedResults?.length || 0} valid results`)
 
     return {
       jobId: osintPayload.jobId,

@@ -120,7 +120,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       now
     ).run()
 
-    console.log('[add-evidence] Evidence added:', evidenceId)
 
     return new Response(JSON.stringify({
       success: true,

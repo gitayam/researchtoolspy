@@ -134,7 +134,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       research_plan: investigation.research_plan ? JSON.parse(investigation.research_plan) : null
     }
 
-    console.log('[investigations] Created from research question:', id)
 
     return new Response(JSON.stringify({
       success: true,

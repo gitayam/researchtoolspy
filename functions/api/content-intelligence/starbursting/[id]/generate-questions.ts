@@ -27,7 +27,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserIdOrDefault(context.request, context.env)
     const sessionId = context.params.id as string
 
-    console.log('[Generate More Questions] Request for session:', sessionId, 'by user:', userId)
 
     if (!sessionId) {
       return new Response(JSON.stringify({
@@ -66,7 +65,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Parse existing data
     const existingData = JSON.parse(session.data as string || '{}')
-    console.log('[Generate More Questions] Existing questions:', {
       hasWho: !!existingData.who,
       hasWhat: !!existingData.what,
       hasWhere: !!existingData.where,
@@ -109,7 +107,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const entities = JSON.parse(analysis.entities as string || '{}')
     const title = analysis.title as string || session.title
 
-    console.log('[Generate More Questions] Content context:', {
       hasText: !!fullText,
       textLength: fullText.length,
       hasEntities: !!entities,
@@ -146,7 +143,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       WHERE id = ?
     `).bind(JSON.stringify(mergedData), sessionId).run()
 
-    console.log('[Generate More Questions] Success - added questions:', {
       newWho: newQuestions.who?.length || 0,
       newWhat: newQuestions.what?.length || 0,
       newWhere: newQuestions.where?.length || 0,

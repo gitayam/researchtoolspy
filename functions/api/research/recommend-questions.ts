@@ -100,7 +100,6 @@ Return the response as a JSON object with a "questions" array:
   ]
 }`
 
-    console.log('[recommend-questions] Calling OpenAI API for question generation')
 
     // Call OpenAI API directly
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -130,11 +129,10 @@ Return the response as a JSON object with a "questions" array:
     if (!response.ok) {
       const errorText = await response.text()
       console.error('[recommend-questions] OpenAI API error:', errorText)
-      throw new Error(`OpenAI API error ${response.status}: ${errorText}`)
+      throw new Error('AI service request failed')
     }
 
     const aiResponse = await response.json()
-    console.log('[recommend-questions] AI Response received')
 
     // Parse AI response
     let questions: GeneratedQuestion[] = []
@@ -156,10 +154,9 @@ Return the response as a JSON object with a "questions" array:
     } catch (error) {
       console.error('[recommend-questions] Failed to parse AI response:', error)
       console.error('[recommend-questions] AI Response:', aiResponse)
-      throw new Error('Failed to parse AI response: ' + (error instanceof Error ? error.message : 'Unknown error'))
+      throw new Error('Failed to parse AI response')
     }
 
-    console.log(`[recommend-questions] Generated ${questions.length} questions`)
 
     return new Response(JSON.stringify({
       questions,

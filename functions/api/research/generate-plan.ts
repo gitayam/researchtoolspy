@@ -178,7 +178,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log('[generate-plan] Generating research plan for:', body.researchQuestion)
 
     // Build AI prompt
     const contextGuidance = getContextSpecificGuidance(body.researchContext)
@@ -331,7 +330,6 @@ Make the plan specific to THIS research question and research type, not generic 
     const response = await apiResponse.json()
     const plan: ResearchPlan = JSON.parse(response.choices[0].message.content)
 
-    console.log('[generate-plan] Plan generated successfully')
 
     // Save plan to database if research question ID provided and DB is available
     if (body.researchQuestionId && context.env.DB) {
@@ -345,7 +343,6 @@ Make the plan specific to THIS research question and research type, not generic 
           body.researchQuestionId
         ).run()
 
-        console.log('[generate-plan] Saved plan to research question:', body.researchQuestionId)
       } catch (error) {
         console.error('[generate-plan] Failed to save plan:', error)
         // Non-fatal - continue

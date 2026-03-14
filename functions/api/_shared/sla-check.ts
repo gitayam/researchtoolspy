@@ -60,9 +60,6 @@ export async function checkSlaBreaches(db: D1Database): Promise<SlaCheckResult> 
       tasksBreach++
     }
 
-    if (tasksBreach > 0) {
-      console.log(`[SLA Check] Marked ${tasksBreach} task(s) as SLA breached`)
-    }
   } catch (error) {
     console.error('[SLA Check] Error checking task SLA breaches:', error)
   }

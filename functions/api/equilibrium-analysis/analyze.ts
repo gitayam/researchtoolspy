@@ -106,7 +106,6 @@ Return ONLY valid JSON with this exact structure:
   "ai_explanation": "<2-3 sentence summary of the equilibrium analysis>"
 }`
 
-    console.log('[Equilibrium AI] Calling OpenAI for analysis...')
 
     const aiResponse = await callOpenAIViaGateway(env, {
       model: 'gpt-4o-mini',

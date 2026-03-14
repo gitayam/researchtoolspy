@@ -49,7 +49,6 @@ async function checkWorkspaceAccess(
         ).run()
       } catch (err) {
         // Workspace might have been created by another request, ignore
-        console.log('[Actors] Default workspace creation skipped (may already exist)')
       }
     }
 

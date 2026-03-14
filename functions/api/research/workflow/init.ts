@@ -27,7 +27,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    console.log('[init-workflow] Initializing workflow for:', body.researchQuestionId, body.researchContext)
 
     // Get the workflow template for this context
     const templateResult = await context.env.DB.prepare(`
@@ -106,7 +105,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       now
     ).run()
 
-    console.log('[init-workflow] Created', tasks.length, 'default tasks')
 
     return new Response(JSON.stringify({
       success: true,

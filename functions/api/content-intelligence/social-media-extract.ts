@@ -74,7 +74,6 @@ async function fetchWithRetry<T>(
       if (attempt === maxRetries - 1) throw error
 
       const delay = baseDelay * Math.pow(2, attempt)
-      console.log(`[Retry] Attempt ${attempt + 1} failed, retrying in ${delay}ms`)
       await new Promise(resolve => setTimeout(resolve, delay))
     }
   }
@@ -100,7 +99,6 @@ async function getCached<T>(
   try {
     const cached = await cache.get(key)
     if (cached) {
-      console.log(`[Cache HIT] ${key}`)
       return JSON.parse(cached) as T
     }
   } catch (cacheError) {
@@ -108,7 +106,6 @@ async function getCached<T>(
   }
 
   // Cache miss - fetch fresh
-  console.log(`[Cache MISS] ${key}`)
   const result = await fetcher()
 
   // Store in cache
@@ -166,7 +163,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }), { status: 400, headers: { 'Content-Type': 'application/json' } })
     }
 
-    console.log(`[Social Extract] Platform: ${platform}, Mode: ${mode}, URL: ${url}`)
 
     // Create cache key
     const cacheKey = `social:${platform}:${mode}:${encodeURIComponent(url)}`
@@ -275,7 +271,6 @@ function detectPlatform(url: string): string | null {
 
 async function extractYouTube(url: string, mode: string): Promise<SocialMediaExtractionResult> {
   try {
-    console.log('[YouTube] Starting extraction, mode:', mode, 'url:', url)
 
     // Extract video ID
     const videoId = extractYouTubeVideoId(url)
@@ -287,7 +282,6 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
       )
     }
 
-    console.log('[YouTube] Video ID:', videoId)
 
     // Use YouTube oEmbed API for reliable metadata with retry
     const oembedData = await fetchWithRetry(async () => {
@@ -313,7 +307,6 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
 
     if (mode === 'download' || mode === 'full') {
       try {
-        console.log('[YouTube] Fetching download URLs via cobalt.tools...')
 
         // Use retry logic for cobalt.tools API
         const cobaltData = await fetchWithRetry(async () => {
@@ -340,7 +333,6 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
           return await cobaltResponse.json() as any
         }, 2, 1000) // 2 retries with 1s base delay
 
-        console.log('[YouTube] Cobalt response status:', cobaltData.status)
 
         if (cobaltData.status === 'redirect' || cobaltData.status === 'stream') {
           mediaUrls.video = cobaltData.url
@@ -389,9 +381,7 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
     let transcript: string | undefined
     if (mode === 'transcript' || mode === 'full') {
       try {
-        console.log('[YouTube] Attempting to fetch transcript...')
         transcript = await fetchYouTubeTranscript(videoId)
-        console.log('[YouTube] Transcript length:', transcript?.length || 0)
       } catch (transcriptError) {
         console.error('[YouTube] Transcript extraction failed:', transcriptError)
         transcript = 'Transcript not available for this video. Try using YouTube\'s built-in transcript feature.'
@@ -455,7 +445,6 @@ function extractYouTubeVideoId(url: string): string | null {
  */
 async function fetchYouTubeTranscript(videoId: string, preferredLang: string = 'en'): Promise<string> {
   try {
-    console.log(`[YouTube Transcript] Fetching transcript for video ${videoId}, preferred language: ${preferredLang}`)
 
     // Use YouTube InnerTube API with Android client for reliability
     // This API key is public and used by YouTube's Android app
@@ -490,7 +479,6 @@ async function fetchYouTubeTranscript(videoId: string, preferredLang: string = '
       throw new Error('No captions available for this video')
     }
 
-    console.log(`[YouTube Transcript] Found ${captionTracks.length} caption tracks`)
 
     // Multi-language fallback chain:
     // 1. Preferred language (exact match)
@@ -507,7 +495,6 @@ async function fetchYouTubeTranscript(videoId: string, preferredLang: string = '
       throw new Error('Selected caption track has no baseUrl')
     }
 
-    console.log(`[YouTube Transcript] Selected track: ${selectedTrack.name?.simpleText || 'Unknown'} (${selectedTrack.languageCode})${selectedTrack.kind ? ' [auto-generated]' : ''}`)
 
     // Fetch transcript XML
     const transcriptResponse = await fetch(selectedTrack.baseUrl)
@@ -545,7 +532,6 @@ async function fetchYouTubeTranscript(videoId: string, preferredLang: string = '
       throw new Error('Transcript fetched but appears to be empty')
     }
 
-    console.log(`[YouTube Transcript] Successfully extracted ${transcript.length} characters`)
     return transcript
 
   } catch (error) {
@@ -585,7 +571,6 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
       const cacheKey = `instagram:${shortcode}:${mode}`
       const cached = await env.CACHE.get(cacheKey, 'json')
       if (cached) {
-        console.log('[Instagram] Cache hit for shortcode:', shortcode)
         return cached as SocialMediaExtractionResult
       }
     } catch (error) {
@@ -604,7 +589,6 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
         await env.CACHE.put(cacheKey, JSON.stringify(result), {
           expirationTtl: 86400 // 24 hours
         })
-        console.log('[Instagram] Cached result for shortcode:', shortcode)
       } catch (error) {
         console.warn('[Instagram] Cache write failed:', error)
         // Don't fail if caching fails
@@ -615,7 +599,6 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
 
   // Strategy 1: Try cobalt.tools (primary method)
   try {
-    console.log('[Instagram] Attempting extraction via cobalt.tools, mode:', mode, 'url:', url)
     const result = await extractInstagramViaCobalt(url, shortcode, mode)
     return await cacheAndReturn(result)
   } catch (error) {
@@ -625,7 +608,6 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
 
   // Strategy 2: Try SnapInsta API (fallback)
   try {
-    console.log('[Instagram] Attempting fallback extraction via SnapInsta')
     const result = await extractInstagramViaSnapInsta(url, shortcode)
     return await cacheAndReturn(result)
   } catch (error) {
@@ -635,7 +617,6 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
 
   // Strategy 3: Try InstaDP API (fallback)
   try {
-    console.log('[Instagram] Attempting fallback extraction via InstaDP')
     const result = await extractInstagramViaInstaDP(url, shortcode)
     return await cacheAndReturn(result)
   } catch (error) {
@@ -645,7 +626,6 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
 
   // Strategy 4: Try SaveInsta API (fallback)
   try {
-    console.log('[Instagram] Attempting fallback extraction via SaveInsta')
     const result = await extractInstagramViaSaveInsta(url, shortcode)
     return await cacheAndReturn(result)
   } catch (error) {
@@ -655,7 +635,6 @@ async function extractInstagram(url: string, mode: string, env?: { CACHE?: KVNam
 
   // Strategy 5: Try oEmbed API (metadata only)
   try {
-    console.log('[Instagram] Attempting fallback via Instagram oEmbed API')
     const result = await extractInstagramViaOEmbed(url, shortcode)
     return await cacheAndReturn(result)
   } catch (error) {
@@ -741,7 +720,6 @@ async function extractInstagramViaCobalt(url: string, shortcode: string, mode: s
     return await cobaltResponse.json() as any
   }, 2, 1000)
 
-  console.log('[Instagram] Cobalt response status:', cobaltData.status)
 
   // Handle different response types
   if (cobaltData.status === 'picker') {
@@ -1037,7 +1015,6 @@ function extractInstagramShortcode(url: string): string | null {
 
 async function extractTikTok(url: string, mode: string): Promise<SocialMediaExtractionResult> {
   try {
-    console.log('[TikTok] Starting extraction via cobalt.tools, mode:', mode, 'url:', url)
 
     // TikTok extraction via cobalt.tools with retry logic
     const cobaltData = await fetchWithRetry(async () => {
@@ -1063,7 +1040,6 @@ async function extractTikTok(url: string, mode: string): Promise<SocialMediaExtr
       return await cobaltResponse.json() as any
     }, 2, 1000)
 
-    console.log('[TikTok] Cobalt response status:', cobaltData.status)
 
     if (cobaltData.status === 'error') {
       throw new Error(cobaltData.text || 'TikTok extraction failed')
@@ -1115,7 +1091,6 @@ async function extractTikTok(url: string, mode: string): Promise<SocialMediaExtr
 
 async function extractTwitter(url: string, mode: string): Promise<SocialMediaExtractionResult> {
   try {
-    console.log('[Twitter] Starting enhanced extraction, mode:', mode, 'url:', url)
 
     // Extract tweet ID from URL
     const tweetId = extractTweetId(url)
@@ -1127,13 +1102,11 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
       )
     }
 
-    console.log('[Twitter] Extracted tweet ID:', tweetId)
 
     // Strategy 1: Try cobalt.tools for media downloads (if download mode)
     let cobaltData: any = null
     if (mode === 'download' || mode === 'full') {
       try {
-        console.log('[Twitter] Attempting media extraction via cobalt.tools...')
         cobaltData = await fetchWithRetry(async () => {
           const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
             method: 'POST',
@@ -1157,7 +1130,6 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
           return await cobaltResponse.json() as any
         }, 2, 1000)
 
-        console.log('[Twitter] Cobalt response status:', cobaltData?.status)
       } catch (cobaltError) {
         console.warn('[Twitter] Cobalt extraction failed:', cobaltError)
         // Continue with oEmbed even if cobalt fails
@@ -1181,7 +1153,6 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
     const tweetText = extractTweetTextFromHTML(embedHtml)
     const authorHandle = extractAuthorHandleFromHTML(embedHtml)
 
-    console.log('[Twitter] Extracted text length:', tweetText?.length || 0)
 
     // Build media URLs from cobalt if available
     const mediaUrls: MediaUrls = {}
@@ -1241,7 +1212,6 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
     // Run for all modes to ensure images are always extracted
     if (!mediaUrls.images && !mediaUrls.video && (mode !== 'stream')) {
       try {
-        console.log('[Twitter] Attempting vxTwitter API fallback for media extraction...')
 
         // Extract username from URL for vxTwitter endpoint
         const usernameMatch = url.match(/(?:twitter\.com|x\.com)\/([^\/]+)\/status/)
@@ -1258,7 +1228,6 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
           return await vxResponse.json() as any
         }, 2, 1000)
 
-        console.log('[Twitter] VxTwitter response received, media count:', vxData.mediaURLs?.length || 0)
 
         // Map vxTwitter response to mediaUrls
         if (vxData.mediaURLs && vxData.mediaURLs.length > 0) {
@@ -1297,7 +1266,6 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
             mediaUrls.video = videoUrl
           }
 
-          console.log('[Twitter] Extracted from vxTwitter:', images.length, 'images,', videoUrl ? '1 video' : '0 videos')
         }
 
       } catch (vxError) {
@@ -1309,7 +1277,6 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
     // Strategy 4: Extract pic.twitter.com links from oEmbed HTML as last resort
     // Run for ALL modes to ensure basic image links are always available
     if (!mediaUrls.images && !mediaUrls.video && embedHtml && mode !== 'stream') {
-      console.log('[Twitter] Extracting pic.twitter.com links from oEmbed HTML...')
       const picLinks: string[] = []
       const picMatches = embedHtml.match(/pic\.twitter\.com\/([a-zA-Z0-9]+)/g) || []
 
@@ -1328,7 +1295,6 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
       if (picLinks.length > 0) {
         mediaUrls.images = picLinks
         mediaUrls.thumbnail = picLinks[0]
-        console.log('[Twitter] Extracted', picLinks.length, 'pic.twitter.com links')
       }
     }
 
@@ -1449,7 +1415,6 @@ function extractAuthorHandleFromHTML(html: string): string | null {
 
 async function extractBluesky(url: string, mode: string): Promise<SocialMediaExtractionResult> {
   try {
-    console.log('[Bluesky] Starting extraction, mode:', mode, 'url:', url)
 
     // Parse Bluesky URL to extract handle and post ID
     // Format: https://bsky.app/profile/{handle}/post/{rkey}
@@ -1484,7 +1449,6 @@ async function extractBluesky(url: string, mode: string): Promise<SocialMediaExt
       rkey = match[2]
     }
 
-    console.log('[Bluesky] Extracted - handle:', handle, 'rkey:', rkey)
 
     // Fetch post using Bluesky public API
     const postData = await fetchWithRetry(async () => {
@@ -1498,7 +1462,6 @@ async function extractBluesky(url: string, mode: string): Promise<SocialMediaExt
         }
         const resolveData = await resolveResponse.json() as any
         did = resolveData.did
-        console.log('[Bluesky] Resolved handle to DID:', did)
       }
 
       // Now fetch the post
