@@ -20,13 +20,7 @@ interface CreateFromResearchQuestionRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+    const userId = await requireAuth(context.request, context.env)
 
     const body = await context.request.json() as CreateFromResearchQuestionRequest
 
@@ -42,7 +36,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Get user's workspace
     const workspace = await context.env.DB.prepare(`
       SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1
-    `).bind(auth.user.id).first()
+    `).bind(userId).first()
 
     if (!workspace) {
       return new Response(JSON.stringify({ error: 'No workspace found' }), {
@@ -81,7 +75,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(
       id,
       workspace.workspace_id,
-      auth.user.id,
+      userId,
       title,
       description,
       body.research_question_id,
@@ -104,7 +98,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(
       crypto.randomUUID(),
       id,
-      auth.user.id,
+      userId,
       JSON.stringify({
         title,
         type: 'structured_research',

@@ -235,6 +235,9 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 112 | **content-intelligence/auto-extract-entities.ts hardcoded workspace_id='1' fallback** — body.workspace_id fell back to '1' ignoring X-Workspace-ID header. Fixed: falls back to header then '1' | FIXED |
+| 113 | **investigations/from-research-question.ts broken auth call** — `requireAuth(context)` instead of `requireAuth(context.request, context.env)`. Runtime TypeError: `context.headers` is undefined. Endpoint always crashed with 500, never reached auth check. Fixed: correct two-arg call + replaced `auth.user.id` with `userId` | FIXED |
+| 114 | **comments.ts POST hardcoded workspace_id=1** — all comments created in default workspace regardless of actual context. Fixed: reads `X-Workspace-ID` header | FIXED |
+| 115 | **evidence/recommend.ts hardcoded workspace_id='1'** — evidence recommendations scoped to default workspace. Fixed: reads `X-Workspace-ID` header | FIXED |
 
 ---
 
