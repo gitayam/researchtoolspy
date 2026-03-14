@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-62)
+**Last updated:** 2026-03-14 (Sessions 34-63)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -536,6 +536,34 @@
 | 227 | **social-media.ts profiles GET no LIMIT** — Returns all social media profiles. Fixed: `LIMIT 200` | FIXED |
 | 228 | **framework-evidence.ts no LIMIT** — Returns all framework-evidence links. Fixed: `LIMIT 500` | FIXED |
 | 229 | **framework-entities.ts no LIMIT** — Returns all framework-entity links. Fixed: `LIMIT 500` | FIXED |
+
+---
+
+## Fixed — v0.16.8 (Session 63)
+
+### PERFORMANCE (missing LIMIT on 11 COP/claims endpoints)
+| # | Issue | Status |
+|---|-------|--------|
+| 230 | **cop/[id]/evidence.ts no LIMIT** — Returns all COP evidence items. Fixed: `LIMIT 500` | FIXED |
+| 231 | **cop/[id]/tasks.ts no LIMIT** — Returns all COP tasks. Fixed: `LIMIT 500` | FIXED |
+| 232 | **cop/[id]/timeline.ts no LIMIT** — Returns all timeline entries. Fixed: `LIMIT 1000` | FIXED |
+| 233 | **cop/[id]/markers.ts no LIMIT** — Returns all map markers. Fixed: `LIMIT 500` | FIXED |
+| 234 | **cop/[id]/assets.ts no LIMIT** — Returns all assets. Fixed: `LIMIT 500` | FIXED |
+| 235 | **cop/[id]/hypotheses.ts no LIMIT** — Returns all hypotheses. Fixed: `LIMIT 200` | FIXED |
+| 236 | **cop/[id]/rfis.ts no LIMIT** — Returns all RFIs. Fixed: `LIMIT 200` | FIXED |
+| 237 | **cop/[id]/claims.ts no LIMIT** — Returns all COP claims. Fixed: `LIMIT 500` | FIXED |
+| 238 | **cop/[id]/intake-forms.ts no LIMIT** — Returns all intake forms. Fixed: `LIMIT 200` | FIXED |
+| 239 | **cop/[id]/collaborators.ts no LIMIT** — Returns all collaborators. Fixed: `LIMIT 200` | FIXED |
+| 240 | **claims/index.ts no LIMIT** — Returns all saved claims. Fixed: `LIMIT 500` | FIXED |
+
+### STABILITY (missing AbortController on 5 frontend pages)
+| # | Issue | Status |
+|---|-------|--------|
+| 241 | **ContentLibraryPage.tsx no AbortController** — Fetch not cancelled on unmount. Fixed: AbortController + signal | FIXED |
+| 242 | **EvidencePage.tsx no AbortController** — Fetch not cancelled on unmount. Fixed: AbortController + signal | FIXED |
+| 243 | **DatasetPage.tsx no AbortController** — Fetch not cancelled on unmount. Fixed: AbortController + signal | FIXED |
+| 244 | **NetworkGraphPage.tsx no AbortController** — 7 sequential fetches (relationships + 6 entity types) not cancelled on unmount. Fixed: AbortController + signal | FIXED |
+| 245 | **EvidenceSubmissionsPage.tsx no AbortController** — 2 useEffects (forms + submissions) not cancelled on unmount. Fixed: AbortController + signal on both | FIXED |
 
 ---
 

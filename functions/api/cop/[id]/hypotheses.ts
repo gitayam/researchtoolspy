@@ -36,7 +36,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     const hypotheses = await env.DB.prepare(`
-      SELECT * FROM cop_hypotheses WHERE cop_session_id = ? ORDER BY created_at DESC
+      SELECT * FROM cop_hypotheses WHERE cop_session_id = ? ORDER BY created_at DESC LIMIT 200
     `).bind(sessionId).all()
 
     // Fetch evidence links for all hypotheses

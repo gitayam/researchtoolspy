@@ -25,7 +25,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     const { results } = await env.DB.prepare(
-      `SELECT * FROM cop_collaborators WHERE cop_session_id = ? ORDER BY invited_at DESC`
+      `SELECT * FROM cop_collaborators WHERE cop_session_id = ? ORDER BY invited_at DESC LIMIT 200`
     ).bind(sessionId).all()
 
     return new Response(JSON.stringify({ collaborators: results ?? [] }), {

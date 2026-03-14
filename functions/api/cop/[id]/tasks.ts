@@ -59,7 +59,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         WHEN 'medium' THEN 2
         WHEN 'low' THEN 3
       END,
-      created_at DESC`
+      created_at DESC
+      LIMIT 500`
 
     const rows = await env.DB.prepare(query).bind(...bindings).all()
 

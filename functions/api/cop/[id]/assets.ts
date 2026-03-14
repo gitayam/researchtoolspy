@@ -62,7 +62,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       bindings.push(statusFilter)
     }
 
-    query += ' ORDER BY asset_type, name'
+    query += ' ORDER BY asset_type, name LIMIT 500'
 
     const rows = await env.DB.prepare(query).bind(...bindings).all()
     const assets = (rows.results || []).map(parseDetails)

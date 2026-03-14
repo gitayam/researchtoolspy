@@ -88,13 +88,14 @@ export function NetworkGraphPage() {
 
   // Load all relationships
   useEffect(() => {
+    const controller = new AbortController()
     const loadRelationships = async () => {
       setLoading(true)
       try {
         // Get workspace ID from localStorage or use default
         const workspaceId = localStorage.getItem('currentWorkspaceId') || 'default'
 
-        const response = await fetch(`/api/relationships?workspace_id=${workspaceId}`)
+        const response = await fetch(`/api/relationships?workspace_id=${workspaceId}`, { signal: controller.signal })
         if (response.ok) {
           const data = await response.json()
           setRelationships(data.relationships || [])
@@ -243,14 +244,17 @@ export function NetworkGraphPage() {
 
           setEntityNames(entityInfo)
         }
-      } catch (error) {
-        console.error('Failed to load relationships:', error)
+      } catch (error: any) {
+        if (error?.name !== 'AbortError') {
+          console.error('Failed to load relationships:', error)
+        }
       } finally {
         setLoading(false)
       }
     }
 
     loadRelationships()
+    return () => controller.abort()
   }, [])
 
   // Update container size on mount and window resize

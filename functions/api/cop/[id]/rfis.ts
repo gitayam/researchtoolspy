@@ -39,6 +39,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           WHEN 'low' THEN 3
         END,
         created_at DESC
+      LIMIT 200
     `).bind(sessionId).all()
 
     // Fetch answers for each RFI

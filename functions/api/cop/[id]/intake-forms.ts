@@ -32,7 +32,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     const results = await env.DB.prepare(
-      'SELECT * FROM cop_intake_forms WHERE cop_session_id = ? ORDER BY created_at DESC'
+      'SELECT * FROM cop_intake_forms WHERE cop_session_id = ? ORDER BY created_at DESC LIMIT 200'
     ).bind(sessionId).all()
 
     const forms = (results.results || []).map((row: any) => {

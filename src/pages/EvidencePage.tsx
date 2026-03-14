@@ -25,20 +25,24 @@ export function EvidencePage() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editingEvidence, setEditingEvidence] = useState<any>(null)
 
-  const loadEvidence = async () => {
+  const loadEvidence = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/evidence-items')
+      const response = await fetch('/api/evidence-items', { signal })
       if (response.ok) {
         const data = await response.json()
         setEvidence(data.evidence || [])
       }
-    } catch (error) {
-      console.error('Failed to load evidence:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Failed to load evidence:', error)
+      }
     }
   }
 
   useEffect(() => {
-    loadEvidence()
+    const controller = new AbortController()
+    loadEvidence(controller.signal)
+    return () => controller.abort()
   }, [])
 
   const handleSaveEvidence = async (data: any) => {

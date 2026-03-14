@@ -50,7 +50,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     }
 
-    query += ` ORDER BY event_date ASC, created_at ASC`
+    query += ` ORDER BY event_date ASC, created_at ASC LIMIT 1000`
 
     const results = await env.DB.prepare(query).bind(...bindings).all()
 

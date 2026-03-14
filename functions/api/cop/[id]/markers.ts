@@ -37,7 +37,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     const rows = await env.DB.prepare(`
-      SELECT * FROM cop_markers WHERE cop_session_id = ? ORDER BY event_time DESC
+      SELECT * FROM cop_markers WHERE cop_session_id = ? ORDER BY event_time DESC LIMIT 500
     `).bind(sessionId).all()
 
     const markers = (rows.results || []).map((row: any) => {

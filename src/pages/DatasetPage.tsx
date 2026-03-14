@@ -25,20 +25,24 @@ export function DatasetPage() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editingDataset, setEditingDataset] = useState<any>(null)
 
-  const loadDataset = async () => {
+  const loadDataset = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/dataset')
+      const response = await fetch('/api/dataset', { signal })
       if (response.ok) {
         const data = await response.json()
         setDataset(data.dataset || [])
       }
-    } catch (error) {
-      console.error('Failed to load dataset:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Failed to load dataset:', error)
+      }
     }
   }
 
   useEffect(() => {
-    loadDataset()
+    const controller = new AbortController()
+    loadDataset(controller.signal)
+    return () => controller.abort()
   }, [])
 
   const handleSaveDataset = async (data: any) => {

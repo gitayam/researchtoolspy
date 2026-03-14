@@ -60,7 +60,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       bindings.push(category)
     }
 
-    query += ` ORDER BY ca.updated_at DESC`
+    query += ` ORDER BY ca.updated_at DESC LIMIT 500`
 
     const claims = await context.env.DB.prepare(query)
       .bind(...bindings)

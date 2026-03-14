@@ -39,10 +39,12 @@ export function ContentLibraryPage() {
   const [domainFilter, setDomainFilter] = useState<string>('')
 
   useEffect(() => {
-    loadContent()
+    const controller = new AbortController()
+    loadContent(controller.signal)
+    return () => controller.abort()
   }, [])
 
-  const loadContent = async () => {
+  const loadContent = async (signal?: AbortSignal) => {
     setLoading(true)
     try {
       const workspaceId = localStorage.getItem('omnicore_workspace_id') || '1'
@@ -52,6 +54,7 @@ export function ContentLibraryPage() {
           ...getCopHeaders(),
           'X-Workspace-ID': workspaceId,
         },
+        signal,
       })
 
       if (response.ok) {
@@ -60,9 +63,11 @@ export function ContentLibraryPage() {
       } else {
         toast({ title: t('common:error'), description: t('contentLibrary:alerts.loadFailed'), variant: 'destructive' })
       }
-    } catch (error) {
-      console.error('Failed to load content:', error)
-      toast({ title: t('common:error'), description: t('contentLibrary:alerts.loadFailed'), variant: 'destructive' })
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Failed to load content:', error)
+        toast({ title: t('common:error'), description: t('contentLibrary:alerts.loadFailed'), variant: 'destructive' })
+      }
     } finally {
       setLoading(false)
     }
@@ -177,7 +182,7 @@ export function ContentLibraryPage() {
               <option key={domain} value={domain}>{domain}</option>
             ))}
           </select>
-          <Button variant="outline" size="sm" onClick={loadContent}>
+          <Button variant="outline" size="sm" onClick={() => loadContent()}>
             <Filter className="h-4 w-4 mr-2" />
             {t('contentLibrary:filters.refresh')}
           </Button>

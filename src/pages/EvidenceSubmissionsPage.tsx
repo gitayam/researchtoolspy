@@ -91,24 +91,28 @@ export default function EvidenceSubmissionsPage() {
   const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
-    loadForms()
+    const controller = new AbortController()
+    loadForms(controller.signal)
     if (activeTab === 'review') {
-      loadSubmissions()
+      loadSubmissions(controller.signal)
     }
+    return () => controller.abort()
   }, [activeTab])
 
   useEffect(() => {
     if (activeTab === 'review') {
-      loadSubmissions()
+      const controller = new AbortController()
+      loadSubmissions(controller.signal)
+      return () => controller.abort()
     }
   }, [statusFilter])
 
-  const loadForms = async () => {
+  const loadForms = async (signal?: AbortSignal) => {
     setIsLoadingForms(true)
     setFormsError(null)
 
     try {
-      const response = await fetch('/api/research/forms/list?workspaceId=1')
+      const response = await fetch('/api/research/forms/list?workspaceId=1', { signal })
       const data = await response.json()
 
       if (!response.ok) {
@@ -116,15 +120,17 @@ export default function EvidenceSubmissionsPage() {
       }
 
       setForms(data.forms || [])
-    } catch (err) {
-      console.error('Failed to load forms:', err)
-      setFormsError(err instanceof Error ? err.message : 'Failed to load forms')
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Failed to load forms:', err)
+        setFormsError(err instanceof Error ? err.message : 'Failed to load forms')
+      }
     } finally {
       setIsLoadingForms(false)
     }
   }
 
-  const loadSubmissions = async () => {
+  const loadSubmissions = async (signal?: AbortSignal) => {
     setIsLoadingSubmissions(true)
     setSubmissionsError(null)
 
@@ -132,7 +138,7 @@ export default function EvidenceSubmissionsPage() {
       const params = new URLSearchParams()
       if (statusFilter) params.append('status', statusFilter)
 
-      const response = await fetch(`/api/research/submissions/list?${params}`)
+      const response = await fetch(`/api/research/submissions/list?${params}`, { signal })
       const data = await response.json()
 
       if (!response.ok) {
@@ -140,9 +146,11 @@ export default function EvidenceSubmissionsPage() {
       }
 
       setSubmissions(data.submissions || [])
-    } catch (err) {
-      console.error('Failed to load submissions:', err)
-      setSubmissionsError(err instanceof Error ? err.message : 'Failed to load submissions')
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Failed to load submissions:', err)
+        setSubmissionsError(err instanceof Error ? err.message : 'Failed to load submissions')
+      }
     } finally {
       setIsLoadingSubmissions(false)
     }

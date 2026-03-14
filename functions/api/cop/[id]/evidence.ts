@@ -41,7 +41,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     const results = await env.DB.prepare(`
-      SELECT * FROM evidence_items WHERE workspace_id = ? ORDER BY created_at DESC
+      SELECT * FROM evidence_items WHERE workspace_id = ? ORDER BY created_at DESC LIMIT 500
     `).bind(workspaceId).all()
 
     return new Response(JSON.stringify({ evidence: results.results }), { headers: corsHeaders })
