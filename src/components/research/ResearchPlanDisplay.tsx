@@ -79,7 +79,64 @@ interface ResearchPlanDisplayProps {
   onExport?: () => void
 }
 
-export default function ResearchPlanDisplay({ plan, onEdit, onExport }: ResearchPlanDisplayProps) {
+/** Ensure all nested arrays exist to prevent crashes from incomplete AI output */
+function normalizePlan(raw: ResearchPlan): ResearchPlan {
+  return {
+    methodology: {
+      approach: raw.methodology?.approach || '',
+      design: raw.methodology?.design || '',
+      rationale: raw.methodology?.rationale || '',
+      dataCollection: raw.methodology?.dataCollection || [],
+      sampling: raw.methodology?.sampling || '',
+      sampleSize: raw.methodology?.sampleSize || '',
+    },
+    timeline: {
+      totalDuration: raw.timeline?.totalDuration || '',
+      milestones: (raw.timeline?.milestones || []).map(m => ({
+        ...m,
+        tasks: m.tasks || [],
+        deliverables: m.deliverables || [],
+      })),
+      criticalPath: raw.timeline?.criticalPath || [],
+    },
+    resources: {
+      personnel: raw.resources?.personnel || [],
+      equipment: raw.resources?.equipment || [],
+      software: raw.resources?.software || [],
+      funding: raw.resources?.funding || '',
+      facilities: raw.resources?.facilities || [],
+    },
+    literatureReview: {
+      databases: raw.literatureReview?.databases || [],
+      searchTerms: raw.literatureReview?.searchTerms || [],
+      inclusionCriteria: raw.literatureReview?.inclusionCriteria || [],
+      exclusionCriteria: raw.literatureReview?.exclusionCriteria || [],
+      expectedSources: raw.literatureReview?.expectedSources || 0,
+    },
+    dataAnalysis: {
+      quantitativeTests: raw.dataAnalysis?.quantitativeTests || [],
+      qualitativeApproaches: raw.dataAnalysis?.qualitativeApproaches || [],
+      software: raw.dataAnalysis?.software || [],
+      validationMethods: raw.dataAnalysis?.validationMethods || [],
+    },
+    ethicalConsiderations: {
+      irbRequired: raw.ethicalConsiderations?.irbRequired || false,
+      riskLevel: raw.ethicalConsiderations?.riskLevel || 'low',
+      consentRequired: raw.ethicalConsiderations?.consentRequired || false,
+      privacyMeasures: raw.ethicalConsiderations?.privacyMeasures || [],
+      potentialRisks: raw.ethicalConsiderations?.potentialRisks || [],
+    },
+    dissemination: {
+      targetJournals: raw.dissemination?.targetJournals || [],
+      conferences: raw.dissemination?.conferences || [],
+      stakeholders: raw.dissemination?.stakeholders || [],
+      formats: raw.dissemination?.formats || [],
+    },
+  }
+}
+
+export default function ResearchPlanDisplay({ plan: rawPlan, onEdit, onExport }: ResearchPlanDisplayProps) {
+  const plan = normalizePlan(rawPlan)
   const [activeTab, setActiveTab] = useState('overview')
   const [editingSection, setEditingSection] = useState<string | null>(null)
 
