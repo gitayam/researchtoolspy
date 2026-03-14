@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-44)
+**Last updated:** 2026-03-14 (Sessions 34-45)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -186,6 +186,17 @@
 | 90 | **COP activity POST used custom `getUserId()` bypassing shared auth** — same private `getUserId()` pattern. Guest users could log activity events as user 1. Fixed: replaced with `getUserFromRequest` + 401. Removed dead `corsHeaders` and `onRequestOptions`. | FIXED |
 | 91 | **COP playbook rules POST/PUT/DELETE missing auth** — no auth imports, no checks. Only verified playbook exists, not that user owns session. Fixed: `cop/[id]/playbooks/[pbId]/rules.ts` uses `getUserFromRequest` + 401. Removed dead `corsHeaders` and `onRequestOptions`. | FIXED |
 | 92 | **COP playbook test POST missing auth** — dry-run endpoint had no auth. Fixed: `cop/[id]/playbooks/[pbId]/test.ts` uses `getUserFromRequest` + 401. Removed dead `corsHeaders` and `onRequestOptions`. | FIXED |
+
+---
+
+## Fixed — v0.14.8 (Session 45)
+
+### SECURITY
+| # | Issue | Status |
+|---|-------|--------|
+| 93 | **equilibrium-analysis/[id].ts PUT/DELETE with zero auth** — anyone could update or delete any equilibrium analysis by ID. Fixed: both handlers use `getUserFromRequest` + 401 | FIXED |
+| 94 | **hamilton-rule/[id].ts PUT/DELETE with zero auth** — anyone could update or delete any Hamilton Rule analysis by ID. Fixed: both handlers use `getUserFromRequest` + 401 | FIXED |
+| 95 | **collection/[jobId]/approve.ts POST/DELETE with no auth** — anyone could approve/reject collection results. Fixed: both handlers use `getUserFromRequest` + 401 | FIXED |
 
 ---
 

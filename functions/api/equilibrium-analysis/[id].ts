@@ -7,7 +7,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -70,6 +70,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const id = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     const body = await request.json() as any
     const now = new Date().toISOString()
 
@@ -145,10 +152,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
 // DELETE - Delete equilibrium analysis
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { request, env, params } = context
   const id = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     await env.DB.prepare(`
       DELETE FROM equilibrium_analyses WHERE id = ?
     `).bind(id).run()

@@ -7,9 +7,11 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import type { ApproveResultsRequest, ApproveResultsResponse, ApprovalStatus } from '../../../../src/types/collection'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
 }
 
 const corsHeaders = {
@@ -21,6 +23,13 @@ const corsHeaders = {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     const jobId = context.params.jobId as string
     const body = await context.request.json() as ApproveResultsRequest
     const { selectedIds, analyzeNow = true } = body
@@ -151,6 +160,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 // Handle rejections
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     const jobId = context.params.jobId as string
     const body = await context.request.json() as { selectedIds: string[] }
     const { selectedIds } = body
