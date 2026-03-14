@@ -182,7 +182,7 @@ export function RelationshipForm({
           explanation: data.explanation
         })
       } else {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         setError(errorData.error || 'Failed to infer relationship type')
       }
     } catch (error) {

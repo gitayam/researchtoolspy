@@ -89,8 +89,8 @@ Return ONLY the question text, no other formatting.`
     const hypothesesPrompt = `Based on this content, generate 4-5 competing hypotheses for the question: "${question}"
 
 Content Summary: ${analysis.summary || analysis.extracted_text?.substring(0, 500)}
-Topics: ${analysis.topics ? JSON.parse(analysis.topics as string).map((t: any) => t.name).join(', ') : 'N/A'}
-Entities: ${analysis.entities ? Object.keys(JSON.parse(analysis.entities as string)).join(', ') : 'N/A'}
+Topics: ${(() => { try { return analysis.topics ? JSON.parse(analysis.topics as string).map((t: any) => t.name).join(', ') : 'N/A' } catch { return 'N/A' } })()}
+Entities: ${(() => { try { return analysis.entities ? Object.keys(JSON.parse(analysis.entities as string)).join(', ') : 'N/A' } catch { return 'N/A' } })()}
 
 Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2", ...]`
 

@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-56)
+**Last updated:** 2026-03-14 (Sessions 34-57)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -411,6 +411,22 @@
 | 186 | **SourcesPage.tsx 3x unguarded error `.json()`** — create, update, delete error paths. Fixed | FIXED |
 | 187 | **EventsPage.tsx 3x unguarded error `.json()`** — create, update, delete error paths. Fixed | FIXED |
 | 188 | **ActorsPage.tsx 3x unguarded error `.json()`** — create, update, delete error paths. Fixed | FIXED |
+
+---
+
+## Fixed — v0.16.2 (Session 57)
+
+### FRONTEND ERROR HANDLING
+| # | Issue | Status |
+|---|-------|--------|
+| 189 | **RelationshipForm.tsx `errorData = await response.json()` without `.catch()`** — Uses `errorData` variable name (missed in v0.16.1 sweep which only caught `error` variable). Crashes if API returns HTML. Fixed: `.json().catch()` | FIXED |
+| 190 | **SwotForm.tsx `errorData = await response.json()` without `.catch()`** — Auto-populate error path. Fixed | FIXED |
+| 191 | **AITimelineGenerator.tsx `errorData = await response.json()` without `.catch()`** — AI timeline generation error path. Fixed | FIXED |
+
+### JSON.PARSE SAFETY
+| # | Issue | Status |
+|---|-------|--------|
+| 192 | **ach/from-content-intelligence.ts 2x bare `JSON.parse` in template literal** — `analysis.topics` and `analysis.entities` parsed inside string interpolation without try-catch. Corrupted JSON crashes ACH conversion prompt. Fixed: IIFE try-catch with `'N/A'` fallback | FIXED |
 
 ---
 

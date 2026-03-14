@@ -52,7 +52,7 @@ export function AITimelineGenerator({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(errorData.message || errorData.error || 'AI request failed')
       }
 

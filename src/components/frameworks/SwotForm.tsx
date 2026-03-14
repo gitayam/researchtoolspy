@@ -814,7 +814,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(errorData.error || `Failed to auto-populate: ${response.status}`)
       }
 
