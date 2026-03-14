@@ -208,7 +208,18 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
       throw new Error('Invalid response format from AI provider')
     }
 
-    const aiResponse = JSON.parse(response.choices[0].message.content)
+    let aiContent = response.choices[0].message.content.trim()
+    // Strip markdown code fences if AI wraps JSON in ```json ... ```
+    if (aiContent.startsWith('```')) {
+      aiContent = aiContent.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '')
+    }
+    let aiResponse: any
+    try {
+      aiResponse = JSON.parse(aiContent)
+    } catch (parseError) {
+      console.error('[generate-question] Failed to parse AI response:', aiContent.slice(0, 200))
+      throw new Error('AI returned invalid JSON')
+    }
     const generatedQuestions: GeneratedQuestion[] = aiResponse.questions || []
 
 

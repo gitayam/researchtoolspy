@@ -338,7 +338,18 @@ Make the plan specific to THIS research question and research type, not generic 
     }
 
     const response = await apiResponse.json()
-    const plan: ResearchPlan = JSON.parse(response.choices[0].message.content)
+    let planContent = (response.choices?.[0]?.message?.content || '').trim()
+    // Strip markdown code fences if AI wraps JSON in ```json ... ```
+    if (planContent.startsWith('```')) {
+      planContent = planContent.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '')
+    }
+    let plan: ResearchPlan
+    try {
+      plan = JSON.parse(planContent)
+    } catch (parseError) {
+      console.error('[generate-plan] Failed to parse AI response:', planContent.slice(0, 200))
+      throw new Error('AI returned invalid JSON for research plan')
+    }
 
 
     // Save plan to database if research question ID provided and DB is available

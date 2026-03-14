@@ -137,8 +137,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       // Get user details
       const userResult = await env.DB.prepare('SELECT id, user_hash, full_name, username FROM users WHERE id = ?').bind(userId).first()
-      const userHash = userResult?.user_hash as string
-      const actorName = (userResult?.full_name as string) || (userResult?.username as string) || 'User'
+      if (!userResult) {
+        return new Response(JSON.stringify({ error: 'User not found' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      const userHash = (userResult.user_hash as string) || `user-${userId}`
+      const actorName = (userResult.full_name as string) || (userResult.username as string) || 'User'
 
       const body = await request.json() as Partial<Comment>
       const {

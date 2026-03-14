@@ -257,6 +257,22 @@
 
 ---
 
+## Fixed — v0.15.4 (Session 49 cont.)
+
+### AI RESPONSE SAFETY
+| # | Issue | Status |
+|---|-------|--------|
+| 120 | **generate-question.ts JSON.parse on raw AI response** — AI may wrap JSON in markdown code fences (```json ... ```), causing parse failure and 500. Fixed: strip markdown fences + try-catch with descriptive error | FIXED |
+| 121 | **generate-plan.ts JSON.parse on raw AI response** — same markdown fence issue. Fixed: strip fences + try-catch | FIXED |
+| 122 | **extract-claim-entities.ts JSON.parse on raw AI response** — same issue, but function returns entities directly (not HTTP response). Fixed: strip fences + try-catch with graceful degradation returning `{ entities: [], error }` | FIXED |
+
+### NULL DEREFERENCE
+| # | Issue | Status |
+|---|-------|--------|
+| 123 | **comments.ts POST null dereference on user lookup** — `userResult.user_hash` accessed without null check after `.first()` query. If user record missing (e.g. deleted account), crashes with TypeError. Fixed: added null check returning 404 | FIXED |
+
+---
+
 ## Remaining Tech Debt
 
 ### Architecture (MEDIUM)

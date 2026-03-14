@@ -103,9 +103,21 @@ Return ONLY valid JSON with this exact structure:
       env.AI_GATEWAY_ACCOUNT_ID
     )
 
-    const content = response.choices[0].message.content
+    let content = (response.choices[0].message.content || '').trim()
+    // Strip markdown code fences if AI wraps JSON in ```json ... ```
+    if (content.startsWith('```')) {
+      content = content.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '')
+    }
 
-    const result = JSON.parse(content)
+    let result: any
+    try {
+      result = JSON.parse(content)
+    } catch (parseError) {
+      console.error('[extract-claim-entities] Failed to parse AI response:', content.slice(0, 200))
+      return new Response(JSON.stringify({ entities: [], error: 'AI returned invalid JSON' }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
     const entities = result.entities || []
 
     // Validate entities
