@@ -105,7 +105,7 @@ async function startCollection(request: CollectionJobRequest): Promise<Collectio
     body: JSON.stringify(request),
   })
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
     throw new Error(error.error || 'Failed to start collection')
   }
   return response.json()
@@ -114,7 +114,7 @@ async function startCollection(request: CollectionJobRequest): Promise<Collectio
 async function getJobStatus(jobId: string): Promise<CollectionJob & { resultsSummary?: CollectionResultsSummary[] }> {
   const response = await fetch(`/api/collection/${jobId}/status`)
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
     throw new Error(error.error || 'Failed to get job status')
   }
   return response.json()
@@ -133,7 +133,7 @@ async function getJobResults(
 
   const response = await fetch(`/api/collection/${jobId}/results?${searchParams}`)
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
     throw new Error(error.error || 'Failed to get results')
   }
   return response.json()
@@ -149,7 +149,7 @@ async function approveResults(
     body: JSON.stringify(request),
   })
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
     throw new Error(error.error || 'Failed to approve results')
   }
   return response.json()

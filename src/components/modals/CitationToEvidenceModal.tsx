@@ -72,7 +72,7 @@ export function CitationToEvidenceModal({ citation, onClose, onSuccess }: Citati
         onSuccess?.()
         onClose()
       } else {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Failed to create evidence')
       }
     } catch (error: any) {

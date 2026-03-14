@@ -414,7 +414,7 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Failed to retry analysis')
       }
 
@@ -452,7 +452,7 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Failed to create share link')
       }
 

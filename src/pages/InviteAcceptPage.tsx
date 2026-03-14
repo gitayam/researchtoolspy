@@ -39,7 +39,7 @@ export function InviteAcceptPage() {
       const response = await fetch(`/api/invites/${inviteToken}`)
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || t('invite:alerts.fetchFailed'))
       }
 
@@ -78,7 +78,7 @@ export function InviteAcceptPage() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || t('invite:alerts.acceptFailed'))
       }
 

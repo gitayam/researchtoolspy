@@ -98,7 +98,7 @@ export function ActorsPage() {
       setEditingActor(undefined)
       loadActors()
     } else {
-      const error = await response.json()
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       throw new Error(error.error || 'Failed to create actor')
     }
   }
@@ -123,7 +123,7 @@ export function ActorsPage() {
         loadActors()
       }
     } else {
-      const error = await response.json()
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       throw new Error(error.error || 'Failed to update actor')
     }
   }
@@ -141,7 +141,7 @@ export function ActorsPage() {
       if (response.ok) {
         navigate('/dashboard/entities/actors')
       } else {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         alert(`Failed to delete actor: ${error.error}`)
       }
     } catch (error) {

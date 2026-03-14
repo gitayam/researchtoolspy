@@ -1375,7 +1375,7 @@ ${shortSummary}`
         // Check if response is JSON before parsing
         const contentType = response.headers.get('content-type')
         if (contentType && contentType.includes('application/json')) {
-          const error = await response.json()
+          const error = await response.json().catch(() => ({ error: 'Unknown error' }))
           // Log full error details for debugging
           console.error('[DEBUG] Backend error details:', {
             error: error.error,
@@ -2096,7 +2096,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Failed to answer question')
       }
 
@@ -2149,7 +2149,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Social media extraction failed')
       }
 
@@ -2206,7 +2206,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Git repository extraction failed')
       }
 

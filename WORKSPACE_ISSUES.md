@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-55)
+**Last updated:** 2026-03-14 (Sessions 34-56)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -390,6 +390,27 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 175 | **research/evidence/add.ts hardcoded `workspaceId || '1'`** — Mutation endpoint only checked body.workspaceId, ignoring X-Workspace-ID header. Fixed: chain `body.workspaceId || header || '1'` | FIXED |
+
+---
+
+## Fixed — v0.16.1 (Session 56)
+
+### FRONTEND ERROR HANDLING (systematic sweep — 13 files, 29 instances)
+| # | Issue | Status |
+|---|-------|--------|
+| 176 | **CreateWorkspaceDialog.tsx 1x `response.json()` on error without `.catch()`** — If API returns HTML 502/503, `.json()` throws unhandled error. Fixed: `.json().catch(() => ({ error: 'Unknown error' }))` | FIXED |
+| 177 | **CitationToEvidenceModal.tsx 1x unguarded error `.json()`** — Same pattern. Fixed | FIXED |
+| 178 | **ClaimAnalysisDisplay.tsx 2x unguarded error `.json()`** — analyzeCredibility + analyzeClaims error paths. Fixed | FIXED |
+| 179 | **GenericFrameworkView.tsx 2x unguarded error `.json()`** — save + load error paths. Fixed | FIXED |
+| 180 | **COGWizard.tsx 1x unguarded error `.json()`** — AI analysis error path. Fixed | FIXED |
+| 181 | **DeceptionView.tsx 2x unguarded error `.json()`** — analyze + save error paths. Fixed | FIXED |
+| 182 | **MOMAssessmentModal.tsx 1x unguarded error `.json()`** — submit error path. Fixed | FIXED |
+| 183 | **ContentIntelligencePage.tsx 3x unguarded error `.json()`** — DIME, starbursting, claim analysis error paths (+1 already guarded). Fixed | FIXED |
+| 184 | **CollectionPage.tsx 4x unguarded error `.json()`** — CRUD operations error paths. Fixed | FIXED |
+| 185 | **InviteAcceptPage.tsx 2x unguarded error `.json()`** — fetch + accept invite error paths. Fixed | FIXED |
+| 186 | **SourcesPage.tsx 3x unguarded error `.json()`** — create, update, delete error paths. Fixed | FIXED |
+| 187 | **EventsPage.tsx 3x unguarded error `.json()`** — create, update, delete error paths. Fixed | FIXED |
+| 188 | **ActorsPage.tsx 3x unguarded error `.json()`** — create, update, delete error paths. Fixed | FIXED |
 
 ---
 

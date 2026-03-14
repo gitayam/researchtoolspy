@@ -383,7 +383,7 @@ export function DeceptionView({
           linkedEvidence.filter(e => !(e.entity_type === entity_type && String(e.entity_id) === String(entity_id)))
         )
       } else {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('Failed to unlink evidence:', error)
         alert('Failed to unlink evidence. Please try again.')
       }
@@ -434,7 +434,7 @@ export function DeceptionView({
         // Clear success indicator after 3 seconds
         setTimeout(() => setSaveSuccess(null), 3000)
       } else {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('Failed to save to actor:', error)
         alert(`Failed to save MOM scores to ${actorName}. Please try again.`)
       }

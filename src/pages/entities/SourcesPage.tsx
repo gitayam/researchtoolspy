@@ -93,7 +93,7 @@ export function SourcesPage() {
       setEditingSource(undefined)
       loadSources()
     } else {
-      const error = await response.json()
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       throw new Error(error.error || 'Failed to create source')
     }
   }
@@ -117,7 +117,7 @@ export function SourcesPage() {
         loadSources()
       }
     } else {
-      const error = await response.json()
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       throw new Error(error.error || 'Failed to update source')
     }
   }
@@ -134,7 +134,7 @@ export function SourcesPage() {
       if (response.ok) {
         navigate('/dashboard/entities/sources')
       } else {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         alert(`Failed to delete source: ${error.error}`)
       }
     } catch (error) {

@@ -93,7 +93,7 @@ export function EventsPage() {
       setEditingEvent(undefined)
       loadEvents()
     } else {
-      const error = await response.json()
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       throw new Error(error.error || 'Failed to create event')
     }
   }
@@ -117,7 +117,7 @@ export function EventsPage() {
         loadEvents()
       }
     } else {
-      const error = await response.json()
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       throw new Error(error.error || 'Failed to update event')
     }
   }
@@ -134,7 +134,7 @@ export function EventsPage() {
       if (response.ok) {
         navigate('/dashboard/entities/events')
       } else {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         alert(`Failed to delete event: ${error.error}`)
       }
     } catch (error) {

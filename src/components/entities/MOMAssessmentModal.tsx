@@ -38,7 +38,7 @@ export function MOMAssessmentModal({
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.message || 'Failed to save MOM assessment')
       }
 

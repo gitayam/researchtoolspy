@@ -214,7 +214,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Entity generation failed')
       }
 
