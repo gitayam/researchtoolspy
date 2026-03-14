@@ -226,6 +226,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         SELECT * FROM relationships WHERE id = ?
       `).bind(id).first()
 
+      if (!relationship) {
+        return new Response(
+          JSON.stringify({ success: true, id }),
+          { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       return new Response(
         JSON.stringify({
           ...relationship,
@@ -360,6 +367,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const updated = await env.DB.prepare(`
         SELECT * FROM relationships WHERE id = ?
       `).bind(relationshipId).first()
+
+      if (!updated) {
+        return new Response(
+          JSON.stringify({ success: true, id: relationshipId }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
       return new Response(
         JSON.stringify({

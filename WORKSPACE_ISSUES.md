@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-51)
+**Last updated:** 2026-03-14 (Sessions 34-52)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -314,6 +314,16 @@
 |---|-------|--------|
 | 134 | **CopWorkspacePage.tsx useEffect fetch without cleanup** — Stats fetch had no AbortController. If component unmounts mid-fetch, `setWorkspaceStats` called on unmounted component (React warning + memory leak). Fixed: added AbortController with cleanup return | FIXED |
 | 135 | **ContentIntelligencePage.tsx fragile DIME `.map()` pattern** — 4 DIME analysis sections used `(a || b).map()` where both `a` and `b` could be falsy despite truthiness check (JS short-circuit edge case). Fixed: added `|| []` fallback on all 4 `.map()` calls | FIXED |
+
+---
+
+## Fixed — v0.15.7 (Session 52)
+
+### NULL DEREFERENCE
+| # | Issue | Status |
+|---|-------|--------|
+| 136 | **relationships.ts POST unguarded `.first()` spread** — After INSERT, fetches created relationship then spreads `...relationship` and accesses `.evidence_ids` without null check. If `.first()` returns null, crashes with TypeError on line 232. Fixed: added null guard with graceful fallback | FIXED |
+| 137 | **relationships.ts PUT unguarded `.first()` spread** — After UPDATE, fetches updated relationship then spreads `...updated` and accesses `.evidence_ids` without null check. Same crash pattern as #136. Fixed: added null guard with graceful fallback | FIXED |
 
 ---
 
