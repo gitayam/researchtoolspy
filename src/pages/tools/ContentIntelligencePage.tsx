@@ -513,7 +513,7 @@ export default function ContentIntelligencePage() {
 
           ${(analysis.dime_analysis?.diplomatic || dimeAnalysis?.diplomatic) ? `
             <h3 style="color: #2563eb;">🤝 Diplomatic</h3>
-            ${(analysis.dime_analysis?.diplomatic || dimeAnalysis?.diplomatic).map((qa: any, index: number) => `
+            ${(analysis.dime_analysis?.diplomatic || dimeAnalysis?.diplomatic || []).map((qa: any, index: number) => `
               <div class="qa-item">
                 <div class="qa-question">Q${index + 1}: ${qa.question}</div>
                 <div class="qa-answer">A: ${qa.answer}</div>
@@ -523,7 +523,7 @@ export default function ContentIntelligencePage() {
 
           ${(analysis.dime_analysis?.information || dimeAnalysis?.information) ? `
             <h3 style="color: #10b981;">📰 Information</h3>
-            ${(analysis.dime_analysis?.information || dimeAnalysis?.information).map((qa: any, index: number) => `
+            ${(analysis.dime_analysis?.information || dimeAnalysis?.information || []).map((qa: any, index: number) => `
               <div class="qa-item">
                 <div class="qa-question">Q${index + 1}: ${qa.question}</div>
                 <div class="qa-answer">A: ${qa.answer}</div>
@@ -533,7 +533,7 @@ export default function ContentIntelligencePage() {
 
           ${(analysis.dime_analysis?.military || dimeAnalysis?.military) ? `
             <h3 style="color: #ef4444;">⚔️ Military</h3>
-            ${(analysis.dime_analysis?.military || dimeAnalysis?.military).map((qa: any, index: number) => `
+            ${(analysis.dime_analysis?.military || dimeAnalysis?.military || []).map((qa: any, index: number) => `
               <div class="qa-item">
                 <div class="qa-question">Q${index + 1}: ${qa.question}</div>
                 <div class="qa-answer">A: ${qa.answer}</div>
@@ -543,7 +543,7 @@ export default function ContentIntelligencePage() {
 
           ${(analysis.dime_analysis?.economic || dimeAnalysis?.economic) ? `
             <h3 style="color: #f59e0b;">💰 Economic</h3>
-            ${(analysis.dime_analysis?.economic || dimeAnalysis?.economic).map((qa: any, index: number) => `
+            ${(analysis.dime_analysis?.economic || dimeAnalysis?.economic || []).map((qa: any, index: number) => `
               <div class="qa-item">
                 <div class="qa-question">Q${index + 1}: ${qa.question}</div>
                 <div class="qa-answer">A: ${qa.answer}</div>

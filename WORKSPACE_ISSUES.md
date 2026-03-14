@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-50)
+**Last updated:** 2026-03-14 (Sessions 34-51)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -294,6 +294,26 @@
 | 129 | **cross-table/index.ts `JSON.parse(row.config)` without try-catch** — `parseTableRow()` crashes on corrupted config JSON in D1. Fixed: wrapped in try-catch with `{}` fallback | FIXED |
 | 130 | **frameworks/index.tsx 4x `JSON.parse(localStorage...)` without try-catch** — Corrupted localStorage crashes framework page load. Fixed: wrapped all 4 instances in try-catch with `[]` fallback | FIXED |
 | 131 | **frameworks/[id].ts GET `JSON.parse(result.data)` without try-catch** — Corrupted framework data JSON crashes GET endpoint. Fixed: wrapped in try-catch with `{}` fallback | FIXED |
+
+---
+
+## Fixed — v0.15.6 (Session 51)
+
+### NULL DEREFERENCE
+| # | Issue | Status |
+|---|-------|--------|
+| 132 | **comments.ts 4x unguarded `.first()` after INSERT/UPDATE** — POST fetches created comment then spreads `...created` without null check. PATCH resolve/unresolve/edit same pattern. If D1 returns null (race condition, constraint failure), crashes with TypeError. Fixed: null guard on POST (return 500), fallback objects on resolve/unresolve, null guard on edit | FIXED |
+
+### DATA ISOLATION
+| # | Issue | Status |
+|---|-------|--------|
+| 133 | **starbursting.ts hardcoded `workspace_id: '1'`** — POST mutation creates starbursting sessions always in workspace 1 regardless of user's actual workspace. Fixed: reads `X-Workspace-ID` header with `'1'` fallback | FIXED |
+
+### FRONTEND STABILITY
+| # | Issue | Status |
+|---|-------|--------|
+| 134 | **CopWorkspacePage.tsx useEffect fetch without cleanup** — Stats fetch had no AbortController. If component unmounts mid-fetch, `setWorkspaceStats` called on unmounted component (React warning + memory leak). Fixed: added AbortController with cleanup return | FIXED |
+| 135 | **ContentIntelligencePage.tsx fragile DIME `.map()` pattern** — 4 DIME analysis sections used `(a || b).map()` where both `a` and `b` could be falsy despite truthiness check (JS short-circuit edge case). Fixed: added `|| []` fallback on all 4 `.map()` calls | FIXED |
 
 ---
 

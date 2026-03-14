@@ -249,6 +249,12 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         SELECT * FROM comments WHERE id = ?
       `).bind(commentId).first()
 
+      if (!created) {
+        return new Response(JSON.stringify({ error: 'Failed to retrieve created comment' }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
       const createdComment = {
         ...created,
         mentioned_users: mentions,
@@ -308,7 +314,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         `).bind(userId.toString(), commentId).run()
 
         const updated = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`).bind(commentId).first()
-        return new Response(JSON.stringify(updated), {
+        return new Response(JSON.stringify(updated || { id: commentId, status: 'resolved' }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
@@ -322,7 +328,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         `).bind(commentId).run()
 
         const updated = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`).bind(commentId).first()
-        return new Response(JSON.stringify(updated), {
+        return new Response(JSON.stringify(updated || { id: commentId, status: 'open' }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
@@ -347,6 +353,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         `).bind(body.content, contentHtml, JSON.stringify(mentions), commentId).run()
 
         const updated = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`).bind(commentId).first()
+        if (!updated) {
+          return new Response(JSON.stringify({ error: 'Failed to retrieve updated comment' }), {
+            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
         return new Response(JSON.stringify({
           ...updated,
           mentioned_users: mentions,

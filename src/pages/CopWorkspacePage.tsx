@@ -285,10 +285,12 @@ export default function CopWorkspacePage() {
   // Fetch workspace stats (shared by sidebar + entities panel)
   useEffect(() => {
     if (!id) return
-    fetch(`/api/cop/${id}/stats`, { headers: getCopHeaders() })
+    const controller = new AbortController()
+    fetch(`/api/cop/${id}/stats`, { headers: getCopHeaders(), signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.stats) setWorkspaceStats(data.stats) })
-      .catch((err) => { console.error('Failed to fetch workspace stats:', err) })
+      .catch((err) => { if (err.name !== 'AbortError') console.error('Failed to fetch workspace stats:', err) })
+    return () => controller.abort()
   }, [id])
 
   // ── Fetch a single layer as GeoJSON ────────────────────────────

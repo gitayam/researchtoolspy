@@ -177,7 +177,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         source_url: primaryAnalysis.url,
         source_title: primaryAnalysis.title
       },
-      workspace_id: '1'
+      workspace_id: request.headers.get('X-Workspace-ID') || '1'
     }
 
     const starburstingResponse = await fetch(frameworksEndpoint, {
