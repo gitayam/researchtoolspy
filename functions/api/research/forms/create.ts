@@ -5,8 +5,11 @@
  * Create a new anonymous evidence submission form with hash URL
  */
 
+import { getUserFromRequest } from '../../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
 }
 
 interface CreateFormRequest {
@@ -51,6 +54,13 @@ async function hashPassword(password: string): Promise<string> {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     const body = await context.request.json() as CreateFormRequest
 
     // Validation

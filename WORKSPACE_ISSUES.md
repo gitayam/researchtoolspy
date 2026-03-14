@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-45)
+**Last updated:** 2026-03-14 (Sessions 34-46)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -198,6 +198,19 @@
 | 94 | **hamilton-rule/[id].ts PUT/DELETE with zero auth** — anyone could update or delete any Hamilton Rule analysis by ID. Fixed: both handlers use `getUserFromRequest` + 401 | FIXED |
 | 95 | **collection/[jobId]/approve.ts POST/DELETE with no auth** — anyone could approve/reject collection results. Fixed: both handlers use `getUserFromRequest` + 401 | FIXED |
 | 96 | **ai/config.ts PUT/POST had TODO "Add authentication check" but never implemented** — anyone could change AI model settings, rate limits, and reset cost tracking. Fixed: both handlers use `getUserFromRequest` + 401 | FIXED |
+
+---
+
+## Fixed — v0.14.10 (Session 46)
+
+### SECURITY
+| # | Issue | Status |
+|---|-------|--------|
+| 99 | **research/forms/create.ts POST with zero auth** — anyone could create anonymous evidence submission forms. Fixed: `getUserFromRequest` + 401 | FIXED |
+| 100 | **research/evidence/add.ts POST with zero auth** — anyone could add evidence items to any research question. Fixed: `getUserFromRequest` + 401 | FIXED |
+| 101 | **research/workflow/init.ts POST with zero auth** — anyone could initialize research workflows. Fixed: `getUserFromRequest` + 401 | FIXED |
+| 102 | **research/generate-plan.ts POST with zero auth** — anyone could trigger AI-powered research plan generation (costs money). Fixed: `getUserFromRequest` + 401 | FIXED |
+| 103 | **research/submissions/process.ts POST with zero auth** — anyone could convert submissions into evidence entries. Fixed: `getUserFromRequest` + 401 | FIXED |
 
 ---
 

@@ -6,9 +6,12 @@
  * Includes methodology, timeline, resources, literature review strategy, data analysis plan.
  */
 
+import { getUserFromRequest } from '../_shared/auth-helpers'
+
 interface Env {
   DB?: D1Database
   OPENAI_API_KEY: string
+  SESSIONS?: KVNamespace
 }
 
 interface GeneratePlanRequest {
@@ -167,6 +170,13 @@ Academic Research Requirements:
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     const body = await context.request.json() as GeneratePlanRequest
 
     if (!body.researchQuestion || !body.duration) {
