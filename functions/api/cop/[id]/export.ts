@@ -10,7 +10,7 @@
  * as a downloadable blob.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { EXPORT_REQUESTED, EXPORT_COMPLETED, EXPORT_FAILED } from '../../_shared/cop-event-types'
 
@@ -227,8 +227,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const sessionId = params.id as string
 
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: corsHeaders,
+    })
+  }
+
   try {
-    const userId = await getUserIdOrDefault(request, env)
     const body = await request.json() as any
     const format = body.format
     const scope = body.scope || 'full'

@@ -58,6 +58,7 @@ import CopHypothesisTab from '@/components/cop/CopHypothesisTab'
 import CopRfiTab from '@/components/cop/CopRfiTab'
 import CopMapWithLayers from '@/components/cop/CopMapWithLayers'
 import CopActivityPanel from '@/components/cop/CopActivityPanel'
+import CopGlobalAlertPanel from '@/components/cop/CopGlobalAlertPanel'
 import CopGlobalCaptureBar from '@/components/cop/CopGlobalCaptureBar'
 import CopBlockerStrip from '@/components/cop/CopBlockerStrip'
 
@@ -957,6 +958,15 @@ function ProgressLayout({
       height: 'standard',
       render: (expanded) => (
         <CopTimelinePanel sessionId={sessionId} expanded={expanded} onScrollToPanel={handleScrollToPanel} />
+      ),
+    },
+    alerts: {
+      id: 'alerts',
+      title: 'Global Alerts',
+      icon: <Radio className="h-4 w-4 text-red-400" />,
+      height: 'tall',
+      render: (expanded) => (
+        <CopGlobalAlertPanel sessionId={sessionId} expanded={expanded} onScrollToPanel={handleScrollToPanel} />
       ),
     },
     actors: {

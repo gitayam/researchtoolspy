@@ -25,12 +25,13 @@ export interface PanelLayoutState {
 
 // ── Defaults ───────────────────────────────────────────────────
 
-const LAYOUT_VERSION = 3
+const LAYOUT_VERSION = 5
 
 /** Default panel order and widths — matches the original hardcoded layout */
 export const DEFAULT_PANELS: PanelConfig[] = [
   { id: 'graph',       width: 'half', visible: true },
   { id: 'timeline',    width: 'half', visible: true },
+  { id: 'alerts',      width: 'full', visible: true },
   { id: 'actors',      width: 'full', visible: true },
   { id: 'rfi',         width: 'half', visible: true },
   { id: 'analysis',    width: 'half', visible: true },

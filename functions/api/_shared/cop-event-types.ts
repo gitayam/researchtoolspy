@@ -61,6 +61,11 @@ export const ASSET_UPDATED = 'asset.updated' as const
 export const ASSET_STATUS_CHANGED = 'asset.status_changed' as const
 export const ASSET_QUOTA_LOW = 'asset.quota_low' as const
 
+// -- Domain: alert --
+export const ALERT_DISMISSED = 'alert.dismissed' as const
+export const ALERT_ACTIONED = 'alert.actioned' as const
+export const ALERT_LINKED = 'alert.linked' as const
+
 // -- Domain: export (Phase 5) --
 export const EXPORT_REQUESTED = 'export.requested' as const
 export const EXPORT_COMPLETED = 'export.completed' as const
@@ -84,6 +89,7 @@ export type CopEventEntityType =
   | 'submission'
   | 'asset'
   | 'export'
+  | 'alert'
   | 'workflow'
 
 // Union type of all event types
@@ -101,5 +107,6 @@ export type CopEventType =
   | typeof SHARE_CREATED
   | typeof INGEST_SUBMISSION_RECEIVED | typeof INGEST_SUBMISSION_TRIAGED | typeof INGEST_SUBMISSION_REJECTED
   | typeof ASSET_CREATED | typeof ASSET_UPDATED | typeof ASSET_STATUS_CHANGED | typeof ASSET_QUOTA_LOW
+  | typeof ALERT_DISMISSED | typeof ALERT_ACTIONED | typeof ALERT_LINKED
   | typeof EXPORT_REQUESTED | typeof EXPORT_COMPLETED | typeof EXPORT_FAILED
   | typeof WORKFLOW_STAGE_ENTERED | typeof WORKFLOW_STAGE_COMPLETED | typeof WORKFLOW_PIPELINE_FINISHED

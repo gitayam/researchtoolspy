@@ -209,11 +209,18 @@ export async function onRequest(context: any) {
       })
     }
 
-    // DELETE - Delete evidence
+    // DELETE - Delete evidence (scoped to owner)
     if (request.method === 'DELETE') {
-      await env.DB.prepare(
-        'DELETE FROM evidence WHERE id = ?'
-      ).bind(evidenceId).run()
+      const result = await env.DB.prepare(
+        'DELETE FROM evidence WHERE id = ? AND created_by = ?'
+      ).bind(evidenceId, userId).run()
+
+      if (result.meta.changes === 0) {
+        return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
+          status: 404,
+          headers: corsHeaders,
+        })
+      }
 
       return new Response(JSON.stringify({ message: 'Evidence deleted successfully' }), {
         status: 200,

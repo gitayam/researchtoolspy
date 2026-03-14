@@ -124,10 +124,20 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // Boolean field
+    // Boolean fields
     if (body.is_public !== undefined) {
       updates.push('is_public = ?')
       values.push(body.is_public ? 1 : 0)
+    }
+    if (body.global_alerts_enabled !== undefined) {
+      updates.push('global_alerts_enabled = ?')
+      values.push(body.global_alerts_enabled ? 1 : 0)
+    }
+
+    // Nullable text fields for global alerts
+    if (body.global_alerts_region !== undefined) {
+      updates.push('global_alerts_region = ?')
+      values.push(body.global_alerts_region || null)
     }
 
     // Defense-in-depth: scope update to owner

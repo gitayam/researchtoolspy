@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-37)
+**Last updated:** 2026-03-14 (Sessions 34-38)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -74,6 +74,27 @@
 
 ---
 
+## Fixed — v0.13.4 (Session 38)
+
+### SECURITY
+| # | Issue | Status |
+|---|-------|--------|
+| 30 | **COP export POST uses `getUserIdOrDefault`** — guest users could trigger exports. Fixed: `cop/[id]/export.ts` now uses `getUserFromRequest` + 401 check | FIXED |
+| 31 | **Evidence DELETE unscoped to owner** — any authenticated user could delete any evidence by ID. Fixed: added `AND created_by = ?` to DELETE query + 404 on no match | FIXED |
+| 32 | **COP alerts POST uses `getUserIdOrDefault`** — new alerts feature hardened before merge. Fixed: `cop/[id]/alerts.ts` uses `getUserFromRequest` + 401 | FIXED |
+
+### FEATURE
+| # | Issue | Status |
+|---|-------|--------|
+| 33 | **COP Global Alerts feature** — REDSIGHT BDA integration with alert feed, severity filtering, dismiss/action/analysis workflows, RFI linking, timeline entries, auto-refresh. New: API (`cop/[id]/alerts.ts`), component (`CopGlobalAlertPanel.tsx`), migration (`090-cop-global-alerts.sql`), sidebar nav item, session fields | MERGED |
+
+### CODE QUALITY
+| # | Issue | Status |
+|---|-------|--------|
+| 34 | **Dead OPTIONS handler removed from alerts.ts** — cleaned before merge (middleware handles CORS) | FIXED |
+
+---
+
 ## Remaining Tech Debt
 
 ### Architecture (MEDIUM)
@@ -89,6 +110,9 @@
 | 20 | CreateWorkspaceDialog not internationalized | Hardcoded English strings |
 | 22 | 112 `as any` casts in frontend | GenericFrameworkForm: 35 instances |
 | 29 | Empty catch blocks in playbook-engine | `engine.ts` lines 81, 109, 124 — JSON parse failures default silently |
+| 35 | ~129 dead `onRequestOptions` handlers across API files | Middleware handles CORS. LOW priority, risky to batch-remove (console.log incident) |
+| 36 | ~120 duplicate `corsHeaders` definitions | Redundant with middleware. Same batch-removal risk |
+| 37 | ~22 instances of internal `url.pathname.match()` routing | Dead code per Cloudflare Pages routing model |
 
 ### Performance (LOW)
 | # | Issue | Notes |
