@@ -6,7 +6,7 @@
  * DELETE  /api/cop/:id/evidence-tags?tag_id=xxx      - Remove a tag
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { EVIDENCE_TAGGED } from '../../_shared/cop-event-types'
 
@@ -54,7 +54,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     if (!body.evidence_id?.trim()) {
@@ -112,6 +117,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const tagId = url.searchParams.get('tag_id')
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     if (!tagId) {
       return new Response(JSON.stringify({ error: 'tag_id query parameter is required' }), {
         status: 400, headers: corsHeaders,

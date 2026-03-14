@@ -6,7 +6,7 @@
  * DELETE /api/cop/:id/playbooks/:pbId - Delete playbook (cascades to rules + log)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -74,6 +74,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const pbId = params.pbId as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     const existing = await env.DB.prepare(
@@ -127,11 +133,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 }
 
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { request, env, params } = context
   const sessionId = params.id as string
   const pbId = params.pbId as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const existing = await env.DB.prepare(
       'SELECT id FROM cop_playbooks WHERE id = ? AND cop_session_id = ?'
     ).bind(pbId, sessionId).first()

@@ -7,7 +7,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -78,7 +78,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
 
     // Verify ownership before updating
     const session = await env.DB.prepare(
@@ -158,7 +163,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         ).bind(id).first<{ workspace_id: string }>()
 
         if (session?.workspace_id) {
-          const userId = await getUserIdOrDefault(request, env)
           const facts: string[] = body.event_facts.filter((f: any) => typeof f === 'string' && f.trim().length > 0)
 
           if (facts.length > 0) {
@@ -210,7 +214,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
 
     // Verify ownership before archiving
     const session = await env.DB.prepare(

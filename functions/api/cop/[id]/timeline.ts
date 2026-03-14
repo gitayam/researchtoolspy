@@ -7,7 +7,7 @@
  * DELETE /api/cop/:id/timeline - Delete a timeline entry
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -69,7 +69,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     // Support single entry or array of entries
@@ -133,6 +138,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
     const entryId = body.entry_id
 
@@ -195,6 +206,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const url = new URL(request.url)
     const entryId = url.searchParams.get('entry_id')
 

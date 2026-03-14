@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-39)
+**Last updated:** 2026-03-14 (Sessions 34-40)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -110,6 +110,23 @@
 
 ---
 
+## Fixed — v0.14.0 (Session 40)
+
+### SECURITY
+| # | Issue | Status |
+|---|-------|--------|
+| 42 | **COP session PUT/DELETE uses `getUserIdOrDefault`** — guest users could update/archive any session owned by user 1. Fixed: `cop/sessions/[id].ts` now uses `getUserFromRequest` + 401 on all mutation handlers. Removed redundant inner `getUserIdOrDefault` in event_facts sync. | FIXED |
+| 43 | **COP tasks POST/PUT/DELETE uses `getUserIdOrDefault`** — guest users could create, modify, and delete tasks in any session. Fixed: all 3 handlers in `cop/[id]/tasks.ts` use `getUserFromRequest` + 401 | FIXED |
+| 44 | **COP assets POST/PUT/DELETE uses `getUserIdOrDefault`** — guest users could create, modify, and hard-delete assets. Fixed: all 3 handlers in `cop/[id]/assets.ts` use `getUserFromRequest` + 401 | FIXED |
+| 45 | **COP shares POST uses `getUserIdOrDefault`** — guest users could create public share links for any session. Fixed: `cop/[id]/shares.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 46 | **COP playbooks PUT/DELETE uses `getUserIdOrDefault`** — guest users could modify/delete automation playbooks. Fixed: `cop/[id]/playbooks/[pbId].ts` uses `getUserFromRequest` + 401 | FIXED |
+| 47 | **COP evidence-tags POST/DELETE uses `getUserIdOrDefault`** — Fixed: `cop/[id]/evidence-tags.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 48 | **COP task-dependencies POST/DELETE uses `getUserIdOrDefault`** — Fixed: `cop/[id]/task-dependencies.ts` uses `getUserFromRequest` + 401 | FIXED |
+| 49 | **COP timeline POST/PUT/DELETE uses `getUserIdOrDefault`** — Fixed: all 3 handlers in `cop/[id]/timeline.ts` use `getUserFromRequest` + 401 | FIXED |
+| 50 | **COP task-templates POST/PUT/DELETE uses `getUserIdOrDefault`** — Fixed: all 3 handlers in `cop/[id]/task-templates.ts` use `getUserFromRequest` + 401 | FIXED |
+
+---
+
 ## Remaining Tech Debt
 
 ### Architecture (MEDIUM)
@@ -117,7 +134,7 @@
 |---|-------|-------|
 | 15 | Dual auth systems (`omnicore_user_hash` vs `omnicore_token`) | Consolidated to `getCopHeaders()` per F34 lesson, but two localStorage keys remain |
 | 16 | `ensureUserHash()` creates hash locally but never registers in DB | Guest users can't own workspaces |
-| 17 | 30+ mutation endpoints with no auth | Many intentionally public (tools, research) — needs per-endpoint audit |
+| 17 | ~22 COP mutation endpoints still use `getUserIdOrDefault` | All DELETE/session/share handlers hardened (S40). Remaining: markers, RFIs, hypotheses, claims, personas, intake-forms, evidence, sessions-list — lower risk (POST/PUT only, no destructive ops) |
 
 ### Code Quality (LOW)
 | # | Issue | Notes |

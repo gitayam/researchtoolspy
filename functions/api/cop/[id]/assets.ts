@@ -7,7 +7,7 @@
  * DELETE /api/cop/:id/assets?asset_id=x - Delete asset (hard delete or soft offline)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { ASSET_CREATED, ASSET_UPDATED, ASSET_STATUS_CHANGED, ASSET_QUOTA_LOW } from '../../_shared/cop-event-types'
 
@@ -82,7 +82,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     if (!body.name?.trim()) {
@@ -154,6 +159,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     if (!body.id) {
@@ -232,8 +243,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_assets SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...bindings).run()
 
-    const userId = await getUserIdOrDefault(request, env)
-
     // Emit status change event
     if (statusChanged) {
       await emitCopEvent(env.DB, {
@@ -298,6 +307,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const hard = url.searchParams.get('hard') === 'true'
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     if (!assetId) {
       return new Response(JSON.stringify({ error: 'asset_id query param is required' }), {
         status: 400, headers: corsHeaders,
@@ -330,7 +345,6 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       ).bind('offline', now, assetId, sessionId).run()
     }
 
-    const userId = await getUserIdOrDefault(request, env)
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: ASSET_STATUS_CHANGED,
