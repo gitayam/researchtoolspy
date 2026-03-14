@@ -150,9 +150,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       const { results } = await env.DB.prepare(query).bind(...params).all()
 
+      const safeJSON = (val: any, fallback: any = []) => {
+        if (!val) return fallback
+        try { return JSON.parse(val as string) } catch { return fallback }
+      }
+
       const relationships = results.map(r => ({
         ...r,
-        evidence_ids: r.evidence_ids ? JSON.parse(r.evidence_ids as string) : []
+        evidence_ids: safeJSON(r.evidence_ids, [])
       }))
 
       return new Response(
@@ -236,7 +241,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...relationship,
-          evidence_ids: relationship.evidence_ids ? JSON.parse(relationship.evidence_ids as string) : []
+          evidence_ids: (() => { try { return relationship.evidence_ids ? JSON.parse(relationship.evidence_ids as string) : [] } catch { return [] } })()
         }),
         { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -301,7 +306,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...relationship,
-          evidence_ids: relationship.evidence_ids ? JSON.parse(relationship.evidence_ids as string) : [],
+          evidence_ids: (() => { try { return relationship.evidence_ids ? JSON.parse(relationship.evidence_ids as string) : [] } catch { return [] } })(),
           source_entity: sourceEntity,
           target_entity: targetEntity
         }),
@@ -378,7 +383,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...updated,
-          evidence_ids: updated.evidence_ids ? JSON.parse(updated.evidence_ids as string) : []
+          evidence_ids: (() => { try { return updated.evidence_ids ? JSON.parse(updated.evidence_ids as string) : [] } catch { return [] } })()
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )

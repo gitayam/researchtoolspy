@@ -112,7 +112,7 @@ export function EntityQuickCreate({
         onEntityCreated('data', result.evidence)
         handleClose()
       } else {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         alert(`Failed to create data: ${error.error}`)
       }
     } catch (error) {
@@ -145,7 +145,7 @@ export function EntityQuickCreate({
         onEntityCreated('actor', result.actor)
         handleClose()
       } else {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         alert(`Failed to create actor: ${error.error}`)
       }
     } catch (error) {
@@ -178,7 +178,7 @@ export function EntityQuickCreate({
         onEntityCreated('source', result.source)
         handleClose()
       } else {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         alert(`Failed to create source: ${error.error}`)
       }
     } catch (error) {
@@ -211,7 +211,7 @@ export function EntityQuickCreate({
         onEntityCreated('event', result.event)
         handleClose()
       } else {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         alert(`Failed to create event: ${error.error}`)
       }
     } catch (error) {

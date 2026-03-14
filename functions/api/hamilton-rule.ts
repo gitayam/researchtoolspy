@@ -46,13 +46,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       ORDER BY hr.updated_at DESC
     `).bind(workspaceId).all()
 
+    const safeJSON = (val: any, fallback: any = []) => {
+      if (!val) return fallback
+      try { return JSON.parse(val) } catch { return fallback }
+    }
+
     const analyses = results.results.map((row: any) => ({
       ...row,
-      actors: row.actors ? JSON.parse(row.actors) : [],
-      relationships: row.relationships ? JSON.parse(row.relationships) : [],
-      network_analysis: row.network_analysis ? JSON.parse(row.network_analysis) : null,
-      ai_analysis: row.ai_analysis ? JSON.parse(row.ai_analysis) : null,
-      tags: row.tags ? JSON.parse(row.tags) : []
+      actors: safeJSON(row.actors, []),
+      relationships: safeJSON(row.relationships, []),
+      network_analysis: safeJSON(row.network_analysis, null),
+      ai_analysis: safeJSON(row.ai_analysis, null),
+      tags: safeJSON(row.tags, [])
     }))
 
     return new Response(JSON.stringify({ analyses }), { headers: corsHeaders })

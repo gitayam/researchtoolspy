@@ -35,11 +35,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const result = await context.env.DB.prepare(query).bind(...params).all()
 
+    const safeJSON = (val: any, fallback: any = []) => {
+      if (!val) return fallback
+      try { return JSON.parse(val) } catch { return fallback }
+    }
+
     const forms = result.results.map((row: any) => ({
       ...row,
-      targetInvestigationIds: JSON.parse(row.target_investigation_ids || '[]'),
-      targetResearchQuestionIds: JSON.parse(row.target_research_question_ids || '[]'),
-      enabledFields: JSON.parse(row.enabled_fields || '[]'),
+      targetInvestigationIds: safeJSON(row.target_investigation_ids, []),
+      targetResearchQuestionIds: safeJSON(row.target_research_question_ids, []),
+      enabledFields: safeJSON(row.enabled_fields, []),
       submissionUrl: `/submit/${row.hash_id}`
     }))
 

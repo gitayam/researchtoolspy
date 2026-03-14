@@ -112,10 +112,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const { results } = await env.DB.prepare(query).bind(...params).all()
 
       // Parse JSON fields
+      const safeJSON = (val: any, fallback: any = []) => {
+        if (!val) return fallback
+        try { return JSON.parse(val as string) } catch { return fallback }
+      }
       const comments = results.map(comment => ({
         ...comment,
-        mentioned_users: comment.mentioned_users ? JSON.parse(comment.mentioned_users as string) : [],
-        reactions: comment.reactions ? JSON.parse(comment.reactions as string) : {}
+        mentioned_users: safeJSON(comment.mentioned_users, []),
+        reactions: safeJSON(comment.reactions, {})
       }))
 
       return new Response(JSON.stringify(comments), {
@@ -361,7 +365,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         return new Response(JSON.stringify({
           ...updated,
           mentioned_users: mentions,
-          reactions: updated.reactions ? JSON.parse(updated.reactions as string) : {}
+          reactions: (() => { try { return updated.reactions ? JSON.parse(updated.reactions as string) : {} } catch { return {} } })()
         }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }

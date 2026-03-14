@@ -157,7 +157,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         hashId: form.hash_id,
         formName: form.form_name,
         formDescription: form.form_description,
-        enabledFields: JSON.parse(form.enabled_fields as string),
+        enabledFields: (() => { try { return JSON.parse(form.enabled_fields as string) } catch { return [] } })(),
         requireUrl: form.require_url === 1,
         requireContentType: form.require_content_type === 1,
         requirePassword: form.require_submission_password === 1
@@ -345,7 +345,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(now, form.id).run()
 
     // Log activity for each target research question
-    const targetResearchQuestionIds = JSON.parse(form.target_research_question_ids as string || '[]')
+    const targetResearchQuestionIds = (() => { try { return JSON.parse(form.target_research_question_ids as string || '[]') } catch { return [] } })()
 
     for (const questionId of targetResearchQuestionIds) {
       const activityId = crypto.randomUUID()

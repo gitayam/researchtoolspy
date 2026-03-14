@@ -43,10 +43,14 @@ export async function onRequest(context: any) {
           ORDER BY fe.created_at DESC
         `).bind(frameworkId).all()
 
+        const safeJSON = (val: any, fallback: any = []) => {
+          if (!val) return fallback
+          try { return JSON.parse(val) } catch { return fallback }
+        }
         const parsedLinks = links.results.map((link: any) => ({
           ...link,
-          source: JSON.parse(link.source || '{}'),
-          tags: JSON.parse(link.tags || '[]')
+          source: safeJSON(link.source, {}),
+          tags: safeJSON(link.tags, [])
         }))
 
         return new Response(JSON.stringify({ links: parsedLinks }), {

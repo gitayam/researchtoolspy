@@ -39,19 +39,23 @@ export async function onRequest(context: any) {
         }
 
         // Parse JSON fields
+        const safeJSON = (val: any, fallback: any = []) => {
+          if (!val) return fallback
+          try { return JSON.parse(val) } catch { return fallback }
+        }
         const parsedEvidence = {
           ...evidence,
-          tags: JSON.parse(evidence.tags || '[]'),
-          source: JSON.parse(evidence.source || '{}'),
-          metadata: JSON.parse(evidence.metadata || '{}'),
-          sats_evaluation: evidence.sats_evaluation ? JSON.parse(evidence.sats_evaluation) : null,
-          frameworks: JSON.parse(evidence.frameworks || '[]'),
-          attachments: JSON.parse(evidence.attachments || '[]'),
-          key_points: JSON.parse(evidence.key_points || '[]'),
-          contradictions: JSON.parse(evidence.contradictions || '[]'),
-          corroborations: JSON.parse(evidence.corroborations || '[]'),
-          implications: JSON.parse(evidence.implications || '[]'),
-          previous_versions: JSON.parse(evidence.previous_versions || '[]'),
+          tags: safeJSON(evidence.tags, []),
+          source: safeJSON(evidence.source, {}),
+          metadata: safeJSON(evidence.metadata, {}),
+          sats_evaluation: safeJSON(evidence.sats_evaluation, null),
+          frameworks: safeJSON(evidence.frameworks, []),
+          attachments: safeJSON(evidence.attachments, []),
+          key_points: safeJSON(evidence.key_points, []),
+          contradictions: safeJSON(evidence.contradictions, []),
+          corroborations: safeJSON(evidence.corroborations, []),
+          implications: safeJSON(evidence.implications, []),
+          previous_versions: safeJSON(evidence.previous_versions, []),
         }
 
         return new Response(JSON.stringify(parsedEvidence), {

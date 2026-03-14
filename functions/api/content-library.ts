@@ -50,9 +50,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const results = await env.DB.prepare(query).bind(...params).all()
 
+    const safeJSON = (val: any, fallback: any = []) => {
+      if (!val) return fallback
+      try { return JSON.parse(val) } catch { return fallback }
+    }
     const content = (results.results || []).map((row: any) => ({
       ...row,
-      key_entities: row.key_entities ? JSON.parse(row.key_entities) : [],
+      key_entities: safeJSON(row.key_entities, []),
       from_cache: false // Add cache indicator if needed
     }))
 

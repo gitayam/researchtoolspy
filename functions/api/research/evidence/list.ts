@@ -57,13 +57,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const stmt = context.env.DB.prepare(query).bind(...params)
     const result = await stmt.all()
 
+    const safeJSON = (val: any, fallback: any = []) => {
+      if (!val) return fallback
+      try { return JSON.parse(val) } catch { return fallback }
+    }
+
     const evidence = result.results.map((row: any) => ({
       ...row,
-      metadata: row.metadata ? JSON.parse(row.metadata) : null,
-      chainOfCustody: row.chain_of_custody ? JSON.parse(row.chain_of_custody) : null,
-      tags: row.tags ? JSON.parse(row.tags) : [],
-      linkedEvidence: row.linked_evidence ? JSON.parse(row.linked_evidence) : [],
-      entities: row.entities ? JSON.parse(row.entities) : []
+      metadata: safeJSON(row.metadata, null),
+      chainOfCustody: safeJSON(row.chain_of_custody, null),
+      tags: safeJSON(row.tags, []),
+      linkedEvidence: safeJSON(row.linked_evidence, []),
+      entities: safeJSON(row.entities, [])
     }))
 
     return new Response(JSON.stringify({

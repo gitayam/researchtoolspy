@@ -52,10 +52,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const result = await context.env.DB.prepare(query).bind(...params).all()
 
+    const safeJSON = (val: any, fallback: any = []) => {
+      if (!val) return fallback
+      try { return JSON.parse(val) } catch { return fallback }
+    }
+
     const submissions = result.results.map((row: any) => ({
       ...row,
-      keywords: row.keywords ? JSON.parse(row.keywords) : [],
-      metadata: row.metadata ? JSON.parse(row.metadata) : null,
+      keywords: safeJSON(row.keywords, []),
+      metadata: safeJSON(row.metadata, null),
       loginRequired: row.login_required === 1
     }))
 

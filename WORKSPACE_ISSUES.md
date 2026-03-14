@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-54)
+**Last updated:** 2026-03-14 (Sessions 34-55)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -361,6 +361,35 @@
 | 160 | **FrameworksTab.tsx useEffect fetch without AbortController** — Same pattern. Fixed | FIXED |
 | 161 | **WorkspaceStatsBar.tsx useEffect fetch without AbortController** — Same pattern. Fixed | FIXED |
 | 162 | **TeamTab.tsx 2x useEffect fetch without AbortController** — Members + invites fetch both unguarded. Fixed: shared controller for both | FIXED |
+
+---
+
+## Fixed — v0.16.0 (Session 55)
+
+### JSON.PARSE SAFETY (systematic sweep — 14 files, 30+ instances)
+| # | Issue | Status |
+|---|-------|--------|
+| 163 | **research/forms/list.ts 3x bare `JSON.parse` in `.map()`** — One corrupted row crashes entire form list endpoint (returns 500 instead of N-1 valid rows). Fixed: `safeJSON()` helper | FIXED |
+| 164 | **research/evidence/list.ts 5x bare `JSON.parse` in `.map()`** — Same pattern: metadata, chain_of_custody, tags, linked_evidence, entities. Fixed: `safeJSON()` | FIXED |
+| 165 | **research/submissions/list.ts 2x bare `JSON.parse` in `.map()`** — keywords, metadata. Fixed: `safeJSON()` | FIXED |
+| 166 | **research/submissions/process.ts 3x bare `JSON.parse`** — target_research_question_ids, metadata, keywords. Fixed: `safeJSON()` | FIXED |
+| 167 | **hamilton-rule.ts 5x bare `JSON.parse` in `.map()`** — actors, relationships, network_analysis, ai_analysis, tags. Fixed: `safeJSON()` | FIXED |
+| 168 | **evidence.ts 11x bare `JSON.parse` on single record** — tags, source, metadata, sats_evaluation, frameworks, attachments, key_points, contradictions, corroborations, implications, previous_versions. Fixed: `safeJSON()` | FIXED |
+| 169 | **relationships.ts 4x bare `JSON.parse` on evidence_ids** — GET list, GET detail, POST return, PUT return. Fixed: try-catch with `[]` fallback | FIXED |
+| 170 | **comments.ts 3x bare `JSON.parse`** — mentioned_users, reactions in GET list and PATCH edit. Fixed: `safeJSON()` + try-catch | FIXED |
+| 171 | **framework-datasets.ts 2x bare `JSON.parse` in `.map()`** — source, tags. Fixed: `safeJSON()` | FIXED |
+| 172 | **content-library.ts bare `JSON.parse` in `.map()`** — key_entities. Fixed: `safeJSON()` | FIXED |
+| 173 | **research/submit/[hashId].ts 2x bare `JSON.parse`** — enabled_fields (GET), target_research_question_ids (POST). Fixed: try-catch | FIXED |
+
+### FRONTEND ERROR HANDLING
+| # | Issue | Status |
+|---|-------|--------|
+| 174 | **EntityQuickCreate.tsx 4x `response.json()` on error without `.catch()`** — If API returns non-JSON error (HTML 502/503), `.json()` throws. Fixed: `.json().catch(() => ({ error: 'Unknown error' }))` per lessons learned pattern | FIXED |
+
+### DATA ISOLATION
+| # | Issue | Status |
+|---|-------|--------|
+| 175 | **research/evidence/add.ts hardcoded `workspaceId || '1'`** — Mutation endpoint only checked body.workspaceId, ignoring X-Workspace-ID header. Fixed: chain `body.workspaceId || header || '1'` | FIXED |
 
 ---
 

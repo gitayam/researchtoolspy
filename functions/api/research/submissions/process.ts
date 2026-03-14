@@ -96,12 +96,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const evidenceId = crypto.randomUUID()
     const now = new Date().toISOString()
 
+    const safeJSON = (val: any, fallback: any = []) => {
+      if (!val) return fallback
+      try { return JSON.parse(val as string) } catch { return fallback }
+    }
+
     // Get target research questions
-    const targetResearchQuestionIds = JSON.parse(submission.target_research_question_ids as string || '[]')
+    const targetResearchQuestionIds = safeJSON(submission.target_research_question_ids, [])
     const primaryQuestionId = targetResearchQuestionIds[0] || null
 
     // Parse metadata
-    const metadata = submission.metadata ? JSON.parse(submission.metadata as string) : null
+    const metadata = safeJSON(submission.metadata, null)
 
     // Build title from metadata or URL
     const title = metadata?.title ||
@@ -123,7 +128,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const content = contentParts.join('\n')
 
     // Parse keywords
-    const keywords = submission.keywords ? JSON.parse(submission.keywords as string) : []
+    const keywords = safeJSON(submission.keywords, [])
 
     // Create chain of custody
     const chainOfCustody = [
