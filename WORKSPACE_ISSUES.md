@@ -128,6 +128,7 @@
 | 36 | ~120 duplicate `corsHeaders` definitions | Redundant with middleware. Same batch-removal risk |
 | 37 | ~22 instances of internal `url.pathname.match()` routing | Dead code per Cloudflare Pages routing model |
 | 40 | Dark mode gaps in COP components | CopPersonaLinkDialog, CopAssetDetailDrawer, CopEventSidebar, CopArtifactLightbox, CopStatusStrip — mostly hover states |
+| 41 | Dark mode gaps in CopAnalysisSummary | ~14 color classes missing `dark:` variants — icons, badges, section headings, empty state text |
 
 ### Performance (LOW)
 | # | Issue | Notes |
