@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-41)
+**Last updated:** 2026-03-14 (Sessions 34-42)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -165,17 +165,30 @@
 | 77 | **ACH scores POST/DELETE uses `getUserIdOrDefault`** — Fixed: `ach/scores.ts` all handlers use `getUserFromRequest` + 401 | FIXED |
 | 78 | **evidence-items.ts user impersonation** — POST accepted `body.created_by` and PUT accepted `body.updated_by` from request body, allowing any user to attribute records to others. Fixed: server always uses authenticated userId | FIXED |
 | 79 | **evidence-items.ts POST/PUT/DELETE uses `getUserIdOrDefault`** — Fixed: all mutation blocks use `getUserFromRequest` + 401 (GET kept for guest browsing) | FIXED |
+| 80 | **Core entity mutations (5 files) use `getUserIdOrDefault`** — actors.ts, sources.ts, events.ts, places.ts, behaviors.ts POST/PUT/DELETE all used guest-fallback auth. Fixed: all mutation blocks use `getUserFromRequest` + 401. GET kept for guest browsing. | FIXED |
+| 81 | **Cross-table mutations (4 files) use `getUserIdOrDefault`** — index.ts POST, [id].ts PUT/DELETE, scores.ts PUT, share.ts POST. Fixed: all use `getUserFromRequest` + 401 | FIXED |
+| 82 | **Framework/evidence mutations (5 files) use `getUserIdOrDefault`** — frameworks/index.ts POST, evidence.ts, evidence-citations.ts, framework-datasets.ts, framework-evidence.ts, framework-entities.ts POST/DELETE. Fixed: all use `getUserFromRequest` + 401 | FIXED |
+| 83 | **datasets.ts, equilibrium-analysis.ts mutations** — POST/PUT/DELETE used guest-fallback auth. Fixed: all use `getUserFromRequest` + 401 | FIXED |
+| 84 | **Verbose emoji debug logging** — `ach/evidence.ts` and `evidence-items.ts` had 10+ line error banners with emojis. Consolidated to single `console.error()` per block | FIXED |
 
 ---
 
 ## Remaining Tech Debt
+
+### Security (MEDIUM)
+| # | Issue | Notes |
+|---|-------|-------|
+| 85 | ~20 content-intelligence mutation endpoints still use `getUserIdOrDefault` | saved-links (4 handlers), auto-extract, share, dime-analyze, social-media-extract, analyze-url, starbursting/link-entity, starbursting/generate-questions, social-extract, answer-question. Lower risk (AI analysis triggers, not core data) |
+| 86 | ACH share/clone/from-CI endpoints use `getUserIdOrDefault` | `ach/[id]/share.ts`, `ach/from-content-intelligence.ts`, `ach/public/[token]/clone.ts` — POST handlers |
+| 87 | Claims analysis endpoints use `getUserIdOrDefault` | `claims/retry-analysis.ts`, `claims/analyze/[id].ts`, `claims/share/[id].ts`, `claims/get-adjustments/[id].ts` — POST handlers |
+| 88 | Misc endpoints: activity.ts, social-media.ts, invites/accept, content-library.ts | POST mutations with guest-fallback auth. Lower priority. |
 
 ### Architecture (MEDIUM)
 | # | Issue | Notes |
 |---|-------|-------|
 | 15 | Dual auth systems (`omnicore_user_hash` vs `omnicore_token`) | Consolidated to `getCopHeaders()` per F34 lesson, but two localStorage keys remain |
 | 16 | `ensureUserHash()` creates hash locally but never registers in DB | Guest users can't own workspaces |
-| 17 | ~~COP mutation endpoints use `getUserIdOrDefault`~~ | **RESOLVED (S41)** — All COP mutation endpoints now use `getUserFromRequest` + 401. Only `sessions.ts` GET intentionally keeps `getUserIdOrDefault` for guest listing. |
+| 17 | ~~COP mutation endpoints use `getUserIdOrDefault`~~ | **RESOLVED (S41-42)** — All COP, ACH, entity, cross-table, framework, evidence mutations hardened. Remaining: content-intelligence, claims, misc (tracked as #85-88) |
 
 ### Code Quality (LOW)
 | # | Issue | Notes |
@@ -185,7 +198,7 @@
 | 35 | ~129 dead `onRequestOptions` handlers across API files | Middleware handles CORS. LOW priority, risky to batch-remove (console.log incident) |
 | 36 | ~120 duplicate `corsHeaders` definitions | Redundant with middleware. Same batch-removal risk |
 | 37 | ~22 instances of internal `url.pathname.match()` routing | Dead code per Cloudflare Pages routing model |
-| 40 | Dark mode gaps in COP components | CopPersonaLinkDialog, CopAssetDetailDrawer, CopEventSidebar, CopArtifactLightbox, CopStatusStrip — mostly hover states |
+| 40 | Dark mode gaps in COP components | CopPersonaLinkDialog, CopAssetDetailDrawer, CopEventSidebar, CopArtifactLightbox, CopStatusStrip, CopRfiTab, CopTagSelector — 60+ instances of `text-gray-500/600` without `dark:` variants |
 | 41 | Dark mode gaps in CopAnalysisSummary | ~14 color classes missing `dark:` variants — icons, badges, section headings, empty state text |
 
 ### Performance (LOW)
