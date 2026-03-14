@@ -10,25 +10,11 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
-
-function getUserId(request: Request): number {
-  const auth = request.headers.get('Authorization')
-  if (auth?.startsWith('Bearer ')) {
-    try { return JSON.parse(atob(auth.split('.')[1])).sub ?? 1 } catch { return 1 }
-  }
-  return parseInt(request.headers.get('X-User-Hash') ?? '1', 10) || 1
 }
 
 // GET - List recent activity for a COP session
@@ -61,13 +47,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       console.warn('[COP Activity] DB query failed (table may not exist):', dbError)
     }
 
-    return new Response(JSON.stringify({ activity, total }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ activity, total }), { headers: { 'Content-Type': 'application/json' } })
   } catch (error) {
     console.error('[COP Activity] GET error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to fetch activity',
     }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: { 'Content-Type': 'application/json' },
     })
   }
 }
@@ -78,6 +64,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     const body = await request.json<{
       action: string
       entity_type?: string
@@ -89,12 +82,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!body.action) {
       return new Response(JSON.stringify({ error: 'action is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: { 'Content-Type': 'application/json' },
       })
     }
 
     const id = crypto.randomUUID()
-    const userId = getUserId(request)
     const createdAt = new Date().toISOString().replace('T', ' ').replace('Z', '').slice(0, 19)
 
     const activity = {
@@ -124,21 +116,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         error: 'Failed to persist activity',
         activity,
-      }), { status: 500, headers: corsHeaders })
+      }), { status: 500, headers: { 'Content-Type': 'application/json' } })
     }
 
-    return new Response(JSON.stringify({ activity }), { status: 201, headers: corsHeaders })
+    return new Response(JSON.stringify({ activity }), { status: 201, headers: { 'Content-Type': 'application/json' } })
   } catch (error) {
     console.error('[COP Activity] POST error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to log activity',
     }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: { 'Content-Type': 'application/json' },
     })
   }
-}
-
-// OPTIONS - CORS preflight
-export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
 }

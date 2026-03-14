@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-42)
+**Last updated:** 2026-03-14 (Sessions 34-44)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -174,6 +174,16 @@
 | 86 | **ACH share/clone/from-CI endpoints** — `ach/[id]/share.ts`, `ach/from-content-intelligence.ts`, `ach/public/[token]/clone.ts` POST handlers. Fixed: all use `getUserFromRequest` + 401 | FIXED |
 | 87 | **Claims mutation endpoints** — `claims/retry-analysis.ts`, `claims/analyze/[id].ts`, `claims/share/[id].ts` POST handlers. Fixed: all use `getUserFromRequest` + 401 | FIXED |
 | 88 | **Misc mutation endpoints** — activity.ts POST, social-media.ts POST/PUT/DELETE, invites/accept POST, evidence-eve.ts PUT/DELETE, frameworks/generate-entities POST, workspaces/index.ts POST. Fixed: all use `getUserFromRequest` + 401 | FIXED |
+
+---
+
+## Fixed — v0.14.6 (Session 44)
+
+### SECURITY
+| # | Issue | Status |
+|---|-------|--------|
+| 89 | **COP collaborators POST/PUT/DELETE used custom `getUserId()` bypassing shared auth** — private `getUserId()` function (not from auth-helpers) fell back to user 1, allowing guest users to invite/update/remove collaborators. Fixed: replaced with `getUserFromRequest` + 401. Removed dead `corsHeaders` and `onRequestOptions`. | FIXED |
+| 90 | **COP activity POST used custom `getUserId()` bypassing shared auth** — same private `getUserId()` pattern. Guest users could log activity events as user 1. Fixed: replaced with `getUserFromRequest` + 401. Removed dead `corsHeaders` and `onRequestOptions`. | FIXED |
 
 ---
 
