@@ -58,19 +58,19 @@ interface CopSession {
  */
 async function fetchRedsightIncidents(
   baseUrl: string,
-  apiKey: string,
+  apiKey?: string,
   limit: number = 50
 ): Promise<RedsightIncident[]> {
   try {
     const url = new URL(`/api/v1/bda/incidents`, baseUrl)
     url.searchParams.set('limit', String(limit))
 
+    const headers: Record<string, string> = { 'Accept': 'application/json' }
+    if (apiKey) headers['X-API-Key'] = apiKey
+
     const response = await fetch(url.toString(), {
       method: 'GET',
-      headers: {
-        'X-API-Key': apiKey,
-        'Accept': 'application/json',
-      },
+      headers,
     })
 
     if (!response.ok) {
@@ -158,7 +158,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     let redsightIncidents: RedsightIncident[] = []
     let apiAvailable = false
 
-    if (env.REDSIGHT_API_URL && env.REDSIGHT_API_KEY) {
+    if (env.REDSIGHT_API_URL) {
       redsightIncidents = await fetchRedsightIncidents(
         env.REDSIGHT_API_URL,
         env.REDSIGHT_API_KEY
