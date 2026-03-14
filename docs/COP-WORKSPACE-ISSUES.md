@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-14 (cycle 16)
+> Last updated: 2026-03-14 (cycle 17)
 > Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
@@ -202,6 +202,20 @@
 - Removed dead catch-all files: `workspaces.ts`, `workspace-invites.ts`
 **Verified:** All workspace endpoints return correct status codes, CORS preflight includes GET
 
+### F32. Cross-Table AI Setup — Error Leak + Inline Auth
+**Files:** `functions/api/cross-table/ai/suggest-setup.ts`, `src/components/cross-table/SetupWizard.tsx`
+**Issues:**
+1. `suggest-setup.ts` returned `err.message` in 500 response — leaked internal error details (OWASP A01)
+2. `SetupWizard.tsx` used inline `getHeaders()` with direct `omnicore_user_hash` access instead of shared `getCopHeaders()`
+**Fix:** Hardened error response to generic message, replaced inline auth with `getCopHeaders()` import
+
+### F33. Dependency Security — jspdf Critical, axios High, react-router High
+**Packages upgraded:**
+- `jspdf` 3.0.3 → 4.2.0 (critical: path traversal, PDF injection, DoS via BMP/GIF, XMP injection, race condition)
+- `axios` 1.12.2 → 1.13.6 (high: DoS via `__proto__` in mergeConfig)
+- `react-router-dom` 7.9.3 → 7.13.1 (high: CSRF in action request processing)
+**Remaining:** 8 high-severity in dev-only deps (wrangler, rollup, miniflare, tar) — no production impact
+
 ---
 
 ## 🔴 Critical Issues
@@ -303,3 +317,6 @@
 31. ~~**New** — Timeline Hub system~~ DONE (F29) — full implementation across 14 tasks
 32. ~~**New** — GeoConfirmed crawler~~ DONE (F30) — purpose-built GEOINT extractor with COP integration
 33. ~~**New** — Collaboration page broken (CORS + routing)~~ DONE (F31) — directory-based routing, dead files removed
+34. ~~**New** — Cross-table AI error leak + inline auth~~ DONE (F32) — hardened error, getCopHeaders()
+35. ~~**New** — Dependency security (jspdf critical, axios/react-router high)~~ DONE (F33) — upgraded 3 packages
+36. **New** — Remaining inline `omnicore_user_hash` in ~35 files (should use getCopHeaders())

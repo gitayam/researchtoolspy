@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { TemplateType } from '@/lib/cross-table/types'
 
 // ── Types ───────────────────────────────────────────────────────
@@ -37,15 +38,6 @@ interface SetupWizardProps {
   onBack: () => void
   onCreate: (title: string, criteria: Suggestion[], rows: Suggestion[]) => void
   loading?: boolean
-}
-
-// ── Auth header helper ──────────────────────────────────────────
-
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  if (userHash) headers['X-User-Hash'] = userHash
-  return headers
 }
 
 // ── Component ───────────────────────────────────────────────────
@@ -76,7 +68,7 @@ export function SetupWizard({
     try {
       const res = await fetch('/api/cross-table/ai/suggest-setup', {
         method: 'POST',
-        headers: getHeaders(),
+        headers: { ...getCopHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           topic: `${title.trim()}${description.trim() ? '. ' + description.trim() : ''}`,
           template_type: templateType,

@@ -93,6 +93,6 @@ Respond with ONLY a JSON object with this shape:
     return new Response(JSON.stringify({ criteria, rows }), { headers: corsHeaders })
   } catch (err: any) {
     console.error('[CrossTable AI Setup] Error:', err)
-    return new Response(JSON.stringify({ error: err.message || 'AI request failed' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'AI suggestion request failed' }), { status: 500, headers: corsHeaders })
   }
 }
