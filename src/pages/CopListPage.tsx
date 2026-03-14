@@ -19,11 +19,31 @@ import {
   Search,
   Layers,
   Clock,
+  MoreVertical,
+  Share2,
+  Trash2,
+  Archive,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { getCopHeaders } from '@/lib/cop-auth'
+import CopInviteDialog from '@/components/cop/CopInviteDialog'
 import type { CopSession, CopTemplateType, CopStatus } from '@/types/cop'
 
 // ── Template icon mapping ────────────────────────────────────────
@@ -74,6 +94,9 @@ export default function CopListPage() {
   const [sessions, setSessions] = useState<CopSession[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<CopSession | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [inviteSession, setInviteSession] = useState<CopSession | null>(null)
   // ── Fetch sessions ──────────────────────────────────────────────
 
   const fetchSessions = useCallback(async (signal?: AbortSignal) => {
@@ -100,6 +123,29 @@ export default function CopListPage() {
     fetchSessions(controller.signal)
     return () => controller.abort()
   }, [fetchSessions])
+
+  // ── Delete (archive) session ──────────────────────────────────
+
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/cop/sessions/${deleteTarget.id}`, {
+        method: 'DELETE',
+        headers: getCopHeaders(),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Failed to delete')
+      }
+      setSessions((prev) => prev.filter((s) => s.id !== deleteTarget.id))
+      setDeleteTarget(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete session')
+    } finally {
+      setDeleting(false)
+    }
+  }, [deleteTarget])
 
   // ── Loading state ───────────────────────────────────────────────
 
@@ -188,9 +234,37 @@ export default function CopListPage() {
                       {session.name}
                     </CardTitle>
                   </div>
-                  <Badge variant={STATUS_VARIANT[session.status] ?? 'secondary'} className="shrink-0 text-[10px]">
-                    {session.status}
-                  </Badge>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Badge variant={STATUS_VARIANT[session.status] ?? 'secondary'} className="text-[10px]">
+                      {session.status}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={() => setInviteSession(session)}>
+                          <Share2 className="h-4 w-4 mr-2" />
+                          Share / Invite
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-600 focus:text-red-600"
+                          onClick={() => setDeleteTarget(session)}
+                        >
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archive Workspace
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
@@ -218,6 +292,37 @@ export default function CopListPage() {
           )
         })}
       </div>
+
+      {/* ── Delete confirmation dialog ──────────────────────────── */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Archive Workspace</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to archive &ldquo;{deleteTarget?.name}&rdquo;? This will hide it from your workspace list. You can contact support to restore it later.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Archive className="h-4 w-4 mr-2" />}
+              Archive
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Share / Invite dialog ──────────────────────────────── */}
+      {inviteSession && (
+        <CopInviteDialog
+          sessionId={inviteSession.id}
+          sessionName={inviteSession.name}
+          open={!!inviteSession}
+          onOpenChange={(open) => !open && setInviteSession(null)}
+        />
+      )}
     </div>
   )
 }

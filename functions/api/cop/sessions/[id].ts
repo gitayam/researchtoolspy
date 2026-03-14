@@ -181,18 +181,33 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   }
 }
 
-// DELETE - Soft delete (archive) COP session
+// DELETE - Soft delete (archive) COP session (owner only)
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
   try {
+    const userId = await getUserIdOrDefault(request, env)
+
+    // Verify ownership before archiving
+    const session = await env.DB.prepare(
+      'SELECT id, created_by FROM cop_sessions WHERE id = ?'
+    ).bind(id).first<{ id: string; created_by: number }>()
+
+    if (!session) {
+      return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: corsHeaders })
+    }
+
+    if (session.created_by !== userId) {
+      return new Response(JSON.stringify({ error: 'Only the workspace owner can delete this session' }), { status: 403, headers: corsHeaders })
+    }
+
     const now = new Date().toISOString()
 
     await env.DB.prepare(`
       UPDATE cop_sessions
       SET status = 'ARCHIVED', updated_at = ?
-      WHERE id = ?
-    `).bind(now, id).run()
+      WHERE id = ? AND created_by = ?
+    `).bind(now, id, userId).run()
 
     return new Response(JSON.stringify({ message: 'COP session archived' }), { headers: corsHeaders })
   } catch (error) {

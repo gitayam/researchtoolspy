@@ -109,7 +109,7 @@ export function DatasetSelector({
               </div>
             ) : (
               filteredDataset.map((item) => {
-                const isSelected = selected.has(item.id.toString())
+                const isSelected = selected.has(String(item.id))
                 return (
                   <div
                     key={item.id}
@@ -120,12 +120,12 @@ export function DatasetSelector({
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }
                     `}
-                    onClick={() => toggleSelection(item.id.toString())}
+                    onClick={() => toggleSelection(String(item.id))}
                   >
                     <div className="flex items-start gap-3">
                       <Checkbox
                         checked={isSelected}
-                        onCheckedChange={() => toggleSelection(item.id.toString())}
+                        onCheckedChange={() => toggleSelection(String(item.id))}
                         className="mt-1"
                       />
                       <div className="flex-1">

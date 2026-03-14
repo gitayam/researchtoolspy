@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-14 (cycle 23)
+> Last updated: 2026-03-14 (cycle 24)
 > Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
@@ -220,6 +220,22 @@
 **Was:** ~40 additional endpoints across `ai/` (8), `content-intelligence/` (3), `tools/` (3), `frameworks/` (3), `deception/` (1), `feedback/` (1), `claims/` (2), `_shared/playbook-engine/` (2), and batch endpoints (4) still returning `err.message`/`error.message` in responses.
 **Fix:** Replaced all with generic messages. Zero `error.message` patterns remain in any API Response body across the entire `functions/api/` directory.
 **Files:** 30+ files, completing the hardening started in F26 and continued in F37.
+
+### F43. COP Workspace Delete — Auth + Ownership + UI
+**Was:** DELETE endpoint at `/api/cop/sessions/:id` had no authentication or ownership checks — any user could archive any COP session. No frontend UI existed for deleting or archiving workspaces.
+**Fix:**
+- Added `getUserIdOrDefault()` auth + `created_by` ownership verification to DELETE handler — returns 403 if non-owner attempts archive
+- Added SQL `AND created_by = ?` clause for defense-in-depth
+- Added dropdown menu (⋮) to COP list page cards with "Share / Invite" and "Archive Workspace" options
+- Added confirmation dialog before archiving with clear messaging
+- Share/Invite option opens existing CopInviteDialog for collaborator management
+
+### F42. Framework Crash Fix — `.id.toString()` Null Safety
+**Was:** `undefined is not an object (evaluating 't.id.toString')` crash on frameworks page when analysis data loaded with null/undefined items. React Router error boundary showed unrecoverable blank page.
+**Fix:**
+- Replaced all `.id.toString()` calls with `String(.id)` across 5 files (15+ instances) — `String(undefined)` returns `"undefined"` safely instead of throwing
+- Added `f && f.id` null guards to all framework list filters to prevent null items from reaching render
+- Files: `frameworks/index.tsx`, `EvidenceSelector.tsx`, `DatasetSelector.tsx`, `ContentIntelligencePage.tsx`, `ContentLibraryPage.tsx`
 
 ### F41. Dead Code Cleanup — Backup Dirs & Console.log Build Fix
 **Was:** 16 dead backup files in `src/stores_backup/` and `src/lib_backup/` with no imports from active code. Additionally, `sed` removal of `console.log('[Starbursting]...')` lines broke `ContentIntelligencePage.tsx` — multi-line console.log calls had only their first line removed, leaving orphaned object literal properties as syntax errors.

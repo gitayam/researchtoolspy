@@ -286,7 +286,7 @@ export function ContentLibraryPage() {
                           key={i}
                           onClick={() => {
                             // Store content ID for framework to reference
-                            localStorage.setItem('source_content_id', item.id.toString())
+                            localStorage.setItem('source_content_id', String(item.id))
                             navigate(fw.path)
                           }}
                           className="text-left p-3 rounded-lg border hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"

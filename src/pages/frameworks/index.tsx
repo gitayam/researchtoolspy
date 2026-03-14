@@ -75,7 +75,7 @@ export const SwotPage = () => {
       if (response.ok) {
         const data = await response.json()
         // Filter for SWOT analyses only
-        const swotAnalyses = (data.frameworks || []).filter((f: any) => f.framework_type === 'swot')
+        const swotAnalyses = (data.frameworks || []).filter((f: any) => f && f.id && f.framework_type === 'swot')
         setAnalyses(swotAnalyses)
       } else {
         console.error('Failed to load analyses:', response.status, response.statusText)
@@ -570,7 +570,7 @@ export const SwotPage = () => {
                       className="text-red-600"
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleDelete(analysis.id.toString())
+                        handleDelete(String(analysis.id))
                       }}
                     >
                       {t('buttons.delete')}
@@ -657,7 +657,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
       })
       if (response.ok) {
         const data = await response.json()
-        const filtered = (data.frameworks || []).filter((f: any) => f.framework_type === frameworkKey)
+        const filtered = (data.frameworks || []).filter((f: any) => f && f.id && f.framework_type === frameworkKey)
         setAnalyses(filtered)
       }
     } catch (error) {
@@ -767,7 +767,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
         }}
         onSave={handleSave}
         backPath={basePath}
-        frameworkId={currentAnalysis.id.toString()}
+        frameworkId={String(currentAnalysis.id)}
       />
     )
   }
@@ -957,7 +957,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
                         className="text-red-600"
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleDelete(analysis.id.toString())
+                          handleDelete(String(analysis.id))
                         }}
                       >
                         {t('buttons.delete')}
@@ -1098,7 +1098,7 @@ export const CogPage = () => {
       })
       if (response.ok) {
         const data = await response.json()
-        const filtered = (data.frameworks || []).filter((f: any) => f.framework_type === 'cog')
+        const filtered = (data.frameworks || []).filter((f: any) => f && f.id && f.framework_type === 'cog')
         setAnalyses(filtered)
         return
       }
@@ -1286,7 +1286,7 @@ export const CogPage = () => {
         initialData={parsedData}
         onSave={handleSave}
         backPath={basePath}
-        frameworkId={currentAnalysis.id.toString()}
+        frameworkId={String(currentAnalysis.id)}
       />
     )
   }
@@ -1452,7 +1452,7 @@ export const CogPage = () => {
                         className="text-red-600"
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleDelete(analysis.id.toString())
+                          handleDelete(String(analysis.id))
                         }}
                       >
                         {t('buttons.delete')}
@@ -1602,7 +1602,7 @@ export const DeceptionPage = () => {
       })
       if (response.ok) {
         const data = await response.json()
-        const filtered = (data.frameworks || []).filter((f: any) => f.framework_type === 'deception')
+        const filtered = (data.frameworks || []).filter((f: any) => f && f.id && f.framework_type === 'deception')
         setAnalyses(filtered)
       }
     } catch (error) {
@@ -1709,7 +1709,7 @@ export const DeceptionPage = () => {
         }}
         onSave={handleSave}
         backPath={basePath}
-        frameworkId={currentAnalysis.id.toString()}
+        frameworkId={String(currentAnalysis.id)}
       />
     )
   }
@@ -1922,7 +1922,7 @@ export const DeceptionPage = () => {
                         className="text-red-600"
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleDelete(analysis.id.toString())
+                          handleDelete(String(analysis.id))
                         }}
                       >
                         {t('buttons.delete')}

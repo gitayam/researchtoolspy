@@ -1,5 +1,19 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-14 - Workspace Delete Auth & Crash Fixes (Session 33)
+
+### Mutation Endpoints Need Auth AND Ownership Checks
+The COP session DELETE endpoint existed since the initial implementation but had zero auth checks — any anonymous user could archive any workspace by sending `DELETE /api/cop/sessions/:id`. The endpoint used `getUserIdOrDefault` in the file's imports but never called it in the DELETE handler. Every mutation endpoint should be audited for: (1) authentication (`getUserIdOrDefault` or `requireAuth`), (2) ownership verification (`WHERE created_by = ?`), (3) defense-in-depth (`AND created_by = ?` in the mutation query itself, not just a pre-check).
+
+**Rule:** When adding a new HTTP method handler to an existing endpoint file, copy the auth pattern from the strictest sibling handler, not the most permissive one. A GET that allows public reads is not a template for a DELETE.
+
+### Use `String(x)` Not `x.toString()` for Display Values
+15+ instances of `.id.toString()` in the frameworks page could crash on undefined data. `String(undefined)` returns `"undefined"` safely; `undefined.toString()` throws. In list rendering, always guard against null items in the filter step (`items.filter(x => x && x.id)`) AND use `String()` wrapper for any property used in string context.
+
+**Rule:** `grep -rn '\.toString()' src/ --include="*.tsx" | grep -v node_modules` — audit periodically. Replace display-context `.toString()` calls with `String()` wrapper.
+
+---
+
 ## Session: 2026-03-14 - Error Hardening Complete Sweep (Session 32)
 
 ### Security Fixes Require Full-Codebase Sweeps, Not Targeted Patches

@@ -89,7 +89,7 @@ export function EvidenceSelector({
 
       // Auto-select newly created evidence
       const newSelected = new Set(selected)
-      newSelected.add(newEvidence.id.toString())
+      newSelected.add(String(newEvidence.id))
       setSelected(newSelected)
 
       // Exit create mode
@@ -183,7 +183,7 @@ export function EvidenceSelector({
               </div>
             ) : (
               filteredEvidence.map((item) => {
-                const isSelected = selected.has(item.id.toString())
+                const isSelected = selected.has(String(item.id))
                 const LevelIcon = getLevelIcon(item.evidence_level)
 
                 return (
@@ -194,12 +194,12 @@ export function EvidenceSelector({
                         ? 'p-4 border rounded-lg cursor-pointer transition-colors border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                         : 'p-4 border rounded-lg cursor-pointer transition-colors border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                     }
-                    onClick={() => toggleSelection(item.id.toString())}
+                    onClick={() => toggleSelection(String(item.id))}
                   >
                     <div className="flex items-start gap-3">
                       <Checkbox
                         checked={isSelected}
-                        onCheckedChange={() => toggleSelection(item.id.toString())}
+                        onCheckedChange={() => toggleSelection(String(item.id))}
                         className="mt-1"
                       />
                       <div className="flex-1">

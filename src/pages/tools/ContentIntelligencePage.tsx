@@ -1049,7 +1049,7 @@ ${shortSummary}`
         method: 'POST',
         headers: getCopHeaders(),
         body: JSON.stringify({
-          analysis_id: analysis.id.toString(),
+          analysis_id: String(analysis.id),
           content_text: analysis.extracted_text,
           title: analysis.title || 'Untitled',
           url: analysis.url
@@ -1182,7 +1182,7 @@ ${shortSummary}`
         method: 'POST',
         headers: getCopHeaders(),
         body: JSON.stringify({
-          analysis_id: analysis.id.toString(),
+          analysis_id: String(analysis.id),
           generate_share_link: true,
           note: saveNote || undefined,
           tags: saveTags ? saveTags.split(',').map(t => t.trim()) : []
