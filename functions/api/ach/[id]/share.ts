@@ -3,7 +3,7 @@
  * POST /api/ach/:id/share - Toggle public/private and manage sharing settings
  */
 
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -20,7 +20,13 @@ interface ShareRequest {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const { id } = context.params
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
     const data = await context.request.json() as ShareRequest
 
     // Verify ownership - try with new columns first, fallback to basic

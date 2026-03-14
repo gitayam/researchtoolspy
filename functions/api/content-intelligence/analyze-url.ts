@@ -12,7 +12,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { normalizeClaims } from './normalize-claims'
 import { extractAndSaveClaimEntities } from './extract-claim-entities'
@@ -53,8 +53,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Determine user_id using shared auth helper
-    const userId = await getUserIdOrDefault(request, env)
-    
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     // Get user hash for legacy association
     let bookmarkHash: string | null = null
     if (userId) {

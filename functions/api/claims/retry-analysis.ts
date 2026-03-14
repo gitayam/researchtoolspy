@@ -4,7 +4,7 @@
  * Re-runs AI deception analysis for claims in a content analysis
  */
 
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 
 interface Env {
@@ -17,7 +17,13 @@ interface Env {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     // Get user ID
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     // Get content_analysis_id from URL path
     const url = new URL(context.request.url)

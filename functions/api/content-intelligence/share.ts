@@ -3,7 +3,7 @@
  * POST /api/content-intelligence/share - Generate or update share token for analysis
  */
 
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import crypto from 'node:crypto'
 
 interface Env {
@@ -15,7 +15,13 @@ interface Env {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     // Get user ID (supports hash-based auth and session auth)
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     const { analysisId } = await context.request.json() as { analysisId: number }
 

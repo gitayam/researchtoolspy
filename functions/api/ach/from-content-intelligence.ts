@@ -3,7 +3,7 @@
  * Creates ACH with hypotheses and evidence from analyzed content
  */
 
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -18,7 +18,13 @@ interface CreateFromContentRequest {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const data = await context.request.json() as CreateFromContentRequest
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
     const workspaceId = data.workspace_id || '1'
 
     if (!data.analysis_id) {

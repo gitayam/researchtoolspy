@@ -170,25 +170,21 @@
 | 82 | **Framework/evidence mutations (5 files) use `getUserIdOrDefault`** — frameworks/index.ts POST, evidence.ts, evidence-citations.ts, framework-datasets.ts, framework-evidence.ts, framework-entities.ts POST/DELETE. Fixed: all use `getUserFromRequest` + 401 | FIXED |
 | 83 | **datasets.ts, equilibrium-analysis.ts mutations** — POST/PUT/DELETE used guest-fallback auth. Fixed: all use `getUserFromRequest` + 401 | FIXED |
 | 84 | **Verbose emoji debug logging** — `ach/evidence.ts` and `evidence-items.ts` had 10+ line error banners with emojis. Consolidated to single `console.error()` per block | FIXED |
+| 85 | **Content-intelligence mutations (10 files) use `getUserIdOrDefault`** — saved-links (POST/PUT/DELETE), auto-extract, share, dime-analyze, social-media-extract, analyze-url, starbursting/link-entity, starbursting/generate-questions, social-extract, answer-question. Fixed: all use `getUserFromRequest` + 401 | FIXED |
+| 86 | **ACH share/clone/from-CI endpoints** — `ach/[id]/share.ts`, `ach/from-content-intelligence.ts`, `ach/public/[token]/clone.ts` POST handlers. Fixed: all use `getUserFromRequest` + 401 | FIXED |
+| 87 | **Claims mutation endpoints** — `claims/retry-analysis.ts`, `claims/analyze/[id].ts`, `claims/share/[id].ts` POST handlers. Fixed: all use `getUserFromRequest` + 401 | FIXED |
+| 88 | **Misc mutation endpoints** — activity.ts POST, social-media.ts POST/PUT/DELETE, invites/accept POST, evidence-eve.ts PUT/DELETE, frameworks/generate-entities POST, workspaces/index.ts POST. Fixed: all use `getUserFromRequest` + 401 | FIXED |
 
 ---
 
 ## Remaining Tech Debt
-
-### Security (MEDIUM)
-| # | Issue | Notes |
-|---|-------|-------|
-| 85 | ~20 content-intelligence mutation endpoints still use `getUserIdOrDefault` | saved-links (4 handlers), auto-extract, share, dime-analyze, social-media-extract, analyze-url, starbursting/link-entity, starbursting/generate-questions, social-extract, answer-question. Lower risk (AI analysis triggers, not core data) |
-| 86 | ACH share/clone/from-CI endpoints use `getUserIdOrDefault` | `ach/[id]/share.ts`, `ach/from-content-intelligence.ts`, `ach/public/[token]/clone.ts` — POST handlers |
-| 87 | Claims analysis endpoints use `getUserIdOrDefault` | `claims/retry-analysis.ts`, `claims/analyze/[id].ts`, `claims/share/[id].ts`, `claims/get-adjustments/[id].ts` — POST handlers |
-| 88 | Misc endpoints: activity.ts, social-media.ts, invites/accept, content-library.ts | POST mutations with guest-fallback auth. Lower priority. |
 
 ### Architecture (MEDIUM)
 | # | Issue | Notes |
 |---|-------|-------|
 | 15 | Dual auth systems (`omnicore_user_hash` vs `omnicore_token`) | Consolidated to `getCopHeaders()` per F34 lesson, but two localStorage keys remain |
 | 16 | `ensureUserHash()` creates hash locally but never registers in DB | Guest users can't own workspaces |
-| 17 | ~~COP mutation endpoints use `getUserIdOrDefault`~~ | **RESOLVED (S41-42)** — All COP, ACH, entity, cross-table, framework, evidence mutations hardened. Remaining: content-intelligence, claims, misc (tracked as #85-88) |
+| 17 | ~~All mutation endpoints use `getUserIdOrDefault`~~ | **RESOLVED (S41-43)** — Every mutation endpoint across the entire API surface now uses `getUserFromRequest` + 401. Only GET handlers intentionally keep `getUserIdOrDefault` for guest browsing. |
 
 ### Code Quality (LOW)
 | # | Issue | Notes |

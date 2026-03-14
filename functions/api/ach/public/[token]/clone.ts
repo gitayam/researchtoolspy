@@ -3,7 +3,7 @@
  * POST /api/ach/public/:token/clone - Clone public analysis to user's workspace
  */
 
-import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -14,7 +14,13 @@ interface Env {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const { token } = context.params
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     if (!token) {
       return new Response(JSON.stringify({ error: 'Share token is required' }), {

@@ -2,7 +2,7 @@
 // Activity Feed API - Workspace activity tracking
 // ============================================================================
 
-import { getUserIdOrDefault } from './_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -99,6 +99,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // POST /api/activity - Log activity (for system use)
     if (request.method === 'POST') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401,
+          headers: CORS_HEADERS,
+        })
+      }
       const body: any = await request.json()
       const {
         workspace_id,

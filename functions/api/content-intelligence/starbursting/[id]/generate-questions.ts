@@ -4,7 +4,7 @@
  * Generates additional questions based on existing Q&A context
  */
 
-import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../../../_shared/ai-gateway'
 import { STARBURSTING_SYSTEM_PROMPT, STARBURSTING_JSON_SCHEMA } from '../schema'
 
@@ -24,7 +24,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: corsHeaders,
+      })
+    }
     const sessionId = context.params.id as string
 
 

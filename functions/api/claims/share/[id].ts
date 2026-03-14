@@ -4,7 +4,7 @@
  * GET /api/claims/share/:token - View shared claim (public)
  */
 
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -16,7 +16,13 @@ interface Env {
  */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     const url = new URL(context.request.url)
     const pathParts = url.pathname.split('/')

@@ -5,7 +5,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -41,7 +41,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   try {
     // Get authenticated user
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Get framework from database
     const framework = await env.DB.prepare(`

@@ -4,7 +4,7 @@
  */
 
 import { nanoid } from 'nanoid'
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -27,7 +27,13 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
   try {
     const body = await request.json()
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: corsHeaders,
+      })
+    }
     const { analysis_id, workspace_id = '1' } = body
     const user_id = body.user_id || userId
 

@@ -4,7 +4,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from './_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -28,6 +28,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserIdOrDefault(request, env)
+
+    // Require authentication for mutation endpoints
+    if (method === 'PUT' || method === 'DELETE') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(
+          JSON.stringify({ error: 'Authentication required' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
 
     // Parse evidence ID from path: /api/evidence-eve/:evidenceId
     const pathMatch = url.pathname.match(/^\/api\/evidence-eve\/(\d+)$/)

@@ -11,7 +11,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -142,6 +142,14 @@ function createUserFriendlyError(
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
+  const authUserId = await getUserFromRequest(request, env)
+  if (!authUserId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const body: SocialMediaExtractRequest = await request.json() as SocialMediaExtractRequest
     const { url, platform: providedPlatform, mode = 'full' } = body
@@ -199,7 +207,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (result.success && env.DB) {
       try {
         await saveSocialMediaExtraction(env.DB, {
-          user_id: await getUserIdOrDefault(context.request, context.env),
+          user_id: authUserId,
           url,
           platform,
           post_type: result.postType,

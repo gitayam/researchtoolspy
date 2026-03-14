@@ -5,7 +5,7 @@
  * POST /api/workspaces - Create investigation + COP session atomically
  */
 
-import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { logActivity } from '../_shared/activity-logger'
 import { notifyWorkspaceMembers } from '../_shared/notification-logger'
 
@@ -84,7 +84,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: jsonHeaders }
+      )
+    }
     const body = (await request.json()) as CreateWorkspaceRequest
 
     // ── Validate required fields ──────────────────────────────────

@@ -5,7 +5,7 @@
  * Generates questions and answers for each DIME dimension
  */
 
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 
 interface Env {
@@ -25,7 +25,13 @@ interface DIMEAnalysisRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
     const body = await context.request.json() as DIMEAnalysisRequest
 
     if (!body.analysis_id || !body.content_text) {

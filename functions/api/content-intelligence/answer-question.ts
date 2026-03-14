@@ -10,7 +10,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -29,7 +29,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const body = await request.json() as QuestionRequest
     const { analysis_id, question } = body
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     if (!analysis_id || !question) {
       return new Response(JSON.stringify({

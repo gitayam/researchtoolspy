@@ -4,7 +4,7 @@
  * Links an extracted entity to a database entity ID
  */
 
-import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -19,7 +19,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: corsHeaders,
+      })
+    }
     const sessionId = context.params.id as string
 
     if (!sessionId) {
