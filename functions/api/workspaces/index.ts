@@ -140,12 +140,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         0
       ).run()
 
+      const memberId = crypto.randomUUID()
       await env.DB.prepare(`
-        INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
-        VALUES (?, ?, 'ADMIN', datetime('now'))
-      `).bind(workspaceId, userId).run()
-
-      console.log('[workspaces] Created personal workspace:', workspaceId)
+        INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+        VALUES (?, ?, ?, 'ADMIN', datetime('now'))
+      `).bind(memberId, workspaceId, userId).run()
     }
 
     // ── 1. Create investigation ───────────────────────────────────
@@ -203,10 +202,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       now
     ).run()
 
-    console.log(
-      '[workspaces] Created investigation:', investigationId,
-      '+ COP session:', copSessionId
-    )
 
     // ── Activity logging ─────────────────────────────────────────
     try {

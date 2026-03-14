@@ -71,8 +71,9 @@ export function CreateWorkspaceDialog({ onWorkspaceCreated }: CreateWorkspaceDia
         method: 'POST',
         headers: getCopHeaders(),
         body: JSON.stringify({
-          name: formData.name,
-          type: formData.type,
+          title: formData.name,
+          investigation_type: 'general_topic',
+          cop_template: 'blank',
         }),
       })
 
@@ -91,8 +92,10 @@ export function CreateWorkspaceDialog({ onWorkspaceCreated }: CreateWorkspaceDia
       setOpen(false)
       setFormData({ name: '', type: 'TEAM' })
 
-      // Store the new workspace ID (API returns workspace directly)
-      localStorage.setItem('omnicore_workspace_id', data.id)
+      // Store the new workspace COP session ID
+      if (data.cop_session_id) {
+        localStorage.setItem('omnicore_workspace_id', data.cop_session_id)
+      }
 
       // Refresh the page or call callback
       if (onWorkspaceCreated) {

@@ -2,7 +2,7 @@
  * Workspaces Settings API
  *
  * Manages workspaces for hash-based authentication
- * GET: List all workspaces for a hash
+ * GET: List all workspaces for a user
  * POST: Create new workspace
  */
 
@@ -13,81 +13,58 @@ interface Env {
   JWT_SECRET?: string
 }
 
-interface Workspace {
-  id: string
-  name: string
-  description?: string
-  type: 'PERSONAL' | 'TEAM' | 'PUBLIC'
-  user_hash: string
-  is_public: boolean
-  is_default: boolean
-  created_at: string
-  updated_at?: string
-}
-
-/**
- * Helper to get user hash from authenticated user ID
- */
-async function getUserHashFromId(db: D1Database, userId: number): Promise<string | null> {
-  const user = await db.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
-  return user?.user_hash as string | null
-}
-
 /**
  * GET /api/settings/workspaces
- * List all workspaces for a hash
+ * List all workspaces for the authenticated user
  */
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
     const userId = await requireAuth(context.request, context.env)
-    const userHash = await getUserHashFromId(context.env.DB, userId)
 
-    if (!userHash) {
-      return Response.json({ error: 'User hash not found' }, { status: 404 })
-    }
-
-    // Query workspaces owned by this hash
+    // Query workspaces owned by this user
     const results = await context.env.DB.prepare(
-      `SELECT id, name, description, type, user_hash, is_public, created_at, updated_at
+      `SELECT id, name, description, type, is_public, created_at, updated_at
        FROM workspaces
-       WHERE user_hash = ?
+       WHERE owner_id = ?
        ORDER BY created_at ASC`
     )
-      .bind(userHash)
+      .bind(userId)
       .all()
 
     const workspaces = (results.results || []).map((row: any) => ({
       ...row,
       is_public: Boolean(row.is_public),
-      is_default: row.id === '1', // First workspace is default
+      is_default: row.id === '1',
     }))
 
     // If no workspaces exist, create a default one
     if (workspaces.length === 0) {
+      const defaultId = crypto.randomUUID()
+      const createdAt = new Date().toISOString()
+
       const defaultWorkspace = {
-        id: '1',
+        id: defaultId,
         name: 'My Workspace',
         description: 'Default workspace',
         type: 'PERSONAL' as const,
-        user_hash: userHash,
         is_public: false,
         is_default: true,
-        created_at: new Date().toISOString(),
+        created_at: createdAt,
       }
 
       await context.env.DB.prepare(
-        `INSERT INTO workspaces (id, name, description, type, user_hash, is_public, owner_id, created_at)
+        `INSERT INTO workspaces (id, name, description, type, is_public, owner_id, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
         .bind(
-          defaultWorkspace.id,
+          defaultId,
           defaultWorkspace.name,
           defaultWorkspace.description,
           defaultWorkspace.type,
-          userHash,
-          defaultWorkspace.is_public ? 1 : 0,
-          userId, // Correct owner_id
-          defaultWorkspace.created_at
+          0,
+          userId,
+          createdAt,
+          createdAt
         )
         .run()
 
@@ -118,11 +95,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const userId = await requireAuth(context.request, context.env)
-    const userHash = await getUserHashFromId(context.env.DB, userId)
-
-    if (!userHash) {
-      return Response.json({ error: 'User hash not found' }, { status: 404 })
-    }
 
     const body = (await context.request.json()) as {
       name: string
@@ -139,16 +111,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Generate unique ID
-    const id = `ws_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const id = crypto.randomUUID()
     const isPublic = body.type === 'PUBLIC'
     const createdAt = new Date().toISOString()
 
     // Insert workspace
     await context.env.DB.prepare(
-      `INSERT INTO workspaces (id, name, description, type, user_hash, is_public, owner_id, created_at)
+      `INSERT INTO workspaces (id, name, description, type, is_public, owner_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(id, body.name, body.description || null, body.type, userHash, isPublic ? 1 : 0, userId, createdAt)
+      .bind(id, body.name, body.description || null, body.type, isPublic ? 1 : 0, userId, createdAt, createdAt)
       .run()
 
     const workspace = {
@@ -156,7 +128,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       name: body.name,
       description: body.description,
       type: body.type,
-      user_hash: userHash,
       is_public: isPublic,
       is_default: false,
       created_at: createdAt,

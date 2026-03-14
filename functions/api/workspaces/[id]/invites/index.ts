@@ -6,7 +6,7 @@
  * DELETE /api/workspaces/:id/invites?revoke=ID - Revoke invite
  */
 
-import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -45,7 +45,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const workspaceId = params.id as string
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
 
     if (!await canManageInvites(env.DB, workspaceId, userId)) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
@@ -90,7 +95,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const workspaceId = params.id as string
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
 
     if (!await canManageInvites(env.DB, workspaceId, userId)) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {

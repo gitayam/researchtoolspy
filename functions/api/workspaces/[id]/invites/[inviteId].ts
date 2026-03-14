@@ -4,7 +4,7 @@
  * DELETE /api/workspaces/:id/invites/:inviteId - Revoke an invite
  */
 
-import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -36,7 +36,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const inviteId = params.inviteId as string
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
 
     if (!await canManageInvites(env.DB, workspaceId, userId)) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {

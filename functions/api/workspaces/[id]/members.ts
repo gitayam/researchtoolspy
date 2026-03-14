@@ -5,7 +5,7 @@
  * POST /api/workspaces/:id/members - Add a member
  */
 
-import { getUserFromRequest, getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -75,7 +75,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const workspaceId = params.id as string
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     if (!body.user_id || !body.role) {

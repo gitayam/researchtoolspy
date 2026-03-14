@@ -31,6 +31,7 @@ export function CollaborationPage() {
   const [members, setMembers] = useState<WorkspaceMemberWithNickname[]>([])
   const [invites, setInvites] = useState<WorkspaceInvite[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Create invite form state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -83,23 +84,29 @@ export function CollaborationPage() {
 
   const fetchWorkspaces = async () => {
     try {
+      setError(null)
       const response = await fetch('/api/workspaces', { headers: getAuthHeaders() })
 
-      if (response.ok) {
-        const data = await response.json()
-        const allWorkspaces = [...(data.owned || []), ...(data.member || [])]
-        setWorkspaces(allWorkspaces)
-
-        // Auto-select first TEAM workspace
-        const teamWorkspace = allWorkspaces.find(w => w.type === 'TEAM')
-        if (teamWorkspace) {
-          setSelectedWorkspace(teamWorkspace)
-        } else if (allWorkspaces.length > 0) {
-          setSelectedWorkspace(allWorkspaces[0])
-        }
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}))
+        setError(errData.error || `Failed to load workspaces (${response.status})`)
+        return
       }
-    } catch (error) {
-      console.error('Failed to fetch workspaces:', error)
+
+      const data = await response.json()
+      const allWorkspaces = [...(data.owned || []), ...(data.member || [])]
+      setWorkspaces(allWorkspaces)
+
+      // Auto-select first TEAM workspace
+      const teamWorkspace = allWorkspaces.find((w: Workspace) => w.type === 'TEAM')
+      if (teamWorkspace) {
+        setSelectedWorkspace(teamWorkspace)
+      } else if (allWorkspaces.length > 0) {
+        setSelectedWorkspace(allWorkspaces[0])
+      }
+    } catch (err) {
+      console.error('Failed to fetch workspaces:', err)
+      setError('Network error — could not reach the server')
     } finally {
       setLoading(false)
     }
@@ -234,13 +241,13 @@ export function CollaborationPage() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'ADMIN':
-        return 'bg-purple-100 text-purple-800'
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
       case 'EDITOR':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
       case 'VIEWER':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
     }
   }
 
@@ -267,6 +274,33 @@ export function CollaborationPage() {
             <p className="text-gray-600 dark:text-gray-400">{t('pages.collaboration.loading')}</p>
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('pages.collaboration.title')}</h1>
+            <p className="text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        </div>
+        <Card className="border-red-200 dark:border-red-800">
+          <CardContent className="text-center py-12">
+            <Users className="h-16 w-16 text-red-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Could not load workspaces
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {error}
+            </p>
+            <Button onClick={fetchWorkspaces} variant="outline">
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -451,7 +485,7 @@ export function CollaborationPage() {
                   {invites.map((invite) => (
                     <div
                       key={invite.id}
-                      className="p-4 rounded-lg border bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750"
+                      className="p-4 rounded-lg border bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">

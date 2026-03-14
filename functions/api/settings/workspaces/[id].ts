@@ -13,25 +13,12 @@ interface Env {
 }
 
 /**
- * Helper to get user hash from authenticated user ID
- */
-async function getUserHashFromId(db: D1Database, userId: number): Promise<string | null> {
-  const user = await db.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
-  return user?.user_hash as string | null
-}
-
-/**
  * PUT /api/settings/workspaces/[id]
  * Update workspace details
  */
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   try {
     const userId = await requireAuth(context.request, context.env)
-    const userHash = await getUserHashFromId(context.env.DB, userId)
-
-    if (!userHash) {
-      return Response.json({ error: 'User hash not found' }, { status: 404 })
-    }
 
     const workspaceId = context.params.id as string
     if (!workspaceId) {
@@ -49,9 +36,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     // Verify ownership
     const workspace = await context.env.DB.prepare(
-      'SELECT id, user_hash FROM workspaces WHERE id = ? AND user_hash = ?'
+      'SELECT id, owner_id FROM workspaces WHERE id = ? AND owner_id = ?'
     )
-      .bind(workspaceId, userHash)
+      .bind(workspaceId, userId)
       .first()
 
     if (!workspace) {
@@ -75,17 +62,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     updates.push('updated_at = CURRENT_TIMESTAMP')
 
     // Add WHERE clause bindings
-    bindings.push(workspaceId, userHash)
+    bindings.push(workspaceId, userId)
 
     await context.env.DB.prepare(
-      `UPDATE workspaces SET ${updates.join(', ')} WHERE id = ? AND user_hash = ?`
+      `UPDATE workspaces SET ${updates.join(', ')} WHERE id = ? AND owner_id = ?`
     )
       .bind(...bindings)
       .run()
 
     // Fetch updated workspace
     const updated = await context.env.DB.prepare(
-      'SELECT id, name, description, type, user_hash, is_public, created_at, updated_at FROM workspaces WHERE id = ?'
+      'SELECT id, name, description, type, is_public, created_at, updated_at FROM workspaces WHERE id = ?'
     )
       .bind(workspaceId)
       .first()
@@ -110,27 +97,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
     const userId = await requireAuth(context.request, context.env)
-    const userHash = await getUserHashFromId(context.env.DB, userId)
-
-    if (!userHash) {
-      return Response.json({ error: 'User hash not found' }, { status: 404 })
-    }
 
     const workspaceId = context.params.id as string
     if (!workspaceId) {
       return Response.json({ error: 'Workspace ID required' }, { status: 400 })
     }
 
-    // Prevent deletion of default workspace
-    if (workspaceId === '1') {
-      return Response.json({ error: 'Cannot delete default workspace' }, { status: 400 })
-    }
-
     // Verify ownership
     const workspace = await context.env.DB.prepare(
-      'SELECT id, user_hash FROM workspaces WHERE id = ? AND user_hash = ?'
+      'SELECT id, owner_id FROM workspaces WHERE id = ? AND owner_id = ?'
     )
-      .bind(workspaceId, userHash)
+      .bind(workspaceId, userId)
       .first()
 
     if (!workspace) {
@@ -138,8 +115,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     }
 
     // Delete workspace (cascading deletes should handle related data)
-    await context.env.DB.prepare('DELETE FROM workspaces WHERE id = ? AND user_hash = ?')
-      .bind(workspaceId, userHash)
+    await context.env.DB.prepare('DELETE FROM workspaces WHERE id = ? AND owner_id = ?')
+      .bind(workspaceId, userId)
       .run()
 
     return Response.json({

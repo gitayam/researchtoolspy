@@ -17,9 +17,9 @@ import { cn } from '@/lib/utils'
 
 const TABS = [
   { id: 'home', label: 'Home', href: '/dashboard', icon: Home, exact: true },
-  { id: 'tools', label: 'Tools', href: '/dashboard/tools', icon: Search },
-  { id: 'cop', label: 'Workspaces', href: '/dashboard/cop', icon: Map },
-  { id: 'intel', label: 'Intel', href: '/dashboard/intelligence', icon: Lightbulb },
+  { id: 'tools', label: 'Tools', href: '/dashboard/tools', icon: Search, exact: false },
+  { id: 'cop', label: 'Workspaces', href: '/dashboard/cop', icon: Map, exact: false },
+  { id: 'intel', label: 'Intel', href: '/dashboard/intelligence', icon: Lightbulb, exact: false },
 ] as const
 
 interface MobileBottomTabsProps {
