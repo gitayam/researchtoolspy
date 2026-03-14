@@ -5,7 +5,7 @@
  * PUT /api/cop/:id/submissions         - Triage a submission (id in body)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { INGEST_SUBMISSION_TRIAGED, INGEST_SUBMISSION_REJECTED } from '../../_shared/cop-event-types'
 
@@ -57,7 +57,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { env, params, request } = context
   const sessionId = params.id as string
-  const userId = await getUserIdOrDefault(request, env)
+
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: corsHeaders,
+    })
+  }
 
   try {
     const body = await request.json() as any

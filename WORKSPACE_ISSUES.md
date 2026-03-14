@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-13 (Sessions 34-36)
+**Last updated:** 2026-03-14 (Sessions 34-37)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -56,23 +56,39 @@
 
 ---
 
+## Fixed — v0.13.3 (Session 37)
+
+### SECURITY
+| # | Issue | Status |
+|---|-------|--------|
+| 26 | **COP submissions PUT uses `getUserIdOrDefault`** — guest users could triage submissions. Fixed: `cop/[id]/submissions.ts` now uses `getUserFromRequest` + 401 check | FIXED |
+
+### CODE QUALITY
+| # | Issue | Status |
+|---|-------|--------|
+| 18 | **Duplicated CORS headers in workspace files** — removed dead `corsHeaders` and `onRequestOptions` from 5 workspace API files (middleware handles CORS centrally) | FIXED |
+| 19 | **Duplicated `canManageInvites`** — extracted to shared `workspace-helpers.ts` as `canManageWorkspace()`, used by invites, members, and workspace update handlers | FIXED |
+| 21 | **`formatExpiry()` hardcoded English** — CollaborationPage now uses `t()` with fallback defaults, matches InviteAcceptPage's relative-time pattern | FIXED |
+| 27 | **Empty catch blocks in evidence-items.ts** — added logging to silent auto-link error handler | FIXED |
+| 28 | **Cache write failure swallowed** in `cop/[id]/cot.ts` — added error logging to `.catch()` | FIXED |
+
+---
+
 ## Remaining Tech Debt
 
 ### Architecture (MEDIUM)
 | # | Issue | Notes |
 |---|-------|-------|
-| 15 | Dual auth systems (`omnicore_user_hash` vs `omnicore_token`) | CollaborationPage vs WorkspaceContext use different mechanisms |
+| 15 | Dual auth systems (`omnicore_user_hash` vs `omnicore_token`) | Consolidated to `getCopHeaders()` per F34 lesson, but two localStorage keys remain |
 | 16 | `ensureUserHash()` creates hash locally but never registers in DB | Guest users can't own workspaces |
 | 17 | 30+ mutation endpoints with no auth | Many intentionally public (tools, research) — needs per-endpoint audit |
 
 ### Code Quality (LOW)
 | # | Issue | Notes |
 |---|-------|-------|
-| 18 | Duplicated CORS headers — middleware already sets them | Handler-level corsHeaders are dead code |
-| 19 | Duplicated `canManageInvites` in invites/*.ts | Should extract to shared util |
 | 20 | CreateWorkspaceDialog not internationalized | Hardcoded English strings |
-| 21 | `formatExpiry()` uses hardcoded English | Should use `t()` |
 | 22 | 112 `as any` casts in frontend | GenericFrameworkForm: 35 instances |
+| 29 | Empty catch blocks in playbook-engine | `engine.ts` lines 81, 109, 124 — JSON parse failures default silently |
 
 ### Performance (LOW)
 | # | Issue | Notes |

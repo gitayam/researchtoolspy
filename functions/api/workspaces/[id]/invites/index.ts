@@ -7,36 +7,19 @@
  */
 
 import { getUserFromRequest } from '../../../_shared/auth-helpers'
+import { canManageWorkspace } from '../../../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-}
+const jsonHeaders = { 'Content-Type': 'application/json' }
 
 function generateInviteToken(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
   const randomBytes = new Uint8Array(12)
   crypto.getRandomValues(randomBytes)
   return `inv_${Array.from(randomBytes).map(b => chars[b % chars.length]).join('')}`
-}
-
-async function canManageInvites(db: D1Database, workspaceId: string, userId: number): Promise<boolean> {
-  const workspace = await db.prepare(
-    `SELECT owner_id FROM workspaces WHERE id = ?`
-  ).bind(workspaceId).first()
-  if (!workspace) return false
-  if (workspace.owner_id === userId) return true
-
-  const member = await db.prepare(
-    `SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ?`
-  ).bind(workspaceId, userId).first()
-  return member?.role === 'ADMIN'
 }
 
 // GET — List invites
@@ -48,13 +31,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: jsonHeaders,
       })
     }
 
-    if (!await canManageInvites(env.DB, workspaceId, userId)) {
+    if (!await canManageWorkspace(env.DB, workspaceId, userId)) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: jsonHeaders,
       })
     }
 
@@ -80,11 +63,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       },
     }))
 
-    return new Response(JSON.stringify({ invites }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ invites }), { headers: jsonHeaders })
   } catch (error) {
     console.error('[workspace-invites] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list invites' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: jsonHeaders,
     })
   }
 }
@@ -98,13 +81,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: jsonHeaders,
       })
     }
 
-    if (!await canManageInvites(env.DB, workspaceId, userId)) {
+    if (!await canManageWorkspace(env.DB, workspaceId, userId)) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: jsonHeaders,
       })
     }
 
@@ -135,15 +118,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       default_role: role,
       expires_at: expiresAt,
       is_active: true,
-    }), { status: 201, headers: corsHeaders })
+    }), { status: 201, headers: jsonHeaders })
   } catch (error) {
     console.error('[workspace-invites] Create error:', error)
     return new Response(JSON.stringify({ error: 'Failed to create invite' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: jsonHeaders,
     })
   }
 }
 
-export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
-}

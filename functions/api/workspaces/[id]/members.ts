@@ -6,18 +6,14 @@
  */
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { canManageWorkspace } from '../../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-}
+const jsonHeaders = { 'Content-Type': 'application/json' }
 
 // GET — List members
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -34,7 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!workspace) {
       return new Response(JSON.stringify({ error: 'Workspace not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: jsonHeaders,
       })
     }
 
@@ -47,7 +43,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!isOwner && !isMember) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: jsonHeaders,
       })
     }
 
@@ -60,11 +56,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       ORDER BY wm.joined_at ASC
     `).bind(workspaceId).all()
 
-    return new Response(JSON.stringify(results), { headers: corsHeaders })
+    return new Response(JSON.stringify(results), { headers: jsonHeaders })
   } catch (error) {
     console.error('[workspace-members] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list members' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: jsonHeaders,
     })
   }
 }
@@ -78,36 +74,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: jsonHeaders,
       })
     }
     const body = await request.json() as any
 
     if (!body.user_id || !body.role) {
       return new Response(JSON.stringify({ error: 'user_id and role are required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: jsonHeaders,
       })
     }
 
-    // Check permissions — only owner or admin
-    const workspace = await env.DB.prepare(
-      `SELECT owner_id FROM workspaces WHERE id = ?`
-    ).bind(workspaceId).first()
-
-    if (!workspace) {
-      return new Response(JSON.stringify({ error: 'Workspace not found' }), {
-        status: 404, headers: corsHeaders,
-      })
-    }
-
-    const isOwner = workspace.owner_id === userId
-    const member = await env.DB.prepare(
-      `SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ?`
-    ).bind(workspaceId, userId).first()
-
-    if (!isOwner && member?.role !== 'ADMIN') {
+    if (!await canManageWorkspace(env.DB, workspaceId, userId)) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: jsonHeaders,
       })
     }
 
@@ -118,16 +98,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(id, workspaceId, body.user_id, body.role).run()
 
     return new Response(JSON.stringify({ id, message: 'Member added' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: jsonHeaders,
     })
   } catch (error) {
     console.error('[workspace-members] Add error:', error)
     return new Response(JSON.stringify({ error: 'Failed to add member' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: jsonHeaders,
     })
   }
 }
 
-export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
-}

@@ -260,9 +260,17 @@ export function CollaborationPage() {
   }
 
   const formatExpiry = (expiresAt: string | null) => {
-    if (!expiresAt) return 'Never expires'
-    const date = new Date(expiresAt)
-    return `Expires ${date.toLocaleDateString()}`
+    if (!expiresAt) return t('pages.collaboration.neverExpires', 'Never expires')
+    const expiry = new Date(expiresAt)
+    const now = new Date()
+    const diffMs = expiry.getTime() - now.getTime()
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffMs <= 0) return t('pages.collaboration.expired', 'Expired')
+    if (diffDays > 1) return t('pages.collaboration.expiresInDays', { count: diffDays, defaultValue: `Expires in ${diffDays} days` })
+    if (diffHours > 1) return t('pages.collaboration.expiresInHours', { count: diffHours, defaultValue: `Expires in ${diffHours} hours` })
+    return t('pages.collaboration.expiresSoon', 'Expires soon')
   }
 
   if (loading) {

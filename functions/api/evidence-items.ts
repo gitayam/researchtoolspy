@@ -360,9 +360,12 @@ export async function onRequest(context: any) {
                 VALUES (?, ?, ?, 1)
               `).bind(evidenceId, actor.id, 'Auto-detected').run()
             } catch (e) {
+              // Ignore duplicate errors
             }
           }
         } catch (error) {
+          // Don't fail the whole request if auto-linking fails
+          console.error('[evidence-items] Auto-link error (non-fatal):', error)
         }
       }
 

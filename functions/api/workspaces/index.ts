@@ -15,12 +15,7 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
+const jsonHeaders = { 'Content-Type': 'application/json' }
 
 interface CreateWorkspaceRequest {
   // Investigation fields
@@ -52,7 +47,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
 
     if (!userId) {
-      return new Response(JSON.stringify({ owned: [], member: [] }), { headers: corsHeaders })
+      return new Response(JSON.stringify({ owned: [], member: [] }), { headers: jsonHeaders })
     }
 
     const { results: ownedWorkspaces } = await env.DB.prepare(`
@@ -75,11 +70,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       owned: ownedWorkspaces.map(parseWorkspace),
       member: memberWorkspaces.map(parseWorkspace),
-    }), { headers: corsHeaders })
+    }), { headers: jsonHeaders })
   } catch (error) {
     console.error('[workspaces] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list workspaces' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: jsonHeaders,
     })
   }
 }
@@ -96,14 +91,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.title?.trim()) {
       return new Response(
         JSON.stringify({ error: 'Title is required' }),
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: jsonHeaders }
       )
     }
 
     if (!body.investigation_type || !body.cop_template) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: investigation_type, cop_template' }),
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: jsonHeaders }
       )
     }
 
@@ -262,21 +257,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         investigation_id: investigationId,
         cop_session_id: copSessionId,
       }),
-      { status: 201, headers: corsHeaders }
+      { status: 201, headers: jsonHeaders }
     )
   } catch (error) {
     console.error('[workspaces] Create error:', error)
     return new Response(
-      JSON.stringify({
-        error: 'Failed to create workspace'
-,
-      }),
-      { status: 500, headers: corsHeaders }
+      JSON.stringify({ error: 'Failed to create workspace' }),
+      { status: 500, headers: jsonHeaders }
     )
   }
 }
 
-// OPTIONS — CORS preflight
-export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
-}

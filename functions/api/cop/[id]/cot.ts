@@ -181,7 +181,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Cache the generated XML
     if (env.CACHE) {
-      await env.CACHE.put(COT_CACHE_KEY, xml, { expirationTtl: COT_CACHE_TTL }).catch(() => {})
+      await env.CACHE.put(COT_CACHE_KEY, xml, { expirationTtl: COT_CACHE_TTL }).catch((err: unknown) => {
+        console.error('[CoT Export] Cache write failed:', err)
+      })
     }
 
     return new Response(xml, { headers: xmlHeaders })
