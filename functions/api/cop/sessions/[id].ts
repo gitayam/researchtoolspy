@@ -73,11 +73,26 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 }
 
-// PUT - Update COP session
+// PUT - Update COP session (owner only)
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
   try {
+    const userId = await getUserIdOrDefault(request, env)
+
+    // Verify ownership before updating
+    const session = await env.DB.prepare(
+      'SELECT id, created_by FROM cop_sessions WHERE id = ?'
+    ).bind(id).first<{ id: string; created_by: number }>()
+
+    if (!session) {
+      return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: corsHeaders })
+    }
+
+    if (session.created_by !== userId) {
+      return new Response(JSON.stringify({ error: 'Only the workspace owner can update this session' }), { status: 403, headers: corsHeaders })
+    }
+
     const body = await request.json() as any
     const now = new Date().toISOString()
 
@@ -115,14 +130,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       values.push(body.is_public ? 1 : 0)
     }
 
-    // Session ID is the primary key — no need to also match workspace_id
-    // (which broke after sessions got dedicated workspaces instead of sharing "1")
-    values.push(id)
+    // Defense-in-depth: scope update to owner
+    values.push(id, userId)
 
     await env.DB.prepare(`
       UPDATE cop_sessions
       SET ${updates.join(', ')}
-      WHERE id = ?
+      WHERE id = ? AND created_by = ?
     `).bind(...values).run()
 
     // --- Auto-sync event_facts to events table (append-only) ---

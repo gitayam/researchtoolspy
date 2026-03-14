@@ -594,12 +594,13 @@ export function GenericFrameworkView({
               const entityIds: string[] = []
 
               for (const evidence of linkedEvidence) {
+                if (!evidence?.entity_id) continue
                 if (evidence.entity_type === 'actor') {
-                  entityIds.push(evidence.entity_id.toString())
+                  entityIds.push(String(evidence.entity_id))
                 } else if (evidence.entity_type === 'source') {
-                  entityIds.push(evidence.entity_id.toString())
+                  entityIds.push(String(evidence.entity_id))
                 } else if (evidence.entity_type === 'event') {
-                  entityIds.push(evidence.entity_id.toString())
+                  entityIds.push(String(evidence.entity_id))
                 } else if (evidence.entity_type === 'data') {
                   // For data (evidence items), try to fetch linked actors
                   try {
@@ -860,7 +861,7 @@ export function GenericFrameworkView({
         defaultTab={entityCreateTab}
         frameworkContext={{
           frameworkType: frameworkTitle,
-          frameworkId: data.id?.toString()
+          frameworkId: data?.id ? String(data.id) : undefined
         }}
       />
 

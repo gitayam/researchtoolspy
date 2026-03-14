@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-14 (cycle 24)
+> Last updated: 2026-03-14 (cycle 25)
 > Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
@@ -220,6 +220,14 @@
 **Was:** ~40 additional endpoints across `ai/` (8), `content-intelligence/` (3), `tools/` (3), `frameworks/` (3), `deception/` (1), `feedback/` (1), `claims/` (2), `_shared/playbook-engine/` (2), and batch endpoints (4) still returning `err.message`/`error.message` in responses.
 **Fix:** Replaced all with generic messages. Zero `error.message` patterns remain in any API Response body across the entire `functions/api/` directory.
 **Files:** 30+ files, completing the hardening started in F26 and continued in F37.
+
+### F44. COP Session PUT — Auth + Ownership Enforcement
+**Was:** `PUT /api/cop/sessions/:id` had no authentication or ownership checks — any user could update any workspace's name, description, status, map bounds, mission brief, and all JSON fields. Same vulnerability class as F43 (DELETE).
+**Fix:**
+- Added `getUserIdOrDefault()` auth check before body parsing
+- Added `created_by` ownership verification — returns 403 for non-owners
+- Added `AND created_by = ?` to the UPDATE SQL WHERE clause for defense-in-depth
+- Also fixed `GenericFrameworkView` — replaced 3 `.entity_id.toString()` calls with `String()` + null guard
 
 ### F43. COP Workspace Delete — Auth + Ownership + UI
 **Was:** DELETE endpoint at `/api/cop/sessions/:id` had no authentication or ownership checks — any user could archive any COP session. No frontend UI existed for deleting or archiving workspaces.
