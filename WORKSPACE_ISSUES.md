@@ -184,6 +184,8 @@
 |---|-------|--------|
 | 89 | **COP collaborators POST/PUT/DELETE used custom `getUserId()` bypassing shared auth** — private `getUserId()` function (not from auth-helpers) fell back to user 1, allowing guest users to invite/update/remove collaborators. Fixed: replaced with `getUserFromRequest` + 401. Removed dead `corsHeaders` and `onRequestOptions`. | FIXED |
 | 90 | **COP activity POST used custom `getUserId()` bypassing shared auth** — same private `getUserId()` pattern. Guest users could log activity events as user 1. Fixed: replaced with `getUserFromRequest` + 401. Removed dead `corsHeaders` and `onRequestOptions`. | FIXED |
+| 91 | **COP playbook rules POST/PUT/DELETE missing auth** — no auth imports, no checks. Only verified playbook exists, not that user owns session. Fixed: `cop/[id]/playbooks/[pbId]/rules.ts` uses `getUserFromRequest` + 401. Removed dead `corsHeaders` and `onRequestOptions`. | FIXED |
+| 92 | **COP playbook test POST missing auth** — dry-run endpoint had no auth. Fixed: `cop/[id]/playbooks/[pbId]/test.ts` uses `getUserFromRequest` + 401. Removed dead `corsHeaders` and `onRequestOptions`. | FIXED |
 
 ---
 
