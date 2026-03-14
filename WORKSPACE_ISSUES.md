@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-66)
+**Last updated:** 2026-03-14 (Sessions 34-67)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -653,6 +653,23 @@
 |---|-------|--------|
 | 293 | **GenericFrameworkView.tsx** — 3 instances of `setLinkedEvidence([...linkedEvidence, ...])` using stale closure. Fixed: functional updater `prev => [...prev, ...]` | FIXED |
 | 294 | **DeceptionView.tsx** — 3 instances of `setLinkedEvidence([...linkedEvidence, ...])` using stale closure. Fixed: functional updater `prev => [...prev, ...]` | FIXED |
+
+---
+
+## Fixed — v0.17.2 (Session 67)
+
+### CORS (75 API endpoint files missing Access-Control-Allow-Origin on ~435 response instances)
+| # | Issue | Status |
+|---|-------|--------|
+| 295 | **Codebase-wide CORS sweep** — 75 endpoint files across ach/, ai/, claims/, collection/, content-intelligence/, cop/, deception/, equilibrium-analysis/, frameworks/, hamilton-rule/, intelligence/, investigation-packets/, investigations/, tools/, web-scraper had `headers: { 'Content-Type': 'application/json' }` without `'Access-Control-Allow-Origin': '*'`. Applied global fix via sed. Cross-referenced with CLOUDFLARE_LESSONS_LEARNED.md lesson: "Return corsHeaders on ALL responses — including errors." | FIXED |
+
+### PERFORMANCE (4 unbounded queries missing default LIMIT)
+| # | Issue | Status |
+|---|-------|--------|
+| 296 | **relationships.ts** — GET query had optional LIMIT (only if param provided), no default. Users with large networks could exhaust D1 memory. Fixed: default `LIMIT 500` | FIXED |
+| 297 | **actors.ts** — GET query had optional LIMIT, no default. Fixed: default `LIMIT 500` | FIXED |
+| 298 | **deception/aggregate.ts** — MOM actors query (line 51) unbounded. Fixed: `LIMIT 500` | FIXED |
+| 299 | **deception/aggregate.ts** — MOSES sources query (line 187) unbounded. Fixed: `LIMIT 500` | FIXED |
 
 ---
 

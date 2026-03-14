@@ -37,7 +37,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         generated_at: new Date().toISOString(),
       }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -119,13 +119,13 @@ Identify cross-framework patterns, agreements, contradictions, and provide an ov
 
     return new Response(JSON.stringify(validated), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('Intelligence synthesis error:', error)
     return new Response(JSON.stringify({ error: 'Failed to generate synthesis' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

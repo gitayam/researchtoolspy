@@ -31,21 +31,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.claim || !body.claim.trim()) {
       return new Response(JSON.stringify({ error: 'claim is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
     if (!body.candidates || !Array.isArray(body.candidates) || body.candidates.length === 0) {
       return new Response(JSON.stringify({ error: 'candidates array is required and must not be empty' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
     if (body.candidates.length > 25) {
       return new Response(JSON.stringify({ error: 'Maximum 25 candidates per request' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 

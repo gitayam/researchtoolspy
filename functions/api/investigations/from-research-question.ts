@@ -29,7 +29,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Missing required field: research_question_id'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -41,7 +41,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!workspace) {
       return new Response(JSON.stringify({ error: 'No workspace found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -55,7 +55,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Research question not found or not accessible'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -134,7 +134,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       investigation: parsed
     }), {
       status: 201,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[investigations] Error creating from research question:', error)
@@ -143,7 +143,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

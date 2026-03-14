@@ -22,7 +22,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
     if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -36,7 +36,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
         error: 'mention_id is required in URL path'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -48,7 +48,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
         error: 'credibility_impact is required and must be between -50 and +50'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -64,14 +64,14 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
     if (!mention) {
       return new Response(JSON.stringify({ error: 'Entity mention not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
     if (mention.content_owner !== auth.user.id) {
       return new Response(JSON.stringify({ error: 'Unauthorized to update this entity mention' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -90,7 +90,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       success: true,
       message: 'Entity credibility impact updated successfully'
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[Update Entity Credibility] Error:', error)
@@ -99,7 +99,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

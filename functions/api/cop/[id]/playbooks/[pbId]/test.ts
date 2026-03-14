@@ -47,7 +47,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -63,7 +63,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!playbook) {
       return new Response(JSON.stringify({ error: 'Playbook not found' }), {
-        status: 404, headers: { 'Content-Type': 'application/json' },
+        status: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -168,11 +168,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       would_skip,
       events_tested: eventRows.length,
       rules_tested: ruleRows.length,
-    }), { headers: { 'Content-Type': 'application/json' } })
+    }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     console.error('[COP Playbook Test] Error:', error)
     return new Response(JSON.stringify({ error: 'Failed to run dry test' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 }

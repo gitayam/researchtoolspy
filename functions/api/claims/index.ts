@@ -24,7 +24,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         claims: [],
         total: 0
       }), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -77,7 +77,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       claims: parsed,
       total: parsed.length
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[claims] Error listing:', error)
@@ -86,7 +86,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

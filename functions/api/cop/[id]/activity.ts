@@ -47,13 +47,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       console.warn('[COP Activity] DB query failed (table may not exist):', dbError)
     }
 
-    return new Response(JSON.stringify({ activity, total }), { headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ activity, total }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     console.error('[COP Activity] GET error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to fetch activity',
     }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 }
@@ -67,7 +67,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -82,7 +82,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!body.action) {
       return new Response(JSON.stringify({ error: 'action is required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -116,16 +116,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         error: 'Failed to persist activity',
         activity,
-      }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+      }), { status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
     }
 
-    return new Response(JSON.stringify({ activity }), { status: 201, headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ activity }), { status: 201, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     console.error('[COP Activity] POST error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to log activity',
     }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 }

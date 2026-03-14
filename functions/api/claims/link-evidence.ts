@@ -27,7 +27,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -39,7 +39,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'claim_adjustment_id, evidence_id, and relationship are required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -50,7 +50,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'relationship must be one of: supports, contradicts, provides_context'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -65,7 +65,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!claimAdjustment) {
       return new Response(JSON.stringify({ error: 'Claim adjustment not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -73,7 +73,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (claimAdjustment.content_owner !== auth.user.id) {
       return new Response(JSON.stringify({ error: 'Unauthorized to link evidence to this claim' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -87,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!evidence) {
       return new Response(JSON.stringify({ error: 'Evidence not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -95,7 +95,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (evidence.user_id !== auth.user.id) {
       return new Response(JSON.stringify({ error: 'Unauthorized to link this evidence' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -112,7 +112,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         existing_link_id: existing.id
       }), {
         status: 409,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -143,7 +143,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       id,
       message: 'Evidence linked to claim successfully'
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[Link Evidence] Error:', error)
@@ -152,7 +152,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

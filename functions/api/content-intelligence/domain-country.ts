@@ -107,7 +107,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'URL is required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -121,7 +121,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Invalid URL'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -143,7 +143,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: geoData.message || 'Failed to lookup domain country'
       }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -165,7 +165,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify(countryInfo), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {
@@ -175,7 +175,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       error: 'Failed to lookup country'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

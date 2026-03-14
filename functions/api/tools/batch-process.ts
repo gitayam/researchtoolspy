@@ -46,7 +46,7 @@ async function processSingleURL(url: string, operation: string, origin: string):
 
     const response = await fetch(`${origin}${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify(body)
     })
 
@@ -156,14 +156,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.operation) {
       return new Response(JSON.stringify({ error: 'Operation is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
     if (!body.items || body.items.length === 0) {
       return new Response(JSON.stringify({ error: 'Items array is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -174,7 +174,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: `Batch size limited to ${MAX_BATCH_SIZE} items. You provided ${body.items.length} items.`
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -198,7 +198,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'maxWorkers must be between 1 and 5'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 

@@ -48,7 +48,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!url) {
       return new Response(JSON.stringify({ error: 'URL is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -63,7 +63,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         directLink: `https://www.virustotal.com/gui/domain/${domain}`
       }), {
         status: 503,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -87,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         message: 'API request failed, but you can view the report directly on VirusTotal'
       }), {
         status: vtResponse.status === 404 ? 200 : vtResponse.status,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -113,7 +113,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify(securityInfo), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {
@@ -123,7 +123,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

@@ -429,7 +429,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!url) {
       return new Response(JSON.stringify({ error: 'url is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 

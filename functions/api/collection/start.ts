@@ -103,7 +103,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     context.waitUntil(
       fetch(`${agentUrl}/collect`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         body: JSON.stringify(agentRequest)
       }).catch(async (error) => {
         // Update job status on connection failure

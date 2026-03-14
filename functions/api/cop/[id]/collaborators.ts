@@ -29,14 +29,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     ).bind(sessionId).all()
 
     return new Response(JSON.stringify({ collaborators: results ?? [] }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   } catch (error) {
     console.error('[COP Collaborators] GET error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list collaborators',
     }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 }
@@ -50,7 +50,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -103,14 +103,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       collaborator,
       invite_link: `/dashboard/cop/${sessionId}?invite=${inviteToken}`,
     }), {
-      status: 201, headers: { 'Content-Type': 'application/json' },
+      status: 201, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   } catch (error) {
     console.error('[COP Collaborators] POST error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to invite collaborator',
     }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 }
@@ -124,7 +124,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -138,7 +138,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!body.collaborator_id) {
       return new Response(JSON.stringify({ error: 'collaborator_id is required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -164,7 +164,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (updates.length === 0) {
       return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -174,13 +174,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_collaborators SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...bindings).run()
 
-    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     console.error('[COP Collaborators] PUT error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update collaborator',
     }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 }
@@ -194,7 +194,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -202,7 +202,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!body.collaborator_id) {
       return new Response(JSON.stringify({ error: 'collaborator_id is required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -221,14 +221,14 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     })
 
     return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   } catch (error) {
     console.error('[COP Collaborators] DELETE error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to remove collaborator',
     }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 }

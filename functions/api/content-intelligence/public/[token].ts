@@ -15,7 +15,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!token) {
       return new Response(JSON.stringify({ error: 'Share token is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -27,7 +27,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!analysis) {
       return new Response(JSON.stringify({ error: 'Analysis not found or not public' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -63,7 +63,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       archive_urls: parseJsonField(analysis.archive_urls),
       bypass_urls: parseJsonField(analysis.bypass_urls)
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('Public content analysis view error:', error)
@@ -72,7 +72,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

@@ -28,7 +28,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -40,7 +40,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'claim_adjustment_id, entity_id, entity_name, entity_type, and role are required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -51,7 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'entity_type must be one of: person, organization, location, event, other'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -62,7 +62,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'role must be one of: claim_maker, subject, mentioned, affected'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -73,7 +73,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           error: 'credibility_impact must be between -50 and +50'
         }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       }
     }
@@ -89,14 +89,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!claimAdjustment) {
       return new Response(JSON.stringify({ error: 'Claim adjustment not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
     if (claimAdjustment.content_owner !== auth.user.id) {
       return new Response(JSON.stringify({ error: 'Unauthorized to link entities to this claim' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -113,7 +113,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         existing_id: existing.id
       }), {
         status: 409,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -143,7 +143,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       id,
       message: 'Entity linked to claim successfully'
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[Link Entity] Error:', error)
@@ -152,7 +152,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

@@ -103,13 +103,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       milestones,
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('Intelligence timeline error:', error)
     return new Response(JSON.stringify({ error: 'Failed to fetch timeline data' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

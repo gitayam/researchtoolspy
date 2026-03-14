@@ -256,7 +256,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (!file) {
         return new Response(JSON.stringify({ error: 'No file provided' }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       }
 
@@ -268,7 +268,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (size > 10 * 1024 * 1024) {
         return new Response(JSON.stringify({ error: 'File size exceeds 10MB limit' }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       }
 
@@ -296,7 +296,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       } else {
         return new Response(JSON.stringify({ error: 'Unsupported file type. Supported: PDF, HTML, TXT' }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       }
     }
@@ -307,7 +307,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (!body.url) {
         return new Response(JSON.stringify({ error: 'No URL provided' }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       }
 
@@ -321,7 +321,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (!response.ok) {
         return new Response(JSON.stringify({ error: `Failed to fetch URL: ${response.statusText}` }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       }
 
@@ -337,7 +337,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } else {
       return new Response(JSON.stringify({ error: 'Invalid content type. Use multipart/form-data for files or application/json for URLs' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -373,7 +373,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       error: 'Failed to extract content',
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

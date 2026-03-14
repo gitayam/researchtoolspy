@@ -20,7 +20,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -33,7 +33,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'claim_adjustment_id is required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -48,7 +48,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!claim) {
       return new Response(JSON.stringify({ error: 'Claim not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -56,7 +56,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (claim.adjusted_by !== userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized - you can only share your own claim adjustments' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -76,7 +76,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         share_url: `${url.origin}/api/claims/share/${existingShare.share_token}`,
         message: 'Using existing share link'
       }), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -99,7 +99,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       share_url: `${url.origin}/api/claims/share/${shareToken}`,
       message: 'Share link created successfully'
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {
@@ -109,7 +109,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }
@@ -128,7 +128,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'share_token is required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -144,7 +144,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!share) {
       return new Response(JSON.stringify({ error: 'Shared claim not found or expired' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -204,7 +204,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       success: true,
       claim: claimData
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {
@@ -214,7 +214,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

@@ -282,7 +282,7 @@ export async function onRequest(context: any) {
 
         const datasetResponse = await fetch(`${new URL(request.url).origin}/api/datasets`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
           body: JSON.stringify(datasetData),
         })
 

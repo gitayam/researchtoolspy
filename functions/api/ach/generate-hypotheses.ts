@@ -20,7 +20,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Question is required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -30,7 +30,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'OpenAI API key not configured'
       }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -132,7 +132,7 @@ Return format: ["hypothesis 1", "hypothesis 2", ...]`
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

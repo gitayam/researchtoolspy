@@ -98,7 +98,7 @@ Return ONLY valid JSON in this structure:
         contentPreview: content.substring(0, 500) + (content.length > 500 ? '...' : '')
       }
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {

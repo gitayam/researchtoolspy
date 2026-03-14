@@ -134,13 +134,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       coverage_gap_pct: coverageGap,
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('Intelligence KPI error:', error)
     return new Response(JSON.stringify({ error: 'Failed to fetch KPI data' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

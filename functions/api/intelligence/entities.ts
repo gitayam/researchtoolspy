@@ -85,13 +85,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       total_frameworks: totalFrameworks,
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('Intelligence entities error:', error)
     return new Response(JSON.stringify({ error: 'Failed to fetch entity convergence data' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

@@ -48,7 +48,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         details: 'Database binding is not available in environment'
       }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -57,7 +57,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -79,7 +79,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Invalid request body'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -95,7 +95,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         if (!result) {
           return new Response(JSON.stringify({ error: 'Analysis not found' }), {
             status: 404,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
           })
         }
 
@@ -112,7 +112,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         return new Response(JSON.stringify({ analysis }), {
           status: 200,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       } catch (error) {
         console.error('[DEBUG] Failed to load existing analysis:', error)
@@ -121,7 +121,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         }), {
           status: 500,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       }
     }
@@ -130,7 +130,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.error('[DEBUG] No URL provided')
       return new Response(JSON.stringify({ error: 'URL is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -173,7 +173,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         archive_urls: archiveUrls
       }), {
         status: 422, // Use 422 instead of 500 for content extraction failures
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -227,7 +227,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           cache_hit_count: dedupCheck.duplicate_count
         }), {
           status: 200,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       }
     }
@@ -295,7 +295,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       return new Response(JSON.stringify(quickResult), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -473,7 +473,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               race_condition_recovery: true
             }), {
               status: 200,
-              headers: { 'Content-Type': 'application/json' }
+              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
             })
           }
         }
@@ -594,7 +594,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {
@@ -607,7 +607,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       error: 'Analysis failed'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

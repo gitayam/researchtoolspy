@@ -107,7 +107,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -149,7 +149,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!config) {
       return new Response(JSON.stringify({ error: `Unsupported framework: ${framework}` }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -312,7 +312,7 @@ ${jsonFormat}`
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

@@ -17,7 +17,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -31,7 +31,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         error: 'link_id is required in URL path'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -47,7 +47,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!link) {
       return new Response(JSON.stringify({ error: 'Evidence link not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -55,7 +55,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (link.content_owner !== auth.user.id) {
       return new Response(JSON.stringify({ error: 'Unauthorized to remove this evidence link' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -68,7 +68,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       success: true,
       message: 'Evidence link removed successfully'
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[Remove Evidence Link] Error:', error)
@@ -77,7 +77,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

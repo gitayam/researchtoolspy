@@ -308,7 +308,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!url || !framework) {
       return new Response(JSON.stringify({ error: 'URL and framework are required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -322,7 +322,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid URL format' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -405,7 +405,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             technicalDetails: 'Request timeout after 15 seconds'
           }), {
             status: 504,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
           })
         }
         throw fetchError
@@ -453,7 +453,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           technicalDetails: `HTTP ${response.status} ${response.statusText}`
         }), {
           status: response.status,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       }
 
@@ -522,7 +522,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -873,7 +873,7 @@ Return ONLY JSON:
       suggestions
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

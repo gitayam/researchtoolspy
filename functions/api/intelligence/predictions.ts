@@ -48,7 +48,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         generated_at: new Date().toISOString(),
       }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -128,13 +128,13 @@ Provide actionable, forward-looking intelligence recommendations.`
 
     return new Response(JSON.stringify(validated), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('Intelligence predictions error:', error)
     return new Response(JSON.stringify({ error: 'Failed to generate predictions' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

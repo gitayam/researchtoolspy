@@ -22,7 +22,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
     const workspaceId = data.workspace_id || context.request.headers.get('X-Workspace-ID') || '1'
@@ -32,7 +32,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'analysis_id is required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -46,7 +46,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Content analysis not found'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -202,7 +202,7 @@ Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2",
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

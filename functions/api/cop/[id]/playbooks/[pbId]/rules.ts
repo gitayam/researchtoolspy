@@ -59,7 +59,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
     if (!await verifyPlaybookSession(env, pbId, sessionId)) {
       return new Response(JSON.stringify({ error: 'Playbook not found' }), {
-        status: 404, headers: { 'Content-Type': 'application/json' },
+        status: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -68,11 +68,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     ).bind(pbId).all()
 
     const rules = (rows.results || []).map(parseRule)
-    return new Response(JSON.stringify({ rules }), { headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ rules }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     console.error('[COP Playbook Rules] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list rules' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 }
@@ -86,13 +86,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
     if (!await verifyPlaybookSession(env, pbId, sessionId)) {
       return new Response(JSON.stringify({ error: 'Playbook not found' }), {
-        status: 404, headers: { 'Content-Type': 'application/json' },
+        status: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -100,13 +100,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!body.name?.trim()) {
       return new Response(JSON.stringify({ error: 'Name is required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
     if (!body.trigger_event?.trim()) {
       return new Response(JSON.stringify({ error: 'trigger_event is required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -115,7 +115,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     for (const action of actions) {
       if (action.action && !VALID_ACTION_TYPES.includes(action.action)) {
         return new Response(JSON.stringify({ error: `Invalid action type: ${action.action}` }), {
-          status: 400, headers: { 'Content-Type': 'application/json' },
+          status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         })
       }
     }
@@ -149,12 +149,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).run()
 
     return new Response(JSON.stringify({ id, message: 'Rule created' }), {
-      status: 201, headers: { 'Content-Type': 'application/json' },
+      status: 201, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   } catch (error) {
     console.error('[COP Playbook Rules] Create error:', error)
     return new Response(JSON.stringify({ error: 'Failed to create rule' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 }
@@ -168,13 +168,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
     if (!await verifyPlaybookSession(env, pbId, sessionId)) {
       return new Response(JSON.stringify({ error: 'Playbook not found' }), {
-        status: 404, headers: { 'Content-Type': 'application/json' },
+        status: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -182,7 +182,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!body.rule_id) {
       return new Response(JSON.stringify({ error: 'rule_id is required in body' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -192,7 +192,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Rule not found' }), {
-        status: 404, headers: { 'Content-Type': 'application/json' },
+        status: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -229,7 +229,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       for (const action of body.actions) {
         if (action.action && !VALID_ACTION_TYPES.includes(action.action)) {
           return new Response(JSON.stringify({ error: `Invalid action type: ${action.action}` }), {
-            status: 400, headers: { 'Content-Type': 'application/json' },
+            status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
           })
         }
       }
@@ -243,7 +243,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (updates.length === 0) {
       return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -255,11 +255,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_playbook_rules SET ${updates.join(', ')} WHERE id = ? AND playbook_id = ?`
     ).bind(...bindings).run()
 
-    return new Response(JSON.stringify({ id: body.rule_id, message: 'Rule updated' }), { headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ id: body.rule_id, message: 'Rule updated' }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     console.error('[COP Playbook Rules] Update error:', error)
     return new Response(JSON.stringify({ error: 'Failed to update rule' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 }
@@ -275,19 +275,19 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
     if (!await verifyPlaybookSession(env, pbId, sessionId)) {
       return new Response(JSON.stringify({ error: 'Playbook not found' }), {
-        status: 404, headers: { 'Content-Type': 'application/json' },
+        status: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
     if (!ruleId) {
       return new Response(JSON.stringify({ error: 'rule_id query param is required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -297,7 +297,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Rule not found' }), {
-        status: 404, headers: { 'Content-Type': 'application/json' },
+        status: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -305,11 +305,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     await env.DB.prepare('DELETE FROM cop_playbook_log WHERE rule_id = ?').bind(ruleId).run()
     await env.DB.prepare('DELETE FROM cop_playbook_rules WHERE id = ? AND playbook_id = ?').bind(ruleId, pbId).run()
 
-    return new Response(JSON.stringify({ message: 'Rule deleted' }), { headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ message: 'Rule deleted' }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     console.error('[COP Playbook Rules] Delete error:', error)
     return new Response(JSON.stringify({ error: 'Failed to delete rule' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 }

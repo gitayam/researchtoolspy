@@ -30,7 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         details: 'DB binding is not available. Please configure D1 database in Cloudflare Pages settings.'
       }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -48,6 +48,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       FROM actors a
       WHERE a.workspace_id = ?
         AND a.deception_profile IS NOT NULL
+      LIMIT 500
     `).bind(workspaceId).all()
 
     let momStats = { high: 0, medium: 0, low: 0, avg_score: 0, total: 0 }
@@ -184,6 +185,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       FROM sources s
       WHERE s.workspace_id = ?
         AND s.moses_assessment IS NOT NULL
+      LIMIT 500
     `).bind(workspaceId).all()
 
     let mosesStats = { compromised: 0, unreliable: 0, solid: 0, avg_score: 0, total: 0 }
@@ -455,7 +457,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
 
   } catch (error) {
@@ -465,7 +467,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

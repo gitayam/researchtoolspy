@@ -88,13 +88,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       by_severity: bySeverity,
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('Intelligence contradictions error:', error)
     return new Response(JSON.stringify({ error: 'Failed to detect contradictions' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

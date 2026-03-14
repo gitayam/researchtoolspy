@@ -143,10 +143,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       query += ` ORDER BY created_at DESC`
 
       const limit = url.searchParams.get('limit')
-      if (limit) {
-        query += ` LIMIT ?`
-        params.push(parseInt(limit) || 50)
-      }
+      query += ` LIMIT ?`
+      params.push(limit ? (parseInt(limit) || 50) : 500)
 
       const { results } = await env.DB.prepare(query).bind(...params).all()
 

@@ -256,7 +256,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.url) {
       return new Response(JSON.stringify({ error: 'URL is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -267,7 +267,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch (e) {
       return new Response(JSON.stringify({ error: 'Invalid URL format' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -288,7 +288,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             : undefined
         }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       }
     } catch (fetchError: any) {
@@ -297,7 +297,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         suggestion: 'Unable to access the URL. It may be down, blocked, or require authentication.'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -327,7 +327,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: 'Internal server error'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

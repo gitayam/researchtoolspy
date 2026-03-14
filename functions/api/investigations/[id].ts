@@ -53,7 +53,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'Investigation not found or not accessible'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -69,7 +69,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       success: true,
       investigation: parsed
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[investigations] Error fetching:', error)
@@ -78,7 +78,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }
@@ -103,7 +103,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         error: 'Investigation not found or not accessible'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -137,7 +137,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         error: 'No fields to update'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -223,7 +223,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       success: true,
       investigation: parsed
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[investigations] Error updating:', error)
@@ -232,7 +232,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }
@@ -256,7 +256,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         error: 'Investigation not found or not accessible'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -304,7 +304,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       success: true,
       message: 'Investigation deleted successfully'
     }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[investigations] Error deleting:', error)
@@ -313,7 +313,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }

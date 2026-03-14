@@ -28,7 +28,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -40,7 +40,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'ACH analysis ID and evidence ID are required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -52,7 +52,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!analysis) {
       return new Response(JSON.stringify({ error: 'Analysis not found in workspace' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -64,7 +64,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!evidence) {
       return new Response(JSON.stringify({ error: 'Evidence not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -78,7 +78,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Evidence already linked to this analysis'
       }), {
         status: 409,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -105,7 +105,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       added_at: now
     }), {
       status: 201,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[ACH Evidence] Link error:', error)
@@ -114,7 +114,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       error: 'Failed to link evidence'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }
@@ -129,7 +129,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -139,7 +139,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!id) {
       return new Response(JSON.stringify({ error: 'Link ID is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -154,7 +154,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Evidence link not found in workspace' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 
@@ -164,7 +164,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     ).bind(id).run()
 
     return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   } catch (error) {
     console.error('[ACH Evidence] Unlink error:', error)
@@ -173,7 +173,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       error: 'Failed to unlink evidence'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     })
   }
 }
