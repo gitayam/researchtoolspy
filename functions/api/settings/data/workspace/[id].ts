@@ -122,7 +122,6 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     return Response.json(
       {
         error: 'Failed to clear workspace data',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )

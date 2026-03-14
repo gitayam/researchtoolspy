@@ -173,7 +173,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[ExtractTimeline] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to extract timeline events',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), { status: 500, headers: corsHeaders })
   }
 }

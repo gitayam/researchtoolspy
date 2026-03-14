@@ -86,6 +86,6 @@ Respond with ONLY a JSON array of objects with "label" and "description" fields.
     return new Response(JSON.stringify({ criteria }), { headers: corsHeaders })
   } catch (err: any) {
     console.error('[CrossTable AI Criteria] Error:', err)
-    return new Response(JSON.stringify({ error: err.message || 'AI request failed' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'AI request failed' }), { status: 500, headers: corsHeaders })
   }
 }

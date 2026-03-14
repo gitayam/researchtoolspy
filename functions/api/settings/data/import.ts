@@ -129,7 +129,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           body.options.overwrite
         )
       } catch (error) {
-        errors.push(`Settings import failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        console.error('Settings import failed:', error)
+        errors.push('Settings import failed')
       }
     }
 
@@ -162,7 +163,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return Response.json(
       {
         error: 'Failed to import data',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )

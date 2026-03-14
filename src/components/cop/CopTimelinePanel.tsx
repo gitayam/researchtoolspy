@@ -258,7 +258,7 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
     try {
       const res = await fetch('/api/tools/extract-timeline', {
         method: 'POST',
-        headers: { ...getCopHeaders(), 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ url: fullUrl }),
       })
 

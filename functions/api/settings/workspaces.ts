@@ -105,7 +105,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return Response.json(
       {
         error: 'Failed to load workspaces',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )
@@ -170,7 +169,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return Response.json(
       {
         error: 'Failed to create workspace',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )

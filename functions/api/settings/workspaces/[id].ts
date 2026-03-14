@@ -97,7 +97,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     return Response.json(
       {
         error: 'Failed to update workspace',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )
@@ -153,7 +152,6 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     return Response.json(
       {
         error: 'Failed to delete workspace',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )

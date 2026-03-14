@@ -116,7 +116,7 @@ export function CrossTableToolbar({
     try {
       const res = await fetch(`/api/cross-table/${table.id}/share`, {
         method: 'POST',
-        headers: { ...getCopHeaders(), 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
       })
       if (!res.ok) throw new Error('Failed to generate share link')
       const data = await res.json()

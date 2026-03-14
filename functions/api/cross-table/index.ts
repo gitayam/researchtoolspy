@@ -33,7 +33,7 @@ export async function onRequest(context: any) {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
   } catch (err: any) {
     console.error('[CrossTable] Error:', err)
-    return new Response(JSON.stringify({ error: err.message || 'Internal error' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: corsHeaders })
   }
 }
 

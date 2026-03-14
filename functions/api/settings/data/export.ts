@@ -206,7 +206,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return Response.json(
       {
         error: 'Failed to export data',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )

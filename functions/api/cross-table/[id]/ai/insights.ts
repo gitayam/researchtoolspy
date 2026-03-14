@@ -109,6 +109,6 @@ Provide analysis as a JSON object with these fields:
     return new Response(JSON.stringify({ insights, results: rankingSummary }), { headers: corsHeaders })
   } catch (err: any) {
     console.error('[CrossTable AI Insights] Error:', err)
-    return new Response(JSON.stringify({ error: err.message || 'AI request failed' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'AI request failed' }), { status: 500, headers: corsHeaders })
   }
 }

@@ -96,7 +96,7 @@ Respond with a JSON object with a "scores" array. Each entry should have:
     return new Response(JSON.stringify({ suggestions, row_id }), { headers: corsHeaders })
   } catch (err: any) {
     console.error('[CrossTable AI Score] Error:', err)
-    return new Response(JSON.stringify({ error: err.message || 'AI request failed' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'AI request failed' }), { status: 500, headers: corsHeaders })
   }
 }
 

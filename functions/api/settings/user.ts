@@ -187,7 +187,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return Response.json(
       {
         error: 'Failed to load settings',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )
@@ -238,7 +237,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     return Response.json(
       {
         error: 'Failed to update settings',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )
@@ -275,7 +273,6 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     return Response.json(
       {
         error: 'Failed to reset settings',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )

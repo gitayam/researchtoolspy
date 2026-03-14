@@ -216,8 +216,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   } catch (error: unknown) {
     console.error('Collection callback error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Callback failed'
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: 'Callback processing failed' }), {
       status: 500,
       headers: corsHeaders
     })

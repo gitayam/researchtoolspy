@@ -68,7 +68,7 @@ export function SetupWizard({
     try {
       const res = await fetch('/api/cross-table/ai/suggest-setup', {
         method: 'POST',
-        headers: { ...getCopHeaders(), 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           topic: `${title.trim()}${description.trim() ? '. ' + description.trim() : ''}`,
           template_type: templateType,

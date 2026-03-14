@@ -137,7 +137,6 @@ Questions? Visit https://omnicore.app/help or contact support
     return Response.json(
       {
         error: 'Failed to generate hash backup',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )

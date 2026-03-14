@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-14 (cycle 20)
+> Last updated: 2026-03-14 (cycle 21)
 > Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
@@ -216,6 +216,15 @@
 **Remaining:** 10 files retain `omnicore_user_hash` for auth guard checks (UI conditionals like `if (!userHash) return`) — these are legitimate uses, not header construction
 **Impact:** Single auth change point, consistent header format, -200+ LOC of duplicated logic
 
+### F37. Error Message Leak Hardening Round 2 — Cross-Table, Settings, Tools
+**Was:** 21 additional API endpoints (cross-table, settings, tools) still returning `err.message` or `error.message` in 500 responses — missed by the initial F26 hardening pass.
+**Fix:** Replaced all leaked error messages with generic strings (`'Internal server error'`, `'AI request failed'`). console.error preserved for server-side logging.
+**Files:** 21 files across `functions/api/cross-table/`, `functions/api/settings/`, `functions/api/tools/`, `functions/api/public/`
+
+### F38. Redundant Content-Type Spread Cleanup
+**Was:** 5 frontend files used `{ ...getCopHeaders(), 'Content-Type': 'application/json' }` — redundant because `getCopHeaders()` already includes Content-Type.
+**Fix:** Simplified to `getCopHeaders()` in SetupWizard, CrossTableToolbar, CopClaimsPanel, CopTimelinePanel.
+
 ### F36. Mobile Bottom Tab Navigation (UI/UX Phase 4)
 **Was:** Mobile users had to open the hamburger sidebar drawer to navigate between dashboard sections — no persistent navigation visible on mobile/tablet.
 **Fix:**
@@ -346,3 +355,5 @@
 34. ~~**New** — Cross-table AI error leak + inline auth~~ DONE (F32) — hardened error, getCopHeaders()
 35. ~~**New** — Dependency security (jspdf critical, axios/react-router high)~~ DONE (F33) — upgraded 3 packages
 36. ~~**New** — Remaining inline `omnicore_user_hash` in ~35 files~~ DONE (F34) — 36 files refactored, 73 now use getCopHeaders()
+37. ~~**New** — Error message leak hardening round 2~~ DONE (F37) — 21 endpoints across cross-table, settings, tools
+38. ~~**New** — Redundant Content-Type spread cleanup~~ DONE (F38) — 5 frontend files simplified

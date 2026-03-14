@@ -225,7 +225,7 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
       if (isGeoconfirmedUrl(fullUrl)) {
         const gcRes = await fetch('/api/tools/geoconfirmed', {
           method: 'POST',
-          headers: { ...getCopHeaders(), 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({ url: fullUrl, enriched: true }),
         })
 
@@ -323,7 +323,7 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
 
       const res = await fetch('/api/tools/extract-claims', {
         method: 'POST',
-        headers: { ...getCopHeaders(), 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           url: fullUrl,
           include_entities: true,
