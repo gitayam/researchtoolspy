@@ -261,7 +261,7 @@ export function COGPowerPointExport({
           { text: (idx + 1).toString(), options: { fontSize: 11 } },
           { text: vuln.vulnerability.substring(0, 60) + (vuln.vulnerability.length > 60 ? '...' : ''), options: { fontSize: 11 } },
           { text: vuln.vulnerability_type, options: { fontSize: 10 } },
-          { text: vuln.composite_score.toString(), options: { fontSize: 11, bold: true, color: scoreColor } },
+          { text: String(vuln.composite_score ?? 0), options: { fontSize: 11, bold: true, color: scoreColor } },
         ])
       })
 

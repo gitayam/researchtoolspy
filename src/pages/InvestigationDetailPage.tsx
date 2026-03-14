@@ -64,16 +64,19 @@ export function InvestigationDetailPage() {
 
   useEffect(() => {
     if (id) {
-      loadInvestigation()
+      const controller = new AbortController()
+      loadInvestigation(controller.signal)
+      return () => controller.abort()
     }
   }, [id])
 
-  const loadInvestigation = async () => {
+  const loadInvestigation = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       setError(null)
       const response = await fetch(`/api/investigations/${id}`, {
         headers: getCopHeaders(),
+        signal,
       })
 
       if (!response.ok) {
@@ -94,7 +97,8 @@ export function InvestigationDetailPage() {
       } else {
         setError(t('investigation:invalidResponse'))
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === 'AbortError') return
       console.error('Error loading investigation:', error)
       setError(t('investigation:networkError'))
     } finally {
@@ -105,10 +109,10 @@ export function InvestigationDetailPage() {
   // Check for linked COP workspace
   useEffect(() => {
     if (!id) return
+    const controller = new AbortController()
     const checkLinkedCop = async () => {
       try {
-        // Check if a COP session is linked to this investigation
-        const res = await fetch(`/api/cop/sessions?investigation_id=${id}`, { headers: getCopHeaders() })
+        const res = await fetch(`/api/cop/sessions?investigation_id=${id}`, { headers: getCopHeaders(), signal: controller.signal })
         if (res.ok) {
           const data = await res.json()
           const sessions = data.sessions ?? data ?? []
@@ -116,13 +120,15 @@ export function InvestigationDetailPage() {
             setLinkedCopId(sessions[0].id)
           }
         }
-      } catch {
+      } catch (error: any) {
+        if (error?.name === 'AbortError') return
         // Non-fatal: just don't redirect
       } finally {
         setCheckingCop(false)
       }
     }
     checkLinkedCop()
+    return () => controller.abort()
   }, [id])
 
   const getTypeIcon = (type: string) => {

@@ -206,7 +206,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const limit = url.searchParams.get('limit')
       if (limit) {
         query += ` LIMIT ?`
-        params.push(parseInt(limit))
+        params.push(parseInt(limit) || 50)
       }
 
       const { results } = await env.DB.prepare(query).bind(...params).all()

@@ -29,19 +29,20 @@ export function ACHAnalysisPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [evidenceSelectorOpen, setEvidenceSelectorOpen] = useState(false)
 
-  const loadAnalysis = async () => {
+  const loadAnalysis = async (signal?: AbortSignal) => {
     if (!id) return
 
     try {
       setLoading(true)
-      const response = await fetch(`/api/ach?id=${id}`)
+      const response = await fetch(`/api/ach?id=${id}`, { signal })
       if (response.ok) {
         const data = await response.json()
         setAnalysis(data)
       } else {
         throw new Error('Analysis not found')
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === 'AbortError') return
       console.error('Failed to load analysis:', error)
       alert(t('ach:alerts.loadFailed'))
       navigate('/dashboard/analysis-frameworks/ach-dashboard')
@@ -51,7 +52,9 @@ export function ACHAnalysisPage() {
   }
 
   useEffect(() => {
-    loadAnalysis()
+    const controller = new AbortController()
+    loadAnalysis(controller.signal)
+    return () => controller.abort()
   }, [id])
 
   const handleUpdateScore = async (

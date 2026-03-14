@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-57)
+**Last updated:** 2026-03-14 (Sessions 34-58)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -427,6 +427,36 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 192 | **ach/from-content-intelligence.ts 2x bare `JSON.parse` in template literal** — `analysis.topics` and `analysis.entities` parsed inside string interpolation without try-catch. Corrupted JSON crashes ACH conversion prompt. Fixed: IIFE try-catch with `'N/A'` fallback | FIXED |
+
+---
+
+## Fixed — v0.16.3 (Session 58)
+
+### parseInt NaN GUARD (4 API endpoints)
+| # | Issue | Status |
+|---|-------|--------|
+| 193 | **actors.ts `parseInt(limit)` without NaN fallback** — User-supplied `?limit=abc` produces NaN, causing SQL LIMIT NaN. Fixed: `parseInt(limit) \|\| 50` | FIXED |
+| 194 | **sources.ts `parseInt(limit)` without NaN fallback** — Same pattern. Fixed | FIXED |
+| 195 | **relationships.ts `parseInt(limit)` without NaN fallback** — Same pattern. Fixed | FIXED |
+| 196 | **behaviors.ts `parseInt(limit)` without NaN fallback** — Same pattern. Fixed | FIXED |
+
+### CRASH PREVENTION (.toString on undefined)
+| # | Issue | Status |
+|---|-------|--------|
+| 197 | **COGPDFExport.tsx `vuln.composite_score.toString()`** — Crashes if composite_score is undefined (AI-generated data). Fixed: `String(vuln.composite_score ?? 0)` | FIXED |
+| 198 | **COGPowerPointExport.tsx `vuln.composite_score.toString()`** — Same pattern in PPTX export. Fixed | FIXED |
+
+### MEMORY LEAK (3 pages missing AbortController)
+| # | Issue | Status |
+|---|-------|--------|
+| 199 | **ClaimsPage.tsx useEffect fetch without AbortController** — setState on unmounted component. Fixed: AbortController with cleanup | FIXED |
+| 200 | **ACHAnalysisPage.tsx useEffect fetch without AbortController** — Same pattern. Fixed | FIXED |
+| 201 | **InvestigationDetailPage.tsx 2x useEffect fetch without AbortController** — Main load + linked COP check both unguarded. Fixed: AbortController on both | FIXED |
+
+### DATA ISOLATION
+| # | Issue | Status |
+|---|-------|--------|
+| 202 | **comments.ts workspace_id destructured from body only** — POST fell back to header then '1', but destructuring skipped body.workspace_id. Fixed: chain `body.workspace_id \|\| header \|\| '1'` | FIXED |
 
 ---
 

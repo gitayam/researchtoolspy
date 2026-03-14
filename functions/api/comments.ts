@@ -155,7 +155,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         entity_id,
         parent_comment_id,
         content,
-        workspace_id = request.headers.get('X-Workspace-ID') || '1'
+        workspace_id = body.workspace_id || request.headers.get('X-Workspace-ID') || '1'
       } = body
 
       if (!entity_type || !entity_id || !content) {

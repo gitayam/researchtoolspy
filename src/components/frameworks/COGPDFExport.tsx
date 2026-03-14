@@ -344,7 +344,7 @@ export function COGPDFExport({
           (idx + 1).toString(),
           vuln.vulnerability.substring(0, 60) + (vuln.vulnerability.length > 60 ? '...' : ''),
           cog?.description?.substring(0, 30) || 'N/A',
-          vuln.composite_score.toString(),
+          String(vuln.composite_score ?? 0),
           vuln.vulnerability_type || 'N/A'
         ]
       })

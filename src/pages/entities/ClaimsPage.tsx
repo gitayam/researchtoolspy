@@ -37,11 +37,13 @@ export function ClaimsPage() {
 
   useEffect(() => {
     if (!id) {
-      loadClaims()
+      const controller = new AbortController()
+      loadClaims(controller.signal)
+      return () => controller.abort()
     }
   }, [filterStatus, filterCategory, id])
 
-  const loadClaims = async () => {
+  const loadClaims = async (signal?: AbortSignal) => {
     setLoading(true)
     try {
       const params = new URLSearchParams({
@@ -50,15 +52,16 @@ export function ClaimsPage() {
       })
 
       const response = await fetch(`/api/claims?${params}`, {
-        credentials: 'include'
+        credentials: 'include',
+        signal
       })
       const data = await response.json()
 
       if (response.ok) {
         setClaims(data.claims || [])
       }
-    } catch (error) {
-      console.error('Failed to load claims:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to load claims:', error)
     } finally {
       setLoading(false)
     }
