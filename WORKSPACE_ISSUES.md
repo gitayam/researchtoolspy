@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-58)
+**Last updated:** 2026-03-14 (Sessions 34-59)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -457,6 +457,27 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 202 | **comments.ts workspace_id destructured from body only** — POST fell back to header then '1', but destructuring skipped body.workspace_id. Fixed: chain `body.workspace_id \|\| header \|\| '1'` | FIXED |
+
+---
+
+## Fixed — v0.16.4 (Session 59)
+
+### SECURITY (XSS)
+| # | Issue | Status |
+|---|-------|--------|
+| 203 | **CommentThread.tsx `dangerouslySetInnerHTML` with unsanitized user content** — `comment.content_html` rendered as raw HTML without DOMPurify or sanitization. Any user-submitted HTML/JS in comments executes in other users' browsers. Fixed: replaced with safe text rendering `{comment.content}` | FIXED |
+
+### DATA ISOLATION (cross-workspace leak)
+| # | Issue | Status |
+|---|-------|--------|
+| 204 | **framework-datasets.ts GET missing workspace_id filter** — Query joined datasets without workspace scoping. User A could access User B's datasets by guessing framework_id. Fixed: added `AND e.workspace_id = ?` with workspace header chain | FIXED |
+
+### MEMORY LEAK (5 useEffects across 3 detail views)
+| # | Issue | Status |
+|---|-------|--------|
+| 205 | **ActorDetailView.tsx 2x useEffect fetch without AbortController** — MOM assessments + relationships fetch both unguarded. Fixed: AbortController on both | FIXED |
+| 206 | **EventDetailView.tsx 2x useEffect fetch without AbortController** — MOM assessments (with nested actor fetches) + relationships. Fixed: AbortController on both, including inner fetch loop | FIXED |
+| 207 | **SourceDetailView.tsx useEffect fetch without AbortController** — Relationships fetch unguarded. Fixed | FIXED |
 
 ---
 

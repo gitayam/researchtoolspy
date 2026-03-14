@@ -27,6 +27,7 @@ export async function onRequest(context: any) {
     if (request.method === 'GET') {
       if (frameworkId) {
         // Get all dataset linked to this framework
+        const workspaceId = url.searchParams.get('workspace_id') || request.headers.get('X-Workspace-ID') || '1'
         const links = await env.DB.prepare(`
           SELECT
             fe.*,
@@ -39,9 +40,9 @@ export async function onRequest(context: any) {
             e.tags
           FROM framework_datasets fe
           JOIN datasets e ON fe.dataset_id = e.id
-          WHERE fe.framework_id = ?
+          WHERE fe.framework_id = ? AND e.workspace_id = ?
           ORDER BY fe.created_at DESC
-        `).bind(frameworkId).all()
+        `).bind(frameworkId, workspaceId).all()
 
         const safeJSON = (val: any, fallback: any = []) => {
           if (!val) return fallback

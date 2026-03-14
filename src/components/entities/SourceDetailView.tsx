@@ -29,15 +29,15 @@ export function SourceDetailView({ source, onEdit, onDelete }: SourceDetailViewP
 
   // Load relationships
   useEffect(() => {
+    const controller = new AbortController()
     const loadRelationships = async () => {
       setLoadingRelationships(true)
       try {
-        const response = await fetch(`/api/relationships?entity_id=${source.id}&workspace_id=${source.workspace_id}`)
+        const response = await fetch(`/api/relationships?entity_id=${source.id}&workspace_id=${source.workspace_id}`, { signal: controller.signal })
         if (response.ok) {
           const data = await response.json()
           setRelationships(data.relationships || [])
 
-          // Load entity names for display
           const uniqueEntityIds = new Set<string>()
           data.relationships.forEach((rel: Relationship) => {
             if (rel.source_entity_id !== source.id) uniqueEntityIds.add(rel.source_entity_id)
@@ -50,8 +50,8 @@ export function SourceDetailView({ source, onEdit, onDelete }: SourceDetailViewP
           }
           setEntityNames(names)
         }
-      } catch (error) {
-        console.error('Failed to load relationships:', error)
+      } catch (error: any) {
+        if (error?.name !== 'AbortError') console.error('Failed to load relationships:', error)
       } finally {
         setLoadingRelationships(false)
       }
@@ -60,6 +60,7 @@ export function SourceDetailView({ source, onEdit, onDelete }: SourceDetailViewP
     if (source.id) {
       loadRelationships()
     }
+    return () => controller.abort()
   }, [source.id, source.workspace_id])
 
   const getSourceTypeIcon = (type: string) => {

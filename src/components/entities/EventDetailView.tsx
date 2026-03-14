@@ -32,32 +32,33 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
 
   // Load MOM assessments for this event
   useEffect(() => {
+    const controller = new AbortController()
     const loadMomAssessments = async () => {
       setLoadingMom(true)
       try {
-        const response = await fetch(`/api/mom-assessments?event_id=${event.id}`)
+        const response = await fetch(`/api/mom-assessments?event_id=${event.id}`, { signal: controller.signal })
         if (response.ok) {
           const data = await response.json()
           setMomAssessments(data.assessments || [])
 
-          // Load actor names
           const uniqueActorIds = [...new Set((data.assessments || []).map((a: MOMAssessment) => a.actor_id))] as string[]
           const names: Record<string, string> = {}
           for (const actorId of uniqueActorIds) {
             try {
-              const actorResponse = await fetch(`/api/actors/${actorId}`)
+              const actorResponse = await fetch(`/api/actors/${actorId}`, { signal: controller.signal })
               if (actorResponse.ok) {
                 const actorData = await actorResponse.json()
                 names[actorId] = actorData.actor.name
               }
-            } catch (e) {
+            } catch (e: any) {
+              if (e?.name === 'AbortError') return
               console.error(`Failed to load actor ${actorId}:`, e)
             }
           }
           setActorNames(names)
         }
-      } catch (error) {
-        console.error('Failed to load MOM assessments:', error)
+      } catch (error: any) {
+        if (error?.name !== 'AbortError') console.error('Failed to load MOM assessments:', error)
       } finally {
         setLoadingMom(false)
       }
@@ -66,19 +67,20 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
     if (event.id) {
       loadMomAssessments()
     }
+    return () => controller.abort()
   }, [event.id])
 
   // Load relationships
   useEffect(() => {
+    const controller = new AbortController()
     const loadRelationships = async () => {
       setLoadingRelationships(true)
       try {
-        const response = await fetch(`/api/relationships?entity_id=${event.id}&workspace_id=${event.workspace_id}`)
+        const response = await fetch(`/api/relationships?entity_id=${event.id}&workspace_id=${event.workspace_id}`, { signal: controller.signal })
         if (response.ok) {
           const data = await response.json()
           setRelationships(data.relationships || [])
 
-          // Load entity names for display
           const uniqueEntityIds = new Set<string>()
           data.relationships.forEach((rel: Relationship) => {
             if (rel.source_entity_id !== event.id) uniqueEntityIds.add(rel.source_entity_id)
@@ -91,8 +93,8 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
           }
           setEntityNames(names)
         }
-      } catch (error) {
-        console.error('Failed to load relationships:', error)
+      } catch (error: any) {
+        if (error?.name !== 'AbortError') console.error('Failed to load relationships:', error)
       } finally {
         setLoadingRelationships(false)
       }
@@ -101,6 +103,7 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
     if (event.id) {
       loadRelationships()
     }
+    return () => controller.abort()
   }, [event.id, event.workspace_id])
 
   const getEventTypeIcon = (type: string) => {

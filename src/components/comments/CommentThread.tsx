@@ -238,7 +238,7 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
               </div>
             ) : (
               <>
-                <p className="mt-1 text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: comment.content_html || comment.content }} />
+                <p className="mt-1 text-sm whitespace-pre-wrap">{comment.content}</p>
 
                 <div className="flex items-center gap-2 mt-2">
                   <Button

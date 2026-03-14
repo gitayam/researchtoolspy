@@ -40,18 +40,20 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
 
   // Load MOM assessments for this actor
   useEffect(() => {
+    const controller = new AbortController()
     const loadMomAssessments = async () => {
       setLoadingMom(true)
       try {
         const response = await fetch(`/api/mom-assessments?actor_id=${actor.id}`, {
           headers: getCopHeaders(),
+          signal: controller.signal,
         })
         if (response.ok) {
           const data = await response.json()
           setMomAssessments(data.assessments || [])
         }
-      } catch (error) {
-        console.error('Failed to load MOM assessments:', error)
+      } catch (error: any) {
+        if (error?.name !== 'AbortError') console.error('Failed to load MOM assessments:', error)
       } finally {
         setLoadingMom(false)
       }
@@ -60,37 +62,37 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
     if (actor.id) {
       loadMomAssessments()
     }
+    return () => controller.abort()
   }, [actor.id])
 
   // Load relationships for this actor
   useEffect(() => {
+    const controller = new AbortController()
     const loadRelationships = async () => {
       setLoadingRelationships(true)
       try {
         const response = await fetch(`/api/relationships?entity_id=${actor.id}&workspace_id=${actor.workspace_id}`, {
           headers: getCopHeaders(),
+          signal: controller.signal,
         })
         if (response.ok) {
           const data = await response.json()
           setRelationships(data.relationships || [])
 
-          // Load entity names
           const uniqueEntityIds = new Set<string>()
           ;(data.relationships || []).forEach((rel: Relationship) => {
             if (rel.source_entity_id !== actor.id) uniqueEntityIds.add(rel.source_entity_id)
             if (rel.target_entity_id !== actor.id) uniqueEntityIds.add(rel.target_entity_id)
           })
 
-          // TODO: Batch load entity names
           const names: Record<string, string> = {}
           for (const entityId of uniqueEntityIds) {
-            // For now, just use truncated ID
             names[entityId] = entityId.substring(0, 8)
           }
           setEntityNames(names)
         }
-      } catch (error) {
-        console.error('Failed to load relationships:', error)
+      } catch (error: any) {
+        if (error?.name !== 'AbortError') console.error('Failed to load relationships:', error)
       } finally {
         setLoadingRelationships(false)
       }
@@ -99,6 +101,7 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
     if (actor.id) {
       loadRelationships()
     }
+    return () => controller.abort()
   }, [actor.id])
 
   // Load claims for this actor
