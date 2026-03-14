@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast'
 import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog'
 import { generateAccountHash } from '@/lib/hash-auth'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { WorkspaceInvite, CreateWorkspaceInviteRequest, WorkspaceMemberWithNickname } from '@/types/workspace-invites'
 
 interface Workspace {
@@ -71,21 +72,18 @@ export function CollaborationPage() {
     }
   }, [selectedWorkspace])
 
+  const getAuthHeaders = (): HeadersInit => {
+    const headers: HeadersInit = { ...getCopHeaders() }
+    const authToken = localStorage.getItem('auth_token')
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`
+    }
+    return headers
+  }
+
   const fetchWorkspaces = async () => {
     try {
-      const userHash = localStorage.getItem('omnicore_user_hash')
-      const headers: HeadersInit = {}
-
-      if (userHash && userHash !== 'guest') {
-        headers['X-User-Hash'] = userHash
-      } else {
-        const authToken = localStorage.getItem('auth_token')
-        if (authToken) {
-          headers['Authorization'] = `Bearer ${authToken}`
-        }
-      }
-
-      const response = await fetch('/api/workspaces', { headers })
+      const response = await fetch('/api/workspaces', { headers: getAuthHeaders() })
 
       if (response.ok) {
         const data = await response.json()
@@ -112,9 +110,7 @@ export function CollaborationPage() {
 
     try {
       const response = await fetch(`/api/workspaces/${selectedWorkspace.id}/members`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-        }
+        headers: getAuthHeaders(),
       })
 
       if (response.ok) {
@@ -131,9 +127,7 @@ export function CollaborationPage() {
 
     try {
       const response = await fetch(`/api/workspaces/${selectedWorkspace.id}/invites`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-        }
+        headers: getAuthHeaders(),
       })
 
       if (response.ok) {
@@ -152,11 +146,8 @@ export function CollaborationPage() {
     try {
       const response = await fetch(`/api/workspaces/${selectedWorkspace.id}/invites`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-        },
-        body: JSON.stringify(createForm)
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(createForm),
       })
 
       if (!response.ok) {
@@ -218,9 +209,7 @@ export function CollaborationPage() {
     try {
       const response = await fetch(`/api/workspaces/${selectedWorkspace.id}/invites/${inviteId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-        }
+        headers: getAuthHeaders(),
       })
 
       if (!response.ok) {

@@ -1,5 +1,19 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-03-14 - Collaboration Page Fix (Session 31)
+
+### Cloudflare Pages Functions: File Path IS the Route, Not Internal Regex
+`workspaces.ts` with `onRequest` only handles requests to `/api/workspaces`. Internal `url.pathname.match()` for sub-paths like `/api/workspaces/:id/members` is dead code — Cloudflare never routes those paths to `workspaces.ts`. Similarly, `workspace-invites.ts` mapped to `/api/workspace-invites` but its regex looked for `/api/workspaces/:id/invites` — a path that would never arrive at that handler. Both files were entirely inert.
+
+**Rule:** In Cloudflare Pages Functions, the file path determines the route. Use directory-based routing (`[id]/members.ts`) for parameterized sub-paths. Never rely on internal regex routing in catch-all handlers — the framework won't route those requests to your file.
+
+### CORS Allow-Methods Must Include All Methods the Frontend Uses
+A CORS preflight 204 response with `Allow-Methods: POST, OPTIONS` blocks browser GET requests when custom headers (`X-User-Hash`) are present. The browser sends an OPTIONS preflight first, sees GET isn't in the allowed list, and refuses to send the actual request. This manifests as a network error in the console, not a clear "method not allowed" message.
+
+**Rule:** When adding a new HTTP method handler to an existing endpoint, always update the `Access-Control-Allow-Methods` header in both the response headers AND the OPTIONS handler. Test the CORS preflight independently: `curl -X OPTIONS -H "Access-Control-Request-Method: GET" ...`
+
+---
+
 ## Session: 2026-03-14 - GeoConfirmed Crawler (Session 30)
 
 ### Third-Party Site Data Often Has a Public Export Path Hidden Behind the SPA

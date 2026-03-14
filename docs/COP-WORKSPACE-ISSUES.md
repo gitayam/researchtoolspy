@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-14 (cycle 15)
+> Last updated: 2026-03-14 (cycle 16)
 > Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
@@ -189,6 +189,19 @@
 - **Coverage:** All 20 conflicts (Iran, Ukraine, Israel, etc.), 53k+ Ukraine events, 1,671 Iran events
 - **Search fallback:** Server-side search returns 403 (needs browser session), gracefully falls back to unfiltered
 
+### F31. Collaboration Page Broken — CORS + Routing Conflicts
+**Error:** `Unexpected Application Error! undefined is not an object (evaluating 't.id.toString')` + 400 errors on `GET /api/workspaces`
+**Root causes (3 compounding issues):**
+1. **CORS preflight blocked GET:** `workspaces/index.ts` had `Access-Control-Allow-Methods: 'POST, OPTIONS'` — no `GET`. Browser preflight rejected the actual GET request since `X-User-Hash` header triggers preflight.
+2. **Dead catch-all files:** `workspaces.ts` used regex routing for sub-paths (`/api/workspaces/:id`, `/members`, `/invites`) but Cloudflare Pages Functions only routes the file-level path. The regex code was unreachable.
+3. **`workspace-invites.ts` entirely inert:** File mapped to `/api/workspace-invites` but regex matched `/api/workspaces/:id/invites` — path never matches, so every request returned 404.
+**Fix:**
+- Added `GET` to CORS `Allow-Methods` in `workspaces/index.ts`
+- Created proper directory-based handlers: `[id]/index.ts` (workspace CRUD), `[id]/members.ts`, `[id]/invites/index.ts`, `[id]/invites/[inviteId].ts`
+- Created `functions/api/invites/[token].ts` and `[token]/accept.ts` for invite public endpoints
+- Removed dead catch-all files: `workspaces.ts`, `workspace-invites.ts`
+**Verified:** All workspace endpoints return correct status codes, CORS preflight includes GET
+
 ---
 
 ## 🔴 Critical Issues
@@ -289,3 +302,4 @@
 30. ~~**New** — Entity extraction → COP Actors auto-population~~ DONE (F28) — batch creation with dedup
 31. ~~**New** — Timeline Hub system~~ DONE (F29) — full implementation across 14 tasks
 32. ~~**New** — GeoConfirmed crawler~~ DONE (F30) — purpose-built GEOINT extractor with COP integration
+33. ~~**New** — Collaboration page broken (CORS + routing)~~ DONE (F31) — directory-based routing, dead files removed

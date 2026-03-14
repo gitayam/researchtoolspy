@@ -1,8 +1,8 @@
 /**
- * Unified Workspace API — Create investigation + COP session atomically
+ * Unified Workspace API
  *
- * POST /api/workspaces - Creates both an investigation record and a fully-configured
- *   COP session in one request, resolving workspace from the authenticated user.
+ * GET  /api/workspaces - List user's workspaces (owned + member)
+ * POST /api/workspaces - Create investigation + COP session atomically
  */
 
 import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
@@ -18,7 +18,7 @@ interface Env {
 const corsHeaders = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
 }
 
@@ -42,6 +42,46 @@ interface CreateWorkspaceRequest {
   event_type?: string
   event_description?: string
   initial_urls?: string[]
+}
+
+// GET — List user's workspaces
+export const onRequestGet: PagesFunction<Env> = async (context) => {
+  const { request, env } = context
+
+  try {
+    const userId = await getUserFromRequest(request, env)
+
+    if (!userId) {
+      return new Response(JSON.stringify({ owned: [], member: [] }), { headers: corsHeaders })
+    }
+
+    const { results: ownedWorkspaces } = await env.DB.prepare(`
+      SELECT * FROM workspaces WHERE owner_id = ? ORDER BY created_at DESC
+    `).bind(userId).all()
+
+    const { results: memberWorkspaces } = await env.DB.prepare(`
+      SELECT w.*, wm.role FROM workspaces w
+      JOIN workspace_members wm ON w.id = wm.workspace_id
+      WHERE wm.user_id = ? AND w.owner_id != ?
+      ORDER BY w.created_at DESC
+    `).bind(userId, userId).all()
+
+    const parseWorkspace = (w: any) => ({
+      ...w,
+      is_public: Boolean(w.is_public),
+      allow_cloning: Boolean(w.allow_cloning),
+    })
+
+    return new Response(JSON.stringify({
+      owned: ownedWorkspaces.map(parseWorkspace),
+      member: memberWorkspaces.map(parseWorkspace),
+    }), { headers: corsHeaders })
+  } catch (error) {
+    console.error('[workspaces] List error:', error)
+    return new Response(JSON.stringify({ error: 'Failed to list workspaces' }), {
+      status: 500, headers: corsHeaders,
+    })
+  }
 }
 
 // POST — Create unified workspace
