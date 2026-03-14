@@ -6,12 +6,15 @@
  * PUT: Update configuration
  */
 
+import { getUserFromRequest } from '../_shared/auth-helpers'
+
 interface Env {
   AI_CONFIG: KVNamespace
   OPENAI_API_KEY?: string
   OPENAI_ORGANIZATION?: string
   ENABLE_AI_FEATURES?: string
   DEFAULT_AI_MODEL?: string
+  SESSIONS?: KVNamespace
 }
 
 const DEFAULT_CONFIG = {
@@ -116,8 +119,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
  */
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   try {
-    // TODO: Add authentication check
-    // Only allow authenticated admins to update config
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return Response.json({ error: 'Authentication required' }, { status: 401 })
+    }
 
     const newConfig = await context.request.json()
 
@@ -161,7 +166,10 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
  */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    // TODO: Add authentication check
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return Response.json({ error: 'Authentication required' }, { status: 401 })
+    }
 
     await context.env.AI_CONFIG.put('default', JSON.stringify(DEFAULT_CONFIG))
 

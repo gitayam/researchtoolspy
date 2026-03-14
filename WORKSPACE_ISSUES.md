@@ -197,6 +197,7 @@
 | 93 | **equilibrium-analysis/[id].ts PUT/DELETE with zero auth** — anyone could update or delete any equilibrium analysis by ID. Fixed: both handlers use `getUserFromRequest` + 401 | FIXED |
 | 94 | **hamilton-rule/[id].ts PUT/DELETE with zero auth** — anyone could update or delete any Hamilton Rule analysis by ID. Fixed: both handlers use `getUserFromRequest` + 401 | FIXED |
 | 95 | **collection/[jobId]/approve.ts POST/DELETE with no auth** — anyone could approve/reject collection results. Fixed: both handlers use `getUserFromRequest` + 401 | FIXED |
+| 96 | **ai/config.ts PUT/POST had TODO "Add authentication check" but never implemented** — anyone could change AI model settings, rate limits, and reset cost tracking. Fixed: both handlers use `getUserFromRequest` + 401 | FIXED |
 
 ---
 
@@ -219,6 +220,12 @@
 | 37 | ~22 instances of internal `url.pathname.match()` routing | Dead code per Cloudflare Pages routing model |
 | 40 | Dark mode gaps in COP components | CopPersonaLinkDialog, CopAssetDetailDrawer, CopEventSidebar, CopArtifactLightbox, CopStatusStrip, CopRfiTab, CopTagSelector — 60+ instances of `text-gray-500/600` without `dark:` variants |
 | 41 | Dark mode gaps in CopAnalysisSummary | ~14 color classes missing `dark:` variants — icons, badges, section headings, empty state text |
+
+### Feature Gaps (LOW)
+| # | Issue | Notes |
+|---|-------|-------|
+| 97 | pdf-extractor.ts has placeholder `YOUR_PDF_CO_API_KEY` | PDF extraction non-functional. Needs env var `PDF_CO_API_KEY` in wrangler.toml |
+| 98 | AI endpoints (ai/*, tools/*) lack auth | Stateless AI processing — don't modify data but cost money. Adding auth would break guest access to core features. Monitor usage. |
 
 ### Performance (LOW)
 | # | Issue | Notes |
