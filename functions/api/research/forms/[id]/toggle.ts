@@ -14,12 +14,13 @@ interface Env {
 // PATCH - Toggle form active status
 export const onRequestPatch: PagesFunction<Env> = async (context) => {
   try {
-    // Auth not required - support guest users
     let userId: number | null = null
     try {
       userId = await requireAuth(context.request, context.env)
     } catch (error) {
-      // Guest user - allowed to toggle their own forms
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     const formId = context.params.id as string

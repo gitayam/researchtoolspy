@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-46b)
+**Last updated:** 2026-03-14 (Sessions 34-47)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -214,6 +214,27 @@
 | 104 | **content-intelligence/cleanup.ts POST+GET with zero auth** — anyone could DELETE all expired content analyses. GET delegated to POST (violating HTTP safety). Fixed: POST uses `getUserFromRequest` + 401, GET now returns status info only | FIXED |
 | 105 | **research/workflow/init.ts hardcoded workspace_id='1'** — all research tasks/activity written to default workspace. Fixed: reads `X-Workspace-ID` header | FIXED |
 | 106 | **research/submissions/process.ts hardcoded workspace_id='1'** — processed evidence always stored in default workspace. Fixed: reads `X-Workspace-ID` header | FIXED |
+
+---
+
+## Fixed — v0.15.0 (Session 47)
+
+### SECURITY
+| # | Issue | Status |
+|---|-------|--------|
+| 108 | **research/forms/[id]/index.ts DELETE allows unauthenticated deletion** — `requireAuth` wrapped in try/catch that swallowed auth failures. Anyone could delete any form by hash_id. Fixed: auth failure now returns 401 | FIXED |
+| 109 | **research/forms/[id]/toggle.ts PATCH allows unauthenticated toggling** — same swallowed-auth pattern. Anyone could enable/disable any form. Fixed: auth failure now returns 401 | FIXED |
+| 110 | **investigations/index.ts POST creates "Guest Workspace" without auth** — unauthenticated users could create orphaned workspaces and investigations, polluting DB. Fixed: requires auth, removed guest workspace creation | FIXED |
+
+### CRITICAL BUG
+| # | Issue | Status |
+|---|-------|--------|
+| 111 | **investigations/index.ts workspace_members INSERT missing `id` field** — `id TEXT PRIMARY KEY` is NOT NULL without default. Authenticated users hitting the "create personal workspace" path would crash with D1 constraint violation. Fixed: added `crypto.randomUUID()` for member id | FIXED |
+
+### DATA ISOLATION
+| # | Issue | Status |
+|---|-------|--------|
+| 112 | **content-intelligence/auto-extract-entities.ts hardcoded workspace_id='1' fallback** — body.workspace_id fell back to '1' ignoring X-Workspace-ID header. Fixed: falls back to header then '1' | FIXED |
 
 ---
 

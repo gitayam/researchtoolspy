@@ -61,12 +61,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 // DELETE - Delete form and all submissions
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
-    // Auth not required - support guest users
     let userId: number | null = null
     try {
       userId = await requireAuth(context.request, context.env)
     } catch (error) {
-      // Guest user - allowed to delete their own forms
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     const formId = context.params.id as string

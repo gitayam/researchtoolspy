@@ -122,13 +122,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 // POST - Create investigation
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    // Try to get auth, but don't require it - support guest investigations
     let userId: number | null = null
     try {
       userId = await requireAuth(context.request, context.env)
     } catch (error) {
-      // User is not authenticated - this is okay for guest investigations
-      userId = null
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     const body = await context.request.json() as CreateInvestigationRequest
@@ -142,49 +142,35 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Get or create workspace for authenticated user
+    const workspace = await context.env.DB.prepare(`
+      SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1
+    `).bind(userId).first()
+
     let workspace_id: string
-    let user_id: number | null = null
+    const user_id = userId
 
-    if (userId) {
-      // Authenticated user - get or create workspace
-      const workspace = await context.env.DB.prepare(`
-        SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1
-      `).bind(userId).first()
-
-      if (workspace) {
-        workspace_id = workspace.workspace_id as string
-        user_id = userId
-      } else {
-        // Create personal workspace for user
-        workspace_id = crypto.randomUUID()
-
-        // Get username
-        const user = await context.env.DB.prepare(`
-          SELECT username FROM users WHERE id = ?
-        `).bind(userId).first()
-        const workspaceName = user?.username ? `${user.username}'s Workspace` : `Workspace ${workspace_id.slice(0, 8)}`
-
-        await context.env.DB.prepare(`
-          INSERT INTO workspaces (id, name, description, type, owner_id, is_public, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-        `).bind(workspace_id, workspaceName, 'Personal workspace for investigations', 'PERSONAL', userId, 0).run()
-
-        await context.env.DB.prepare(`
-          INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
-          VALUES (?, ?, 'ADMIN', datetime('now'))
-        `).bind(workspace_id, userId).run()
-
-        user_id = userId
-      }
+    if (workspace) {
+      workspace_id = workspace.workspace_id as string
     } else {
-      // Guest user - create guest workspace
+      // Create personal workspace for user
       workspace_id = crypto.randomUUID()
+
+      const user = await context.env.DB.prepare(`
+        SELECT username FROM users WHERE id = ?
+      `).bind(userId).first()
+      const workspaceName = user?.username ? `${user.username}'s Workspace` : `Workspace ${workspace_id.slice(0, 8)}`
 
       await context.env.DB.prepare(`
         INSERT INTO workspaces (id, name, description, type, owner_id, is_public, created_at, updated_at)
-        VALUES (?, 'Guest Workspace', 'Temporary workspace for guest user', 'GUEST', 1, 0, datetime('now'), datetime('now'))
-      `).bind(workspace_id).run()
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).bind(workspace_id, workspaceName, 'Personal workspace for investigations', 'PERSONAL', userId, 0).run()
 
+      const memberId = crypto.randomUUID()
+      await context.env.DB.prepare(`
+        INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+        VALUES (?, ?, ?, 'ADMIN', datetime('now'))
+      `).bind(memberId, workspace_id, userId).run()
     }
 
     // Generate ID
