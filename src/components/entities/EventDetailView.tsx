@@ -43,18 +43,18 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
 
           const uniqueActorIds = [...new Set((data.assessments || []).map((a: MOMAssessment) => a.actor_id))] as string[]
           const names: Record<string, string> = {}
-          for (const actorId of uniqueActorIds) {
-            try {
-              const actorResponse = await fetch(`/api/actors/${actorId}`, { signal: controller.signal })
-              if (actorResponse.ok) {
-                const actorData = await actorResponse.json()
-                names[actorId] = actorData.actor.name
-              }
-            } catch (e: any) {
-              if (e?.name === 'AbortError') return
-              console.error(`Failed to load actor ${actorId}:`, e)
+          const actorResults = await Promise.allSettled(
+            uniqueActorIds.map(actorId =>
+              fetch(`/api/actors/${actorId}`, { signal: controller.signal })
+                .then(r => r.ok ? r.json() : null)
+                .then(d => d ? { id: actorId, name: d.actor.name } : null)
+            )
+          )
+          actorResults.forEach(result => {
+            if (result.status === 'fulfilled' && result.value) {
+              names[result.value.id] = result.value.name
             }
-          }
+          })
           setActorNames(names)
         }
       } catch (error: any) {

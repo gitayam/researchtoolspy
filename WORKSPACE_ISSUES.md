@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-59)
+**Last updated:** 2026-03-14 (Sessions 34-60)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -478,6 +478,24 @@
 | 205 | **ActorDetailView.tsx 2x useEffect fetch without AbortController** — MOM assessments + relationships fetch both unguarded. Fixed: AbortController on both | FIXED |
 | 206 | **EventDetailView.tsx 2x useEffect fetch without AbortController** — MOM assessments (with nested actor fetches) + relationships. Fixed: AbortController on both, including inner fetch loop | FIXED |
 | 207 | **SourceDetailView.tsx useEffect fetch without AbortController** — Relationships fetch unguarded. Fixed | FIXED |
+
+---
+
+## Fixed — v0.16.5 (Session 60)
+
+### DATA ISOLATION (workspace_id sourcing on GET endpoints)
+| # | Issue | Status |
+|---|-------|--------|
+| 208 | **deception/history.ts GET ignores X-Workspace-ID header** — Only read workspace_id from query params, fell back to '1'. Other users' deception history could leak. Fixed: chain `params \|\| header \|\| '1'` | FIXED |
+| 209 | **deception/aggregate.ts GET ignores X-Workspace-ID header** — Same pattern. Fixed | FIXED |
+| 210 | **frameworks.ts GET ignores X-Workspace-ID header** — Framework sessions list ignored header. Fixed | FIXED |
+| 211 | **ach/evidence.ts POST+DELETE ignore X-Workspace-ID header** — Both mutation paths only read workspace_id from query params. Fixed: chain includes header fallback | FIXED |
+
+### PERFORMANCE
+| # | Issue | Status |
+|---|-------|--------|
+| 212 | **cop/sessions.ts GET returns unlimited rows** — No LIMIT clause on session listing. Could return 1000+ sessions, causing slow API response and frontend freeze. Fixed: added `LIMIT 200` | FIXED |
+| 213 | **EventDetailView.tsx sequential actor name fetches** — N+1 query: loaded actor names one-by-one in for loop. 5 actors = 5 sequential requests. Fixed: `Promise.allSettled()` for parallel fetches | FIXED |
 
 ---
 

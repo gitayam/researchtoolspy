@@ -60,12 +60,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         SELECT * FROM cop_sessions
         WHERE workspace_id = ? AND status = ?
         ORDER BY updated_at DESC
+        LIMIT 200
       `).bind(workspaceId, status).all()
     } else {
       results = await env.DB.prepare(`
         SELECT * FROM cop_sessions
         WHERE created_by = ? AND status = ?
         ORDER BY updated_at DESC
+        LIMIT 200
       `).bind(userId, status).all()
     }
 

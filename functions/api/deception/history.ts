@@ -23,7 +23,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     const url = new URL(request.url)
-    const workspaceId = url.searchParams.get('workspace_id') || '1'
+    const workspaceId = url.searchParams.get('workspace_id') || request.headers.get('X-Workspace-ID') || '1'
     const excludeId = url.searchParams.get('exclude_id') // Current analysis to exclude
     const limit = parseInt(url.searchParams.get('limit') || '20')
 
