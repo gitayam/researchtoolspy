@@ -139,8 +139,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         active_layers, layer_config, linked_frameworks, key_questions,
         event_type, event_description, event_facts, content_analyses,
         workspace_id, created_by, is_public,
+        team_workspace_id,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id,
       body.name,
@@ -168,11 +169,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       workspaceId,
       userId,
       body.is_public ? 1 : 0,
+      body.team_workspace_id || null,
       now,
       now
     ).run()
 
-    return new Response(JSON.stringify({ id, workspace_id: workspaceId, message: 'COP session created' }), {
+    return new Response(JSON.stringify({ id, workspace_id: workspaceId, team_workspace_id: body.team_workspace_id || null, message: 'COP session created' }), {
       status: 201,
       headers: corsHeaders
     })
