@@ -21,6 +21,7 @@ Redesign the existing collaboration page from a workspace admin tool (members + 
 - Sub-routes or URL-addressable tabs (client-side tab state only)
 - Sidebar workspace navigation (keep existing dropdown)
 - Real-time collaboration / live presence indicators
+- Tab position preserved across navigation (users return to Entities tab after navigating away and back — accepted tradeoff of client-side tab state)
 
 ## Page Structure
 
@@ -30,7 +31,7 @@ Three vertical zones:
 
 - Dropdown to pick workspace (owned + member workspaces)
 - "Create Workspace" button
-- No changes to current implementation
+- Filter out COP auto-created workspaces: exclude workspaces where `id` starts with `cop-` or add `type IN ('TEAM', 'PUBLIC')` filter. Only show workspaces intended for team collaboration.
 
 ### 2. Stats Bar (new)
 
@@ -78,10 +79,12 @@ Displays COP sessions associated with the workspace.
 - Session cards:
   - Name, template type badge (quick_brief, event_monitor, area_study, etc.)
   - Status badge: DRAFT (gray), ACTIVE (green), ARCHIVED (amber)
-  - Collaborator count, entity count, date range
+  - Collaborator count, time window (from `time_window_start`/`time_window_end`)
   - Click → navigates to `/dashboard/cop/:id`
 
-**Data:** `GET /api/workspaces/:id/cop-sessions`
+**Data:** `GET /api/workspaces/:id/cop-sessions?limit=50&offset=0`
+
+**Note:** Entity count per session is expensive (5 COUNT subqueries per session). Defer to the stats endpoint or compute lazily on card hover in a future iteration.
 
 ### Frameworks Tab
 
@@ -96,7 +99,7 @@ Displays framework sessions in the workspace.
   - Created by, last updated
   - Click → navigates to existing framework editor
 
-**Data:** `GET /api/workspaces/:id/frameworks?type=`
+**Data:** `GET /api/workspaces/:id/frameworks?type=&limit=50&offset=0`
 
 ### Tools Tab
 
@@ -142,7 +145,7 @@ CREATE INDEX IF NOT EXISTS idx_cop_sessions_team_workspace ON cop_sessions(team_
 
 **Purpose:** Links a COP session to a team workspace while preserving its own isolated entity workspace. The existing `workspace_id` remains the per-session entity isolation boundary. `team_workspace_id` is the team workspace the session belongs to for the collaboration browser.
 
-**Migration:** New migration file `schema/migrations/0XX-add-cop-team-workspace.sql`
+**Migration:** New migration file `schema/migrations/091-add-cop-team-workspace.sql`
 
 **Backfill note:** Existing COP sessions will have `team_workspace_id = NULL` and won't appear in the workspace browser. The COP Sessions tab should show a distinct empty state: "No COP sessions are linked to this workspace yet. Create a new COP or assign existing sessions from COP settings." A future COP session settings UI should allow assigning `team_workspace_id`.
 
@@ -176,7 +179,16 @@ Returns aggregate counts for the stats bar.
 }
 ```
 
-**Implementation:** COUNT queries on actors, sources, events, places, behaviors (WHERE workspace_id), cop_sessions (WHERE team_workspace_id), framework_sessions (WHERE workspace_id), workspace_members (WHERE workspace_id), plus COP template counts.
+**Implementation:** COUNT queries on actors, sources, events, places, behaviors (WHERE workspace_id), cop_sessions (WHERE team_workspace_id), framework_sessions (WHERE workspace_id), workspace_members (WHERE workspace_id). Tools count uses the chain query pattern:
+
+```sql
+-- Tools count (sum of playbooks + task templates + intake forms across linked COP sessions)
+SELECT COUNT(*) FROM cop_playbooks WHERE cop_session_id IN (SELECT id FROM cop_sessions WHERE team_workspace_id = ?)
+UNION ALL
+SELECT COUNT(*) FROM cop_task_templates t JOIN cop_sessions cs ON cs.workspace_id = t.workspace_id WHERE cs.team_workspace_id = ?
+UNION ALL
+SELECT COUNT(*) FROM cop_intake_forms WHERE cop_session_id IN (SELECT id FROM cop_sessions WHERE team_workspace_id = ?)
+```
 
 ### `GET /api/workspaces/:id/entities`
 
@@ -227,6 +239,8 @@ Returns COP sessions linked to this team workspace.
       "collaborator_count": 3,
       "marker_count": 12,
       "evidence_count": 8,
+      "time_window_start": "2026-03-01T00:00:00Z",
+      "time_window_end": "2026-03-14T00:00:00Z",
       "created_at": "2026-03-08T..."
     }
   ]
@@ -252,6 +266,7 @@ Returns framework sessions in the workspace.
       "framework_type": "ach",
       "status": "in_progress",
       "tags": ["maritime", "smuggling"],
+      "created_by_username": "analyst1",
       "created_at": "2026-03-09T...",
       "updated_at": "2026-03-12T..."
     }
@@ -259,7 +274,7 @@ Returns framework sessions in the workspace.
 }
 ```
 
-**Implementation:** Query `framework_sessions WHERE workspace_id = ?`.
+**Implementation:** Query `framework_sessions WHERE workspace_id = ?` with `LEFT JOIN users u ON fs.user_id = u.id` for `created_by_username`. Supports `limit` (default 50) and `offset` (default 0).
 
 ### `GET /api/workspaces/:id/tools`
 
@@ -303,11 +318,11 @@ All placed in `src/components/collaboration/`.
 | Component | Props | Purpose |
 |---|---|---|
 | `WorkspaceStatsBar.tsx` | `workspaceId, onTabClick` | Clickable stat pills, fetches counts |
-| `EntitiesTab.tsx` | `workspaceId` | Entity list with type filter chips + search |
-| `CopSessionsTab.tsx` | `workspaceId` | COP session cards with status/counts |
-| `FrameworksTab.tsx` | `workspaceId` | Framework list with type filters |
-| `ToolsTab.tsx` | `workspaceId` | Analysis launchers + COP templates |
-| `TeamTab.tsx` | `workspaceId` | Extracted existing members/invites UI |
+| `EntitiesTab.tsx` | `workspaceId, userRole` | Entity list with type filter chips + search |
+| `CopSessionsTab.tsx` | `workspaceId, userRole` | COP session cards with status/counts |
+| `FrameworksTab.tsx` | `workspaceId, userRole` | Framework list with type filters |
+| `ToolsTab.tsx` | `workspaceId, userRole` | Analysis launchers + COP templates |
+| `TeamTab.tsx` | `workspaceId, userRole` | Extracted existing members/invites UI |
 
 ### CollaborationPage.tsx Changes
 
@@ -363,4 +378,4 @@ Existing pages should read this param and scope their operations accordingly. Ba
 - `src/pages/CollaborationPage.tsx` (modified)
 
 **Schema:**
-- `schema/migrations/0XX-add-cop-team-workspace.sql`
+- `schema/migrations/091-add-cop-team-workspace.sql`
