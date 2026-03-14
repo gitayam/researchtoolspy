@@ -213,13 +213,13 @@ export const AnalysisSummaryExport: React.FC<AnalysisSummaryExportProps> = ({
           sections.push('')
           for (const claim of ca.claims.slice(0, 10)) {
             const riskEmoji =
-              claim.deception_analysis.overall_risk === 'high'
+              claim.deception_analysis?.overall_risk === 'high'
                 ? '[HIGH RISK]'
-                : claim.deception_analysis.overall_risk === 'medium'
+                : claim.deception_analysis?.overall_risk === 'medium'
                   ? '[MEDIUM RISK]'
                   : '[LOW RISK]'
             sections.push(`- ${riskEmoji} ${claim.claim}`)
-            if (claim.deception_analysis.red_flags.length > 0) {
+            if (claim.deception_analysis?.red_flags?.length > 0) {
               sections.push(`  - Red flags: ${claim.deception_analysis.red_flags.join(', ')}`)
             }
           }

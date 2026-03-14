@@ -1108,7 +1108,7 @@ export const CogPage = () => {
 
     // Fallback to localStorage
     const storageKey = 'cog_analyses'
-    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const stored = (() => { try { return JSON.parse(localStorage.getItem(storageKey) || '[]') } catch { return [] } })()
     setAnalyses(stored)
   }
 
@@ -1130,7 +1130,7 @@ export const CogPage = () => {
 
     // Fallback to localStorage
     const storageKey = 'cog_analyses'
-    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const stored = (() => { try { return JSON.parse(localStorage.getItem(storageKey) || '[]') } catch { return [] } })()
     const analysis = stored.find((item: any) => item.id === analysisId)
     if (analysis) {
       setCurrentAnalysis(analysis)
@@ -1172,7 +1172,7 @@ export const CogPage = () => {
       // Fallback to localStorage if API is not available
       logger.debug('API not available, using localStorage fallback')
       const storageKey = 'cog_analyses'
-      const existing = JSON.parse(localStorage.getItem(storageKey) || '[]')
+      const existing = (() => { try { return JSON.parse(localStorage.getItem(storageKey) || '[]') } catch { return [] } })()
 
       if (isEditMode && id) {
         const index = existing.findIndex((item: any) => item.id === id)
@@ -1211,7 +1211,7 @@ export const CogPage = () => {
 
     // Fallback to localStorage
     const storageKey = 'cog_analyses'
-    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const stored = (() => { try { return JSON.parse(localStorage.getItem(storageKey) || '[]') } catch { return [] } })()
     const filtered = stored.filter((item: any) => item.id !== targetId)
     localStorage.setItem(storageKey, JSON.stringify(filtered))
 
