@@ -132,13 +132,19 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       values.push(JSON.stringify(body.tags))
     }
 
-    values.push(id)
+    values.push(id, userId)
 
-    await env.DB.prepare(`
+    const result = await env.DB.prepare(`
       UPDATE equilibrium_analyses
       SET ${updates.join(', ')}
-      WHERE id = ?
+      WHERE id = ? AND created_by = ?
     `).bind(...values).run()
+
+    if (!result.meta.changes) {
+      return new Response(JSON.stringify({ error: 'Analysis not found or not owned by you' }), {
+        status: 404, headers: corsHeaders
+      })
+    }
 
     return new Response(JSON.stringify({ message: 'Analysis updated' }), { headers: corsHeaders })
   } catch (error) {
@@ -163,9 +169,15 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    await env.DB.prepare(`
-      DELETE FROM equilibrium_analyses WHERE id = ?
-    `).bind(id).run()
+    const result = await env.DB.prepare(`
+      DELETE FROM equilibrium_analyses WHERE id = ? AND created_by = ?
+    `).bind(id, userId).run()
+
+    if (!result.meta.changes) {
+      return new Response(JSON.stringify({ error: 'Analysis not found or not owned by you' }), {
+        status: 404, headers: corsHeaders
+      })
+    }
 
     return new Response(JSON.stringify({ message: 'Analysis deleted' }), { headers: corsHeaders })
   } catch (error) {

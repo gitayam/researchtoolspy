@@ -239,6 +239,13 @@
 | 114 | **comments.ts POST hardcoded workspace_id=1** — all comments created in default workspace regardless of actual context. Fixed: reads `X-Workspace-ID` header | FIXED |
 | 115 | **evidence/recommend.ts hardcoded workspace_id='1'** — evidence recommendations scoped to default workspace. Fixed: reads `X-Workspace-ID` header | FIXED |
 
+### OWNERSHIP (defense-in-depth)
+| # | Issue | Status |
+|---|-------|--------|
+| 116 | **equilibrium-analysis/[id].ts PUT/DELETE no ownership check** — any authenticated user could update/delete any analysis by ID. Fixed: added `AND created_by = ?` to both queries + check `result.meta.changes` | FIXED |
+| 117 | **hamilton-rule/[id].ts PUT/DELETE no ownership check** — same issue. Fixed: `AND created_by = ?` on both queries | FIXED |
+| 118 | **collection/[jobId]/approve.ts POST/DELETE no workspace scoping** — job lookup `WHERE id = ?` without workspace check. Any authenticated user could approve/reject any job by ID. Fixed: adds `AND workspace_id = ?` when X-Workspace-ID header present | FIXED |
+
 ---
 
 ## Remaining Tech Debt

@@ -48,10 +48,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Verify job exists
+    // Verify job exists and user has workspace access
+    const workspaceId = context.request.headers.get('X-Workspace-ID')
     const job = await context.env.DB.prepare(`
-      SELECT id FROM collection_jobs WHERE id = ?
-    `).bind(jobId).first()
+      SELECT id FROM collection_jobs WHERE id = ?${workspaceId ? ' AND workspace_id = ?' : ''}
+    `).bind(...(workspaceId ? [jobId, workspaceId] : [jobId])).first()
 
     if (!job) {
       return new Response(JSON.stringify({ error: 'Job not found' }), {
@@ -185,10 +186,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Verify job exists
+    // Verify job exists and user has workspace access
+    const workspaceId = context.request.headers.get('X-Workspace-ID')
     const job = await context.env.DB.prepare(`
-      SELECT id FROM collection_jobs WHERE id = ?
-    `).bind(jobId).first()
+      SELECT id FROM collection_jobs WHERE id = ?${workspaceId ? ' AND workspace_id = ?' : ''}
+    `).bind(...(workspaceId ? [jobId, workspaceId] : [jobId])).first()
 
     if (!job) {
       return new Response(JSON.stringify({ error: 'Job not found' }), {
