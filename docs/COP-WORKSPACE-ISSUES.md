@@ -1,6 +1,6 @@
 # COP Workspace Issues Tracker
 
-> Last updated: 2026-03-14 (cycle 22)
+> Last updated: 2026-03-14 (cycle 23)
 > Source: Live production audit — all COP sessions + framework views
 
 ## Status Legend
@@ -220,6 +220,10 @@
 **Was:** ~40 additional endpoints across `ai/` (8), `content-intelligence/` (3), `tools/` (3), `frameworks/` (3), `deception/` (1), `feedback/` (1), `claims/` (2), `_shared/playbook-engine/` (2), and batch endpoints (4) still returning `err.message`/`error.message` in responses.
 **Fix:** Replaced all with generic messages. Zero `error.message` patterns remain in any API Response body across the entire `functions/api/` directory.
 **Files:** 30+ files, completing the hardening started in F26 and continued in F37.
+
+### F41. Dead Code Cleanup — Backup Dirs & Console.log Build Fix
+**Was:** 16 dead backup files in `src/stores_backup/` and `src/lib_backup/` with no imports from active code. Additionally, `sed` removal of `console.log('[Starbursting]...')` lines broke `ContentIntelligencePage.tsx` — multi-line console.log calls had only their first line removed, leaving orphaned object literal properties as syntax errors.
+**Fix:** Removed backup directories via `git rm -r`. Manually cleaned orphaned object properties and empty `if` blocks in ContentIntelligencePage.tsx. Build verified clean.
 
 ### F40. Mobile Bottom Tab — Broken Analysis Route Fix
 **Was:** Bottom tab "Analysis" linked to `/dashboard/analysis-frameworks` which has no route definition — showed blank page. No base route exists; the sidebar expands sub-routes.

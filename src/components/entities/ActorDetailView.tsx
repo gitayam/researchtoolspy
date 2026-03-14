@@ -472,11 +472,9 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
                   showFilters={momAssessments.length > 3}
                   onCreateNew={() => {
                     // TODO: Open MOM assessment creation modal
-                    console.log('Create new MOM assessment')
                   }}
                   onEdit={(assessment) => {
                     // TODO: Open MOM assessment edit modal
-                    console.log('Edit MOM assessment:', assessment.id)
                   }}
                   onDelete={async (assessment) => {
                     if (!confirm(`Delete MOM assessment "${assessment.scenario_description}"?`)) return

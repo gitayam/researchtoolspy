@@ -500,7 +500,6 @@ const SectionCard = memo(({
                                       questionId={item.id}
                                       onLinkCreated={(linkedId) => {
                                         // Update local state if we want immediate feedback
-                                        console.log(`Linked ${entity.name} to ${linkedId}`);
                                       }}
                                     />
                                   ))}

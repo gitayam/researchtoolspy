@@ -178,7 +178,6 @@ export function DatasetPage() {
           <Button
             variant="outline"
             onClick={() => {
-              console.log('Import button clicked')
               alert(t('dataset:alerts.importComingSoon'))
             }}
           >

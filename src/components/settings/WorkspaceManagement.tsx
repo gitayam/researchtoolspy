@@ -121,7 +121,6 @@ export function WorkspaceManagement({
 
     try {
       // TODO: Implement API call to invite user by hash
-      console.log('Inviting hash:', inviteHash, 'to workspace:', selectedWorkspace.id)
       setInviteHash('')
     } catch (error) {
       console.error('Failed to invite user:', error)

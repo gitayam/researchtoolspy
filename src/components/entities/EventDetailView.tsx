@@ -458,7 +458,6 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
                   </p>
                   <Button onClick={() => {
                     // TODO: Open MOM assessment creation modal with event pre-selected
-                    console.log('Create MOM assessment for event:', event.id)
                   }}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Actor Assessment
@@ -472,11 +471,9 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
                   showFilters={momAssessments.length > 3}
                   onCreateNew={() => {
                     // TODO: Open MOM assessment creation modal with event pre-selected
-                    console.log('Create MOM assessment for event:', event.id)
                   }}
                   onEdit={(assessment) => {
                     // TODO: Open MOM assessment edit modal
-                    console.log('Edit MOM assessment:', assessment.id)
                   }}
                   onDelete={async (assessment) => {
                     if (!confirm(`Delete MOM assessment "${assessment.scenario_description}"?`)) return

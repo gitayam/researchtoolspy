@@ -256,7 +256,7 @@ export function ACHAnalysisPage() {
                       }
                     }
                   } catch (error) {
-                    console.log('Error fetching evidence actors:', error)
+                    console.error('Error fetching evidence actors:', error)
                   }
                 }
               }

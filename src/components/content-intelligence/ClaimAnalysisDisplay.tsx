@@ -165,7 +165,6 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
         if (!response.ok) {
           // Silently handle 404 - adjustments might not exist yet
           if (response.status === 404) {
-            console.log('No saved adjustments found for this content')
             setIsLoading(false)
             return
           }

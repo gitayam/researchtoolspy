@@ -1913,34 +1913,14 @@ ${shortSummary}`
 
       const data = await response.json()
 
-      console.log('[Starbursting] Full response:', data)
-      console.log('[Starbursting] Response data:', {
-        hasFrameworkData: !!data.framework_data,
-        frameworkDataKeys: data.framework_data ? Object.keys(data.framework_data) : [],
-        hasData: !!data.framework_data?.data,
-        dataType: typeof data.framework_data?.data
-      })
-
-      if (data.framework_data?.data) {
-        console.log('[Starbursting] framework_data.data contents:', data.framework_data.data)
-      }
-
       // Parse the framework data if it's a string
       if (data.framework_data?.data && typeof data.framework_data.data === 'string') {
         try {
           data.framework_data.data = JSON.parse(data.framework_data.data)
-          console.log('[Starbursting] Parsed framework data:', data.framework_data.data)
         } catch (e) {
           console.error('[Starbursting] Failed to parse framework data:', e)
         }
       }
-
-      console.log('[Starbursting] Setting session state with data:', {
-        hasFrameworkData: !!data.framework_data,
-        hasFrameworkDataData: !!data.framework_data?.data,
-        frameworkDataType: typeof data.framework_data,
-        frameworkDataDataType: typeof data.framework_data?.data
-      })
 
       setStarburstingSession(data)
       setStarburstingStatus('complete')
@@ -4839,7 +4819,6 @@ ${shortSummary}`
                                                 questionId={item.id}
                                                 onLinkCreated={(linkedId) => {
                                                   // Optional: Update local state if needed
-                                                  console.log(`Linked entity ${entity.name} to ${linkedId}`);
                                                 }}
                                               />
                                             ))}

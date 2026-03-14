@@ -346,7 +346,6 @@ export function DeceptionView({
 
       if (allSucceeded) {
         setLinkedEvidence([...linkedEvidence, ...selected])
-        console.log('Evidence and entities linked successfully')
       } else {
         console.error('Some links failed:', results)
         // Still update UI with what we have
@@ -383,7 +382,6 @@ export function DeceptionView({
         setLinkedEvidence(
           linkedEvidence.filter(e => !(e.entity_type === entity_type && String(e.entity_id) === String(entity_id)))
         )
-        console.log('Evidence unlinked successfully')
       } else {
         const error = await response.json()
         console.error('Failed to unlink evidence:', error)
@@ -433,7 +431,6 @@ export function DeceptionView({
         setSaveSuccess(String(actorId))
         // Note: Not updating local state here as the entity_data structure
         // is complex and varies by type. The profile will be visible on reload.
-        console.log(`MOM scores saved to actor ${actorId}`)
         // Clear success indicator after 3 seconds
         setTimeout(() => setSaveSuccess(null), 3000)
       } else {
@@ -518,7 +515,6 @@ export function DeceptionView({
               relationships={generatedRelationships}
               source="MOM"
               onComplete={(created, failed) => {
-                console.log(`Created ${created} relationships, ${failed} failed`)
                 // TODO: Refresh network graph or show success message
               }}
               label="Generate Relationships"
