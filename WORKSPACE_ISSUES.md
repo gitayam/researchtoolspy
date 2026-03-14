@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-67b)
+**Last updated:** 2026-03-14 (Sessions 34-68)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -691,6 +691,27 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 304 | **framework-datasets.ts** — First GET query (by framework_id) missing LIMIT. Fixed: `LIMIT 500` | FIXED |
+
+---
+
+## Fixed — v0.17.4 (Session 68)
+
+### INFINITE LOOP (JSON.stringify in useEffect deps)
+| # | Issue | Status |
+|---|-------|--------|
+| 305 | **EvidenceRecommendations.tsx** — `JSON.stringify(context)` in useEffect dependency array creates new string every render → infinite re-render loop. Fixed: extracted stable primitive keys (`context?.title`, `context?.description`, `context?.entities?.join(',')`, `context?.keywords?.join(',')`, `context?.timeframe?.start`, `context?.timeframe?.end`) | FIXED |
+
+### MEMORY LEAK (9 components missing AbortController)
+| # | Issue | Status |
+|---|-------|--------|
+| 306 | **CommentThread.tsx** — useEffect fetch without AbortController. Fixed: signal + cleanup | FIXED |
+| 307 | **DatasetSelector.tsx** — useEffect fetch without AbortController (conditional on `open`). Fixed: signal + cleanup | FIXED |
+| 308 | **ActivityFeed.tsx** — useEffect fetch without AbortController (deps: activityType, entityType, offset). Fixed: signal + cleanup | FIXED |
+| 309 | **InviteAcceptPage.tsx** — useEffect fetch without AbortController (with auth redirect guard). Fixed: signal + cleanup | FIXED |
+| 310 | **RelationshipForm.tsx** — useEffect search fetch without AbortController. Fixed: signal threaded through `searchEntities()` + cleanup | FIXED |
+| 311 | **ACHEvidenceManager.tsx** — useEffect fetch without AbortController. Fixed: signal + cleanup | FIXED |
+| 312 | **EntitySelector.tsx** — useEffect fetch without AbortController. Fixed: signal + cleanup | FIXED |
+| 313 | **FrameworkUsagePanel.tsx** — useEffect fetch without AbortController. Fixed: signal + cleanup | FIXED |
 
 ---
 

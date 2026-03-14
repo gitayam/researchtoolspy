@@ -31,21 +31,23 @@ export function DatasetSelector({
 
   useEffect(() => {
     if (open) {
-      loadDataset()
+      const controller = new AbortController()
+      loadDataset(controller.signal)
       setSelected(new Set(selectedIds))
+      return () => controller.abort()
     }
   }, [open, selectedIds])
 
-  const loadDataset = async () => {
+  const loadDataset = async (signal?: AbortSignal) => {
     setLoading(true)
     try {
-      const response = await fetch('/api/dataset')
+      const response = await fetch('/api/dataset', { signal })
       if (response.ok) {
         const data = await response.json()
         setDataset(data.dataset || [])
       }
-    } catch (error) {
-      console.error('Failed to load dataset:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to load dataset:', error)
     } finally {
       setLoading(false)
     }

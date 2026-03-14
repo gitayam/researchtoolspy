@@ -64,7 +64,7 @@ export function EvidenceRecommendations({
     const controller = new AbortController()
     loadRecommendations(controller.signal)
     return () => controller.abort()
-  }, [frameworkType, JSON.stringify(context)])
+  }, [frameworkType, context?.title, context?.description, context?.entities?.join(','), context?.keywords?.join(','), context?.timeframe?.start, context?.timeframe?.end])
 
   const loadRecommendations = async (signal?: AbortSignal) => {
     setLoading(true)

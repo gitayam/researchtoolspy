@@ -57,16 +57,19 @@ export function EntitySelector({
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
-    loadEntities()
+    const controller = new AbortController()
+    loadEntities(controller.signal)
+    return () => controller.abort()
   }, [entityType])
 
-  const loadEntities = async () => {
+  const loadEntities = async (signal?: AbortSignal) => {
     setLoading(true)
     try {
       const endpoint = getEndpoint(entityType)
 
       const response = await fetch(endpoint, {
         headers: getCopHeaders(),
+        signal,
       })
 
       if (!response.ok) {
@@ -76,8 +79,8 @@ export function EntitySelector({
       const data = await response.json()
       const entities = extractEntities(data, entityType)
       setEntities(entities)
-    } catch (error) {
-      console.error(`Error loading ${entityType}s:`, error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error(`Error loading ${entityType}s:`, error)
     } finally {
       setLoading(false)
     }

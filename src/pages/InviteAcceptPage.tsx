@@ -29,14 +29,15 @@ export function InviteAcceptPage() {
       return
     }
 
-    // Fetch invite info
-    fetchInviteInfo()
+    const controller = new AbortController()
+    fetchInviteInfo(controller.signal)
+    return () => controller.abort()
   }, [inviteToken, isAuthenticated, navigate])
 
-  const fetchInviteInfo = async () => {
+  const fetchInviteInfo = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/invites/${inviteToken}`)
+      const response = await fetch(`/api/invites/${inviteToken}`, { signal })
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -45,8 +46,10 @@ export function InviteAcceptPage() {
 
       const data = await response.json()
       setInviteInfo(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('invite:alerts.fetchFailed'))
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        setError(err instanceof Error ? err.message : t('invite:alerts.fetchFailed'))
+      }
     } finally {
       setLoading(false)
     }

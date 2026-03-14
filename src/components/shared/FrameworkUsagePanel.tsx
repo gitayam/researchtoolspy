@@ -53,16 +53,19 @@ export function FrameworkUsagePanel({ entityId, entityType, entityName }: Framew
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadFrameworkUsage()
+    const controller = new AbortController()
+    loadFrameworkUsage(controller.signal)
+    return () => controller.abort()
   }, [entityId, entityType])
 
-  const loadFrameworkUsage = async () => {
+  const loadFrameworkUsage = async (signal?: AbortSignal) => {
     setLoading(true)
     try {
       const response = await fetch(
         `/api/frameworks/entity-usage?entity_id=${entityId}&entity_type=${entityType}`,
         {
           headers: getCopHeaders(),
+          signal,
         }
       )
 
@@ -72,9 +75,11 @@ export function FrameworkUsagePanel({ entityId, entityType, entityName }: Framew
 
       const data = await response.json()
       setUsage(data.frameworks || [])
-    } catch (error) {
-      console.error('Error loading framework usage:', error)
-      setUsage([])
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error loading framework usage:', error)
+        setUsage([])
+      }
     } finally {
       setLoading(false)
     }

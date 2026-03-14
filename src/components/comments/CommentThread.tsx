@@ -67,23 +67,25 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
   }, [])
 
   useEffect(() => {
-    fetchComments()
+    const controller = new AbortController()
+    fetchComments(controller.signal)
+    return () => controller.abort()
   }, [entityType, entityId, showResolved])
 
-  const fetchComments = async () => {
+  const fetchComments = async (signal?: AbortSignal) => {
     try {
       const params = new URLSearchParams({
         entity_type: entityType,
         entity_id: entityId,
         include_resolved: showResolved.toString()
       })
-      const response = await fetch(`/api/comments?${params}`)
+      const response = await fetch(`/api/comments?${params}`, { signal })
       if (response.ok) {
         const data = await response.json()
         setComments(data)
       }
-    } catch (error) {
-      console.error('[Comments] Fetch failed:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('[Comments] Fetch failed:', error)
     }
   }
 

@@ -102,13 +102,13 @@ export function RelationshipForm({
   ]
 
   // Search entities
-  const searchEntities = async (query: string, entityType: EntityType) => {
+  const searchEntities = async (query: string, entityType: EntityType, signal?: AbortSignal) => {
     if (!query || query.length < 2) return []
 
     setSearchingEntities(true)
     try {
       const endpoint = getEntityEndpoint(entityType)
-      const response = await fetch(`${endpoint}?search=${encodeURIComponent(query)}&workspace_id=${workspaceId}&limit=10`)
+      const response = await fetch(`${endpoint}?search=${encodeURIComponent(query)}&workspace_id=${workspaceId}&limit=10`, { signal })
       if (response.ok) {
         const data = await response.json()
         const key = getEntityArrayKey(entityType)
@@ -118,8 +118,8 @@ export function RelationshipForm({
           name: entity.name || entity.title
         }))
       }
-    } catch (error) {
-      console.error('Entity search failed:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Entity search failed:', error)
     } finally {
       setSearchingEntities(false)
     }
@@ -201,15 +201,17 @@ export function RelationshipForm({
   }
 
   useEffect(() => {
+    const controller = new AbortController()
     const loadOptions = async () => {
-      const sourceResults = await searchEntities(entitySearch.source, formData.source_entity_type)
-      const targetResults = await searchEntities(entitySearch.target, formData.target_entity_type)
+      const sourceResults = await searchEntities(entitySearch.source, formData.source_entity_type, controller.signal)
+      const targetResults = await searchEntities(entitySearch.target, formData.target_entity_type, controller.signal)
       setEntityOptions([...sourceResults, ...targetResults])
     }
 
     if (entitySearch.source || entitySearch.target) {
       loadOptions()
     }
+    return () => controller.abort()
   }, [entitySearch])
 
   const handleSubmit = async (e: React.FormEvent) => {

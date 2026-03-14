@@ -85,10 +85,12 @@ export function ActivityFeed() {
   const [offset, setOffset] = useState(0)
 
   useEffect(() => {
-    fetchActivities()
+    const controller = new AbortController()
+    fetchActivities(controller.signal)
+    return () => controller.abort()
   }, [activityType, entityType, offset])
 
-  const fetchActivities = async () => {
+  const fetchActivities = async (signal?: AbortSignal) => {
     const workspaceId = localStorage.getItem('omnicore_workspace_id')
     if (!workspaceId) return
 
@@ -104,6 +106,7 @@ export function ActivityFeed() {
 
       const response = await fetch(`/api/activity?${params}`, {
         headers: { 'X-Workspace-ID': workspaceId },
+        signal,
       })
 
       if (response.ok) {
@@ -117,8 +120,8 @@ export function ActivityFeed() {
           comments: 0,
         })
       }
-    } catch (error) {
-      console.error('[ActivityFeed] Fetch error:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('[ActivityFeed] Fetch error:', error)
     } finally {
       setLoading(false)
     }
