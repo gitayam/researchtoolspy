@@ -75,7 +75,7 @@ export function EvidenceRecommendations({
         body: JSON.stringify({
           framework_type: frameworkType,
           context,
-          workspace_id: '1'
+          workspace_id: localStorage.getItem('current_workspace_id') || '1'
         })
       })
 

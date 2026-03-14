@@ -363,6 +363,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
                 }
               })
 
+              // Consume response body to prevent connection leak
+              await saveResponse.text().catch(() => {})
+
               if (saveResponse.ok) {
                 // Extract the archive URL from response headers or body
                 const contentLocation = saveResponse.headers.get('Content-Location')

@@ -128,7 +128,7 @@ export function StarburstingEntityLinker({
           name: entity.name,
           type: dbType,
           description: entity.details || `Extracted from Starbursting Analysis`,
-          workspace_id: '1'
+          workspace_id: localStorage.getItem('current_workspace_id') || '1'
         })
       })
 

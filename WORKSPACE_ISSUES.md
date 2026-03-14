@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-64)
+**Last updated:** 2026-03-14 (Sessions 34-65)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -595,6 +595,36 @@
 | 262 | **ACHPage.tsx no AbortController** — Analysis list fetch not cancelled. Fixed | FIXED |
 | 263 | **InvestigationPacketsPage.tsx no AbortController** — Packets list fetch not cancelled. Fixed | FIXED |
 | 264 | **SubmissionsReviewPage.tsx no AbortController** — Submissions fetch (dep on formId+statusFilter) not cancelled. Fixed | FIXED |
+
+---
+
+## Fixed — v0.17.0 (Session 65)
+
+### DATA ISOLATION (hardcoded workspace_id=1 in frontend)
+| # | Issue | Status |
+|---|-------|--------|
+| 265 | **EvidenceLinker.tsx hardcoded workspace_id=1** — 3 fetch URLs (actors, sources, events) used hardcoded `workspace_id=1`. Fixed: `localStorage.getItem('current_workspace_id') \|\| '1'` | FIXED |
+| 266 | **EvidenceRecommendations.tsx hardcoded workspace_id** — POST body to `/api/evidence/recommend` used `workspace_id: '1'`. Fixed: localStorage | FIXED |
+| 267 | **EntityQuickCreate.tsx hardcoded workspace_id** — 3 entity creation POSTs (actor, source, event) used `workspace_id: 1`. Fixed: localStorage | FIXED |
+| 268 | **StarburstingEntityLinker.tsx hardcoded workspace_id** — Actor creation POST used `workspace_id: '1'`. Fixed: localStorage | FIXED |
+| 269 | **ContentIntelligencePage.tsx hardcoded workspace_id** — 4 instances: 2 actor search URLs, 1 actor creation POST, 1 auto-extract POST. Fixed: localStorage | FIXED |
+| 270 | **HamiltonRulePage.tsx hardcoded workspace_id=1** — GET URL hardcoded. Fixed: localStorage | FIXED |
+| 271 | **EquilibriumAnalysisPage.tsx hardcoded workspace_id=1** — 2 instances: GET URL and creation POST. Fixed: localStorage | FIXED |
+| 272 | **SubmissionFormsPage.tsx hardcoded workspaceId=1** — Forms list URL hardcoded. Fixed: localStorage | FIXED |
+| 273 | **EvidenceSubmissionsPage.tsx hardcoded workspaceId=1** — Forms list URL hardcoded. Fixed: localStorage | FIXED |
+
+### PERFORMANCE (missing LIMIT on 4 secondary queries)
+| # | Issue | Status |
+|---|-------|--------|
+| 274 | **framework-evidence.ts secondary query no LIMIT** — GET by evidence_id. Fixed: `LIMIT 500` | FIXED |
+| 275 | **framework-datasets.ts secondary query no LIMIT** — GET by dataset_id. Fixed: `LIMIT 500` | FIXED |
+| 276 | **evidence-citations.ts GET by evidence_id no LIMIT** — Fixed: `LIMIT 500` | FIXED |
+| 277 | **evidence-citations.ts GET by dataset_id no LIMIT** — Fixed: `LIMIT 500` | FIXED |
+
+### RESOURCE LEAK (unclosed fetch response)
+| # | Issue | Status |
+|---|-------|--------|
+| 278 | **analyze-url.ts Wayback Machine save response not consumed** — `saveResponse` body never read, causing connection leak. Fixed: `await saveResponse.text().catch(() => {})` | FIXED |
 
 ---
 

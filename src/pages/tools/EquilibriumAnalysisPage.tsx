@@ -38,7 +38,8 @@ export function EquilibriumAnalysisPage() {
 
   const loadAnalyses = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/equilibrium-analysis?workspace_id=1', {
+      const wsId = localStorage.getItem('current_workspace_id') || '1'
+      const response = await fetch(`/api/equilibrium-analysis?workspace_id=${wsId}`, {
         headers: getCopHeaders(),
         signal,
       })
@@ -97,7 +98,7 @@ export function EquilibriumAnalysisPage() {
         body: JSON.stringify({
           title,
           description,
-          workspace_id: '1',
+          workspace_id: localStorage.getItem('current_workspace_id') || '1',
           data_source: {
             type: 'csv_upload',
             filename: 'uploaded.csv',

@@ -67,21 +67,24 @@ export function EvidenceLinker({
           }
           break
         case 'actor':
-          const actorRes = await fetch('/api/actors?workspace_id=1')
+          const wsId = localStorage.getItem('current_workspace_id') || '1'
+          const actorRes = await fetch(`/api/actors?workspace_id=${wsId}`)
           if (actorRes.ok) {
             const data = await actorRes.json()
             setActors(data.actors || [])
           }
           break
         case 'source':
-          const sourceRes = await fetch('/api/sources?workspace_id=1')
+          const wsIdSrc = localStorage.getItem('current_workspace_id') || '1'
+          const sourceRes = await fetch(`/api/sources?workspace_id=${wsIdSrc}`)
           if (sourceRes.ok) {
             const data = await sourceRes.json()
             setSources(data.sources || [])
           }
           break
         case 'event':
-          const eventRes = await fetch('/api/events?workspace_id=1')
+          const wsIdEvt = localStorage.getItem('current_workspace_id') || '1'
+          const eventRes = await fetch(`/api/events?workspace_id=${wsIdEvt}`)
           if (eventRes.ok) {
             const data = await eventRes.json()
             setEvents(data.events || [])
