@@ -44,6 +44,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       LEFT JOIN behaviors b ON hr.linked_behavior_id = b.id
       WHERE hr.workspace_id = ?
       ORDER BY hr.updated_at DESC
+      LIMIT 200
     `).bind(workspaceId).all()
 
     const safeJSON = (val: any, fallback: any = []) => {

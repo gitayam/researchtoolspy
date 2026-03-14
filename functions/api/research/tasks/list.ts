@@ -52,7 +52,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       params.push(stage)
     }
 
-    query += ` ORDER BY created_at ASC`
+    query += ` ORDER BY created_at ASC LIMIT 500`
 
     const stmt = context.env.DB.prepare(query).bind(...params)
     const result = await stmt.all()

@@ -52,7 +52,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       params.push(verificationStatus)
     }
 
-    query += ` ORDER BY collected_at DESC`
+    query += ` ORDER BY collected_at DESC LIMIT 500`
 
     const stmt = context.env.DB.prepare(query).bind(...params)
     const result = await stmt.all()

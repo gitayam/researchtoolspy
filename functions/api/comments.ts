@@ -107,7 +107,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
       }
 
-      query += ` ORDER BY created_at ASC`
+      query += ` ORDER BY created_at ASC LIMIT 500`
 
       const { results } = await env.DB.prepare(query).bind(...params).all()
 

@@ -35,8 +35,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get workspace_id from query params or default to '1'
-    const workspaceId = url.searchParams.get('workspace_id') || '1'
+    // Get workspace_id from query params, header, or default to '1'
+    const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || '1'
 
     if (!data.ach_analysis_id || !data.hypothesis_id || !data.evidence_id || data.score === undefined) {
       return new Response(JSON.stringify({
@@ -175,8 +175,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get workspace_id from query params or default to '1'
-    const workspaceId = url.searchParams.get('workspace_id') || '1'
+    // Get workspace_id from query params, header, or default to '1'
+    const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || '1'
 
     if (!id) {
       return new Response(JSON.stringify({ error: 'Score ID is required' }), {

@@ -48,7 +48,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       params.push(`%"${researchQuestionId}"%`)
     }
 
-    query += ` ORDER BY s.submitted_at DESC`
+    query += ` ORDER BY s.submitted_at DESC LIMIT 500`
 
     const result = await context.env.DB.prepare(query).bind(...params).all()
 

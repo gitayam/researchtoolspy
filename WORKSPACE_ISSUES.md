@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-60)
+**Last updated:** 2026-03-14 (Sessions 34-61)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -496,6 +496,27 @@
 |---|-------|--------|
 | 212 | **cop/sessions.ts GET returns unlimited rows** — No LIMIT clause on session listing. Could return 1000+ sessions, causing slow API response and frontend freeze. Fixed: added `LIMIT 200` | FIXED |
 | 213 | **EventDetailView.tsx sequential actor name fetches** — N+1 query: loaded actor names one-by-one in for loop. 5 actors = 5 sequential requests. Fixed: `Promise.allSettled()` for parallel fetches | FIXED |
+
+---
+
+## Fixed — v0.16.6 (Session 61)
+
+### DATA ISOLATION (ACH module workspace_id sourcing — 8 instances)
+| # | Issue | Status |
+|---|-------|--------|
+| 214 | **ach/index.ts 4x workspace_id ignores X-Workspace-ID header** — GET list, GET detail, POST create, DELETE all read query params only. Fixed: chain `params \|\| header \|\| '1'` | FIXED |
+| 215 | **ach/hypotheses.ts 3x workspace_id ignores X-Workspace-ID header** — POST, PUT, DELETE all read query params only. Fixed | FIXED |
+| 216 | **ach/scores.ts 2x workspace_id ignores X-Workspace-ID header** — POST, GET all read query params only. Fixed | FIXED |
+
+### PERFORMANCE (missing LIMIT on 6 list endpoints)
+| # | Issue | Status |
+|---|-------|--------|
+| 217 | **research/tasks/list.ts no LIMIT** — Returns all tasks for a workspace. Could be hundreds. Fixed: `LIMIT 500` | FIXED |
+| 218 | **research/forms/list.ts no LIMIT** — Returns all submission forms. Fixed: `LIMIT 200` | FIXED |
+| 219 | **research/evidence/list.ts no LIMIT** — Returns all research evidence. Fixed: `LIMIT 500` | FIXED |
+| 220 | **research/submissions/list.ts no LIMIT** — Returns all form submissions. Fixed: `LIMIT 500` | FIXED |
+| 221 | **hamilton-rule.ts no LIMIT** — Returns all Hamilton Rule analyses. Fixed: `LIMIT 200` | FIXED |
+| 222 | **comments.ts GET no LIMIT** — Returns all comments for an entity. Fixed: `LIMIT 500` | FIXED |
 
 ---
 

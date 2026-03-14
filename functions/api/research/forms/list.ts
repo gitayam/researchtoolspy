@@ -31,7 +31,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       query += ` AND is_active = 1`
     }
 
-    query += ` ORDER BY created_at DESC`
+    query += ` ORDER BY created_at DESC LIMIT 200`
 
     const result = await context.env.DB.prepare(query).bind(...params).all()
 
