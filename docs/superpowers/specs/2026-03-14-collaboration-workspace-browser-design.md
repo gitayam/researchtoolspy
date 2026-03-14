@@ -67,14 +67,14 @@ Displays all entities (actors, sources, events, places, behaviors) in the worksp
   - Created by + date
   - Click → navigates to existing entity detail page
 
-**Data:** `GET /api/workspaces/:id/entities?type=&search=`
+**Data:** `GET /api/workspaces/:id/entities?type=&search=&limit=50&offset=0`
 
 ### COP Sessions Tab
 
 Displays COP sessions associated with the workspace.
 
 **UI Elements:**
-- `+ New COP` button → navigates to `/dashboard/cop` with `?workspace_id=` param
+- `+ New COP` button → navigates to `/dashboard/cop` with `?team_workspace_id=` param (distinct from `workspace_id` which controls entity isolation)
 - Session cards:
   - Name, template type badge (quick_brief, event_monitor, area_study, etc.)
   - Status badge: DRAFT (gray), ACTIVE (green), ARCHIVED (amber)
@@ -135,11 +135,18 @@ Existing member management and invite functionality, extracted from current page
 
 ```sql
 ALTER TABLE cop_sessions ADD COLUMN team_workspace_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_cop_sessions_team_workspace ON cop_sessions(team_workspace_id);
+-- NOTE: Existing sessions will have team_workspace_id = NULL.
+-- They must be manually assigned via the COP session settings UI or a backfill migration.
 ```
 
 **Purpose:** Links a COP session to a team workspace while preserving its own isolated entity workspace. The existing `workspace_id` remains the per-session entity isolation boundary. `team_workspace_id` is the team workspace the session belongs to for the collaboration browser.
 
 **Migration:** New migration file `schema/migrations/0XX-add-cop-team-workspace.sql`
+
+**Backfill note:** Existing COP sessions will have `team_workspace_id = NULL` and won't appear in the workspace browser. The COP Sessions tab should show a distinct empty state: "No COP sessions are linked to this workspace yet. Create a new COP or assign existing sessions from COP settings." A future COP session settings UI should allow assigning `team_workspace_id`.
+
+**COP creation update:** `POST /api/cop/sessions` must be updated to accept and persist `team_workspace_id` from the request body. The frontend passes this when creating a COP from the collaboration page.
 
 ---
 
@@ -177,7 +184,9 @@ Returns all entity types in the workspace, unified into a single list.
 
 **Query params:**
 - `type` — filter by entity type: `actor`, `source`, `event`, `place`, `behavior`
-- `search` — text search across name/description fields
+- `search` — prefix match on `name` field (`name LIKE 'term%'`). Full-text search is a future enhancement.
+- `limit` — max results, default 50, max 200
+- `offset` — pagination offset, default 0
 
 **Response:**
 ```json
@@ -194,11 +203,13 @@ Returns all entity types in the workspace, unified into a single list.
       "workspace_id": "ws-123"
     }
   ],
-  "total": 24
+  "total": 24,
+  "limit": 50,
+  "offset": 0
 }
 ```
 
-**Implementation:** UNION ALL across actors, sources, events, places, behaviors with a discriminator column. ORDER BY created_at DESC.
+**Implementation:** UNION ALL across actors, sources, events, places, behaviors with a discriminator column. ORDER BY created_at DESC. LIMIT/OFFSET applied to the outer query. When `type` filter is set, only query the single matching table (skip UNION).
 
 ### `GET /api/workspaces/:id/cop-sessions`
 
@@ -271,7 +282,17 @@ Returns COP templates (playbooks, task templates, intake forms) across all COP s
 }
 ```
 
-**Implementation:** Query cop_playbooks, cop_task_templates, cop_intake_forms WHERE cop_session_id IN (SELECT id FROM cop_sessions WHERE team_workspace_id = ?).
+**Implementation:** COP templates are scoped by `workspace_id` (the per-session entity workspace), not `cop_session_id`. Query via JOIN through `cop_sessions`:
+
+```sql
+-- Task templates (cop_task_templates has workspace_id, not cop_session_id)
+SELECT t.*, cs.name as cop_session_name, cs.id as cop_session_id
+FROM cop_task_templates t
+JOIN cop_sessions cs ON cs.workspace_id = t.workspace_id
+WHERE cs.team_workspace_id = ?
+
+-- Same pattern for cop_playbooks and cop_intake_forms
+```
 
 ---
 
@@ -304,7 +325,7 @@ All placed in `src/components/collaboration/`.
 When navigating from collaboration page to entity/COP/framework pages, pass workspace context:
 
 - **Entity create/detail:** `?workspace_id=<id>` query param
-- **COP create:** `?workspace_id=<id>` — the COP creation flow should set `team_workspace_id` when this param is present
+- **COP create:** `?team_workspace_id=<id>` — distinct from `workspace_id` (entity isolation). The COP creation flow persists this as `team_workspace_id` on the new session.
 - **Framework create:** `?workspace_id=<id>` — set `workspace_id` on the framework session
 
 Existing pages should read this param and scope their operations accordingly. Back navigation returns to the collaboration page.
@@ -317,6 +338,9 @@ Existing pages should read this param and scope their operations accordingly. Ba
 - Role enforcement: VIEWER can read all tabs. EDITOR can create/navigate to create flows. ADMIN can manage team + invites (Team tab).
 - Existing `getUserFromRequest()` auth pattern for all endpoints
 - 403 if user is not a workspace member
+- Workspace owner (`owner_id` on `workspaces` table) always has ADMIN-equivalent access, even if not in `workspace_members`
+
+**Frontend role awareness:** The workspace selector response (`GET /api/workspaces`) should include `current_user_role: 'OWNER' | 'ADMIN' | 'EDITOR' | 'VIEWER'` for each workspace. The `CollaborationPage` passes this to tab components, which conditionally render create/edit buttons based on role. VIEWERs see content but no mutation buttons.
 
 ---
 
