@@ -3,7 +3,7 @@
  * Link/unlink evidence from Evidence Library to ACH analyses
  */
 
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -25,7 +25,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const url = new URL(context.request.url)
     const data = await context.request.json() as Partial<EvidenceLink>
 
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     // Get workspace_id from query params or default to '1'
     const workspaceId = url.searchParams.get('workspace_id') || '1'
@@ -125,7 +130,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const url = new URL(context.request.url)
     const id = url.searchParams.get('id')
 
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     // Get workspace_id from query params or default to '1'
     const workspaceId = url.searchParams.get('workspace_id') || '1'

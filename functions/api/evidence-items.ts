@@ -1,5 +1,5 @@
 // Cloudflare Pages Function for Evidence Items API
-import { getUserIdOrDefault } from './_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -144,6 +144,12 @@ export async function onRequest(context: any) {
 
     // POST - Create new evidence item
     if (request.method === 'POST') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       const body = await request.json()
 
       if (!body.title || !body.evidence_type) {
@@ -188,8 +194,8 @@ export async function onRequest(context: any) {
         JSON.stringify(body.tags || []),
         body.status || 'pending',
         body.priority || 'normal',
-        body.created_by || userId,
-        body.updated_by || userId,
+        authUserId,
+        authUserId,
         body.is_public ? 1 : 0,
         body.shared_by_user_id || null
       ).run()
@@ -269,6 +275,12 @@ export async function onRequest(context: any) {
 
     // PUT - Update evidence item
     if (request.method === 'PUT') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       if (!evidenceId) {
         return new Response(JSON.stringify({ error: 'Evidence ID required' }), {
           status: 400,
@@ -329,7 +341,7 @@ export async function onRequest(context: any) {
         JSON.stringify(body.tags || []),
         body.status,
         body.priority,
-        body.updated_by || userId,
+        authUserId,
         body.is_public ? 1 : 0,
         body.shared_by_user_id || null,
         evidenceId
@@ -396,6 +408,12 @@ export async function onRequest(context: any) {
 
     // DELETE - Delete evidence item
     if (request.method === 'DELETE') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
       if (!evidenceId) {
         return new Response(JSON.stringify({ error: 'Evidence ID required' }), {
           status: 400,
@@ -405,12 +423,12 @@ export async function onRequest(context: any) {
 
       // Delete citations first (scoped to owner's evidence)
       await env.DB.prepare('DELETE FROM evidence_citations WHERE evidence_id = ? AND evidence_id IN (SELECT id FROM evidence_items WHERE created_by = ?)')
-        .bind(evidenceId, userId)
+        .bind(evidenceId, authUserId)
         .run()
 
       // Delete evidence (scoped to owner)
       const delResult = await env.DB.prepare('DELETE FROM evidence_items WHERE id = ? AND created_by = ?')
-        .bind(evidenceId, userId)
+        .bind(evidenceId, authUserId)
         .run()
 
       if (!delResult.meta.changes || delResult.meta.changes === 0) {

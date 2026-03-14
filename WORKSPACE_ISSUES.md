@@ -159,6 +159,12 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 73 | **Dead `getUserIdOrDefault` imports** in sessions/[id].ts, assets.ts, tasks.ts — removed unused imports left from v0.14.0 auth fixes | FIXED |
+| 74 | **ACH index POST/PUT/DELETE uses `getUserIdOrDefault`** — guest users could CRUD ACH analyses. Fixed: `ach/index.ts` mutations use `getUserFromRequest` + 401 (GET kept for guest browsing) | FIXED |
+| 75 | **ACH hypotheses POST/PUT/DELETE uses `getUserIdOrDefault`** — Fixed: `ach/hypotheses.ts` all handlers use `getUserFromRequest` + 401 | FIXED |
+| 76 | **ACH evidence POST/DELETE uses `getUserIdOrDefault`** — Fixed: `ach/evidence.ts` all handlers use `getUserFromRequest` + 401 | FIXED |
+| 77 | **ACH scores POST/DELETE uses `getUserIdOrDefault`** — Fixed: `ach/scores.ts` all handlers use `getUserFromRequest` + 401 | FIXED |
+| 78 | **evidence-items.ts user impersonation** — POST accepted `body.created_by` and PUT accepted `body.updated_by` from request body, allowing any user to attribute records to others. Fixed: server always uses authenticated userId | FIXED |
+| 79 | **evidence-items.ts POST/PUT/DELETE uses `getUserIdOrDefault`** — Fixed: all mutation blocks use `getUserFromRequest` + 401 (GET kept for guest browsing) | FIXED |
 
 ---
 

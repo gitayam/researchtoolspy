@@ -3,7 +3,7 @@
  * CRUD operations for ACH analyses
  */
 
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -111,8 +111,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const url = new URL(context.request.url)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
     const data = await context.request.json() as Partial<ACHAnalysis>
-    const userId = await getUserIdOrDefault(context.request, context.env)
 
     // Get workspace_id from query params or default to '1'
     const workspaceId = url.searchParams.get('workspace_id') || '1'
@@ -178,7 +183,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   try {
     const url = new URL(context.request.url)
     const id = url.searchParams.get('id')
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     // Get workspace_id from query params or default to '1'
     const workspaceId = url.searchParams.get('workspace_id') || '1'
@@ -258,7 +268,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
     const url = new URL(context.request.url)
     const id = url.searchParams.get('id')
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     // Get workspace_id from query params or default to '1'
     const workspaceId = url.searchParams.get('workspace_id') || '1'
