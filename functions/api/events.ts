@@ -247,6 +247,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         SELECT * FROM events WHERE id = ?
       `).bind(id).first()
 
+      if (!event) {
+        return new Response(
+          JSON.stringify({ success: true, id }),
+          { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       return new Response(
         JSON.stringify({
           ...event,
@@ -433,6 +440,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const updated = await env.DB.prepare(`
         SELECT * FROM events WHERE id = ?
       `).bind(eventId).first()
+
+      if (!updated) {
+        return new Response(
+          JSON.stringify({ success: true, id: eventId }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
       return new Response(
         JSON.stringify({

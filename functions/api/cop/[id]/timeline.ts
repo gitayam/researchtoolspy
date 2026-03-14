@@ -191,7 +191,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `SELECT * FROM cop_timeline_entries WHERE id = ? AND cop_session_id = ?`
     ).bind(entryId, sessionId).first()
 
-    return new Response(JSON.stringify({ message: 'Timeline entry updated', entry: updated }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Timeline entry updated', entry: updated || { id: entryId } }), { headers: corsHeaders })
   } catch (error) {
     console.error('[COP Timeline] Update error:', error)
     return new Response(JSON.stringify({ error: 'Failed to update timeline entry' }), {

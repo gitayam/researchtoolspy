@@ -303,6 +303,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         SELECT * FROM actors WHERE id = ?
       `).bind(id).first()
 
+      if (!actor) {
+        return new Response(
+          JSON.stringify({ success: true, id }),
+          { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       return new Response(
         JSON.stringify({
           ...actor,
@@ -442,6 +449,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const updated = await env.DB.prepare(`
         SELECT * FROM actors WHERE id = ?
       `).bind(actorId).first()
+
+      if (!updated) {
+        return new Response(
+          JSON.stringify({ success: true, id: actorId }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
       return new Response(
         JSON.stringify({

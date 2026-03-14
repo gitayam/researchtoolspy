@@ -194,6 +194,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         SELECT * FROM sources WHERE id = ?
       `).bind(id).first()
 
+      if (!source) {
+        return new Response(
+          JSON.stringify({ success: true, id }),
+          { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       return new Response(
         JSON.stringify({
           ...source,
@@ -303,6 +310,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const updated = await env.DB.prepare(`
         SELECT * FROM sources WHERE id = ?
       `).bind(sourceId).first()
+
+      if (!updated) {
+        return new Response(
+          JSON.stringify({ success: true, id: sourceId }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
       return new Response(
         JSON.stringify({

@@ -226,6 +226,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         SELECT * FROM behaviors WHERE id = ?
       `).bind(id).first()
 
+      if (!behavior) {
+        return new Response(
+          JSON.stringify({ success: true, id }),
+          { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       return new Response(
         JSON.stringify({
           ...behavior,
@@ -370,6 +377,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const updated = await env.DB.prepare(`
         SELECT * FROM behaviors WHERE id = ?
       `).bind(behaviorId).first()
+
+      if (!updated) {
+        return new Response(
+          JSON.stringify({ success: true, id: behaviorId }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
       return new Response(
         JSON.stringify({

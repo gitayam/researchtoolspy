@@ -198,6 +198,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         SELECT * FROM social_media_profiles WHERE id = ?
       `).bind(id).first()
 
+      if (!profile) {
+        return new Response(
+          JSON.stringify({ success: true, id }),
+          { status: existing ? 200 : 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       return new Response(
         JSON.stringify({
           ...profile,
@@ -400,6 +407,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         SELECT * FROM social_media_posts WHERE id = ?
       `).bind(id).first()
 
+      if (!post) {
+        return new Response(
+          JSON.stringify({ success: true, id }),
+          { status: existing ? 200 : 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       return new Response(
         JSON.stringify({
           ...post,
@@ -487,6 +501,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const job = await env.DB.prepare(`
         SELECT * FROM social_media_jobs WHERE id = ?
       `).bind(id).first()
+
+      if (!job) {
+        return new Response(
+          JSON.stringify({ success: true, id, message: 'Job created. Note: Actual scraping requires external tools (instaloader, yt-dlp, etc.) to be configured.' }),
+          { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
       return new Response(
         JSON.stringify({

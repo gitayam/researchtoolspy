@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-50)
+**Last updated:** 2026-03-14 (Sessions 34-53)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -278,6 +278,57 @@
 | 129 | **cross-table/index.ts `JSON.parse(row.config)` without try-catch** — `parseTableRow()` crashes on corrupted config JSON in D1. Fixed: wrapped in try-catch with `{}` fallback | FIXED |
 | 130 | **frameworks/index.tsx 4x `JSON.parse(localStorage...)` without try-catch** — Corrupted localStorage crashes framework page load. Fixed: wrapped all 4 instances in try-catch with `[]` fallback | FIXED |
 | 131 | **frameworks/[id].ts GET `JSON.parse(result.data)` without try-catch** — Corrupted framework data JSON crashes GET endpoint. Fixed: wrapped in try-catch with `{}` fallback | FIXED |
+
+---
+
+## Fixed — v0.15.6 (Session 51)
+
+### NULL DEREFERENCE
+| # | Issue | Status |
+|---|-------|--------|
+| 132 | **comments.ts 4x unguarded `.first()` results** — POST created comment, PATCH resolve/unresolve/edit all access `.first()` result without null check. If SELECT returns null after INSERT/UPDATE, spreading `...null` is silent but property access crashes. Fixed: null guards with fallback responses | FIXED |
+
+### ERROR HANDLING
+| # | Issue | Status |
+|---|-------|--------|
+| 133 | **starbursting.ts hardcoded `workspace_id: '1'`** — All starbursting results saved to workspace 1 regardless of caller. Fixed: reads `X-Workspace-ID` header with `'1'` fallback | FIXED |
+| 134 | **ContentIntelligencePage.tsx 4x DIME `.map()` on undefined** — `dime_analysis.diplomatic/information/military/economic` arrays may be undefined from AI response. Fixed: fallback to `[]` on each | FIXED |
+
+### MEMORY LEAK
+| # | Issue | Status |
+|---|-------|--------|
+| 135 | **CopWorkspacePage.tsx useEffect fetch without AbortController** — Stats fetch on mount not cleaned up on unmount. React setState-on-unmounted warning. Fixed: AbortController with cleanup in return function | FIXED |
+
+---
+
+## Fixed — v0.15.7 (Session 52)
+
+### NULL DEREFERENCE
+| # | Issue | Status |
+|---|-------|--------|
+| 136 | **relationships.ts POST unguarded `.first()` after INSERT** — `...relationship` spread + property access on potentially null result. Fixed: null guard with `{ success: true, id }` fallback | FIXED |
+| 137 | **relationships.ts PUT unguarded `.first()` after UPDATE** — Same pattern on `...updated` spread. Fixed: null guard with fallback | FIXED |
+
+---
+
+## Fixed — v0.15.8 (Session 53)
+
+### NULL DEREFERENCE (13 instances across all entity CRUD files)
+| # | Issue | Status |
+|---|-------|--------|
+| 138 | **actors.ts POST unguarded `.first()` after INSERT** — `...actor` spread + `actor.aliases`, `actor.tags`, `actor.deception_profile`, `actor.is_public` access on null crashes. Fixed: null guard | FIXED |
+| 139 | **actors.ts PUT unguarded `.first()` after UPDATE** — `...updated` spread + same properties. Fixed: null guard | FIXED |
+| 140 | **sources.ts POST unguarded `.first()` after INSERT** — `...source` spread + `source.moses_assessment`, `source.is_public`. Fixed: null guard | FIXED |
+| 141 | **sources.ts PUT unguarded `.first()` after UPDATE** — `...updated` spread + same properties. Fixed: null guard | FIXED |
+| 142 | **events.ts POST unguarded `.first()` after INSERT** — `...event` spread + `event.coordinates`, `event.is_public`. Fixed: null guard | FIXED |
+| 143 | **events.ts PUT unguarded `.first()` after UPDATE** — `...updated` spread + same properties. Fixed: null guard | FIXED |
+| 144 | **places.ts POST unguarded `.first()` after INSERT** — `...place` spread + `place.coordinates`, `place.is_public`. Fixed: null guard | FIXED |
+| 145 | **behaviors.ts POST unguarded `.first()` after INSERT** — `...behavior` spread + `behavior.indicators`, `behavior.is_public`. Fixed: null guard | FIXED |
+| 146 | **behaviors.ts PUT unguarded `.first()` after UPDATE** — `...updated` spread + same properties. Fixed: null guard | FIXED |
+| 147 | **social-media.ts profiles POST/PUT unguarded `.first()`** — `...profile` spread + `profile.platform_data`, `profile.tags`, etc. Fixed: null guard | FIXED |
+| 148 | **social-media.ts posts POST/PUT unguarded `.first()`** — `...post` spread + `post.media_urls`, `post.platform_data`, etc. Fixed: null guard | FIXED |
+| 149 | **social-media.ts jobs POST unguarded `.first()`** — `...job` spread + `job.config`. Fixed: null guard | FIXED |
+| 150 | **cop/[id]/timeline.ts PUT unguarded `.first()`** — `entry: updated` passed directly without null check. Fixed: fallback `updated \|\| { id: entryId }` | FIXED |
 
 ---
 

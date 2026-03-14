@@ -216,6 +216,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         SELECT * FROM places WHERE id = ?
       `).bind(id).first()
 
+      if (!place) {
+        return new Response(
+          JSON.stringify({ success: true, id }),
+          { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       return new Response(
         JSON.stringify({
           ...place,
