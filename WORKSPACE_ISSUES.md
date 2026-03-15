@@ -1,6 +1,42 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-73)
+**Last updated:** 2026-03-14 (Sessions 34-74)
+
+## Fixed — v0.18.2 (Session 74)
+
+### CRITICAL — BROKEN requireAuth() CALL SIGNATURE (10 ENDPOINTS)
+| # | Issue | Status |
+|---|-------|--------|
+| 371 | **claims/link-entity.ts** — `requireAuth(context)` passes EventContext instead of `(request, env)`. Auth always crashes with TypeError, endpoint returns 500. Also `auth.user.id` is dead code (requireAuth returns number). Fixed: `requireAuth(context.request, context.env)` + `authUserId` | FIXED |
+| 372 | **claims/link-evidence.ts** — Same broken pattern. 3 `auth.user.id` refs. Fixed | FIXED |
+| 373 | **claims/remove-entity-mention.ts** — Same broken pattern. Fixed | FIXED |
+| 374 | **claims/remove-evidence-link.ts** — Same broken pattern. Fixed | FIXED |
+| 375 | **claims/save-adjustment.ts** — Same broken pattern. 2 `auth.user.id` refs. Fixed | FIXED |
+| 376 | **claims/update-entity-credibility.ts** — Same broken pattern. Fixed | FIXED |
+| 377 | **investigation-packets/create.ts** — Same broken pattern + `auth.user.workspace_id` (nonexistent). Fixed: uses `X-Workspace-ID` header | FIXED |
+| 378 | **investigation-packets/[id].ts** — Same broken pattern. Fixed | FIXED |
+| 379 | **investigation-packets/add-content/[id].ts** — Same broken pattern. 3 `auth.user.id` refs. Fixed | FIXED |
+| 380 | **investigation-packets/list.ts** — Same broken pattern. 2 `auth.user.id` refs. Fixed | FIXED |
+
+### HIGH — MISSING OWNERSHIP ON evidence-items.ts PUT
+| # | Issue | Status |
+|---|-------|--------|
+| 381 | **evidence-items.ts PUT has no ownership check** — `UPDATE evidence_items SET ... WHERE id = ?` without `AND created_by = ?`. Any authenticated user can update any evidence item. Fixed: added ownership scope + meta.changes check | FIXED |
+
+### MEDIUM — SILENT ERROR CATCHES (DEBUGGABILITY)
+| # | Issue | Status |
+|---|-------|--------|
+| 382 | **evidence-items.ts** — 2 silent catches in auto-linking: `// Ignore duplicate errors` and `// Don't fail the whole request`. Fixed: added console.error | FIXED |
+| 383 | **QASection.tsx** — Silent catch on question submit hides actual error from devtools. Fixed: added console.error | FIXED |
+
+### SYSTEMIC — COP AUTH GAPS (DOCUMENTED, NOT YET FIXED)
+| # | Issue | Status |
+|---|-------|--------|
+| 384 | **COP GET endpoints lack auth** — 25+ `cop/[id]/*` GET endpoints return data without authentication. Session ID is the only access control. Needs middleware-level `verifyCopSessionAccess()` helper | OPEN |
+| 385 | **COP mutations lack session ownership** — 15+ COP POST/PUT/DELETE endpoints authenticate user but never verify user belongs to the session. Any authenticated user who knows a session ID can mutate its data | OPEN |
+| 386 | **cop/[id]/shares.ts GET leaks share tokens** — Returns secret share tokens without auth. Highest-value target: attacker who guesses session ID can harvest all share links | OPEN |
+
+---
 
 ## Fixed — v0.18.1 (Session 73)
 

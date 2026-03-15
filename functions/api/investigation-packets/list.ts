@@ -13,13 +13,7 @@ interface Env {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     const url = new URL(context.request.url)
     const status = url.searchParams.get('status') // Filter by status (active, completed, archived)
@@ -43,7 +37,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       WHERE user_id = ?
     `
 
-    const bindings: any[] = [auth.user.id]
+    const bindings: any[] = [authUserId]
 
     // Filter by status if provided
     if (status && ['active', 'completed', 'archived'].includes(status)) {
@@ -88,7 +82,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Get total count for pagination
     let countSql = `SELECT COUNT(*) as total FROM investigation_packets WHERE user_id = ?`
-    const countBindings: any[] = [auth.user.id]
+    const countBindings: any[] = [authUserId]
 
     if (status && ['active', 'completed', 'archived'].includes(status)) {
       countSql += ` AND status = ?`

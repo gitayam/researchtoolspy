@@ -22,13 +22,8 @@ interface CreatePacketRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
+    const workspaceId = context.request.headers.get('X-Workspace-ID') || '1'
 
     const body = await context.request.json() as CreatePacketRequest
 
@@ -74,14 +69,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id,
-      auth.user.id,
-      auth.user.workspace_id || '1',
+      authUserId,
+      workspaceId,
       body.title.trim(),
       body.description?.trim() || null,
       body.investigation_type?.trim() || null,
       body.priority || 'medium',
       'active',
-      auth.user.id, // User is the lead investigator
+      authUserId, // User is the lead investigator
       body.category?.trim() || null,
       body.tags ? JSON.stringify(body.tags) : null,
       now,
@@ -101,7 +96,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(
       crypto.randomUUID(),
       id,
-      auth.user.id,
+      authUserId,
       'packet_created',
       JSON.stringify({
         title: body.title.trim(),

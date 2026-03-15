@@ -18,13 +18,7 @@ interface UpdateCredibilityRequest {
 
 export const onRequestPatch: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     // Get mention_id from URL path
     const url = new URL(context.request.url)
@@ -68,7 +62,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (mention.content_owner !== auth.user.id) {
+    if (mention.content_owner !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to update this entity mention' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }

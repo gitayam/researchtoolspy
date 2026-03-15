@@ -24,13 +24,7 @@ interface LinkEntityRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     const body = await context.request.json() as LinkEntityRequest
 
@@ -93,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (claimAdjustment.content_owner !== auth.user.id) {
+    if (claimAdjustment.content_owner !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to link entities to this claim' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }

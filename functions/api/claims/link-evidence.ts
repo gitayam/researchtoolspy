@@ -23,13 +23,7 @@ interface LinkEvidenceRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     const body = await context.request.json() as LinkEvidenceRequest
 
@@ -70,7 +64,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Only the user who owns the content analysis can link evidence
-    if (claimAdjustment.content_owner !== auth.user.id) {
+    if (claimAdjustment.content_owner !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to link evidence to this claim' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
@@ -92,7 +86,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // User must own the evidence or it must be shared with them
-    if (evidence.user_id !== auth.user.id) {
+    if (evidence.user_id !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to link this evidence' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
@@ -134,7 +128,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.relevance_score ?? 50,
       body.confidence ?? 50,
       body.notes || null,
-      auth.user.id,
+      authUserId,
       now
     ).run()
 

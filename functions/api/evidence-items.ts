@@ -221,11 +221,11 @@ export async function onRequest(context: any) {
                 VALUES (?, ?, ?, 1)
               `).bind(evidenceId, actor.id, 'Auto-detected').run()
             } catch (e) {
-              // Ignore duplicate errors
+              console.error('[Evidence] Auto-link actor failed:', e)
             }
           }
         } catch (error) {
-          // Don't fail the whole request if auto-linking fails
+          console.error('[Evidence] Auto-linking failed (non-blocking):', error)
         }
       }
 
@@ -290,7 +290,7 @@ export async function onRequest(context: any) {
 
       const body = await request.json()
 
-      await env.DB.prepare(`
+      const updateResult = await env.DB.prepare(`
         UPDATE evidence_items
         SET
           title = ?,
@@ -318,7 +318,7 @@ export async function onRequest(context: any) {
           updated_by = ?,
           is_public = ?,
           shared_by_user_id = ?
-        WHERE id = ?
+        WHERE id = ? AND created_by = ?
       `).bind(
         body.title,
         body.description || '',  // Empty string instead of null
@@ -344,8 +344,15 @@ export async function onRequest(context: any) {
         authUserId,
         body.is_public ? 1 : 0,
         body.shared_by_user_id || null,
-        evidenceId
+        evidenceId,
+        authUserId
       ).run()
+
+      if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+        return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
 
       // Auto-link actors from updated "who" field
       if (body.who && body.who.trim()) {
@@ -372,7 +379,7 @@ export async function onRequest(context: any) {
                 VALUES (?, ?, ?, 1)
               `).bind(evidenceId, actor.id, 'Auto-detected').run()
             } catch (e) {
-              // Ignore duplicate errors
+              console.error('[Evidence] Auto-link actor failed:', e)
             }
           }
         } catch (error) {

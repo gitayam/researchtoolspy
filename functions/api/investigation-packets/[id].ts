@@ -13,13 +13,7 @@ interface Env {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     const packetId = context.params.id as string
 
@@ -40,7 +34,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         completed_at
       FROM investigation_packets
       WHERE id = ? AND user_id = ?
-    `).bind(packetId, auth.user.id).first()
+    `).bind(packetId, authUserId).first()
 
     if (!packet) {
       return new Response(JSON.stringify({ error: 'Packet not found' }), {

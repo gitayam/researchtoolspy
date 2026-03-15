@@ -134,7 +134,8 @@ Entities: ${entityList || 'None extracted'}`
             : msg
         )
       )
-    } catch {
+    } catch (err) {
+      console.error('[QASection] Question failed:', err)
       // Update message to show error
       setMessages((prev) =>
         prev.map((msg) =>

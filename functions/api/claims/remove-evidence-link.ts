@@ -13,13 +13,7 @@ interface Env {
 
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     // Get link_id from URL path
     const url = new URL(context.request.url)
@@ -52,7 +46,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     }
 
     // Only the content owner can remove links
-    if (link.content_owner !== auth.user.id) {
+    if (link.content_owner !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to remove this evidence link' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }

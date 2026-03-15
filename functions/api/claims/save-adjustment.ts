@@ -33,13 +33,7 @@ interface SaveAdjustmentRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     const body = await context.request.json() as SaveAdjustmentRequest
 
@@ -74,7 +68,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (analysis.user_id !== auth.user.id) {
+    if (analysis.user_id !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
@@ -152,7 +146,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         body.adjusted_methods ? JSON.stringify(body.adjusted_methods) : null,
         body.user_comment || null,
         body.verification_status || 'pending',
-        auth.user.id,
+        authUserId,
         '1', // Default workspace
         now,
         now

@@ -18,13 +18,7 @@ interface AddContentRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     const packetId = context.params.id as string
     const body = await context.request.json() as AddContentRequest
@@ -51,7 +45,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (packet.user_id !== auth.user.id) {
+    if (packet.user_id !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to modify this packet' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
@@ -70,7 +64,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (content.user_id !== auth.user.id) {
+    if (content.user_id !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to access this content' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
@@ -111,7 +105,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       packetId,
       body.content_analysis_id,
       body.notes?.trim() || null,
-      auth.user.id,
+      authUserId,
       now
     ).run()
 
@@ -135,7 +129,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(
       crypto.randomUUID(),
       packetId,
-      auth.user.id,
+      authUserId,
       'content_added',
       JSON.stringify({
         content_analysis_id: body.content_analysis_id,
