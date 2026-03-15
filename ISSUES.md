@@ -1,22 +1,33 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.14.2-cop-auth-hardening
+**Current tag:** v0.14.3-cop-auth-complete
+
+---
+
+## Fixed (v0.14.3)
+
+### P0 — 7 More COP Endpoints Had Open GET + Missing Session Access on Mutations
+- [x] `assets.ts` — GET returned all assets without auth; mutations had no session access
+- [x] `evidence-tags.ts` — GET open; POST/DELETE had no session access
+- [x] `task-dependencies.ts` — GET open; POST/DELETE had no session access
+- [x] `task-templates.ts` — GET open; POST/PUT/DELETE had no session access
+- [x] `poo-estimates.ts` — GET open; POST/PUT/DELETE had no session access
+- [x] `submissions.ts` — GET open; PUT had no session access
+- [x] `marker-changelog.ts` — GET open; POST had no session access
+- [x] All 7 now enforce `getUserFromRequest` + `verifyCopSessionAccess` on all handlers
+- [x] Verified: no auth → 401, non-owner → 403, all previously fixed endpoints unaffected
+- **Root cause:** continuation of v0.14.2 — incremental COP endpoint development without auth audit
 
 ---
 
 ## Fixed (v0.14.2)
 
 ### P0 — 5 COP Endpoints Had Zero Auth on GET (Data Leakage)
-- [x] `claims.ts` — GET returned all claims without auth; POST/PUT had no session access check
-- [x] `timeline.ts` — GET returned all entries without auth; POST/PUT/DELETE had no session access check
-- [x] `cot.ts` — CoT XML feed returned all entities without auth
-- [x] `events.ts` — event log returned all session events without auth
-- [x] `exports.ts` — export history returned without auth
-- [x] All 5 now enforce `getUserFromRequest` + `verifyCopSessionAccess` on all handlers
-- [x] Verified: no auth → 401, non-owner → 403, entity endpoints unaffected → 200
-- **Root cause:** same class as v0.13.1 layer endpoints — COP endpoints built incrementally without auth, never audited as a group
-- **Remaining:** 10 more COP endpoints flagged without `verifyCopSessionAccess` (assets, evidence-tags, shares, task-dependencies, task-templates, etc.) — lower priority as they have `getUserFromRequest` on mutations
+- [x] `claims.ts`, `timeline.ts`, `cot.ts`, `events.ts`, `exports.ts` — all had zero auth on GET
+- [x] Claims and timeline mutations also lacked session access verification
+- [x] All 5 now enforce `getUserFromRequest` + `verifyCopSessionAccess`
+- **Root cause:** COP endpoints built incrementally without auth, never audited as a group
 
 ---
 

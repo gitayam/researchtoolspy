@@ -7,12 +7,14 @@
  * DELETE /api/cop/:id/assets?asset_id=x - Delete asset (hard delete or soft offline)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { ASSET_CREATED, ASSET_UPDATED, ASSET_STATUS_CHANGED, ASSET_QUOTA_LOW } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -47,6 +49,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
   const typeFilter = url.searchParams.get('asset_type')
   const statusFilter = url.searchParams.get('status')
+
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+  }
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!accessWorkspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+  }
 
   try {
     let query = 'SELECT * FROM cop_assets WHERE cop_session_id = ?'
@@ -87,6 +98,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
     const body = await request.json() as any
 
@@ -164,6 +178,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
     const body = await request.json() as any
 
@@ -312,6 +329,9 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
     if (!assetId) {
       return new Response(JSON.stringify({ error: 'asset_id query param is required' }), {

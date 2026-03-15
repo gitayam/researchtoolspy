@@ -6,12 +6,14 @@
  * DELETE  /api/cop/:id/evidence-tags?tag_id=xxx      - Remove a tag
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { EVIDENCE_TAGGED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -26,9 +28,19 @@ function generateId(): string {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { request, env } = context
+  const { request, env, params } = context
+  const sessionId = params.id as string
   const url = new URL(request.url)
   const evidenceId = url.searchParams.get('evidence_id')
+
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+  }
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!accessWorkspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+  }
 
   try {
     if (!evidenceId) {
@@ -52,6 +64,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
+  const sessionId = params.id as string
 
   try {
     const userId = await getUserFromRequest(request, env)
@@ -59,6 +72,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
     const body = await request.json() as any
 
@@ -89,7 +105,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).bind(id, body.evidence_id.trim(), body.tag_category.trim(), body.tag_value.trim(), confidence, userId, now).run()
 
-    const sessionId = params.id as string
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: EVIDENCE_TAGGED,
@@ -122,6 +137,9 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
     if (!tagId) {
       return new Response(JSON.stringify({ error: 'tag_id query parameter is required' }), {
