@@ -8,6 +8,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { checkWorkspaceAccess } from '../../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -19,39 +20,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
   'Content-Type': 'application/json',
-}
-
-async function checkWorkspaceAccess(
-  workspaceId: string,
-  userId: number,
-  env: Env
-): Promise<boolean> {
-  // Default workspace "1" — auto-grant for all authenticated users
-  if (workspaceId === '1') return true
-
-  // COP session workspaces — access controlled by session sharing, not workspace ACL
-  if (workspaceId.startsWith('cop-')) {
-    const session = await env.DB.prepare(
-      'SELECT id FROM cop_sessions WHERE workspace_id = ?'
-    ).bind(workspaceId).first()
-    if (session) return true
-  }
-
-  const workspace = await env.DB.prepare(
-    `SELECT owner_id, is_public FROM workspaces WHERE id = ?`
-  ).bind(workspaceId).first()
-
-  if (!workspace) return false
-  if (workspace.owner_id === userId) return true
-
-  const member = await env.DB.prepare(
-    `SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ?`
-  ).bind(workspaceId, userId).first()
-
-  if (member) return true
-  if (workspace.is_public) return true
-
-  return false
 }
 
 /** Round to 1 decimal place */

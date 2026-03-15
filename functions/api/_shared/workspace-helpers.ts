@@ -1,9 +1,68 @@
 /**
  * Shared Workspace Authorization Helpers
  *
- * Extracted from duplicated logic in workspace invite handlers.
- * Checks workspace ownership or ADMIN role membership.
+ * Central workspace access logic used by all entity endpoints.
+ * Handles default workspace, COP session workspaces, ownership,
+ * membership roles, and public workspace fallback.
  */
+
+/**
+ * Check if a user has access to a workspace.
+ *
+ * Access rules (checked in order):
+ * 1. Default workspace "1" → auto-grant for all authenticated users
+ * 2. COP session workspaces (cop-*) → grant if session exists
+ * 3. Workspace owner → full access
+ * 4. Workspace member → role-gated access
+ * 5. Public workspace → read-only (VIEWER) access
+ *
+ * Used by: actors, sources, events, places, behaviors, relationships, credibility
+ */
+export async function checkWorkspaceAccess(
+  workspaceId: string,
+  userId: number,
+  env: { DB: D1Database },
+  requiredRole?: 'ADMIN' | 'EDITOR' | 'VIEWER'
+): Promise<boolean> {
+  // Default workspace "1" — auto-grant for all authenticated users
+  if (workspaceId === '1') return true
+
+  // COP session workspaces — access controlled by session sharing, not workspace ACL
+  if (workspaceId.startsWith('cop-')) {
+    const session = await env.DB.prepare(
+      'SELECT id FROM cop_sessions WHERE workspace_id = ?'
+    ).bind(workspaceId).first()
+    if (session) return true
+  }
+
+  const workspace = await env.DB.prepare(
+    `SELECT owner_id, is_public FROM workspaces WHERE id = ?`
+  ).bind(workspaceId).first()
+
+  if (!workspace) return false
+
+  // Owner has full access
+  if (workspace.owner_id === userId) return true
+
+  // Check member access with role gating
+  const member = await env.DB.prepare(
+    `SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ?`
+  ).bind(workspaceId, userId).first()
+
+  if (member) {
+    if (!requiredRole) return true
+    if (requiredRole === 'VIEWER') return true
+    if (requiredRole === 'EDITOR' && (member.role === 'EDITOR' || member.role === 'ADMIN')) return true
+    if (requiredRole === 'ADMIN' && member.role === 'ADMIN') return true
+  }
+
+  // Public workspaces allow read access
+  if (workspace.is_public && (!requiredRole || requiredRole === 'VIEWER')) {
+    return true
+  }
+
+  return false
+}
 
 /**
  * Check if user can manage a workspace (owner or ADMIN member)

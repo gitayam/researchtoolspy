@@ -1,17 +1,24 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.13.4-entity-access-fix
+**Current tag:** v0.14.0-workspace-refactor
 
 ---
 
-## Fixed (v0.13.4)
+## Fixed (v0.14.0)
 
-### P2 — Entity Endpoints Denied COP Workspace Access
+### P1 — checkWorkspaceAccess Duplicated 7 Times (Tech Debt → Bug Source)
+- [x] Extracted shared `checkWorkspaceAccess()` to `functions/api/_shared/workspace-helpers.ts`
+- [x] Removed 7 duplicated local definitions from: actors, sources, events, places, behaviors, relationships, credibility
+- [x] Removed obsolete workspace "1" auto-create logic (no longer needed after migration 093)
+- [x] ~350 lines of duplicated code eliminated
+- [x] All 7 entity endpoints tested against COP workspace + default workspace → 200
+- **Root cause:** entity endpoints were built independently and each copied the access function; when COP support was added, 2 of 7 copies were missed (v0.13.4 bug)
+
+### P2 — Entity Endpoints Denied COP Workspace Access (v0.13.4)
 - [x] `relationships.ts` and `credibility.ts` had their own `checkWorkspaceAccess` functions missing the COP session lookup
 - [x] COP workspace IDs (`cop-*`) were falling through to the workspace table lookup and failing (no matching row)
-- [x] Added `workspace_id === '1'` auto-grant and `startsWith('cop-')` session existence check to both files
-- **Root cause:** these endpoints duplicated `checkWorkspaceAccess` instead of importing a shared helper, and the COP-aware logic was never added
+- [x] Now resolved by shared utility (above)
 
 ---
 
