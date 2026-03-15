@@ -1,7 +1,27 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.16.0-cors-consolidation
+**Current tag:** v0.16.1-auth-fix
+
+---
+
+## Fixed (v0.16.1)
+
+### P0 — Login Endpoint Returning 503 (JWT_SECRET Missing)
+- [x] `hash-auth/authenticate` returned 503 "Authentication service unavailable" — `JWT_SECRET` was never set as a Cloudflare Pages secret
+- [x] Generated and set `JWT_SECRET` via `wrangler pages secret put`
+- [x] Login now returns JWT tokens correctly (200 with access_token)
+- **Root cause:** JWT_SECRET was declared as `JWT_SECRET?: string` (optional) in the Env interface but never provisioned in Cloudflare Pages secrets. The endpoint hit the line 53 guard: `if (!env.JWT_SECRET) return 503`
+
+### P2 — register.ts Missing CORS Headers
+- [x] `hash-auth/register.ts` — 2 `Response.json()` calls had no CORS headers
+- [x] Added import of `JSON_HEADERS` from shared `api-utils.ts`
+- **Root cause:** Same `Response.json()` pattern as v0.15.2 settings endpoints
+
+### P2 — HamiltonRulePage Hardcoded Workspace "1"
+- [x] `src/pages/tools/HamiltonRulePage.tsx:153` — POST body sent `workspace_id: '1'` instead of user's active workspace
+- [x] Added `useWorkspace()` hook, replaced hardcoded `'1'` with `currentWorkspaceId`
+- **Root cause:** Page was built before WorkspaceContext existed, never migrated (same pattern as entity pages fixed in v0.13.2)
 
 ---
 

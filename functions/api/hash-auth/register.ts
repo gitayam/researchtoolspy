@@ -1,3 +1,5 @@
+import { JSON_HEADERS } from '../_shared/api-utils'
+
 interface Env {
   DB: D1Database
 }
@@ -46,13 +48,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: 'Account created successfully. Save this number - it is your only login credential.',
       warning: 'If you lose this number, your account cannot be recovered.',
       created_at: timestamp
-    })
+    }, { status: 201, headers: JSON_HEADERS })
 
   } catch (error) {
     console.error('Hash Register Error:', error)
     return Response.json(
       { error: 'Failed to generate account' },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }

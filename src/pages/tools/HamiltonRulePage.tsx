@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import type {
   HamiltonRuleAnalysis,
   HamiltonActor,
@@ -35,6 +36,7 @@ const RELATEDNESS_OPTIONS = [
 ]
 
 export function HamiltonRulePage() {
+  const { currentWorkspaceId } = useWorkspace()
   const [analyses, setAnalyses] = useState<HamiltonRuleAnalysis[]>([])
   const [selectedAnalysis, setSelectedAnalysis] = useState<HamiltonRuleAnalysis | null>(null)
   const [loading, setLoading] = useState(false)
@@ -150,7 +152,7 @@ export function HamiltonRulePage() {
           mode,
           actors,
           relationships,
-          workspace_id: '1'
+          workspace_id: currentWorkspaceId
         })
       })
 
