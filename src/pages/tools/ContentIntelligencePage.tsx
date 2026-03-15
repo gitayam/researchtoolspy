@@ -1685,7 +1685,7 @@ ${shortSummary}`
                         entityType === 'organization' ? 'ORGANIZATION' : 'OTHER'
 
       const checkResponse = await fetch(
-        `/api/actors/search?workspace_id=${localStorage.getItem('current_workspace_id') || '1'}&name=${encodeURIComponent(entityName)}&type=${actorType}`,
+        `/api/actors/search?workspace_id=${localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''}&name=${encodeURIComponent(entityName)}&type=${actorType}`,
         {
           headers: getCopHeaders(),
         }
@@ -1738,7 +1738,7 @@ ${shortSummary}`
         body: JSON.stringify({
           name: entityName,
           type: actorType,
-          workspace_id: localStorage.getItem('current_workspace_id') || '1',
+          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || '',
           description: `Auto-extracted from: ${analysis?.title || url}`,
           tags: [`content-intelligence`, entityType],
           source_url: url
@@ -1806,7 +1806,7 @@ ${shortSummary}`
         headers: getCopHeaders(),
         body: JSON.stringify({
           analysis_id: analysis.id,
-          workspace_id: localStorage.getItem('current_workspace_id') || '1',
+          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || '',
           user_id: 1
         })
       })
@@ -1859,7 +1859,7 @@ ${shortSummary}`
     for (const entity of allEntities) {
       try {
         const response = await fetch(
-          `/api/actors/search?workspace_id=${localStorage.getItem('current_workspace_id') || '1'}&name=${encodeURIComponent(entity.name)}&type=${entity.type}`,
+          `/api/actors/search?workspace_id=${localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''}&name=${encodeURIComponent(entity.name)}&type=${entity.type}`,
           {
             headers: getCopHeaders(),
           }

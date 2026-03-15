@@ -109,7 +109,8 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
   // Load persisted claims from DB on mount
   useEffect(() => {
     if (!sessionId) return
-    fetch(`/api/cop/${sessionId}/claims`, { headers: getCopHeaders() })
+    const controller = new AbortController()
+    fetch(`/api/cop/${sessionId}/claims`, { headers: getCopHeaders(), signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data?.claims?.length) return
@@ -139,7 +140,8 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
         }
         setResults(Array.from(grouped.values()))
       })
-      .catch(() => {})
+      .catch((e) => { if (e?.name !== 'AbortError') console.error('Failed to load claims:', e) })
+    return () => controller.abort()
   }, [sessionId])
 
   // Helper to update a single claim's status via API

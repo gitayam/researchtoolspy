@@ -136,7 +136,7 @@ export function EntityQuickCreate({
         headers: getCopHeaders(),
         body: JSON.stringify({
           ...actorForm,
-          workspace_id: localStorage.getItem('current_workspace_id') || '1'
+          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
         })
       })
 
@@ -169,7 +169,7 @@ export function EntityQuickCreate({
         headers: getCopHeaders(),
         body: JSON.stringify({
           ...sourceForm,
-          workspace_id: localStorage.getItem('current_workspace_id') || '1'
+          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
         })
       })
 
@@ -202,7 +202,7 @@ export function EntityQuickCreate({
         headers: getCopHeaders(),
         body: JSON.stringify({
           ...eventForm,
-          workspace_id: localStorage.getItem('current_workspace_id') || '1'
+          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
         })
       })
 

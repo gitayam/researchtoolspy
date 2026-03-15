@@ -112,7 +112,7 @@ export default function EvidenceSubmissionsPage() {
     setFormsError(null)
 
     try {
-      const response = await fetch(`/api/research/forms/list?workspaceId=${localStorage.getItem('current_workspace_id') || '1'}`, { signal })
+      const response = await fetch(`/api/research/forms/list?workspaceId=${localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''}`, { signal })
       const data = await response.json()
 
       if (!response.ok) {

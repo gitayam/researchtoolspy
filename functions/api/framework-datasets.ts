@@ -119,7 +119,7 @@ export async function onRequest(context: any) {
             datasetId,
             body.section_key || null,
             body.relevance_note || null,
-            body.created_by || userId
+            userId
           ).run()
 
           results.push({ dataset_id: datasetId, success: true })

@@ -67,7 +67,7 @@ export function HamiltonRulePage() {
 
   const loadAnalyses = async (signal?: AbortSignal) => {
     try {
-      const wsId = localStorage.getItem('current_workspace_id') || '1'
+      const wsId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
       const response = await fetch(`/api/hamilton-rule?workspace_id=${wsId}`, {
         headers: getCopHeaders(),
         signal,

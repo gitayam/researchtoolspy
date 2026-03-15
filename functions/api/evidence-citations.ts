@@ -126,7 +126,7 @@ export async function onRequest(context: any) {
             body.citation_style || 'apa',
             body.relevance_score || 5,
             body.notes || null,
-            body.created_by || userId
+            userId
           ).run()
 
           results.push({ dataset_id: datasetId, success: true })

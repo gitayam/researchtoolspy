@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-68b)
+**Last updated:** 2026-03-14 (Sessions 34-69)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -691,6 +691,28 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 304 | **framework-datasets.ts** — First GET query (by framework_id) missing LIMIT. Fixed: `LIMIT 500` | FIXED |
+
+---
+
+## Fixed — v0.17.6 (Session 69)
+
+### SECURITY — USER IMPERSONATION (CRITICAL)
+| # | Issue | Status |
+|---|-------|--------|
+| 321 | **evidence.ts POST accepts `body.created_by`** — Any authenticated user can attribute evidence to another user by passing `created_by` in request body. Fixed: use server-side `authUserId` exclusively | FIXED |
+| 322 | **evidence.ts PUT accepts `body.updated_by`** — Same impersonation vector on update. Fixed: use server-side `authUserId` | FIXED |
+| 323 | **framework-datasets.ts POST accepts `body.created_by`** — Dataset-to-framework links attributable to other users. Fixed: use server-side `userId` | FIXED |
+| 324 | **evidence-citations.ts POST accepts `body.created_by`** — Citation links attributable to other users. Fixed: use server-side `userId` | FIXED |
+
+### DATA ISOLATION — HARDCODED WORKSPACE_ID (13 instances across 10 files)
+| # | Issue | Status |
+|---|-------|--------|
+| 325 | **Codebase-wide `workspace_id \|\| '1'` sweep** — 13 instances of `localStorage.getItem('current_workspace_id') \|\| '1'` across 10 files used wrong localStorage key and fell back to workspace 1 when unset. Fixed: use `omnicore_workspace_id` (correct key) with `current_workspace_id` fallback and empty string default. Files: EntityQuickCreate (3), StarburstingEntityLinker, DeceptionView, EvidenceRecommendations, ContentIntelligencePage (4), HamiltonRulePage, EquilibriumAnalysisPage (2), SubmissionFormsPage, EvidenceSubmissionsPage | FIXED |
+
+### MEMORY LEAK
+| # | Issue | Status |
+|---|-------|--------|
+| 326 | **CopClaimsPanel.tsx missing AbortController** — Promise-chain fetch in useEffect without signal/cleanup. Fixed: added AbortController + abort on unmount | FIXED |
 
 ---
 

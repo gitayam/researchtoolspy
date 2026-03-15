@@ -129,7 +129,7 @@ export function DeceptionView({
   useEffect(() => {
     const actors = linkedEvidence.filter(e => e.entity_type === 'actor')
     const events = linkedEvidence.filter(e => e.entity_type === 'event')
-    const workspaceId = localStorage.getItem('current_workspace_id') || '1'
+    const workspaceId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
 
     // Generate relationships when we have both actors and events linked
     if (actors.length > 0 && events.length > 0 && calculatedAssessment && data.scores) {
