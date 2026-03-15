@@ -1,7 +1,25 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.16.1-auth-fix
+**Current tag:** v0.16.2-pdf-ai-fix
+
+---
+
+## Fixed (v0.16.2)
+
+### P2 — PDF Extractor Hardcoded Placeholder API Key
+- [x] `content-intelligence/pdf-extractor.ts` had `'YOUR_PDF_CO_API_KEY'` hardcoded in 2 places — would always fail in production
+- [x] Removed dead `require('pdf-parse')` / `Buffer` code that can never work in Cloudflare Workers
+- [x] `extractPDFText()` and `extractPDFViaExternalService()` now accept `pdfCoApiKey` parameter
+- [x] Returns clear error `"PDF extraction unavailable: PDF_CO_API_KEY not configured"` when env var missing
+- [x] `analyze-url.ts` updated to pass `context.env.PDF_CO_API_KEY` and declare it in Env interface
+- **Root cause:** utility module had no access to `context.env`; API key was hardcoded as a placeholder TODO
+
+### P2 — 3 Endpoints Used gpt-4o Instead of gpt-4o-mini
+- [x] `content-intelligence/pdf-extractor.ts:394` — `gpt-4o` → `gpt-4o-mini`
+- [x] `research/generate-question.ts:186` — `gpt-4o` → `gpt-4o-mini`
+- [x] `research/generate-plan.ts:324` — `gpt-4o` → `gpt-4o-mini`
+- **Root cause:** these endpoints predated the project rule against gpt-4o; never audited
 
 ---
 
@@ -342,7 +360,8 @@
 
 ### P2 — Missing Features / Stubs
 
-- [ ] **PDF extraction broken** — `functions/api/content-intelligence/pdf-extractor.ts` has placeholder API key `'YOUR_PDF_CO_API_KEY'`
+- [x] ~~PDF extraction broken (placeholder API key)~~ — fixed in v0.16.2, now reads from `env.PDF_CO_API_KEY`
+- [ ] **PDF extraction needs `PDF_CO_API_KEY` secret** — set via `wrangler pages secret put PDF_CO_API_KEY` when ready to enable
 - [ ] **Screenshot API referenced but not implemented** — `analyze-url.ts:698` returns URL to non-existent endpoint
 - [ ] **No error tracking service** — `ErrorBoundary.tsx:42` has Sentry TODO
 - [ ] **Data import stubs** — `settings/data/import.ts` has TODO stubs for workspace, frameworks, and evidence import

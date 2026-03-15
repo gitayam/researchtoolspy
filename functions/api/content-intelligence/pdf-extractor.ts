@@ -11,7 +11,7 @@
  * @param url - PDF URL to extract from
  * @returns Extracted text content
  */
-export async function extractPDFText(url: string): Promise<{
+export async function extractPDFText(url: string, pdfCoApiKey?: string): Promise<{
   text: string
   metadata?: {
     title?: string
@@ -34,50 +34,27 @@ export async function extractPDFText(url: string): Promise<{
 
   const pdfBuffer = await response.arrayBuffer()
 
-  // For Cloudflare Workers, we'll use a simpler approach:
-  // 1. Try pdf-parse package if available
-  // 2. Otherwise, send to external PDF extraction service
-
-  try {
-    // Try using pdf-parse (Node.js library)
-    // Note: This may not work in Cloudflare Workers due to Node.js dependencies
-    const pdfParse = require('pdf-parse')
-    const pdfData = await pdfParse(Buffer.from(pdfBuffer))
-
-
-    return {
-      text: pdfData.text,
-      metadata: {
-        title: pdfData.info?.Title,
-        author: pdfData.info?.Author,
-        pageCount: pdfData.numpages,
-        keywords: pdfData.info?.Keywords?.split(',').map((k: string) => k.trim())
-      }
-    }
-  } catch (nodeError) {
-    console.warn('[PDF Extractor] pdf-parse not available, using external service')
-
-    // Fallback: Use external PDF extraction API
-    return await extractPDFViaExternalService(pdfBuffer)
-  }
+  return await extractPDFViaExternalService(pdfBuffer, pdfCoApiKey)
 }
 
 /**
  * Extract PDF text using external service (fallback for Cloudflare Workers)
  */
-async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer): Promise<{
+async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer, pdfCoApiKey?: string): Promise<{
   text: string
   metadata?: any
 }> {
-  // Option 1: Use pdf.co API (has free tier)
-  try {
+  if (!pdfCoApiKey) {
+    throw new Error('PDF extraction unavailable: PDF_CO_API_KEY not configured')
+  }
 
+  try {
     // Upload PDF to pdf.co
     const uploadResponse = await fetch('https://api.pdf.co/v1/file/upload', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/octet-stream',
-        'x-api-key': 'YOUR_PDF_CO_API_KEY' // TODO: Get from env
+        'x-api-key': pdfCoApiKey,
       },
       body: pdfBuffer,
       signal: AbortSignal.timeout(30000)
@@ -95,7 +72,7 @@ async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer): Promise<{
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'YOUR_PDF_CO_API_KEY' // TODO: Get from env
+        'x-api-key': pdfCoApiKey,
       },
       body: JSON.stringify({
         url: fileUrl,
@@ -187,7 +164,7 @@ export async function intelligentPDFSummary(
   // Step 4: Search full text for answers
   const qa = await answerQuestions(questions, fullText, openaiApiKey)
 
-  // Step 5: Generate final summary using GPT-4o (will use Opus when available)
+  // Step 5: Generate final summary
   const summary = await generateIntelligentSummary(chapterSummaries, qa, openaiApiKey)
 
   return {
@@ -391,7 +368,7 @@ Generate a 250-word summary that:
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o', // Use GPT-4o for higher quality (will upgrade to Opus when available)
+      model: 'gpt-4o-mini',
       temperature: 0.5,
       max_tokens: 500,
       messages: [

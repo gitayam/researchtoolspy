@@ -29,6 +29,7 @@ interface Env {
   RATE_LIMIT?: KVNamespace
   JWT_SECRET?: string
   APIFY_API_KEY?: string
+  PDF_CO_API_KEY?: string
 }
 
 interface AnalyzeUrlRequest {
@@ -1067,7 +1068,7 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
   // Check if URL is a PDF
   if (isPDFUrl(resolvedUrl)) {
     try {
-      const pdfResult = await extractPDFText(resolvedUrl)
+      const pdfResult = await extractPDFText(resolvedUrl, context.env.PDF_CO_API_KEY)
 
       return {
         success: true,
