@@ -47,13 +47,8 @@ export function ContentLibraryPage() {
   const loadContent = async (signal?: AbortSignal) => {
     setLoading(true)
     try {
-      const workspaceId = localStorage.getItem('omnicore_workspace_id') || '1'
-
       const response = await fetch('/api/content-library', {
-        headers: {
-          ...getCopHeaders(),
-          'X-Workspace-ID': workspaceId,
-        },
+        headers: getCopHeaders(),
         signal,
       })
 

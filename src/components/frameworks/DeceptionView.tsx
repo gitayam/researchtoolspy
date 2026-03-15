@@ -228,9 +228,10 @@ export function DeceptionView({
 
       try {
         // Get workspace_id from localStorage or default
-        const workspaceId = localStorage.getItem('workspace_id') || '1'
+        const workspaceId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
         const response = await fetch(
-          `/api/deception/history?workspace_id=${workspaceId}&exclude_id=${data.id}&limit=20`
+          `/api/deception/history?workspace_id=${workspaceId}&exclude_id=${data.id}&limit=20`,
+          { headers: getCopHeaders() }
         )
         if (response.ok) {
           const result = await response.json()

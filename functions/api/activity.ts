@@ -33,10 +33,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (user?.user_hash) userHash = user.user_hash as string
     }
 
-    const workspaceId = request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = request.headers.get('X-Workspace-ID') || null
 
     // Verify workspace membership if a specific workspace is requested
-    if (workspaceId && workspaceId !== '1' && userId !== 'guest') {
+    if (workspaceId && userId !== 'guest') {
       const member = await env.DB.prepare(
         'SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?'
       ).bind(workspaceId, userId).first()

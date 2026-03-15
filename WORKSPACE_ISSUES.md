@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-88)
+**Last updated:** 2026-03-15 (Sessions 34-89)
 
 ## Known Open — Prioritized for Next Sessions
 
@@ -14,6 +14,19 @@ Largest concentrations: EntityQuickCreate (12), GenericFrameworkForm (10), Batch
 - 25+ COP GET endpoints lack auth (Issue #384)
 - 15+ COP POST/PUT/DELETE lack session membership verification (Issue #385)
 - `notifications.ts` POST and `activity.ts` POST still unauthed (#396-397)
+
+---
+
+## Fixed — v2.16.9 (Session 89)
+
+### MEDIUM — REMAINING WORKSPACE '1' FALLBACKS (3 BACKEND + 2 FRONTEND)
+| # | Issue | Status |
+|---|-------|--------|
+| 590 | **activity.ts** — `request.headers.get('X-Workspace-ID') \|\| '1'` silently misdirected activity data + stale conditional check. Fixed: `\|\| null` + simplified guard | FIXED |
+| 591 | **actors/search.ts** — workspace_id `\|\| '1'` caused actor search to query wrong workspace. Fixed: `\|\| null` | FIXED |
+| 592 | **frameworks/index.ts** — workspace_id `\|\| '1'` on framework create. Fixed: `\|\| null` | FIXED |
+| 593 | **DeceptionView.tsx** — Wrong localStorage key (`workspace_id` instead of `omnicore_workspace_id`) + missing auth headers on deception history fetch. Fixed: correct key + getCopHeaders() | FIXED |
+| 594 | **ContentLibraryPage.tsx** — Redundant manual X-Workspace-ID override on top of getCopHeaders(). Fixed: removed redundant header, getCopHeaders() already handles workspace context | FIXED |
 
 ---
 

@@ -45,7 +45,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const workspaceId = body.workspace_id
       || context.request.headers.get('X-Workspace-ID')
-      || '1'
+      || null
 
     // Insert framework session
     const result = await context.env.DB.prepare(`
