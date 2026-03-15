@@ -116,6 +116,63 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 }
 
+export const onRequestDelete: PagesFunction<Env> = async (context) => {
+  const { request, env, params } = context
+  const sessionId = params.id as string
+
+  try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
+
+    const url = new URL(request.url)
+    const shareToken = url.searchParams.get('token')
+    if (!shareToken) {
+      return new Response(JSON.stringify({ error: 'token query parameter required' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+
+    // Verify share exists, belongs to this session, and user is owner/collaborator
+    const share = await env.DB.prepare(
+      'SELECT id FROM cop_shares WHERE share_token = ? AND cop_session_id = ?'
+    ).bind(shareToken, sessionId).first<{ id: string }>()
+
+    if (!share) {
+      return new Response(JSON.stringify({ error: 'Share not found in this session' }), {
+        status: 404, headers: JSON_HEADERS,
+      })
+    }
+
+    // Verify user has access to the session
+    const access = await env.DB.prepare(`
+      SELECT 1 FROM cop_sessions WHERE id = ? AND created_by = ?
+      UNION
+      SELECT 1 FROM cop_collaborators WHERE cop_session_id = ? AND user_id = ?
+    `).bind(sessionId, userId, sessionId, userId).first()
+
+    if (!access) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: JSON_HEADERS,
+      })
+    }
+
+    await env.DB.prepare(
+      'DELETE FROM cop_shares WHERE share_token = ? AND cop_session_id = ?'
+    ).bind(shareToken, sessionId).run()
+
+    return new Response(JSON.stringify({ message: 'Share link deleted' }), { headers: JSON_HEADERS })
+  } catch (error) {
+    console.error('[COP Share API] Delete error:', error)
+    return new Response(JSON.stringify({
+      error: 'Failed to delete share link',
+    }), { status: 500, headers: JSON_HEADERS })
+  }
+}
+
 export const onRequestOptions: PagesFunction = async () => {
   return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

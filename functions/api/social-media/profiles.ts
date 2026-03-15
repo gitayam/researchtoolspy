@@ -46,7 +46,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   } catch (err: any) {
     console.error('[social-media/profiles] GET error:', err)
     return new Response(
-      JSON.stringify({ error: 'Failed to fetch profiles', detail: err?.message }),
+      JSON.stringify({ error: 'Failed to fetch profiles' }),
       { status: 500, headers: JSON_HEADERS }
     )
   }
@@ -208,7 +208,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   } catch (err: any) {
     console.error('[social-media/profiles] POST error:', err)
     return new Response(
-      JSON.stringify({ error: 'Failed to save profile', detail: err?.message }),
+      JSON.stringify({ error: 'Failed to save profile' }),
       { status: 500, headers: JSON_HEADERS }
     )
   }

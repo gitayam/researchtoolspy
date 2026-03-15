@@ -239,7 +239,6 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     console.error('[Evidence Recommend] Error:', error?.message, error?.cause, error)
     return new Response(JSON.stringify({
       error: 'Failed to generate evidence recommendations',
-      detail: error?.message || 'Unknown error',
     }), {
       status: 500,
       headers: JSON_HEADERS,

@@ -1,7 +1,29 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.19.6-cop-session-scoping
+**Current tag:** v0.19.7-error-leak-shares
+
+---
+
+## Fixed (v0.19.7)
+
+### P1 — 3 Files Leaked `error.message` in API Responses (OWASP A01)
+- [x] `social-media/profiles.ts:49,211` — `detail: err?.message` in both GET and POST 500 responses
+- [x] `evidence/recommend.ts:242` — `detail: error?.message || 'Unknown error'` in 500 response
+- [x] Fix: Removed `detail` field from all three error responses; raw errors still logged server-side via `console.error`
+- **Root cause:** Lesson Learned Session 32 — `error.message` can contain table names, query syntax, stack traces. Full-codebase sweep missed these 3 files because they used `detail:` key instead of the `details:` pattern grepped previously.
+- **Note:** `cop/[id]/scrape.ts:135` also uses `detail:` but with controlled strings (Apify status codes), not raw error.message — no fix needed.
+
+### P2 — COP Shares Missing DELETE Handler
+- [x] `cop/[id]/shares.ts` only had POST (create) and GET (list) — no way to revoke share links
+- [x] CLAUDE.md documents `cop_delete_share cop-xxx <token>` but the API endpoint didn't exist
+- [x] Fix: Added `onRequestDelete` handler with auth + session access verification + session-scoped DELETE query
+- **Root cause:** Incomplete CRUD — POST/GET were implemented but DELETE was missed. Lesson Learned Session 33: mutation endpoints need auth AND ownership checks.
+
+### Scan Results — Additional Observations (P3, no fix needed this cycle)
+- `frameworks.ts` GET: workspaceId can be null when no param/header provided — query binds null which matches nothing in SQL. Safe behavior (returns empty) but could be more explicit.
+- `ach/*.ts` comments say "default to '1'" but code correctly defaults to null — misleading comments only.
+- ~15 success responses use `{ message: 'done' }` instead of standard `{ error: ... }` for errors — cosmetic inconsistency, not a bug (success vs error shape is distinct).
 
 ---
 
