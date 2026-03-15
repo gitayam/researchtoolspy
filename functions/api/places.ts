@@ -23,6 +23,31 @@ async function checkWorkspaceAccess(
   env: Env,
   requiredRole?: 'ADMIN' | 'EDITOR' | 'VIEWER'
 ): Promise<boolean> {
+  // Default workspace "1" - auto-grant access for all authenticated users
+  if (workspaceId === '1') {
+    const workspace = await env.DB.prepare(`SELECT id FROM workspaces WHERE id = ?`).bind(workspaceId).first()
+    if (!workspace) {
+      const now = new Date().toISOString()
+      try {
+        await env.DB.prepare(`
+          INSERT INTO workspaces (id, name, description, type, owner_id, is_public, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind('1', 'Default Workspace', 'Shared workspace for all users', 'PUBLIC', 1, 1, now, now).run()
+      } catch (err) {
+        console.warn('[Places] Workspace auto-create skipped (may exist):', err)
+      }
+    }
+    return true
+  }
+
+  // COP session workspaces — access is controlled by session sharing, not workspace ACL
+  if (workspaceId.startsWith('cop-')) {
+    const session = await env.DB.prepare(
+      'SELECT id FROM cop_sessions WHERE workspace_id = ?'
+    ).bind(workspaceId).first()
+    if (session) return true
+  }
+
   const workspace = await env.DB.prepare(`
     SELECT owner_id, is_public FROM workspaces WHERE id = ?
   `).bind(workspaceId).first()
