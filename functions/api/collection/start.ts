@@ -7,6 +7,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
 import type { CollectionCategory, TimeRange, CollectionJobRequest, CollectionJobResponse, AgentCollectionRequest } from '../../../src/types/collection'
 
 interface Env {
@@ -15,13 +16,6 @@ interface Env {
   SESSIONS?: KVNamespace
   OSINT_AGENT_URL?: string
   SEARXNG_CONTAINER_URL?: string
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID'
 }
 
 const DEFAULT_CATEGORIES: CollectionCategory[] = ['news', 'academic', 'government', 'social', 'technical']
@@ -34,7 +28,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders
+        status: 401, headers: JSON_HEADERS
       })
     }
 
@@ -49,7 +43,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Query must be at least 3 characters'
       }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -103,7 +97,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     context.waitUntil(
       fetch(`${agentUrl}/collect`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(agentRequest),
         signal: AbortSignal.timeout(30000),
       }).catch(async (error) => {
@@ -123,7 +117,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify(response), {
       status: 202,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -133,12 +127,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: CORS_HEADERS })
 }

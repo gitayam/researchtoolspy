@@ -1,6 +1,7 @@
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { scrapeUrl } from '../_shared/scraper-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -16,7 +17,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: JSON_HEADERS,
       })
     }
     const { url } = await context.request.json() as { url: string }
@@ -108,7 +109,7 @@ Return ONLY valid JSON in this structure:
         contentPreview: content.substring(0, 500) + (content.length > 500 ? '...' : '')
       }
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {

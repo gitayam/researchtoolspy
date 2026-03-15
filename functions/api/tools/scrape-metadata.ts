@@ -1,6 +1,7 @@
 import { Env } from '../../types'
 import { enhancedFetch } from '../../utils/browser-profiles'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
 
 interface ScrapedMetadata {
   title?: string
@@ -256,7 +257,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
       status: 401,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 
@@ -266,7 +267,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.url) {
       return new Response(JSON.stringify({ error: 'URL is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -277,7 +278,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch (e) {
       return new Response(JSON.stringify({ error: 'Invalid URL format' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -298,7 +299,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             : undefined
         }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: JSON_HEADERS
         })
       }
     } catch (fetchError: any) {
@@ -307,7 +308,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         suggestion: 'Unable to access the URL. It may be down, blocked, or require authentication.'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -324,10 +325,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       success: true
     }), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -337,7 +335,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: 'Internal server error'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -346,10 +344,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 export const onRequestOptions: PagesFunction<Env> = async () => {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash'
-    }
+    headers: CORS_HEADERS
   })
 }

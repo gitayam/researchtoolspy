@@ -10,18 +10,12 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   OPENAI_API_KEY: string
   AI_GATEWAY_ACCOUNT_ID?: string
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID'
 }
 
 interface AnalyzeRequest {
@@ -53,7 +47,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const authUserId = await getUserFromRequest(request, env)
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -62,7 +56,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.analysis_id || !body.relationships || body.relationships.length === 0) {
       return new Response(JSON.stringify({
         error: 'Missing required fields: analysis_id, relationships'
-      }), { status: 400, headers: corsHeaders })
+      }), { status: 400, headers: JSON_HEADERS })
     }
 
     // Build actor name map
@@ -161,7 +155,7 @@ Return ONLY valid JSON with this exact structure:
       return new Response(JSON.stringify({
         error: 'Failed to parse AI analysis',
         raw_response: aiResponse.choices[0]?.message?.content
-      }), { status: 500, headers: corsHeaders })
+      }), { status: 500, headers: JSON_HEADERS })
     }
 
     // Update the analysis record with AI results
@@ -179,18 +173,18 @@ Return ONLY valid JSON with this exact structure:
     return new Response(JSON.stringify({
       success: true,
       analysis: analysisResult
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
 
   } catch (error) {
     console.error('[Hamilton AI] Error:', error)
     return new Response(JSON.stringify({
       error: 'Analysis failed'
 
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: CORS_HEADERS })
 }

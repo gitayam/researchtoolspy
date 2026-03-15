@@ -8,18 +8,12 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   OPENAI_API_KEY: string
   SESSIONS?: KVNamespace
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID'
 }
 
 // GET - Get single equilibrium analysis
@@ -40,7 +34,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!result) {
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -54,13 +48,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       tags: result.tags ? JSON.parse(result.tags as string) : []
     }
 
-    return new Response(JSON.stringify({ analysis }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ analysis }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[Equilibrium API] Get error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to get analysis'
 
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -73,7 +67,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -142,17 +136,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!result.meta.changes) {
       return new Response(JSON.stringify({ error: 'Analysis not found or not owned by you' }), {
-        status: 404, headers: corsHeaders
+        status: 404, headers: JSON_HEADERS
       })
     }
 
-    return new Response(JSON.stringify({ message: 'Analysis updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Analysis updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[Equilibrium API] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update analysis'
 
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -165,7 +159,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -175,23 +169,23 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!result.meta.changes) {
       return new Response(JSON.stringify({ error: 'Analysis not found or not owned by you' }), {
-        status: 404, headers: corsHeaders
+        status: 404, headers: JSON_HEADERS
       })
     }
 
-    return new Response(JSON.stringify({ message: 'Analysis deleted' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Analysis deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[Equilibrium API] Delete error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to delete analysis'
 
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: CORS_HEADERS })
 }
 
 /**

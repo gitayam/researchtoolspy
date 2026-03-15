@@ -8,17 +8,11 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import type { ApproveResultsRequest, ApproveResultsResponse, ApprovalStatus } from '../../../../src/types/collection'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { JSON_HEADERS, CORS_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID'
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -26,7 +20,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -37,14 +31,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!jobId) {
       return new Response(JSON.stringify({ error: 'Job ID required' }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
     if (!selectedIds || selectedIds.length === 0) {
       return new Response(JSON.stringify({ error: 'No results selected' }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -57,7 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!job) {
       return new Response(JSON.stringify({ error: 'Job not found' }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -81,7 +75,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (urls.length === 0) {
         return new Response(JSON.stringify({ error: 'No valid URLs found' }), {
           status: 400,
-          headers: corsHeaders
+          headers: JSON_HEADERS
         })
       }
 
@@ -96,7 +90,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const origin = new URL(context.request.url).origin
       const batchResponse = await fetch(`${origin}/api/tools/batch-process`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           operation: 'analyze-url',
           items: batchItems,
@@ -112,7 +106,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           details: errorData
         }), {
           status: 500,
-          headers: corsHeaders
+          headers: JSON_HEADERS
         })
       }
 
@@ -133,7 +127,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       return new Response(JSON.stringify(response), {
         status: 200,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -144,7 +138,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify(response), {
       status: 200,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -154,7 +148,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   }
 }
@@ -165,7 +159,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -176,14 +170,14 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!jobId) {
       return new Response(JSON.stringify({ error: 'Job ID required' }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
     if (!selectedIds || selectedIds.length === 0) {
       return new Response(JSON.stringify({ error: 'No results selected' }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -196,7 +190,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!job) {
       return new Response(JSON.stringify({ error: 'Job not found' }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -212,7 +206,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       status: 'rejected'
     }), {
       status: 200,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -222,12 +216,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: CORS_HEADERS })
 }

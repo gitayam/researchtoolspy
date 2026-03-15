@@ -1,5 +1,6 @@
 import { Env } from '../../types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
 
 interface BatchItem {
   id: string
@@ -47,7 +48,7 @@ async function processSingleURL(url: string, operation: string, origin: string):
 
     const response = await fetch(`${origin}${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(30000),
     })
@@ -156,7 +157,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
       status: 401,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 
@@ -168,14 +169,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.operation) {
       return new Response(JSON.stringify({ error: 'Operation is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
     if (!body.items || body.items.length === 0) {
       return new Response(JSON.stringify({ error: 'Items array is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -186,7 +187,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: `Batch size limited to ${MAX_BATCH_SIZE} items. You provided ${body.items.length} items.`
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -210,7 +211,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'maxWorkers must be between 1 and 5'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -246,10 +247,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify(response), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -259,10 +257,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: 'Internal server error'
     }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -271,10 +266,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 export const onRequestOptions: PagesFunction<Env> = async () => {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash'
-    }
+    headers: CORS_HEADERS
   })
 }

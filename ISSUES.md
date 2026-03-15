@@ -1,7 +1,18 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.15.0-content-library-generateid
+**Current tag:** v0.15.1-inline-cors-cleanup
+
+---
+
+## Fixed (v0.15.1)
+
+### P2 — 11 More Endpoints Had Incomplete CORS on Error Responses
+- [x] `tools/extract.ts`, `tools/analyze-url.ts`, `tools/scrape-metadata.ts`, `tools/batch-process.ts`, `tools/rage-check.ts` — 27 inline error responses had only `Content-Type` + `Allow-Origin`, missing `Allow-Methods` and `Allow-Headers`
+- [x] `collection/[jobId]/approve.ts`, `collection/start.ts` — local corsHeaders removed, 4 inline error responses fixed
+- [x] `hamilton-rule/[id].ts`, `hamilton-rule/analyze.ts`, `equilibrium-analysis/[id].ts`, `equilibrium-analysis/analyze.ts` — migrated to shared `JSON_HEADERS`/`CORS_HEADERS`, inline 401 responses fixed
+- [x] All 11 files now use shared `JSON_HEADERS` from `api-utils.ts`
+- **Root cause:** error paths within endpoints used inline header objects that bypassed the endpoint's own corsHeaders constant
 
 ---
 
@@ -254,7 +265,8 @@
 ### P2 — Tech Debt: Remaining Duplication
 
 - [x] ~~generateId() in 21 COP endpoints~~ — deduplicated to shared `generatePrefixedId()` in v0.14.8
-- [x] ~~CORS headers inconsistent across 75 endpoints~~ — migrated to shared `CORS_HEADERS`/`JSON_HEADERS` in v0.14.9. ~120 remaining files still define local corsHeaders but already include correct headers
+- [x] ~~CORS headers inconsistent across 75 endpoints~~ — migrated to shared `CORS_HEADERS`/`JSON_HEADERS` in v0.14.9
+- [ ] **~295 inline error responses** use `{ 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }` — missing Allow-Methods/Allow-Headers. Functional (browser only checks Allow-Origin on actual responses) but inconsistent
 - [ ] **Dual API surface** — `/api/workspaces/` (team JWT/hash) and `/api/settings/workspaces` (personal `requireAuth`) should be consolidated
 
 ### P2 — Data Integrity
