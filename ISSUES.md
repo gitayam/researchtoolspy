@@ -1,7 +1,22 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.13.2-workspace-context
+**Current tag:** v0.13.3-workspace-isolation
+
+---
+
+## Fixed (v0.13.3)
+
+### P1 — COP Sessions Shared Default Workspace (Data Bleeding)
+- [x] 6 old COP sessions used `workspace_id = '1'` (shared default) — entities from different sessions were in the same namespace
+- [x] Created migration `093-backfill-cop-workspaces.sql` — creates dedicated workspace for each old session and updates `cop_sessions.workspace_id = id`
+- [x] All sessions now have isolated workspaces; new sessions already auto-create their own via session creation code
+- [x] 16 orphaned actors remain in workspace "1" (created by user 1 across multiple sessions — cannot auto-reassign)
+- **Root cause:** session creation code was added to auto-create workspaces, but existing sessions were never backfilled
+
+### P3 — Library Vote Notifications Showed "Anonymous"
+- [x] `library/vote.ts` hardcoded `'Anonymous'` in subscriber notifications
+- [x] Now queries `full_name` and `username` from users table and uses actual display name
 
 ---
 
@@ -61,6 +76,7 @@
 ### P2 — Data Integrity
 
 - [ ] **COP sessions `team_workspace_id` mostly NULL** — stats and cop-sessions workspace endpoints query by `team_workspace_id` but most sessions never had this set. Needs backfill migration or query change.
+- [ ] **16 orphaned actors in workspace "1"** — created by user 1 across multiple COP sessions before workspace isolation. Cannot auto-reassign without manual review.
 
 ### P2 — Missing Features / Stubs
 
@@ -74,7 +90,7 @@
 - [ ] **Export functionality not implemented** — `PublicFrameworkPage.tsx:65` shows alert("coming soon")
 - [ ] **MOM assessment modals not wired** — `EventDetailView.tsx`, `ActorDetailView.tsx`
 - [ ] **Starbursting launcher UI missing** — `ContentIntelligencePage.tsx`
-- [ ] **Library vote shows "Anonymous"** — `library/vote.ts:139` has TODO to get real user name
+- [x] ~~Library vote shows "Anonymous"~~ — fixed in v0.13.3
 
 ### P3 — AI Config (Intentional)
 

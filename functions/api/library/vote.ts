@@ -28,8 +28,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const userId = await requireAuth(request, env)
     
     // Get user hash for legacy column
-    const userResult = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+    const userResult = await env.DB.prepare('SELECT user_hash, full_name, username FROM users WHERE id = ?').bind(userId).first()
     const userHash = userResult?.user_hash as string
+    const displayName = (userResult?.full_name as string) || (userResult?.username as string) || 'Anonymous'
 
     if (!userHash) {
       return new Response(JSON.stringify({ error: 'User hash not found' }), {
@@ -136,7 +137,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           library_framework_id,
           'vote',
           userHash,
-          'Anonymous', // TODO: Get user name
+          displayName,
           framework.title as string,
           framework.workspace_id as string
         )
