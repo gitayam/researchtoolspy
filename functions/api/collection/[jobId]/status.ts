@@ -56,7 +56,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       id: job.id as string,
       workspace_id: job.workspace_id as string,
       query: job.query as string,
-      categories: JSON.parse(job.categories as string || '[]'),
+      categories: (() => { try { return JSON.parse(job.categories as string || '[]') } catch { return [] } })(),
       time_range: job.time_range as CollectionJob['time_range'],
       max_results: job.max_results as number,
       status: job.status as CollectionJob['status'],

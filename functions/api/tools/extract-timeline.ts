@@ -89,7 +89,11 @@ ${truncated}`
   })
 
   const rawContent = aiData.choices[0].message.content
-  const parsed = JSON.parse(rawContent)
+  let parsed: any
+  try { parsed = JSON.parse(rawContent) } catch {
+    console.warn('[extract-timeline] Failed to parse AI response:', rawContent?.substring(0, 200))
+    return []
+  }
 
   // Validate each event field-by-field (never spread raw LLM output)
   const validCategories = ['event', 'meeting', 'communication', 'financial', 'legal', 'travel', 'publication', 'military', 'political']

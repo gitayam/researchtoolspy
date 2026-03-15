@@ -429,7 +429,10 @@ ${truncated}`
   })
 
   const rawContent = aiData.choices[0].message.content
-  return JSON.parse(rawContent)
+  try { return JSON.parse(rawContent) } catch {
+    console.warn('[extract-claims] Failed to parse AI response:', rawContent?.substring(0, 200))
+    return { claims: [], summary: 'Failed to parse AI response' }
+  }
 }
 
 // ─── Handler ───

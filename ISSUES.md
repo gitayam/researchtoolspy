@@ -1,7 +1,23 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.16.8-method-guard
+**Current tag:** v0.16.9-json-safety
+
+---
+
+## Fixed (v0.16.9)
+
+### P1 — 5 Unsafe JSON.parse Calls Could Crash Endpoints
+- [x] `collection/[jobId]/status.ts:59` — `JSON.parse(job.categories)` on D1 data → safe IIFE with try/catch fallback to `[]`
+- [x] `tools/extract-timeline.ts:92` — `JSON.parse(rawContent)` on AI response → try/catch, returns empty array on failure
+- [x] `tools/extract-claims.ts:432` — `JSON.parse(rawContent)` on AI response → try/catch, returns `{ claims: [], summary: 'Failed...' }`
+- [x] `tools/claim-match.ts:120` — `JSON.parse(rawContent)` on AI response → try/catch, returns 502 with error JSON
+- [x] `tools/rage-check.ts:102` — `JSON.parse(jsonContent)` on AI response → try/catch, returns 502 with error JSON
+- **Root cause:** AI responses can contain malformed JSON (markdown fences, truncated output, model refusal). D1 text columns can hold corrupted data. Both cause unhandled SyntaxError that crashes the entire endpoint.
+
+### P1 — collaborators.ts Used Number() Instead of String() for Ownership Check
+- [x] `cop/[id]/collaborators.ts:265-266` — `Number(session.created_by) === userId` → `String(session.created_by) === String(userId)`
+- **Root cause:** `Number()` comparison fails when `userId` is a string; `String()` on both sides is the established safe pattern (see v0.16.5 sweep)
 
 ---
 

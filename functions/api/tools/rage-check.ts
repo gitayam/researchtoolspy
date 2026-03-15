@@ -99,7 +99,13 @@ Return ONLY valid JSON in this structure:
 
     const rawContent = aiData.choices[0].message.content
     const jsonContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const analysis = JSON.parse(jsonContent)
+    let analysis: any
+    try { analysis = JSON.parse(jsonContent) } catch {
+      console.warn('[rage-check] Failed to parse AI response:', jsonContent?.substring(0, 200))
+      return new Response(JSON.stringify({ error: 'AI returned invalid JSON' }), {
+        status: 502, headers: JSON_HEADERS,
+      })
+    }
 
     // Return analysis + extracted content preview
     return new Response(JSON.stringify({

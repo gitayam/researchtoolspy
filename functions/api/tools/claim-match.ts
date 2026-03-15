@@ -117,7 +117,13 @@ Score each candidate's relevance to the claim and its broader topic.`
     })
 
     const rawContent = aiData.choices[0].message.content
-    const parsed = JSON.parse(rawContent)
+    let parsed: any
+    try { parsed = JSON.parse(rawContent) } catch {
+      console.warn('[claim-match] Failed to parse AI response:', rawContent?.substring(0, 200))
+      return new Response(JSON.stringify({ error: 'AI returned invalid JSON', claim: body.claim, results: [] }), {
+        status: 502, headers: JSON_HEADERS,
+      })
+    }
 
     const results: MatchResult[] = (parsed.results || []).map((r: any) => ({
       slug: r.slug || '',

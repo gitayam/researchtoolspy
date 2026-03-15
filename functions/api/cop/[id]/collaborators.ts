@@ -262,8 +262,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const isOwner = session && Number(session.created_by) === userId
-    const isSelf = collab && Number(collab.user_id) === userId
+    const isOwner = session && String(session.created_by) === String(userId)
+    const isSelf = collab && String(collab.user_id) === String(userId)
     if (!isOwner && !isSelf) {
       return new Response(JSON.stringify({ error: 'Only session owner can remove collaborators' }), {
         status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
