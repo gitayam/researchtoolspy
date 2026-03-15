@@ -505,9 +505,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
-      await env.DB.prepare(`
+      const deleteResult = await env.DB.prepare(`
         DELETE FROM actors WHERE id = ?
       `).bind(actorId).run()
+
+      if (!deleteResult.meta.changes) {
+        return new Response(
+          JSON.stringify({ error: 'Actor not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
       // Update workspace entity count
       const now = new Date().toISOString()

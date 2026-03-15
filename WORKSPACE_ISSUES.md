@@ -41,6 +41,13 @@
 |---|-------|--------|
 | 523 | **DataManagement.tsx** — 4 fetch calls using manual `X-User-Hash` headers instead of centralized `getCopHeaders()`. Fixed: all 4 calls now use getCopHeaders() | FIXED |
 
+### MEDIUM — ADDITIONAL DELETE VERIFICATION + WORKSPACE FALLBACK
+| # | Issue | Status |
+|---|-------|--------|
+| 524 | **actors.ts DELETE** — No `meta.changes` check after DELETE. Fixed: return 404 on zero changes | FIXED |
+| 525 | **research/forms/[id] DELETE** — No `meta.changes` check on form deletion. Fixed: return 404 if nothing deleted | FIXED |
+| 526 | **research/forms/create.ts POST** — Workspace defaulted to `'1'` when X-Workspace-ID header missing. Fixed: defaults to null | FIXED |
+
 ---
 
 ## Fixed — v2.16.1 (Session 82)

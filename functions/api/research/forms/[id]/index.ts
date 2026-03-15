@@ -103,9 +103,16 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     `).bind(formId).run()
 
     // Delete the form itself
-    await context.env.DB.prepare(`
+    const deleteResult = await context.env.DB.prepare(`
       DELETE FROM submission_forms WHERE hash_id = ?
     `).bind(formId).run()
+
+    if (!deleteResult.meta.changes) {
+      return new Response(JSON.stringify({ error: 'Form not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      })
+    }
 
     // Log activity if user is authenticated
     if (userId && form.workspace_id) {
