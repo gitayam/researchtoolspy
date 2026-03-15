@@ -84,8 +84,6 @@ export function PublishDialog({
         }),
       })
 
-      const data = await response.json()
-
       if (response.ok) {
         toast({
           title: t('common:success'),
@@ -94,6 +92,7 @@ export function PublishDialog({
         onOpenChange(false)
         setFormData({ title: '', description: '', category: '', tags: '' })
       } else {
+        const data = await response.json().catch(() => ({}))
         toast({
           title: t('common:errors.error'),
           description: data.error || t('library:publish.error'),

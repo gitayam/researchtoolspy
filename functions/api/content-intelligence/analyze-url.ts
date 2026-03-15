@@ -715,7 +715,8 @@ async function resolveSpotifyRedirect(url: string): Promise<string> {
       redirect: 'follow',
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
-      }
+      },
+      signal: AbortSignal.timeout(10000),
     })
 
     const finalUrl = response.url
@@ -745,7 +746,8 @@ async function resolveFacebookRedirect(url: string): Promise<string> {
       redirect: 'follow',
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
-      }
+      },
+      signal: AbortSignal.timeout(10000),
     })
 
     const finalUrl = response.url
@@ -771,7 +773,8 @@ async function checkArchivePh(url: string): Promise<string | null> {
       redirect: 'follow',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+      },
+      signal: AbortSignal.timeout(10000),
     })
 
     // If we got redirected to an archive snapshot, return it
@@ -798,7 +801,8 @@ async function checkWaybackMachine(url: string): Promise<string | null> {
     const response = await fetch(cdxUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+      },
+      signal: AbortSignal.timeout(10000),
     })
 
     if (!response.ok) {

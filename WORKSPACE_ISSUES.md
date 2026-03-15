@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-89)
+**Last updated:** 2026-03-15 (Sessions 34-89b)
 
 ## Known Open — Prioritized for Next Sessions
 
@@ -14,6 +14,26 @@ Largest concentrations: EntityQuickCreate (12), GenericFrameworkForm (10), Batch
 - 25+ COP GET endpoints lack auth (Issue #384)
 - 15+ COP POST/PUT/DELETE lack session membership verification (Issue #385)
 - `notifications.ts` POST and `activity.ts` POST still unauthed (#396-397)
+
+---
+
+## Fixed — v2.16.10 (Session 89b)
+
+### CRITICAL — response.json() BEFORE response.ok CHECK (5 FILES)
+| # | Issue | Status |
+|---|-------|--------|
+| 595 | **PublishDialog.tsx** — `response.json()` called before `response.ok` check. If error response body isn't JSON (e.g. HTML 502), throws SyntaxError crash. Fixed: check ok first, `.catch(() => ({}))` on json parse | FIXED |
+| 596 | **ForkDialog.tsx** — Same pattern. Fixed: parse JSON only in appropriate branch with `.catch()` safety | FIXED |
+| 597 | **RatingDialog.tsx** — Same pattern. Fixed: moved json parse after ok check | FIXED |
+| 598 | **FeedbackDialog.tsx** — Same pattern. Fixed: check ok first, parse JSON after with `.catch()` | FIXED |
+| 599 | **ContentIntelligencePage.tsx** — VirusTotal lookup parsed JSON before ok check. Edge case: directLink may exist on non-200. Fixed: parse both branches with `.catch()`, then check directLink | FIXED |
+
+### HIGH — REMAINING AbortSignal GAPS (6 FETCH CALLS, 3 FILES)
+| # | Issue | Status |
+|---|-------|--------|
+| 600 | **analyze-url.ts** — 4 redirect-resolution helpers (Spotify, Facebook, Archive.ph, Wayback Machine) had no timeout on HEAD/GET requests. Fixed: 10s AbortSignal.timeout on all | FIXED |
+| 601 | **ai/scrape-url.ts** — Twitter oEmbed fetch without timeout. Fixed: 10s AbortSignal.timeout | FIXED |
+| 602 | **web-scraper.ts** — Internal /api/datasets POST without timeout. Fixed: 30s AbortSignal.timeout | FIXED |
 
 ---
 

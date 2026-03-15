@@ -2053,7 +2053,9 @@ ${shortSummary}`
         body: JSON.stringify({ url })
       })
 
-      const data = await response.json()
+      const data = response.ok
+        ? await response.json().catch(() => ({}))
+        : await response.json().catch(() => ({}))
 
       if (!response.ok && !data.directLink) {
         throw new Error(data.error || 'VirusTotal lookup failed')

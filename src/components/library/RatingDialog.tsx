@@ -71,8 +71,6 @@ export function RatingDialog({
         }),
       })
 
-      const data = await response.json()
-
       if (response.ok) {
         toast({
           title: t('common:success'),
@@ -83,6 +81,7 @@ export function RatingDialog({
         setRating(0)
         setReviewText('')
       } else {
+        const data = await response.json().catch(() => ({}))
         toast({
           title: t('common:errors.error'),
           description: data.error || t('library:rate.error'),

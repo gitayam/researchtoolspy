@@ -99,9 +99,14 @@ export function FeedbackDialog() {
         })
       })
 
-      const data = await response.json()
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.message || 'Failed to submit feedback')
+      }
 
-      if (!response.ok || !data.success) {
+      const data = await response.json().catch(() => ({ success: true }))
+
+      if (!data.success) {
         throw new Error(data.message || 'Failed to submit feedback')
       }
 

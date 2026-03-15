@@ -294,6 +294,7 @@ export async function onRequest(context: any) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
           body: JSON.stringify(datasetData),
+          signal: AbortSignal.timeout(30000),
         })
 
         if (datasetResponse.ok) {

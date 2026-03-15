@@ -55,9 +55,8 @@ export function ForkDialog({
         }),
       })
 
-      const data = await response.json()
-
       if (response.ok) {
+        const data = await response.json().catch(() => ({}))
         toast({
           title: t('common:success'),
           description: t('library:fork.success'),
@@ -69,6 +68,7 @@ export function ForkDialog({
           navigate(`/dashboard/frameworks/${frameworkType}/${data.forked_framework_id}`)
         }
       } else {
+        const data = await response.json().catch(() => ({}))
         toast({
           title: t('common:errors.error'),
           description: data.error || t('library:fork.error'),
