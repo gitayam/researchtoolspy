@@ -1023,12 +1023,6 @@
         "analyses": "Análisis"
       }
     },
-    "register": {
-      "copied": "¡Copiado!",
-      "copiedDesc": "Código copiado al portapapeles. ¡Guárdalo en tu gestor de contraseñas ahora!",
-      "copyFailed": "Error al copiar",
-      "copyFailedDesc": "Por favor selecciona y copia manualmente el código de arriba."
-    },
     "newInvestigation": {
       "title": "Crear Nueva Investigación",
       "backToInvestigations": "Volver a Investigaciones",

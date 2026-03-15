@@ -1024,12 +1024,6 @@
         "analyses": "Analyses"
       }
     },
-    "register": {
-      "copied": "Copied!",
-      "copiedDesc": "Hash copied to clipboard. Save it in your password manager now!",
-      "copyFailed": "Copy failed",
-      "copyFailedDesc": "Please manually select and copy the hash above."
-    },
     "newInvestigation": {
       "title": "Create New Investigation",
       "backToInvestigations": "Back to Investigations",
