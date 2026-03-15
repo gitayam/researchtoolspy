@@ -1,7 +1,26 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.17.9-mom-assessments
+**Current tag:** v0.18.0-entity-linkers-comments
+
+---
+
+## Fixed (v0.18.0)
+
+### P1 — Comment Edit/Delete Broken (Internal Routing Anti-Pattern)
+- [x] `comments.ts` used `url.pathname.split('/')` on lines 281, 388 to extract `:id` for PATCH/DELETE — dead code, Cloudflare never routes `/api/comments/:id` to `comments.ts`
+- [x] Frontend (`CommentThread.tsx`) calls PATCH/DELETE on `/api/comments/:id` — returned SPA HTML
+- [x] Created `functions/api/comments/[id].ts` — PATCH (edit content, resolve/unresolve), PUT (delegates to PATCH), DELETE (soft delete with ownership check)
+- [x] Includes markdown-to-HTML conversion, @mention extraction, owner-only edit/delete enforcement
+- **Root cause:** Same anti-pattern as Session 31 (5th instance found). Comment editing and deletion has been broken since the threaded comments feature was built.
+
+### P1 — Entity Linker Search Endpoints Missing (ActorLinker, EventLinker, PlaceLinker)
+- [x] `ActorLinker.tsx`, `EventLinker.tsx`, `PlaceLinker.tsx` call `/api/entities/actors`, `/api/entities/events`, `/api/entities/places` — no backend files existed
+- [x] Created `functions/api/entities/actors.ts`, `events.ts`, `places.ts` — GET search with `?search=...&workspace_id=...&limit=...`
+- [x] Returns `{ success: true, actors/events/places: [...] }` matching frontend expectations
+- [x] Fixed events table column name (`name` not `title`) that caused 500 error
+- [x] Fixed `String(userId)` for TEXT `created_by` column comparison in all 3 files
+- **Root cause:** Entity search endpoints were never created. Framework linker components (PMESII-PT, SWOT, etc.) could not link actors/events/places to framework sections.
 
 ---
 
