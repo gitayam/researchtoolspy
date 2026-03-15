@@ -6,7 +6,7 @@
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { getWorkspaceMemberRole } from '../../_shared/workspace-helpers'
-import { JSON_HEADERS } from '../../_shared/api-utils'
+import { JSON_HEADERS, safeJsonParse } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -65,7 +65,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // Parse tags JSON
     const frameworks = results.map((row: any) => ({
       ...row,
-      tags: row.tags ? JSON.parse(row.tags) : [],
+      tags: safeJsonParse(row.tags, []),
     }))
 
     return new Response(JSON.stringify({

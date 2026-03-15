@@ -8,7 +8,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
-import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
+import { JSON_HEADERS, CORS_HEADERS, safeJsonParse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -40,12 +40,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const analysis = {
       ...result,
-      data_source: result.data_source ? JSON.parse(result.data_source as string) : null,
-      time_series: result.time_series ? JSON.parse(result.time_series as string) : [],
-      variables: result.variables ? JSON.parse(result.variables as string) : null,
-      equilibrium_analysis: result.equilibrium_analysis ? JSON.parse(result.equilibrium_analysis as string) : null,
-      statistics: result.statistics ? JSON.parse(result.statistics as string) : null,
-      tags: result.tags ? JSON.parse(result.tags as string) : []
+      data_source: safeJsonParse(result.data_source, null),
+      time_series: safeJsonParse(result.time_series, []),
+      variables: safeJsonParse(result.variables, null),
+      equilibrium_analysis: safeJsonParse(result.equilibrium_analysis, null),
+      statistics: safeJsonParse(result.statistics, null),
+      tags: safeJsonParse(result.tags, [])
     }
 
     return new Response(JSON.stringify({ analysis }), { headers: JSON_HEADERS })

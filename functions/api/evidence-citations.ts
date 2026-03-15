@@ -1,6 +1,6 @@
 // Cloudflare Pages Function for Evidence Citations API
 import { getUserFromRequest } from './_shared/auth-helpers'
-import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { CORS_HEADERS, JSON_HEADERS, safeJsonParse } from './_shared/api-utils'
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -49,7 +49,7 @@ export async function onRequest(context: any) {
             title: c.dataset_title,
             description: c.dataset_description,
             type: c.dataset_type,
-            source: JSON.parse(c.dataset_source || '{}'),
+            source: safeJsonParse(c.dataset_source, {}),
           }
         }))
 

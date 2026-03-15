@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { requireAuth } from '../_shared/auth-helpers'
+import { safeJsonParse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -63,12 +64,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const now = new Date().toISOString()
 
       // Parse and modify framework data
-      let frameworkData: any = {}
-      try {
-        frameworkData = JSON.parse(libraryFramework.framework_data || '{}')
+      let frameworkData: any = safeJsonParse(libraryFramework.framework_data, {})
+      if (frameworkData && typeof frameworkData === 'object' && (frameworkData.title || frameworkData.description)) {
         frameworkData.title = `${frameworkData.title || libraryFramework.title} (Fork)`
         frameworkData.description = `Forked from: ${libraryFramework.title}\n\n${frameworkData.description || libraryFramework.description || ''}`
-      } catch (e) {
+      } else {
         frameworkData = {
           title: `${libraryFramework.title} (Fork)`,
           description: `Forked from: ${libraryFramework.title}\n\n${libraryFramework.description || ''}`

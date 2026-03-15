@@ -8,7 +8,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
+import { JSON_HEADERS, CORS_HEADERS, safeJsonParse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -40,11 +40,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const analysis = {
       ...result,
-      actors: result.actors ? JSON.parse(result.actors as string) : [],
-      relationships: result.relationships ? JSON.parse(result.relationships as string) : [],
-      network_analysis: result.network_analysis ? JSON.parse(result.network_analysis as string) : null,
-      ai_analysis: result.ai_analysis ? JSON.parse(result.ai_analysis as string) : null,
-      tags: result.tags ? JSON.parse(result.tags as string) : []
+      actors: safeJsonParse(result.actors, []),
+      relationships: safeJsonParse(result.relationships, []),
+      network_analysis: safeJsonParse(result.network_analysis, null),
+      ai_analysis: safeJsonParse(result.ai_analysis, null),
+      tags: safeJsonParse(result.tags, [])
     }
 
     return new Response(JSON.stringify({ analysis }), { headers: JSON_HEADERS })

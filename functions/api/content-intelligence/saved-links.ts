@@ -12,7 +12,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 
 import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
-import { JSON_HEADERS } from '../_shared/api-utils'
+import { JSON_HEADERS, safeJsonParse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -87,7 +87,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // Parse JSON fields
     const links = results.results?.map(row => ({
       ...row,
-      tags: JSON.parse(row.tags as string || '[]'),
+      tags: safeJsonParse(row.tags, []),
       is_social_media: Boolean(row.is_social_media),
       is_processed: Boolean(row.is_processed)
     })) || []
@@ -229,7 +229,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({
       ...savedLink,
-      tags: JSON.parse(savedLink.tags as string || '[]'),
+      tags: safeJsonParse(savedLink.tags, []),
       is_social_media: Boolean(savedLink.is_social_media),
       is_processed: Boolean(savedLink.is_processed),
       analysis_id: analysisId
@@ -331,7 +331,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({
       ...updated,
-      tags: JSON.parse(updated.tags as string || '[]'),
+      tags: safeJsonParse(updated.tags, []),
       is_social_media: Boolean(updated.is_social_media),
       is_processed: Boolean(updated.is_processed)
     }), {
@@ -430,11 +430,11 @@ async function getSingleLink(db: D1Database, id: number, userId: number) {
 
     return new Response(JSON.stringify({
       ...link,
-      tags: JSON.parse(link.tags as string || '[]'),
+      tags: safeJsonParse(link.tags, []),
       is_social_media: Boolean(link.is_social_media),
       is_processed: Boolean(link.is_processed),
-      analysis_entities: link.analysis_entities ? JSON.parse(link.analysis_entities as string) : null,
-      analysis_top_phrases: link.analysis_top_phrases ? JSON.parse(link.analysis_top_phrases as string) : null
+      analysis_entities: safeJsonParse(link.analysis_entities),
+      analysis_top_phrases: safeJsonParse(link.analysis_top_phrases)
     }), {
       status: 200,
       headers: JSON_HEADERS

@@ -4,7 +4,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { JSON_HEADERS, optionsResponse, safeJsonParse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -57,7 +57,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 Title: ${analysis.title}
 Summary: ${analysis.summary || 'N/A'}
 Domain: ${analysis.domain}
-Entities: ${analysis.entities ? Object.keys(JSON.parse(analysis.entities as string)).join(', ') : 'N/A'}
+Entities: ${analysis.entities ? Object.keys(safeJsonParse(analysis.entities, {})).join(', ') : 'N/A'}
 
 The question should:
 1. Be specific and intelligence-relevant
@@ -91,8 +91,8 @@ Return ONLY the question text, no other formatting.`
     const hypothesesPrompt = `Based on this content, generate 4-5 competing hypotheses for the question: "${question}"
 
 Content Summary: ${analysis.summary || analysis.extracted_text?.substring(0, 500)}
-Topics: ${(() => { try { return analysis.topics ? JSON.parse(analysis.topics as string).map((t: any) => t.name).join(', ') : 'N/A' } catch { return 'N/A' } })()}
-Entities: ${(() => { try { return analysis.entities ? Object.keys(JSON.parse(analysis.entities as string)).join(', ') : 'N/A' } catch { return 'N/A' } })()}
+Topics: ${analysis.topics ? safeJsonParse(analysis.topics, []).map((t: any) => t.name).join(', ') || 'N/A' : 'N/A'}
+Entities: ${analysis.entities ? Object.keys(safeJsonParse(analysis.entities, {})).join(', ') || 'N/A' : 'N/A'}
 
 Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2", ...]`
 

@@ -1,7 +1,26 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.17.2-safe-json-parse
+**Current tag:** v0.17.3-safe-json-parse-sweep
+
+---
+
+## Fixed (v0.17.3)
+
+### P2 — 28 More Unsafe JSON.parse Calls Across 12 Endpoint Files
+- [x] `equilibrium-analysis.ts` — 7 raw parses on `data_source`, `variables`, `equilibrium_analysis`, `statistics`, `tags`, `time_series` → `safeJsonParse()`
+- [x] `equilibrium-analysis/[id].ts` — 6 raw parses on same columns → `safeJsonParse()`
+- [x] `hamilton-rule/[id].ts` — 5 raw parses on `actors`, `relationships`, `network_analysis`, `ai_analysis`, `tags` → `safeJsonParse()`
+- [x] `content-intelligence/saved-links.ts` — 6 raw parses on `tags`, `analysis_entities`, `analysis_top_phrases` → `safeJsonParse()`
+- [x] `content-intelligence/answer-question.ts` — 2 raw parses on `entities`, `source_excerpts` → `safeJsonParse()`
+- [x] `content-intelligence/auto-extract-entities.ts` — 1 raw parse on `entities` → `safeJsonParse()`
+- [x] `workspaces/[id]/frameworks.ts` — 1 raw parse on `tags` → `safeJsonParse()`
+- [x] `evidence-citations.ts` — 1 raw parse on `dataset_source` → `safeJsonParse()`
+- [x] `framework-evidence.ts` — 1 raw parse on `tags` → `safeJsonParse()`
+- [x] `library/fork.ts` — 1 raw parse on `framework_data` → `safeJsonParse()`
+- [x] `ach/from-content-intelligence.ts` — 3 raw parses on `entities`, `topics` → `safeJsonParse()`
+- [x] `ach/public/index.ts` — 1 raw parse on `tags` → `safeJsonParse()`
+- **Root cause:** Same as v0.17.2 — D1 text columns parsed with raw `JSON.parse()` that crashes on malformed data. Completing the sweep started in v0.17.2, now covering analysis, content-intelligence, ACH, library, and framework endpoints.
 
 ---
 

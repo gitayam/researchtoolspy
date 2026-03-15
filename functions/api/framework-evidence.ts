@@ -1,6 +1,6 @@
 // Cloudflare Pages Function for Framework-Evidence Linking API
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
-import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { CORS_HEADERS, JSON_HEADERS, safeJsonParse } from './_shared/api-utils'
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -44,7 +44,7 @@ export async function onRequest(context: any) {
 
         const parsedLinks = (links.results || []).map((link: any) => ({
           ...link,
-          tags: JSON.parse(link.tags || '[]')
+          tags: safeJsonParse(link.tags, [])
         }))
 
         return new Response(JSON.stringify({ links: parsedLinks }), {

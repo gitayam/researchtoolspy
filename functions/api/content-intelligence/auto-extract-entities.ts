@@ -5,7 +5,7 @@
 
 import { nanoid } from 'nanoid'
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { JSON_HEADERS, CORS_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { JSON_HEADERS, CORS_HEADERS, optionsResponse, safeJsonParse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -52,7 +52,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       })
     }
 
-    const entities = JSON.parse(analysis.entities as string || '{}')
+    const entities = safeJsonParse(analysis.entities, {})
     const createdActors: any[] = []
     const matchedActors: any[] = []
     const createdRelationships: any[] = []

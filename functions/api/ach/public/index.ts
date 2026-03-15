@@ -2,7 +2,7 @@
  * Public ACH Analysis Discovery API
  * GET /api/ach/public - List all public ACH analyses
  */
-import { JSON_HEADERS } from '../../_shared/api-utils'
+import { JSON_HEADERS, safeJsonParse } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -57,17 +57,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const result = await context.env.DB.prepare(query).bind(...params).all()
 
     // Parse tags for each analysis
-    const analyses = (result.results || []).map((analysis: any) => {
-      let tags = null
-      if (analysis.tags && typeof analysis.tags === 'string') {
-        try {
-          tags = JSON.parse(analysis.tags)
-        } catch (e) {
-          console.error('Failed to parse tags:', e)
-        }
-      }
-      return { ...analysis, tags }
-    })
+    const analyses = (result.results || []).map((analysis: any) => ({
+      ...analysis,
+      tags: analysis.tags ? safeJsonParse(analysis.tags, null) : null
+    }))
 
     // Get total count for pagination
     let countQuery = 'SELECT COUNT(*) as total FROM ach_analyses WHERE is_public = 1'

@@ -11,7 +11,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { JSON_HEADERS } from '../_shared/api-utils'
+import { JSON_HEADERS, safeJsonParse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -61,7 +61,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const content = analysis.extracted_text as string
-    const entities = JSON.parse(analysis.entities as string || '{}')
+    const entities = safeJsonParse(analysis.entities, {})
     const summary = analysis.summary as string || ''
 
     // Step 1: Regex keyword extraction
@@ -447,7 +447,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const qaHistory = results.results?.map(row => ({
       ...row,
-      source_excerpts: JSON.parse(row.source_excerpts as string || '[]'),
+      source_excerpts: safeJsonParse(row.source_excerpts, []),
       has_complete_answer: Boolean(row.has_complete_answer)
     })) || []
 

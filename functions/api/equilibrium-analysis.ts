@@ -7,7 +7,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from './_shared/auth-helpers'
-import { generatePrefixedId, JSON_HEADERS, CORS_HEADERS } from './_shared/api-utils'
+import { generatePrefixedId, JSON_HEADERS, CORS_HEADERS, safeJsonParse } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -44,13 +44,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const analyses = (results.results || []).map((row: any) => ({
       ...row,
-      data_source: row.data_source ? JSON.parse(row.data_source) : null,
-      variables: row.variables ? JSON.parse(row.variables) : null,
-      equilibrium_analysis: row.equilibrium_analysis ? JSON.parse(row.equilibrium_analysis) : null,
-      statistics: row.statistics ? JSON.parse(row.statistics) : null,
-      tags: row.tags ? JSON.parse(row.tags) : [],
+      data_source: safeJsonParse(row.data_source, null),
+      variables: safeJsonParse(row.variables, null),
+      equilibrium_analysis: safeJsonParse(row.equilibrium_analysis, null),
+      statistics: safeJsonParse(row.statistics, null),
+      tags: safeJsonParse(row.tags, []),
       // Don't return full time_series in list view
-      time_series_count: row.time_series ? JSON.parse(row.time_series).length : 0
+      time_series_count: (safeJsonParse(row.time_series, []) as any[]).length
     }))
 
     return new Response(JSON.stringify({ analyses }), { headers: JSON_HEADERS })
