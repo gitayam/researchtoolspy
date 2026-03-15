@@ -1,5 +1,6 @@
 import { Env } from '../../types'
 import { enhancedFetch } from '../../utils/browser-profiles'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface URLAnalysisRequest {
   url: string
@@ -216,7 +217,16 @@ function calculateReliability(
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const { request } = context
+  const { request, env } = context
+
+  // Auth check — this endpoint consumes external API quota
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+    })
+  }
 
   try {
     const body = await request.json() as URLAnalysisRequest
@@ -448,7 +458,7 @@ export const onRequestOptions: PagesFunction<Env> = async () => {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash'
     }
   })
 }

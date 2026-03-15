@@ -1,4 +1,5 @@
 import { Env } from '../../types'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface BatchItem {
   id: string
@@ -148,7 +149,17 @@ async function processInBatches(items: BatchItem[], operation: string, maxWorker
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const { request } = context
+  const { request, env } = context
+
+  // Auth check — batch processing consumes significant external API quota
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+    })
+  }
+
   const startTime = Date.now()
 
   try {
@@ -263,7 +274,7 @@ export const onRequestOptions: PagesFunction<Env> = async () => {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash'
     }
   })
 }

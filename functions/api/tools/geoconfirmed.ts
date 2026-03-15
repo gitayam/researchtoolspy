@@ -15,15 +15,20 @@
  *   4. Conflicts mode: List available conflicts (no body needed, or { action: "conflicts" })
  */
 
+import { getUserFromRequest } from '../_shared/auth-helpers'
+
 interface Env {
   CACHE: KVNamespace
+  DB?: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
 }
 
 // ─── GeoConfirmed API endpoints ───
@@ -352,6 +357,14 @@ async function setCachedKML(env: Env, conflict: string, placemarks: KMLPlacemark
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
+
+  // Auth check — this endpoint crawls external geoconfirmed.org API
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: corsHeaders,
+    })
+  }
 
   try {
     const body = await request.json() as any

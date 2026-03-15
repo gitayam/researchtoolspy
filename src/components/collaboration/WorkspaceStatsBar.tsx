@@ -19,6 +19,7 @@ interface Stats {
 
 export function WorkspaceStatsBar({ workspaceId, onTabClick }: WorkspaceStatsBarProps) {
   const [stats, setStats] = useState<Stats | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -32,12 +33,17 @@ export function WorkspaceStatsBar({ workspaceId, onTabClick }: WorkspaceStatsBar
       const response = await fetch(`/api/workspaces/${workspaceId}/stats`, { headers: getCopHeaders(), signal })
       if (response.ok) {
         setStats(await response.json())
+        setError(null)
+      } else {
+        console.error('[WorkspaceStatsBar] fetch failed:', response.status)
+        setError(`Failed to load stats (${response.status})`)
       }
     } catch (error: any) {
       if (error?.name !== 'AbortError') console.error('Failed to fetch workspace stats:', error)
     }
   }
 
+  if (error) return <p className="text-sm text-red-500 p-2">{error}</p>
   if (!stats) return null
 
   const pills: { id: TabId; label: string; count: number; icon: React.ReactNode }[] = [

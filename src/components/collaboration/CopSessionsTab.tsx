@@ -33,6 +33,7 @@ export function CopSessionsTab({ workspaceId, userRole }: CopSessionsTabProps) {
   const navigate = useNavigate()
   const [sessions, setSessions] = useState<CopSession[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const canCreate = userRole !== 'VIEWER'
 
@@ -49,6 +50,10 @@ export function CopSessionsTab({ workspaceId, userRole }: CopSessionsTabProps) {
       if (response.ok) {
         const data = await response.json()
         setSessions(data.sessions)
+        setError(null)
+      } else {
+        console.error('[CopSessionsTab] fetch failed:', response.status)
+        setError(`Failed to load COP sessions (${response.status})`)
       }
     } catch (error: any) {
       if (error?.name !== 'AbortError') console.error('Failed to fetch COP sessions:', error)
@@ -73,6 +78,8 @@ export function CopSessionsTab({ workspaceId, userRole }: CopSessionsTabProps) {
           </Button>
         </div>
       )}
+
+      {error && <p className="text-sm text-red-500 p-2">{error}</p>}
 
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading COP sessions...</div>

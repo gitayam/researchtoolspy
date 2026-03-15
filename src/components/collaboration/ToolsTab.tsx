@@ -37,6 +37,7 @@ export function ToolsTab({ workspaceId, userRole }: ToolsTabProps) {
   const [taskTemplates, setTaskTemplates] = useState<CopTemplate[]>([])
   const [intakeForms, setIntakeForms] = useState<CopTemplate[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -53,6 +54,10 @@ export function ToolsTab({ workspaceId, userRole }: ToolsTabProps) {
         setPlaybooks(data.playbooks || [])
         setTaskTemplates(data.task_templates || [])
         setIntakeForms(data.intake_forms || [])
+        setError(null)
+      } else {
+        console.error('[ToolsTab] fetch failed:', response.status)
+        setError(`Failed to load tools (${response.status})`)
       }
     } catch (error: any) {
       if (error?.name !== 'AbortError') console.error('Failed to fetch tools:', error)
@@ -88,6 +93,7 @@ export function ToolsTab({ workspaceId, userRole }: ToolsTabProps) {
       {/* COP Templates */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">COP Templates</h3>
+        {error && <p className="text-sm text-red-500 p-2">{error}</p>}
         {loading ? (
           <div className="text-center py-8 text-gray-500">Loading templates...</div>
         ) : !hasTemplates ? (

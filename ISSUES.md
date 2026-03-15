@@ -1,7 +1,33 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.14.6-cop-deep-sub-resource-auth
+**Current tag:** v0.14.7-tools-auth-frontend-errors
+
+---
+
+## Fixed (v0.14.7)
+
+### P2 — 7 Tools/Collection Endpoints Had Zero Auth (Quota Abuse Risk)
+- [x] `tools/extract.ts` — POST had no auth (content extraction via external APIs)
+- [x] `tools/analyze-url.ts` — POST had no auth (URL analysis consuming OpenAI quota)
+- [x] `tools/scrape-metadata.ts` — POST had no auth (metadata scraping)
+- [x] `tools/batch-process.ts` — POST had no auth (batch AI processing)
+- [x] `tools/geoconfirmed.ts` — POST had no auth (GeoConfirmed crawler)
+- [x] `collection/[jobId]/status.ts` — GET had no auth (job status readable by anyone)
+- [x] `collection/[jobId]/results.ts` — GET had no auth (job results readable by anyone)
+- [x] All 7 now enforce `getUserFromRequest` + 401 on unauthenticated requests
+- **Root cause:** tools were built as standalone utilities without user context; collection endpoints assumed UUID job IDs provided sufficient obscurity
+
+### P2 — Frontend Silent Fetch Failures in 7 Components
+- [x] `CopSessionsTab.tsx` — added error state + console.error on fetch failure
+- [x] `ToolsTab.tsx` — added error state + console.error on fetch failure
+- [x] `WorkspaceStatsBar.tsx` — added error state + console.error on fetch failure
+- [x] `EntitiesTab.tsx` — added error state + console.error on fetch failure
+- [x] `FrameworksTab.tsx` — added error state + console.error on fetch failure
+- [x] `TeamTab.tsx` — added error state + console.error on fetch failure (both members + invites)
+- [x] `GuestModeContext.tsx` — added console.error on conversion API failure
+- [x] All 7 now show inline error messages and log failures to console
+- **Root cause:** components checked `if (response.ok)` but had no else branch — errors silently swallowed
 
 ---
 
@@ -194,8 +220,8 @@
 
 ### P2 — Frontend Error Handling
 
-- [ ] **Silent fetch failures in collaboration tabs** — `CopSessionsTab.tsx`, `ToolsTab.tsx`, `WorkspaceStatsBar.tsx`, `EntitiesTab.tsx`, `FrameworksTab.tsx`, `TeamTab.tsx` all check `if (response.ok)` but do nothing on failure — errors silently swallowed
-- [ ] **GuestModeContext silent failure** — `GuestModeContext.tsx:101` swallows non-OK response on conversion API call
+- [x] ~~Silent fetch failures in collaboration tabs~~ — fixed in v0.14.7
+- [x] ~~GuestModeContext silent failure~~ — fixed in v0.14.7
 
 ### P3 — UX / Polish
 
@@ -206,8 +232,8 @@
 
 ### P2 — Tools/Utility Endpoints Open (No Auth)
 
-- [ ] **5 tools endpoints open** — `tools/extract.ts`, `tools/analyze-url.ts`, `tools/scrape-metadata.ts`, `tools/batch-process.ts`, `tools/geoconfirmed.ts` have zero auth. They don't expose user data but consume API quota (OpenAI, external scrapers). Low data risk, medium abuse risk.
-- [ ] **Collection job endpoints open** — `collection/[jobId]/status.ts`, `collection/[jobId]/results.ts` have zero auth. Anyone who guesses a job ID can read results. Low risk (job IDs are UUIDs).
+- [x] ~~5 tools endpoints open~~ — fixed in v0.14.7
+- [x] ~~Collection job endpoints open~~ — fixed in v0.14.7
 
 ### P3 — AI Config (Intentional)
 

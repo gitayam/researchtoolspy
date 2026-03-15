@@ -24,6 +24,7 @@ export function TeamTab({ workspaceId, userRole }: TeamTabProps) {
 
   const [members, setMembers] = useState<WorkspaceMemberWithNickname[]>([])
   const [invites, setInvites] = useState<WorkspaceInvite[]>([])
+  const [error, setError] = useState<string | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [createForm, setCreateForm] = useState<CreateWorkspaceInviteRequest>({
     default_role: 'VIEWER',
@@ -52,6 +53,10 @@ export function TeamTab({ workspaceId, userRole }: TeamTabProps) {
       if (response.ok) {
         const data = await response.json()
         setMembers(data)
+        setError(null)
+      } else {
+        console.error('[TeamTab] fetchMembers failed:', response.status)
+        setError(`Failed to load team members (${response.status})`)
       }
     } catch (error: any) {
       if (error?.name !== 'AbortError') console.error('Failed to fetch members:', error)
@@ -67,6 +72,9 @@ export function TeamTab({ workspaceId, userRole }: TeamTabProps) {
       if (response.ok) {
         const data = await response.json()
         setInvites(data.invites || [])
+      } else {
+        console.error('[TeamTab] fetchInvites failed:', response.status)
+        setError(`Failed to load invites (${response.status})`)
       }
     } catch (error: any) {
       if (error?.name !== 'AbortError') console.error('Failed to fetch invites:', error)
@@ -151,6 +159,8 @@ export function TeamTab({ workspaceId, userRole }: TeamTabProps) {
 
   return (
     <div className="space-y-6">
+      {error && <p className="text-sm text-red-500 p-2">{error}</p>}
+
       {/* Invite Links */}
       <Card>
         <CardHeader>

@@ -48,6 +48,7 @@ export function EntitiesTab({ workspaceId, userRole }: EntitiesTabProps) {
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const canCreate = userRole !== 'VIEWER'
 
@@ -76,6 +77,10 @@ export function EntitiesTab({ workspaceId, userRole }: EntitiesTabProps) {
         const data = await response.json()
         setEntities(data.entities)
         setTotal(data.total)
+        setError(null)
+      } else {
+        console.error('[EntitiesTab] fetch failed:', response.status)
+        setError(`Failed to load entities (${response.status})`)
       }
     } catch (error: any) {
       if (error?.name !== 'AbortError') console.error('Failed to fetch entities:', error)
@@ -159,6 +164,8 @@ export function EntitiesTab({ workspaceId, userRole }: EntitiesTabProps) {
           </DropdownMenu>
         )}
       </div>
+
+      {error && <p className="text-sm text-red-500 p-2">{error}</p>}
 
       {/* Entity Cards */}
       {loading ? (

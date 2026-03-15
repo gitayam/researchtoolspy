@@ -7,9 +7,12 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import type { CollectionJob, CollectionResultsSummary } from '../../../../src/types/collection'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -20,6 +23,15 @@ const corsHeaders = {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
+  // Auth check — collection data requires authentication
+  const userId = await getUserFromRequest(context.request, context.env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: corsHeaders
+    })
+  }
+
   try {
     const jobId = context.params.jobId as string
 

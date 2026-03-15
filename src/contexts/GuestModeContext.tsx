@@ -102,6 +102,8 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
         // Clear guest data
         clearGuestData()
         // Auth state update happens elsewhere (e.g. login)
+      } else {
+        console.error('[GuestModeContext] Conversion failed:', response.status)
       }
     } catch (error) {
       console.error('Failed to convert guest to authenticated:', error)

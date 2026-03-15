@@ -35,6 +35,7 @@ export function FrameworksTab({ workspaceId, userRole }: FrameworksTabProps) {
   const [frameworks, setFrameworks] = useState<Framework[]>([])
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const canCreate = userRole !== 'VIEWER'
 
@@ -54,6 +55,10 @@ export function FrameworksTab({ workspaceId, userRole }: FrameworksTabProps) {
       if (response.ok) {
         const data = await response.json()
         setFrameworks(data.frameworks)
+        setError(null)
+      } else {
+        console.error('[FrameworksTab] fetch failed:', response.status)
+        setError(`Failed to load frameworks (${response.status})`)
       }
     } catch (error: any) {
       if (error?.name !== 'AbortError') console.error('Failed to fetch frameworks:', error)
@@ -93,6 +98,8 @@ export function FrameworksTab({ workspaceId, userRole }: FrameworksTabProps) {
           </Button>
         )}
       </div>
+
+      {error && <p className="text-sm text-red-500 p-2">{error}</p>}
 
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading frameworks...</div>
