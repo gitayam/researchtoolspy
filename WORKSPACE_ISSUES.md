@@ -1,6 +1,38 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-74)
+**Last updated:** 2026-03-14 (Sessions 34-75)
+
+## Fixed — v0.18.3 (Session 75)
+
+### CRITICAL — userId SHADOWING IN 5 ENTITY CRUD FILES
+| # | Issue | Status |
+|---|-------|--------|
+| 387 | **sources.ts** — POST/PUT/DELETE mutation handlers use outer-scope `userId` (getUserIdOrDefault, falls back to 1) instead of `authUserId` (getUserFromRequest) for workspace access checks and `created_by` attribution. Guest user 1 could pass workspace checks and records attributed to wrong user. Fixed: all mutation paths use `authUserId` | FIXED |
+| 388 | **actors.ts** — Same userId shadowing pattern. 4 workspace access checks + created_by bind used guest-fallback `userId`. Fixed | FIXED |
+| 389 | **events.ts** — Same pattern. 3 EDITOR workspace checks + created_by. Fixed | FIXED |
+| 390 | **places.ts** — Same pattern. 3 EDITOR workspace checks + created_by. Fixed | FIXED |
+| 391 | **behaviors.ts** — Same pattern. 3 EDITOR workspace checks + created_by. Fixed | FIXED |
+
+### HIGH — UNAUTHENTICATED AI ENDPOINTS (COST EXPOSURE)
+| # | Issue | Status |
+|---|-------|--------|
+| 392 | **equilibrium-analysis/analyze.ts** — POST had zero auth. Anyone could trigger OpenAI API calls (gpt-4o-mini) without authentication, burning API credits. Fixed: added getUserFromRequest + 401 gate | FIXED |
+| 393 | **hamilton-rule/analyze.ts** — Same: POST with no auth, open OpenAI cost exposure. Fixed: added auth gate | FIXED |
+
+### MEDIUM — EVENT LISTENER MEMORY LEAK
+| # | Issue | Status |
+|---|-------|--------|
+| 394 | **CopMap.tsx** — `addEventListener('click', ...)` on dynamically created Mapbox popup buttons accumulates handlers on each popup open. Fixed: replaced with `btn.onclick =` assignment (replaces previous handler) | FIXED |
+
+### OPEN — UNAUTHENTICATED GET ENDPOINTS (DOCUMENTED)
+| # | Issue | Status |
+|---|-------|--------|
+| 395 | **9+ GET endpoints lack auth** — equilibrium-analysis.ts, hamilton-rule.ts, equilibrium-analysis/[id].ts, hamilton-rule/[id].ts, comments.ts, social-media.ts, collection/[jobId]/results.ts, collection/[jobId]/status.ts, content-library.ts all serve data without authentication | OPEN |
+| 396 | **notifications.ts** — No auth on POST allows notification injection into any user's feed | OPEN |
+| 397 | **activity.ts** — No auth on POST allows workspace activity log pollution | OPEN |
+| 398 | **content-intelligence/cleanup.ts** — DELETE without ownership scope performs global cleanup | OPEN |
+
+---
 
 ## Fixed — v0.18.2 (Session 74)
 

@@ -426,13 +426,15 @@ function addPointLayers(
       .addTo(map)
     popupRef.current = popup
 
-    // Wire backlink button click
+    // Wire backlink button click (use onclick to avoid listener accumulation)
     if (hasBacklink && backlinkBtnId) {
       const btn = document.getElementById(backlinkBtnId)
-      btn?.addEventListener('click', () => {
-        onMarkerOpenInFeedRef?.current?.(sourceType, sourceId)
-        popup.remove()
-      })
+      if (btn) {
+        btn.onclick = () => {
+          onMarkerOpenInFeedRef?.current?.(sourceType, sourceId)
+          popup.remove()
+        }
+      }
     }
   })
 

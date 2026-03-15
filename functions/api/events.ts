@@ -162,7 +162,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
-      if (!(await checkWorkspaceAccess(body.workspace_id, userId, env, 'EDITOR'))) {
+      if (!(await checkWorkspaceAccess(body.workspace_id, authUserId, env, 'EDITOR'))) {
         return new Response(
           JSON.stringify({ error: 'Insufficient permissions' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -204,7 +204,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         body.confidence || null,
         body.timeline_id || null,
         body.workspace_id,
-        userId,
+        authUserId,
         now,
         now,
         body.is_public ? 1 : 0,
@@ -361,7 +361,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
-      if (!(await checkWorkspaceAccess(event.workspace_id as string, userId, env, 'EDITOR'))) {
+      if (!(await checkWorkspaceAccess(event.workspace_id as string, authUserId, env, 'EDITOR'))) {
         return new Response(
           JSON.stringify({ error: 'Insufficient permissions' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -480,7 +480,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
-      if (!(await checkWorkspaceAccess(event.workspace_id as string, userId, env, 'EDITOR'))) {
+      if (!(await checkWorkspaceAccess(event.workspace_id as string, authUserId, env, 'EDITOR'))) {
         return new Response(
           JSON.stringify({ error: 'Insufficient permissions' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
