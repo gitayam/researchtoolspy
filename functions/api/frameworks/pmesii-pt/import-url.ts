@@ -51,7 +51,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body: JSON.stringify({
         url: body.url,
         mode: 'quick'
-      })
+      }),
+      signal: AbortSignal.timeout(30000),
     })
 
     if (!analyzeResponse.ok) {

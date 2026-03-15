@@ -141,7 +141,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             'Content-Type': 'application/json',
             ...(authHeader && { 'Authorization': authHeader })
           },
-          body: JSON.stringify(aiContext)
+          body: JSON.stringify(aiContext),
+          signal: AbortSignal.timeout(30000),
         })
 
         if (scrapeResponse.ok) {
@@ -186,7 +187,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         'Content-Type': 'application/json',
         ...(authHeader && { 'Authorization': authHeader })
       },
-      body: JSON.stringify(starburstingPayload)
+      body: JSON.stringify(starburstingPayload),
+      signal: AbortSignal.timeout(30000),
     })
 
     if (!starburstingResponse.ok) {

@@ -1,24 +1,11 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-87)
+**Last updated:** 2026-03-15 (Sessions 34-88)
 
 ## Known Open — Prioritized for Next Sessions
 
-### HIGH — 7 More External Fetch Calls Missing AbortSignal (Internal API Calls)
-| File | Lines | Service |
-|------|-------|---------|
-| `collection/start.ts` | 104 | Internal scraper endpoint |
-| `collection/[jobId]/approve.ts` | 97 | Internal endpoint |
-| `tools/extract.ts` | 315 | Internal endpoint |
-| `tools/batch-process.ts` | 47 | Internal endpoint |
-| `content-intelligence/starbursting.ts` | 138, 183 | Internal API calls |
-| `frameworks/pmesii-pt/import-url.ts` | 46 | Internal API call |
-
 ### MEDIUM — 20 Files Missing meta.changes Check on DELETE/UPDATE
 Key files: `settings/workspaces/[id].ts`, `settings/user.ts`, `investigations/[id].ts`, `ach/evidence.ts`, `ach/scores.ts`, `ach/hypotheses.ts`, `cop/sessions/[id].ts` (partial), `cop/[id]/submissions.ts`, `cop/[id]/assets.ts`, `cop/[id]/rfis/[rfiId].ts`, `cop/[id]/playbooks/[pbId].ts`, `claims/remove-evidence-link.ts`, `claims/remove-entity-mention.ts`
-
-### MEDIUM — 9 Hardcoded X-User-Hash Headers (Should Use getCopHeaders())
-Files: GenericFrameworkView, BehaviorSearchDialog, GenericFrameworkForm, COGWizard, ShareButton, SwotForm, useSettings, SettingsPage (2)
 
 ### LOW — 163+ alert() Calls Needing Toast Migration
 Largest concentrations: EntityQuickCreate (12), GenericFrameworkForm (10), BatchProcessingPage (10), DeceptionView (7), DataManagement (6)
@@ -27,6 +14,33 @@ Largest concentrations: EntityQuickCreate (12), GenericFrameworkForm (10), Batch
 - 25+ COP GET endpoints lack auth (Issue #384)
 - 15+ COP POST/PUT/DELETE lack session membership verification (Issue #385)
 - `notifications.ts` POST and `activity.ts` POST still unauthed (#396-397)
+
+---
+
+## Fixed — v2.16.7 (Session 88)
+
+### HIGH — ALL REMAINING AbortSignal.timeout GAPS (14 FETCH CALLS, 8 FILES)
+| # | Issue | Status |
+|---|-------|--------|
+| 569 | **social-extract.ts** — 7 external fetches (YouTube oEmbed, Instagram GraphQL/JSON/oEmbed, Twitter oEmbed, YouTube transcript page + captions) missing timeouts. Fixed: 15s on all | FIXED |
+| 570 | **tools/extract.ts** — User-provided URL fetch without timeout. Fixed: 15s | FIXED |
+| 571 | **tools/batch-process.ts** — Internal batch fetch without timeout. Fixed: 30s | FIXED |
+| 572 | **collection/start.ts** — Fire-and-forget agent fetch without timeout. Fixed: 30s | FIXED |
+| 573 | **collection/[jobId]/approve.ts** — Batch process trigger without timeout. Fixed: 60s | FIXED |
+| 574 | **content-intelligence/starbursting.ts** — 2 internal API calls (scrape + framework create) without timeouts. Fixed: 30s each | FIXED |
+| 575 | **frameworks/pmesii-pt/import-url.ts** — Internal analyze call without timeout. Fixed: 30s | FIXED |
+
+### MEDIUM — 9 HARDCODED X-User-Hash HEADERS MIGRATED TO getCopHeaders()
+| # | Issue | Status |
+|---|-------|--------|
+| 576 | **6 framework components** (GenericFrameworkView, BehaviorSearchDialog, GenericFrameworkForm, COGWizard, ShareButton, SwotForm) — Manual localStorage + header construction replaced with `getCopHeaders()`. Now sends JWT + workspace context automatically | FIXED |
+| 577 | **useSettings.ts** — Hardcoded X-User-Hash in settings API call. Fixed: uses getCopHeaders() | FIXED |
+| 578 | **SettingsPage.tsx** — 2 hardcoded X-User-Hash in save/load settings. Fixed: uses getCopHeaders() | FIXED |
+
+### LOW — DEAD CODE REMOVAL
+| # | Issue | Status |
+|---|-------|--------|
+| 579 | **auth-helpers.ts getWorkspaceIdOrDefault()** — Unused function with `|| '1'` fallback. Removed entirely (0 callers) | FIXED |
 
 ---
 

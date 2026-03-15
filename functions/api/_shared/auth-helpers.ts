@@ -148,16 +148,6 @@ export async function getUserIdOrDefault(
 }
 
 /**
- * Get workspace ID from request body or default
- *
- * @param body - Request body object
- * @returns Workspace ID string
- */
-export function getWorkspaceIdOrDefault(body: any): string {
-  return body?.workspace_id || '1'
-}
-
-/**
  * Check if user is authenticated
  *
  * @param request - The incoming request

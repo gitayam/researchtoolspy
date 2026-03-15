@@ -14,27 +14,8 @@ import { ContentPickerDialog } from './ContentPickerDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { TagInput } from '@/components/ui/tag-input'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { getCopHeaders } from '@/lib/cop-auth'
 
-// Helper function to get authentication headers
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  }
-
-  // Try to get bearer token first (authenticated users)
-  const token = localStorage.getItem('omnicore_token')
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-
-  // Try to get user hash (guest mode)
-  const userHash = localStorage.getItem('user_hash')
-  if (userHash) {
-    headers['X-User-Hash'] = userHash
-  }
-
-  return headers
-}
 
 interface SwotItem {
   id: string
@@ -805,7 +786,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
 
       const response = await fetch(`/api/frameworks/swot-auto-populate?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           contentIds,
           title: title || undefined,

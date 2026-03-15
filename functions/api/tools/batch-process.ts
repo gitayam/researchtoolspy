@@ -47,7 +47,8 @@ async function processSingleURL(url: string, operation: string, origin: string):
     const response = await fetch(`${origin}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30000),
     })
 
     const data = await response.json()

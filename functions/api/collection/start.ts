@@ -104,7 +104,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       fetch(`${agentUrl}/collect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify(agentRequest)
+        body: JSON.stringify(agentRequest),
+        signal: AbortSignal.timeout(30000),
       }).catch(async (error) => {
         // Update job status on connection failure
         console.error(`[Collection Start] Agent connection failed for job ${jobId}:`, error)

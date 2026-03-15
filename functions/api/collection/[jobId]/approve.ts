@@ -101,7 +101,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           operation: 'analyze-url',
           items: batchItems,
           options: { maxWorkers: 3, retryFailed: true }
-        })
+        }),
+        signal: AbortSignal.timeout(60000),
       })
 
       if (!batchResponse.ok) {

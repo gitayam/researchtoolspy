@@ -129,7 +129,8 @@ async function extractYouTube(url: string, mode: string, options: any): Promise<
 
     // Use YouTube oEmbed API for basic metadata (no API key needed)
     const oembedResponse = await fetch(
-      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+      { signal: AbortSignal.timeout(15000) }
     )
 
     if (!oembedResponse.ok) {
@@ -250,7 +251,8 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'application/json',
-        }
+        },
+        signal: AbortSignal.timeout(15000),
       })
 
       if (graphqlResponse.ok) {
@@ -275,7 +277,8 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest'
-        }
+        },
+        signal: AbortSignal.timeout(15000),
       })
 
       if (jsonResponse.ok) {
@@ -332,7 +335,8 @@ async function extractInstagram(url: string, mode: string, options: any): Promis
     attemptCount++
     try {
       const oembedResponse = await fetch(
-        `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=&fields=author_name,author_url,media_id,thumbnail_url,title`
+        `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=&fields=author_name,author_url,media_id,thumbnail_url,title`,
+        { signal: AbortSignal.timeout(15000) }
       )
 
       if (oembedResponse.ok) {
@@ -514,7 +518,8 @@ async function extractTwitter(url: string, mode: string, options: any): Promise<
       const oembedResponse = await fetch(oembedUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
+        },
+        signal: AbortSignal.timeout(15000),
       })
 
       if (oembedResponse.ok) {
@@ -721,7 +726,8 @@ async function fetchYouTubeTranscript(videoId: string): Promise<string | undefin
     const videoPageResponse = await fetch(videoPageUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
+      },
+      signal: AbortSignal.timeout(15000),
     })
 
     if (!videoPageResponse.ok) {
@@ -760,7 +766,8 @@ async function fetchYouTubeTranscript(videoId: string): Promise<string | undefin
     const transcriptResponse = await fetch(captionTrack.baseUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+      },
+      signal: AbortSignal.timeout(15000),
     })
 
     if (!transcriptResponse.ok) {

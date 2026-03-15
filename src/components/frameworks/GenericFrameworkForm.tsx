@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check, Download, FileJson, Users, MapPin, Calendar } from 'lucide-react'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { createLogger } from '@/lib/logger'
 
 const logger = createLogger('GenericFrameworkForm')
@@ -34,26 +35,6 @@ import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
 import type { ComBComponent, ComBDeficits, DeficitLevel, InterventionFunction } from '@/types/behavior-change-wheel'
 
-// Helper function to get authentication headers
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  }
-
-  // Try to get bearer token first (authenticated users)
-  const token = localStorage.getItem('omnicore_token')
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-
-  // Try to get user hash (guest mode)
-  const userHash = localStorage.getItem('user_hash')
-  if (userHash) {
-    headers['X-User-Hash'] = userHash
-  }
-
-  return headers
-}
 
 interface FrameworkSection {
   key: string
@@ -873,7 +854,7 @@ export function GenericFrameworkForm({
     if (!frameworkId) return
     try {
       const response = await fetch(`/api/framework-evidence?framework_id=${frameworkId}&framework_type=${frameworkType}&workspace_id=${currentWorkspaceId}`, {
-        headers: getAuthHeaders()
+        headers: getCopHeaders()
       })
       if (response.ok) {
         const data = await response.json()
@@ -973,7 +954,7 @@ export function GenericFrameworkForm({
       for (const evidence of selected) {
         await fetch(`/api/framework-evidence?workspace_id=${currentWorkspaceId}`, {
           method: 'POST',
-          headers: getAuthHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify({
             framework_type: frameworkType,
             framework_id: frameworkId,
@@ -1011,7 +992,7 @@ export function GenericFrameworkForm({
         `/api/framework-evidence?framework_type=${frameworkType}&framework_id=${frameworkId}&framework_item_id=${sectionKey}&entity_type=${evidence.entity_type}&entity_id=${evidence.entity_id}&workspace_id=${currentWorkspaceId}`,
         {
           method: 'DELETE',
-          headers: getAuthHeaders()
+          headers: getCopHeaders()
         }
       )
       setSectionEvidence(prev => ({
@@ -1224,7 +1205,7 @@ export function GenericFrameworkForm({
     try {
       const response = await fetch(`/api/ai/generate-title?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           frameworkType,
           data: sectionData,
@@ -1254,7 +1235,7 @@ export function GenericFrameworkForm({
     try {
       const response = await fetch(`/api/ai/generate-questions?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           framework: frameworkType,
           existingData: sectionData,
@@ -1307,7 +1288,7 @@ export function GenericFrameworkForm({
       if (frameworkType === 'pmesii-pt') {
         const response = await fetch(`/api/frameworks/pmesii-pt/import-url?workspace_id=${currentWorkspaceId}`, {
           method: 'POST',
-          headers: getAuthHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify({
             url: importUrl.trim(),
             workspace_id: currentWorkspaceId
@@ -1351,7 +1332,7 @@ export function GenericFrameworkForm({
         // Fallback to generic Content Intelligence analysis
         const response = await fetch(`/api/content-intelligence/analyze?workspace_id=${currentWorkspaceId}`, {
           method: 'POST',
-          headers: getAuthHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify({
             url: importUrl.trim(),
             mode: 'quick',

@@ -63,9 +63,7 @@ export function SettingsPage() {
       try {
         const response = await fetch(`/api/settings/workspaces/${workspaceId}`, {
           method: 'DELETE',
-          headers: {
-            'X-User-Hash': userHash,
-          },
+          headers: getCopHeaders(),
         })
 
         if (!response.ok) throw new Error('Failed to delete workspace')
@@ -94,10 +92,7 @@ export function SettingsPage() {
       try {
         const response = await fetch(`/api/settings/workspaces/${workspaceId}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-Hash': userHash,
-          },
+          headers: getCopHeaders(),
           body: JSON.stringify({ name, description }),
         })
 

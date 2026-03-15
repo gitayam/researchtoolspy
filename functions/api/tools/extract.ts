@@ -315,7 +315,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const response = await fetch(body.url, {
         headers: {
           'User-Agent': 'ResearchToolsPy Content Extractor/1.0'
-        }
+        },
+        signal: AbortSignal.timeout(15000),
       })
 
       if (!response.ok) {

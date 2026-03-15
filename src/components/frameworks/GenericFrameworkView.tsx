@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink, MoreVertical, BookOpen, Trash, Network } from 'lucide-react'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { createLogger } from '@/lib/logger'
 
 const logger = createLogger('GenericFrameworkView')
@@ -29,26 +30,6 @@ import type { CreateRelationshipRequest } from '@/types/entities'
 import type { ComBDeficits, InterventionFunction } from '@/types/behavior-change-wheel'
 import type { LocationContext } from '@/types/behavior'
 
-// Helper function to get authentication headers
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  }
-
-  // Try to get bearer token first (authenticated users)
-  const token = localStorage.getItem('omnicore_token')
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-
-  // Try to get user hash (guest mode)
-  const userHash = localStorage.getItem('user_hash')
-  if (userHash) {
-    headers['X-User-Hash'] = userHash
-  }
-
-  return headers
-}
 
 interface FrameworkSection {
   key: string
@@ -140,7 +121,7 @@ export function GenericFrameworkView({
 
       try {
         const response = await fetch(`/api/framework-evidence?framework_id=${data.id}&workspace_id=${currentWorkspaceId}`, {
-          headers: getAuthHeaders()
+          headers: getCopHeaders()
         })
         if (response.ok) {
           const result = await response.json()
@@ -220,7 +201,7 @@ export function GenericFrameworkView({
 
       const response = await fetch(`/api/framework-evidence?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           framework_id: data.id,
           evidence_ids: evidenceIds,
@@ -250,7 +231,7 @@ export function GenericFrameworkView({
         `/api/framework-evidence?framework_id=${data.id}&evidence_id=${entity_id}&workspace_id=${currentWorkspaceId}`,
         {
           method: 'DELETE',
-          headers: getAuthHeaders()
+          headers: getCopHeaders()
         }
       )
 
@@ -323,7 +304,7 @@ export function GenericFrameworkView({
       // Save to API
       const response = await fetch(`/api/frameworks?id=${data.id}&workspace_id=${currentWorkspaceId}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           title: data.title,
           description: data.description,
@@ -372,7 +353,7 @@ export function GenericFrameworkView({
       // Save to API
       const response = await fetch(`/api/frameworks?id=${data.id}&workspace_id=${currentWorkspaceId}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({
           title: data.title,
           description: data.description,

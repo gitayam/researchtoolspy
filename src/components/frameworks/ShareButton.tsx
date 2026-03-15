@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Share2, Copy, Check, Globe, Lock, Link } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -22,26 +23,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-// Helper function to get authentication headers
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  }
-
-  // Try to get bearer token first (authenticated users)
-  const token = localStorage.getItem('omnicore_token')
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-
-  // Try to get user hash (guest mode)
-  const userHash = localStorage.getItem('user_hash')
-  if (userHash) {
-    headers['X-User-Hash'] = userHash
-  }
-
-  return headers
-}
 
 interface ShareButtonProps {
   frameworkId: string
@@ -87,7 +68,7 @@ export function ShareButton({
     try {
       const response = await fetch(`/api/frameworks/${frameworkId}/share?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({ is_public: newIsPublic, category, workspace_id: currentWorkspaceId })
       })
 
@@ -122,7 +103,7 @@ export function ShareButton({
       try {
         await fetch(`/api/frameworks/${frameworkId}/share?workspace_id=${currentWorkspaceId}`, {
           method: 'POST',
-          headers: getAuthHeaders(),
+          headers: getCopHeaders(),
           body: JSON.stringify({ is_public: true, category: newCategory, workspace_id: currentWorkspaceId })
         })
 
@@ -163,7 +144,7 @@ export function ShareButton({
       // Otherwise, create share link first
       const response = await fetch(`/api/frameworks/${frameworkId}/share?workspace_id=${currentWorkspaceId}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getCopHeaders(),
         body: JSON.stringify({ is_public: true, category, workspace_id: currentWorkspaceId })
       })
 

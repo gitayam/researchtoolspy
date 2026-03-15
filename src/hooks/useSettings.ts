@@ -38,16 +38,6 @@ function getUserHash(): string | null {
 }
 
 /**
- * Build API URL with hash header
- */
-function buildHeaders(hash: string): HeadersInit {
-  return {
-    'Content-Type': 'application/json',
-    'X-User-Hash': hash,
-  }
-}
-
-/**
  * Load settings from localStorage (fallback)
  */
 function loadFromLocalStorage(hash: string): UserSettings | null {
