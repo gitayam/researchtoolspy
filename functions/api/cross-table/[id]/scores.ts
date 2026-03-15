@@ -66,12 +66,15 @@ async function handleUpsert(env: any, tableId: string, userId: number, request: 
     return new Response(JSON.stringify({ error: 'scores must be an array' }), { status: 400, headers: corsHeaders })
   }
 
+  // Cap at 500 scores per request
+  const scores = inputScores.slice(0, 500)
+
   const config = typeof table.config === 'string' ? JSON.parse(table.config) : table.config
   const round = config.delphi?.current_round || 1
   const now = new Date().toISOString()
 
   // Batch upsert using INSERT OR REPLACE
-  const stmts = inputScores.map((s: any) => {
+  const stmts = scores.map((s: any) => {
     const id = crypto.randomUUID()
     return env.DB.prepare(
       `INSERT INTO cross_table_scores (id, cross_table_id, row_id, col_id, user_id, round, score, confidence, notes, created_at, updated_at)

@@ -4,6 +4,28 @@
 
 ## Fixed — v2.15.8 (Session 80)
 
+### MEDIUM — COMMENTS XSS VIA MARKDOWN LINKS
+| # | Issue | Status |
+|---|-------|--------|
+| 483 | **comments.ts markdownToHtml** — `[text](javascript:alert(1))` renders as clickable XSS link. Fixed: URL sanitizer only allows http:// and https:// protocols | FIXED |
+
+### MEDIUM — COMMENTS + ACTIVITY MISSING AUTH/OWNERSHIP
+| # | Issue | Status |
+|---|-------|--------|
+| 484 | **comments.ts GET** — No auth check, anyone can read all comments for any entity. Fixed: added getUserFromRequest + 401 gate | FIXED |
+| 485 | **activity.ts GET** — `X-Workspace-ID` header trusted without workspace membership check. Any user can read any workspace's activity feed. Fixed: added workspace_members ownership check + 403 | FIXED |
+
+### HIGH — BATCH ARRAY CAPS
+| # | Issue | Status |
+|---|-------|--------|
+| 486 | **cop/[id]/timeline.ts POST** — `entries[]` array unbounded. Fixed: `.slice(0, 200)` | FIXED |
+| 487 | **cross-table/[id]/scores.ts PUT** — `scores[]` array unbounded. Fixed: `.slice(0, 500)` | FIXED |
+
+### HIGH — FEEDBACK SUBMIT SIZE LIMITS
+| # | Issue | Status |
+|---|-------|--------|
+| 488 | **feedback/submit.ts POST** — No size limit on base64 screenshot (unlimited R2 uploads) + no description length cap. Fixed: screenshot capped at 500KB, description at 5000 chars | FIXED |
+
 ### LOW — COP meta.changes CHECKS ON UPDATE
 | # | Issue | Status |
 |---|-------|--------|

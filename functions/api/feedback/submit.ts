@@ -27,6 +27,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const data = await context.request.json() as FeedbackRequest
 
+    // Validate screenshot size (~375KB decoded)
+    if (data.screenshot && data.screenshot.length > 500000) {
+      return Response.json({ error: 'Screenshot too large (max 500KB)' }, { status: 400 })
+    }
+
+    // Cap description length
+    if (data.description && data.description.length > 5000) {
+      data.description = data.description.substring(0, 5000)
+    }
+
     // Generate unique ID for this feedback
     const feedbackId = crypto.randomUUID()
 

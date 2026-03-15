@@ -35,6 +35,18 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     const workspaceId = request.headers.get('X-Workspace-ID') || '1'
 
+    // Verify workspace membership if a specific workspace is requested
+    if (workspaceId && workspaceId !== '1' && userId !== 'guest') {
+      const member = await env.DB.prepare(
+        'SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?'
+      ).bind(workspaceId, userId).first()
+      if (!member) {
+        return new Response(JSON.stringify({ error: 'Not a member of this workspace' }), {
+          status: 403, headers: CORS_HEADERS
+        })
+      }
+    }
+
     // GET /api/activity - List workspace activity
     if (request.method === 'GET') {
       const url = new URL(request.url)

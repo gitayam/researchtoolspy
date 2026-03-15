@@ -40,8 +40,14 @@ function markdownToHtml(markdown: string): string {
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
   // Italic
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
-  // Links
-  html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>')
+  // Links (sanitize URLs to only allow http:// and https://)
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
+    const sanitizedUrl = url.trim()
+    if (sanitizedUrl.startsWith('http://') || sanitizedUrl.startsWith('https://')) {
+      return `<a href="${sanitizedUrl}" target="_blank">${text}</a>`
+    }
+    return text // Strip the link if not http(s)
+  })
   // Line breaks
   html = html.replace(/\n/g, '<br>')
   // @mentions highlighting
@@ -80,6 +86,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // GET /api/comments?entity_type=X&entity_id=Y
     // Fetch all comments for an entity
     if (method === 'GET') {
+      const userId = await getUserFromRequest(request, env)
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
       const entityType = url.searchParams.get('entity_type')
       const entityId = url.searchParams.get('entity_id')
       const status = url.searchParams.get('status') || 'open' // Default to open comments

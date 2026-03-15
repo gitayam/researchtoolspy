@@ -77,8 +77,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
     const body = await request.json() as any
 
-    // Support single entry or array of entries
-    const entries: any[] = Array.isArray(body.entries) ? body.entries : [body]
+    // Support single entry or array of entries (cap at 200)
+    const rawEntries: any[] = Array.isArray(body.entries) ? body.entries : [body]
+    const entries = rawEntries.slice(0, 200)
 
     if (entries.length === 0 || !entries[0].title) {
       return new Response(JSON.stringify({ error: 'At least one entry with title and event_date is required' }), {
