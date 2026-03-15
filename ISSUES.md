@@ -1,7 +1,27 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.16.3-auth-safety
+**Current tag:** v0.16.4-cascade-fix
+
+---
+
+## Fixed (v0.16.4)
+
+### P1 — Workspace Data Clear Missing 4 Tables
+- [x] `settings/data/workspace/[id].ts` — DELETE didn't clear `comments`, `comment_mentions`, `comment_notifications`, or `content_intelligence` tables
+- [x] Added all 4 tables to the deletion loop (ordered: children before parents)
+- [x] Silent try/catch now logs via `console.warn` and surfaces errors in response body
+- **Root cause:** Tables were added in later migrations but never included in the data clear endpoint
+
+### P1 — Workspace DELETE Missing Cascade for 4 Tables
+- [x] `settings/workspaces/[id].ts` — batch DELETE didn't include `comments`, `comment_mentions`, `comment_notifications`, or `content_intelligence`
+- [x] Added all 4 to the D1 `batch()` cascade (before entity tables)
+- **Root cause:** Same as above — tables added incrementally without updating the cascade handler
+
+### P2 — Activity POST Accepted Any workspace_id Without Access Check
+- [x] `activity.ts` — POST handler accepted any `workspace_id` without verifying the user had access
+- [x] Added `checkWorkspaceAccess()` call with 403 on denied
+- **Root cause:** Activity logging was built as a system utility, never had workspace scoping
 
 ---
 

@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { getUserFromRequest } from './_shared/auth-helpers'
+import { checkWorkspaceAccess } from './_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -136,6 +137,15 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!workspace_id || !activity_type || !entity_type || !action_summary) {
         return new Response(JSON.stringify({ error: 'Missing required fields' }), {
           status: 400,
+          headers: CORS_HEADERS
+        })
+      }
+
+      // Verify user has access to this workspace
+      const hasAccess = await checkWorkspaceAccess(workspace_id, authUserId, env)
+      if (!hasAccess) {
+        return new Response(JSON.stringify({ error: 'Workspace access denied' }), {
+          status: 403,
           headers: CORS_HEADERS
         })
       }

@@ -37,59 +37,45 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     }
 
     // Delete all data associated with this workspace
+    // Order: child tables first, then parent tables (ACH children cascade automatically)
     const deletedCounts: Record<string, number> = {}
+    const errors: string[] = []
 
-    // Entity tables
-    const entityTables = ['actors', 'sources', 'events', 'places', 'behaviors']
-    for (const table of entityTables) {
+    const tablesToClear = [
+      // Comments and related (must go before entities they reference)
+      'comment_notifications',
+      'comment_mentions',
+      'comments',
+      // Content intelligence
+      'content_intelligence',
+      // Entity tables
+      'actors',
+      'sources',
+      'events',
+      'places',
+      'behaviors',
+      // Relationships between entities
+      'relationships',
+      // Evidence (cascades to ach_evidence_links, evidence_citations)
+      'evidence_items',
+      // Frameworks
+      'framework_sessions',
+      // ACH (cascades to ach_hypotheses, ach_scores, ach_evidence_links)
+      'ach_analyses',
+    ]
+
+    for (const table of tablesToClear) {
       try {
         const result = await context.env.DB.prepare(`DELETE FROM ${table} WHERE workspace_id = ?`)
           .bind(workspaceId)
           .run()
         deletedCounts[table] = result.meta?.changes || 0
-      } catch {
+      } catch (err: any) {
+        // Table may not exist in this environment — log but continue
+        console.warn(`[Workspace Clear] Failed to clear ${table}:`, err?.message)
         deletedCounts[table] = 0
+        errors.push(`${table}: ${err?.message || 'unknown error'}`)
       }
-    }
-
-    // Framework sessions (correct table name)
-    try {
-      const result = await context.env.DB.prepare('DELETE FROM framework_sessions WHERE workspace_id = ?')
-        .bind(workspaceId)
-        .run()
-      deletedCounts.framework_sessions = result.meta?.changes || 0
-    } catch {
-      deletedCounts.framework_sessions = 0
-    }
-
-    // Evidence items (correct table name)
-    try {
-      const result = await context.env.DB.prepare('DELETE FROM evidence_items WHERE workspace_id = ?')
-        .bind(workspaceId)
-        .run()
-      deletedCounts.evidence_items = result.meta?.changes || 0
-    } catch {
-      deletedCounts.evidence_items = 0
-    }
-
-    // ACH analyses
-    try {
-      const result = await context.env.DB.prepare('DELETE FROM ach_analyses WHERE workspace_id = ?')
-        .bind(workspaceId)
-        .run()
-      deletedCounts.ach_analyses = result.meta?.changes || 0
-    } catch {
-      deletedCounts.ach_analyses = 0
-    }
-
-    // Relationships
-    try {
-      const result = await context.env.DB.prepare('DELETE FROM relationships WHERE workspace_id = ?')
-        .bind(workspaceId)
-        .run()
-      deletedCounts.relationships = result.meta?.changes || 0
-    } catch {
-      deletedCounts.relationships = 0
     }
 
     return Response.json({
@@ -97,6 +83,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       message: 'Workspace data cleared successfully',
       deleted: deletedCounts,
       total: Object.values(deletedCounts).reduce((a, b) => a + b, 0),
+      errors: errors.length > 0 ? errors : undefined,
     }, { headers: JSON_HEADERS })
   } catch (error: any) {
     if (error instanceof Response) return error

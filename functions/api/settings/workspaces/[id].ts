@@ -119,9 +119,14 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     }
 
     // Cascade delete related data, then workspace itself
+    // Order: child tables first; ACH children auto-cascade from ach_analyses
     await context.env.DB.batch([
       context.env.DB.prepare('DELETE FROM workspace_invites WHERE workspace_id = ?').bind(workspaceId),
       context.env.DB.prepare('DELETE FROM workspace_members WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM comment_notifications WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM comment_mentions WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM comments WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM content_intelligence WHERE workspace_id = ?').bind(workspaceId),
       context.env.DB.prepare('DELETE FROM actors WHERE workspace_id = ?').bind(workspaceId),
       context.env.DB.prepare('DELETE FROM sources WHERE workspace_id = ?').bind(workspaceId),
       context.env.DB.prepare('DELETE FROM events WHERE workspace_id = ?').bind(workspaceId),
