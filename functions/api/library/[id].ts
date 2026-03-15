@@ -86,13 +86,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // PUT: Update framework (only owner)
     if (request.method === 'PUT') {
       const authUserId = await requireAuth(request, env)
-      
+
+      // Look up authenticated user's hash for ownership comparison
+      const authUserResult = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(authUserId).first()
+      const authUserHash = authUserResult?.user_hash as string | undefined
+
       // Check ownership
       const framework: any = await env.DB.prepare(
         'SELECT published_by FROM library_frameworks WHERE id = ?'
       ).bind(libraryFrameworkId).first()
 
-      if (!framework || framework.published_by !== userHash) {
+      if (!framework || !authUserHash || framework.published_by !== authUserHash) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 403,
           headers: CORS_HEADERS
@@ -107,11 +111,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       if (title) {
         updates.push('title = ?')
-        bindings.push(title)
+        bindings.push(String(title).substring(0, 255))
       }
       if (description !== undefined) {
         updates.push('description = ?')
-        bindings.push(description)
+        bindings.push(String(description).substring(0, 2000))
       }
       if (tags !== undefined) {
         updates.push('tags = ?')
@@ -147,12 +151,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (request.method === 'DELETE') {
       const authUserId = await requireAuth(request, env)
 
+      // Look up authenticated user's hash for ownership comparison
+      const delUserResult = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(authUserId).first()
+      const delUserHash = delUserResult?.user_hash as string | undefined
+
       // Check ownership
       const framework: any = await env.DB.prepare(
         'SELECT published_by, framework_id FROM library_frameworks WHERE id = ?'
       ).bind(libraryFrameworkId).first()
 
-      if (!framework || framework.published_by !== userHash) {
+      if (!framework || !delUserHash || framework.published_by !== delUserHash) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 403,
           headers: CORS_HEADERS

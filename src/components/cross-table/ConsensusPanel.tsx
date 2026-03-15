@@ -61,7 +61,7 @@ export function ConsensusPanel() {
     setLoading(true)
     setError(null)
     try {
-      const [consensusRes, scorersRes] = await Promise.all([
+      const [consensusResult, scorersResult] = await Promise.allSettled([
         fetch(`/api/cross-table/${table.id}/consensus?round=${round}`, {
           headers: getCopHeaders(),
           signal,
@@ -72,14 +72,34 @@ export function ConsensusPanel() {
         }),
       ])
 
-      if (!consensusRes.ok) throw new Error('Failed to load consensus data')
-      if (!scorersRes.ok) throw new Error('Failed to load scorers')
+      // Handle consensus fetch
+      if (consensusResult.status === 'fulfilled') {
+        const consensusRes = consensusResult.value
+        if (!consensusRes.ok) throw new Error('Failed to load consensus data')
+        const consensusData = await consensusRes.json()
+        setConsensus(consensusData.consensus)
+      } else {
+        // Re-throw AbortError so it's handled below; otherwise set error
+        if (consensusResult.reason?.name === 'AbortError') throw consensusResult.reason
+        console.error('[ConsensusPanel] Consensus fetch failed:', consensusResult.reason)
+        throw new Error('Failed to load consensus data')
+      }
 
-      const consensusData = await consensusRes.json()
-      const scorersData = await scorersRes.json()
-
-      setConsensus(consensusData.consensus)
-      setScorers(scorersData.scorers ?? [])
+      // Handle scorers fetch (non-fatal — panel can render without scorer info)
+      if (scorersResult.status === 'fulfilled') {
+        const scorersRes = scorersResult.value
+        if (scorersRes.ok) {
+          const scorersData = await scorersRes.json()
+          setScorers(scorersData.scorers ?? [])
+        } else {
+          console.error('[ConsensusPanel] Scorers response not ok:', scorersRes.status)
+          setScorers([])
+        }
+      } else {
+        if (scorersResult.reason?.name === 'AbortError') throw scorersResult.reason
+        console.error('[ConsensusPanel] Scorers fetch failed:', scorersResult.reason)
+        setScorers([])
+      }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return
       setError(err instanceof Error ? err.message : 'Failed to load data')

@@ -1,6 +1,41 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-81)
+**Last updated:** 2026-03-15 (Sessions 34-82)
+
+## Fixed — v2.16.1 (Session 82)
+
+### HIGH — COP SHARES GET MISSING AUTH + ACCESS CHECK
+| # | Issue | Status |
+|---|-------|--------|
+| 508 | **cop/[id]/shares.ts GET** — No authentication or authorization. Any unauthenticated user could enumerate share links (including tokens) for any COP session by ID. Fixed: added getUserFromRequest + 401, plus session owner/collaborator access check + 403 | FIXED |
+
+### HIGH — LIBRARY [id] PUT/DELETE WEAK OWNERSHIP
+| # | Issue | Status |
+|---|-------|--------|
+| 509 | **library/[id].ts PUT/DELETE** — Ownership compared `published_by` against a `userHash` variable that could default to `'guest'` before auth gate. Fixed: now fetches user hash from DB using authenticated userId, fails closed if hash not found. Also added title (255) and description (2000) length caps | FIXED |
+
+### MEDIUM — EVIDENCE-CITATIONS GUEST FALLBACK
+| # | Issue | Status |
+|---|-------|--------|
+| 510 | **evidence-citations.ts GET** — Used `getUserIdOrDefault` (falls back to user 1), allowing unauthenticated citation reads. Fixed: replaced with `getUserFromRequest` + 401 gate at top of handler for all methods | FIXED |
+
+### MEDIUM — GUEST-CONVERSIONS UNAUTHENTICATED STATS
+| # | Issue | Status |
+|---|-------|--------|
+| 511 | **guest-conversions.ts GET** — System-wide conversion analytics exposed without auth. Fixed: added getUserFromRequest + 401 | FIXED |
+
+### MEDIUM — FRONTEND EMPTY CATCHES + FIRE-AND-FORGET
+| # | Issue | Status |
+|---|-------|--------|
+| 512 | **CopPage.tsx** — `navigator.clipboard.writeText().catch(() => {})` swallowed errors. Fixed: `.catch(console.error)` | FIXED |
+| 513 | **CopRfiTab.tsx** — `handleToggleBlocker` and `handleStatusChange` had empty catch blocks (no logging). Fixed: added `console.error` logging | FIXED |
+
+### LOW — CONSENSUSPANEL PROMISE.ALL FRAGILITY
+| # | Issue | Status |
+|---|-------|--------|
+| 514 | **ConsensusPanel.tsx** — `Promise.all()` for consensus + scorers meant one failure crashed both. Fixed: `Promise.allSettled()` with scorers fetch degrading gracefully to empty array | FIXED |
+
+---
 
 ## Fixed — v2.16.0 (Session 81 Batch 2)
 

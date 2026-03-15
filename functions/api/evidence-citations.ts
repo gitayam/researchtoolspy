@@ -1,5 +1,5 @@
 // Cloudflare Pages Function for Evidence Citations API
-import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
+import { getUserFromRequest } from './_shared/auth-helpers'
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -21,7 +21,14 @@ export async function onRequest(context: any) {
     const url = new URL(request.url)
     const evidenceId = url.searchParams.get('evidence_id')
     const datasetId = url.searchParams.get('dataset_id')
-    const userId = await getUserIdOrDefault(request, env)
+
+    // All methods require authentication
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
 
     // GET - Get citations for evidence or dataset
     if (request.method === 'GET') {
@@ -88,12 +95,6 @@ export async function onRequest(context: any) {
 
     // POST - Create citation(s)
     if (request.method === 'POST') {
-      const authUserId = await getUserFromRequest(request, env)
-      if (!authUserId) {
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
-        })
-      }
       const body = await request.json()
 
       if (!body.evidence_id || !body.dataset_ids || !Array.isArray(body.dataset_ids)) {
@@ -146,12 +147,6 @@ export async function onRequest(context: any) {
 
     // DELETE - Remove citation
     if (request.method === 'DELETE') {
-      const authUserId = await getUserFromRequest(request, env)
-      if (!authUserId) {
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
-        })
-      }
       if (!evidenceId || !datasetId) {
         return new Response(JSON.stringify({
           error: 'evidence_id and dataset_id are required'
@@ -164,7 +159,7 @@ export async function onRequest(context: any) {
       // Verify evidence ownership before removing citation
       const ev = await env.DB.prepare(
         'SELECT id FROM evidence_items WHERE id = ? AND created_by = ?'
-      ).bind(evidenceId, authUserId).first()
+      ).bind(evidenceId, userId).first()
       if (!ev) {
         return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
           status: 404, headers: corsHeaders,

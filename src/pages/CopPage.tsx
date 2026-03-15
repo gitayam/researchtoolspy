@@ -194,7 +194,7 @@ export default function CopPage() {
 
   const handleShare = useCallback(() => {
     const url = `${window.location.origin}/dashboard/cop/${id}`
-    navigator.clipboard.writeText(url).catch(() => {})
+    navigator.clipboard.writeText(url).catch(console.error)
   }, [id])
 
   // ── Session update handler (for event sidebar) ─────────────────

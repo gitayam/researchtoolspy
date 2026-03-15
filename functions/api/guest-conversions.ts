@@ -66,8 +66,15 @@ export async function onRequest(context: any) {
       })
     }
 
-    // GET - Get conversion statistics
+    // GET - Get conversion statistics (admin only)
     if (request.method === 'GET') {
+      const getAuthUserId = await getUserFromRequest(request, env)
+      if (!getAuthUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
+
       const stats = await env.DB.prepare(`
         SELECT
           COUNT(*) as total_conversions,

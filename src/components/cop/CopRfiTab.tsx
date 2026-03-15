@@ -210,7 +210,8 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
           headers: getCopHeaders(),
           body: JSON.stringify({ id: rfiId, is_blocker: newValue }),
         })
-      } catch {
+      } catch (err) {
+        console.error('[CopRfiTab] Toggle blocker failed:', err)
         setRfis((prev) =>
           prev.map((r) =>
             r.id === rfiId ? { ...r, is_blocker: currentValue } as any : r,
@@ -235,7 +236,8 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
           body: JSON.stringify({ id: rfiId, status: newStatus }),
         })
         await fetchRfis()
-      } catch {
+      } catch (err) {
+        console.error('[CopRfiTab] Status change failed:', err)
         await fetchRfis()
       }
     },

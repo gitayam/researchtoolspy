@@ -83,10 +83,30 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { request, env, params } = context
   const sessionId = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
+
+    // Verify user has access: must be session owner or a collaborator
+    const access = await env.DB.prepare(`
+      SELECT 1 FROM cop_sessions WHERE id = ? AND created_by = ?
+      UNION
+      SELECT 1 FROM cop_collaborators WHERE cop_session_id = ? AND user_id = ?
+    `).bind(sessionId, userId, sessionId, userId).first()
+
+    if (!access) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: corsHeaders,
+      })
+    }
+
     const results = await env.DB.prepare(`
       SELECT * FROM cop_shares WHERE cop_session_id = ? ORDER BY created_at DESC
     `).bind(sessionId).all()
