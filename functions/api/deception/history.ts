@@ -30,7 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const url = new URL(request.url)
     const workspaceId = url.searchParams.get('workspace_id') || request.headers.get('X-Workspace-ID') || null
     const excludeId = url.searchParams.get('exclude_id') // Current analysis to exclude
-    const limit = parseInt(url.searchParams.get('limit') || '20')
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '20') || 20, 200)
 
     // Query historical deception framework sessions
     let query = `

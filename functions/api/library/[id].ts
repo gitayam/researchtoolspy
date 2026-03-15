@@ -137,9 +137,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       updates.push('version = version + 1')
       bindings.push(new Date().toISOString())
       bindings.push(libraryFrameworkId)
+      bindings.push(authUserHash)
 
       await env.DB.prepare(`
-        UPDATE library_frameworks SET ${updates.join(', ')} WHERE id = ?
+        UPDATE library_frameworks SET ${updates.join(', ')} WHERE id = ? AND published_by = ?
       `).bind(...bindings).run()
 
       return new Response(JSON.stringify({
@@ -170,8 +171,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       // Soft delete - mark as unpublished
       const now = new Date().toISOString()
       await env.DB.prepare(
-        'UPDATE library_frameworks SET is_published = 0, unpublished_at = ? WHERE id = ?'
-      ).bind(now, libraryFrameworkId).run()
+        'UPDATE library_frameworks SET is_published = 0, unpublished_at = ? WHERE id = ? AND published_by = ?'
+      ).bind(now, libraryFrameworkId, delUserHash).run()
 
       // Update original framework
       await env.DB.prepare(

@@ -1,7 +1,39 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.19.8-cleanup-dead-code
+**Current tag:** v0.19.9-ownership-pagination
+
+---
+
+## Fixed (v0.19.9)
+
+### P1 — `library/[id].ts` PUT/DELETE Missing Ownership in SQL WHERE Clause
+- [x] PUT at line 142: `UPDATE library_frameworks SET ... WHERE id = ?` — no `AND published_by = ?`
+- [x] DELETE at line 174: `UPDATE library_frameworks SET is_published = 0 ... WHERE id = ?` — same gap
+- [x] Fix: Added `AND published_by = ?` to both UPDATE queries with proper binding
+- **Root cause:** Lesson Learned Session 21-23 — pre-checks (line 99) verify ownership but the SQL itself must also enforce it for defense-in-depth. If the pre-check is bypassed (TOCTOU race), the database query is the last defense.
+
+### P2 — 5 Endpoints Had Uncapped Pagination (Data Exfiltration Risk)
+- [x] `evidence.ts:72` — `parseInt(limit || '50')` with no upper bound → capped at 500
+- [x] `deception/history.ts:33` — `parseInt(limit || '20')` uncapped → capped at 200
+- [x] `ach/public/index.ts:18` — `parseInt(limit || '50')` uncapped → capped at 200
+- [x] `library/index.ts:43` — `parseInt(limit || '20')` uncapped → capped at 200
+- [x] `frameworks.ts:95` — hardcoded `LIMIT 50`, no param accepted → now accepts `?limit=` capped at 200
+- **Root cause:** Endpoints were added at different times without a consistent pagination convention. Entity endpoints (actors, sources, etc.) established `Math.min(parseInt(limit || '500') || 500, 500)` pattern but framework/library/deception endpoints never adopted it.
+
+### Pagination Convention Now Standardized
+| Endpoint Type | Default | Max Cap |
+|---------------|---------|---------|
+| Entity lists (actors, sources, events, places, behaviors, relationships) | 500 | 500 |
+| Evidence items | 50 | 500 |
+| Frameworks, library, ACH public, deception history, notifications | 20-50 | 200 |
+
+### Also Verified (No Fix Needed)
+- Entity count race conditions (`json_set` pattern in 5 entity POST handlers) — D1/SQLite serializes writes per database, making concurrent lost updates extremely unlikely in practice. Documented as known limitation.
+- All COP endpoints properly verify session access via `verifyCopSessionAccess` or `verifyCopLayerAccess`.
+- Frontend `window.location.reload()` in 3 components (DataManagement, GenericFrameworkView, CreateWorkspaceDialog) — UX issue only, not a data bug.
+
+### Smoke Test — 13/13 Endpoints Passing
 
 ---
 

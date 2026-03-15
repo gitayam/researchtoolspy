@@ -92,11 +92,12 @@ export async function onRequest(context: any) {
         query += ` AND (workspace_id = ? OR is_public = 1)`
       }
 
-      query += ' ORDER BY created_at DESC LIMIT 50'
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 200)
+      query += ' ORDER BY created_at DESC LIMIT ?'
 
       const frameworks = publicOnly
-        ? await env.DB.prepare(query).all()
-        : await env.DB.prepare(query).bind(workspaceId).all()
+        ? await env.DB.prepare(query).bind(limit).all()
+        : await env.DB.prepare(query).bind(workspaceId, limit).all()
 
       // Parse the data field for each framework
       const parsedFrameworks = (frameworks.results || []).map((framework: any) => {

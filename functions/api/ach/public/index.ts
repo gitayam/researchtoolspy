@@ -15,7 +15,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const domain = url.searchParams.get('domain')
     const search = url.searchParams.get('search')
     const sortBy = url.searchParams.get('sort') || 'popular' // popular, cloned, recent
-    const limit = parseInt(url.searchParams.get('limit') || '50')
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 200)
     const offset = parseInt(url.searchParams.get('offset') || '0')
 
     // Build query

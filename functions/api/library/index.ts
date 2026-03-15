@@ -40,7 +40,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const frameworkType = url.searchParams.get('type') || ''
       const category = url.searchParams.get('category') || ''
       const sortBy = url.searchParams.get('sort') || 'popular' // popular, recent, trending, top_rated
-      const limit = parseInt(url.searchParams.get('limit') || '20')
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '20') || 20, 200)
       const offset = parseInt(url.searchParams.get('offset') || '0')
       const tags = url.searchParams.get('tags') // comma-separated
 

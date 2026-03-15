@@ -69,7 +69,7 @@ export async function onRequest(context: any) {
       // Scoping is by created_by only. workspace_id param accepted but ignored.
       const type = url.searchParams.get('type')
       const status = url.searchParams.get('status')
-      const limit = parseInt(url.searchParams.get('limit') || '50')
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 500)
 
       let query = 'SELECT * FROM evidence WHERE created_by = ?'
       const params: any[] = [userId]
