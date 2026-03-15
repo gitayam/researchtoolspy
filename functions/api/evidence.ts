@@ -189,7 +189,7 @@ export async function onRequest(context: any) {
         reliability: body.reliability || 'F'
       }
 
-      await env.DB.prepare(
+      const updateResult = await env.DB.prepare(
         `UPDATE evidence
          SET title = ?, description = ?, content = ?, type = ?, status = ?,
              tags = ?, source = ?, metadata = ?, sats_evaluation = ?,
@@ -219,6 +219,12 @@ export async function onRequest(context: any) {
         evidenceId,
         authUserId
       ).run()
+
+      if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+        return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
 
       return new Response(JSON.stringify({ message: 'Evidence updated successfully' }), {
         status: 200,

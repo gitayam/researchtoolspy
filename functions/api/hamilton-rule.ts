@@ -41,7 +41,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || '1'
+    const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || null
 
     const results = await env.DB.prepare(`
       SELECT

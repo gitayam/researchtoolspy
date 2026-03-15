@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AlertTriangle, Save, X } from 'lucide-react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -51,7 +52,9 @@ export function MOMAssessmentForm({
     const fetchActorsAndEvents = async () => {
       try {
         // Fetch actors
-        const actorResponse = await fetch(`/api/actors?workspace_id=${workspaceId}`)
+        const actorResponse = await fetch(`/api/actors?workspace_id=${workspaceId}`, {
+          headers: getCopHeaders(),
+        })
         if (actorResponse.ok) {
           const actorData = await actorResponse.json()
           setActors(
@@ -63,7 +66,9 @@ export function MOMAssessmentForm({
         }
 
         // Fetch events
-        const eventResponse = await fetch(`/api/events?workspace_id=${workspaceId}`)
+        const eventResponse = await fetch(`/api/events?workspace_id=${workspaceId}`, {
+          headers: getCopHeaders(),
+        })
         if (eventResponse.ok) {
           const eventData = await eventResponse.json()
           setEvents(

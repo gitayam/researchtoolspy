@@ -205,9 +205,15 @@ export async function onRequest(context: any) {
         })
       }
 
-      await env.DB.prepare(
+      const delResult = await env.DB.prepare(
         'DELETE FROM framework_entities WHERE framework_id = ? AND entity_type = ? AND entity_id = ?'
       ).bind(frameworkId, entityType, entityId).run()
+
+      if (!delResult.meta.changes || delResult.meta.changes === 0) {
+        return new Response(JSON.stringify({ error: 'Entity link not found' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
 
       return new Response(JSON.stringify({ message: 'Entity unlinked successfully' }), {
         status: 200,

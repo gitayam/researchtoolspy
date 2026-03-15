@@ -32,7 +32,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
-    const workspaceId = request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = request.headers.get('X-Workspace-ID') || null
 
     // Parse query parameters
     const url = new URL(request.url)

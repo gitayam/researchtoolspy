@@ -113,13 +113,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         })
       }
 
-      await env.DB.prepare(
+      const delResult = await env.DB.prepare(
         'DELETE FROM library_subscriptions WHERE library_framework_id = ? AND user_hash = ?'
       ).bind(libraryFrameworkId, userHash).run()
 
       return new Response(JSON.stringify({
         action: 'unsubscribed',
-        message: 'Unsubscribed successfully'
+        message: delResult.meta.changes ? 'Unsubscribed successfully' : 'Not subscribed'
       }), { headers: CORS_HEADERS })
     }
 

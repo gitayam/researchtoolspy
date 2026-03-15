@@ -53,9 +53,9 @@ export function ActorsPage() {
       const response = await fetch(`/api/actors?${params}`, {
         headers: getCopHeaders(),
       })
-      const data = await response.json()
 
       if (response.ok) {
+        const data = await response.json()
         setActors(data.actors || [])
       }
     } catch (error) {
@@ -71,9 +71,9 @@ export function ActorsPage() {
       const response = await fetch(`/api/actors/${actorId}`, {
         headers: getCopHeaders(),
       })
-      const data = await response.json()
 
       if (response.ok) {
+        const data = await response.json()
         setCurrentActor(data)
         if (isEditMode) {
           setEditingActor(data)

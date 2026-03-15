@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { NetworkGraphCanvas } from '@/components/network/NetworkGraphCanvas'
 import { NetworkControls, type NetworkFilters } from '@/components/network/NetworkControls'
 import { NetworkExportDialog } from '@/components/network/NetworkExportDialog'
@@ -95,7 +96,7 @@ export function NetworkGraphPage() {
         // Get workspace ID from localStorage or use default
         const workspaceId = localStorage.getItem('currentWorkspaceId') || 'default'
 
-        const response = await fetch(`/api/relationships?workspace_id=${workspaceId}`, { signal: controller.signal })
+        const response = await fetch(`/api/relationships?workspace_id=${workspaceId}`, { signal: controller.signal, headers: getCopHeaders() })
         if (response.ok) {
           const data = await response.json()
           setRelationships(data.relationships || [])
@@ -121,7 +122,7 @@ export function NetworkGraphPage() {
           // Fetch actors
           if (entityIdsByType.ACTOR.size > 0) {
             try {
-              const actorResponse = await fetch(`/api/actors?workspace_id=${workspaceId}`)
+              const actorResponse = await fetch(`/api/actors?workspace_id=${workspaceId}`, { headers: getCopHeaders() })
               if (actorResponse.ok) {
                 const actorData = await actorResponse.json()
                 const actorIds = entityIdsByType.ACTOR
@@ -139,7 +140,7 @@ export function NetworkGraphPage() {
           // Fetch events
           if (entityIdsByType.EVENT.size > 0) {
             try {
-              const eventResponse = await fetch(`/api/events?workspace_id=${workspaceId}`)
+              const eventResponse = await fetch(`/api/events?workspace_id=${workspaceId}`, { headers: getCopHeaders() })
               if (eventResponse.ok) {
                 const eventData = await eventResponse.json()
                 const eventIds = entityIdsByType.EVENT
@@ -157,7 +158,7 @@ export function NetworkGraphPage() {
           // Fetch sources
           if (entityIdsByType.SOURCE.size > 0) {
             try {
-              const sourceResponse = await fetch(`/api/sources?workspace_id=${workspaceId}`)
+              const sourceResponse = await fetch(`/api/sources?workspace_id=${workspaceId}`, { headers: getCopHeaders() })
               if (sourceResponse.ok) {
                 const sourceData = await sourceResponse.json()
                 const sourceIds = entityIdsByType.SOURCE
@@ -175,7 +176,7 @@ export function NetworkGraphPage() {
           // Fetch places
           if (entityIdsByType.PLACE.size > 0) {
             try {
-              const placeResponse = await fetch(`/api/places?workspace_id=${workspaceId}`)
+              const placeResponse = await fetch(`/api/places?workspace_id=${workspaceId}`, { headers: getCopHeaders() })
               if (placeResponse.ok) {
                 const placeData = await placeResponse.json()
                 const placeIds = entityIdsByType.PLACE
@@ -193,7 +194,7 @@ export function NetworkGraphPage() {
           // Fetch behaviors
           if (entityIdsByType.BEHAVIOR.size > 0) {
             try {
-              const behaviorResponse = await fetch(`/api/behaviors?workspace_id=${workspaceId}`)
+              const behaviorResponse = await fetch(`/api/behaviors?workspace_id=${workspaceId}`, { headers: getCopHeaders() })
               if (behaviorResponse.ok) {
                 const behaviorData = await behaviorResponse.json()
                 const behaviorIds = entityIdsByType.BEHAVIOR
@@ -211,7 +212,7 @@ export function NetworkGraphPage() {
           // Fetch evidence
           if (entityIdsByType.EVIDENCE.size > 0) {
             try {
-              const evidenceResponse = await fetch(`/api/evidence-items?workspace_id=${workspaceId}`)
+              const evidenceResponse = await fetch(`/api/evidence-items?workspace_id=${workspaceId}`, { headers: getCopHeaders() })
               if (evidenceResponse.ok) {
                 const evidenceData = await evidenceResponse.json()
                 const evidenceIds = entityIdsByType.EVIDENCE

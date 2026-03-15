@@ -60,7 +60,8 @@ async function extractMetadata(url: string): Promise<any> {
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'ResearchToolsPy/1.0 (Evidence Collection Bot)'
-      }
+      },
+      signal: AbortSignal.timeout(15000),
     })
 
     if (!response.ok) {

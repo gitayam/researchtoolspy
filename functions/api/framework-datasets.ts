@@ -27,7 +27,7 @@ export async function onRequest(context: any) {
     if (request.method === 'GET') {
       if (frameworkId) {
         // Get all dataset linked to this framework
-        const workspaceId = url.searchParams.get('workspace_id') || request.headers.get('X-Workspace-ID') || '1'
+        const workspaceId = url.searchParams.get('workspace_id') || request.headers.get('X-Workspace-ID') || null
         const links = await env.DB.prepare(`
           SELECT
             fe.*,
@@ -174,7 +174,13 @@ export async function onRequest(context: any) {
         params.push(sectionKey)
       }
 
-      await env.DB.prepare(query).bind(...params).run()
+      const delResult = await env.DB.prepare(query).bind(...params).run()
+
+      if (!delResult.meta.changes || delResult.meta.changes === 0) {
+        return new Response(JSON.stringify({ error: 'Link not found' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
 
       return new Response(JSON.stringify({ message: 'Dataset unlinked successfully' }), {
         status: 200,

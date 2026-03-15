@@ -4,7 +4,7 @@
 
 ## Known Open — Prioritized for Next Sessions
 
-### MEDIUM — 20 Files Missing meta.changes Check on DELETE/UPDATE
+### MEDIUM — ~14 Files Still Missing meta.changes Check on DELETE/UPDATE
 Key files: `settings/workspaces/[id].ts`, `settings/user.ts`, `investigations/[id].ts`, `ach/evidence.ts`, `ach/scores.ts`, `ach/hypotheses.ts`, `cop/sessions/[id].ts` (partial), `cop/[id]/submissions.ts`, `cop/[id]/assets.ts`, `cop/[id]/rfis/[rfiId].ts`, `cop/[id]/playbooks/[pbId].ts`, `claims/remove-evidence-link.ts`, `claims/remove-entity-mention.ts`
 
 ### LOW — 163+ alert() Calls Needing Toast Migration
@@ -36,6 +36,24 @@ Largest concentrations: EntityQuickCreate (12), GenericFrameworkForm (10), Batch
 | 576 | **6 framework components** (GenericFrameworkView, BehaviorSearchDialog, GenericFrameworkForm, COGWizard, ShareButton, SwotForm) — Manual localStorage + header construction replaced with `getCopHeaders()`. Now sends JWT + workspace context automatically | FIXED |
 | 577 | **useSettings.ts** — Hardcoded X-User-Hash in settings API call. Fixed: uses getCopHeaders() | FIXED |
 | 578 | **SettingsPage.tsx** — 2 hardcoded X-User-Hash in save/load settings. Fixed: uses getCopHeaders() | FIXED |
+
+### HIGH — ADDITIONAL SCAN FINDINGS (CRITICAL + HIGH)
+| # | Issue | Status |
+|---|-------|--------|
+| 580 | **research/submit/[hashId].ts** — extractMetadata() external fetch without AbortSignal. Fixed: 15s timeout | FIXED |
+| 581 | **evidence.ts PUT** — Missing meta.changes validation, returned 200 even if update failed. Fixed: now checks changes > 0, returns 404 on miss | FIXED |
+| 582 | **framework-datasets.ts DELETE** — No meta.changes check + workspace '1' on GET. Fixed both | FIXED |
+| 583 | **framework-entities.ts DELETE** — No meta.changes check. Fixed: returns 404 if link not found | FIXED |
+| 584 | **framework-evidence.ts DELETE** — No meta.changes check. Fixed: returns 404 if link not found | FIXED |
+| 585 | **library/subscribe.ts DELETE** — No meta.changes check. Fixed: message reflects actual state | FIXED |
+| 586 | **5 GET endpoints with workspace '1' fallback** — content-library.ts, hamilton-rule.ts (GET), deception/history.ts, deception/aggregate.ts, equilibrium-analysis.ts (GET). Fixed: all use `|| null` | FIXED |
+
+### MEDIUM — FRONTEND AUTH + CORRECTNESS
+| # | Issue | Status |
+|---|-------|--------|
+| 587 | **MOMAssessmentForm.tsx** — 2 fetch calls (actors, events) missing auth headers. Fixed: added getCopHeaders() | FIXED |
+| 588 | **NetworkGraphPage.tsx** — 7 fetch calls (relationships, actors, events, sources, places, behaviors, evidence) missing auth headers. Fixed: added getCopHeaders() | FIXED |
+| 589 | **ActorsPage.tsx** — response.json() called before response.ok check (2 instances). Fixed: moved json() inside ok block | FIXED |
 
 ### LOW — DEAD CODE REMOVAL
 | # | Issue | Status |
