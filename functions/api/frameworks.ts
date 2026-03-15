@@ -127,6 +127,13 @@ export async function onRequest(context: any) {
 
     // POST - Create new framework
     if (request.method === 'POST') {
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401,
+          headers: corsHeaders,
+        })
+      }
+
       const body = await request.json()
 
       // Validate required fields
@@ -144,8 +151,7 @@ export async function onRequest(context: any) {
         })
       }
 
-      // Default to user 1 if no auth provided (backward compatibility)
-      const effectiveUserId = userId || 1
+      const effectiveUserId = userId
 
       // Validate and sanitize data field
       let dataJson
@@ -201,14 +207,21 @@ export async function onRequest(context: any) {
 
     // PUT - Update framework
     if (request.method === 'PUT') {
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401,
+          headers: corsHeaders,
+        })
+      }
+
       const body = await request.json()
 
-      // WORKSPACE ISOLATION: Only allow updating frameworks in current workspace
+      // WORKSPACE ISOLATION + OWNERSHIP: Only allow updating own frameworks in current workspace
       const result = await env.DB.prepare(
         `UPDATE framework_sessions
          SET title = ?, description = ?, data = ?, status = ?, updated_at = datetime('now'),
              is_public = ?, shared_publicly_at = ?
-         WHERE id = ? AND workspace_id = ?`
+         WHERE id = ? AND workspace_id = ? AND user_id = ?`
       ).bind(
         body.title,
         body.description,
@@ -217,7 +230,8 @@ export async function onRequest(context: any) {
         body.is_public ? 1 : 0,
         body.is_public ? new Date().toISOString() : null,
         frameworkId,
-        workspaceId
+        workspaceId,
+        userId
       ).run()
 
       if (result.meta.changes === 0) {
@@ -247,10 +261,17 @@ export async function onRequest(context: any) {
 
     // DELETE - Delete framework
     if (request.method === 'DELETE') {
-      // Get framework details before deleting for activity log
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401,
+          headers: corsHeaders,
+        })
+      }
+
+      // Get framework details before deleting for activity log — ownership check
       const framework = await env.DB.prepare(
-        'SELECT title, framework_type FROM framework_sessions WHERE id = ? AND workspace_id = ?'
-      ).bind(frameworkId, workspaceId).first()
+        'SELECT title, framework_type FROM framework_sessions WHERE id = ? AND workspace_id = ? AND user_id = ?'
+      ).bind(frameworkId, workspaceId, userId).first()
 
       if (!framework) {
         return new Response(JSON.stringify({ error: 'Framework not found in workspace or unauthorized' }), {
@@ -259,10 +280,10 @@ export async function onRequest(context: any) {
         })
       }
 
-      // WORKSPACE ISOLATION: Only allow deleting frameworks in current workspace
+      // WORKSPACE ISOLATION + OWNERSHIP: Only allow deleting own frameworks in current workspace
       const result = await env.DB.prepare(
-        'DELETE FROM framework_sessions WHERE id = ? AND workspace_id = ?'
-      ).bind(frameworkId, workspaceId).run()
+        'DELETE FROM framework_sessions WHERE id = ? AND workspace_id = ? AND user_id = ?'
+      ).bind(frameworkId, workspaceId, userId).run()
 
       if (result.meta.changes === 0) {
         return new Response(JSON.stringify({ error: 'Framework not found in workspace or unauthorized' }), {

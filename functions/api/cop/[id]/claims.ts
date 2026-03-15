@@ -112,7 +112,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         entity_id: body.domain || domain,
         action: 'extracted',
       })
-    } catch { /* non-fatal */ }
+    } catch (e) { console.error('[COP Claims] Timeline entry failed:', e) }
 
     return new Response(JSON.stringify({
       message: `${ids.length} claims saved`,
@@ -233,7 +233,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
             action: body.status,
           })
         }
-      } catch { /* non-fatal */ }
+      } catch (e) { console.error('[COP Claims] Timeline entry failed:', e) }
     }
 
     return new Response(JSON.stringify({ message: 'Claim updated' }), { headers: corsHeaders })

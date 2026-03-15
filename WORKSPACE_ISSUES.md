@@ -1,6 +1,48 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-75)
+**Last updated:** 2026-03-15 (Sessions 34-76)
+
+## Fixed — v0.18.4 (Session 76)
+
+### CRITICAL — FRAMEWORK CRUD HAS NO AUTH (POST/PUT/DELETE)
+| # | Issue | Status |
+|---|-------|--------|
+| 399 | **frameworks.ts POST** — No auth required. `effectiveUserId = userId || 1` creates frameworks attributed to user 1 for anonymous requests. Fixed: added 401 gate, removed fallback to user 1 | FIXED |
+| 400 | **frameworks.ts PUT** — No auth check. Any anonymous user can update any framework by supplying workspace_id. Fixed: added 401 gate + `AND user_id = ?` ownership scope | FIXED |
+| 401 | **frameworks.ts DELETE** — No auth check. Same anonymous mutation risk. Fixed: added 401 gate + `AND user_id = ?` ownership scope on both SELECT and DELETE queries | FIXED |
+
+### HIGH — COP TASK DELETE BEFORE AUTH CHECK
+| # | Issue | Status |
+|---|-------|--------|
+| 402 | **cop/[id]/tasks.ts DELETE** — Deletes dependencies, subtasks, and task BEFORE checking auth. If auth fails, 401 is returned but data is already gone. Fixed: moved auth check to top of handler, before any DB mutations | FIXED |
+
+### HIGH — WORKSPACE PUT NULL DEREFERENCE
+| # | Issue | Status |
+|---|-------|--------|
+| 403 | **workspaces/[id]/index.ts PUT** — `userId!` non-null assertion on potentially null `getUserFromRequest` result. Passes null to `canManageWorkspace`, causing unpredictable behavior. Fixed: added explicit 401 check before function call | FIXED |
+
+### HIGH — DATASETS GET RETURNS ALL RECORDS UNSCOPED
+| # | Issue | Status |
+|---|-------|--------|
+| 404 | **datasets.ts GET** — Lists all datasets in DB with no ownership/workspace scoping. Private datasets visible to anonymous users. Fixed: added `AND (created_by = ? OR is_public = 1)` filter | FIXED |
+
+### MEDIUM — UNBOUNDED QUERIES (6 ENTITY ENDPOINTS)
+| # | Issue | Status |
+|---|-------|--------|
+| 405 | **sources.ts, events.ts, places.ts, behaviors.ts, actors.ts** — GET list queries had no default LIMIT when client omits the parameter. Large workspaces could return entire table. Fixed: all now default to LIMIT 500 with max cap of 500 | FIXED |
+
+### MEDIUM — ENTITY TYPE VALIDATION ON RELATIONSHIPS POST
+| # | Issue | Status |
+|---|-------|--------|
+| 406 | **relationships.ts POST** — `source_entity_type` and `target_entity_type` accepted any string without validation. These values flow to dynamic table name lookup in GET. Fixed: added whitelist validation against ALLOWED_ENTITY_TYPES | FIXED |
+
+### MEDIUM — SILENT CATCHES IN 5 COP ENDPOINTS
+| # | Issue | Status |
+|---|-------|--------|
+| 407 | **hypotheses.ts, claims.ts (×2), personas.ts (×2), markers.ts** — 6 empty `catch { /* non-fatal */ }` blocks hiding timeline/event failures. Fixed: all now log with console.error | FIXED |
+| 408 | **actors.ts** — Empty catch on workspace auto-creation. Fixed: added console.warn | FIXED |
+
+---
 
 ## Fixed — v0.18.3 (Session 75)
 

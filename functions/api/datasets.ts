@@ -68,9 +68,12 @@ export async function onRequest(context: any) {
       let query = 'SELECT * FROM datasets WHERE 1=1'
       const params: any[] = []
 
-      // Filter by public access if requested
+      // Scope: show user's own datasets + public datasets
       if (publicOnly) {
         query += ' AND is_public = 1'
+      } else {
+        query += ' AND (created_by = ? OR is_public = 1)'
+        params.push(userId)
       }
 
       if (type) {

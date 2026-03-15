@@ -175,6 +175,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       const body = await request.json() as any
 
+      const ALLOWED_ENTITY_TYPES = ['EVIDENCE', 'ACTOR', 'SOURCE', 'EVENT', 'PLACE', 'BEHAVIOR']
+
       if (!body.source_entity_id || !body.source_entity_type ||
           !body.target_entity_id || !body.target_entity_type ||
           !body.relationship_type || !body.workspace_id) {
@@ -182,6 +184,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           JSON.stringify({
             error: 'Missing required fields: source_entity_id, source_entity_type, target_entity_id, target_entity_type, relationship_type, workspace_id'
           }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      if (!ALLOWED_ENTITY_TYPES.includes(body.source_entity_type) ||
+          !ALLOWED_ENTITY_TYPES.includes(body.target_entity_type)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid entity type. Allowed: ' + ALLOWED_ENTITY_TYPES.join(', ') }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }

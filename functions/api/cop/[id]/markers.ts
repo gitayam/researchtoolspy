@@ -164,7 +164,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         entity_id: id,
         action: 'created',
       })
-    } catch { /* non-fatal */ }
+    } catch (e) { console.error('[COP Markers] Timeline entry failed:', e) }
 
     return new Response(JSON.stringify({ id, uid, message: 'Marker created' }), {
       status: 201, headers: corsHeaders,

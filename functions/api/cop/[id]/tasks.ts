@@ -382,6 +382,13 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const taskId = url.searchParams.get('task_id')
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
+
     if (!taskId) {
       return new Response(JSON.stringify({ error: 'task_id query param is required' }), {
         status: 400, headers: corsHeaders,
@@ -413,12 +420,6 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
-      })
-    }
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: TASK_DELETED,

@@ -66,8 +66,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: jsonHeaders,
+      })
+    }
 
-    if (!await canManageWorkspace(env.DB, workspaceId, userId!)) {
+    if (!await canManageWorkspace(env.DB, workspaceId, userId)) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: jsonHeaders,
       })

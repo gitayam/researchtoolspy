@@ -192,7 +192,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             payload: { batch_count: created.length, source: body.source || 'entity_extraction' },
             createdBy: userId,
           })
-        } catch { /* non-fatal */ }
+        } catch (e) { console.error('[COP Personas] Non-fatal event/timeline error:', e) }
 
         try {
           await createTimelineEntry(env.DB, sessionId, workspaceId, userId, {
@@ -204,7 +204,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             entity_id: body.source || 'entity_extraction',
             action: 'extracted',
           })
-        } catch { /* non-fatal */ }
+        } catch (e) { console.error('[COP Personas] Non-fatal event/timeline error:', e) }
       }
 
       return new Response(JSON.stringify({
