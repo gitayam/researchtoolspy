@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 import crypto from 'node:crypto'
 
 interface Env {
@@ -33,7 +34,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'claim_adjustment_id, evidence_id, and relationship are required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -44,7 +45,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'relationship must be one of: supports, contradicts, provides_context'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -59,7 +60,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!claimAdjustment) {
       return new Response(JSON.stringify({ error: 'Claim adjustment not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -67,7 +68,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (claimAdjustment.content_owner !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to link evidence to this claim' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -81,7 +82,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!evidence) {
       return new Response(JSON.stringify({ error: 'Evidence not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -89,7 +90,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (evidence.user_id !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to link this evidence' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -106,7 +107,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         existing_link_id: existing.id
       }), {
         status: 409,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -137,7 +138,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       id,
       message: 'Evidence linked to claim successfully'
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[Link Evidence] Error:', error)
@@ -146,18 +147,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

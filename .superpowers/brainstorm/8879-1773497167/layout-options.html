@@ -1,0 +1,127 @@
+<h2>Workspace Content Layout</h2>
+<p class="subtitle">How should entities, COPs, frameworks, and tools be organized within a selected workspace?</p>
+
+<div class="options">
+  <div class="option" data-choice="tabs" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Tabbed Sections</h3>
+      <p>Horizontal tabs across the top: <strong>Entities</strong> | <strong>COP Sessions</strong> | <strong>Frameworks</strong> | <strong>Tools</strong>. Each tab shows a full list with search/filter and CRUD actions. Clean separation — one content type visible at a time.</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-header">Workspace: Operation Nightfall</div>
+        <div class="mockup-body" style="padding: 0;">
+          <div style="display:flex; border-bottom: 2px solid #3b82f6; background: #f8fafc;">
+            <div style="padding: 10px 20px; border-bottom: 2px solid #3b82f6; font-weight: 600; color: #3b82f6;">Entities (24)</div>
+            <div style="padding: 10px 20px; color: #64748b;">COP Sessions (3)</div>
+            <div style="padding: 10px 20px; color: #64748b;">Frameworks (8)</div>
+            <div style="padding: 10px 20px; color: #64748b;">Tools (5)</div>
+          </div>
+          <div style="padding: 16px;">
+            <div style="display:flex; gap:8px; margin-bottom:12px;">
+              <div class="mock-input" style="flex:1;">Search entities...</div>
+              <div class="mock-button">+ New Entity</div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+              <div style="padding:12px; background:#f1f5f9; border-radius:8px; border-left:3px solid #3b82f6;">
+                <div style="font-weight:600; font-size:13px;">Viktor Petrov</div>
+                <div style="font-size:11px; color:#64748b;">PERSON · Actor</div>
+              </div>
+              <div style="padding:12px; background:#f1f5f9; border-radius:8px; border-left:3px solid #10b981;">
+                <div style="font-weight:600; font-size:13px;">Signal Alpha</div>
+                <div style="font-size:11px; color:#64748b;">SIGINT · Source</div>
+              </div>
+              <div style="padding:12px; background:#f1f5f9; border-radius:8px; border-left:3px solid #f59e0b;">
+                <div style="font-weight:600; font-size:13px;">Port Facility</div>
+                <div style="font-size:11px; color:#64748b;">FACILITY · Place</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="unified" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Unified Feed with Filters</h3>
+      <p>All workspace content in a single scrollable feed, with filter chips to narrow by type. Shows everything together — great for seeing the full picture, but can get noisy with lots of content.</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-header">Workspace: Operation Nightfall</div>
+        <div class="mockup-body" style="padding: 16px;">
+          <div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
+            <div style="padding:4px 12px; background:#3b82f6; color:white; border-radius:99px; font-size:12px;">All (40)</div>
+            <div style="padding:4px 12px; background:#e2e8f0; border-radius:99px; font-size:12px;">Entities (24)</div>
+            <div style="padding:4px 12px; background:#e2e8f0; border-radius:99px; font-size:12px;">COPs (3)</div>
+            <div style="padding:4px 12px; background:#e2e8f0; border-radius:99px; font-size:12px;">Frameworks (8)</div>
+            <div style="padding:4px 12px; background:#e2e8f0; border-radius:99px; font-size:12px;">Tools (5)</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="padding:10px; background:#f1f5f9; border-radius:8px; display:flex; align-items:center; gap:10px;">
+              <div style="width:32px;height:32px;background:#3b82f6;border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;">COP</div>
+              <div><div style="font-weight:600;font-size:13px;">Crisis Monitor — Eastern Med</div><div style="font-size:11px;color:#64748b;">COP Session · ACTIVE · 3 collaborators</div></div>
+            </div>
+            <div style="padding:10px; background:#f1f5f9; border-radius:8px; display:flex; align-items:center; gap:10px;">
+              <div style="width:32px;height:32px;background:#10b981;border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;">ACT</div>
+              <div><div style="font-weight:600;font-size:13px;">Viktor Petrov</div><div style="font-size:11px;color:#64748b;">Actor · PERSON · High priority</div></div>
+            </div>
+            <div style="padding:10px; background:#f1f5f9; border-radius:8px; display:flex; align-items:center; gap:10px;">
+              <div style="width:32px;height:32px;background:#8b5cf6;border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;">FW</div>
+              <div><div style="font-weight:600;font-size:13px;">ACH: Maritime Smuggling</div><div style="font-size:11px;color:#64748b;">Framework · In Progress · 4 hypotheses</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="sections" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Collapsible Sections (Dashboard Style)</h3>
+      <p>All content types visible on one page as collapsible sections, each showing a summary (count + recent items) with "View All" to expand. Best of both worlds — overview at a glance, drill into any type.</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-header">Workspace: Operation Nightfall</div>
+        <div class="mockup-body" style="padding: 16px;">
+          <div style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-weight:700; font-size:14px;">▼ COP Sessions (3)</div>
+              <div class="mock-button" style="font-size:11px; padding:4px 10px;">+ New COP</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+              <div style="padding:10px; background:#eff6ff; border-radius:6px; border:1px solid #bfdbfe;">
+                <div style="font-weight:600;font-size:12px;">Crisis Monitor</div>
+                <div style="font-size:10px;color:#3b82f6;">ACTIVE</div>
+              </div>
+              <div style="padding:10px; background:#eff6ff; border-radius:6px; border:1px solid #bfdbfe;">
+                <div style="font-weight:600;font-size:12px;">Area Study</div>
+                <div style="font-size:10px;color:#64748b;">DRAFT</div>
+              </div>
+              <div style="padding:10px; background:#eff6ff; border-radius:6px; border:1px solid #bfdbfe;">
+                <div style="font-weight:600;font-size:12px;">Event Analysis</div>
+                <div style="font-size:10px;color:#10b981;">ACTIVE</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-weight:700; font-size:14px;">▼ Entities (24)</div>
+              <div class="mock-button" style="font-size:11px; padding:4px 10px;">+ New Entity</div>
+            </div>
+            <div style="display:flex; gap:8px; font-size:12px; margin-bottom:6px;">
+              <span style="color:#3b82f6;">8 Actors</span> · <span style="color:#10b981;">6 Sources</span> · <span style="color:#f59e0b;">4 Places</span> · <span style="color:#ef4444;">3 Events</span> · <span style="color:#8b5cf6;">3 Behaviors</span>
+            </div>
+            <div style="font-size:11px;color:#64748b;">Recent: Viktor Petrov, Signal Alpha, Port Facility...</div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-weight:700; font-size:14px;">► Frameworks (8)</div>
+              <div class="mock-button" style="font-size:11px; padding:4px 10px;">+ New Framework</div>
+            </div>
+            <div style="font-size:11px;color:#64748b;">Collapsed — click to expand</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

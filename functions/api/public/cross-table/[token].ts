@@ -1,27 +1,21 @@
 // GET /api/public/cross-table/:token — Public read-only view
 import { computeRankings } from '../../../../src/lib/cross-table/engine/ranking'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json',
-}
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 export async function onRequest(context: any) {
   const { request, env, params } = context
   const token = params.token as string
 
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return optionsResponse()
   }
 
   if (request.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: JSON_HEADERS })
   }
 
   if (!env.DB) {
-    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: JSON_HEADERS })
   }
 
   try {
@@ -30,7 +24,7 @@ export async function onRequest(context: any) {
     ).bind(token).first()
 
     if (!table) {
-      return new Response(JSON.stringify({ error: 'Cross table not found or not public' }), { status: 404, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Cross table not found or not public' }), { status: 404, headers: JSON_HEADERS })
     }
 
     const scoresResult = await env.DB.prepare(
@@ -89,9 +83,9 @@ export async function onRequest(context: any) {
       },
       scores: consensusScores,
       results,
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (err: any) {
     console.error('[CrossTable Public] Error:', err)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_HEADERS })
   }
 }

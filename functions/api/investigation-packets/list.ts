@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -101,7 +102,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         has_more: (totalCount?.total || 0) > (offset + limit)
       }
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[List Packets] Error:', error)
@@ -110,18 +111,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

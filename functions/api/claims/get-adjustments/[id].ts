@@ -5,6 +5,7 @@
  */
 
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -12,13 +13,6 @@ interface Env {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const corsHeaders = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-  }
-
   try {
     // Get user ID (supports hash-based auth and session auth)
     const userId = await getUserIdOrDefault(context.request, context.env)
@@ -31,7 +25,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'content_analysis_id is required in URL path'
       }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -45,7 +39,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       console.error('[Get Claim Adjustments] Analysis not found:', contentAnalysisId)
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -54,7 +48,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       console.error('[Get Claim Adjustments] Unauthorized access attempt for analysis:', contentAnalysisId, 'by user:', userId)
       return new Response(JSON.stringify({ error: 'Unauthorized - you can only view your own adjustments' }), {
         status: 403,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -99,7 +93,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       adjustments: adjustmentsWithParsedData,
       count: adjustmentsWithParsedData.length
     }), {
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[Get Claim Adjustments] Error:', error)
@@ -108,18 +102,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

@@ -6,6 +6,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -15,17 +16,9 @@ interface Env {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  }
-
   // Handle preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return optionsResponse()
   }
 
   try {
@@ -33,7 +26,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!authUserId) {
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: corsHeaders }
+        { status: 401, headers: JSON_HEADERS }
       )
     }
 
@@ -42,7 +35,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!frameworkType) {
       return new Response(
         JSON.stringify({ error: 'Framework type is required' }),
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: JSON_HEADERS }
       )
     }
 
@@ -116,7 +109,7 @@ Return ONLY the title, nothing else.`
       console.error('OpenAI API error:', errorData)
       return new Response(
         JSON.stringify({ error: 'Failed to generate title' }),
-        { status: 500, headers: corsHeaders }
+        { status: 500, headers: JSON_HEADERS }
       )
     }
 
@@ -125,14 +118,14 @@ Return ONLY the title, nothing else.`
 
     return new Response(
       JSON.stringify({ title }),
-      { status: 200, headers: corsHeaders }
+      { status: 200, headers: JSON_HEADERS }
     )
 
   } catch (error: any) {
     console.error('Title generation error:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }

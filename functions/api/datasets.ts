@@ -1,20 +1,13 @@
 // Cloudflare Pages Function for Dataset API
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
+import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
 export async function onRequest(context: any) {
   const { request, env } = context
 
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json',
-  }
-
   // Handle preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return new Response(null, { status: 204, headers: CORS_HEADERS })
   }
 
   try {
@@ -33,7 +26,7 @@ export async function onRequest(context: any) {
         if (!dataset) {
           return new Response(JSON.stringify({ error: 'Dataset not found' }), {
             status: 404,
-            headers: corsHeaders,
+            headers: JSON_HEADERS,
           })
         }
 
@@ -55,7 +48,7 @@ export async function onRequest(context: any) {
 
         return new Response(JSON.stringify(parsedDataset), {
           status: 200,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -88,12 +81,7 @@ export async function onRequest(context: any) {
       query += ' ORDER BY updated_at DESC LIMIT ?'
       params.push(limit)
 
-      let stmt = env.DB.prepare(query)
-      for (let i = 0; i < params.length; i++) {
-        stmt = stmt.bind(params[i])
-      }
-
-      const results = await stmt.all()
+      const results = await env.DB.prepare(query).bind(...params).all()
 
       // Parse JSON fields for all results
       const parsedResults = (results.results || []).map((dataset: any) => ({
@@ -113,7 +101,7 @@ export async function onRequest(context: any) {
 
       return new Response(JSON.stringify({ dataset: parsedResults }), {
         status: 200,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -122,7 +110,7 @@ export async function onRequest(context: any) {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
+          status: 401, headers: JSON_HEADERS,
         })
       }
       const body = await request.json()
@@ -172,7 +160,7 @@ export async function onRequest(context: any) {
         message: 'Dataset created successfully'
       }), {
         status: 201,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -181,7 +169,7 @@ export async function onRequest(context: any) {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
+          status: 401, headers: JSON_HEADERS,
         })
       }
       const body = await request.json()
@@ -231,13 +219,13 @@ export async function onRequest(context: any) {
 
       if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
         return new Response(JSON.stringify({ error: 'Dataset not found or access denied' }), {
-          status: 404, headers: corsHeaders,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
       return new Response(JSON.stringify({ message: 'Dataset updated successfully' }), {
         status: 200,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -246,7 +234,7 @@ export async function onRequest(context: any) {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
+          status: 401, headers: JSON_HEADERS,
         })
       }
       const delResult = await env.DB.prepare(
@@ -255,19 +243,19 @@ export async function onRequest(context: any) {
 
       if (!delResult.meta.changes || delResult.meta.changes === 0) {
         return new Response(JSON.stringify({ error: 'Dataset not found or access denied' }), {
-          status: 404, headers: corsHeaders,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
       return new Response(JSON.stringify({ message: 'Dataset deleted successfully' }), {
         status: 200,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
 
   } catch (error: any) {
@@ -276,12 +264,12 @@ export async function onRequest(context: any) {
     if (request.method === 'GET' && error.message?.includes('no such table')) {
       return new Response(JSON.stringify({ dataset: [] }), {
         status: 200,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 }

@@ -6,6 +6,7 @@
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../../_shared/ai-gateway'
+import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -15,19 +16,12 @@ interface Env {
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const corsHeaders = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-  }
-
   try {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -41,7 +35,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'content_analysis_id is required in URL path'
       }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -56,7 +50,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.error('[Claims Analysis] Analysis not found:', contentAnalysisId)
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -65,7 +59,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.error('[Claims Analysis] Unauthorized access attempt for analysis:', contentAnalysisId, 'by user:', userId)
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -80,10 +74,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         suggestion: 'Try re-analyzing the URL with "Full Analysis" mode to ensure text extraction completes.'
       }), {
         status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
+        headers: JSON_HEADERS
       })
     }
 
@@ -95,10 +86,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         suggestion: 'The article may be behind a paywall or the content could not be extracted. Try a different source.'
       }), {
         status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
+        headers: JSON_HEADERS
       })
     }
 
@@ -140,7 +128,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       claim_analysis: claimAnalysis,
       message: `Claims analysis complete - ${claims.length} claims analyzed`
     }), {
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -151,7 +139,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       error: 'Failed to run claims analysis'
     }), {
       status: 500,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   }
 }
@@ -458,11 +446,5 @@ Return ONLY valid JSON:
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

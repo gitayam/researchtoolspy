@@ -4,25 +4,15 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { CORS_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   UPLOADS: R2Bucket
   CACHE: KVNamespace
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-}
-
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      ...corsHeaders,
-      'Access-Control-Max-Age': '86400'
-    }
-  })
+  return optionsResponse()
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -33,7 +23,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!imageUrl) {
     return new Response('Missing "url" parameter', {
       status: 400,
-      headers: corsHeaders
+      headers: CORS_HEADERS
     })
   }
 
@@ -41,7 +31,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!imageUrl.includes('twimg.com') && !imageUrl.includes('pbs.twimg.com')) {
     return new Response('Invalid Twitter media URL', {
       status: 400,
-      headers: corsHeaders
+      headers: CORS_HEADERS
     })
   }
 
@@ -81,7 +71,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       console.error('[Twitter Proxy] Twitter CDN returned', twitterResponse.status)
       return new Response(`Failed to fetch image: ${twitterResponse.status}`, {
         status: twitterResponse.status,
-        headers: corsHeaders
+        headers: CORS_HEADERS
       })
     }
 
@@ -131,7 +121,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     console.error('[Twitter Proxy] Error:', error)
     return new Response('Failed to proxy Twitter image', {
       status: 502,
-      headers: corsHeaders
+      headers: CORS_HEADERS
     })
   }
 }

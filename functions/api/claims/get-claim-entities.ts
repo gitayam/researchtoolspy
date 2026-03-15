@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -17,7 +18,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -31,7 +32,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'claim_adjustment_id is required in URL path'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -46,14 +47,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!claimAdjustment) {
       return new Response(JSON.stringify({ error: 'Claim adjustment not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
     if (claimAdjustment.content_owner !== auth.user.id) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -93,7 +94,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       grouped_by_role: groupedByRole,
       count: (entities.results || []).length
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[Get Claim Entities] Error:', error)
@@ -102,18 +103,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

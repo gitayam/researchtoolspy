@@ -1,20 +1,13 @@
 // Cloudflare Pages Function for Framework-Dataset Linking API
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
+import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
 export async function onRequest(context: any) {
   const { request, env } = context
 
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json',
-  }
-
   // Handle preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return new Response(null, { status: 204, headers: CORS_HEADERS })
   }
 
   try {
@@ -57,7 +50,7 @@ export async function onRequest(context: any) {
 
         return new Response(JSON.stringify({ links: parsedLinks }), {
           status: 200,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       } else if (datasetId) {
         // Get all frameworks this dataset is linked to
@@ -77,13 +70,13 @@ export async function onRequest(context: any) {
 
         return new Response(JSON.stringify({ links: links.results }), {
           status: 200,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
       return new Response(JSON.stringify({ error: 'framework_id or dataset_id required' }), {
         status: 400,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -92,7 +85,7 @@ export async function onRequest(context: any) {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
+          status: 401, headers: JSON_HEADERS,
         })
       }
       const body = await request.json()
@@ -102,7 +95,7 @@ export async function onRequest(context: any) {
           error: 'framework_id and dataset_ids (array) are required'
         }), {
           status: 400,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -133,7 +126,7 @@ export async function onRequest(context: any) {
         results
       }), {
         status: 201,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -142,7 +135,7 @@ export async function onRequest(context: any) {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
+          status: 401, headers: JSON_HEADERS,
         })
       }
       if (!frameworkId || !datasetId) {
@@ -150,7 +143,7 @@ export async function onRequest(context: any) {
           error: 'framework_id and dataset_id are required'
         }), {
           status: 400,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -160,7 +153,7 @@ export async function onRequest(context: any) {
       ).bind(frameworkId, authUserId).first()
       if (!fw) {
         return new Response(JSON.stringify({ error: 'Framework not found or access denied' }), {
-          status: 404, headers: corsHeaders,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
@@ -178,26 +171,26 @@ export async function onRequest(context: any) {
 
       if (!delResult.meta.changes || delResult.meta.changes === 0) {
         return new Response(JSON.stringify({ error: 'Link not found' }), {
-          status: 404, headers: corsHeaders,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
       return new Response(JSON.stringify({ message: 'Dataset unlinked successfully' }), {
         status: 200,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
 
   } catch (error: any) {
     console.error('Framework-Dataset API error:', error)
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 }

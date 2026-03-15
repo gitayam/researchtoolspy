@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -25,7 +26,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         error: 'link_id is required in URL path'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -41,7 +42,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!link) {
       return new Response(JSON.stringify({ error: 'Evidence link not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -49,7 +50,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (link.content_owner !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to remove this evidence link' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -62,7 +63,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       success: true,
       message: 'Evidence link removed successfully'
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[Remove Evidence Link] Error:', error)
@@ -71,18 +72,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

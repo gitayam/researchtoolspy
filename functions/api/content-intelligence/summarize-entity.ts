@@ -5,6 +5,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, CORS_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -19,13 +20,6 @@ interface SummarizeEntityRequest {
   content_title?: string
 }
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json'
-}
-
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
@@ -34,7 +28,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: CORS_HEADERS,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -46,7 +40,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'content, entity_name, and entity_type are required'
       }), {
         status: 400,
-        headers: CORS_HEADERS
+        headers: JSON_HEADERS
       })
     }
 
@@ -119,7 +113,7 @@ Provide a concise, informative summary in 2-3 sentences.`
         generated_at: new Date().toISOString()
       }), {
         status: 200,
-        headers: CORS_HEADERS
+        headers: JSON_HEADERS
       })
 
     } catch (error) {
@@ -138,7 +132,7 @@ Provide a concise, informative summary in 2-3 sentences.`
         generated_at: new Date().toISOString()
       }), {
         status: 200,
-        headers: CORS_HEADERS
+        headers: JSON_HEADERS
       })
     }
 
@@ -149,15 +143,13 @@ Provide a concise, informative summary in 2-3 sentences.`
 
     }), {
       status: 500,
-      headers: CORS_HEADERS
+      headers: JSON_HEADERS
     })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: CORS_HEADERS
-  })
+  return optionsResponse()
 }
 
 /**

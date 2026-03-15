@@ -6,6 +6,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -104,13 +105,6 @@ function normalizeCallback(body: AgentCallback): AgentCallbackOriginal {
   return body as AgentCallbackOriginal
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-}
-
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const rawBody = await context.request.json() as AgentCallback
@@ -120,7 +114,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!jobId) {
       return new Response(JSON.stringify({ error: 'Job ID required' }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -132,7 +126,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!job) {
       return new Response(JSON.stringify({ error: 'Job not found' }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -145,7 +139,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       `).bind(error || 'Unknown error', jobId).run()
 
       return new Response(JSON.stringify({ received: true, status: 'error_recorded' }), {
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -209,19 +203,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       resultsStored: results?.length || 0,
       queriesStored: queries?.length || 0
     }), {
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
 
   } catch (error: unknown) {
     console.error('Collection callback error:', error)
     return new Response(JSON.stringify({ error: 'Callback processing failed' }), {
       status: 500,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return optionsResponse()
 }

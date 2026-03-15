@@ -6,6 +6,7 @@
 
 import { requireAuth } from '../../../_shared/auth-helpers'
 import { logActivity } from '../../../_shared/activity-logger'
+import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -30,7 +31,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'Form not found'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -50,7 +51,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       success: true,
       form: parsed
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[forms/get] Error:', error)
@@ -59,7 +60,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -72,7 +73,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       userId = await requireAuth(context.request, context.env)
     } catch (error) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -88,7 +89,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         error: 'Form not found'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -110,7 +111,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!deleteResult.meta.changes) {
       return new Response(JSON.stringify({ error: 'Form not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -135,7 +136,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       success: true,
       deleted_submissions: submissionCount?.count || 0
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[forms/delete] Error:', error)
@@ -144,18 +145,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

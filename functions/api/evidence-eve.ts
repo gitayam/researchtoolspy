@@ -5,6 +5,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
+import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -16,14 +17,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
   const method = request.method
 
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  }
-
   if (method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: CORS_HEADERS })
   }
 
   try {
@@ -35,7 +30,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!authUserId) {
         return new Response(
           JSON.stringify({ error: 'Authentication required' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 401, headers: JSON_HEADERS }
         )
       }
     }
@@ -46,7 +41,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (!pathMatch) {
       return new Response(
         JSON.stringify({ error: 'Evidence ID required in path' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: JSON_HEADERS }
       )
     }
 
@@ -61,7 +56,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!evidence) {
         return new Response(
           JSON.stringify({ error: 'Evidence not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 404, headers: JSON_HEADERS }
         )
       }
 
@@ -80,7 +75,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           if (!isOwner && !isMember && !workspace.is_public) {
             return new Response(
               JSON.stringify({ error: 'Access denied' }),
-              { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              { status: 403, headers: JSON_HEADERS }
             )
           }
         }
@@ -92,7 +87,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(
         JSON.stringify(eveAssessment),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -107,7 +102,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!evidence) {
         return new Response(
           JSON.stringify({ error: 'Evidence not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 404, headers: JSON_HEADERS }
         )
       }
 
@@ -128,7 +123,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           if (!canEdit) {
             return new Response(
               JSON.stringify({ error: 'Insufficient permissions' }),
-              { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              { status: 403, headers: JSON_HEADERS }
             )
           }
         }
@@ -142,7 +137,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           JSON.stringify({
             error: 'Missing required fields: internal_consistency, external_corroboration, anomaly_detection'
           }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: JSON_HEADERS }
         )
       }
 
@@ -163,7 +158,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(
         JSON.stringify(eveAssessment),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -176,7 +171,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!evidence) {
         return new Response(
           JSON.stringify({ error: 'Evidence not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 404, headers: JSON_HEADERS }
         )
       }
 
@@ -197,7 +192,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           if (!canEdit) {
             return new Response(
               JSON.stringify({ error: 'Insufficient permissions' }),
-              { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              { status: 403, headers: JSON_HEADERS }
             )
           }
         }
@@ -212,13 +207,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(
         JSON.stringify({ message: 'EVE assessment removed successfully' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 405, headers: JSON_HEADERS }
     )
 
   } catch (error) {
@@ -228,7 +223,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         error: 'Internal server error'
 
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }

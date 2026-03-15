@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 import crypto from 'node:crypto'
 
 interface Env {
@@ -43,7 +44,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'content_analysis_id and claim_index are required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -52,7 +53,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'adjusted_risk_score and claim_text are required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -64,14 +65,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!analysis) {
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
     if (analysis.user_id !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -118,7 +119,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         id: existing.id,
         updated: true
       }), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     } else {
       // Create new adjustment
@@ -157,7 +158,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         id,
         created: true
       }), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
   } catch (error) {
@@ -167,18 +168,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

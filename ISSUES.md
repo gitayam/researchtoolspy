@@ -1,7 +1,26 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.14.8-generateid-dedup
+**Current tag:** v0.14.9-cors-fix
+
+---
+
+## Fixed (v0.14.9)
+
+### P1 — 75 Endpoints Had Inconsistent CORS Headers (Auth Preflight Failures)
+- [x] 75 endpoints were missing `X-User-Hash` in `Access-Control-Allow-Headers` — browser preflight rejected hash-based auth requests
+- [x] Shared `CORS_HEADERS` in `api-utils.ts` updated to include `X-Workspace-ID`
+- [x] 72 files migrated to use shared `CORS_HEADERS` / `JSON_HEADERS` from `api-utils.ts` (local definitions removed)
+- [x] 4 COP public endpoints updated with consistent CORS headers (intentionally unauthenticated)
+- [x] All `{ ...corsHeaders, 'Content-Type': 'application/json' }` spreads replaced with `JSON_HEADERS`
+- [x] CORS preflight now returns correct `Access-Control-Allow-Headers: Content-Type, Authorization, X-User-Hash, X-Workspace-ID` on all endpoints
+- **Root cause:** endpoints were built independently with copy-pasted CORS definitions; many predated hash-based auth and never added `X-User-Hash`
+
+### P2 — evidence.ts and datasets.ts Had Broken Sequential .bind() (500 Error)
+- [x] `evidence.ts` and `datasets.ts` called `.bind()` in a loop (`stmt = stmt.bind(params[i])`) — D1 `.bind()` is NOT cumulative, each call replaces previous bindings
+- [x] Both endpoints returned 500 on any filtered GET query (only last parameter was bound)
+- [x] Fixed: replaced with `.bind(...params)` spread syntax
+- **Root cause:** incorrect assumption that D1 `.bind()` appends parameters; it sets all parameters at once
 
 ---
 
@@ -215,7 +234,7 @@
 ### P2 — Tech Debt: Remaining Duplication
 
 - [x] ~~generateId() in 21 COP endpoints~~ — deduplicated to shared `generatePrefixedId()` in v0.14.8
-- [ ] **CORS headers duplicated ~219 files** — shared `CORS_HEADERS` and `JSON_HEADERS` created in `api-utils.ts` but not yet adopted
+- [x] ~~CORS headers inconsistent across 75 endpoints~~ — migrated to shared `CORS_HEADERS`/`JSON_HEADERS` in v0.14.9. ~120 remaining files still define local corsHeaders but already include correct headers
 - [ ] **Dual API surface** — `/api/workspaces/` (team JWT/hash) and `/api/settings/workspaces` (personal `requireAuth`) should be consolidated
 
 ### P2 — Data Integrity

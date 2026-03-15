@@ -6,6 +6,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { CORS_HEADERS, JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -21,21 +22,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const frameworkId = params.id as string
 
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  }
-
   if (request.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: CORS_HEADERS })
   }
 
   if (request.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 405, headers: JSON_HEADERS }
     )
   }
 
@@ -45,7 +39,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: JSON_HEADERS }
       )
     }
 
@@ -57,7 +51,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (!framework) {
       return new Response(
         JSON.stringify({ error: 'Framework not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: JSON_HEADERS }
       )
     }
 
@@ -65,7 +59,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (framework.user_id !== userId) {
       return new Response(
         JSON.stringify({ error: 'Access denied' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 403, headers: JSON_HEADERS }
       )
     }
 
@@ -73,7 +67,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (framework.framework_type !== 'cog') {
       return new Response(
         JSON.stringify({ error: 'Only COG frameworks support entity generation' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: JSON_HEADERS }
       )
     }
 
@@ -86,7 +80,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     } catch (error) {
       return new Response(
         JSON.stringify({ error: 'Invalid framework data format' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: JSON_HEADERS }
       )
     }
 
@@ -299,7 +293,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           relationships: createdEntities.relationships.length
         }
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: JSON_HEADERS }
     )
 
   } catch (error) {
@@ -309,7 +303,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         error: 'Entity generation failed'
 
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }

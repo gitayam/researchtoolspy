@@ -6,6 +6,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
+import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -35,14 +36,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
   const method = request.method
 
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  }
-
   if (method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: CORS_HEADERS })
   }
 
   try {
@@ -54,7 +49,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: JSON_HEADERS,
         })
       }
     }
@@ -95,7 +90,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(
         JSON.stringify(profiles),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -106,7 +101,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!body.platform || !body.username) {
         return new Response(
           JSON.stringify({ error: 'Missing required fields: platform, username' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: JSON_HEADERS }
         )
       }
 
@@ -123,7 +118,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         // Verify ownership before update
         if (existing.created_by && Number(existing.created_by) !== userId) {
           return new Response(JSON.stringify({ error: 'Not authorized to update this profile' }), {
-            status: 403, headers: corsHeaders
+            status: 403, headers: JSON_HEADERS
           })
         }
         // Update existing profile
@@ -208,7 +203,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!profile) {
         return new Response(
           JSON.stringify({ success: true, id }),
-          { status: existing ? 200 : 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: existing ? 200 : 201, headers: JSON_HEADERS }
         )
       }
 
@@ -220,7 +215,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           verified: Boolean(profile.verified),
           is_active: Boolean(profile.is_active)
         }),
-        { status: existing ? 200 : 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: existing ? 200 : 201, headers: JSON_HEADERS }
       )
     }
 
@@ -236,7 +231,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!profile) {
         return new Response(
           JSON.stringify({ error: 'Profile not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 404, headers: JSON_HEADERS }
         )
       }
 
@@ -254,7 +249,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           is_active: Boolean(profile.is_active),
           scraped_posts_count: postCount[0]?.count || 0
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -268,7 +263,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(
         JSON.stringify({ message: 'Profile deleted successfully' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -311,7 +306,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(
         JSON.stringify(posts),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -322,7 +317,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!body.profile_id || !body.platform || !body.post_id) {
         return new Response(
           JSON.stringify({ error: 'Missing required fields: profile_id, platform, post_id' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: JSON_HEADERS }
         )
       }
 
@@ -418,7 +413,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!post) {
         return new Response(
           JSON.stringify({ success: true, id }),
-          { status: existing ? 200 : 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: existing ? 200 : 201, headers: JSON_HEADERS }
         )
       }
 
@@ -431,7 +426,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           entities: parseJSON(post.entities),
           media_downloaded: Boolean(post.media_downloaded)
         }),
-        { status: existing ? 200 : 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: existing ? 200 : 201, headers: JSON_HEADERS }
       )
     }
 
@@ -468,7 +463,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(
         JSON.stringify(jobs),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -479,7 +474,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!body.job_type || !body.platform) {
         return new Response(
           JSON.stringify({ error: 'Missing required fields: job_type, platform' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: JSON_HEADERS }
         )
       }
 
@@ -513,7 +508,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!job) {
         return new Response(
           JSON.stringify({ success: true, id, message: 'Job created. Note: Actual scraping requires external tools (instaloader, yt-dlp, etc.) to be configured.' }),
-          { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 201, headers: JSON_HEADERS }
         )
       }
 
@@ -523,7 +518,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           config: parseJSON(job.config),
           message: 'Job created. Note: Actual scraping requires external tools (instaloader, yt-dlp, etc.) to be configured.'
         }),
-        { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 201, headers: JSON_HEADERS }
       )
     }
 
@@ -539,7 +534,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!job) {
         return new Response(
           JSON.stringify({ error: 'Job not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 404, headers: JSON_HEADERS }
         )
       }
 
@@ -548,7 +543,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           ...job,
           config: parseJSON(job.config)
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -590,7 +585,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           ...job,
           config: parseJSON(job.config)
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -611,7 +606,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!profileOwner) {
         return new Response(
           JSON.stringify({ error: 'Profile not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 404, headers: JSON_HEADERS }
         )
       }
 
@@ -648,7 +643,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             platform_data: parseJSON(p.platform_data)
           }))
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -677,13 +672,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           posts: postCount?.count || 0,
           jobs_by_status: jobStats.results || []
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
     return new Response(
       JSON.stringify({ error: 'Not found' }),
-      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 404, headers: JSON_HEADERS }
     )
 
   } catch (error) {
@@ -693,7 +688,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         error: 'Internal server error'
 
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }

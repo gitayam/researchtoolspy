@@ -5,6 +5,7 @@
 
 import { nanoid } from 'nanoid'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, CORS_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -14,15 +15,8 @@ interface Env {
 export async function onRequestPost(context: { request: Request; env: Env }) {
   const { request, env } = context
 
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json',
-  }
-
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return optionsResponse()
   }
 
   try {
@@ -31,7 +25,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
     const { analysis_id, workspace_id = request.headers.get('X-Workspace-ID') || null } = body
@@ -40,7 +34,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     if (!analysis_id) {
       return new Response(JSON.stringify({ error: 'analysis_id required' }), {
         status: 400,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -54,7 +48,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     if (!analysis) {
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {
         status: 404,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -189,7 +183,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       }
     }), {
       status: 200,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
 
   } catch (error) {
@@ -199,7 +193,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
     }), {
       status: 500,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 }

@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -17,7 +18,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -29,7 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'claim_adjustment_id is required in URL path'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -58,7 +59,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!claim) {
       return new Response(JSON.stringify({ error: 'Claim not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -119,7 +120,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -331,11 +332,5 @@ function getRiskLevel(score: number): string {
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

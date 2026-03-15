@@ -5,25 +5,19 @@
  */
 
 import { getUserFromRequest } from '../../../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const corsHeaders = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-  }
-
   try {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
     const sessionId = context.params.id as string
@@ -31,7 +25,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!sessionId) {
       return new Response(JSON.stringify({ error: 'session_id is required' }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -52,7 +46,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!session) {
       return new Response(JSON.stringify({ error: 'Session not found' }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -60,7 +54,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (session.user_id !== userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -93,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!found) {
       return new Response(JSON.stringify({ error: 'Entity or question not found in session data' }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -108,7 +102,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // (Future improvement: link framework_session to entity via a formal relationship table)
 
     return new Response(JSON.stringify({ success: true, linked_id }), {
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -118,19 +112,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

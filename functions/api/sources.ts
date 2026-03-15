@@ -6,7 +6,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 import { checkWorkspaceAccess } from './_shared/workspace-helpers'
-import { generateId } from './_shared/api-utils'
+import { generateId, CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -19,14 +19,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
   const method = request.method
 
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  }
-
   if (method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: CORS_HEADERS })
   }
 
   try {
@@ -39,14 +33,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!workspaceId) {
         return new Response(
           JSON.stringify({ error: 'workspace_id parameter required' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: JSON_HEADERS }
         )
       }
 
       if (!(await checkWorkspaceAccess(workspaceId, userId, env))) {
         return new Response(
           JSON.stringify({ error: 'Access denied to workspace' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 403, headers: JSON_HEADERS }
         )
       }
 
@@ -81,7 +75,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(
         JSON.stringify(sources),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -90,7 +84,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401, headers: JSON_HEADERS,
         })
       }
 
@@ -99,14 +93,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!body.name || !body.type || !body.workspace_id) {
         return new Response(
           JSON.stringify({ error: 'Missing required fields: name, type, workspace_id' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: JSON_HEADERS }
         )
       }
 
       if (!(await checkWorkspaceAccess(body.workspace_id, authUserId, env, 'EDITOR'))) {
         return new Response(
           JSON.stringify({ error: 'Insufficient permissions' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 403, headers: JSON_HEADERS }
         )
       }
 
@@ -155,7 +149,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!source) {
         return new Response(
           JSON.stringify({ success: true, id }),
-          { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 201, headers: JSON_HEADERS }
         )
       }
 
@@ -165,7 +159,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           moses_assessment: source.moses_assessment ? JSON.parse(source.moses_assessment as string) : null,
           is_public: Boolean(source.is_public)
         }),
-        { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 201, headers: JSON_HEADERS }
       )
     }
 
@@ -183,14 +177,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!source) {
         return new Response(
           JSON.stringify({ error: 'Source not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 404, headers: JSON_HEADERS }
         )
       }
 
       if (!(await checkWorkspaceAccess(source.workspace_id as string, userId, env))) {
         return new Response(
           JSON.stringify({ error: 'Access denied' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 403, headers: JSON_HEADERS }
         )
       }
 
@@ -208,7 +202,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             evidence: evidenceCount[0]?.count || 0
           }
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -217,7 +211,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401, headers: JSON_HEADERS,
         })
       }
 
@@ -231,14 +225,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!source) {
         return new Response(
           JSON.stringify({ error: 'Source not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 404, headers: JSON_HEADERS }
         )
       }
 
       if (!(await checkWorkspaceAccess(source.workspace_id as string, authUserId, env, 'EDITOR'))) {
         return new Response(
           JSON.stringify({ error: 'Insufficient permissions' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 403, headers: JSON_HEADERS }
         )
       }
 
@@ -272,7 +266,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!updated) {
         return new Response(
           JSON.stringify({ success: true, id: sourceId }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: JSON_HEADERS }
         )
       }
 
@@ -282,7 +276,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           moses_assessment: updated.moses_assessment ? JSON.parse(updated.moses_assessment as string) : null,
           is_public: Boolean(updated.is_public)
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
@@ -291,7 +285,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401, headers: JSON_HEADERS,
         })
       }
 
@@ -304,14 +298,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!source) {
         return new Response(
           JSON.stringify({ error: 'Source not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 404, headers: JSON_HEADERS }
         )
       }
 
       if (!(await checkWorkspaceAccess(source.workspace_id as string, authUserId, env, 'EDITOR'))) {
         return new Response(
           JSON.stringify({ error: 'Insufficient permissions' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 403, headers: JSON_HEADERS }
         )
       }
 
@@ -333,13 +327,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(
         JSON.stringify({ message: 'Source deleted successfully' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: JSON_HEADERS }
       )
     }
 
     return new Response(
       JSON.stringify({ error: 'Not found' }),
-      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 404, headers: JSON_HEADERS }
     )
 
   } catch (error) {
@@ -349,7 +343,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         error: 'Internal server error'
 
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }

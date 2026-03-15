@@ -5,20 +5,15 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Workspace-ID',
-}
-
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { headers: corsHeaders })
+  return optionsResponse()
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -32,10 +27,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Authentication required'
       }), {
         status: 401,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: JSON_HEADERS
       })
     }
 
@@ -46,10 +38,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Could not resolve user from auth token'
       }), {
         status: 401,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: JSON_HEADERS
       })
     }
 
@@ -62,10 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Invalid bookmark hash'
       }), {
         status: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: JSON_HEADERS
       })
     }
 
@@ -139,10 +125,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: `Successfully migrated ${totalMigrated} records to your account`
     }), {
       status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -152,10 +135,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+      headers: JSON_HEADERS
     })
   }
 }

@@ -3,6 +3,8 @@
  * Returns all frameworks where a specific entity is used
  */
 
+import { CORS_HEADERS, JSON_HEADERS } from '../_shared/api-utils'
+
 interface Env {
   DB: D1Database
 }
@@ -10,15 +12,8 @@ interface Env {
 export async function onRequestGet(context: { request: Request; env: Env }) {
   const { request, env } = context
 
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json',
-  }
-
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return new Response(null, { status: 204, headers: CORS_HEADERS })
   }
 
   try {
@@ -29,7 +24,7 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
     if (!entityId || !entityType) {
       return new Response(JSON.stringify({ error: 'entity_id and entity_type required' }), {
         status: 400,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -93,7 +88,7 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
 
     return new Response(JSON.stringify({ frameworks }), {
       status: 200,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
 
   } catch (error) {
@@ -103,7 +98,7 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
 
     }), {
       status: 500,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 }

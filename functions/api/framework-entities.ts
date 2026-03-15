@@ -1,21 +1,14 @@
 // Cloudflare Pages Function for Framework-Entity Linking API
 // Supports linking actors, sources, events to frameworks
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
+import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
 export async function onRequest(context: any) {
   const { request, env } = context
 
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json',
-  }
-
   // Handle preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return new Response(null, { status: 204, headers: CORS_HEADERS })
   }
 
   try {
@@ -30,7 +23,7 @@ export async function onRequest(context: any) {
       if (!frameworkId) {
         return new Response(JSON.stringify({ error: 'framework_id is required' }), {
           status: 400,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -93,7 +86,7 @@ export async function onRequest(context: any) {
 
       return new Response(JSON.stringify({ links: enrichedLinks }), {
         status: 200,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -102,7 +95,7 @@ export async function onRequest(context: any) {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
+          status: 401, headers: JSON_HEADERS,
         })
       }
       const body = await request.json()
@@ -112,7 +105,7 @@ export async function onRequest(context: any) {
           error: 'framework_id is required'
         }), {
           status: 400,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -130,7 +123,7 @@ export async function onRequest(context: any) {
           error: 'entities array or entity_type/entity_id are required'
         }), {
           status: 400,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -174,7 +167,7 @@ export async function onRequest(context: any) {
         results
       }), {
         status: 201,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -183,7 +176,7 @@ export async function onRequest(context: any) {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
+          status: 401, headers: JSON_HEADERS,
         })
       }
       if (!frameworkId || !entityType || !entityId) {
@@ -191,7 +184,7 @@ export async function onRequest(context: any) {
           error: 'framework_id, entity_type, and entity_id are required'
         }), {
           status: 400,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -201,7 +194,7 @@ export async function onRequest(context: any) {
       ).bind(frameworkId, authUserId).first()
       if (!fw) {
         return new Response(JSON.stringify({ error: 'Framework not found or access denied' }), {
-          status: 404, headers: corsHeaders,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
@@ -211,26 +204,26 @@ export async function onRequest(context: any) {
 
       if (!delResult.meta.changes || delResult.meta.changes === 0) {
         return new Response(JSON.stringify({ error: 'Entity link not found' }), {
-          status: 404, headers: corsHeaders,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
       return new Response(JSON.stringify({ message: 'Entity unlinked successfully' }), {
         status: 200,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
 
   } catch (error: any) {
     console.error('Framework-Entities API error:', error)
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 }

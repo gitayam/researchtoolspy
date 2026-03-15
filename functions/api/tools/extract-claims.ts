@@ -11,6 +11,7 @@ import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { enhancedFetch } from '../../utils/browser-profiles'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { fetchSocialViaApify } from '../_shared/apify-social'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -441,7 +442,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: JSON_HEADERS,
       })
     }
 
@@ -451,7 +452,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!url) {
       return new Response(JSON.stringify({ error: 'url is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -468,7 +469,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           paywalled: false
         }), {
           status: 422,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: JSON_HEADERS
         })
       }
       if (host === 'tiktok.com' && !context.env.APIFY_API_KEY) {
@@ -479,7 +480,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           paywalled: false
         }), {
           status: 422,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: JSON_HEADERS
         })
       }
     } catch {
@@ -517,7 +518,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         paywalled: fetched.paywalled
       }), {
         status: 422,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -533,7 +534,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         paywalled: fetched.paywalled
       }), {
         status: 422,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -564,10 +565,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       processing_ms: Date.now() - startTime
     }), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -578,21 +576,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       processing_ms: Date.now() - startTime
     }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: JSON_HEADERS
     })
   }
 }
 
 export const onRequestOptions: PagesFunction<Env> = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

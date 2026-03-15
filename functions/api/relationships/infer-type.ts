@@ -4,6 +4,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { CORS_HEADERS, JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -44,15 +45,8 @@ const RELATIONSHIP_TYPES = [
 export async function onRequestPost(context: { request: Request; env: Env }) {
   const { request, env } = context
 
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json',
-  }
-
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return new Response(null, { status: 204, headers: CORS_HEADERS })
   }
 
   try {
@@ -60,7 +54,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -71,7 +65,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         error: 'source_entity_id and target_entity_id are required'
       }), {
         status: 400,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -84,7 +78,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         error: 'One or both entities not found'
       }), {
         status: 404,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -113,7 +107,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       }
     }), {
       status: 200,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
 
   } catch (error) {
@@ -123,7 +117,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
     }), {
       status: 500,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 }

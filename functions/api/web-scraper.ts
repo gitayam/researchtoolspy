@@ -1,6 +1,7 @@
 // Cloudflare Pages Function for Web Scraping API
 import { enhancedFetch } from '../utils/browser-profiles'
 import { getUserFromRequest } from './_shared/auth-helpers'
+import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
 interface ScrapingRequest {
   url: string
@@ -34,23 +35,15 @@ interface ScrapingResult {
 export async function onRequest(context: any) {
   const { request, env } = context
 
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json',
-  }
-
   // Handle preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return new Response(null, { status: 204, headers: CORS_HEADERS })
   }
 
   if (request.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 
@@ -59,7 +52,7 @@ export async function onRequest(context: any) {
   if (!authUserId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
       status: 401,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 
@@ -69,7 +62,7 @@ export async function onRequest(context: any) {
     if (!body.url) {
       return new Response(JSON.stringify({ error: 'URL is required' }), {
         status: 400,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -83,7 +76,7 @@ export async function onRequest(context: any) {
     } catch (error) {
       return new Response(JSON.stringify({ error: 'Invalid URL' }), {
         status: 400,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -115,7 +108,7 @@ export async function onRequest(context: any) {
           technicalDetails: 'Request timeout after 15 seconds'
         }), {
           status: 504,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -167,7 +160,7 @@ export async function onRequest(context: any) {
         technicalDetails: `HTTP ${response.status} ${response.statusText}`
       }), {
         status: 400,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -312,7 +305,7 @@ export async function onRequest(context: any) {
       data: result
     }), {
       status: 200,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
 
   } catch (error: any) {
@@ -382,7 +375,7 @@ export async function onRequest(context: any) {
       suggestions
     }), {
       status: 500,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 }

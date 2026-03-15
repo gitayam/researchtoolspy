@@ -6,6 +6,8 @@
  * No authentication required for public evidence submission
  */
 
+import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+
 interface Env {
   DB: D1Database
 }
@@ -130,7 +132,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'Form not found'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -139,7 +141,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'Form is no longer active'
       }), {
         status: 410,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -149,7 +151,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'Form has expired'
       }), {
         status: 410,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -165,7 +167,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         requirePassword: form.require_submission_password === 1
       }
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -175,7 +177,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -197,7 +199,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Form not found'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -206,7 +208,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Form is no longer active'
       }), {
         status: 410,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -216,7 +218,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Form has expired'
       }), {
         status: 410,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -227,7 +229,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           error: 'Password required'
         }), {
           status: 401,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -237,7 +239,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           error: 'Invalid password'
         }), {
           status: 401,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: JSON_HEADERS
         })
       }
     }
@@ -248,7 +250,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Source URL is required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -257,7 +259,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Content type is required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -378,7 +380,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       },
       message: 'Thank you for your submission. It will be reviewed shortly.'
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -388,18 +390,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

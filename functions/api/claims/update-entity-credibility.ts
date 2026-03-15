@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -30,7 +31,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
         error: 'mention_id is required in URL path'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -42,7 +43,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
         error: 'credibility_impact is required and must be between -50 and +50'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -58,14 +59,14 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
     if (!mention) {
       return new Response(JSON.stringify({ error: 'Entity mention not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
     if (mention.content_owner !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to update this entity mention' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -84,7 +85,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       success: true,
       message: 'Entity credibility impact updated successfully'
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[Update Entity Credibility] Error:', error)
@@ -93,18 +94,12 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

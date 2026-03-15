@@ -1,20 +1,13 @@
 // Cloudflare Pages Function for Evidence Citations API
 import { getUserFromRequest } from './_shared/auth-helpers'
+import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
 export async function onRequest(context: any) {
   const { request, env } = context
 
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json',
-  }
-
   // Handle preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return new Response(null, { status: 204, headers: CORS_HEADERS })
   }
 
   try {
@@ -26,7 +19,7 @@ export async function onRequest(context: any) {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -62,7 +55,7 @@ export async function onRequest(context: any) {
 
         return new Response(JSON.stringify({ citations: parsedCitations }), {
           status: 200,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       } else if (datasetId) {
         // Get all evidence items that cite this dataset
@@ -83,13 +76,13 @@ export async function onRequest(context: any) {
 
         return new Response(JSON.stringify({ citations: citations.results }), {
           status: 200,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
       return new Response(JSON.stringify({ error: 'evidence_id or dataset_id required' }), {
         status: 400,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -102,7 +95,7 @@ export async function onRequest(context: any) {
           error: 'evidence_id and dataset_ids (array) are required'
         }), {
           status: 400,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -141,7 +134,7 @@ export async function onRequest(context: any) {
         results
       }), {
         status: 201,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -152,7 +145,7 @@ export async function onRequest(context: any) {
           error: 'evidence_id and dataset_id are required'
         }), {
           status: 400,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -162,7 +155,7 @@ export async function onRequest(context: any) {
       ).bind(evidenceId, userId).first()
       if (!ev) {
         return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
-          status: 404, headers: corsHeaders,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
@@ -172,20 +165,20 @@ export async function onRequest(context: any) {
 
       return new Response(JSON.stringify({ message: 'Citation removed successfully' }), {
         status: 200,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
 
   } catch (error: any) {
     console.error('Evidence Citations API error:', error)
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 }

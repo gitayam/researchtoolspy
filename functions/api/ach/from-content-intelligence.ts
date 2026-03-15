@@ -4,6 +4,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -22,7 +23,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: JSON_HEADERS,
       })
     }
     const workspaceId = data.workspace_id || context.request.headers.get('X-Workspace-ID') || null
@@ -32,7 +33,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'analysis_id is required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -46,7 +47,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Content analysis not found'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -192,10 +193,7 @@ Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2",
       evidence_id: evidenceId,
       source_analysis_id: analysis.id
     }), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[ACH] Auto-population error:', error)
@@ -204,7 +202,7 @@ Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2",
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -252,11 +250,5 @@ async function createEvidenceFromContent(db: D1Database, analysis: any, userId: 
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

@@ -8,6 +8,7 @@
 
 import { requireAuth } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -96,7 +97,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Missing required fields: topic, who, what, where, when, why'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -238,7 +239,7 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
           error: 'No workspace found for user'
         }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -290,7 +291,7 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
         why: body.why.importance
       }
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[generate-question] Error:', error)
@@ -299,18 +300,12 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

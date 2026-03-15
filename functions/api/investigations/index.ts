@@ -7,6 +7,7 @@
 import { requireAuth } from '../_shared/auth-helpers'
 import { logActivity } from '../_shared/activity-logger'
 import { notifyWorkspaceMembers } from '../_shared/notification-logger'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -35,7 +36,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         investigations: [],
         total: 0
       }), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -50,7 +51,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         investigations: [],
         total: 0
       }), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -105,7 +106,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       investigations: parsed,
       total: parsed.length
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[investigations] Error listing:', error)
@@ -114,7 +115,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -127,7 +128,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       userId = await requireAuth(context.request, context.env)
     } catch (error) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -138,7 +139,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Missing required fields: title, type'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -187,7 +188,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           error: 'Research question not found or not accessible'
         }), {
           status: 404,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: JSON_HEADERS
         })
       }
     }
@@ -315,7 +316,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       investigation: parsed
     }), {
       status: 201,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[investigations] Error creating:', error)
@@ -324,18 +325,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  })
+  return optionsResponse()
 }

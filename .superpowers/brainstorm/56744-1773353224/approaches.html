@@ -1,0 +1,84 @@
+<h2>Architecture: Which approach for the Cross Table engine?</h2>
+<p class="subtitle">Three options for how the matrix, scoring, and analysis engine is structured</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Monolithic Page Component</h3>
+      <p>Single <code>CrossTablePage</code> with all logic inline — matrix rendering, scoring, weighting, AI, export. Similar to how ACH is built today.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Fastest to build — one file, one mental model</li>
+            <li>Matches existing ACH pattern</li>
+            <li>Simple state management (useState)</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Will grow large fast (8 templates + 6 scoring methods + AI + collab + export)</li>
+            <li>Hard to test individual features</li>
+            <li>Template logic mixed with scoring logic mixed with UI</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Composable Engine + UI Layer</h3>
+      <p>Separate the <strong>cross-table engine</strong> (scoring, weighting, AHP, sensitivity) from the <strong>UI layer</strong> (matrix grid, template forms, visualization). Engine is a pure TypeScript module, UI consumes it via a context provider.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Engine is testable without UI — unit test scoring, AHP, sensitivity</li>
+            <li>Templates are config-driven (add new template = add config object)</li>
+            <li>UI components stay focused (Grid, ScoreCell, WeightSlider, ResultsChart)</li>
+            <li>Collaborative scoring is a layer on top, not mixed in</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>More files upfront (~12-15 vs ~4-5)</li>
+            <li>Slightly more abstraction to navigate</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top: 12px; padding: 8px 12px; background: rgba(99,102,241,0.1); border-radius: 6px; font-size: 14px;">
+        <strong>⭐ Recommended</strong> — The feature set (8 templates × 6 scoring methods × AI × collab × export) demands separation. The engine handles the math, the UI handles the pixels.
+      </p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Plugin Architecture</h3>
+      <p>Each template, scoring method, and weighting algorithm is a self-contained plugin with a standard interface. A registry discovers and composes them at runtime.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Maximum extensibility — add templates/scoring without touching core</li>
+            <li>Could allow user-defined scoring plugins in the future</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Over-engineered for current scope — YAGNI</li>
+            <li>Plugin interfaces add complexity before there's a clear need</li>
+            <li>Slower to build, harder to debug</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

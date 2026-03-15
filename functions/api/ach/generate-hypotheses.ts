@@ -4,6 +4,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -20,7 +21,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: JSON_HEADERS,
       })
     }
 
@@ -31,7 +32,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Question is required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -41,7 +42,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'OpenAI API key not configured'
       }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -132,10 +133,7 @@ Return format: ["hypothesis 1", "hypothesis 2", ...]`
       generated_at: new Date().toISOString(),
       model: 'gpt-4o-mini'
     }), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[ACH] Hypothesis generation error:', error)
@@ -144,18 +142,12 @@ Return format: ["hypothesis 1", "hypothesis 2", ...]`
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    }
-  })
+  return optionsResponse()
 }
