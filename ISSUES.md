@@ -1,7 +1,21 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.19.2-evidence-hardening
+**Current tag:** v0.19.3-entity-response-fix
+
+---
+
+## Fixed (v0.19.3)
+
+### P1 — 4 Entity Endpoints Returned Bare Arrays (Frontend Data Loss)
+- [x] `sources.ts`, `events.ts`, `places.ts`, `behaviors.ts` returned `JSON.stringify(items)` — bare arrays
+- [x] Frontend expected wrapped objects: `data.sources`, `data.events`, `data.places`, `data.behaviors`
+- [x] Result: `data.events?.forEach(...)` was a no-op, entity lists rendered empty in EvidenceLinker, NetworkGraphPage, EntitySelector, MOMAssessmentForm, and entity list pages
+- [x] Fix: Changed to `JSON.stringify({ sources })`, `{ events }`, `{ places }`, `{ behaviors }` — matching `actors.ts` pattern
+- **Root cause:** These four files were written before a convention was established. `actors.ts` was updated to wrap its response but the other four were missed. Frontend was written expecting wrapped format but backend never matched.
+- **Affected UI components:** EvidenceLinker, NetworkGraphPage, EntitySelector, MOMAssessmentForm, SourcesPage, EventsPage
+
+### Smoke Test Results — 24/24 Passing (core + entity endpoints verified)
 
 ---
 

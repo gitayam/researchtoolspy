@@ -74,7 +74,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }))
 
       return new Response(
-        JSON.stringify(sources),
+        JSON.stringify({ sources }),
         { status: 200, headers: JSON_HEADERS }
       )
     }
