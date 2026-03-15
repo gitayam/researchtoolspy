@@ -29,6 +29,7 @@ import {
   Tag,
   XCircle
 } from 'lucide-react'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface SubmissionForm {
   id: string
@@ -160,7 +161,7 @@ export default function EvidenceSubmissionsPage() {
     try {
       const response = await fetch(`/api/research/forms/${formId}/toggle`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ is_active: currentStatus === 1 ? 0 : 1 })
       })
 
@@ -182,7 +183,8 @@ export default function EvidenceSubmissionsPage() {
 
     try {
       const response = await fetch(`/api/research/forms/${formId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getCopHeaders(),
       })
 
       if (!response.ok) {
@@ -218,7 +220,7 @@ export default function EvidenceSubmissionsPage() {
     try {
       const response = await fetch('/api/research/submissions/process', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           submissionId: processDialog.submissionId,
           verificationStatus: processDialog.verificationStatus,
@@ -650,7 +652,7 @@ export default function EvidenceSubmissionsPage() {
                         {selectedSubmission.content_description && (
                           <div>
                             <Label className="text-sm font-medium">
-                              {t('evidenceSubmissions.description', 'Description')}
+                              {t('evidenceSubmissions.fieldDescription', 'Description')}
                             </Label>
                             <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                               {selectedSubmission.content_description}

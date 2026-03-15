@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { useTranslation } from 'react-i18next'
 import { evidenceToCitation } from '@/utils/evidence-to-citation'
 import { addCitation } from '@/utils/citation-library'
@@ -54,7 +55,7 @@ export function URLProcessingPage() {
     try {
       const response = await fetch('/api/tools/analyze-url', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           url,
           checkWayback,
@@ -364,13 +365,13 @@ export function URLProcessingPage() {
               <dl className="space-y-2">
                 {result.metadata.title && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.title')}</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.metadataTitle')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white">{result.metadata.title}</dd>
                   </div>
                 )}
                 {result.metadata.description && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.description')}</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('urlProcessingTool.metadataDescription')}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white">{result.metadata.description}</dd>
                   </div>
                 )}

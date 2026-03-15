@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { FileUploader } from '@/components/tools/FileUploader'
 import type { ExtractionResult, ExtractionProgress } from '@/types/extraction'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export function ContentExtractionPage() {
   const navigate = useNavigate()
@@ -62,7 +63,7 @@ export function ContentExtractionPage() {
     try {
       const response = await fetch('/api/tools/extract', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ url })
       })
 
@@ -247,7 +248,7 @@ export function ContentExtractionPage() {
                 <div className="grid grid-cols-2 gap-4">
                   {result.metadata.title && (
                     <div>
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('contentExtractionTool.title')}</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('contentExtractionTool.metadataTitle')}</label>
                       <p className="text-sm text-gray-900 dark:text-gray-100">{result.metadata.title}</p>
                     </div>
                   )}

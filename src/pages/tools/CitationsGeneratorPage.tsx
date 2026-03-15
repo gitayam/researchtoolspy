@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Plus, Copy, Check, Trash2, BookOpen, Globe, Loader2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -176,7 +177,7 @@ export function CitationsGeneratorPage() {
     try {
       const response = await fetch('/api/tools/scrape-metadata', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ url })
       })
 
@@ -354,7 +355,7 @@ export function CitationsGeneratorPage() {
 
               {/* Title */}
               <div>
-                <Label>{t('citationsGeneratorTool.title')}</Label>
+                <Label>{t('citationsGeneratorTool.fieldTitle')}</Label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
