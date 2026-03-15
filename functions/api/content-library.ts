@@ -4,20 +4,16 @@
  */
 
 import { getUserFromRequest } from './_shared/auth-helpers'
+import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
   JWT_SECRET?: string
-}
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Workspace-ID, X-User-Hash, Authorization',
+  SESSIONS?: KVNamespace
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { headers: corsHeaders })
+  return new Response(null, { status: 204, headers: CORS_HEADERS })
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -29,7 +25,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: JSON_HEADERS,
       })
     }
     const workspaceId = request.headers.get('X-Workspace-ID') || null
@@ -73,24 +69,31 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       offset
     }), {
       status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+      headers: JSON_HEADERS,
     })
 
   } catch (error: any) {
     if (error instanceof Response) return error
     console.error('[Content Library] Error:', error)
+
+    // If table doesn't exist, return empty array gracefully
+    if (error.message?.includes('no such table') || error.message?.includes('no such column')) {
+      return new Response(JSON.stringify({
+        content: [],
+        total: 0,
+        limit: 50,
+        offset: 0
+      }), {
+        status: 200,
+        headers: JSON_HEADERS,
+      })
+    }
+
     return new Response(JSON.stringify({
       error: 'Failed to fetch content library'
-
     }), {
       status: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+      headers: JSON_HEADERS,
     })
   }
 }

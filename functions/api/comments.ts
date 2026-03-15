@@ -1,5 +1,6 @@
 import { getUserFromRequest } from './_shared/auth-helpers'
 import { createNotification } from './_shared/notification-logger'
+import { generateId } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -28,10 +29,6 @@ interface Comment {
   reactions?: Record<string, number>
 }
 
-// Generate UUID v4
-function generateId(): string {
-  return crypto.randomUUID()
-}
 
 // Simple markdown to HTML conversion (basic, can be enhanced)
 function markdownToHtml(markdown: string): string {

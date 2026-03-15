@@ -1,7 +1,27 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.14.9-cors-fix
+**Current tag:** v0.15.0-content-library-generateid
+
+---
+
+## Fixed (v0.15.0)
+
+### P2 — content-library Endpoint Returned 500 (Missing Table Fallback)
+- [x] `content-library.ts` crashed with 500 when `content_intelligence` table had missing columns or didn't exist
+- [x] Added graceful fallback: returns empty `{ content: [], total: 0 }` on "no such table/column" errors
+- [x] Migrated from local `corsHeaders` to shared `JSON_HEADERS`
+- **Root cause:** catch block returned generic 500 instead of empty result for schema-related D1 errors
+
+### P2 — Last 5 Local generateId() Definitions Removed
+- [x] `comments.ts` — plain UUID → shared `generateId()`
+- [x] `social-media.ts` — plain UUID → shared `generateId()`
+- [x] `frameworks/[id]/generate-entities.ts` — plain UUID → shared `generateId()`
+- [x] `hamilton-rule.ts` — prefixed `hr-` → shared `generatePrefixedId('hr')`
+- [x] `equilibrium-analysis.ts` — prefixed `eq-` → shared `generatePrefixedId('eq')`
+- [x] Zero local `generateId` definitions remain anywhere in `functions/api/`
+- [x] `hamilton-rule.ts` and `equilibrium-analysis.ts` also migrated from local corsHeaders to shared `JSON_HEADERS`
+- **Root cause:** these 5 files were missed in v0.14.1 (entity endpoints) and v0.14.8 (COP endpoints) sweeps
 
 ---
 

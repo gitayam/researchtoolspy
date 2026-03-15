@@ -6,17 +6,13 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
-import { CORS_HEADERS, JSON_HEADERS } from '../../_shared/api-utils'
+import { generateId, CORS_HEADERS, JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS: KVNamespace
 }
 
-// Generate UUID v4
-function generateId(): string {
-  return crypto.randomUUID()
-}
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
