@@ -1,7 +1,26 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.18.3-intel-schema-fix
+**Current tag:** v0.18.4-schema-drift-security
+
+---
+
+## Fixed (v0.18.4)
+
+### P2 — Actor Credibility MOM Query Silent Failure (Schema Drift)
+- [x] `actors/[actor_id]/credibility.ts` — referenced `assessed_at` column; actual column is `created_at`
+- [x] MOM assessment data silently returned empty due to try/catch swallowing the D1 column error
+- **Root cause:** Same schema drift from v0.17.9 `mom_assessments` recreation. 4th file found with stale column names.
+
+### P2 — Security: `social-media/jobs.ts` Leaked `err.message` in Responses
+- [x] GET handler (line 45): `{ error: err.message }` → `{ error: 'Failed to list jobs' }`
+- [x] POST handler (line 132): `{ error: err.message }` → `{ error: 'Failed to create job' }`
+- **Root cause:** OWASP A01 information disclosure. This file was missed in the v0.14.9 and v0.16.0 error hardening sweeps.
+
+### Audit Results (No Fixes Needed)
+- `.toString()` audit: 37 instances across `src/`, all safe (guarded by type, optional chaining, or guaranteed non-null)
+- `error.message` audit: remaining uses in `scrape-url.ts`, `web-scraper.ts`, `social-media-extract.ts` use it for control flow (selecting generic error messages), not leaked in responses
+- Dead code audit: 74 lines of internal routing dead code in 6 claims parent files — documented in v0.18.3, P3 cleanup
 
 ---
 

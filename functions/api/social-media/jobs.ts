@@ -42,7 +42,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   } catch (err: any) {
     console.error('[social-media/jobs] GET error:', err)
     return new Response(
-      JSON.stringify({ error: err.message || 'Failed to list jobs' }),
+      JSON.stringify({ error: 'Failed to list jobs' }),
       { status: 500, headers: JSON_HEADERS }
     )
   }
@@ -129,7 +129,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   } catch (err: any) {
     console.error('[social-media/jobs] POST error:', err)
     return new Response(
-      JSON.stringify({ error: err.message || 'Failed to create job' }),
+      JSON.stringify({ error: 'Failed to create job' }),
       { status: 500, headers: JSON_HEADERS }
     )
   }

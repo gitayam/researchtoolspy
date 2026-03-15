@@ -139,15 +139,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       opportunity: number
       means: number
       notes: string | null
-      assessed_at: string
+      created_at: string
     }> = []
 
     try {
       const { results: momRows } = await env.DB.prepare(`
-        SELECT id, motive, opportunity, means, notes, assessed_at
+        SELECT id, motive, opportunity, means, notes, created_at
         FROM mom_assessments
         WHERE actor_id = ? AND workspace_id = ?
-        ORDER BY assessed_at DESC
+        ORDER BY created_at DESC
         LIMIT 50
       `).bind(actorId, workspaceId).all()
 
@@ -157,7 +157,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         opportunity: row.opportunity as number,
         means: row.means as number,
         notes: (row.notes as string) || null,
-        assessed_at: row.assessed_at as string,
+        created_at: row.created_at as string,
       }))
     } catch {
       // mom_assessments table may not exist yet
